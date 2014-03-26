@@ -28,6 +28,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class UpdateAnalysis extends AbstractDataAnalysis {
@@ -47,7 +48,7 @@ public class UpdateAnalysis extends AbstractDataAnalysis {
 
     public void addAssignement(Reference reference, Symbol value) {
         if (assignments.containsKey(reference)) {
-            throw new IllegalArgumentException(String.format("reference repeated %s", reference.info().ident().columnIdent().fqn()));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.info().ident().columnIdent().fqn()));
         }
         if (!reference.info().ident().tableIdent().equals(table().ident())) {
             throw new UnsupportedOperationException("cannot update references from other tables.");

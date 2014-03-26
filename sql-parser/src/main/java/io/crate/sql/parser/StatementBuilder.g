@@ -652,10 +652,10 @@ assignment returns [Assignment value]
     ;
 
 copyTo returns [Statement value]
-    : ^(COPY_TO namedTable columnIdentList? d=copyToTargetSpec[false] expr genericProperties?)
+    : ^(COPY_TO namedTable columnList? d=copyToTargetSpec[false] expr genericProperties?)
         {
             $value = new CopyTo($namedTable.value,
-                                $columnIdentList.value,
+                                $columnList.value,
                                 $d.value,
                                 $expr.value,
                                 $genericProperties.value);
@@ -782,22 +782,18 @@ literalList returns [List<Expression> value]
     ;
 
 indexDefinition returns [IndexDefinition value]
-    : ^(INDEX indexName=ident indexMethod=ident indexColumns genericProperties?)
+    : ^(INDEX indexName=ident indexMethod=ident columnList genericProperties?)
         {
-            $value = new IndexDefinition($indexName.value, $indexMethod.value, $indexColumns.value, $genericProperties.value);
+            $value = new IndexDefinition($indexName.value, $indexMethod.value, $columnList.value, $genericProperties.value);
         }
     ;
 
-indexColumns returns [List<Expression> value]
-    : ^(INDEX_COLUMNS columnList) { $value = $columnList.value; }
-    ;
-
 columnIdentList returns [List<String> value]
-    : ^(COLUMN_LIST identList) { $value = $identList.value; }
+    : ^(IDENT_LIST identList) { $value = $identList.value; }
     ;
 
 columnList returns [List<Expression> value = new ArrayList<>()]
-    : ( columnListElement { $value.add($columnListElement.value); } )+
+    : ^(COLUMN_LIST  (columnListElement { $value.add($columnListElement.value); } )+ )
     ;
 
 columnListElement returns [Expression value]
@@ -825,7 +821,7 @@ clusteredBy returns [ClusteredBy value]
     ;
 
 partitionedBy returns [PartitionedBy value]
-    : ^(PARTITIONED columns=columnIdentList) { $value = new PartitionedBy($columns.value); }
+    : ^(PARTITIONED columnList) { $value = new PartitionedBy($columnList.value); }
     ;
 
 

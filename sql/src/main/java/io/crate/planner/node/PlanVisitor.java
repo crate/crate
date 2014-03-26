@@ -21,10 +21,7 @@
 
 package io.crate.planner.node;
 
-import io.crate.planner.node.ddl.DDLPlanNode;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
-import io.crate.planner.node.ddl.ESCreateIndexNode;
-import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import org.elasticsearch.common.Nullable;
@@ -92,6 +89,10 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitESCountNode(ESCountNode node, C context) {
+        return visitPlanNode(node, context);
+    }
+
+    public R visitESCreateTemplateNode(ESCreateTemplateNode node, C context) {
         return visitPlanNode(node, context);
     }
 }

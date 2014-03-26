@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Locale;
 
 public class ArrayLiteral extends Literal<Object[], ArrayLiteral> {
 
@@ -109,7 +110,7 @@ public class ArrayLiteral extends Literal<Object[], ArrayLiteral> {
                 return new ArrayLiteral(targetItemType, new Object[0]);
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException(String.format("invalid conversion from %s to %s", valueType, type), e);
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "invalid conversion from %s to %s", valueType, type), e);
         }
     }
 

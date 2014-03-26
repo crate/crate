@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
@@ -36,7 +37,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -355,9 +358,168 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         analyze("create table \"abc.def\" (id integer primary key, name string)");
     }
 
+    @Test
+    public void testHasColumnDefinition() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+                "  id integer primary key, " +
+                "  name string, " +
+                "  indexed string index using fulltext with (analyzer='german')," +
+                "  arr array(object as(" +
+                "    nested float," +
+                "    nested_object object as (id byte)" +
+                "  ))," +
+                "  obj object as ( date timestamp )," +
+                "  index ft using fulltext(name, obj['date']) with (analyzer='standard')" +
+                ")");
+        assertTrue(analysis.hasColumnDefinition("id"));
+        assertTrue(analysis.hasColumnDefinition("name"));
+        assertTrue(analysis.hasColumnDefinition("indexed"));
+        assertTrue(analysis.hasColumnDefinition("arr"));
+        assertTrue(analysis.hasColumnDefinition("arr.nested"));
+        assertTrue(analysis.hasColumnDefinition("arr.nested_object.id"));
+        assertTrue(analysis.hasColumnDefinition("obj"));
+        assertTrue(analysis.hasColumnDefinition("obj.date"));
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testCreateTablePartitionedBy() throws Exception {
-        analyze("create table my_table (id integer, name string, date timestamp) partitioned by (id, name)");
+        assertFalse(analysis.hasColumnDefinition("arr.nested.wrong"));
+        assertFalse(analysis.hasColumnDefinition("ft"));
+        assertFalse(analysis.hasColumnDefinition("obj.date.ft"));
+    }
+
+    @Test
+    public void testIsInArray() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+                "  id integer primary key, " +
+                "  thing object as (" +
+                "    ints array(int)" +
+                "  )," +
+                "  arr array(object as(" +
+                "    nested float," +
+                "    nested_object object as (id byte)" +
+                "  ))," +
+                "  obj object as ( date timestamp )," +
+                "  index ft using fulltext(obj['date']) with (analyzer='standard')" +
+                ")");
+        assertFalse(analysis.isInArray("id"));
+        assertFalse(analysis.isInArray("thing"));
+        assertTrue(analysis.isInArray("thing.ints"));
+        assertTrue(analysis.isInArray("arr"));
+        assertTrue(analysis.isInArray("arr.nested"));
+        assertTrue(analysis.isInArray("arr.nested_object"));
+        assertTrue(analysis.isInArray("arr.nested_object.id"));
+        assertFalse(analysis.isInArray("obj"));
+        assertFalse(analysis.isInArray("obj.id"));
+        assertFalse(analysis.isInArray("ft"));
+        assertFalse(analysis.isInArray("non_existent"));
+        assertFalse(analysis.isInArray("obj.nope"));
+    }
+
+    @Test
+    public void testPartitionedBy() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+                "  id integer," +
+                "  no_index string index off," +
+                "  name string," +
+                "  date timestamp" +
+                ") partitioned by (name)");
+        assertThat(analysis.partitionedBy().size(), is(1));
+        assertThat(analysis.partitionedBy().get(0), contains("name", "string"));
+        List<List<String>> partitionedByMeta = (List<List<String>>)analysis.metaMapping().get("partitioned_by");
+        assertTrue(analysis.isPartitioned());
+        assertThat(partitionedByMeta.size(), is(1));
+        assertThat(partitionedByMeta.get(0).get(0), is("name"));
+        assertThat(partitionedByMeta.get(0).get(1), is("string"));
+    }
+
+    @Test
+    public void testPartitionedByMultipleColumns() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+                "  id integer," +
+                "  no_index string index off," +
+                "  name string," +
+                "  date timestamp" +
+                ") partitioned by (name, date)");
+        assertThat(analysis.partitionedBy().size(), is(2));
+        assertThat(analysis.partitionedBy().get(0), contains("name", "string"));
+        assertThat(analysis.partitionedBy().get(1), contains("date", "date"));
+    }
+
+    @Test
+    public void testPartitionedByNestedColumns() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+                "  id integer," +
+                "  no_index string index off," +
+                "  o object as (" +
+                "    name string" +
+                "  )," +
+                "  date timestamp" +
+                ") partitioned by (date, o['name'])");
+        assertThat(analysis.partitionedBy().size(), is(2));
+        assertThat(analysis.partitionedBy().get(0), contains("date", "date"));
+        assertThat(analysis.partitionedBy().get(1), contains("o.name", "string"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPartitionedByArrayNestedColumns() throws Exception {
+        analyze("create table my_table (" +
+                "  a array(object as (" +
+                "    name string" +
+                "  ))," +
+                "  date timestamp" +
+                ") partitioned by (date, a['name'])");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPartitionedByNotPartOfPrimaryKey() throws Exception {
+        analyze("create table my_table (" +
+                "  id1 integer," +
+                "  id2 integer," +
+                "  date timestamp," +
+                "  primary key (id1, id2)" +
+                ") partitioned by (id1, date)");
+    }
+
+    @Test
+    public void testPartitionedByPartOfPrimaryKey() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+                "  id1 integer," +
+                "  id2 integer," +
+                "  date timestamp," +
+                "  primary key (id1, id2)" +
+                ") partitioned by (id1)");
+        assertThat(analysis.partitionedBy().size(), is(1));
+        assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPartitionedByIndexed() throws Exception {
+        analyze("create table my_table(" +
+                "  name string index using fulltext," +
+                "  no_index string index off," +
+                "  stuff string," +
+                "  o object as (s string)," +
+                "  index ft using fulltext(stuff, o['s']) with (analyzer='snowball')" +
+                ") partitioned by (name)");
+
+    }
+
+    @Test(expected = ColumnUnknownException.class)
+    public void testPartitionedByCompoundIndex() throws Exception {
+        analyze("create table my_table(" +
+                "  name string index using fulltext," +
+                "  no_index string index off," +
+                "  stuff string," +
+                "  o object as (s string)," +
+                "  index ft using fulltext(stuff, o['s']) with (analyzer='snowball')" +
+                ") partitioned by (ft)");
+
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPartitionedByClusteredBy() throws Exception {
+        analyze("create table my_table (" +
+                "  id integer," +
+                "  name string" +
+                ") partitioned by (id)" +
+                "  clustered by (id) into 5 shards");
     }
 }

@@ -23,17 +23,19 @@ package io.crate.exceptions;
 
 import org.elasticsearch.rest.RestStatus;
 
+import java.util.Locale;
+
 public class ValidationException extends CrateException {
 
     private final String column;
 
     public ValidationException(String column, String message) {
-        super(String.format("Validation failed for %s: %s", column, message));
+        super(String.format(Locale.ENGLISH, "Validation failed for %s: %s", column, message));
         this.column = column;
     }
 
     public ValidationException(String column, Throwable e) {
-        super(String.format("Validation failed for %s: %s", column, e.getMessage()));
+        super(String.format(Locale.ENGLISH, "Validation failed for %s: %s", column, e.getMessage()));
         this.column = column;
     }
 

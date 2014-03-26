@@ -1637,7 +1637,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         String expectedMapping = "{\"default\":{" +
                 "\"_meta\":{\"primary_keys\":[\"col1\"]," +
-                "\"columns\":{\"col1\":{},\"col2\":{}},\"indices\":{}}," +
+                "\"columns\":{\"col1\":{},\"col2\":{}},\"partitioned_by\":[],\"indices\":{}}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
                     "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
@@ -1760,6 +1760,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "\"col1\":{}," +
                         "\"col2\":{}" +
                     "}," +
+                    "\"partitioned_by\":[]," +
                     "\"indices\":{}," +
                     "\"routing\":\"col1\"" +
                 "}," +

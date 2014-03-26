@@ -35,8 +35,6 @@ import java.util.Locale;
 
 public class PartitionName implements Streamable {
 
-    public static final String PREFIX = ".partitioned";
-
     private final List<String> values = new ArrayList<>();
     private final String tableName;
 
@@ -104,15 +102,15 @@ public class PartitionName implements Streamable {
             return null;
         } else if (values.size() == 1) {
             if (values.get(0) == null) {
-                return Joiner.on(".").join(PREFIX, tableName) + ".";
+                return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName) + ".";
             }
-            return Joiner.on(".").join(PREFIX, tableName, values.get(0));
+            return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, values.get(0));
         }
         BytesReference bytesReference = bytes();
         if (bytes() == null) {
             return null;
         }
-        return Joiner.on(".").join(PREFIX, tableName, Base64.encodeBytes(bytesReference.toBytes()));
+        return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, Base64.encodeBytes(bytesReference.toBytes()));
     }
 
     @Nullable
@@ -129,15 +127,15 @@ public class PartitionName implements Streamable {
         assert partitionTableName != null;
         assert tableName != null;
 
-        String currentPrefix = partitionTableName.substring(0, PREFIX.length()+tableName.length()+2);
-        String computedPrefix = Joiner.on(".").join(PREFIX, tableName) + ".";
+        String currentPrefix = partitionTableName.substring(0, Constants.PARTITIONED_TABLE_PREFIX.length()+tableName.length()+2);
+        String computedPrefix = Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName) + ".";
         if (!currentPrefix.equals(computedPrefix)) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Given partition name '%s' belongs not to table '%s'",
                             partitionTableName, tableName));
         }
 
-        String valuesString = partitionTableName.substring(PREFIX.length()+tableName.length()+2);
+        String valuesString = partitionTableName.substring(Constants.PARTITIONED_TABLE_PREFIX.length()+tableName.length()+2);
 
         PartitionName partitionName = new PartitionName(tableName);
         if (columnCount > 1) {
@@ -148,6 +146,10 @@ public class PartitionName implements Streamable {
             partitionName.values().add(valuesString);
         }
         return partitionName;
+    }
+
+    public static String templateName(String tableName) {
+        return Joiner.on('.').join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
     }
 
 }

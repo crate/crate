@@ -21,7 +21,9 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import io.crate.PartitionName;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -32,6 +34,7 @@ import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class CreateTableAnalysis extends AbstractDDLAnalysis {
@@ -39,7 +42,9 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
     private final Map<String, Object> mappingProperties = new HashMap<>();
     private final Map<String, Object> metaIndices = new HashMap<>();
+    private final Map<String, Object> metaColumns = new HashMap<>();
     private final List<String> primaryKeys = new ArrayList<>();
+    private final List<List<String>> partitionedBy = new ArrayList<>();
 
     private final Map<String, Object> mapping = new HashMap<>();
     private final Map<String, Set<String>> copyTo = new HashMap<>();
@@ -71,11 +76,11 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         this.referenceInfos = referenceInfos;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
 
-        Map<String, Object> metaColumns = new HashMap<>();
         crateMeta = new HashMap<>();
         crateMeta.put("primary_keys", primaryKeys);
         crateMeta.put("columns", metaColumns);
         crateMeta.put("indices", metaIndices);
+        crateMeta.put("partitioned_by", partitionedBy);
 
         mapping.put("_meta", crateMeta);
         mapping.put("properties", mappingProperties);
@@ -113,6 +118,43 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
         return analysisVisitor.visitCreateTableAnalysis(this, context);
+    }
+
+    public List<List<String>> partitionedBy() {
+        return partitionedBy;
+    }
+
+    public boolean isPartitioned() {
+        return partitionedBy.size() > 0;
+    }
+
+    public void addPartitionedByColumn(String column, String type) {
+        this.partitionedBy.add(Arrays.asList(column, type));
+    }
+
+    /**
+     * name of the template to create
+     * @return the name of the template to create or <code>null</code>
+     *         if no template is created
+     */
+    public @Nullable String templateName() {
+        if (isPartitioned()) {
+            return PartitionName.templateName(tableIdent().name());
+        }
+        return null;
+    }
+
+    /**
+     * template prefix to match against index names to which
+     * this template should be applied
+     * @return a template prefix for matching index names or null
+     *         if no template is created
+     */
+    public @Nullable String templatePrefix() {
+        if (isPartitioned()) {
+            return templateName() + "*";
+        }
+        return null;
     }
 
     public ImmutableSettings.Builder indexSettingsBuilder() {
@@ -171,12 +213,67 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         crateMeta.put("routing", routingPath);
     }
 
-    public boolean hasColumnDefinition(String columnName) {
-        if (columnName.equalsIgnoreCase("_id")) {
-            return true;
-        }
-        return mappingProperties.containsKey(columnName);
+    public @Nullable String routing() {
+        return (String)crateMeta.get("routing");
     }
+
+    /**
+     * return true if a columnDefinition with name <code>columnName</code> exists
+     * as top level column or nested (if <code>columnName</code> contains a dot)
+     *
+     * @param columnName (dotted) column name
+     */
+    public boolean hasColumnDefinition(String columnName) {
+        if (columnName.equalsIgnoreCase("_id")) { return true; }
+        return getColumnDefinition(columnName) != null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public @Nullable
+    Map<String, Object> getColumnDefinition(String columnName) {
+        if (metaIndices.containsKey(columnName)) {
+            return null;  // ignore fulltext index columns
+        }
+
+        Map<String, Object> properties = mappingProperties;
+        for (String namePart : Splitter.on('.').splitToList(columnName)) {
+            Map<String, Object> fieldMapping = (Map<String, Object>)properties.get(namePart);
+            if (fieldMapping == null) {
+                return null;
+            } else if (fieldMapping.get("type") != null) {
+                if (fieldMapping.get("type").equals("object")
+                        && fieldMapping.get("properties") != null) {
+                    properties = (Map<String, Object>)fieldMapping.get("properties");
+                } else {
+                    properties = fieldMapping;
+                }
+            }
+        }
+
+        return properties;
+    }
+
+    /**
+     * return true if column with name <code>columnName</code> is an array
+     * or is a nested column inside an array, false otherwise
+     */
+    @SuppressWarnings("unchecked")
+    public boolean isInArray(String columnName) {
+        Map<String, Object> metaColumnInfo = metaColumns;
+        for (String namePart : Splitter.on('.').split(columnName)) {
+            Map<String, Object> columnInfo = (Map<String, Object>) metaColumnInfo.get(namePart);
+            if (columnInfo != null) {
+                if (columnInfo.get("collection_type") != null
+                        && columnInfo.get("collection_type").equals("array")) {
+                    return true;
+                } else if (columnInfo.get("properties") != null) {
+                    metaColumnInfo = (Map<String, Object>) columnInfo.get("properties");
+                }
+            }
+        }
+        return false;
+    }
+
 
     @Override
     public boolean isData() {
@@ -197,7 +294,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     public ColumnSchema pushIndex(String ident) {
         if (metaIndices.containsKey(ident)) {
             throw new IllegalArgumentException(
-                    String.format("the index name \"%s\" is already in use!", ident));
+                    String.format(Locale.ENGLISH, "the index name \"%s\" is already in use!", ident));
         }
         metaIndices.put(ident, ImmutableMap.of());
         ColumnSchema columnSchema = schemaStack.peek();

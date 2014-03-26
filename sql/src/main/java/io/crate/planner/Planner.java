@@ -36,6 +36,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateIndexNode;
+import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
@@ -157,13 +158,22 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         TableIdent tableIdent = analysis.tableIdent();
         Preconditions.checkArgument(Strings.isNullOrEmpty(tableIdent.schema()),
                 "a SCHEMA name other than null isn't allowed.");
-
-        ESCreateIndexNode node = new ESCreateIndexNode(
-                tableIdent.name(),
-                analysis.indexSettings(),
-                analysis.mapping()
-        );
-        plan.add(node);
+        if (analysis.isPartitioned()) {
+            ESCreateTemplateNode node = new ESCreateTemplateNode(
+                    analysis.templateName(),
+                    analysis.templatePrefix(),
+                    analysis.indexSettings(),
+                    analysis.mapping()
+            );
+            plan.add(node);
+        } else {
+            ESCreateIndexNode node = new ESCreateIndexNode(
+                    tableIdent.name(),
+                    analysis.indexSettings(),
+                    analysis.mapping()
+            );
+            plan.add(node);
+        }
         plan.expectsAffectedRows(true);
         return plan;
     }

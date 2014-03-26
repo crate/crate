@@ -92,6 +92,7 @@ tokens {
     SAMPLED_RELATION;
     QUERY_SPEC;
     STRATIFY_ON;
+    IDENT_LIST;
     COLUMN_LIST;
     INSERT_VALUES;
     VALUES_LIST;
@@ -701,11 +702,15 @@ integer
 
 
 insertStmt
-    : INSERT INTO table (columns=columnList)? VALUES values=insertValues -> ^(INSERT table $values $columns?)
+    : INSERT INTO table (columns=identList)? VALUES values=insertValues -> ^(INSERT table $values $columns?)
+    ;
+
+identList
+    : '(' ident ( ',' ident )* ')' -> ^(IDENT_LIST ident+)
     ;
 
 columnList
-    : '(' ident ( ',' ident )* ')' -> ^(COLUMN_LIST ident+)
+    : '(' subscript ( ',' subscript )* ')' -> ^(COLUMN_LIST subscript+)
     ;
 
 insertValues
@@ -748,14 +753,14 @@ alterBlobTableStmt
     : ALTER BLOB TABLE table
       SET '(' genericProperties ')' -> ^(ALTER_BLOB_TABLE table genericProperties)
     | ALTER BLOB TABLE table
-      RESET columnList -> ^(ALTER_BLOB_TABLE table columnList)
+      RESET identList -> ^(ALTER_BLOB_TABLE table identList)
     ;
 
 alterTableStmt
     : ALTER TABLE table
       SET '(' genericProperties ')' -> ^(ALTER_TABLE table genericProperties)
     | ALTER TABLE table
-      RESET columnList -> ^(ALTER_TABLE table columnList)
+      RESET identList -> ^(ALTER_TABLE table identList)
     ;
 
 createBlobTableStmt
@@ -845,11 +850,7 @@ columnIndexConstraint
     ;
 
 indexDefinition
-    : INDEX ident USING indexMethod=ident indexColumns (WITH '(' genericProperties ')' )? -> ^(INDEX ident $indexMethod indexColumns genericProperties?)
-    ;
-
-indexColumns
-    : ( '(' subscript  ( ',' subscript )* ')' ) -> ^(INDEX_COLUMNS subscript+)
+    : INDEX ident USING indexMethod=ident columnList (WITH '(' genericProperties ')' )? -> ^(INDEX ident $indexMethod columnList genericProperties?)
     ;
 
 genericProperties
@@ -866,7 +867,7 @@ literalList
     ;
 
 primaryKeyConstraint
-    : PRIMARY_KEY '(' subscript  ( ',' subscript )* ')' -> ^(PRIMARY_KEY subscript+)
+    : PRIMARY_KEY columnList -> ^(PRIMARY_KEY columnList)
     ;
 
 clusteredInto

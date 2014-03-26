@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Locale;
 
 public class ShortLiteral extends NumberLiteral<Integer, ShortLiteral> {
     public static final SymbolFactory FACTORY = new SymbolFactory() {
@@ -42,8 +43,9 @@ public class ShortLiteral extends NumberLiteral<Integer, ShortLiteral> {
 
     public ShortLiteral(long value) {
         if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
-            throw new IllegalArgumentException(String.format("invalid short literal %s", value));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "invalid short literal %s", value));
         }
+        String.format("g", new Object());
         this.value = (short)value;
     }
 

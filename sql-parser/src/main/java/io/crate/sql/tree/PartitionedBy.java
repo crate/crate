@@ -29,13 +29,13 @@ import java.util.List;
 
 public class PartitionedBy extends CrateTableOption {
 
-    private final List<String> columns;
+    private final List<Expression> columns;
 
-    public PartitionedBy(@Nullable List<String> columns) {
-        this.columns = columns != null ? columns : ImmutableList.<String>of();
+    public PartitionedBy(@Nullable List<Expression> columns) {
+        this.columns = Objects.firstNonNull(columns, ImmutableList.<Expression>of());
     }
 
-    public List<String> columns() {
+    public List<Expression> columns() {
         return columns;
     }
 

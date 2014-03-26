@@ -36,10 +36,10 @@ public class CopyTo extends Statement {
     private final Expression targetUri;
 
     private final Optional<GenericProperties> genericProperties;
-    private final List<String> columns;
+    private final List<Expression> columns;
 
     public CopyTo(Table table,
-                  @Nullable List<String> columns,
+                  @Nullable List<Expression> columns,
                   boolean directoryUri,
                   Expression targetUri,
                   @Nullable GenericProperties genericProperties) {
@@ -48,7 +48,7 @@ public class CopyTo extends Statement {
         this.directoryUri = directoryUri;
         this.targetUri = targetUri;
         this.genericProperties = Optional.fromNullable(genericProperties);
-        this.columns = Objects.firstNonNull(columns, ImmutableList.<String>of());
+        this.columns = Objects.firstNonNull(columns, ImmutableList.<Expression>of());
     }
 
     @Override

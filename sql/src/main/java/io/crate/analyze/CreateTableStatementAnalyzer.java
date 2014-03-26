@@ -20,14 +20,18 @@
  */
 package io.crate.analyze;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -204,7 +208,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             context.currentColumnDefinition().put("index", "no");
         } else {
             throw new IllegalArgumentException(
-                    String.format("Invalid index method \"%s\"", node.indexMethod()));
+                    String.format(Locale.ENGLISH, "Invalid index method \"%s\"", node.indexMethod()));
         }
         return null;
     }
@@ -257,6 +261,18 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
                         String.format(Locale.ENGLISH, "Invalid or non-existent routing column \"%s\"",
                                 routingColumn));
             }
+            if (Collections2.transform(context.partitionedBy(), new Function<List<String>, String>() {
+                @Nullable
+                @Override
+                public String apply(@Nullable List<String> input) {
+                    if (input != null && input.size() > 0) {
+                        return input.get(0);
+                    }
+                    return null;
+                }
+            }).contains(routingColumn)) {
+                throw new IllegalArgumentException("Cannot use CLUSTERED BY column in PARTITIONED BY clause");
+            }
             if (context.primaryKeys().size() > 0 && !context.primaryKeys().contains(routingColumn)) {
                 throw new IllegalArgumentException("Clustered by column must be part of primary keys");
             }
@@ -270,6 +286,48 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
     @Override
     public Void visitPartitionedBy(PartitionedBy node, CreateTableAnalysis context) {
-        throw new UnsupportedOperationException("partitioned by not supported yet.");
+        for (Expression partitionByColumn : node.columns()) {
+            String columnName = expressionVisitor.process(partitionByColumn, null).toString();
+
+            Map<String, Object> columnDefinition = context.getColumnDefinition(columnName);
+            String type;
+            if (columnDefinition != null) {
+                if (context.primaryKeys().size() > 0 && !context.primaryKeys().contains(columnName)) {
+                    throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH,
+                                    "Cannot use non primary key column '%s' in PARTITIONED BY clause if primary key is set on table",
+                                    columnName));
+                }
+                String routing = context.routing();
+                if (routing != null && routing.equals(columnName)) {
+                    throw new IllegalArgumentException(
+                                    "Cannot use CLUSTERED BY column in PARTITIONED BY clause"
+                    );
+                }
+                if (context.isInArray(columnName)) {
+                    throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH,
+                                    "Cannot use array column '%s' in PARTITIONED BY clause", columnName));
+                }
+
+                if ((columnDefinition.get("type") != null && columnDefinition.get("type").equals("object"))) {
+                    throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH,
+                                    "Cannot use object column '%s' in PARTITIONED BY clause", columnName));
+                }
+                if (columnDefinition.get("index") != null && columnDefinition.get("index").equals("analyzed")) {
+                    throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH,
+                                    "Cannot use column '%s' with fulltext index in PARTITIONED BY clause", columnName));
+                }
+                type = (String)columnDefinition.get("type");
+            } else if(columnName.startsWith("_")) {
+                throw new IllegalArgumentException("Cannot use system columns in PARTITIONED BY clause");
+            } else {
+                throw new ColumnUnknownException(columnName);
+            }
+            context.addPartitionedByColumn(columnName, type);
+        }
+        return null;
     }
 }

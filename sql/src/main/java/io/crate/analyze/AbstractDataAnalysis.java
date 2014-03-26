@@ -144,7 +144,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
             }
             referenceSymbols.put(info.ident(), reference);
         } else if (unique) {
-            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident.columnIdent().fqn()));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", ident.columnIdent().fqn()));
         }
         updateRowGranularity(reference.info().granularity());
         return reference;
@@ -335,7 +335,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
             try {
                 normalized = (Literal)processed;
             } catch (ClassCastException e) {
-                throw new IllegalArgumentException(String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid value of type '%s'", inputValue.symbolType().name()));
             }
         }
 
@@ -345,7 +345,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
             throw e;
         } catch (Exception e) {  // UnsupportedOperationException, NumberFormatException ...
                 throw new IllegalArgumentException(
-                        String.format("wrong type '%s'. expected: '%s'",
+                        String.format(Locale.ENGLISH, "wrong type '%s'. expected: '%s'",
                                 normalized.valueType().getName(),
                                 dataType.getName()));
         }

@@ -32,6 +32,7 @@ import io.crate.sql.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysis> {
 
@@ -190,7 +191,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                 idx = ((io.crate.planner.symbol.LongLiteral) s).value().intValue() - 1;
                 if (idx < 1) {
                     throw new IllegalArgumentException(
-                            String.format("GROUP BY position %s is not in select list", idx));
+                            String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx));
                 }
             } else {
                 idx = context.outputSymbols().indexOf(s);
@@ -201,7 +202,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                     s = context.outputSymbols().get(idx);
                 } catch (ArrayIndexOutOfBoundsException e) {
                     throw new IllegalArgumentException(
-                            String.format("GROUP BY position %s is not in select list", idx));
+                            String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx));
                 }
             }
             if (s.symbolType() == SymbolType.DYNAMIC_REFERENCE) {

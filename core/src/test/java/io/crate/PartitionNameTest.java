@@ -39,7 +39,7 @@ public class PartitionNameTest {
                 ImmutableList.of("id"), ImmutableList.of("1"));
 
         assertThat(partitionName.values().size(), is(1));
-        assertThat(partitionName.stringValue(), is(PartitionName.PREFIX + ".test."+partitionName.values().get(0)));
+        assertThat(partitionName.stringValue(), is(Constants.PARTITIONED_TABLE_PREFIX + ".test."+partitionName.values().get(0)));
 
         PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test", 1);
         assertEquals(partitionName.values(), partitionName1.values());
@@ -70,12 +70,12 @@ public class PartitionNameTest {
 
         assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(1));
-        assertEquals(PartitionName.PREFIX+".test.", partitionName.stringValue());
+        assertEquals(Constants.PARTITIONED_TABLE_PREFIX+".test.", partitionName.stringValue());
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testPartitionNameNotFromTable() throws Exception {
-        String partitionName = PartitionName.PREFIX + ".test1.1";
+        String partitionName = Constants.PARTITIONED_TABLE_PREFIX + ".test1.1";
         PartitionName.fromString(partitionName, "test", 1);
     }
 

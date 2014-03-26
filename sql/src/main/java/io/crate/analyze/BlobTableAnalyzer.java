@@ -30,6 +30,7 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public abstract class BlobTableAnalyzer<TypeAnalysis extends Analysis>
@@ -71,7 +72,7 @@ public abstract class BlobTableAnalyzer<TypeAnalysis extends Analysis>
         }
         if (properties.size() > 0) {
             throw new IllegalArgumentException(
-                    String.format("Invalid properties \"%s\" passed to [ALTER | CREATE] BLOB TABLE statement",
+                    String.format(Locale.ENGLISH, "Invalid properties \"%s\" passed to [ALTER | CREATE] BLOB TABLE statement",
                             properties.keySet()));
         }
         return replicas;
