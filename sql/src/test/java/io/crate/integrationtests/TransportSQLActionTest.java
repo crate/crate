@@ -2844,4 +2844,21 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(0L, response.rowCount());
     }
 
+    @Test
+    public void testCreatePartitionedTableAndQueryMeta() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("select * from information_schema.tables where schema_name='doc' order by table_name");
+        assertEquals(1L, response.rowCount());
+        assertEquals("quotes", response.rows()[0][1]);
+
+        execute("select * from information_schema.columns where table_name='quotes' order by ordinal_position");
+        assertEquals(3L, response.rowCount());
+        assertEquals("id", response.rows()[0][2]);
+        assertEquals("quote", response.rows()[1][2]);
+        assertEquals("timestamp", response.rows()[2][2]);
+
+    }
 }
