@@ -21,15 +21,23 @@
 
 package io.crate.metadata.doc;
 
-import io.crate.metadata.TableIdent;
+import io.crate.Constants;
+import io.crate.PartitionName;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
 
 import java.io.IOException;
+
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 
 public class DocTableInfoBuilder {
 
@@ -50,10 +58,15 @@ public class DocTableInfoBuilder {
         DocIndexMetaData docIndexMetaData;
         try {
             concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
+            docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
         } catch (IndexMissingException ex) {
-            throw new TableUnknownException(ident.name(), ex);
+            String templateName = PartitionName.templateName(ident.name());
+            if (!metaData.getTemplates().containsKey(templateName)) {
+                throw new TableUnknownException(ident.name(), ex);
+            }
+            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.name(), templateName);
+            concreteIndices = new String[]{ident.name()};
         }
-        docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
         if (concreteIndices.length == 1 || !checkAliasSchema) {
             return docIndexMetaData;
         }
@@ -69,6 +82,25 @@ public class DocTableInfoBuilder {
             docIndexMetaData = new DocIndexMetaData(metaData.index(index), ident);
         } catch (IOException e) {
             throw new CrateException("Unable to build DocIndexMetaData", e);
+        }
+        return docIndexMetaData.build();
+    }
+
+    private DocIndexMetaData buildDocIndexMetaDataFromTemplate(String index, String templateName) {
+        IndexTemplateMetaData indexTemplateMetaData = metaData.getTemplates().get(templateName);
+        DocIndexMetaData docIndexMetaData;
+        try {
+            IndexMetaData.Builder builder = new IndexMetaData.Builder(index);
+            builder.putMapping(Constants.DEFAULT_MAPPING_TYPE,
+                    indexTemplateMetaData.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).toString());
+            Settings settings = indexTemplateMetaData.settings();
+            builder.settings(settings);
+            // default values
+            builder.numberOfShards(settings.getAsInt(SETTING_NUMBER_OF_SHARDS, 5));
+            builder.numberOfReplicas(settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
+            docIndexMetaData = new DocIndexMetaData(builder.build(), ident);
+        } catch (IOException e) {
+            throw new CrateException("Unable to build DocIndexMetaData from template", e);
         }
         return docIndexMetaData.build();
     }
