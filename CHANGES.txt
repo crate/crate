@@ -2,8 +2,17 @@
 Changes for Crate Data
 ======================
 
-unreleased
-==========
+2014/03/26 0.34.0
+=================
+
+ - feature: ``CREATE TABLE`` now supports ``PARTITIONED BY``
+   to create partitioned tables.
+
+ - feature: added table information_schema.routines
+
+ - feature: support global DISTINCT select statements
+
+ - upgrade bundled crash to 0.8.1
 
  - fix: allow ``PRIMARY KEY`` constraint and compound index definition
    to appear anywhere in the table element list
@@ -12,27 +21,19 @@ unreleased
 
  - fix: first parts of qualified name in ORDER BY were ignored
 
- - ``CREATE TABLE`` now supports ``PARTITIONED BY`` to create partitioned tables.
-
  - fix: unassigned shards must return NULL by default for the `primary` column
 
- - added table information_schema.routines
-
- - error messages will no longer show the 'return type' of a function and
+ - fix: error messages will no longer show the 'return type' of a function and
    aggregation
-
- - support global DISTINCT select statements
-
- - ``PARTITIONED BY`` parser support
 
  - fix: prevent select or filter of system columns if query has not a
    group-by or global aggregate clause and used table is not a system table
 
- - fixed global 'group by' analysis. analyzer now returns an improved
+ - fix: fixed global 'group by' analysis. analyzer now returns an improved
    error message if a statement contains aggregates and column references but
    missing the corresponding group by expression
 
- - table names may not contain '.'
+ - fix: table names may not contain '.'
 
 2014/03/24 0.33.0
 =================
