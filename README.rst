@@ -93,7 +93,7 @@ Where to go from here?
 That is certainly not all Crate Data offers to you. Take a look at the
 documentation found under the ``docs`` directory or visit
 `https://docs.crate.io/current/ <https://docs.crate.io/current/>`_. If you already installed
-Crate Data you can also use the documentation it was shipped with available via
+Crate Data you can also use the documentation that was shipped with it and is available via
 `http://localhost:4200/_plugin/docs/ <http://localhost:4200/_plugin/docs/>`_.
 
 Managing data
