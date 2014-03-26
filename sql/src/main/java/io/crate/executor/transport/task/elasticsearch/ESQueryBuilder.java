@@ -243,12 +243,11 @@ public class ESQueryBuilder {
 
     static class Visitor extends SymbolVisitor<Context, Void> {
 
-        abstract class Converter {
-
-            public abstract void convert(Function function, Context context) throws IOException;
+        static abstract class Converter<T extends Symbol> {
+            public abstract void convert(T function, Context context) throws IOException;
         }
 
-        class AndConverter extends Converter {
+        class AndConverter extends Converter<Function> {
 
             @Override
             public void convert(Function function, Context context) throws IOException {
@@ -263,7 +262,7 @@ public class ESQueryBuilder {
             }
         }
 
-        class OrConverter extends Converter {
+        class OrConverter extends Converter<Function> {
 
             @Override
             public void convert(Function function, Context context) throws IOException {
@@ -279,7 +278,7 @@ public class ESQueryBuilder {
             }
         }
 
-        abstract class CmpConverter extends Converter {
+        abstract class CmpConverter extends Converter<Function> {
 
             protected Tuple<String, Object> prepare(Function function) {
                 Preconditions.checkNotNull(function);
@@ -338,7 +337,7 @@ public class ESQueryBuilder {
             }
         }
 
-        class IsNullConverter extends Converter {
+        static class IsNullConverter extends Converter<Function> {
 
             @Override
             public void convert(Function function, Context context) throws IOException {
@@ -359,7 +358,7 @@ public class ESQueryBuilder {
             }
         }
 
-        class NotConverter extends Converter {
+        class NotConverter extends Converter<Function> {
 
             @Override
             public void convert(Function function, Context context) throws IOException {
@@ -398,7 +397,7 @@ public class ESQueryBuilder {
             }
         }
 
-        class InConverter extends Converter {
+        static class InConverter extends Converter<Function> {
 
             @Override
             public void convert(Function function, Context context) throws IOException {
@@ -425,6 +424,27 @@ public class ESQueryBuilder {
                 context.builder.endArray().endObject();
             }
 
+        }
+
+        static class ReferenceConverter extends Converter<Reference> {
+
+            public static final ReferenceConverter INSTANCE = new ReferenceConverter();
+
+            private ReferenceConverter() {
+            }
+
+            protected Tuple<String, Boolean> prepare(Reference reference) {
+                assert reference != null;
+                return new Tuple<>(reference.info().ident().columnIdent().fqn(), true);
+            }
+
+            @Override
+            public void convert(Reference reference, Context context) throws IOException {
+                assert (reference != null);
+                assert (reference.valueType() == DataType.BOOLEAN);
+                Tuple<String, Boolean> tuple = prepare(reference);
+                context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+            }
         }
 
         private ImmutableMap<String, Converter> functions =
@@ -465,6 +485,19 @@ public class ESQueryBuilder {
             return null;
         }
 
+        @Override
+        public Void visitReference(Reference reference, Context context) {
+            try {
+                if (reference.valueType() == DataType.BOOLEAN) {
+                    ReferenceConverter.INSTANCE.convert(reference, context);
+                }
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+
+            return super.visitReference(reference, context);
+        }
+
         private boolean fieldIgnored(Function function, Context context) {
             if (function.arguments().size() == 2) {
                 Symbol left = function.arguments().get(0);
@@ -486,9 +519,9 @@ public class ESQueryBuilder {
             return false;
         }
 
-        private Void raiseUnsupported(Function function) {
+        private Void raiseUnsupported(Symbol symbol) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Cannot convert function <%s> into a query", function));
+                    SymbolFormatter.format("Cannot convert function <%s> into a query", symbol));
         }
     }
 }

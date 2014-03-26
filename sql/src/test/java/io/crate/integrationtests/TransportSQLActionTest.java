@@ -2746,4 +2746,48 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote from quotes where id=1");
         assertEquals(0L, response.rowCount());
     }
+
+    @Test
+    public void testSelectWhereBoolean() {
+        execute("create table a (v boolean)");
+        execute("insert into a values (true)");
+        execute("insert into a values (true)");
+        execute("insert into a values (true)");
+        execute("insert into a values (false)");
+        execute("insert into a values (false)");
+        refresh();
+
+        execute("select v from a where v");
+        assertEquals(3L, response.rowCount());
+
+        execute("select v from a where not v");
+        assertEquals(2L, response.rowCount());
+
+        execute("select v from a where v or not v");
+        assertEquals(5L, response.rowCount());
+
+        execute("select v from a where v and not v");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void testSelectWhereBooleanPK() {
+        execute("create table b (v boolean primary key) clustered by (v)");
+        execute("insert into b values (true)");
+        execute("insert into b values (false)");
+        refresh();
+
+        execute("select v from b where v");
+        assertEquals(1L, response.rowCount());
+
+        execute("select v from b where not v");
+        assertEquals(1L, response.rowCount());
+
+        execute("select v from b where v or not v");
+        assertEquals(2L, response.rowCount());
+
+        execute("select v from b where v and not v");
+        assertEquals(0L, response.rowCount());
+    }
+
 }

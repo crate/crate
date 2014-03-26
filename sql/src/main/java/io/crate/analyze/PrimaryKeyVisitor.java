@@ -184,14 +184,34 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     }
 
     @Nullable
-    public Context process(TableInfo table, Function whereClause) {
+    public Context process(TableInfo table, Symbol whereClause) {
         if (table.primaryKey().size() > 0 || table.clusteredBy() != null) {
             Context context = new Context(table);
-            visitFunction(whereClause, context);
-
+            process(whereClause, context);
             context.finish();
             return context;
         }
+        return null;
+    }
+
+    @Override
+    public Void visitReference(Reference reference, Context context) {
+        String columnName = reference.info().ident().columnIdent().name();
+        if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
+            return invalidate(context);
+        }
+
+        // where booleanCol; can be handled like: where booleanCol = true;
+        if (reference.valueType() == DataType.BOOLEAN) {
+            if (columnName.equals(context.table.clusteredBy())) {
+                setClusterBy(context, BooleanLiteral.TRUE);
+            }
+            int idx = context.table.primaryKey().indexOf(columnName);
+            if (idx >= 0) {
+                setPrimaryKey(context, BooleanLiteral.TRUE, idx);
+            }
+        }
+
         return null;
     }
 

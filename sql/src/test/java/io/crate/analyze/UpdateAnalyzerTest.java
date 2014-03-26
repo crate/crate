@@ -232,7 +232,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 (LongLiteral) analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("other_id")))),
                 is(new LongLiteral(0))
         );
-        assertThat(analysis.whereClause().query().arguments().get(1).symbolType(), is(SymbolType.LONG_LITERAL));
+        assertThat(((Function)analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.LONG_LITERAL));
     }
 
     @Test( expected = IllegalArgumentException.class )
