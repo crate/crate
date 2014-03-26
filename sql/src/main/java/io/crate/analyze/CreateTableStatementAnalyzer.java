@@ -61,19 +61,11 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             context.indexSettingsBuilder().put(settings);
         }
 
-        List<PrimaryKeyConstraint> primaryKeyConstraints = new ArrayList<>();
         for (TableElement tableElement : node.tableElements()) {
-            if (tableElement instanceof PrimaryKeyConstraint) {
-                // delay handling of primary key constraints
-                primaryKeyConstraints.add((PrimaryKeyConstraint) tableElement);
-                continue;
-            }
             process(tableElement, context);
         }
 
-        for (PrimaryKeyConstraint pKeyConstraint : primaryKeyConstraints) {
-            process(pKeyConstraint, context);
-        }
+        validatePrimaryKeys(context);
 
         for (CrateTableOption option : node.crateTableOptions()) {
             process(option, context);
@@ -229,11 +221,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     @Override
     public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint node, CreateTableAnalysis context) {
         for (Expression expression : node.columns()) {
-            String columnName = expressionVisitor.process(expression, null).toString();
-            if (!context.hasColumnDefinition(columnName)) {
-                throw new ColumnUnknownException(columnName);
-            }
-            context.addPrimaryKey(columnName);
+            context.addPrimaryKey(expressionVisitor.process(expression, null).toString());
         }
         return null;
     }
@@ -242,6 +230,14 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     public Void visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint node, CreateTableAnalysis context) {
         context.addPrimaryKey(context.currentColumnName());
         return null;
+    }
+
+    public void validatePrimaryKeys(CreateTableAnalysis context) {
+        for (String pKey : context.primaryKeys()) {
+            if (!context.hasColumnDefinition(pKey)) {
+                throw new ColumnUnknownException(pKey);
+            }
+        }
     }
 
     private void setAnalyzer(Map<String, Object> columnDefinition,
