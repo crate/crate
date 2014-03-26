@@ -28,20 +28,20 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.UnmodifiableIterator;
+import io.crate.PartitionName;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.exceptions.CrateException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.exceptions.CrateException;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
@@ -102,9 +102,23 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     public Collection<String> tableNames() {
         // TODO: once we support closing/opening tables change this to concreteIndices()
         // and add  state info to the TableInfo.
-        return Collections2.filter(
-                Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()),
-                tablesFilter);
+        List<String> tables = new ArrayList<>();
+        tables.addAll(Collections2.filter(
+                Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()), tablesFilter));
+
+        // Search for partitioned table templates
+        UnmodifiableIterator<String> templates = clusterService.state().metaData().getTemplates().keysIt();
+        while(templates.hasNext()) {
+            String templateName = templates.next();
+            try {
+                String tableName = PartitionName.tableName(templateName);
+                tables.add(tableName);
+            } catch (IllegalArgumentException e) {
+                // do nothing
+            }
+        }
+
+        return tables;
     }
 
     @Override
