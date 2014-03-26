@@ -65,6 +65,8 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             process(tableElement, context);
         }
 
+        validatePrimaryKeys(context);
+
         for (CrateTableOption option : node.crateTableOptions()) {
             process(option, context);
         }
@@ -91,6 +93,9 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             }
 
             columnDef = (Map<String, Object>)columnDef.get(key[0]);
+            if (columnDef == null) {
+                throw new ColumnUnknownException(entry.getKey());
+            }
             columnDef.put("copy_to", Lists.newArrayList(entry.getValue()));
         }
     }
@@ -225,6 +230,14 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     public Void visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint node, CreateTableAnalysis context) {
         context.addPrimaryKey(context.currentColumnName());
         return null;
+    }
+
+    public void validatePrimaryKeys(CreateTableAnalysis context) {
+        for (String pKey : context.primaryKeys()) {
+            if (!context.hasColumnDefinition(pKey)) {
+                throw new ColumnUnknownException(pKey);
+            }
+        }
     }
 
     private void setAnalyzer(Map<String, Object> columnDefinition,

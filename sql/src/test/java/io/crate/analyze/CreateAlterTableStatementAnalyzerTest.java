@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -38,8 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -521,5 +521,56 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "  name string" +
                 ") partitioned by (id)" +
                 "  clustered by (id) into 5 shards");
+    }
+
+    @Test
+    public void testEarlyPrimaryKeyConstraint() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+                "primary key (id1, id2)," +
+                "id1 integer," +
+                "id2 long" +
+                ")");
+        assertThat(analysis.primaryKeys().size(), is(2));
+        assertThat(analysis.primaryKeys(), hasItems("id1", "id2"));
+    }
+
+    @Test(expected = ColumnUnknownException.class)
+    public void testPrimaryKeyConstraintNonExistingColumns() throws Exception {
+        analyze("create table my_table (" +
+                "primary key (id1, id2)," +
+                "title string," +
+                "name string" +
+                ")");
+    }
+
+    @Test
+    public void testEarlyIndexDefinition() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+                "index ft using fulltext(title, name) with (analyzer='snowball')," +
+                "title string," +
+                "name string" +
+                ")");
+        assertThat(
+                Joiner.on(", ").withKeyValueSeparator(": ").join(analysis.metaMapping()),
+                is("primary_keys: [], partitioned_by: [], columns: {title={}, name={}}, indices: {ft={}}"));
+        assertThat(
+                (List<String>) ((Map<String, Object>) analysis.mappingProperties()
+                        .get("title")).get("copy_to"),
+                hasItem("ft")
+        );
+        assertThat(
+                (List<String>)((Map<String, Object>)analysis.mappingProperties()
+                        .get("name")).get("copy_to"),
+                hasItem("ft"));
+
+    }
+
+    @Test(expected = ColumnUnknownException.class)
+    public void testIndexDefinitionNonExistingColumns() throws Exception {
+        analyze("create table my_table (" +
+                "index ft using fulltext(id1, id2) with (analyzer='snowball')," +
+                "title string," +
+                "name string" +
+                ")");
     }
 }
