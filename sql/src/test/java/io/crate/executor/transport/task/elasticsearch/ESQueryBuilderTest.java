@@ -36,6 +36,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.*;
+import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;

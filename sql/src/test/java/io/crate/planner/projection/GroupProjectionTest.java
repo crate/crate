@@ -24,7 +24,7 @@ package io.crate.planner.projection;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TestingHelpers;
+import io.crate.testing.TestingHelpers;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;

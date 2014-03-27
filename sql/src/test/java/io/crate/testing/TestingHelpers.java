@@ -19,20 +19,54 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.testing;
 
 import com.google.common.collect.Lists;
 import io.crate.DataType;
+import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbol;
+import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.List;
 
 public class TestingHelpers {
+
+    /**
+     * prints the contents of a result array as a human readable table
+     * @param result the data to be printed
+     * @return a string representing a table
+     */
+    public static String printedTable(Object[][] result) {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(os);
+        for (Object[] row : result) {
+            boolean first = true;
+            for (Object o : row) {
+                if (!first) {
+                    out.print("| ");
+                } else {
+                    first = false;
+                }
+                if (o == null) {
+                    out.print("NULL");
+                } else if (o instanceof BytesRef) {
+                    out.print(((BytesRef) o).utf8ToString());
+                } else {
+                    out.print(o.toString());
+                }
+            }
+            out.println();
+        }
+        return os.toString();
+    }
+
 
 
     public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments) {

@@ -24,7 +24,6 @@ package io.crate.test.integration;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.randomizedtesting.SeedUtils;
 import com.google.common.base.Joiner;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -66,9 +65,7 @@ import org.elasticsearch.test.ElasticsearchTestCase;
 import org.junit.After;
 import org.junit.Before;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -88,35 +85,6 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-    /**
-     * prints the contents of a result array as a human readable table
-     * @param result the data to be printed
-     * @return a string representing a table
-     */
-    public static String printedTable(Object[][] result) {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        PrintStream out = new PrintStream(os);
-        for (Object[] row : result) {
-            boolean first = true;
-            for (Object o : row) {
-                if (!first) {
-                    out.print("| ");
-                } else {
-                    first = false;
-                }
-                if (o == null) {
-                    out.print("NULL");
-                } else if (o instanceof BytesRef) {
-                    out.print(((BytesRef) o).utf8ToString());
-                } else {
-                    out.print(o.toString());
-                }
-            }
-            out.println();
-        }
-        return os.toString();
     }
 
     public static void deleteAll() {

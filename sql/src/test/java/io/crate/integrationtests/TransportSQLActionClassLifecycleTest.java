@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.TestingHelpers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -81,6 +82,37 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertEquals(null, response.rows()[4][0]);
         assertEquals(null, response.rows()[5][0]);
         assertEquals(null, response.rows()[6][0]);
+    }
+
+    @Test
+    public void testSelectDoc() throws Exception {
+        SQLResponse response = executor.exec("select _doc from characters order by name desc limit 1");
+        assertArrayEquals(new String[]{"_doc"}, response.cols());
+        assertEquals(
+                "{details={job=Mathematician}, age=32, name=Trillian, " +
+                        "birthdate=276912000000, gender=female, race=Human}\n",
+                TestingHelpers.printedTable(response.rows()));
+    }
+
+    @Test
+    public void testSelectRaw() throws Exception {
+        SQLResponse response = executor.exec("select _raw from characters order by name desc limit 1");
+        assertEquals(
+                "{\"birthdate\":276912000000,\"gender\":\"female\"," +
+                        "\"details\":{\"job\":\"Mathematician\"}," +
+                        "\"race\":\"Human\",\"name\":\"Trillian\",\"age\":32}\n",
+                TestingHelpers.printedTable(response.rows()));
+    }
+
+    @Test
+    public void testSelectRawWithGrouping() throws Exception {
+        SQLResponse response = executor.exec("select name, _raw from characters " +
+                "group by _raw, name order by name desc limit 1");
+        assertEquals(
+                "Trillian| {\"birthdate\":276912000000,\"gender\":\"female\"," +
+                        "\"details\":{\"job\":\"Mathematician\"}," +
+                        "\"race\":\"Human\",\"name\":\"Trillian\",\"age\":32}\n",
+                TestingHelpers.printedTable(response.rows()));
     }
 
     @Test
@@ -382,4 +414,5 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertEquals(2L, response.rows()[1][0]);
         assertEquals("Vogon", response.rows()[1][1]);
     }
+
 }

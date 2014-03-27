@@ -22,7 +22,9 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.DataType;
 import io.crate.analyze.WhereClause;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -33,10 +35,9 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
-import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -96,8 +97,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.toCollect(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         Object[][] result = operation.collect(collectNode).get();
-        System.out.println(printedTable(result));
-        assertEquals("sys| shards| 1| 0| NULL\n", printedTable(result));
+        System.out.println(TestingHelpers.printedTable(result));
+        assertEquals("sys| shards| 1| 0| NULL\n", TestingHelpers.printedTable(result));
     }
 
 
@@ -121,12 +122,12 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
                 "sys| nodes| name| 2| string";
 
 
-        assertTrue(printedTable(result).startsWith(expected));
+        assertTrue(TestingHelpers.printedTable(result).startsWith(expected));
 
         // second time - to check if the internal iterator resets
-        System.out.println(printedTable(result));
+        System.out.println(TestingHelpers.printedTable(result));
         result = operation.collect(collectNode).get();
-        assertTrue(printedTable(result).startsWith(expected));
+        assertTrue(TestingHelpers.printedTable(result).startsWith(expected));
     }
 
 }

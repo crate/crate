@@ -36,7 +36,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileWriter;
 
-import static io.crate.metadata.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 

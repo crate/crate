@@ -388,43 +388,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectDoc() throws Exception {
-        createIndex("test");
-        client().prepareIndex("test", "default", "id1").setSource("{\"a\":1}")
-                .execute().actionGet();
-        refresh();
-        execute("select _doc from test");
-        assertArrayEquals(new String[]{"_doc"}, response.cols());
-        assertEquals(1, response.rowCount());
-        assertEquals(1, response.rows()[0].length);
-        assertEquals(1, (long) ((Map<String, Integer>) response.rows()[0][0]).get("a"));
-    }
-
-    @Test
-    public void testSelectRaw() throws Exception {
-        createIndex("test");
-        client().prepareIndex("test", "default", "id1").setSource("{\"a\":1}")
-                .execute().actionGet();
-        refresh();
-        execute("select _raw from test");
-        assertArrayEquals(new String[]{"_raw"}, response.cols());
-        assertEquals(1, response.rowCount());
-        assertEquals("{\"a\":1}", response.rows()[0][0]);
-    }
-
-    @Test
-    public void testSelectRawWithGrouping() throws Exception {
-        createIndex("test");
-        client().prepareIndex("test", "default", "id1").setSource("{\"a\":1}")
-                .execute().actionGet();
-        refresh();
-        execute("select _raw from test group by _raw");
-        assertArrayEquals(new String[]{"_raw"}, response.cols());
-        assertEquals(1, response.rowCount());
-        assertEquals("{\"a\":1}", response.rows()[0][0]);
-    }
-
-    @Test
     public void testSelectObject() throws Exception {
         createIndex("test");
         client().prepareIndex("test", "default", "id1")

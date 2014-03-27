@@ -25,6 +25,7 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -69,15 +70,15 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         this.setup.groupBySetup("float");
 
         execute("select age, gender from characters order by gender");
-        System.out.println(printedTable(response.rows()));
+        System.out.println(TestingHelpers.printedTable(response.rows()));
 
         execute("select min(age), gender from characters group by gender order by gender");
-        System.out.println(printedTable(response.rows()));
+        System.out.println(TestingHelpers.printedTable(response.rows()));
 
         String expected = "32.0| female\n34.0| male\n";
 
         assertEquals("min(age)", response.cols()[0]);
-        assertEquals(expected, printedTable(response.rows()));
+        assertEquals(expected, TestingHelpers.printedTable(response.rows()));
     }
 
     @Test
