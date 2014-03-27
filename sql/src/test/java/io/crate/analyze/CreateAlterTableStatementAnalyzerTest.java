@@ -453,6 +453,9 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 ") partitioned by (name)");
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("name", "string"));
+
+        // partitioned columns should not appear as regular columns
+        assertThat(analysis.mappingProperties(), not(hasKey("name")));
         List<List<String>> partitionedByMeta = (List<List<String>>)analysis.metaMapping().get("partitioned_by");
         assertTrue(analysis.isPartitioned());
         assertThat(partitionedByMeta.size(), is(1));
@@ -469,6 +472,10 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "  date timestamp" +
                 ") partitioned by (name, date)");
         assertThat(analysis.partitionedBy().size(), is(2));
+        assertThat(analysis.mappingProperties(), allOf(
+                not(hasKey("name")),
+                not(hasKey("date"))
+        ));
         assertThat(analysis.partitionedBy().get(0), contains("name", "string"));
         assertThat(analysis.partitionedBy().get(1), contains("date", "date"));
     }
@@ -484,6 +491,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "  date timestamp" +
                 ") partitioned by (date, o['name'])");
         assertThat(analysis.partitionedBy().size(), is(2));
+        assertThat(analysis.mappingProperties(), not(hasKey("name")));
+        assertThat((Map<String, Object>)analysis.mappingProperties().get("o"), not(hasKey("name")));
         assertThat(analysis.partitionedBy().get(0), contains("date", "date"));
         assertThat(analysis.partitionedBy().get(1), contains("o.name", "string"));
     }
@@ -518,6 +527,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 ") partitioned by (id1)");
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
+        assertThat(analysis.mappingProperties(), not(hasKey("id1")));
     }
 
     @Test(expected = IllegalArgumentException.class)

@@ -231,16 +231,32 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     @SuppressWarnings("unchecked")
     public @Nullable
     Map<String, Object> getColumnDefinition(String columnName) {
+        return getColumnDefinition(columnName, false);
+    }
+
+    /**
+     * like Map.remove(key)
+     * @param columnName
+     * @return
+     */
+    public @Nullable Map<String, Object> popColumnDefinition(String columnName) {
+        return getColumnDefinition(columnName, true);
+    }
+
+    private @Nullable Map<String, Object> getColumnDefinition(String columnName, boolean remove) {
         if (metaIndices.containsKey(columnName)) {
             return null;  // ignore fulltext index columns
         }
 
+        Map<String, Object> parentProperties = null;
         Map<String, Object> properties = mappingProperties;
-        for (String namePart : Splitter.on('.').splitToList(columnName)) {
+        List<String> columPath = Splitter.on('.').splitToList(columnName);
+        for (String namePart : columPath) {
             Map<String, Object> fieldMapping = (Map<String, Object>)properties.get(namePart);
             if (fieldMapping == null) {
                 return null;
             } else if (fieldMapping.get("type") != null) {
+                parentProperties = properties;
                 if (fieldMapping.get("type").equals("object")
                         && fieldMapping.get("properties") != null) {
                     properties = (Map<String, Object>)fieldMapping.get("properties");
@@ -249,9 +265,13 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
                 }
             }
         }
-
+        if (parentProperties != null && remove) {
+            parentProperties.remove(columPath.get(columPath.size()-1));
+        }
         return properties;
     }
+
+
 
     /**
      * return true if column with name <code>columnName</code> is an array
