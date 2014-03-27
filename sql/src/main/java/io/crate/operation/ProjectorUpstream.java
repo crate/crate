@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,18 +21,17 @@
 
 package io.crate.operation;
 
+import io.crate.operation.projectors.Projector;
 
-public interface DownstreamOperation extends ProjectorUpstream {
+public interface ProjectorUpstream {
 
     /**
-     * add more rows to merge
-     * implementation needs to make sure that this operation is thread-safe
+     * set the Projector to hand over the projected rows.
+     * If no downstream Projector was set, rows are simply gathered.
+     *
+     * @param downstream the Projector to hand over projected rows
      */
-    public boolean addRows(Object[][] rows) throws Exception;
-    public int numUpstreams();
+    public void downstream(Projector downstream);
 
-    public void finished();
-
-    // TODO: make result a future
-    public Object[][] result() throws Exception;
+    public Projector downstream();
 }

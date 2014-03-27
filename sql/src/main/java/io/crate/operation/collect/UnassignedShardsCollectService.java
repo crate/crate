@@ -109,20 +109,20 @@ public class UnassignedShardsCollectService implements CollectService {
 
         private final List<Input<?>> inputs;
         private final List<UnassignedShardCollectorExpression<?>> collectorExpressions;
-        private final Projector downStream;
+        private Projector downstream;
         private final Iterable<UnassignedShard> rows;
         private final Input<Boolean> condition;
 
         public UnassignedShardsCollector(List<Input<?>> inputs,
                                          List<UnassignedShardCollectorExpression<?>> collectorExpressions,
-                                         Projector downStream,
+                                         Projector downstream,
                                          Iterable<UnassignedShard> rows,
                                          Input<Boolean> condition) {
             this.inputs = inputs;
             this.collectorExpressions = collectorExpressions;
-            this.downStream = downStream;
             this.rows = rows;
             this.condition = condition;
+            downstream(downstream);
         }
 
         @Override
@@ -141,11 +141,24 @@ public class UnassignedShardsCollectService implements CollectService {
                 for (Input<?> input : inputs) {
                     newRow[i++] = input.value();
                 }
-                if (!downStream.setNextRow(newRow)) {
+                if (!downstream.setNextRow(newRow)) {
                     // no more rows required, we can stop here
                     throw new CollectionTerminatedException();
                 }
             }
+
+            downstream.upstreamFinished();
+        }
+
+        @Override
+        public void downstream(Projector downstream) {
+            this.downstream = downstream;
+            downstream.registerUpstream(this);
+        }
+
+        @Override
+        public Projector downstream() {
+            return downstream;
         }
     }
 }

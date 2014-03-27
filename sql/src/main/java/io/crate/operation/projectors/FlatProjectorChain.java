@@ -21,8 +21,10 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.collect.Lists;
 import io.crate.planner.projection.Projection;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class FlatProjectorChain {
@@ -30,18 +32,21 @@ public class FlatProjectorChain {
     private final ProjectionToProjectorVisitor projectorVisitor;
     private Projector firstProjector;
     private Projector lastProjector;
+    private final List<Projector> projectors;
 
     public FlatProjectorChain(List<Projection> projections, ProjectionToProjectorVisitor projectorVisitor) {
-
+        projectors = new ArrayList<>();
         this.projectorVisitor = projectorVisitor;
         if (projections.size() == 0) {
             firstProjector = lastProjector = new CollectingProjector();
+            projectors.add(firstProjector);
         } else {
             Projector previousProjector = null;
             for (Projection projection : projections) {
                 Projector projector = projectorVisitor.process(projection);
+                projectors.add(projector);
                 if (previousProjector != null) {
-                    previousProjector.setDownStream(projector);
+                    previousProjector.downstream(projector);
                 } else {
                     firstProjector = projector;
                 }
@@ -54,18 +59,8 @@ public class FlatProjectorChain {
     }
 
     public void startProjections() {
-        Projector projector = firstProjector;
-        while (projector != null) {
+        for (Projector projector : Lists.reverse(projectors)) {
             projector.startProjection();
-            projector = projector.getDownstream();
-        }
-    }
-
-    public void finishProjections() {
-        Projector projector = firstProjector;
-        while (projector != null) {
-            projector.finishProjection();
-            projector = projector.getDownstream();
         }
     }
 
@@ -80,5 +75,4 @@ public class FlatProjectorChain {
     public Object[][] result() {
         return lastProjector().getRows();
     }
-
 }

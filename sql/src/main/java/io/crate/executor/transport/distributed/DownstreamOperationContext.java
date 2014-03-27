@@ -87,6 +87,7 @@ public class DownstreamOperationContext {
         if (mergeOperationsLeft.decrementAndGet() == 0) {
             doneCallback.finished();
             try {
+                downstreamOperation.finished();
                 listener.set(downstreamOperation.result());
             } catch (Exception e) {
                 logger.error("failed to get downstreamOperation result", e);

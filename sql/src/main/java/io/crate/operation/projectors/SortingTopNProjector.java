@@ -23,11 +23,11 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
+import io.crate.Constants;
+import io.crate.core.collections.ArrayIterator;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.PriorityQueue;
-import io.crate.Constants;
-import io.crate.core.collections.ArrayIterator;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Projector used for sorted limit and offset queries
  *
  * storing rows in a sorted PriorityQueue.
- * Passes rows over to upStresm projector in {@link SortingTopNProjector#finishProjection()} phase.
+ * Passes rows over to upStresm projector in {@link io.crate.operation.projectors.SortingTopNProjector#upstreamFinished()} ()} phase.
  */
 public class SortingTopNProjector extends AbstractProjector {
 
@@ -153,20 +153,19 @@ public class SortingTopNProjector extends AbstractProjector {
     }
 
     @Override
-    public void finishProjection() {
+    public void upstreamFinished() {
         final int resultSize = Math.max(pq.size() - start, 0);
         if (downStream.isPresent()) {
             // pass rows to downStream
             Projector projector = downStream.get();
 
-            projector.startProjection();
             for (int i = (resultSize - 1); i >= 0; i--) {
                 Object[] row = Arrays.copyOfRange(pq.pop(), 0, numOutputs); // strip order by inputs
                 if (!projector.setNextRow(row)) {
                     break;
                 }
             }
-            projector.finishProjection();
+            projector.upstreamFinished();
         } else {
             // store result-array in local buffer
             result = new Object[resultSize][];
@@ -175,6 +174,7 @@ public class SortingTopNProjector extends AbstractProjector {
             }
         }
         pq.clear();
+
     }
 
     @Override
@@ -186,5 +186,4 @@ public class SortingTopNProjector extends AbstractProjector {
     public Iterator<Object[]> iterator() {
         return new ArrayIterator(result, 0, result.length);
     }
-
 }

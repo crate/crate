@@ -94,7 +94,6 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
             }
             super.set(Constants.EMPTY_RESULT);
 
-            projectorChain.finishProjections();
             BucketingIterator bucketingIterator = new ModuloBucketingIterator(
                     this.numDownStreams,
                     projectorChain.lastProjector()

@@ -94,6 +94,7 @@ public class MergeOperationTest {
         }
         assertTrue(mergeOperation.addRows(rows));
 
+        mergeOperation.finished();
         Object[][] mergeResult = mergeOperation.result();
         assertThat(mergeResult.length, is(3));
         assertThat((Integer)mergeResult[0][0], is(0));
@@ -124,6 +125,7 @@ public class MergeOperationTest {
         otherAggState.setValue(2.5d);
         otherRows[0] = new Object[]{0, otherAggState};
         assertTrue(mergeOperation.addRows(otherRows));
+        mergeOperation.finished();
 
         Object[][] mergeResult = mergeOperation.result();
         assertThat(mergeResult.length, is(1));

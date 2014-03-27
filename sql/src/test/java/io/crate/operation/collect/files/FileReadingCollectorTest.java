@@ -79,7 +79,6 @@ public class FileReadingCollectorTest {
 
         projector.startProjection();
         collector.doCollect();
-        projector.finishProjection();
 
         Object[][] rows = projector.getRows();
         assertThat(((BytesRef)rows[0][0]).utf8ToString(), is(

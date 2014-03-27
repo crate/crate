@@ -21,13 +21,15 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.operation.AggregationContext;
 import io.crate.operation.Input;
+import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.aggregation.AggregationCollector;
 import io.crate.operation.aggregation.AggregationState;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.AggregationContext;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class GroupingProjector implements Projector {
 
@@ -36,7 +38,8 @@ public class GroupingProjector implements Projector {
     private final Grouper grouper;
 
     private Object[][] rows;
-    private Projector downStream = null;
+    private Projector downstream;
+    private AtomicInteger remainingUpstreams = new AtomicInteger(0);
 
     public GroupingProjector(List<Input<?>> keyInputs,
                              List<CollectExpression<?>> collectExpressions,
@@ -51,7 +54,6 @@ public class GroupingProjector implements Projector {
                     aggregations[i].inputs()
             );
         }
-
         if (keyInputs.size() == 1) {
             grouper = new SingleKeyGrouper(keyInputs.get(0), collectExpressions, aggregationCollectors);
         } else {
@@ -60,19 +62,24 @@ public class GroupingProjector implements Projector {
     }
 
     @Override
-    public void setDownStream(Projector downStream) {
-        this.downStream = downStream;
+    public void downstream(Projector downstream) {
+        downstream.registerUpstream(this);
+        this.downstream = downstream;
     }
 
     @Override
-    public Projector getDownstream() {
-        return downStream;
+    public Projector downstream() {
+        return null;
     }
 
     @Override
     public void startProjection() {
         for (CollectExpression collectExpression : collectExpressions) {
             collectExpression.startCollect();
+        }
+
+        if (remainingUpstreams.get() <= 0) {
+            upstreamFinished();
         }
     }
 
@@ -82,8 +89,15 @@ public class GroupingProjector implements Projector {
     }
 
     @Override
-    public void finishProjection() {
-        rows = grouper.finish();
+    public void registerUpstream(ProjectorUpstream upstream) {
+        remainingUpstreams.incrementAndGet();
+    }
+
+    @Override
+    public void upstreamFinished() {
+        if (remainingUpstreams.decrementAndGet() <= 0) {
+            rows = grouper.finish();
+        }
     }
 
     /**
@@ -185,15 +199,18 @@ public class GroupingProjector implements Projector {
         @Override
         public Object[][] finish() {
             Object[][] rows = new Object[result.size()][1 + aggregationCollectors.length];
-            boolean sendToDownStream = downStream != null;
+            boolean sendToDownStream = downstream != null;
             int r = 0;
             for (Map.Entry<Object, AggregationState[]> entry : result.entrySet()) {
                 Object[] row = rows[r];
                 singleTransformToRow(entry, row, aggregationCollectors);
                 if (sendToDownStream) {
-                    sendToDownStream = downStream.setNextRow(row);
+                    sendToDownStream = downstream.setNextRow(row);
                 }
                 r++;
+            }
+            if (downstream != null) {
+                downstream.upstreamFinished();
             }
             return rows;
         }
@@ -255,15 +272,18 @@ public class GroupingProjector implements Projector {
         @Override
         public Object[][] finish() {
             Object[][] rows = new Object[result.size()][keyInputs.size() + aggregationCollectors.length];
-            boolean sendToDownStream = downStream != null;
+            boolean sendToDownStream = downstream != null;
             int r = 0;
             for (Map.Entry<List<Object>, AggregationState[]> entry : result.entrySet()) {
                 Object[] row = rows[r];
                 transformToRow(entry, row, aggregationCollectors);
                 if (sendToDownStream) {
-                    sendToDownStream = downStream.setNextRow(row);
+                    sendToDownStream = downstream.setNextRow(row);
                 }
                 r++;
+            }
+            if (downstream != null) {
+                downstream.upstreamFinished();
             }
             return rows;
         }

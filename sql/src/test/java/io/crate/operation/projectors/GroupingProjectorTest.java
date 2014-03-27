@@ -57,7 +57,7 @@ public class GroupingProjectorTest {
         projector.setNextRow();
         projector.setNextRow();
         projector.setNextRow();
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(2));
         assertThat(rows[0][1], instanceOf(CountAggregation.CountAggState.class));

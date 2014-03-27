@@ -91,7 +91,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     }
 
     private final SearchContext searchContext;
-    private final Projector downStream;
+    private Projector downstream;
     private final List<Input<?>> topLevelInputs;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
 
@@ -106,14 +106,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                               List<LuceneCollectorExpression<?>> collectorExpressions,
                               BytesReference querySource,
                               Projector downStreamProjector) throws Exception {
-        this.downStream = downStreamProjector;
-
-        SearchShardTarget searchShardTarget = new SearchShardTarget(clusterService.localNode().id(), shardId.getIndex(), shardId.id());
-
+        downstream(downStreamProjector);
+        SearchShardTarget searchShardTarget = new SearchShardTarget(
+                clusterService.localNode().id(), shardId.getIndex(), shardId.id());
         this.topLevelInputs = inputs;
         this.collectorExpressions = collectorExpressions;
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
-
 
         ShardSearchRequest shardSearchRequest = new ShardSearchRequest();
         shardSearchRequest.types(new String[]{Constants.DEFAULT_MAPPING_TYPE});
@@ -129,6 +127,17 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                 pageCacheRecycler
         );
         sqlxContentQueryParser.parse(searchContext, querySource);
+    }
+
+    @Override
+    public void downstream(Projector downstream) {
+        downstream.registerUpstream(this);
+        this.downstream = downstream;
+    }
+
+    @Override
+    public Projector downstream() {
+        return downstream;
     }
 
     @Override
@@ -148,7 +157,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         for (Input<?> input : topLevelInputs) {
             newRow[i++] = input.value();
         }
-        if (!downStream.setNextRow(newRow)) {
+        if (!downstream.setNextRow(newRow)) {
             // no more rows required, we can stop here
             throw new CollectionTerminatedException();
         }
@@ -189,6 +198,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         } finally {
             searchContext.release();
             SearchContext.removeCurrent();
+            downstream.upstreamFinished();
         }
     }
 }

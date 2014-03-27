@@ -112,7 +112,6 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
 
         projectorChain.startProjections();
         new SimpleOneRowCollector(inputs, collectExpressions, projectorChain.firstProjector()).doCollect();
-        projectorChain.finishProjections();
 
         Object[][] collected = projectorChain.result();
         if (logger.isTraceEnabled()) {
@@ -125,17 +124,15 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     }
 
     private Object[][] handleWithService(CollectService collectService, CollectNode node) throws Exception {
-
         FlatProjectorChain projectorChain = new FlatProjectorChain(node.projections(), projectorVisitor);
-        projectorChain.startProjections();
         CrateCollector collector = collectService.getCollector(node, projectorChain.firstProjector());
+        projectorChain.startProjections();
         try {
             collector.doCollect();
         } catch (CollectionTerminatedException ex) {
             // ignore
         }
-        projectorChain.finishProjections();
-        Object[][] collected = projectorChain.result();
-        return collected;
+
+        return projectorChain.result();
     }
 }

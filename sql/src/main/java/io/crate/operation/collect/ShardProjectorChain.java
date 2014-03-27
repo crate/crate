@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.collect.Lists;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
@@ -34,6 +35,7 @@ public class ShardProjectorChain {
 
     private final List<Projection> projections;
     private final List<Projector> shardProjectors;
+    private final List<Projector> nodeProjectors;
     private Projector firstNodeProjector;
     private Projector lastProjector;
     private int shardProjectionsIndex = -1;
@@ -41,9 +43,11 @@ public class ShardProjectorChain {
 
     public ShardProjectorChain(int numShards, List<Projection> projections, ProjectionToProjectorVisitor nodeProjectorVisitor) {
         this.projections = projections;
+        nodeProjectors = new ArrayList<>();
 
         if (projections.size() == 0) {
             firstNodeProjector = lastProjector = new CollectingProjector();
+            nodeProjectors.add(firstNodeProjector);
             shardProjectors = null;
             return;
         }
@@ -59,8 +63,9 @@ public class ShardProjectorChain {
         Projector previousProjector = null;
         for (int i = shardProjectionsIndex + 1; i < projections.size(); i++) {
             Projector projector = nodeProjectorVisitor.process(projections.get(i), null);
+            nodeProjectors.add(projector);
             if (previousProjector != null) {
-                previousProjector.setDownStream(projector);
+                previousProjector.downstream(projector);
             } else {
                 firstNodeProjector = projector;
             }
@@ -93,7 +98,7 @@ public class ShardProjectorChain {
         Projector projector = null;
         for (int i = 0; i <= shardProjectionsIndex; i++) {
             projector = projectorVisitor.process(projections.get(i), null);
-            previousProjector.setDownStream(projector);
+            previousProjector.downstream(projector);
             shardProjectors.add(projector);
             previousProjector = projector;
         }
@@ -109,28 +114,13 @@ public class ShardProjectorChain {
     }
 
     public void startProjections() {
-        Projector projector = firstNodeProjector;
-        while (projector != null) {
+        for (Projector projector : Lists.reverse(nodeProjectors)) {
             projector.startProjection();
-            projector = projector.getDownstream();
         }
         if (shardProjectionsIndex >= 0) {
             for (Projector p : shardProjectors) {
                 p.startProjection();
             }
-        }
-    }
-
-    public void finishProjections() {
-        if (shardProjectionsIndex >= 0) {
-            for (Projector p : shardProjectors) {
-                p.finishProjection();
-            }
-        }
-        Projector projector = firstNodeProjector;
-        while (projector != null) {
-            projector.finishProjection();
-            projector = projector.getDownstream();
         }
     }
 }

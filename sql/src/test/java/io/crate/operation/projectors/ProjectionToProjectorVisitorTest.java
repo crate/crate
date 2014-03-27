@@ -75,6 +75,7 @@ public class ProjectionToProjectorVisitorTest {
         projection.outputs(Arrays.<Symbol>asList(new StringLiteral("foo"), new InputColumn(0)));
 
         Projector projector = visitor.process(projection);
+        projector.registerUpstream(null);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
         projector.startProjection();
@@ -85,7 +86,7 @@ public class ProjectionToProjectorVisitorTest {
             }
         }
         assertThat(i, is(12));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(10));
         assertThat((BytesRef) rows[0][0], is(new BytesRef("foo")));
@@ -108,7 +109,7 @@ public class ProjectionToProjectorVisitorTest {
             }
         }
         assertThat(i, is(0));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(10));
         assertThat(rows[0].length, is(3));
@@ -142,7 +143,7 @@ public class ProjectionToProjectorVisitorTest {
         projector.startProjection();
         projector.setNextRow("foo", 10);
         projector.setNextRow("bar", 20);
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(1));
         assertThat((Double)rows[0][0], is(15.0));   // avg
@@ -169,7 +170,7 @@ public class ProjectionToProjectorVisitorTest {
         projector.setNextRow("vogon", 40, "male");
         projector.setNextRow("vogon", 48, "male");
         projector.setNextRow("human", 34, "male");
-        projector.finishProjection();
+        projector.upstreamFinished();
 
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(3));
