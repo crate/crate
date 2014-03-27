@@ -26,7 +26,7 @@ import io.crate.operation.ProjectorUpstream;
 /**
  * executing a Projection
  */
-public interface Projector extends ProjectorUpstream, Iterable<Object[]> {
+public interface Projector extends ProjectorUpstream {
 
     /**
      * initialize anything needed for proper projecting the projection
@@ -52,11 +52,4 @@ public interface Projector extends ProjectorUpstream, Iterable<Object[]> {
      * After this has been called a upstream projector must not send any more rows to the downstream.
      */
     public void upstreamFinished();
-
-    /**
-     * finally, return all collected rows.
-     * @return
-     * @throws java.lang.IllegalStateException if this Projector is not done yet or the projector has a downstream.
-     */
-    public Object[][] getRows() throws IllegalStateException;
 }

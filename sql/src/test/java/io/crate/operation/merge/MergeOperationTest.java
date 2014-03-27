@@ -95,7 +95,7 @@ public class MergeOperationTest {
         assertTrue(mergeOperation.addRows(rows));
 
         mergeOperation.finished();
-        Object[][] mergeResult = mergeOperation.result();
+        Object[][] mergeResult = mergeOperation.result().get();
         assertThat(mergeResult.length, is(3));
         assertThat((Integer)mergeResult[0][0], is(0));
         assertThat((Double)mergeResult[0][1], is(0.5d));
@@ -127,7 +127,7 @@ public class MergeOperationTest {
         assertTrue(mergeOperation.addRows(otherRows));
         mergeOperation.finished();
 
-        Object[][] mergeResult = mergeOperation.result();
+        Object[][] mergeResult = mergeOperation.result().get();
         assertThat(mergeResult.length, is(1));
         assertThat((Integer)mergeResult[0][0], is(0));
         assertThat((Double)mergeResult[0][1], is(2.5d));

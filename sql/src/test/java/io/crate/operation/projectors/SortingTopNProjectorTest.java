@@ -46,6 +46,7 @@ public class SortingTopNProjectorTest {
                 new boolean[]{false},
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 10; i>0; i--) {   // 10 --> 1
@@ -55,7 +56,7 @@ public class SortingTopNProjectorTest {
         }
         assertThat(i, is(0)); // needs to collect all it can get
         projector.upstreamFinished();
-        Object[][] rows = projector.getRows();
+        Object[][] rows = projector.result().get();
         assertThat(rows.length, is(10));
         for (int j = 0; j<10; j++) {
             // 1 --> 10
@@ -81,7 +82,7 @@ public class SortingTopNProjectorTest {
                 2,
                 30
         );
-
+        projector.registerUpstream(null);
         projector.startProjection();
         for (int i = 0; i < 10; i++) {
             if (!projector.setNextRow(i)) {
@@ -90,7 +91,7 @@ public class SortingTopNProjectorTest {
         }
 
         projector.upstreamFinished();
-        assertThat(projector.getRows().length, is(0));
+        assertThat(projector.result().get().length, is(0));
     }
 
     @Test
@@ -103,6 +104,7 @@ public class SortingTopNProjectorTest {
                 new boolean[]{false},
                 TopN.NO_LIMIT,
                 5);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 10; i>0; i--) {   // 10 --> 1
@@ -112,7 +114,7 @@ public class SortingTopNProjectorTest {
         }
         assertThat(i, is(0)); // needs to collect all it can get
         projector.upstreamFinished();
-        Object[][] rows = projector.getRows();
+        Object[][] rows = projector.result().get();
         assertThat(rows.length, is(5));
         for (int j = 0; j<5; j++) {
             assertThat((Integer)rows[j][0], is(j+6));
@@ -135,23 +137,24 @@ public class SortingTopNProjectorTest {
                 new int[]{0}, new boolean[]{false},
                 3,
                 5);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
-        for (i = 10; i>0; i--) {   // 10 --> 1
+        for (i = 10; i > 0; i--) {   // 10 --> 1
             projector.setNextRow(i);
         }
         assertThat(i, is(0)); // needs to collect all it can get
         projector.upstreamFinished();
-        Object[][] rows = projector.getRows();
+        Object[][] rows = projector.result().get();
         assertThat(rows.length, is(3));
         assertThat(rows[0].length, is(1));
-        for (int j = 0; j<3; j++) {
-            assertThat((Integer)rows[j][0], is(j+6));
+        for (int j = 0; j < 3; j++) {
+            assertThat((Integer)rows[j][0], is(j + 6));
         }
 
         int iterateLength = 0;
         for (Object[] row : projector) {
-            assertThat((Integer)row[0], is(iterateLength+6));
+            assertThat((Integer)row[0], is(iterateLength + 6));
             iterateLength++;
         }
         assertThat(iterateLength, is(3));
@@ -167,6 +170,7 @@ public class SortingTopNProjectorTest {
                 new boolean[]{true},
                 3,
                 5);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 0; i<10; i++) {   // 0 --> 9
@@ -174,7 +178,7 @@ public class SortingTopNProjectorTest {
         }
         assertThat(i, is(10)); // needs to collect all it can get
         projector.upstreamFinished();
-        Object[][] rows = projector.getRows();
+        Object[][] rows = projector.result().get();
         assertThat(rows.length, is(3));
 
         assertThat((Integer)rows[0][0], is(4));
@@ -214,6 +218,7 @@ public class SortingTopNProjectorTest {
                 new boolean[]{false, false},
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i=0; i<20; i++) {
@@ -221,7 +226,7 @@ public class SortingTopNProjectorTest {
         }
         assertThat(i, is(20));
         projector.upstreamFinished();
-        Object[][] rows = projector.getRows();
+        Object[][] rows = projector.result().get();
         assertThat(rows.length, is(20));
 
         Object[] formerRow = null;

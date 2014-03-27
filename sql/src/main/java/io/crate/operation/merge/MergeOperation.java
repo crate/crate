@@ -21,6 +21,7 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.projectors.FlatProjectorChain;
@@ -70,7 +71,7 @@ public class MergeOperation implements DownstreamOperation {
         downstream.upstreamFinished();
     }
 
-    public Object[][] result() throws Exception {
+    public ListenableFuture<Object[][]> result() {
         return projectorChain.result();
     }
 

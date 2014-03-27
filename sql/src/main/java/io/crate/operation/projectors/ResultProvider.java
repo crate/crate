@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,19 +19,15 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation;
+package io.crate.operation.projectors;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.util.Iterator;
 
-public interface DownstreamOperation extends ProjectorUpstream {
+public interface ResultProvider extends Iterable<Object[]> {
 
-    /**
-     * add more rows to merge
-     * implementation needs to make sure that this operation is thread-safe
-     */
-    public boolean addRows(Object[][] rows) throws Exception;
-    public int numUpstreams();
-    public void finished();
     public ListenableFuture<Object[][]> result();
+
+    public Iterator<Object[]> iterator() throws IllegalStateException;
 }

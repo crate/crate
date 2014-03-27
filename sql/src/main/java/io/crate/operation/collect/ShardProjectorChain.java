@@ -22,7 +22,9 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.RowGranularity;
@@ -37,7 +39,7 @@ public class ShardProjectorChain {
     private final List<Projector> shardProjectors;
     private final List<Projector> nodeProjectors;
     private Projector firstNodeProjector;
-    private Projector lastProjector;
+    private ResultProvider lastProjector;
     private int shardProjectionsIndex = -1;
 
 
@@ -46,7 +48,8 @@ public class ShardProjectorChain {
         nodeProjectors = new ArrayList<>();
 
         if (projections.size() == 0) {
-            firstNodeProjector = lastProjector = new CollectingProjector();
+            firstNodeProjector = new CollectingProjector();
+            lastProjector = (ResultProvider)firstNodeProjector;
             nodeProjectors.add(firstNodeProjector);
             shardProjectors = null;
             return;
@@ -76,7 +79,13 @@ public class ShardProjectorChain {
         } else {
             shardProjectors = null;
         }
-        lastProjector = previousProjector;
+        assert previousProjector != null;
+        if (previousProjector instanceof ResultProvider) {
+            lastProjector = (ResultProvider)previousProjector;
+        } else {
+            lastProjector = new CollectingProjector();
+            previousProjector.downstream((Projector)lastProjector);
+        }
 
         // TODO: once there is a plan to do a shard only projection chain, this case needs to be handled
         assert firstNodeProjector != null;
@@ -105,11 +114,11 @@ public class ShardProjectorChain {
         return projector;
     }
 
-    public Object[][] result() {
-        return lastProjector.getRows();
+    public ListenableFuture<Object[][]> result() {
+        return lastProjector.result();
     }
 
-    public Projector lastProjector() {
+    public ResultProvider lastProjector() {
         return lastProjector;
     }
 

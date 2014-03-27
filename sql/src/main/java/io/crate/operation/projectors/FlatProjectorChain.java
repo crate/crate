@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.planner.projection.Projection;
 
 import java.util.ArrayList;
@@ -31,14 +32,15 @@ public class FlatProjectorChain {
 
     private final ProjectionToProjectorVisitor projectorVisitor;
     private Projector firstProjector;
-    private Projector lastProjector;
     private final List<Projector> projectors;
+    private ResultProvider lastProjector;
 
     public FlatProjectorChain(List<Projection> projections, ProjectionToProjectorVisitor projectorVisitor) {
         projectors = new ArrayList<>();
         this.projectorVisitor = projectorVisitor;
         if (projections.size() == 0) {
-            firstProjector = lastProjector = new CollectingProjector();
+            firstProjector = new CollectingProjector();
+            lastProjector = (ResultProvider)firstProjector;
             projectors.add(firstProjector);
         } else {
             Projector previousProjector = null;
@@ -52,7 +54,14 @@ public class FlatProjectorChain {
                 }
                 previousProjector = projector;
             }
-            lastProjector = previousProjector;
+
+            assert previousProjector != null;
+            if (previousProjector instanceof ResultProvider) {
+                lastProjector = (ResultProvider)previousProjector;
+            } else {
+                lastProjector = new CollectingProjector();
+                previousProjector.downstream((Projector)lastProjector);
+            }
             assert firstProjector != null;
             assert lastProjector != null;
         }
@@ -64,7 +73,7 @@ public class FlatProjectorChain {
         }
     }
 
-    public Projector lastProjector() {
+    public ResultProvider lastProjector() {
         return lastProjector;
     }
 
@@ -72,7 +81,7 @@ public class FlatProjectorChain {
         return firstProjector;
     }
 
-    public Object[][] result() {
-        return lastProjector().getRows();
+    public ListenableFuture<Object[][]> result() {
+        return lastProjector().result();
     }
 }

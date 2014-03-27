@@ -183,6 +183,7 @@ public class InformationSchemaCollectService implements CollectService {
                 }
                 if (!downstream.setNextRow(newRow)) {
                     // no more rows required, we can stop here
+                    downstream.upstreamFinished();
                     throw new CollectionTerminatedException();
                 }
             }

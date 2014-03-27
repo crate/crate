@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
@@ -52,6 +53,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 /**
@@ -72,7 +74,17 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
 
         @Override
         protected void onAllShardsFinished() {
-            super.set(projectorChain.result());
+            Futures.addCallback(projectorChain.result(), new FutureCallback<Object[][]>() {
+                @Override
+                public void onSuccess(@Nullable Object[][] result) {
+                    set(result);
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    setException(t);
+                }
+            });
         }
     }
 
@@ -143,24 +155,16 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         }
         assert collectNode.toCollect().size() > 0;
 
-        FlatProjectorChain projectorChain = new FlatProjectorChain(collectNode.projections(), projectorVisitor);
+        FlatProjectorChain projectorChain = new FlatProjectorChain(
+                collectNode.projections(), projectorVisitor);
         CrateCollector collector = getCollector(collectNode, projectorChain);
         projectorChain.startProjections();
         try {
             collector.doCollect();
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
-        } finally {
-            projectorChain.firstProjector().upstreamFinished();
         }
-        Object[][] collected = projectorChain.result();
-        if (logger.isTraceEnabled()) {
-            logger.trace("collected {} on {}-level from node {}",
-                    Objects.toString(Arrays.asList(collected[0])),
-                    collectNode.maxRowGranularity().name().toLowerCase(),
-                    clusterService.localNode().id());
-        }
-        return Futures.immediateFuture(collected);
+        return projectorChain.result();
     }
 
     private CrateCollector getCollector(CollectNode collectNode,

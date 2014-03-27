@@ -16,6 +16,8 @@ import io.crate.DataType;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
 
+import java.util.concurrent.ExecutionException;
+
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -29,7 +31,7 @@ public class GroupingProjectorTest {
      **/
 
     @Test
-    public void testAggregationToPartial() {
+    public void testAggregationToPartial() throws ExecutionException, InterruptedException {
 
         ImmutableList<Input<?>> keys = ImmutableList.<Input<?>>of(
                 new DummyInput("one", "one", "three"));
@@ -52,13 +54,16 @@ public class GroupingProjectorTest {
                 ImmutableList.<CollectExpression<?>>of(),
                 aggregations
         );
+        CollectingProjector collectingProjector = new CollectingProjector();
+        projector.registerUpstream(null);
+        projector.downstream(collectingProjector);
 
         projector.startProjection();
         projector.setNextRow();
         projector.setNextRow();
         projector.setNextRow();
         projector.upstreamFinished();
-        Object[][] rows = projector.getRows();
+        Object[][] rows = collectingProjector.result().get();
         assertThat(rows.length, is(2));
         assertThat(rows[0][1], instanceOf(CountAggregation.CountAggState.class));
     }

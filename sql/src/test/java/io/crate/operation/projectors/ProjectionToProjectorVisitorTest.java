@@ -43,6 +43,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -70,12 +71,14 @@ public class ProjectionToProjectorVisitorTest {
 
 
     @Test
-    public void testSimpleTopNProjection() {
+    public void testSimpleTopNProjection() throws ExecutionException, InterruptedException {
         TopNProjection projection = new TopNProjection(10, 2);
         projection.outputs(Arrays.<Symbol>asList(new StringLiteral("foo"), new InputColumn(0)));
 
+        CollectingProjector collectingProjector = new CollectingProjector();
         Projector projector = visitor.process(projection);
         projector.registerUpstream(null);
+        projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
         projector.startProjection();
@@ -85,20 +88,21 @@ public class ProjectionToProjectorVisitorTest {
                 break;
             }
         }
-        assertThat(i, is(12));
+        assertThat(i, is(11));
         projector.upstreamFinished();
-        Object[][] rows = projector.getRows();
+        Object[][] rows = collectingProjector.result().get();
         assertThat(rows.length, is(10));
         assertThat((BytesRef) rows[0][0], is(new BytesRef("foo")));
         assertThat((Integer)rows[0][1], is(42));
     }
 
     @Test
-    public void testSortingTopNProjection() {
+    public void testSortingTopNProjection() throws ExecutionException, InterruptedException {
         TopNProjection projection = new TopNProjection(10, 0,
                 Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)), new boolean[]{false, false});
         projection.outputs(Arrays.<Symbol>asList(new StringLiteral("foo"), new InputColumn(0), new InputColumn(1)));
         Projector projector = visitor.process(projection);
+        projector.registerUpstream(null);
         assertThat(projector, instanceOf(SortingTopNProjector.class));
 
         projector.startProjection();
@@ -110,7 +114,7 @@ public class ProjectionToProjectorVisitorTest {
         }
         assertThat(i, is(0));
         projector.upstreamFinished();
-        Object[][] rows = projector.getRows();
+        Object[][] rows = ((ResultProvider)projector).result().get();
         assertThat(rows.length, is(10));
         assertThat(rows[0].length, is(3));
 
@@ -126,32 +130,32 @@ public class ProjectionToProjectorVisitorTest {
                 assertThat((Integer)formerRow[2], lessThanOrEqualTo((Integer)row[2]));
             }
         }
-
-
     }
 
     @Test
-    public void testAggregationProjector() {
+    public void testAggregationProjector() throws ExecutionException, InterruptedException {
         AggregationProjection projection = new AggregationProjection();
         projection.aggregations(Arrays.asList(
                 new Aggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
                 new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
         Projector projector = visitor.process(projection);
+        CollectingProjector collectingProjector = new CollectingProjector();
+        projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(AggregationProjector.class));
 
         projector.startProjection();
         projector.setNextRow("foo", 10);
         projector.setNextRow("bar", 20);
         projector.upstreamFinished();
-        Object[][] rows = projector.getRows();
+        Object[][] rows = collectingProjector.result().get();
         assertThat(rows.length, is(1));
         assertThat((Double)rows[0][0], is(15.0));   // avg
         assertThat((Long)rows[0][1], is(2L));       // count
     }
 
     @Test
-    public void testGroupProjector() {
+    public void testGroupProjector() throws ExecutionException, InterruptedException {
         //         in(0)  in(1)      in(0),      in(2)
         // select  race, avg(age), count(race), gender  ... group by race, gender
         GroupProjection projection = new GroupProjection();
@@ -162,6 +166,9 @@ public class ProjectionToProjectorVisitorTest {
         ));
 
         Projector projector = visitor.process(projection);
+        projector.registerUpstream(null);
+        CollectingProjector collectingProjector = new CollectingProjector();
+        projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(GroupingProjector.class));
 
         projector.startProjection();
@@ -172,7 +179,7 @@ public class ProjectionToProjectorVisitorTest {
         projector.setNextRow("human", 34, "male");
         projector.upstreamFinished();
 
-        Object[][] rows = projector.getRows();
+        Object[][] rows = collectingProjector.result().get();
         assertThat(rows.length, is(3));
         assertThat((String)rows[0][0], is("human"));
         assertThat((String)rows[0][1], is("female"));
