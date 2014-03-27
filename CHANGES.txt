@@ -2,6 +2,13 @@
 Changes for Crate Data
 ======================
 
+Unreleased
+==========
+
+ - fix: remove partitioned column from common table columns
+
+ - implemented DocTableInfo for partitioned tables from index template
+
 2014/03/26 0.34.0
 =================
 

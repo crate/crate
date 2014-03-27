@@ -73,6 +73,15 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
     public String[] partitions();
 
     /**
+     * returns <code>true</code> if this table is a partitioned table,
+     * <code>false</code> otherwise
+     *
+     * if so, {@linkplain #partitions()} returns the concrete indices that make
+     * up this virtual partitioned table
+     */
+    public boolean isPartitioned();
+
+    /**
      * return a Dynamic Reference used when a column does not exist in the table mapping
      * but we need a reference
      *

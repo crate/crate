@@ -137,7 +137,13 @@ public class PartitionName implements Streamable {
         assert partitionTableName != null;
         assert tableName != null;
 
-        String currentPrefix = partitionTableName.substring(0, Constants.PARTITIONED_TABLE_PREFIX.length()+tableName.length()+2);
+        String currentPrefix;
+        try {
+            currentPrefix = partitionTableName.substring(0, Constants.PARTITIONED_TABLE_PREFIX.length() + tableName.length() + 2);
+        } catch (StringIndexOutOfBoundsException e) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Invalid partition name '%s'", partitionTableName));
+        }
         String computedPrefix = Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName) + ".";
         if (!currentPrefix.equals(computedPrefix)) {
             throw new IllegalArgumentException(

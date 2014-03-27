@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -39,6 +40,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 
@@ -59,6 +61,7 @@ public class DocIndexMetaData {
 
     // columns should be ordered
     private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> referencesBuilder = ImmutableSortedMap.naturalOrder();
+    private final ImmutableList.Builder<ReferenceInfo> partitionedByColumnsBuilder = ImmutableList.builder();
 
     private final TableIdent ident;
     private final int numberOfShards;
@@ -66,7 +69,9 @@ public class DocIndexMetaData {
     private Map<String, Object> metaMap;
     private Map<String, Object> metaColumnsMap;
     private Map<String, Object> indicesMap;
+    private List<List<String>> partitionedByList;
     private ImmutableList<ReferenceInfo> columns;
+    private ImmutableList<ReferenceInfo> partitionedByColumns;
     private ImmutableMap<ColumnIdent, ReferenceInfo> references;
     private ImmutableList<String> primaryKey;
     private String routingCol;
@@ -132,18 +137,31 @@ public class DocIndexMetaData {
             } else {
                 metaColumnsMap = new HashMap<>();
             }
+            Object partitionedBy = metaMap.get("partitioned_by");
+            if (partitionedBy != null) {
+                assert partitionedBy instanceof List;
+                partitionedByList = (List<List<String>>)partitionedBy;
+            } else {
+                partitionedByList = ImmutableList.of();
+            }
         } else {
             metaMap = new HashMap<>();
             indicesMap = new HashMap<>();
             metaColumnsMap = new HashMap<>();
+            partitionedByList = ImmutableList.of();
         }
     }
 
     private void add(ColumnIdent column, DataType type) {
-        add(column, type, ReferenceInfo.ObjectType.DYNAMIC);
+        add(column, type, ReferenceInfo.ObjectType.DYNAMIC, false);
     }
 
-    private void add(ColumnIdent column, DataType type, ReferenceInfo.ObjectType objectType) {
+    private void addPartitioned(ColumnIdent column, DataType type) {
+        add(column, type, ReferenceInfo.ObjectType.DYNAMIC, true);
+    }
+
+    private void add(ColumnIdent column, DataType type, ReferenceInfo.ObjectType objectType,
+                     boolean partitioned) {
         // don't include indices in the column references
         if (indicesMap.keySet().contains(column.name())) {
             return;
@@ -154,6 +172,9 @@ public class DocIndexMetaData {
             columnsBuilder.add(info);
         }
         referencesBuilder.put(info.ident().columnIdent(), info);
+        if (partitioned) {
+            partitionedByColumnsBuilder.add(info);
+        }
     }
 
     private ReferenceInfo newInfo(ColumnIdent column, DataType type, ReferenceInfo.ObjectType objectType) {
@@ -277,7 +298,7 @@ public class DocIndexMetaData {
                 ReferenceInfo.ObjectType objectType =
                         ReferenceInfo.ObjectType.of(columnProperties.get("dynamic"));
                 ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
-                add(newIdent, columnDataType, objectType);
+                add(newIdent, columnDataType, objectType, false);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -316,6 +337,23 @@ public class DocIndexMetaData {
     private void createColumnDefinitions() {
         Map<String, Object> propertiesMap = (Map<String, Object>) defaultMappingMap.get("properties");
         internalExtractColumnDefinitions(null, propertiesMap);
+        extractPartitionedByColumns();
+    }
+
+    private void extractPartitionedByColumns() {
+        for (List<String> partitioned : partitionedByList) {
+            ColumnIdent ident;
+            List<String> path = Splitter.on('.').splitToList(partitioned.get(0));
+            if (path.size() > 1) {
+                ident = new ColumnIdent(path.get(0), path.subList(1, path.size()));
+            } else {
+                ident = new ColumnIdent(path.get(0));
+            }
+            DataType type = getColumnDataType(path.get(0),
+                    ident,
+                    new MapBuilder<String, Object>().put("type", partitioned.get(1)).map());
+            addPartitioned(ident, type);
+        }
     }
 
     private String getRoutingCol() {
@@ -338,6 +376,7 @@ public class DocIndexMetaData {
     public DocIndexMetaData build() {
         createColumnDefinitions();
         columns = columnsBuilder.build();
+        partitionedByColumns = partitionedByColumnsBuilder.build();
 
         for (Tuple<ColumnIdent, ReferenceInfo> sysColumns : DocSysColumns.forTable(ident)) {
             referencesBuilder.put(sysColumns.v1(), sysColumns.v2());
@@ -355,6 +394,10 @@ public class DocIndexMetaData {
 
     public ImmutableList<ReferenceInfo> columns() {
         return columns;
+    }
+
+    public ImmutableList<ReferenceInfo> partitionedByColumns() {
+        return partitionedByColumns;
     }
 
     public ImmutableList<String> primaryKey() {

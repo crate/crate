@@ -30,6 +30,11 @@ public abstract class AbstractTableInfo implements TableInfo {
         return false;
     }
 
+    @Override
+    public boolean isPartitioned() {
+        return false;
+    }
+
     @Nullable
     @Override
     public String clusteredBy() {
