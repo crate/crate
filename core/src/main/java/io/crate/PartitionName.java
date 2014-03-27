@@ -22,6 +22,7 @@
 package io.crate;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Base64;
 import org.elasticsearch.common.Nullable;
@@ -168,6 +169,14 @@ public class PartitionName implements Streamable {
 
     public static String templateName(String tableName) {
         return Joiner.on('.').join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
+    }
+
+    public static String tableName(String templateName) {
+        List<String> parts = Splitter.on(".").splitToList(templateName);
+        if (parts.size() != 4 || !parts.get(1).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1))) {
+            throw new IllegalArgumentException("Invalid partition template name");
+        }
+        return parts.get(2);
     }
 
 }
