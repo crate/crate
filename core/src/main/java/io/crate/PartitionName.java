@@ -22,6 +22,7 @@
 package io.crate;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Base64;
 import org.elasticsearch.common.Nullable;
@@ -31,7 +32,6 @@ import org.elasticsearch.common.io.stream.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class PartitionName implements Streamable {
 
@@ -136,14 +136,7 @@ public class PartitionName implements Streamable {
                                 int columnCount) throws IOException {
         assert partitionTableName != null;
         assert tableName != null;
-
-        String currentPrefix = partitionTableName.substring(0, Constants.PARTITIONED_TABLE_PREFIX.length()+tableName.length()+2);
-        String computedPrefix = Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName) + ".";
-        if (!currentPrefix.equals(computedPrefix)) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Given partition name '%s' belongs not to table '%s'",
-                            partitionTableName, tableName));
-        }
+        assert isPartition(partitionTableName, tableName) : "invalid partition table name";
 
         String valuesString = partitionTableName.substring(Constants.PARTITIONED_TABLE_PREFIX.length()+tableName.length()+2);
 
@@ -166,8 +159,24 @@ public class PartitionName implements Streamable {
         return partitionName;
     }
 
+    public static boolean isPartition(String partitionName, String tableName) {
+        try {
+            return PartitionName.tableName(partitionName).equals(tableName);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
     public static String templateName(String tableName) {
         return Joiner.on('.').join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
+    }
+
+    public static String tableName(String templateName) {
+        List<String> parts = Splitter.on(".").splitToList(templateName);
+        if (parts.size() != 4 || !parts.get(1).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1))) {
+            throw new IllegalArgumentException("Invalid partition template name");
+        }
+        return parts.get(2);
     }
 
 }

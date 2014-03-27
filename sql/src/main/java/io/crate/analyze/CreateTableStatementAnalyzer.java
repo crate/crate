@@ -302,7 +302,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         for (Expression partitionByColumn : node.columns()) {
             String columnName = expressionVisitor.process(partitionByColumn, null).toString();
 
-            Map<String, Object> columnDefinition = context.getColumnDefinition(columnName);
+            Map<String, Object> columnDefinition = context.popColumnDefinition(columnName);
             String type;
             if (columnDefinition != null) {
                 if (context.primaryKeys().size() > 0 && !context.primaryKeys().contains(columnName)) {
