@@ -30,6 +30,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operation.DownstreamOperationFactory;
 import io.crate.operation.DownstreamOperation;
+import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -210,8 +211,22 @@ public class DistributedResultRequestTest {
                 }
 
                 @Override
+                public void finished() {
+                }
+
+                @Override
                 public Object[][] result() {
                     return result;
+                }
+
+                @Override
+                public void downstream(Projector downstream) {
+                    downstream.registerUpstream(this);
+                }
+
+                @Override
+                public Projector downstream() {
+                    return null;
                 }
             };
         }

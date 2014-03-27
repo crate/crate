@@ -106,6 +106,7 @@ public class LocalMergeTask implements Task<Object[][]> {
                     if (countdown.decrementAndGet() == 0 || !shouldContinue) {
                         Object[][] mergeResult;
                         try {
+                            mergeOperation.finished();
                             mergeResult = mergeOperation.result();
                         } catch (Exception e) {
                             result.setException(e);

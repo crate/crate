@@ -21,9 +21,12 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.operation.ProjectorUpstream;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A projector which simply collects any rows it gets and makes them available afterwards.
@@ -33,20 +36,29 @@ import java.util.List;
  */
 public class CollectingProjector implements Projector {
 
+    private final AtomicInteger upstreamsRemaining;
     public List<Object[]> rows = new ArrayList<>();
 
+    public CollectingProjector() {
+        this.upstreamsRemaining = new AtomicInteger(0);
+    }
+
+    // TODO: further split Projector interface so that this projector doesn't have downstream / setDownstream
     @Override
-    public void setDownStream(Projector downStream) {
-        throw new UnsupportedOperationException("downstreams not supported by this projector");
+    public void downstream(Projector downstream) {
     }
 
     @Override
-    public Projector getDownstream() {
+    public Projector downstream() {
         return null;
     }
 
     @Override
-    public void startProjection() {}
+    public void startProjection() {
+        if (upstreamsRemaining.get() <= 0) {
+            upstreamFinished();
+        }
+    }
 
     @Override
     public synchronized boolean setNextRow(Object... row) {
@@ -55,7 +67,16 @@ public class CollectingProjector implements Projector {
     }
 
     @Override
-    public void finishProjection() {}
+    public void registerUpstream(ProjectorUpstream upstream) {
+        upstreamsRemaining.incrementAndGet();
+    }
+
+    @Override
+    public void upstreamFinished() {
+        upstreamsRemaining.decrementAndGet();
+        // TODO: if upstreamsRemaining == 0
+        //  set result future
+    }
 
     @Override
     public Object[][] getRows() throws IllegalStateException {

@@ -93,7 +93,10 @@ public class LocalMergeTaskTest {
     @Test
     public void testLocalMerge() throws Exception {
         for (int run = 0; run < 100; run++) {
-            TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET, Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)), new boolean[]{true, true});
+            TopNProjection topNProjection = new TopNProjection(3,
+                    TopN.NO_OFFSET,
+                    Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
+                    new boolean[]{true, true});
             topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
             MergeNode mergeNode = new MergeNode("merge", 2);

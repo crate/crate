@@ -23,10 +23,11 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import io.crate.operation.Input;
-import io.crate.operation.collect.CollectExpression;
 import io.crate.Constants;
 import io.crate.core.collections.ArrayIterator;
+import io.crate.operation.Input;
+import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.collect.CollectExpression;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -93,8 +94,7 @@ public class SimpleTopNProjector implements Projector {
         }
 
         @Override
-        public void finishProjection() {
-            // ignore
+        public void upstreamFinished() {
         }
 
         @Override
@@ -138,7 +138,6 @@ public class SimpleTopNProjector implements Projector {
 
         @Override
         public void startProjection() {
-            downStream.get().startProjection();
             collected.set(0);
         }
 
@@ -156,8 +155,8 @@ public class SimpleTopNProjector implements Projector {
         }
 
         @Override
-        public void finishProjection() {
-            downStream.get().finishProjection();
+        public void upstreamFinished() {
+            downStream.get().upstreamFinished();
         }
 
         @Override
@@ -178,6 +177,7 @@ public class SimpleTopNProjector implements Projector {
     private final int limit;
     private final int offset;
     private Optional<Projector> downStream;
+    private AtomicInteger remainingUpstreams = new AtomicInteger(0);
 
     public SimpleTopNProjector(Input<?>[] inputs,
                                CollectExpression<?>[] collectExpressions,
@@ -196,23 +196,35 @@ public class SimpleTopNProjector implements Projector {
     }
 
     @Override
-    public void setDownStream(Projector downStream) {
+    public void downstream(Projector downStream) {
+        // no need to registerUpstream on downstream, it is done once the downstream is passed
+        // to wrappedProjector
         this.downStream = Optional.of(downStream);
     }
 
     @Override
-    public Projector getDownstream() {
+    public Projector downstream() {
         return downStream.orNull();
     }
 
     @Override
     public void startProjection() {
+        if (remainingUpstreams.get() <= 0) {
+            upstreamFinished();
+            return;
+        }
+
+        // TODO: make this projector require a downstream and remove the wrapper/GatheringTopNRowCollector
         if (downStream.isPresent()) {
             wrappedProjector = new PassThroughTopNRowCollector(inputs, collectExpressions, downStream.get(), offset, limit);
         } else {
             wrappedProjector = new GatheringTopNRowCollector(inputs, collectExpressions, offset, limit);
         }
-        wrappedProjector.startProjection();
+        int upstreams = remainingUpstreams.get();
+        for (int i = 0; i < upstreams; i++) {
+            wrappedProjector.registerUpstream(this);
+        }
+        remainingUpstreams.set(0);
     }
 
     @Override
@@ -221,8 +233,21 @@ public class SimpleTopNProjector implements Projector {
     }
 
     @Override
-    public void finishProjection() {
-        wrappedProjector.finishProjection();
+    public void registerUpstream(ProjectorUpstream upstream) {
+        if (wrappedProjector != null) {
+            wrappedProjector.registerUpstream(this);
+        } else {
+            remainingUpstreams.incrementAndGet();
+        }
+    }
+
+    @Override
+    public void upstreamFinished() {
+        if (wrappedProjector != null) {
+            wrappedProjector.upstreamFinished();
+        } else if (downStream.isPresent()) {
+            downStream.get().upstreamFinished();
+        }
     }
 
     @Override

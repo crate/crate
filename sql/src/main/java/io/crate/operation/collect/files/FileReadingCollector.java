@@ -33,7 +33,7 @@ import java.util.zip.GZIPInputStream;
 public class FileReadingCollector implements CrateCollector {
 
     private final String fileUri;
-    private final Projector downstream;
+    private Projector downstream;
     private final boolean compressed;
     private final List<Input<?>> inputs;
     private final List<LineCollectorExpression<?>> collectorExpressions;
@@ -49,7 +49,7 @@ public class FileReadingCollector implements CrateCollector {
                                 FileFormat format,
                                 boolean compressed) {
         this.fileUri = fileUri;
-        this.downstream = downstream;
+        downstream(downstream);
         this.compressed = compressed;
         this.inputs = inputs;
         this.collectorExpressions = collectorExpressions;
@@ -87,7 +87,19 @@ public class FileReadingCollector implements CrateCollector {
                 }
             }
         } finally {
+            downstream.upstreamFinished();
             reader.close();
         }
+    }
+
+    @Override
+    public void downstream(Projector downstream) {
+        this.downstream = downstream;
+        downstream.registerUpstream(this);
+    }
+
+    @Override
+    public Projector downstream() {
+        return this.downstream;
     }
 }

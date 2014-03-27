@@ -72,7 +72,6 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
 
         @Override
         protected void onAllShardsFinished() {
-            projectorChain.finishProjections();
             super.set(projectorChain.result());
         }
     }
@@ -145,14 +144,15 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         assert collectNode.toCollect().size() > 0;
 
         FlatProjectorChain projectorChain = new FlatProjectorChain(collectNode.projections(), projectorVisitor);
+        CrateCollector collector = getCollector(collectNode, projectorChain);
         projectorChain.startProjections();
         try {
-            getCollector(collectNode, projectorChain).doCollect();
+            collector.doCollect();
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
+        } finally {
+            projectorChain.firstProjector().upstreamFinished();
         }
-        projectorChain.finishProjections();
-
         Object[][] collected = projectorChain.result();
         if (logger.isTraceEnabled()) {
             logger.trace("collected {} on {}-level from node {}",
@@ -212,6 +212,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         final ShardCollectFuture result = getShardCollectFuture(numShards, projectorChain, collectNode);
 
         if (collectNode.whereClause().noMatch()) {
+            projectorChain.startProjections();
             result.onAllShardsFinished();
             return result;
         }

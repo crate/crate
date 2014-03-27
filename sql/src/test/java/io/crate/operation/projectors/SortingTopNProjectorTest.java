@@ -54,7 +54,7 @@ public class SortingTopNProjectorTest {
             }
         }
         assertThat(i, is(0)); // needs to collect all it can get
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(10));
         for (int j = 0; j<10; j++) {
@@ -89,7 +89,7 @@ public class SortingTopNProjectorTest {
             }
         }
 
-        projector.finishProjection();
+        projector.upstreamFinished();
         assertThat(projector.getRows().length, is(0));
     }
 
@@ -111,7 +111,7 @@ public class SortingTopNProjectorTest {
             }
         }
         assertThat(i, is(0)); // needs to collect all it can get
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(5));
         for (int j = 0; j<5; j++) {
@@ -141,7 +141,7 @@ public class SortingTopNProjectorTest {
             projector.setNextRow(i);
         }
         assertThat(i, is(0)); // needs to collect all it can get
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(3));
         assertThat(rows[0].length, is(1));
@@ -173,7 +173,7 @@ public class SortingTopNProjectorTest {
             projector.setNextRow(i);
         }
         assertThat(i, is(10)); // needs to collect all it can get
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(3));
 
@@ -220,7 +220,7 @@ public class SortingTopNProjectorTest {
             projector.setNextRow(i, i%4);
         }
         assertThat(i, is(20));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(20));
 

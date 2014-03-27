@@ -50,7 +50,7 @@ public class SimpleOneRowCollectorTest {
         collector.doCollect();
         verify(downStream, never()).startProjection();
         verify(downStream, times(1)).setNextRow(true, new BytesRef("foo"));
-        verify(downStream, never()).finishProjection();
+        verify(downStream, times(1)).upstreamFinished();
 
     }
 }

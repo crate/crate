@@ -81,6 +81,7 @@ public class SimpleTopNProjectorTest {
     public void testProjectLimitOnly() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 0; i<12; i++) {
@@ -89,7 +90,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(10));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] projected = projector.getRows();
         assertThat(projected.length, is(10));
 
@@ -105,6 +106,7 @@ public class SimpleTopNProjectorTest {
     public void testProjectLimitOnlyLessThanLimit() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 0; i<5; i++) {
@@ -113,7 +115,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(5));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] projected = projector.getRows();
         assertThat(projected.length, is(5));
 
@@ -129,6 +131,7 @@ public class SimpleTopNProjectorTest {
     public void testProjectLimitOnlyExactlyLimit() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 0; i<10; i++) {
@@ -137,7 +140,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(10));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] projected = projector.getRows();
         assertThat(projected.length, is(10));
 
@@ -153,8 +156,9 @@ public class SimpleTopNProjectorTest {
     public void testProjectLimitOnly0() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
+        projector.registerUpstream(null);
         projector.startProjection();
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] projected = projector.getRows();
         assertArrayEquals(Constants.EMPTY_RESULT, projected);
 
@@ -169,6 +173,7 @@ public class SimpleTopNProjectorTest {
     public void testProjectLimitOnly1() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 1, TopN.NO_OFFSET);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 0; i<10; i++) {
@@ -177,7 +182,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(1));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] projected = projector.getRows();
         assertThat(projected.length, is(1));
 
@@ -192,13 +197,14 @@ public class SimpleTopNProjectorTest {
     public void testProjectOffsetBigger0() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 100, 10);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 0; i<100;i++) {
             projector.setNextRow(row);
         }
         assertThat(i, is(100));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] projected = projector.getRows();
         assertThat(projected.length, is(90));
 
@@ -214,6 +220,7 @@ public class SimpleTopNProjectorTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input},
                 TopN.NO_LIMIT, TopN.NO_OFFSET);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i = 0;
         boolean carryOn;
@@ -222,7 +229,7 @@ public class SimpleTopNProjectorTest {
             carryOn = projector.setNextRow(row);
         } while(carryOn);
         assertThat(i, is(Constants.DEFAULT_SELECT_LIMIT+1));
-        projector.finishProjection();
+        projector.upstreamFinished();
         assertThat(projector.getRows().length, is(Constants.DEFAULT_SELECT_LIMIT));
 
         int iterateLength = 0;
@@ -248,6 +255,7 @@ public class SimpleTopNProjectorTest {
     public void testFunctionExpression() {
         FunctionExpression<Integer, ?> funcExpr = new FunctionExpression<>(new TestFunction(), new Input[]{input});
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{funcExpr}, new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 0; i<12;i++) {
@@ -256,7 +264,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(10));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(10));
         assertThat((Integer)rows[0][0], is(1));
@@ -274,7 +282,8 @@ public class SimpleTopNProjectorTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         CollectingProjector noop = new CollectingProjector();
-        projector.setDownStream(noop);
+        projector.downstream(noop);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 0; i<12; i++) {
@@ -283,7 +292,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(10));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] projected = noop.getRows();
         assertThat(projected.length, is(10));
 
@@ -301,7 +310,8 @@ public class SimpleTopNProjectorTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         CollectingProjector noop = new CollectingProjector();
-        projector.setDownStream(noop);
+        projector.downstream(noop);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 0; i<5; i++) {
@@ -310,7 +320,7 @@ public class SimpleTopNProjectorTest {
             }
         }
         assertThat(i, is(5));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] projected = noop.getRows();
         assertThat(projected.length, is(5));
 
@@ -328,9 +338,10 @@ public class SimpleTopNProjectorTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         CollectingProjector noop = new CollectingProjector();
-        projector.setDownStream(noop);
+        projector.downstream(noop);
+        projector.registerUpstream(null);
         projector.startProjection();
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] projected = noop.getRows();
         assertArrayEquals(Constants.EMPTY_RESULT, projected);
 
@@ -348,14 +359,15 @@ public class SimpleTopNProjectorTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 100, 10);
         CollectingProjector noop = new CollectingProjector();
-        projector.setDownStream(noop);
+        projector.downstream(noop);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i;
         for (i = 0; i<100;i++) {
             projector.setNextRow(row);
         }
         assertThat(i, is(100));
-        projector.finishProjection();
+        projector.upstreamFinished();
         Object[][] projected = noop.getRows();
         assertThat(projected.length, is(90));
 
@@ -374,7 +386,8 @@ public class SimpleTopNProjectorTest {
                 new CollectExpression[]{(CollectExpression)input},
                 TopN.NO_LIMIT, TopN.NO_OFFSET);
         CollectingProjector noop = new CollectingProjector();
-        projector.setDownStream(noop);
+        projector.downstream(noop);
+        projector.registerUpstream(null);
         projector.startProjection();
         int i = 0;
         boolean carryOn;
@@ -383,7 +396,7 @@ public class SimpleTopNProjectorTest {
             carryOn = projector.setNextRow(row);
         } while(carryOn);
         assertThat(i, is(Constants.DEFAULT_SELECT_LIMIT+1));
-        projector.finishProjection();
+        projector.upstreamFinished();
         assertThat(noop.getRows().length, is(Constants.DEFAULT_SELECT_LIMIT));
 
         assertFalse(projector.iterator().hasNext());
@@ -394,5 +407,4 @@ public class SimpleTopNProjectorTest {
         }
         assertThat(iterateLength, is(Constants.DEFAULT_SELECT_LIMIT));
     }
-
 }

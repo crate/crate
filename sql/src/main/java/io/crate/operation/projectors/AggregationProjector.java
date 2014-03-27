@@ -21,12 +21,14 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.operation.AggregationContext;
+import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.aggregation.AggregationCollector;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.AggregationContext;
 
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AggregationProjector implements Projector {
 
@@ -59,7 +61,8 @@ public class AggregationProjector implements Projector {
     private final AggregationCollector[] aggregationCollectors;
     private final Set<CollectExpression<?>> collectExpressions;
     private final Object[] row;
-    private Projector downStream;
+    private Projector downstream;
+    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
 
     public AggregationProjector(Set<CollectExpression<?>> collectExpressions,
                                 AggregationContext[] aggregations) {
@@ -73,7 +76,6 @@ public class AggregationProjector implements Projector {
                     aggregations[i].function(),
                     aggregations[i].inputs()
             );
-
             // startCollect creates the aggregationState. In case of the AggregationProjector
             // we only want to have 1 global state not 1 state per node/shard or even document.
             aggregationCollectors[i].startCollect();
@@ -81,20 +83,25 @@ public class AggregationProjector implements Projector {
     }
 
     @Override
-    public void setDownStream(Projector downStream) {
-        this.downStream = downStream;
-    }
-
-    @Override
-    public Projector getDownstream() {
-        return downStream;
-    }
-
-    @Override
     public void startProjection() {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
+
+        if (remainingUpstreams.get() <= 0) {
+            upstreamFinished();
+        }
+    }
+
+    @Override
+    public void downstream(Projector downstream) {
+        this.downstream = downstream;
+        downstream.registerUpstream(this);
+    }
+
+    @Override
+    public Projector downstream() {
+        return downstream;
     }
 
     @Override
@@ -102,24 +109,28 @@ public class AggregationProjector implements Projector {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
-
         for (AggregationCollector aggregationCollector : aggregationCollectors) {
             aggregationCollector.processRow();
         }
-
         return true;
     }
 
     @Override
-    public void finishProjection() {
+    public void registerUpstream(ProjectorUpstream upstream) {
+        remainingUpstreams.incrementAndGet();
+    }
+
+    @Override
+    public void upstreamFinished() {
+        if (remainingUpstreams.decrementAndGet() > 0) {
+            return;
+        }
         for (int i = 0; i < aggregationCollectors.length; i++) {
             row[i] = aggregationCollectors[i].finishCollect();
         }
-
-        if (downStream != null) {
-            downStream.startProjection();
-            downStream.setNextRow(row);
-            downStream.finishProjection();
+        if (downstream != null) {
+            downstream.setNextRow(row);
+            downstream.upstreamFinished();
         }
     }
 
