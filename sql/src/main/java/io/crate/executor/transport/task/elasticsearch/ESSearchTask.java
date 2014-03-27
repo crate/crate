@@ -123,11 +123,18 @@ public class ESSearchTask implements Task<Object[][]> {
                         return new BytesRef(hit.getId());
                     }
                 };
-            } else if (DocSysColumns.SOURCE.equals(columnIdent)) {
+            } else if (DocSysColumns.DOC.equals(columnIdent)) {
                 extractors[i] = new ESFieldExtractor() {
                     @Override
                     public Object extract(SearchHit hit) {
                         return hit.getSource();
+                    }
+                };
+            } else if (DocSysColumns.RAW.equals(columnIdent)) {
+                extractors[i] = new ESFieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        return hit.getSourceRef().toBytesRef();
                     }
                 };
             } else if (DocSysColumns.SCORE.equals(columnIdent)) {

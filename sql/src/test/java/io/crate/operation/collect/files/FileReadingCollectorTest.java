@@ -66,7 +66,7 @@ public class FileReadingCollectorTest {
     public void testDoCollectRaw() throws Exception {
         CollectingProjector projector = new CollectingProjector();
         FileCollectInputSymbolVisitor.Context context =
-                inputSymbolVisitor.process(createReference("_source", DataType.STRING));
+                inputSymbolVisitor.process(createReference("_raw", DataType.STRING));
 
         FileReadingCollector collector = new FileReadingCollector(
                 tmpFile.getAbsolutePath(),

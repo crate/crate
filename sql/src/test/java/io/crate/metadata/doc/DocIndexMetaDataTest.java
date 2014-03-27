@@ -149,7 +149,7 @@ public class DocIndexMetaDataTest {
         IndexMetaData metaData = getIndexMetaData("test1", builder);
         DocIndexMetaData md = newMeta(metaData, "test1");
         assertThat(md.columns().size(), is(4));
-        assertThat(md.references().size(), is(15));
+        assertThat(md.references().size(), is(16));
         assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).objectType(), is(ReferenceInfo.ObjectType.DYNAMIC));
         assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).objectType(), is(ReferenceInfo.ObjectType.DYNAMIC));
         assertThat(md.references().get(new ColumnIdent("ignored")).objectType(), is(ReferenceInfo.ObjectType.IGNORED));
@@ -209,7 +209,7 @@ public class DocIndexMetaDataTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertEquals(6, md.columns().size());
-        assertEquals(14, md.references().size());
+        assertEquals(15, md.references().size());
 
         ImmutableList<ReferenceInfo> columns = ImmutableList.copyOf(md.columns());
 
@@ -232,7 +232,7 @@ public class DocIndexMetaDataTest {
         });
 
         assertThat(fqns, Matchers.<List<String>>is(
-                ImmutableList.of("_id", "_score", "_source", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
+                ImmutableList.of("_doc", "_id", "_raw", "_score", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
                         "person", "person.birthday", "person.first_name", "title")));
 
     }
