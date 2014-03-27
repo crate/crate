@@ -33,6 +33,7 @@ import io.crate.analyze.*;
 import io.crate.exceptions.CrateException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateIndexNode;
@@ -40,17 +41,15 @@ import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Singleton
 public class Planner extends AnalysisVisitor<Void, Plan> {
@@ -134,12 +133,27 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     protected Plan visitCopyAnalysis(CopyAnalysis analysis, Void context) {
         Plan plan = new Plan();
         if (analysis.mode() == CopyAnalysis.Mode.FROM) {
-            CopyNode copyNode = new CopyNode(analysis.path(), analysis.table().ident().name(), analysis.mode());
+            CopyNode copyNode = new CopyNode(analysis.uri(), analysis.table().ident().name(), analysis.mode());
             plan.add(copyNode);
-        } else if (analysis.mode() == CopyAnalysis.Mode.INTO) {
-            throw new UnsupportedOperationException("COPY INTO statement not supported yet");
+            plan.expectsAffectedRows(true);
+        } else if (analysis.mode() == CopyAnalysis.Mode.TO) {
+            Reference rawReference = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
+
+            WriterProjection projection = new WriterProjection();
+            projection.uri(analysis.uri());
+            projection.settings(analysis.settings());
+            PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
+                    .output(ImmutableList.<Symbol>of(rawReference));
+
+            CollectNode collectNode = PlanNodeBuilder.collect(analysis,
+                    contextBuilder.toCollect(),
+                    ImmutableList.<Projection>of(projection));
+
+            plan.add(collectNode);
+            MergeNode mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode);
+            plan.add(mergeNode);
         }
-        plan.expectsAffectedRows(true);
+
         return plan;
     }
 
@@ -500,6 +514,9 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
+        if (projections.size() == 0){
+            return inputTypes;
+        }
         int projectionIdx = projections.size() - 1;
         Projection lastProjection = projections.get(projectionIdx);
         List<DataType> types = new ArrayList<>(lastProjection.outputs().size());

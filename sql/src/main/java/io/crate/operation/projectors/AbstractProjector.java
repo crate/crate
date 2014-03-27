@@ -64,4 +64,5 @@ public abstract class AbstractProjector implements Projector {
     public void registerUpstream(ProjectorUpstream upstream) {
         remainingUpstreams.incrementAndGet();
     }
+
 }

@@ -51,6 +51,22 @@ public class CopyTo extends Statement {
         this.columns = Objects.firstNonNull(columns, ImmutableList.<Expression>of());
     }
 
+    public Table table() {
+        return table;
+    }
+
+    public boolean directoryUri() {
+        return directoryUri;
+    }
+
+    public Expression targetUri() {
+        return targetUri;
+    }
+
+    public List<Expression> columns() {
+        return columns;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -91,5 +107,9 @@ public class CopyTo extends Statement {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCopyTo(this, context);
+    }
+
+    public Optional<GenericProperties> genericProperties() {
+        return genericProperties;
     }
 }

@@ -30,6 +30,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -148,6 +149,30 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
     }
 
     /**
+     * Normalizes all objects in given list
+     *
+     * @param candidates the list to be normalized
+     * @return a list of normalized objects
+     */
+    public <T extends Normalizable<T>> List<T> normalizeObjects(List<T> candidates) {
+        if (candidates.size() > 0) {
+            boolean changed = false;
+            List<T> newArgs = new ArrayList<T>(candidates.size());
+            int i = 0;
+            for (T symbol : candidates) {
+                T newArg = symbol.normalize(this);
+                changed = changed || newArg != symbol;
+                newArgs.add(newArg);
+            }
+            if (changed) {
+                return newArgs;
+            }
+        }
+        return candidates;
+    }
+
+
+    /**
      * Normalizes all symbols of a List in place
      *
      * @param symbols the list to be normalized
@@ -166,4 +191,5 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
         }
         return process(symbol, null);
     }
+
 }

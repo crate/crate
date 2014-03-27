@@ -228,8 +228,8 @@ public class CollectNode extends AbstractDQLPlanNode {
      */
     public CollectNode normalize(EvaluatingNormalizer normalizer) {
         assert whereClause() != null;
-        List<Symbol> newToCollect = normalizer.normalize(toCollect());
         CollectNode result = this;
+        List<Symbol> newToCollect = normalizer.normalize(toCollect());
         boolean changed = newToCollect != toCollect();
         WhereClause newWhereClause = whereClause().normalize(normalizer);
         if (newWhereClause != whereClause()) {

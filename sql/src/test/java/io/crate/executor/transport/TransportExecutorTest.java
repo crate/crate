@@ -661,9 +661,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext)");
         ensureGreen();
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        Symbol uri = new StringLiteral(Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json"));
 
-        CopyNode copyNode = new CopyNode(filePath, "quotes", CopyAnalysis.Mode.FROM);
+        CopyNode copyNode = new CopyNode(uri, "quotes", CopyAnalysis.Mode.FROM);
         Plan plan = new Plan();
         plan.add(copyNode);
         plan.expectsAffectedRows(true);

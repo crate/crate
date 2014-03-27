@@ -31,12 +31,26 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrationTest {
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     private static boolean dataInitialized = false;
     private static SQLTransportExecutor executor;
@@ -414,5 +428,27 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertEquals(2L, response.rows()[1][0]);
         assertEquals("Vogon", response.rows()[1][1]);
     }
+
+    @Test
+    public void testCopyToFile() throws Exception {
+
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).resolve("testCopyToFile%s.json").toAbsolutePath().toString();
+
+        executor.exec("copy characters to format(?, sys.shards.id)", uriTemplate);
+
+        List<String> lines = new ArrayList<>(7);
+        DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
+        for (Path entry: stream) {
+            lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
+        }
+
+        assertThat(lines.size(), is(7));
+        for (String line : lines) {
+            assertThat(line, startsWith("{"));
+            assertThat(line, endsWith("}"));
+        }
+
+    }
+
 
 }

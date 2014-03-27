@@ -658,7 +658,7 @@ public class PlannerTest {
 
         CopyNode copyNode = (CopyNode)planNode;
         assertThat(copyNode.index(), is("users"));
-        assertThat(copyNode.path(), is("/path/to/file.extension"));
+        assertThat(((StringLiteral) copyNode.uri()).valueAsString(), is("/path/to/file.extension"));
     }
 
     @Test

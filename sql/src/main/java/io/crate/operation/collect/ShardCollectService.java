@@ -90,15 +90,12 @@ public class ShardCollectService {
                 functions,
                 RowGranularity.SHARD
         );
-
-        this.projectorVisitor = new ProjectionToProjectorVisitor(shardImplementationSymbolVisitor);
-
-
         this.shardNormalizer = new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
                 (isBlobShard ? blobShardReferenceResolver :referenceResolver)
         );
+        this.projectorVisitor = new ProjectionToProjectorVisitor(shardImplementationSymbolVisitor, shardNormalizer);
 
 
     }

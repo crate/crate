@@ -61,7 +61,7 @@ public class SQLTransportExecutor {
         return execute(statement, new Object[0]).actionGet();
     }
 
-    public SQLResponse exec(String statement, Object[] params) {
+    public SQLResponse exec(String statement, Object... params) {
         return execute(statement, params).actionGet();
     }
 

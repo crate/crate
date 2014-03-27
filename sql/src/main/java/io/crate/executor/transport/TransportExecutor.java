@@ -264,8 +264,8 @@ public class TransportExecutor implements Executor {
                 case FROM:
                     context.addTask(new ImportTask(transportImportAction, copyNode));
                     break;
-                case INTO:
-                    throw new UnsupportedOperationException("COPY INTO statement not supported yet.");
+                case TO:
+                    throw new UnsupportedOperationException("COPY TO statement not supported yet.");
             }
             return null;
 

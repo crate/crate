@@ -49,7 +49,7 @@ public class ShardProjectorChain {
 
         if (projections.size() == 0) {
             firstNodeProjector = new CollectingProjector();
-            lastProjector = (ResultProvider)firstNodeProjector;
+            lastProjector = (ResultProvider) firstNodeProjector;
             nodeProjectors.add(firstNodeProjector);
             shardProjectors = null;
             return;
@@ -64,8 +64,9 @@ public class ShardProjectorChain {
         }
 
         Projector previousProjector = null;
+        // create the node level projectors
         for (int i = shardProjectionsIndex + 1; i < projections.size(); i++) {
-            Projector projector = nodeProjectorVisitor.process(projections.get(i), null);
+            Projector projector = nodeProjectorVisitor.process(projections.get(i));
             nodeProjectors.add(projector);
             if (previousProjector != null) {
                 previousProjector.downstream(projector);
@@ -76,19 +77,20 @@ public class ShardProjectorChain {
         }
         if (shardProjectionsIndex >= 0) {
             shardProjectors = new ArrayList<>((shardProjectionsIndex + 1) * numShards);
+            if (shardProjectionsIndex == 0) {
+                // no node projectors
+                previousProjector = firstNodeProjector = new CollectingProjector();
+            }
         } else {
             shardProjectors = null;
         }
         assert previousProjector != null;
         if (previousProjector instanceof ResultProvider) {
-            lastProjector = (ResultProvider)previousProjector;
+            lastProjector = (ResultProvider) previousProjector;
         } else {
             lastProjector = new CollectingProjector();
-            previousProjector.downstream((Projector)lastProjector);
+            previousProjector.downstream((Projector) lastProjector);
         }
-
-        // TODO: once there is a plan to do a shard only projection chain, this case needs to be handled
-        assert firstNodeProjector != null;
     }
 
 
@@ -105,9 +107,9 @@ public class ShardProjectorChain {
         }
         Projector previousProjector = firstNodeProjector;
         Projector projector = null;
-        for (int i = 0; i <= shardProjectionsIndex; i++) {
-            projector = projectorVisitor.process(projections.get(i), null);
-            previousProjector.downstream(projector);
+        for (int i = shardProjectionsIndex; i >= 0; i--) {
+            projector = projectorVisitor.process(projections.get(i));
+            projector.downstream(previousProjector);
             shardProjectors.add(projector);
             previousProjector = projector;
         }

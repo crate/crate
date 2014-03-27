@@ -19,45 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dml;
+package io.crate.operation.projectors.writer;
 
-import io.crate.analyze.CopyAnalysis;
-import io.crate.planner.node.PlanVisitor;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import java.io.OutputStream;
 
-public class CopyNode extends DMLPlanNode {
+public abstract class Output {
 
+    public abstract void open() throws java.io.IOException;
 
-    private final CopyAnalysis.Mode mode;
-    private final Symbol uri;
-    private final String index;
+    public abstract void close() throws java.io.IOException;
 
-    public CopyNode(Symbol uri, String index, CopyAnalysis.Mode mode) {
-        this.uri = uri;
-        this.index = index;
-        this.mode = mode;
-    }
+    public abstract OutputStream getOutputStream();
 
-    public Symbol uri() {
-        return uri;
-    }
-
-    public String uriAsString(){
-        // TODO: this method should not be needed anymore, once copy from does not use inout anymore
-        return ((Literal) uri).valueAsString();
-    }
-
-    public String index() {
-        return index;
-    }
-
-    public CopyAnalysis.Mode mode() {
-        return mode;
-    }
-
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitCopyNode(this, context);
-    }
 }

@@ -22,13 +22,17 @@
 package io.crate.analyze;
 
 import io.crate.DataType;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Parameter;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
-import io.crate.sql.tree.CopyFromStatement;
-import io.crate.sql.tree.Table;
+import io.crate.sql.tree.*;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
+
+import java.util.List;
+import java.util.Map;
 
 public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
 
@@ -40,17 +44,51 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         context.mode(CopyAnalysis.Mode.FROM);
         process(node.table(), context);
         Symbol pathSymbol = process(node.path(), context);
-        if (pathSymbol.symbolType() != SymbolType.STRING_LITERAL && pathSymbol.symbolType() != SymbolType.PARAMETER) {
-            throw new IllegalArgumentException("Invalid COPY FROM statement");
-        }
+
         if (pathSymbol.symbolType() == SymbolType.PARAMETER) {
-            if (((Parameter)pathSymbol).guessedValueType() != DataType.STRING) {
+            if (((Parameter) pathSymbol).guessedValueType() != DataType.STRING) {
                 throw new IllegalArgumentException("Invalid COPY FROM statement");
             }
-            pathSymbol = ((Parameter)pathSymbol).toLiteral(DataType.STRING);
+            pathSymbol = ((Parameter) pathSymbol).toLiteral(DataType.STRING);
+        } else if (pathSymbol.symbolType() != SymbolType.STRING_LITERAL) {
+            throw new IllegalArgumentException("Invalid COPY FROM statement");
         }
-        context.path(((Literal) pathSymbol).valueAsString());
+
+        context.uri(pathSymbol);
         return null;
+    }
+
+    @Override
+    public Symbol visitCopyTo(CopyTo node, CopyAnalysis context) {
+
+        context.mode(CopyAnalysis.Mode.TO);
+        if (node.genericProperties().isPresent()) {
+            context.settings(settingsFromProperties(node.genericProperties().get(), context));
+        }
+        process(node.table(), context);
+        context.uri(process(node.targetUri(), context));
+
+        if (node.directoryUri()) {
+            // TODO: add format symbols to generate shard specific uris
+            throw new UnsupportedFeatureException("directory URI not supprted");
+        }
+        return null;
+    }
+
+    private Settings settingsFromProperties(GenericProperties properties, CopyAnalysis context) {
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        for (Map.Entry<String, List<Expression>> entry : properties.properties().entrySet()) {
+            if (entry.getValue().size() != 1) {
+                throw new IllegalArgumentException("Invalid argument(s) passed to parameter");
+            }
+            Symbol v = process(entry.getValue().get(0), context);
+            if (!v.symbolType().isLiteral()) {
+                throw new UnsupportedFeatureException("Only literals are allowed as parameter values");
+            }
+            builder.put(entry.getKey(),
+                    ((io.crate.planner.symbol.Literal) v).valueAsString());
+        }
+        return builder.build();
     }
 
     @Override

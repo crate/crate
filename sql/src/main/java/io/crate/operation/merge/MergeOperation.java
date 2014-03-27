@@ -43,7 +43,6 @@ public class MergeOperation implements DownstreamOperation {
     private AtomicBoolean wantMore = new AtomicBoolean(true);
 
     public MergeOperation(ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode) {
-        assert mergeNode.projections().size()>0;
         projectorChain = new FlatProjectorChain(mergeNode.projections(),
                 new ProjectionToProjectorVisitor(symbolVisitor));
         downstream(projectorChain.firstProjector());
