@@ -36,7 +36,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileWriter;
 
-import static io.crate.metadata.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -66,7 +66,7 @@ public class FileReadingCollectorTest {
     public void testDoCollectRaw() throws Exception {
         CollectingProjector projector = new CollectingProjector();
         FileCollectInputSymbolVisitor.Context context =
-                inputSymbolVisitor.process(createReference("_source", DataType.STRING));
+                inputSymbolVisitor.process(createReference("_raw", DataType.STRING));
 
         FileReadingCollector collector = new FileReadingCollector(
                 tmpFile.getAbsolutePath(),

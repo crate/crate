@@ -19,29 +19,38 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.file;
+package io.crate.operation.reference.doc;
 
+import io.crate.DataType;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.files.CollectorContext;
-import io.crate.operation.collect.files.LineCollectorExpression;
+import io.crate.operation.collect.LuceneDocCollector;
 import org.apache.lucene.util.BytesRef;
 
-public class SourceLineExpression extends LineCollectorExpression<BytesRef> {
+public class RawCollectorExpression extends
+        LuceneCollectorExpression<BytesRef> implements ColumnReferenceExpression {
 
     public static final String COLUMN_NAME = DocSysColumns.RAW.name();
-    private LineContext context;
 
-    @Override
-    public BytesRef value() {
-        return context.sourceAsBytesRef();
-    }
-
-    @Override
-    public void setNextLine(String line) {
-    }
+    private LuceneDocCollector.CollectorFieldsVisitor visitor;
 
     @Override
     public void startCollect(CollectorContext context) {
-        this.context = context.lineContext();
+        context.visitor().required(true);
+        this.visitor = context.visitor();
+    }
+
+    @Override
+    public DataType returnType() {
+        return DataType.STRING;
+    }
+
+    @Override
+    public BytesRef value() {
+        return visitor.source().toBytesRef();
+    }
+
+    @Override
+    public String columnName() {
+        return COLUMN_NAME;
     }
 }

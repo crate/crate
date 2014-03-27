@@ -20,14 +20,16 @@ public class DocSysColumns {
     public static final ColumnIdent VERSION = new ColumnIdent("_version");
     public static final ColumnIdent SCORE = new ColumnIdent("_score");
     public static final ColumnIdent UID = new ColumnIdent("_uid");
-    public static final ColumnIdent SOURCE = new ColumnIdent("_source");
+    public static final ColumnIdent DOC = new ColumnIdent("_doc");
+    public static final ColumnIdent RAW = new ColumnIdent("_raw");
 
     public static ImmutableMap<ColumnIdent, DataType> columnIdents = ImmutableMap.<ColumnIdent, DataType>builder()
             .put(ID, DataType.STRING)
             .put(VERSION, DataType.LONG)
             .put(SCORE, DataType.DOUBLE)
             .put(UID, DataType.STRING)
-            .put(SOURCE, DataType.OBJECT)
+            .put(DOC, DataType.OBJECT)
+            .put(RAW, DataType.STRING)
             .build();
 
     private static ReferenceInfo newInfo(TableIdent table, ColumnIdent column, DataType dataType) {

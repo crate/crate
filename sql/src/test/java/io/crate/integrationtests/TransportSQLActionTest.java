@@ -66,7 +66,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public ExpectedException expectedException = ExpectedException.none();
 
 
-    private <T> List<T> getCol(Object[][] result, int idx){
+    private <T> List<T> getCol(Object[][] result, int idx) {
         ArrayList<T> res = new ArrayList<>(result.length);
         for (Object[] row : result) {
             res.add((T) row[idx]);
@@ -122,7 +122,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSysCluster() throws Exception {
         execute("select id from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat(((String)response.rows()[0][0]).length(), is(36)); // looks like a uuid
+        assertThat(((String) response.rows()[0][0]).length(), is(36)); // looks like a uuid
     }
 
     @Test
@@ -174,22 +174,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSelectWithParams() throws Exception {
         execute("create table test (first_name string, last_name string, age double)");
         client().prepareIndex("test", "default", "id1").setRefresh(true)
-            .setSource("{\"first_name\":\"Youri\",\"last_name\":\"Zoon\", \"age\": 38}")
-            .execute().actionGet();
+                .setSource("{\"first_name\":\"Youri\",\"last_name\":\"Zoon\", \"age\": 38}")
+                .execute().actionGet();
 
-        Object[] args = new Object[] {"id1"};
+        Object[] args = new Object[]{"id1"};
         execute("select first_name, last_name from test where \"_id\" = $1", args);
         assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
 
-        args = new Object[] {"Zoon"};
+        args = new Object[]{"Zoon"};
         execute("select first_name, last_name from test where last_name = $1", args);
         assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
 
-        args = new Object[] {38, "Zoon"};
+        args = new Object[]{38, "Zoon"};
         execute("select first_name, last_name from test where age = $1 and last_name = $2", args);
         assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
 
-        args = new Object[] {38, "Zoon"};
+        args = new Object[]{38, "Zoon"};
         execute("select first_name, last_name from test where age = ? and last_name = ?", args);
         assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
     }
@@ -232,8 +232,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 response.cols());
         assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{"I'm addicted to kite", "Youri",
-                new ArrayList<String>(){{add("Dirksland");}}},
-                response.rows()[0]);
+                        new ArrayList<String>() {{
+                            add("Dirksland");
+                        }}},
+                response.rows()[0]
+        );
     }
 
     @Test
@@ -385,19 +388,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectSource() throws Exception {
-        createIndex("test");
-        client().prepareIndex("test", "default", "id1").setSource("{\"a\":1}")
-                .execute().actionGet();
-        refresh();
-        execute("select \"_source\" from test");
-        assertArrayEquals(new String[]{"_source"}, response.cols());
-        assertEquals(1, response.rowCount());
-        assertEquals(1, response.rows()[0].length);
-        assertEquals(1, (long) ((Map<String, Integer>) response.rows()[0][0]).get("a"));
-    }
-
-    @Test
     public void testSelectObject() throws Exception {
         createIndex("test");
         client().prepareIndex("test", "default", "id1")
@@ -490,11 +480,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .addMapping("default", XContentFactory.jsonBuilder()
                         .startObject()
                         .startObject("default")
-                            .startObject("properties")
-                                .startObject("date")
-                                    .field("type", "date")
-                                .endObject()
-                            .endObject()
+                        .startObject("properties")
+                        .startObject("date")
+                        .field("type", "date")
+                        .endObject()
+                        .endObject()
                         .endObject().endObject())
                 .execute().actionGet();
         ensureGreen();
@@ -607,7 +597,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807, 32767, 'Youri')");
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
-            new Object[] { true, "2013-09-10T21:51:43", 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807L, 32767, "Youri" });
+                new Object[]{true, "2013-09-10T21:51:43", 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807L, 32767, "Youri"});
         assertEquals(1, response.rowCount());
         refresh();
 
@@ -640,22 +630,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         execute("insert into t1 (id, strings, integers) values (?, ?, ?)",
-                new Object[] {
+                new Object[]{
                         1,
-                        new String[] {"foo", "bar"},
-                        new Integer[] {1, 2, 3}
+                        new String[]{"foo", "bar"},
+                        new Integer[]{1, 2, 3}
                 }
         );
         refresh();
 
         execute("select id, strings, integers from t1");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(1));
-        assertThat(((List<String>)response.rows()[0][1]).get(0), is("foo"));
-        assertThat(((List<String>)response.rows()[0][1]).get(1), is("bar"));
-        assertThat(((List<Integer>)response.rows()[0][2]).get(0), is(1));
-        assertThat(((List<Integer>)response.rows()[0][2]).get(1), is(2));
-        assertThat(((List<Integer>)response.rows()[0][2]).get(2), is(3));
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat(((List<String>) response.rows()[0][1]).get(0), is("foo"));
+        assertThat(((List<String>) response.rows()[0][1]).get(1), is("bar"));
+        assertThat(((List<Integer>) response.rows()[0][2]).get(0), is(1));
+        assertThat(((List<Integer>) response.rows()[0][2]).get(1), is(2));
+        assertThat(((List<Integer>) response.rows()[0][2]).get(2), is(3));
     }
 
     @Test
@@ -666,13 +656,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         Map<String, Object> details = new HashMap<>();
         details.put("names", new Object[]{"Arthur", "Trillian"});
-        execute("insert into t1 (id, details) values (?, ?)", new Object[] { 1,  details});
+        execute("insert into t1 (id, details) values (?, ?)", new Object[]{1, details});
         refresh();
 
         execute("select details['names'] from t1");
         assertThat(response.rowCount(), is(1L));
-        assertThat(((List<String>)response.rows()[0][0]).get(0), is("Arthur"));
-        assertThat(((List<String>)response.rows()[0][0]).get(1), is("Trillian"));
+        assertThat(((List<String>) response.rows()[0][0]).get(0), is("Arthur"));
+        assertThat(((List<String>) response.rows()[0][0]).get(1), is("Trillian"));
     }
 
     @Test
@@ -694,8 +684,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select details['names'] from t1");
         assertThat(response.rowCount(), is(1L));
-        assertThat(((List<List<String>>)response.rows()[0][0]).get(0), is(Arrays.asList("Arthur", "Trillian")));
-        assertThat(((List<List<String>>)response.rows()[0][0]).get(1), is(Arrays.asList("Ford", "Slarti")));
+        assertThat(((List<List<String>>) response.rows()[0][0]).get(0), is(Arrays.asList("Arthur", "Trillian")));
+        assertThat(((List<List<String>>) response.rows()[0][0]).get(1), is(Arrays.asList("Ford", "Slarti")));
     }
 
     @Test
@@ -711,7 +701,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         details.put("id", 1);
         details.put("more_details", more_details);
 
-        execute("insert into t1 (id, details) values (2, ?)", new Object[] { details });
+        execute("insert into t1 (id, details) values (2, ?)", new Object[]{details});
         execute("refresh table t1");
 
         execute("select details from t1 where details['id'] = 2");
@@ -725,19 +715,19 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         execute("insert into t1 (id, strings) values (?, ?)",
-                new Object[] {
+                new Object[]{
                         1,
-                        new String[] {"foo", null, "bar"},
+                        new String[]{"foo", null, "bar"},
                 }
         );
         refresh();
 
         execute("select id, strings, integers from t1");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(1));
-        assertThat(((List<String>)response.rows()[0][1]).get(0), is("foo"));
-        assertThat(((List<String>)response.rows()[0][1]).get(1), is((String)null));
-        assertThat(((List<String>)response.rows()[0][1]).get(2), is("bar"));
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat(((List<String>) response.rows()[0][1]).get(0), is("foo"));
+        assertThat(((List<String>) response.rows()[0][1]).get(1), is((String) null));
+        assertThat(((List<String>) response.rows()[0][1]).get(2), is("bar"));
     }
 
     @Test
@@ -748,7 +738,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ImmutableMap<String, ? extends Serializable> obj1 = ImmutableMap.of("name", "foo", "age", 1);
         ImmutableMap<String, ? extends Serializable> obj2 = ImmutableMap.of("name", "bar", "age", 2);
 
-        Object[] args = new Object[] { 1, new Object[] {obj1, obj2 }};
+        Object[] args = new Object[]{1, new Object[]{obj1, obj2}};
         execute("insert into t1 (id, objects) values (?, ?)", args);
         refresh();
 
@@ -767,7 +757,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select objects['name'] from t1");
         assertThat(response.rowCount(), is(1L));
 
-        List<String> names = (List<String>)response.rows()[0][0];
+        List<String> names = (List<String>) response.rows()[0][0];
         assertThat(names.get(0), is("foo"));
         assertThat(names.get(1), is("bar"));
 
@@ -778,58 +768,58 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testInsertCoreTypesAsArray() throws Exception {
-         execute("create table test (" +
-                    "\"boolean\" array(boolean), " +
-                    "\"datetime\" array(timestamp), " +
-                    "\"double\" array(double), " +
-                    "\"float\" array(float), " +
-                    "\"integer\" array(integer), " +
-                    "\"long\" array(long), " +
-                    "\"short\" array(short), " +
-                    "\"string\" array(string) " +
-                ") with (number_of_replicas=0)"
+        execute("create table test (" +
+                        "\"boolean\" array(boolean), " +
+                        "\"datetime\" array(timestamp), " +
+                        "\"double\" array(double), " +
+                        "\"float\" array(float), " +
+                        "\"integer\" array(integer), " +
+                        "\"long\" array(long), " +
+                        "\"short\" array(short), " +
+                        "\"string\" array(string) " +
+                        ") with (number_of_replicas=0)"
         );
         ensureGreen();
 
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
-            new Object[] {
-                new Boolean[] {true, false},
-                new String[] {"2013-09-10T21:51:43", "2013-11-10T21:51:43"},
-                new Double[] {1.79769313486231570e+308, 1.69769313486231570e+308},
-                new Float[] {3.402f, 3.403f, null },
-                new Integer[] {2147483647, 234583},
-                new Long[] { 9223372036854775807L, 4L },
-                new Short[] {32767, 2 },
-                new String[] {"Youri", "Juri"}
-            }
+                new Object[]{
+                        new Boolean[]{true, false},
+                        new String[]{"2013-09-10T21:51:43", "2013-11-10T21:51:43"},
+                        new Double[]{1.79769313486231570e+308, 1.69769313486231570e+308},
+                        new Float[]{3.402f, 3.403f, null},
+                        new Integer[]{2147483647, 234583},
+                        new Long[]{9223372036854775807L, 4L},
+                        new Short[]{32767, 2},
+                        new String[]{"Youri", "Juri"}
+                }
         );
         refresh();
 
         execute("select * from test");
-        assertEquals(true, ((List<Boolean>)response.rows()[0][0]).get(0));
-        assertEquals(false, ((List<Boolean>)response.rows()[0][0]).get(1));
+        assertEquals(true, ((List<Boolean>) response.rows()[0][0]).get(0));
+        assertEquals(false, ((List<Boolean>) response.rows()[0][0]).get(1));
 
-        assertThat( ((List<Long>)response.rows()[0][1]).get(0), is(1378849903000L));
-        assertThat( ((List<Long>)response.rows()[0][1]).get(1), is(1384120303000L));
+        assertThat(((List<Long>) response.rows()[0][1]).get(0), is(1378849903000L));
+        assertThat(((List<Long>) response.rows()[0][1]).get(1), is(1384120303000L));
 
-        assertThat( ((List<Double>)response.rows()[0][2]).get(0), is(1.79769313486231570e+308));
-        assertThat( ((List<Double>)response.rows()[0][2]).get(1), is(1.69769313486231570e+308));
+        assertThat(((List<Double>) response.rows()[0][2]).get(0), is(1.79769313486231570e+308));
+        assertThat(((List<Double>) response.rows()[0][2]).get(1), is(1.69769313486231570e+308));
 
-        assertThat( ((List<Double>)response.rows()[0][3]).get(0), is(3.402));
-        assertThat( ((List<Double>)response.rows()[0][3]).get(1), is(3.403));
-        assertThat( ((List<Double>)response.rows()[0][3]).get(2), nullValue());
+        assertThat(((List<Double>) response.rows()[0][3]).get(0), is(3.402));
+        assertThat(((List<Double>) response.rows()[0][3]).get(1), is(3.403));
+        assertThat(((List<Double>) response.rows()[0][3]).get(2), nullValue());
 
-        assertThat( ((List<Integer>)response.rows()[0][4]).get(0), is(2147483647));
-        assertThat( ((List<Integer>)response.rows()[0][4]).get(1), is(234583));
+        assertThat(((List<Integer>) response.rows()[0][4]).get(0), is(2147483647));
+        assertThat(((List<Integer>) response.rows()[0][4]).get(1), is(234583));
 
-        assertThat( ((List<Long>)response.rows()[0][5]).get(0), is(9223372036854775807L));
-        assertThat( ((List<Integer>)response.rows()[0][5]).get(1), is(4));
+        assertThat(((List<Long>) response.rows()[0][5]).get(0), is(9223372036854775807L));
+        assertThat(((List<Integer>) response.rows()[0][5]).get(1), is(4));
 
-        assertThat( ((List<Integer>)response.rows()[0][6]).get(0), is(32767));
-        assertThat( ((List<Integer>)response.rows()[0][6]).get(1), is(2));
+        assertThat(((List<Integer>) response.rows()[0][6]).get(0), is(32767));
+        assertThat(((List<Integer>) response.rows()[0][6]).get(1), is(2));
 
-        assertThat( ((List<String>)response.rows()[0][7]).get(0), is("Youri"));
-        assertThat( ((List<String>)response.rows()[0][7]).get(1), is("Juri"));
+        assertThat(((List<String>) response.rows()[0][7]).get(0), is("Youri"));
+        assertThat(((List<String>) response.rows()[0][7]).get(1), is("Juri"));
     }
 
     @Test
@@ -859,7 +849,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "name", "type=string,store=true,index=not_analyzed")
                 .execute().actionGet();
 
-        Object[] args = new Object[] {32, "Youri"};
+        Object[] args = new Object[]{32, "Youri"};
         execute("insert into test values(?, ?)", args);
         assertEquals(1, response.rowCount());
         refresh();
@@ -879,7 +869,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "name", "type=string,store=true,index=not_analyzed")
                 .execute().actionGet();
 
-        Object[] args = new Object[] {32, "Youri", 42, "Ruben"};
+        Object[] args = new Object[]{32, "Youri", 42, "Ruben"};
         execute("insert into test values(?, ?), (?, ?)", args);
         assertEquals(2, response.rowCount());
         refresh();
@@ -902,7 +892,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         Map<String, String> person = new HashMap<String, String>();
         person.put("first_name", "Youri");
         person.put("last_name", "Zoon");
-        Object[] args = new Object[] {"I'm addicted to kite", person};
+        Object[] args = new Object[]{"I'm addicted to kite", person};
 
         execute("insert into test values(?, ?)", args);
         assertEquals(1, response.rowCount());
@@ -927,7 +917,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         assertEquals(1, response.rows()[0][0]);
         assertThat(response.rows()[0][1], instanceOf(List.class));
-        assertThat(((List)response.rows()[0][1]).size(), is(0));
+        assertThat(((List) response.rows()[0][1]).size(), is(0));
     }
 
     @Test
@@ -976,10 +966,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testTwoColumnUpdate() throws Exception {
         prepareCreate("test")
-            .addMapping("default",
-                    "col1", "type=string,index=not_analyzed",
-                    "col2", "type=string,index=not_analyzed")
-            .execute().actionGet();
+                .addMapping("default",
+                        "col1", "type=string,index=not_analyzed",
+                        "col2", "type=string,index=not_analyzed")
+                .execute().actionGet();
 
         execute("insert into test values('hello', 'hallo'), ('again', 'nochmal')");
         assertEquals(2, response.rowCount());
@@ -1004,10 +994,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "  details array(object)" +
                 ")");
         ensureGreen();
-        execute("insert into test values(1.1, ?),(2.2, ?)", new Object[]{ new Object[0],
+        execute("insert into test values(1.1, ?),(2.2, ?)", new Object[]{new Object[0],
                 new Object[]{
                         new HashMap<String, Object>(),
-                        new HashMap<String, Object>() {{ put("hello", "world"); }}
+                        new HashMap<String, Object>() {{
+                            put("hello", "world");
+                        }}
                 }
         });
         assertEquals(2, response.rowCount());
@@ -1032,7 +1024,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
         map.put("y", 2);
-        Object[] args = new Object[] { map };
+        Object[] args = new Object[]{map};
 
         execute("insert into test values (?)", args);
         assertEquals(1, response.rowCount());
@@ -1052,18 +1044,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateNestedNestedObject() throws Exception {
         Settings settings = settingsBuilder()
-            .put("mapper.dynamic", true)
-            .put("number_of_replicas", 0)
-            .build();
+                .put("mapper.dynamic", true)
+                .put("number_of_replicas", 0)
+                .build();
         prepareCreate("test")
-            .setSettings(settings)
-            .execute().actionGet();
+                .setSettings(settings)
+                .execute().actionGet();
         ensureGreen();
 
         Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
         map.put("y", 2);
-        Object[] args = new Object[] { map };
+        Object[] args = new Object[]{map};
 
         execute("insert into test (a) values (?)", args);
         refresh();
@@ -1096,12 +1088,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateNestedObjectDeleteWithArgs() throws Exception {
         Settings settings = settingsBuilder()
-            .put("mapper.dynamic", true)
-            .put("number_of_replicas", 0)
-            .build();
+                .put("mapper.dynamic", true)
+                .put("number_of_replicas", 0)
+                .build();
         prepareCreate("test")
-            .setSettings(settings)
-            .execute().actionGet();
+                .setSettings(settings)
+                .execute().actionGet();
         ensureGreen();
 
         Map<String, Object> map = newHashMap();
@@ -1109,13 +1101,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         nestedMap.put("y", 2);
         nestedMap.put("z", 3);
         map.put("x", nestedMap);
-        Object[] args = new Object[] { map };
+        Object[] args = new Object[]{map};
 
         execute("insert into test (a) values (?)", args);
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("update test set a['x']['z'] = ?", new Object[] { null });
+        execute("update test set a['x']['z'] = ?", new Object[]{null});
 
         assertEquals(1, response.rowCount());
         refresh();
@@ -1129,12 +1121,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateNestedObjectDeleteWithoutArgs() throws Exception {
         Settings settings = settingsBuilder()
-            .put("mapper.dynamic", true)
-            .put("number_of_replicas", 0)
-            .build();
+                .put("mapper.dynamic", true)
+                .put("number_of_replicas", 0)
+                .build();
         prepareCreate("test")
-            .setSettings(settings)
-            .execute().actionGet();
+                .setSettings(settings)
+                .execute().actionGet();
         ensureGreen();
 
         Map<String, Object> map = newHashMap();
@@ -1142,7 +1134,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         nestedMap.put("y", 2);
         nestedMap.put("z", 3);
         map.put("x", nestedMap);
-        Object[] args = new Object[] { map };
+        Object[] args = new Object[]{map};
 
         execute("insert into test (a) values (?)", args);
         assertEquals(1, response.rowCount());
@@ -1177,7 +1169,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
         map.put("y", "2");
-        Object[] args = new Object[] { map };
+        Object[] args = new Object[]{map};
 
         execute("insert into test values (?)", args);
         assertEquals(1, response.rowCount());
@@ -1204,7 +1196,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
         map.put("y", 2);
-        Object[] args = new Object[] { map };
+        Object[] args = new Object[]{map};
 
         execute("insert into test values (?)", args);
         assertEquals(1, response.rowCount());
@@ -1238,18 +1230,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testUpdateResetNestedObjectUsingUpdateRequest() throws Exception {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
                 .startObject("default")
-                    .startObject("_meta").field("primary_keys", "id").endObject()
-                    .startObject("properties")
-                        .startObject("id")
-                            .field("type", "string")
-                            .field("index", "not_analyzed")
-                        .endObject()
-                        .startObject("data")
-                            .field("type", "object")
-                            .field("index", "not_analyzed")
-                            .field("dynamic", false)
-                        .endObject()
-                    .endObject()
+                .startObject("_meta").field("primary_keys", "id").endObject()
+                .startObject("properties")
+                .startObject("id")
+                .field("type", "string")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("data")
+                .field("type", "object")
+                .field("index", "not_analyzed")
+                .field("dynamic", false)
+                .endObject()
+                .endObject()
                 .endObject()
                 .endObject();
 
@@ -1258,22 +1250,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .execute().actionGet();
         ensureGreen();
 
-        Map<String, Object> data = new HashMap<String, Object>(){{
+        Map<String, Object> data = new HashMap<String, Object>() {{
             put("foo", "bar");
-            put("days", new ArrayList<String>(){{
+            put("days", new ArrayList<String>() {{
                 add("Mon");
                 add("Tue");
                 add("Wen");
             }});
         }};
-        execute("insert into test (id, data) values (?, ?)", new Object[] { "1", data});
+        execute("insert into test (id, data) values (?, ?)", new Object[]{"1", data});
         refresh();
 
         execute("select data from test where id = ?", new Object[]{"1"});
         assertEquals(data, response.rows()[0][0]);
 
-        Map<String, Object> new_data = new HashMap<String, Object>(){{
-            put("days", new ArrayList<String>(){{
+        Map<String, Object> new_data = new HashMap<String, Object>() {{
+            put("days", new ArrayList<String>() {{
                 add("Mon");
                 add("Wen");
             }});
@@ -1289,25 +1281,25 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testGetResponseWithObjectColumn() throws Exception {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
-            .startObject("default")
+                .startObject("default")
                 .startObject("_meta").field("primary_keys", "id").endObject()
                 .startObject("properties")
-                    .startObject("id")
-                        .field("type", "string")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                .startObject("data")
-                    .field("type", "object")
-                    .field("index", "not_analyzed")
-                    .field("dynamic", false)
+                .startObject("id")
+                .field("type", "string")
+                .field("index", "not_analyzed")
                 .endObject()
-            .endObject()
-            .endObject()
-            .endObject();
+                .startObject("data")
+                .field("type", "object")
+                .field("index", "not_analyzed")
+                .field("dynamic", false)
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
 
         prepareCreate("test")
-            .addMapping("default", mapping)
-            .execute().actionGet();
+                .addMapping("default", mapping)
+                .execute().actionGet();
         ensureGreen();
 
         Map<String, Object> data = new HashMap<>();
@@ -1327,9 +1319,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .execute().actionGet();
         ensureGreen();
 
-        Map<String, Object> map = new HashMap<String, Object>(){{
+        Map<String, Object> map = new HashMap<String, Object>() {{
             put("x", "1");
-            put("y", new HashMap<String, Object>(){{
+            put("y", new HashMap<String, Object>() {{
                 put("z", 3);
             }});
         }};
@@ -1355,8 +1347,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testInsertWithPrimaryKey() throws Exception {
         createTestIndexWithPkMapping();
 
-        Object[] args = new Object[] { "1",
-            "A towel is about the most massively useful thing an interstellar hitch hiker can have."};
+        Object[] args = new Object[]{"1",
+                "A towel is about the most massively useful thing an interstellar hitch hiker can have."};
         execute("insert into test (pk_col, message) values (?, ?)", args);
         refresh();
 
@@ -1368,9 +1360,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testInsertWithPrimaryKeyMultiValues() throws Exception {
         createTestIndexWithPkMapping();
 
-        Object[] args = new Object[] {
-            "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
-            "2", "I always thought something was fundamentally wrong with the universe"
+        Object[] args = new Object[]{
+                "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
+                "2", "I always thought something was fundamentally wrong with the universe"
         };
         execute("insert into test (pk_col, message) values (?, ?), (?, ?)", args);
         refresh();
@@ -1379,17 +1371,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertTrue(response.getSourceAsMap().containsKey("message"));
     }
 
-    @Test (expected = DuplicateKeyException.class)
+    @Test(expected = DuplicateKeyException.class)
     public void testInsertWithUniqueConstraintViolation() throws Exception {
         createTestIndexWithPkMapping();
 
-        Object[] args = new Object[] {
-            "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
+        Object[] args = new Object[]{
+                "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
         };
         execute("insert into test (pk_col, message) values (?, ?)", args);
 
-        args = new Object[] {
-            "1", "I always thought something was fundamentally wrong with the universe"
+        args = new Object[]{
+                "1", "I always thought something was fundamentally wrong with the universe"
         };
 
         execute("insert into test (pk_col, message) values (?, ?)", args);
@@ -1397,30 +1389,30 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private void createTestIndexWithPkMapping() throws IOException {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
-                    .startObject("default")
-                    .startObject("_meta").field("primary_keys", "pk_col").endObject()
-                    .startObject("properties")
-                    .startObject("pk_col").field("type", "string").field("store",
-                            "true").field("index", "not_analyzed").endObject()
-                    .startObject("message").field("type", "string").field("store",
-                            "true").field("index", "not_analyzed").endObject()
-                    .endObject()
-                    .endObject()
-                    .endObject();
+                .startObject("default")
+                .startObject("_meta").field("primary_keys", "pk_col").endObject()
+                .startObject("properties")
+                .startObject("pk_col").field("type", "string").field("store",
+                        "true").field("index", "not_analyzed").endObject()
+                .startObject("message").field("type", "string").field("store",
+                        "true").field("index", "not_analyzed").endObject()
+                .endObject()
+                .endObject()
+                .endObject();
 
         prepareCreate("test")
-            .addMapping("default", mapping)
+                .addMapping("default", mapping)
                 .execute().actionGet();
         ensureGreen();
     }
 
-    @Test (expected = CrateException.class)
+    @Test(expected = CrateException.class)
     public void testInsertWithPKMissingOnInsert() throws Exception {
         createTestIndexWithPkMapping();
 
-        Object[] args = new Object[] {
-            "In the beginning the Universe was created.\n" +
-                "This has made a lot of people very angry and been widely regarded as a bad move."
+        Object[] args = new Object[]{
+                "In the beginning the Universe was created.\n" +
+                        "This has made a lot of people very angry and been widely regarded as a bad move."
         };
         execute("insert into test (message) values (?)", args);
     }
@@ -1585,16 +1577,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         details.put("age", 30);
         details.put("job", "soldier");
         execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
-            new Object[] {"Vo*", "male", "Kwaltzz", emptyMap }
+                new Object[]{"Vo*", "male", "Kwaltzz", emptyMap}
         );
         execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
-            new Object[] {"Vo?", "male", "Kwaltzzz", emptyMap }
+                new Object[]{"Vo?", "male", "Kwaltzzz", emptyMap}
         );
         execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
-            new Object[] {"Vo!", "male", "Kwaltzzzz", details}
+                new Object[]{"Vo!", "male", "Kwaltzzzz", details}
         );
         execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
-            new Object[] {"Vo%", "male", "Kwaltzzzz", details}
+                new Object[]{"Vo%", "male", "Kwaltzzzz", details}
         );
         refresh();
 
@@ -1640,8 +1632,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"columns\":{\"col1\":{},\"col2\":{}},\"partitioned_by\":[],\"indices\":{}}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
-                    "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
-                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
+                "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
+                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -1663,19 +1655,19 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSqlAlchemyGeneratedCountWithStar() throws  Exception {
+    public void testSqlAlchemyGeneratedCountWithStar() throws Exception {
         // generated using sqlalchemy
         // session.query(func.count('*')).filter(Test.name == 'foo').scalar()
 
         execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
         ensureGreen();
-        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
+        execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         refresh();
 
         execute(
-            "SELECT count(?) AS count_1 FROM test WHERE test.col2 = ?",
-            new Object[] { "*", "foo" }
+                "SELECT count(?) AS count_1 FROM test WHERE test.col2 = ?",
+                new Object[]{"*", "foo"}
         );
         assertEquals(1L, response.rows()[0][0]);
     }
@@ -1687,13 +1679,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
         ensureGreen();
-        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
-        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        execute("insert into test values (?, ?)", new Object[]{1, "foo"});
+        execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         refresh();
 
         execute(
-            "SELECT count(test.col1) AS count_1 FROM test WHERE test.col2 = ?",
-            new Object[] { "foo" }
+                "SELECT count(test.col1) AS count_1 FROM test WHERE test.col2 = ?",
+                new Object[]{"foo"}
         );
         assertEquals(1L, response.rows()[0][0]);
     }
@@ -1705,15 +1697,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
         ensureGreen();
-        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
-        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        execute("insert into test values (?, ?)", new Object[]{1, "foo"});
+        execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         execute("insert into test values (?, ?)", new Object[]{3, "foo"});
         refresh();
 
         execute(
-            "SELECT count(?) AS count_1, test.col2 AS test_col2 FROM test " +
-                "GROUP BY test.col2 order by count_1 desc",
-            new Object[] { "*" }
+                "SELECT count(?) AS count_1, test.col2 AS test_col2 FROM test " +
+                        "GROUP BY test.col2 order by count_1 desc",
+                new Object[]{"*"}
         );
 
         assertEquals(2L, response.rows()[0][0]);
@@ -1727,14 +1719,14 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
         ensureGreen();
-        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
-        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
-        execute("insert into test values (?, ?)", new Object[] { 3, "foo" });
+        execute("insert into test values (?, ?)", new Object[]{1, "foo"});
+        execute("insert into test values (?, ?)", new Object[]{2, "bar"});
+        execute("insert into test values (?, ?)", new Object[]{3, "foo"});
         refresh();
 
         execute(
-            "SELECT count(test.col1) AS count_1, test.col2 AS test_col2 FROM test " +
-                "GROUP BY test.col2 order by count_1 desc"
+                "SELECT count(test.col1) AS count_1, test.col2 AS test_col2 FROM test " +
+                        "GROUP BY test.col2 order by count_1 desc"
         );
 
         assertEquals(2L, response.rows()[0][0]);
@@ -1755,26 +1747,26 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         String expectedMapping = "{\"default\":{" +
                 "\"_meta\":{" +
-                    "\"primary_keys\":[\"col1\"]," +
-                    "\"columns\":{" +
-                        "\"col1\":{}," +
-                        "\"col2\":{}" +
-                    "}," +
-                    "\"partitioned_by\":[]," +
-                    "\"indices\":{}," +
-                    "\"routing\":\"col1\"" +
+                "\"primary_keys\":[\"col1\"]," +
+                "\"columns\":{" +
+                "\"col1\":{}," +
+                "\"col2\":{}" +
+                "}," +
+                "\"partitioned_by\":[]," +
+                "\"indices\":{}," +
+                "\"routing\":\"col1\"" +
                 "}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
-                    "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
-                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
+                "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
+                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
                 "\"settings\":{" +
-                    "\"index.number_of_replicas\":\"2\"," +
-                    "\"index.number_of_shards\":\"10\"," +
-                    "\"index.version.created\":\"1000199\"" +
+                "\"index.number_of_replicas\":\"2\"," +
+                "\"index.number_of_shards\":\"10\"," +
+                "\"index.version.created\":\"1000199\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -1796,13 +1788,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         expectedException.expect(GroupByOnArrayUnsupportedException.class);
         this.setup.groupBySetup();
         // inserting multiple values not supported anymore
-        client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>(){{
-            put("race", new String[] {"Android"});
+        client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
+            put("race", new String[]{"Android"});
             put("gender", new String[]{"male", "robot"});
             put("name", "Marvin2");
         }}).execute().actionGet();
-        client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>(){{
-            put("race", new String[] {"Android"});
+        client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
+            put("race", new String[]{"Android"});
             put("gender", new String[]{"male", "robot"});
             put("name", "Marvin3");
         }}).execute().actionGet();
@@ -1847,7 +1839,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select \"_version\" from test where col1 = 1");
         assertEquals(1L, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
-        Long version = (Long)response.rows()[0][0];
+        Long version = (Long) response.rows()[0][0];
 
         execute("delete from test where col1 = 1 and \"_version\" = ?",
                 new Object[]{version});
@@ -1974,8 +1966,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select * from quotes");
         execute("select quote, \"_score\" from quotes where match(quote_ft, ?) " +
-                "order by \"_score\" desc",
-                new Object[]{"time", "time"});
+                        "order by \"_score\" desc",
+                new Object[]{"time", "time"}
+        );
         assertEquals(2L, response.rowCount());
         assertEquals("Time is an illusion. Lunchtime doubly so", response.rows()[0][0]);
     }
@@ -2126,7 +2119,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
                 "and \"_score\" > 0.98");
         assertEquals(1L, response.rowCount());
-        assertEquals(1, ((Float)response.rows()[0][1]).compareTo(0.98f));
+        assertEquals(1, ((Float) response.rows()[0][1]).compareTo(0.98f));
     }
 
     @Test
@@ -2187,7 +2180,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 //        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
-    @Test ( expected = CrateException.class)
+    @Test(expected = CrateException.class)
     public void testSelectSysColumnsFromInformationSchema() throws Exception {
         execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables");
     }
@@ -2272,7 +2265,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         SQLResponse responseWithoutOrder = response;
         execute("SELECT * from quotes order by something");
         assertEquals(responseWithoutOrder.rowCount(), response.rowCount());
-        for (int i=0;i<response.rowCount();i++) {
+        for (int i = 0; i < response.rowCount(); i++) {
             assertArrayEquals(responseWithoutOrder.rows()[i], response.rows()[i]);
         }
     }
@@ -2343,7 +2336,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
     }
 
-    @Test (expected = TableAliasSchemaException.class)
+    @Test(expected = TableAliasSchemaException.class)
     public void testSelectTableAliasSchemaExceptionColumnDefinition() throws Exception {
         execute("create table quotes_en (id int primary key, quote string, author string)");
         execute("create table quotes_de (id int primary key, quote2 string)");
@@ -2353,7 +2346,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote from quotes where id = ?", new Object[]{1});
     }
 
-    @Test (expected = TableAliasSchemaException.class)
+    @Test(expected = TableAliasSchemaException.class)
     public void testSelectTableAliasSchemaExceptionColumnDataType() throws Exception {
         execute("create table quotes_en (id int primary key, quote int) with (number_of_replicas=0)");
         execute("create table quotes_de (id int primary key, quote string) with (number_of_replicas=0)");
@@ -2363,7 +2356,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote from quotes where id = ?", new Object[]{1});
     }
 
-    @Test (expected = TableAliasSchemaException.class)
+    @Test(expected = TableAliasSchemaException.class)
     public void testSelectTableAliasSchemaExceptionPrimaryKeyRoutingColumn() throws Exception {
         execute("create table quotes_en (id int primary key, quote string)");
         execute("create table quotes_de (id int, quote string)");
@@ -2373,7 +2366,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote from quotes where id = ?", new Object[]{1});
     }
 
-    @Test (expected = TableAliasSchemaException.class)
+    @Test(expected = TableAliasSchemaException.class)
     public void testSelectTableAliasSchemaExceptionIndices() throws Exception {
         execute("create table quotes_en (id int primary key, quote string)");
         execute("create table quotes_de (id int primary key, quote2 string index using fulltext)");
@@ -2416,8 +2409,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String tableName = "mytable";
         String tableAlias = "mytablealias";
         execute(String.format("create table %s (id integer primary key, " +
-                "content string)",
-                tableName));
+                        "content string)",
+                tableName
+        ));
         refresh();
         client().admin().indices().prepareAliases().addAlias(tableName,
                 tableAlias).execute().actionGet();
@@ -2463,7 +2457,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute(
                 String.format("insert into %s (id, content) values (?, ?)", tableAlias),
                 new Object[]{1, "bla"}
-                );
+        );
     }
 
     @Test
@@ -2550,13 +2544,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("drop blob table screenshots");
     }
 
-    @Test (expected = UnsupportedFeatureException.class)
+    @Test(expected = UnsupportedFeatureException.class)
     public void testSelectFromBlobTable() throws Exception {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("select * from blob.screenshots");
     }
 
-    @Test (expected = SQLParseException.class)
+    @Test(expected = SQLParseException.class)
     public void testInsertWithClusteredByNull() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
@@ -2564,7 +2558,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 new Object[]{null, "I'd far rather be happy than right any day."});
     }
 
-    @Test (expected = SQLParseException.class)
+    @Test(expected = SQLParseException.class)
     public void testInsertWithClusteredByWithoutValue() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
@@ -2603,7 +2597,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         // Validate generated _id, must be: <generatedRandom>
         assertNotNull(response.rows()[0][0]);
-        assertThat(((String)response.rows()[0][0]).length(), greaterThan(0));
+        assertThat(((String) response.rows()[0][0]).length(), greaterThan(0));
     }
 
     @Test
@@ -2620,8 +2614,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         // Validate generated _id.
         // Must equal to id because its the primary key
-        String _id = (String)response.rows()[0][0];
-        Integer id = (Integer)response.rows()[0][1];
+        String _id = (String) response.rows()[0][0];
+        Integer id = (Integer) response.rows()[0][1];
         assertEquals(id.toString(), _id);
     }
 
@@ -2661,14 +2655,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "quote string) clustered by(author) with (number_of_replicas=0)");
         execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
-                             1, "Douglas", "Don't panic"});
+                        1, "Douglas", "Don't panic"}
+        );
         assertEquals(2L, response.rowCount());
         refresh();
 
         execute("select \"_id\", id from quotes where id=1 order by author");
         assertEquals(2L, response.rowCount());
-        assertThat((String)response.rows()[0][0], is("AgdEb3VnbGFzATE="));
-        assertThat((Integer)response.rows()[0][1], is(1));
+        assertThat((String) response.rows()[0][0], is("AgdEb3VnbGFzATE="));
+        assertThat((Integer) response.rows()[0][1], is(1));
         assertThat((String) response.rows()[1][0], is("AgRGb3JkATE="));
         assertThat((Integer) response.rows()[1][1], is(1));
     }
@@ -2707,7 +2702,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select quote from quotes where id=1 and author='Ford'");
         assertEquals(1L, response.rowCount());
-        assertThat((String)response.rows()[0][0], is("Don't panic"));
+        assertThat((String) response.rows()[0][0], is("Don't panic"));
     }
 
     @Test
@@ -2716,7 +2711,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "quote string) with (number_of_replicas=0)");
         execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
-                             1, "Douglas", "Don't panic"});
+                        1, "Douglas", "Don't panic"}
+        );
         assertEquals(2L, response.rowCount());
         refresh();
 
@@ -2734,7 +2730,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "quote string) with (number_of_replicas=0)");
         execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
-                             1, "Douglas", "Don't panic"});
+                        1, "Douglas", "Don't panic"}
+        );
         assertEquals(2L, response.rowCount());
         refresh();
 
