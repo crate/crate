@@ -668,7 +668,7 @@ System Columns
 
 On every table Crate implements several implicitly defined system columns. Their names are
 reserved and cannot be used as user-defined column names. All system columns are prefixed with
-an underscore and therefor must be quoted on usage.
+an underscore.
 
 .. _sql_ddl_system_column_version:
 
