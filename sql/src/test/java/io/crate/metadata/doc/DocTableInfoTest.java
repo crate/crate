@@ -26,6 +26,7 @@ public class DocTableInfoTest {
         DocTableInfo info = new DocTableInfo(
                 new TableIdent(null, "dummy"),
                 ImmutableList.<ReferenceInfo>of(),
+                ImmutableList.<ReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, ReferenceInfo>of(),
                 ImmutableList.<String>of(),
                 null,
@@ -62,6 +63,7 @@ public class DocTableInfoTest {
         DocTableInfo info = new DocTableInfo(
                 dummy,
                 ImmutableList.<ReferenceInfo>of(strictParent),
+                ImmutableList.<ReferenceInfo>of(),
                 references,
                 ImmutableList.<String>of(),
                 null,

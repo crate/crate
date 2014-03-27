@@ -168,6 +168,11 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
+    public boolean isPartitioned() {
+        return false;
+    }
+
+    @Override
     public DynamicReference getDynamic(ColumnIdent ident) {
         return null;
     }
