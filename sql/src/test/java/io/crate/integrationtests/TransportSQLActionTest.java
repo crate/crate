@@ -25,6 +25,7 @@ import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
+import io.crate.PartitionName;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.*;
@@ -35,6 +36,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -2860,5 +2862,131 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals("quote", response.rows()[1][2]);
         assertEquals("timestamp", response.rows()[2][2]);
 
+    }
+
+    @Test
+    public void testInsertPartitionedTable() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{1, "Ford", 13959981214861L });
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        String partitionName = new PartitionName("parted",
+                Arrays.asList("date"),
+                Arrays.asList(String.valueOf(13959981214861L))
+        ).stringValue();
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+
+        // TODO: query all fields when partitioned select is implemented
+        execute("select id, name from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((String)response.rows()[0][1], is("Ford"));
+    }
+
+    @Test
+    public void testInsertPartitionedTableOnlyPartitionedColumns() throws Exception {
+        execute("create table parted (name string, date timestamp)" +
+                "partitioned by (name, date)");
+        ensureGreen();
+
+        execute("insert into parted (name, date) values (?, ?)",
+                new Object[]{"Ford", 13959981214861L});
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+        String partitionName = new PartitionName("parted",
+                Arrays.asList("name", "date"),
+                Arrays.asList("Ford", String.valueOf(13959981214861L))
+        ).stringValue();
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+        assertThat(
+                client().prepareCount("parted").setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                is(1L)
+        );
+    }
+
+    @Test
+    public void testInsertPartitionedTableOnlyPartitionedColumnsAlreadyExsists() throws Exception {
+        execute("create table parted (name string, date timestamp)" +
+                "partitioned by (name, date)");
+        ensureGreen();
+
+        execute("insert into parted (name, date) values (?, ?)",
+                new Object[]{"Ford", 13959981214861L});
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+        execute("insert into parted (name, date) values (?, ?)",
+                new Object[]{"Ford", 13959981214861L});
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        execute("select count(*) from parted");
+        assertThat((Long)response.rows()[0][0], is(2L));
+    }
+
+    @Test( expected= DuplicateKeyException.class)
+    public void testInsertPartitionedTablePrimaryKeysDuplicate() throws Exception {
+        execute("create table parted (" +
+                "  id int, " +
+                "  name string, " +
+                "  date timestamp," +
+                "  primary key (id, name)" +
+                ") partitioned by (id, name)");
+        ensureGreen();
+        Long dateValue = System.currentTimeMillis();
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{42, "Zaphod", dateValue});
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{42, "Zaphod", 0L});
+    }
+
+    @Test
+    public void testInserPartitionedTableSomePartitionedColumns() throws Exception {
+        // insert only some partitioned column values
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (name, date)");
+        ensureGreen();
+
+        execute("insert into parted (id, name) values (?, ?)",
+                new Object[]{1, "Trillian"});
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+        String partitionName = new PartitionName("parted",
+                Arrays.asList("name", "date"),
+                Arrays.asList("Trillian", null)).stringValue();
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+
+        // TODO: query all fields when partitioned select is implemented
+        execute("select id, name from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+    }
+
+    @Test
+    public void testInsertPartitionedTableReversedPartitionedColumns() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (name, date)");
+        ensureGreen();
+
+        Long dateValue = System.currentTimeMillis();
+        execute("insert into parted (id, date, name) values (?, ?, ?)",
+                new Object[]{1, dateValue, "Trillian"});
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+        String partitionName = new PartitionName("parted",
+                Arrays.asList("name", "date"),
+                Arrays.asList("Trillian", dateValue.toString())).stringValue();
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
     }
 }

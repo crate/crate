@@ -23,8 +23,8 @@ package io.crate;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Base64;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.*;
@@ -32,11 +32,13 @@ import org.elasticsearch.common.io.stream.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class PartitionName implements Streamable {
 
     public static final String NULL_MARKER = "N";
     public static final String NOT_NULL_MARKER = "_";
+    private static final Base32 BASE32 = new Base32(true);
 
     private final List<String> values = new ArrayList<>();
     private final String tableName;
@@ -120,8 +122,11 @@ public class PartitionName implements Streamable {
         if (bytes() == null) {
             return null;
         }
-        return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, Base64.encodeBytes(bytesReference.toBytes()));
+        return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName,
+                BASE32.encodeAsString(bytesReference.toBytes()).toLowerCase(Locale.ROOT));
     }
+
+
 
     @Nullable
     public String toString() {
@@ -142,7 +147,7 @@ public class PartitionName implements Streamable {
 
         PartitionName partitionName = new PartitionName(tableName);
         if (columnCount > 1) {
-            byte[] inputBytes = Base64.decode(valuesString);
+            byte[] inputBytes = BASE32.decode(valuesString.toUpperCase(Locale.ROOT));
             BytesStreamInput in = new BytesStreamInput(inputBytes, true);
             partitionName.readFrom(in);
         } else {

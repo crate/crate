@@ -151,4 +151,6 @@ Currently the defined error codes are:
     4093  A table with the same name exists already.
     ----- ---------------------------------------------------------------------
     4094  The used table alias contains tables with different schema.
+    ----- ---------------------------------------------------------------------
+    5001  The execution of one or more tasks failed.
     ===== =====================================================================

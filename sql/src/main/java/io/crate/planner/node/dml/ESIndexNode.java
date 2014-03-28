@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dml;
 
-import com.google.common.base.Preconditions;
 import io.crate.planner.node.PlanVisitor;
 
 import javax.annotation.Nullable;
@@ -40,7 +39,7 @@ public class ESIndexNode extends DMLPlanNode {
                        List<Map<String, Object>> sourceMaps,
                        List<String> ids,
                        @Nullable List<String> routingValues) {
-        Preconditions.checkNotNull(index, "index is null");
+        assert index != null : "index is null";
         this.index = index;
         this.sourceMaps = sourceMaps;
         this.ids = ids;
