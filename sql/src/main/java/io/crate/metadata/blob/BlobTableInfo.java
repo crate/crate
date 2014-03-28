@@ -83,6 +83,11 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
+    public Collection<ReferenceInfo> partitionedByColumns() {
+        return ImmutableList.of();
+    }
+
+    @Override
     public RowGranularity rowGranularity() {
         return RowGranularity.DOC;
     }

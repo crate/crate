@@ -34,7 +34,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -44,9 +43,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -58,6 +58,14 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
             .add("bla", DataType.STRING, null)
             .isAlias(true).build();
 
+    private static TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(null, "parted");
+    private static TableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
+            TEST_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("id", DataType.INTEGER, null)
+            .add("name", DataType.STRING, null)
+            .add("date", DataType.TIMESTAMP, null, true)
+            .build();
+
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {
@@ -66,6 +74,8 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
             when(schemaInfo.getTableInfo(NESTED_PK_TABLE_IDENT.name())).thenReturn(nestedPkTableInfo);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -99,11 +109,11 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("name"));
         assertThat(analysis.columns().get(1).valueType(), is(DataType.STRING));
 
-        assertThat(analysis.values().size(), is(1));
-        List<Symbol> values = analysis.values().get(0);
+        assertThat(analysis.sourceMaps().size(), is(1));
+        Map<String, Object> values = analysis.sourceMaps().get(0);
         assertThat(values.size(), is(2));
-        assertThat(values.get(0), instanceOf(LongLiteral.class));
-        assertThat(values.get(1), instanceOf(StringLiteral.class));
+        assertThat((Long)values.get("id"), is(1L));
+        assertThat((String)values.get("name"), is("Trillian"));
     }
 
     @Test
@@ -118,11 +128,11 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("id"));
         assertThat(analysis.columns().get(1).valueType(), is(DataType.LONG));
 
-        assertThat(analysis.values().size(), is(1));
-        List<Symbol> values = analysis.values().get(0);
+        assertThat(analysis.sourceMaps().size(), is(1));
+        Map<String, Object> values = analysis.sourceMaps().get(0);
         assertThat(values.size(), is(2));
-        assertThat(values.get(0), instanceOf(StringLiteral.class));
-        assertThat(values.get(1), instanceOf(LongLiteral.class));
+        assertThat((String)values.get("name"), is("Trillian"));
+        assertThat((Long)values.get("id"), is(2L));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -152,9 +162,9 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
         assertThat(analysis.columns().get(2).valueType(), is(DataType.BOOLEAN));
 
-        List<Symbol> valuesList = analysis.values().get(0);
-        assertThat(valuesList.get(0), instanceOf(LongLiteral.class));
-        assertThat(valuesList.get(2), instanceOf(BooleanLiteral.class));
+        Map<String, Object> values = analysis.sourceMaps().get(0);
+        assertThat((Long)values.get("id"), is(1L));
+        assertThat((Boolean)values.get("awesome"), is(true));
 
     }
 
@@ -170,11 +180,11 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("name"));
         assertThat(analysis.columns().get(1).valueType(), is(DataType.STRING));
 
-        assertThat(analysis.values().size(), is(1));
-        List<Symbol> values = analysis.values().get(0);
+        assertThat(analysis.sourceMaps().size(), is(1));
+        Map<String, Object> values = analysis.sourceMaps().get(0);
         assertThat(values.size(), is(2));
-        assertThat(values.get(0), instanceOf(LongLiteral.class)); // normalized/evaluated
-        assertThat(values.get(1), instanceOf(StringLiteral.class));
+        assertThat((Long)values.get("id"), is(1L)); // normalized/evaluated
+        assertThat((String)values.get("name"), is("Trillian"));
     }
 
     @Test
@@ -192,12 +202,12 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().get(2).info().ident().columnIdent().name(), is("name"));
         assertThat(analysis.columns().get(2).valueType(), is(DataType.STRING));
 
-        assertThat(analysis.values().size(), is(1));
-        List<Symbol> values = analysis.values().get(0);
+        assertThat(analysis.sourceMaps().size(), is(1));
+        Map<String, Object> values = analysis.sourceMaps().get(0);
         assertThat(values.size(), is(3));
-        assertThat(values.get(0), instanceOf(LongLiteral.class));
-        assertThat(values.get(1), instanceOf(LongLiteral.class));
-        assertThat(values.get(2), instanceOf(StringLiteral.class));
+        assertThat((Long)values.get("id"), is(1L));
+        assertThat((Long)values.get("other_id"), is(1L));
+        assertThat((String)values.get("name"), is("Trillian"));
     }
 
     @Test
@@ -209,10 +219,10 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
         assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
 
-        assertThat(analysis.values().size(), is(1));
-        List<Symbol> values = analysis.values().get(0);
+        assertThat(analysis.sourceMaps().size(), is(1));
+        Map<String, Object> values = analysis.sourceMaps().get(0);
         assertThat(values.size(), is(1));
-        assertThat(values.get(0), instanceOf(LongLiteral.class));
+        assertThat((Long)values.get("id"), is(1L));
     }
 
     @Test (expected = UnsupportedOperationException.class)
@@ -240,11 +250,11 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
     public void testNullLiterals() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
                 new Object[]{1, null, null, null});
-        List<Symbol> values = analysis.values().get(0);
-        assertThat(values.get(0), instanceOf(LongLiteral.class));
-        assertThat(values.get(1), instanceOf(Null.class));
-        assertThat(values.get(2), instanceOf(Null.class));
-        assertThat(values.get(3), instanceOf(Null.class));
+        Map<String, Object> values = analysis.sourceMaps().get(0);
+        assertThat((Long) values.get("id"), is(1L));
+        assertNull(values.get("name"));
+        assertNull(values.get("awesome"));
+        assertNull(values.get("details"));
     }
 
     @Test
@@ -253,8 +263,8 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{1, null, null, new HashMap<String, Object>(){{
                     put("new_col", "new value");
                 }}});
-        List<Symbol> values = analysis.values().get(0);
-        assertThat(values.get(3), instanceOf(ObjectLiteral.class));
+        Map<String, Object> values = analysis.sourceMaps().get(0);
+        assertThat(values.get("details"), instanceOf(Map.class));
     }
 
     @Test(expected = ValidationException.class)
@@ -280,16 +290,22 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                         new HashMap<String, Object>() {{ put("name", "Prosser"); }}
                     }
                 });
-        assertThat((LongLiteral)analysis.values().get(0).get(0), is(new LongLiteral(0L)));
-        assertThat(((ArrayLiteral) analysis.values().get(0).get(1)).itemType(), is(DataType.OBJECT));
+        assertThat((Long)analysis.sourceMaps().get(0).get("id"), is(0L));
+        assertArrayEquals(
+                (Map[])analysis.sourceMaps().get(0).get("friends"),
+                new Map[]{
+                         new MapBuilder<String, Object>().put("name", "Jeltz").map(),
+                         new MapBuilder<String, Object>().put("name", "Prosser").map(),
+                });
     }
 
     @Test
     public void testInsertEmptyObjectArrayParameter() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, friends) values(?, ?)",
                 new Object[]{ 0, new Map[0] });
-        assertThat((LongLiteral)analysis.values().get(0).get(0), is(new LongLiteral(0L)));
-        assertThat(((ArrayLiteral)analysis.values().get(0).get(1)).itemType(), is(DataType.OBJECT));
+        assertThat((Long)analysis.sourceMaps().get(0).get("id"), is(0L));
+        assertThat(((Object[])analysis.sourceMaps().get(0).get("friends")).length, is(0));
+
     }
 
     @Test (expected = IllegalArgumentException.class)
@@ -329,9 +345,52 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testTwistedNestedPk() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into nested_pk (o, id) values (?, ?)",
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into nested_pk (o, id) values (?, ?)",
                 new Object[]{new MapBuilder<String, Object>().put("b", 4).map(), 1});
         assertThat(analysis.ids().get(0),
                 is(new Id(Arrays.asList("id", "o.b"), Arrays.asList("1", "4"), "o.b").stringValue()));
+
+    }
+
+    @Test
+    public void testInsertMultipleValues() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze(
+                "insert into users (id, name, awesome) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{ 99, "Marvin", true, 42, "Deep Thought", false });
+        assertThat(analysis.sourceMaps().size(), is(2));
+
+        assertThat((Long)analysis.sourceMaps().get(0).get("id"), is(99L));
+        assertThat((String)analysis.sourceMaps().get(0).get("name"), is("Marvin"));
+        assertThat((Boolean)analysis.sourceMaps().get(0).get("awesome"), is(true));
+
+        assertThat((Long)analysis.sourceMaps().get(1).get("id"), is(42l));
+        assertThat((String)analysis.sourceMaps().get(1).get("name"), is("Deep Thought"));
+        assertThat((Boolean)analysis.sourceMaps().get(1).get("awesome"), is(false));
+    }
+
+    @Test
+    public void testInsertPartitionedTable() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into parted (id, name, date) " +
+                "values (?, ?, ?)", new Object[]{0, "Trillian", 0L});
+        assertThat(analysis.sourceMaps().size(), is(1));
+        assertThat(analysis.sourceMaps().get(0).size(), is(2));
+        assertThat(analysis.columns().size(), is(2));
+        assertThat(analysis.partitionedByColumns().size(), is(1));
+        assertThat(analysis.partitionedByColumns().get(0)
+                .info().ident().columnIdent().fqn(), is("date"));
+        assertThat(analysis.partitionMaps().size(), is(1));
+        assertThat(analysis.partitionMaps().get(0), hasEntry("date", "0"));
+    }
+
+    @Test
+    public void testInsertIntoPartitionedTableOnlyPartitionColumns() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into parted (date) " +
+                "values (?)", new Object[]{0L});
+        assertThat(analysis.sourceMaps().size(), is(1));
+        assertThat(analysis.sourceMaps().get(0).size(), is(0));
+        assertThat(analysis.columns().size(), is(0));
+        assertThat(analysis.partitionedByColumns().size(), is(1));
+        assertThat(analysis.partitionMaps().size(), is(1));
+        assertThat(analysis.partitionMaps().get(0), hasEntry("date", "0"));
     }
 }

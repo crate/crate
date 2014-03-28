@@ -38,14 +38,8 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
-import io.crate.planner.node.ddl.ESCreateIndexNode;
-import io.crate.planner.node.ddl.ESCreateTemplateNode;
-import io.crate.planner.node.ddl.ESDeleteIndexNode;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.ddl.*;
+import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
@@ -53,6 +47,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -111,7 +106,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     @Override
     protected Plan visitInsertAnalysis(InsertAnalysis analysis, Void context) {
-        Preconditions.checkState(analysis.values().size() >= 1, "no values given");
+        Preconditions.checkState(!analysis.sourceMaps().isEmpty(), "no values given");
         Plan plan = new Plan();
         ESIndex(analysis, plan);
         return plan;
@@ -588,11 +583,47 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     private void ESIndex(InsertAnalysis analysis, Plan plan) {
         String index = analysis.table().ident().name();
-        ESIndexNode indexNode = new ESIndexNode(index,
-                analysis.sourceMaps(),
-                analysis.ids(),
-                analysis.routingValues());
-        plan.add(indexNode);
+        List<String> tablePartitions = Arrays.asList(analysis.table().partitions());
+        if (analysis.table().isPartitioned()) {
+            Iterator<Map<String, Object>> sourceMapsIt = analysis.sourceMaps().iterator();
+            for (String partition : analysis.partitions()) {
+                assert sourceMapsIt.hasNext();
+                Map<String, Object> sourceMap = sourceMapsIt.next();
+                if (!tablePartitions.contains(partition)) {
+                    // create partition-index from template
+                    ESCreateIndexNode createIndexNode = new ESCreateIndexNode(
+                            partition,
+                            ImmutableSettings.EMPTY, // setting and mapping
+                            Collections.emptyMap()   // will be applied from template
+                    );
+                    plan.add(createIndexNode);
+
+                    // create alias for partition-index
+                    ESCreateAliasNode createAliasNode = new ESCreateAliasNode(
+                            partition,
+                            index
+                    );
+                    plan.add(createAliasNode);
+                }
+
+                // always create a document
+                // even if it would be empty
+                ESIndexNode partitionIndexNode = new ESIndexNode(
+                        partition,
+                        Arrays.asList(sourceMap),
+                        analysis.ids(),
+                        analysis.routingValues()
+                );
+                plan.add(partitionIndexNode);
+
+            }
+        } else {
+            ESIndexNode indexNode = new ESIndexNode(index,
+                    analysis.sourceMaps(),
+                    analysis.ids(),
+                    analysis.routingValues());
+            plan.add(indexNode);
+        }
         plan.expectsAffectedRows(true);
     }
 

@@ -28,11 +28,16 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Constants;
+import io.crate.DataType;
+import io.crate.PartitionName;
+import io.crate.action.sql.SQLResponse;
 import io.crate.analyze.CopyAnalysis;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.executor.transport.task.inout.ImportTask;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -41,6 +46,8 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OrOperator;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.ddl.ESCreateAliasNode;
+import io.crate.planner.node.ddl.ESCreateIndexNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.ESCountNode;
@@ -49,16 +56,16 @@ import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
-import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ImmutableShardRouting;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.search.SearchHits;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -374,6 +381,65 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(99));
         assertThat((String)objects[0][1], is("Marvin"));
+    }
+
+    @Test
+    public void testESIndexPartitionedTableTask() throws Exception {
+        execute("create table parted (" +
+                "  id int, " +
+                "  name string, " +
+                "  date timestamp" +
+                ") partitioned by (date)");
+        ensureGreen();
+        Map<String, Object> sourceMap = new MapBuilder<String, Object>()
+                .put("id", 0L)
+                .put("name", "Trillian")
+                .map();
+        PartitionName partitionName = new PartitionName("parted",
+                Arrays.asList("date"), Arrays.asList("13959981214861"));
+        ESCreateIndexNode createNode = new ESCreateIndexNode(
+                partitionName.stringValue(), ImmutableSettings.EMPTY,
+                Collections.emptyMap());
+        ESCreateAliasNode createAliasNode = new ESCreateAliasNode(
+                partitionName.stringValue(), "parted");
+        ESIndexNode indexNode = new ESIndexNode(partitionName.stringValue(),
+                Arrays.asList(sourceMap),
+                ImmutableList.of("123"),
+                ImmutableList.of("123")
+                );
+        Plan plan = new Plan();
+        plan.add(createNode);
+        plan.add(createAliasNode);
+        plan.add(indexNode);
+        plan.expectsAffectedRows(true);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(ESCreateIndexTask.class));
+        assertThat(job.tasks().get(1), instanceOf(ESCreateAliasTask.class));
+        assertThat(job.tasks().get(2), instanceOf(ESIndexTask.class));
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] indexResult = result.get(0).get();
+        assertThat((Long)indexResult[0][0], is(1L));
+
+        refresh();
+
+        assertTrue(
+                client().admin().indices().prepareExists(partitionName.stringValue())
+                        .execute().actionGet().isExists()
+        );
+        assertTrue(
+                client().admin().indices().prepareAliasesExist("parted")
+                        .execute().actionGet().exists()
+        );
+        SearchHits hits = client().prepareSearch(partitionName.stringValue())
+                .setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                .addFields("id", "name")
+                .setQuery(new MapBuilder<String, Object>()
+                                .put("match_all", new HashMap<String, Object>())
+                                .map()
+                ).execute().actionGet().getHits();
+        assertThat(hits.getTotalHits(), is(1L));
+        assertThat((Integer) hits.getHits()[0].field("id").getValues().get(0), is(0));
+        assertThat((String)hits.getHits()[0].field("name").getValues().get(0), is("Trillian"));
     }
 
     @Test
