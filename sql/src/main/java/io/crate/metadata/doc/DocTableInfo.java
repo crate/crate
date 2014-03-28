@@ -142,6 +142,10 @@ public class DocTableInfo implements TableInfo {
         return columns;
     }
 
+    public Collection<ReferenceInfo> partitionedByColumns() {
+        return partitionedByColumns;
+    }
+
     @Override
     public RowGranularity rowGranularity() {
         return RowGranularity.DOC;

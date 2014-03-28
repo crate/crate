@@ -19,27 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.planner.node.ddl;
 
-import org.elasticsearch.rest.RestStatus;
+import io.crate.planner.node.PlanVisitor;
 
-public class DuplicateKeyException extends CrateException {
+public class ESCreateAliasNode extends DDLPlanNode {
 
-    public DuplicateKeyException(String msg) {
-        super(msg);
+    private final String tableName;
+    private final String aliasName;
+
+    public ESCreateAliasNode(String tableName, String aliasName) {
+        this.tableName = tableName;
+        this.aliasName = aliasName;
     }
 
-    public DuplicateKeyException(String msg, Throwable e) {
-        super(msg, e);
+    public String tableName() {
+        return tableName;
+    }
+
+    public String aliasName() {
+        return aliasName;
     }
 
     @Override
-    public int errorCode() {
-        return 4091;
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.CONFLICT;
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitESCreateAliasNode(this, context);
     }
 }

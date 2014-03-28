@@ -39,14 +39,12 @@ import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.*;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
-import io.crate.planner.node.ddl.ESCreateIndexNode;
-import io.crate.planner.node.ddl.ESCreateTemplateNode;
-import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.action.import_.TransportImportAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
@@ -87,6 +85,7 @@ public class TransportExecutor implements Executor {
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final TransportIndicesAliasesAction transportCreateAliasAction;
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
 
@@ -110,6 +109,7 @@ public class TransportExecutor implements Executor {
                              TransportDeleteIndexAction transportDeleteIndexAction,
                              TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction,
                              TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                             TransportIndicesAliasesAction transportCreateAliasAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation
     ) {
         this.transportGetAction = transportGetAction;
@@ -128,6 +128,7 @@ public class TransportExecutor implements Executor {
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.transportCreateAliasAction = transportCreateAliasAction;
 
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
@@ -221,6 +222,12 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitESCreateIndexNode(ESCreateIndexNode node, Job context) {
             context.addTask(new ESCreateIndexTask(node, transportCreateIndexAction));
+            return null;
+        }
+
+        @Override
+        public Void visitESCreateAliasNode(ESCreateAliasNode node, Job context) {
+            context.addTask(new ESCreateAliasTask(node, transportCreateAliasAction));
             return null;
         }
 
