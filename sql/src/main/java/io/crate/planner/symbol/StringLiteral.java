@@ -123,7 +123,11 @@ public class StringLiteral extends Literal<BytesRef, StringLiteral> {
             case LONG:
                 return new Long(value);
             case TIMESTAMP:
-                return TimestampFormat.parseTimestampString(value);
+                try {
+                    return new Long(value);
+                } catch (NumberFormatException e) {
+                    return TimestampFormat.parseTimestampString(value);
+                }
             case INTEGER:
                 return new Integer(value);
             case DOUBLE:
