@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
@@ -38,6 +39,7 @@ public abstract class AbstractESIndexTask implements Task<Object[][]> {
     protected final SettableFuture<Object[][]> result;
     protected final List<ListenableFuture<Object[][]>> results;
     protected final ESIndexNode node;
+    protected List<ListenableFuture<Object[][]>> upStreamResult = ImmutableList.of();
 
     public AbstractESIndexTask(ESIndexNode node) {
         this.node = node;
@@ -53,7 +55,7 @@ public abstract class AbstractESIndexTask implements Task<Object[][]> {
 
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException();
+        this.upStreamResult = result;
     }
 
     protected IndexRequest buildIndexRequest(String index,

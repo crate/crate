@@ -106,7 +106,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
-        } else if (tableInfo.isAlias()) {
+        } else if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
             throw new UnsupportedOperationException(
                     String.format("aliases are read only cannot modify \"%s\"", tableIdent.name()));
         }

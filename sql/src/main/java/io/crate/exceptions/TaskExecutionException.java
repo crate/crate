@@ -21,25 +21,28 @@
 
 package io.crate.exceptions;
 
+import io.crate.executor.Task;
 import org.elasticsearch.rest.RestStatus;
 
-public class DuplicateKeyException extends CrateException {
+import java.util.Locale;
 
-    public DuplicateKeyException(String msg) {
-        super(msg);
+public class TaskExecutionException extends CrateException {
+    private static final String MSG = "Error executing task '%s'";
+    public TaskExecutionException(Task task) {
+        super(String.format(Locale.ENGLISH, MSG, task.toString()));
     }
 
-    public DuplicateKeyException(String msg, Throwable e) {
-        super(msg, e);
+    public TaskExecutionException(Task task, Throwable e) {
+        super(String.format(Locale.ENGLISH, MSG, task.toString()), e);
     }
 
     @Override
     public int errorCode() {
-        return 4091;
+        return 5001;
     }
 
     @Override
     public RestStatus status() {
-        return RestStatus.CONFLICT;
+        return RestStatus.INTERNAL_SERVER_ERROR;
     }
 }
