@@ -31,6 +31,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class WhereClause implements Streamable {
 
@@ -42,6 +44,8 @@ public class WhereClause implements Streamable {
 
     protected String clusteredBy;
     protected Long version;
+
+    protected List<String> partitions = new ArrayList<>();
 
     private WhereClause() {
     }
@@ -79,7 +83,11 @@ public class WhereClause implements Streamable {
         if (normalizedQuery == query) {
             return this;
         }
-        return new WhereClause(normalizedQuery);
+        WhereClause normalizedWhereClause = new WhereClause(normalizedQuery);
+        normalizedWhereClause.partitions = partitions;
+        normalizedWhereClause.version = version;
+        normalizedWhereClause.clusteredBy = clusteredBy;
+        return normalizedWhereClause;
     }
 
 
@@ -99,6 +107,16 @@ public class WhereClause implements Streamable {
 
     public Optional<Long> version() {
         return Optional.fromNullable(this.version);
+    }
+
+    public void partitions(List<StringLiteral> partitions) {
+        for (StringLiteral partition : partitions) {
+            this.partitions.add(partition.valueAsString());
+        }
+    }
+
+    public List<String> partitions() {
+        return partitions;
     }
 
     @Override
