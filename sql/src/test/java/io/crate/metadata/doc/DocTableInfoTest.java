@@ -3,6 +3,7 @@ package io.crate.metadata.doc;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
@@ -35,7 +36,9 @@ public class DocTableInfoTest {
                 new String[0],
                 null,
                 5,
-                new BytesRef("0"));
+                new BytesRef("0"),
+                ImmutableList.<String>of(),
+                ImmutableList.<PartitionName>of());
 
         ReferenceInfo foobar = info.getColumnInfo(new ColumnIdent("foobar"));
         assertNull(foobar);
@@ -72,7 +75,9 @@ public class DocTableInfoTest {
                 new String[0],
                 null,
                 5,
-                new BytesRef("0"));
+                new BytesRef("0"),
+                ImmutableList.<String>of(),
+                ImmutableList.<PartitionName>of());
 
 
         try {
