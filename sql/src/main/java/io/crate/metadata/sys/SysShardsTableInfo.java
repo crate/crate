@@ -131,7 +131,7 @@ public class SysShardsTableInfo extends SysTableInfo {
     }
 
     @Override
-    public String[] partitions() {
+    public String[] concreteIndices() {
         return PARTITIONS;
     }
 

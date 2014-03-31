@@ -43,6 +43,8 @@ public class PartitionName implements Streamable {
     private final List<String> values = new ArrayList<>();
     private final String tableName;
 
+    private String partitionName;
+
     public PartitionName(String tableName, List<String> columns, List<String> values) {
         this(tableName, columns, values, true);
     }
@@ -107,6 +109,9 @@ public class PartitionName implements Streamable {
 
     @Nullable
     public String stringValue() {
+        if (partitionName != null) {
+            return partitionName;
+        }
         if (values.size() == 0) {
             return null;
         } else if (values.size() == 1) {
@@ -161,6 +166,7 @@ public class PartitionName implements Streamable {
             }
             partitionName.values().add(valuesString);
         }
+        partitionName.partitionName = partitionTableName;
         return partitionName;
     }
 
