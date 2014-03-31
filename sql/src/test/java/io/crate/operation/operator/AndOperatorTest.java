@@ -18,12 +18,22 @@ import static org.junit.Assert.assertThat;
 
 public class AndOperatorTest {
     @Test
-    public void testNormalizeLiteralAndNonLiteral() throws Exception {
+    public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
                 operator.info(), Arrays.<Symbol>asList(new BooleanLiteral(true), new Reference()));
         Symbol symbol = operator.normalizeSymbol(function);
-        assertThat(symbol, instanceOf(Function.class));
+        assertThat(symbol, instanceOf(Reference.class));
+    }
+
+    @Test
+    public void testNormalizeBooleanFalseAndNonLiteral() throws Exception {
+        AndOperator operator = new AndOperator();
+        Function function = new Function(
+                operator.info(), Arrays.<Symbol>asList(new BooleanLiteral(false), new Reference()));
+        Symbol symbol = operator.normalizeSymbol(function);
+        assertThat(symbol, instanceOf(BooleanLiteral.class));
+        assertThat((BooleanLiteral)symbol, is(BooleanLiteral.FALSE));
     }
 
     @Test
