@@ -1655,6 +1655,44 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCreateTableWithRefreshIntervalDisableRefresh() throws Exception {
+        execute("create table test (id int primary key, content string) with (refresh_interval=0)");
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+        ensureGreen();
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+
+        String expectedSettings = "{\"test\":{" +
+                "\"settings\":{" +
+                "\"index.number_of_replicas\":\"1\"," +
+                "\"index.number_of_shards\":\"5\"," +
+                "\"index.refresh_interval\":\"0\"," +
+                "\"index.version.created\":\"1000199\"" +
+                "}}}";
+        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
+
+        execute("ALTER TABLE test SET (refresh_interval = 5000)");
+        String expectedSetSettings = "{\"test\":{" +
+                "\"settings\":{" +
+                "\"index.number_of_replicas\":\"1\"," +
+                "\"index.number_of_shards\":\"5\"," +
+                "\"index.refresh_interval\":\"5000\"," +
+                "\"index.version.created\":\"1000199\"" +
+                "}}}";
+        JSONAssert.assertEquals(expectedSetSettings, getIndexSettings("test"), false);
+
+        execute("ALTER TABLE test RESET (refresh_interval)");
+        String expectedResetSettings = "{\"test\":{" +
+                "\"settings\":{" +
+                "\"index.number_of_replicas\":\"1\"," +
+                "\"index.number_of_shards\":\"5\"," +
+                "\"index.refresh_interval\":\"1000\"," +
+                "\"index.version.created\":\"1000199\"" +
+                "}}}";
+        JSONAssert.assertEquals(expectedResetSettings, getIndexSettings("test"), false);
+    }
+
+    @Test
     public void testSqlAlchemyGeneratedCountWithStar() throws Exception {
         // generated using sqlalchemy
         // session.query(func.count('*')).filter(Test.name == 'foo').scalar()

@@ -98,6 +98,12 @@ public class BaseAnalyzerTest {
             .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
             .clusteredBy("id")
             .build();
+    static final TableIdent TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY = new TableIdent(null, "user_refresh_interval");
+    static final TableInfo userTableInfoRefreshIntervalByOnly = TestingTableInfo.builder(TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY, RowGranularity.DOC, shardRouting)
+            .add("id", DataType.LONG, null)
+            .add("content", DataType.STRING, null)
+            .clusteredBy("id")
+            .build();
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.asList(DataType.LONG)),
             DataType.LONG);

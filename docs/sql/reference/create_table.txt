@@ -174,3 +174,16 @@ The number of replicas is defined like this:
 
 For further details and examples see :ref:`replication`.
 
+.. _sql_ref_refresh_interval:
+
+refresh_interval
+~~~~~~~~~~~~~~~~
+
+Specifies the refresh interval of a shard in milliseconds. The default is set
+to 1000 milliseconds.
+
+:refresh_interval: The refresh interval in milliseconds. A value of smaller or
+    equal than 0 turns off the automatic refresh. A value of greater than 0
+    schedules a periodic refresh of the table.
+
+For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.

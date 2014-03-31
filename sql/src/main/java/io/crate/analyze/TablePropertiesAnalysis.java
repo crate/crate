@@ -37,16 +37,19 @@ public class TablePropertiesAnalysis {
 
     private final static String NUMBER_OF_REPLICAS = "number_of_replicas";
     private final static String AUTO_EXPAND_REPLICAS = "auto_expand_replicas";
+    public final static String REFRESH_INTERVAL = "refresh_interval";
 
     private static final ExpressionToObjectVisitor expressionVisitor = new ExpressionToObjectVisitor();
 
     private static final ImmutableMap<String, SettingsApplier> supportedProperties =
             ImmutableMap.<String, SettingsApplier>builder()
                     .put(NUMBER_OF_REPLICAS, new NumberOfReplicasSettingApplier())
+                    .put(REFRESH_INTERVAL, new RefreshIntervalSettingApplier())
                     .build();
 
     private static final ImmutableMap<String, Object> defaultValues = ImmutableMap.<String, Object>builder()
             .put(NUMBER_OF_REPLICAS, 1)
+            .put(REFRESH_INTERVAL, 1000) // ms
             .build();
 
     public static Settings propertiesToSettings(GenericProperties properties, Object[] parameters) {
@@ -89,6 +92,27 @@ public class TablePropertiesAnalysis {
             // in case the number_of_replicas is changing from auto_expand to a fixed number -> disable auto expand
             settingsBuilder.put(AUTO_EXPAND_REPLICAS, false);
             settingsBuilder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
+        }
+    }
+
+    private static class RefreshIntervalSettingApplier implements SettingsApplier {
+
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder,
+                          Object[] parameters,
+                          List<Expression> expressions) {
+            Preconditions.checkArgument(expressions.size() == 1,
+                    String.format("Invalid number of arguments passed to \"%s\"", REFRESH_INTERVAL));
+
+            Object refreshIntervalValue = expressionVisitor.process(expressions.get(0), parameters);
+            try {
+                Long.parseLong(refreshIntervalValue.toString());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid value for argument '"
+                        + REFRESH_INTERVAL + "'");
+            }
+            settingsBuilder.put(REFRESH_INTERVAL, refreshIntervalValue.toString());
         }
     }
 }

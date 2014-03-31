@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - feature: added support to set 'refresh_interval' for tables
+
  - fix: AND operator normalization was wrong if one of the arguments is a boolean
 
 2014/03/26 0.34.0
