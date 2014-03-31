@@ -30,6 +30,7 @@ import io.crate.operation.collect.CollectExpression;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GroupingProjector implements Projector {
 
@@ -40,6 +41,7 @@ public class GroupingProjector implements Projector {
     private Object[][] rows;
     private Projector downstream;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
+    private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
     public GroupingProjector(List<Input<?>> keyInputs,
                              List<CollectExpression<?>> collectExpressions,
@@ -98,6 +100,17 @@ public class GroupingProjector implements Projector {
         if (remainingUpstreams.decrementAndGet() <= 0) {
             rows = grouper.finish();
         }
+    }
+
+    @Override
+    public void upstreamFailed(Throwable throwable) {
+        if (remainingUpstreams.decrementAndGet() <= 0) {
+            if (downstream != null) {
+                downstream.upstreamFailed(throwable);
+            }
+            return;
+        }
+        failure.set(throwable);
     }
 
     /**
@@ -188,6 +201,11 @@ public class GroupingProjector implements Projector {
 
         @Override
         public Object[][] finish() {
+            Throwable throwable = failure.get();
+            if (throwable != null && downstream != null) {
+                downstream.upstreamFailed(throwable);
+            }
+
             Object[][] rows = new Object[result.size()][1 + aggregationCollectors.length];
             boolean sendToDownStream = downstream != null;
             int r = 0;
@@ -261,6 +279,10 @@ public class GroupingProjector implements Projector {
 
         @Override
         public Object[][] finish() {
+            Throwable throwable = failure.get();
+            if (throwable != null && downstream != null) {
+                downstream.upstreamFailed(throwable);
+            }
             Object[][] rows = new Object[result.size()][keyInputs.size() + aggregationCollectors.length];
             boolean sendToDownStream = downstream != null;
             int r = 0;

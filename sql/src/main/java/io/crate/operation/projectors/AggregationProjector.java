@@ -28,6 +28,7 @@ import io.crate.operation.collect.CollectExpression;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class AggregationProjector implements Projector {
 
@@ -36,6 +37,7 @@ public class AggregationProjector implements Projector {
     private final Object[] row;
     private Projector downstream;
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
+    private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
     public AggregationProjector(Set<CollectExpression<?>> collectExpressions,
                                 AggregationContext[] aggregations) {
@@ -85,7 +87,7 @@ public class AggregationProjector implements Projector {
         for (AggregationCollector aggregationCollector : aggregationCollectors) {
             aggregationCollector.processRow();
         }
-        return true;
+        return upstreamFailure.get() == null;
     }
 
     @Override
@@ -103,7 +105,23 @@ public class AggregationProjector implements Projector {
         }
         if (downstream != null) {
             downstream.setNextRow(row);
-            downstream.upstreamFinished();
+            Throwable throwable = upstreamFailure.get();
+            if (throwable != null) {
+                downstream.upstreamFailed(throwable);
+            } else {
+                downstream.upstreamFinished();
+            }
+        }
+    }
+
+    @Override
+    public void upstreamFailed(Throwable throwable) {
+        upstreamFailure.set(throwable);
+        if (remainingUpstreams.decrementAndGet() > 0) {
+            return;
+        }
+        if (downstream != null) {
+            downstream.upstreamFailed(throwable);
         }
     }
 }
