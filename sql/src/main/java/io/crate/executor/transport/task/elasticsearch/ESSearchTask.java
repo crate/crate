@@ -67,7 +67,7 @@ public class ESSearchTask implements Task<Object[][]> {
 
         try {
             request.source(queryBuilder.convert(searchNode), false);
-            request.indices(new String[]{searchNode.indexName()});
+            request.indices(searchNode.indices());
             request.routing(searchNode.whereClause().clusteredBy().orNull());
 
             transportSearchAction.execute(request, new ActionListener<SearchResponse>() {

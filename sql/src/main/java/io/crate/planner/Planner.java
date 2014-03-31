@@ -296,8 +296,16 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         } else {
             orderBy = null;
         }
+
+        String[] indices;
+        if (analysis.whereClause().partitions().size() == 0) {
+            indices = new String[]{analysis.table().ident().name()};
+        } else {
+            indices = analysis.whereClause().partitions().toArray(new String[]{});
+        }
+
         ESSearchNode node = new ESSearchNode(
-                analysis.table().ident().name(),
+                indices,
                 analysis.outputSymbols(),
                 orderBy,
                 analysis.reverseFlags(),
