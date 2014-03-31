@@ -223,7 +223,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         ESSearchNode node = new ESSearchNode(
-                "characters",
+                new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
@@ -258,7 +258,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("Ford")));
 
         ESSearchNode node = new ESSearchNode(
-                "characters",
+                new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
@@ -301,7 +301,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         // verify deletion
         ESSearchNode searchNode = new ESSearchNode(
-                "characters",
+                new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
@@ -603,7 +603,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
         ESSearchNode node = new ESSearchNode(
-                "characters",
+                new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref, version_ref),
                 ImmutableList.<Reference>of(),
                 new boolean[0],
@@ -666,7 +666,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
         ESSearchNode node = new ESSearchNode(
-                "characters",
+                new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 ImmutableList.of(id_ref),
                 new boolean[]{false},

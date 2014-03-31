@@ -23,7 +23,9 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.crate.Constants;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -112,6 +114,17 @@ public class BaseAnalyzerTest {
             .addPrimaryKey("id")
             .addPrimaryKey("o.b")
             .clusteredBy("o.b")
+            .build();
+    static final TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(null, "parted");
+    static final TableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
+            TEST_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("id", DataType.INTEGER, null)
+            .add("name", DataType.STRING, null)
+            .add("date", DataType.TIMESTAMP, null, true)
+            // add 2 partitions/simulate already done inserts
+            .addPartitions(Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
+                    Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000",
+                    Constants.PARTITIONED_TABLE_PREFIX + ".parted."+ PartitionName.NULL_MARKER)
             .build();
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.asList(DataType.LONG)),

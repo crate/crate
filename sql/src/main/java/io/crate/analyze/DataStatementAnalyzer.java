@@ -364,8 +364,13 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                         "only supported by queries using group-by or global aggregates.");
             }
 
-            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause.query());
+            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context, whereClause.query());
             if (pkc != null) {
+                if (pkc.hasPartitionedColumn) {
+                    // query was modified, normalize it again
+                    whereClause = new WhereClause(pkc.whereClause());
+                    context.whereClause(whereClause);
+                }
                 whereClause.clusteredByLiteral(pkc.clusteredByLiteral());
                 if (pkc.noMatch) {
                     context.whereClause(WhereClause.NO_MATCH);
@@ -374,6 +379,10 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
                     if (pkc.keyLiterals() != null) {
                         processPrimaryKeyLiterals(pkc.keyLiterals(), context);
+                    }
+
+                    if (pkc.partitionLiterals() != null) {
+                        whereClause.partitions(pkc.partitionLiterals());
                     }
                 }
             }

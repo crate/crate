@@ -22,7 +22,9 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Constants;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.exceptions.AmbiguousAliasException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -55,8 +57,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +87,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_MULTI_PK.name())).thenReturn(userTableInfoMultiPk);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -601,7 +607,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> outputSymbols = analysis.outputSymbols;
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(LongLiteral.class));
-        assertThat(((LongLiteral)outputSymbols.get(0)).value(), is(0L));
+        assertThat(((LongLiteral) outputSymbols.get(0)).value(), is(0L));
     }
 
     @Test
@@ -821,7 +827,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testFilterByLiteralBoolean() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from users where awesome=TRUE");
-        assertThat(((Function)analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.BOOLEAN_LITERAL));
+        assertThat(((Function) analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.BOOLEAN_LITERAL));
     }
 
     @Test(expected = SQLParseException.class)
@@ -897,6 +903,111 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         // table tweets has fields "id" and user['id']
         // this order by clause referenced id, not user['id']
         analyze("select * from users order by friends.id");
+    }
+
+    @Test
+    public void testSelectFromPartitionedTable() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000");
+        assertEquals(ImmutableList.of(Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000"), analysis.whereClause().partitions());
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date >= 1395874800000");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date < 1395874800000");
+        assertEquals(ImmutableList.of(), analysis.whereClause().partitions());
+        assertTrue(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000 and date = 1395961200000");
+        assertEquals(ImmutableList.of(), analysis.whereClause().partitions());
+        assertTrue(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000 or date = 1395961200000");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date < 1395874800000 or date > 1395874800000");
+        assertEquals(ImmutableList.of(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"),
+                analysis.whereClause().partitions());
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date in (1395874800000, 1395961200000)");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date in (1395874800000, 1395961200000) and id = 1");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertTrue(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date in (1395874800000) or date in (1395961200000)");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395961200000 and id = 1");
+        assertEquals(ImmutableList.of(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"),
+                analysis.whereClause().partitions());
+        assertTrue(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where (date =1395874800000 or date = 1395961200000) and id = 1");
+        assertEquals(ImmutableList.of(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"),
+                analysis.whereClause().partitions());
+        assertTrue(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000 and id is null");
+        assertEquals(ImmutableList.of(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000"),
+                analysis.whereClause().partitions());
+        assertTrue(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date is null and id = 1");
+        assertEquals(ImmutableList.of(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted." + PartitionName.NULL_MARKER),
+                analysis.whereClause().partitions());
+        assertTrue(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+    }
+
+    @Test
+    public void testSelectFromPartitionedTableUnsupported() throws Exception {
+        // these queries won't work because we would have to execute 2 separate ESSearch tasks
+        // and merge results which is not supported right now and maybe never will be
+        try {
+            analyze("select id, name from parted where date = 1395961200000 or id = 1");
+            fail("Expected UnsupportedFeatureException");
+        } catch (UnsupportedFeatureException e) {
+        }
+
+        try {
+            analyze("select id, name from parted where id = 1 or date = 1395961200000");
+            fail("Expected UnsupportedFeatureException");
+        } catch (UnsupportedFeatureException e) {
+        }
     }
 
 }

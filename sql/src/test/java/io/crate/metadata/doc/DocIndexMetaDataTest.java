@@ -290,7 +290,7 @@ public class DocIndexMetaDataTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertEquals(6, md.columns().size());
-        assertEquals(14, md.references().size());
+        assertEquals(15, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
         assertThat(md.partitionedByColumns().get(0).type(), is(DataType.TIMESTAMP));
         assertThat(md.partitionedByColumns().get(0).ident().columnIdent().fqn(), is("datum"));
