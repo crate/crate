@@ -183,6 +183,16 @@ public abstract class AbstractDataAnalysis extends Analysis {
         return implementation.info();
     }
 
+    public FunctionImplementation getFunctionImplementation(FunctionIdent ident) {
+        FunctionImplementation implementation = functions.get(ident);
+        if (implementation == null) {
+            throw new UnsupportedOperationException(
+                    String.format("unknown function: %s(%s)", ident.name(),
+                            Joiner.on(", ").join(ident.argumentTypes())));
+        }
+        return implementation;
+    }
+
     public Collection<Reference> references() {
         return referenceSymbols.values();
     }
