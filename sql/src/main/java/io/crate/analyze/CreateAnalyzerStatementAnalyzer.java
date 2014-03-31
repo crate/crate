@@ -269,6 +269,11 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
         }
 
         @Override
+        protected String visitNegativeExpression(NegativeExpression node, Object[] context) {
+            return "-" + process(node.getValue(), context);
+        }
+
+        @Override
         protected String visitNode(Node node, Object[] context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle %s.", node));
         }
