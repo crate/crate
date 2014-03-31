@@ -26,37 +26,10 @@ import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.aggregation.AggregationCollector;
 import io.crate.operation.collect.CollectExpression;
 
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AggregationProjector implements Projector {
-
-    private static class RowIterator implements Iterator<Object[]> {
-
-        private final Object[] row;
-        private boolean hasNext = true;
-
-        public RowIterator(Object[] row) {
-            this.row = row;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return hasNext;
-        }
-
-        @Override
-        public Object[] next() {
-            hasNext = false;
-            return row;
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("remove not supported");
-        }
-    }
 
     private final AggregationCollector[] aggregationCollectors;
     private final Set<CollectExpression<?>> collectExpressions;
@@ -132,15 +105,5 @@ public class AggregationProjector implements Projector {
             downstream.setNextRow(row);
             downstream.upstreamFinished();
         }
-    }
-
-    @Override
-    public Object[][] getRows() throws IllegalStateException {
-        return new Object[][]{row};
-    }
-
-    @Override
-    public Iterator<Object[]> iterator() {
-        return new RowIterator(row);
     }
 }

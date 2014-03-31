@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.merge;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
@@ -191,6 +192,7 @@ public class DistributedResultRequestTest {
 
     class DummyDownstreamOperationFactory implements DownstreamOperationFactory<MergeNode> {
 
+        private final SettableFuture<Object[][]> futureResult = SettableFuture.create();
         private final Object[][] result;
 
         DummyDownstreamOperationFactory(Object[][] result) {
@@ -212,11 +214,12 @@ public class DistributedResultRequestTest {
 
                 @Override
                 public void finished() {
+                    futureResult.set(result);
                 }
 
                 @Override
-                public Object[][] result() {
-                    return result;
+                public ListenableFuture<Object[][]> result() {
+                    return futureResult;
                 }
 
                 @Override

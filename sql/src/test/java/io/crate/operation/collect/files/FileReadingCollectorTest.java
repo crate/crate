@@ -80,7 +80,7 @@ public class FileReadingCollectorTest {
         projector.startProjection();
         collector.doCollect();
 
-        Object[][] rows = projector.getRows();
+        Object[][] rows = projector.result().get();
         assertThat(((BytesRef)rows[0][0]).utf8ToString(), is(
                 "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
         assertThat(((BytesRef)rows[1][0]).utf8ToString(), is(

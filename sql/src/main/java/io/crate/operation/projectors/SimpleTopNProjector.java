@@ -21,163 +21,23 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
-import io.crate.core.collections.ArrayIterator;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * wrapper for concrete implementations
- */
 public class SimpleTopNProjector implements Projector {
 
-    /**
-     * used when no downStream is set
-     */
-    static class GatheringTopNRowCollector extends AbstractProjector {
-
-        private final AtomicInteger collected = new AtomicInteger();
-        private int endPos;
-        private final Object endPosMutex = new Object();
-
-        private final Object[][] result;
-        private final int start;
-        private final int end;
-
-        public GatheringTopNRowCollector(Input<?>[] inputs, CollectExpression<?>[] collectExpressions,
-                                         int offset, int limit) {
-            super(inputs, collectExpressions);
-            this.start = offset;
-            this.end = start + limit;
-            this.result = new Object[end - start][];
-        }
-
-        @Override
-        public void startProjection() {
-            endPos = 0;
-            collected.set(0);
-        }
-
-        @Override
-        public boolean setNextRow(Object... row) {
-            int pos = collected.getAndIncrement();
-            if (pos >= end) {
-                return false;
-            } else if (pos < start) {
-                // do not collect, still in offset
-                return true;
-            } else {
-                int arrayPos = pos - start;
-                Object[] evaluatedRow = new Object[inputs.length];
-                for (CollectExpression<?> collectExpression : collectExpressions) {
-                    collectExpression.setNextRow(row);
-                }
-
-                int i = 0;
-                for (Input<?> input : inputs) {
-                    evaluatedRow[i++] = input.value();
-                }
-                result[arrayPos] = evaluatedRow;
-                synchronized (endPosMutex) {
-                    endPos = Math.max(endPos, arrayPos);
-                }
-            }
-            return true;
-        }
-
-        @Override
-        public void upstreamFinished() {
-        }
-
-        @Override
-        public Object[][] getRows() throws IllegalStateException {
-            if (collected.get() == 0) {
-                return Constants.EMPTY_RESULT;
-            }
-            if (result.length == endPos + 1) {
-                return result;
-            }
-            return Arrays.copyOf(result, endPos + 1);
-        }
-
-        @Override
-        public Iterator<Object[]> iterator() {
-            if (collected.get() == 0) {
-                return Collections.emptyIterator();
-            } else {
-                return new ArrayIterator(result, 0, endPos+1);
-            }
-        }
-    }
-
-
-    /**
-     * used with downStream - pass rows to downStream if inside <code>start</code> and <code>end</code>
-     */
-    static class PassThroughTopNRowCollector extends AbstractProjector {
-        private final AtomicInteger collected = new AtomicInteger();
-        private final int start;
-        private final int end;
-
-        public PassThroughTopNRowCollector(Input<?>[] inputs,
-                                           CollectExpression<?>[] collectExpressions,
-                                           Projector downStream,
-                                           int offset, int limit) {
-            super(inputs, collectExpressions, downStream);
-            this.start = offset;
-            this.end = start + limit;
-        }
-
-        @Override
-        public void startProjection() {
-            collected.set(0);
-        }
-
-        @Override
-        public boolean setNextRow(Object... row) {
-            int pos = collected.getAndIncrement();
-            if (pos >= end) {
-                return false;
-            } else if (pos < start) {
-                // do not collect, still in offset
-                return true;
-            }else {
-                return downStream.get().setNextRow(row);
-            }
-        }
-
-        @Override
-        public void upstreamFinished() {
-            downStream.get().upstreamFinished();
-        }
-
-        @Override
-        public Object[][] getRows() throws IllegalStateException {
-            return new Object[0][];
-        }
-
-        @Override
-        public Iterator<Object[]> iterator() {
-            // Iteration not supported
-            return Collections.emptyIterator();
-        }
-    }
-
-    private Projector wrappedProjector;
     private final Input<?>[] inputs;
     private final CollectExpression<?>[] collectExpressions;
-    private final int limit;
-    private final int offset;
-    private Optional<Projector> downStream;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
+    private Projector downstream;
+
+    private int remainingOffset;
+    private int toCollect;
 
     public SimpleTopNProjector(Input<?>[] inputs,
                                CollectExpression<?>[] collectExpressions,
@@ -190,73 +50,71 @@ public class SimpleTopNProjector implements Projector {
         if (limit == TopN.NO_LIMIT) {
             limit = Constants.DEFAULT_SELECT_LIMIT;
         }
-        this.limit = limit;
-        this.offset = offset;
-        this.downStream = Optional.absent();
+        this.remainingOffset = offset;
+        this.toCollect = limit;
     }
 
     @Override
-    public void downstream(Projector downStream) {
-        // no need to registerUpstream on downstream, it is done once the downstream is passed
-        // to wrappedProjector
-        this.downStream = Optional.of(downStream);
+    public void downstream(Projector downstream) {
+        this.downstream = downstream;
+        downstream.registerUpstream(this);
     }
 
     @Override
     public Projector downstream() {
-        return downStream.orNull();
+        return downstream;
     }
 
     @Override
     public void startProjection() {
         if (remainingUpstreams.get() <= 0) {
             upstreamFinished();
-            return;
         }
-
-        // TODO: make this projector require a downstream and remove the wrapper/GatheringTopNRowCollector
-        if (downStream.isPresent()) {
-            wrappedProjector = new PassThroughTopNRowCollector(inputs, collectExpressions, downStream.get(), offset, limit);
-        } else {
-            wrappedProjector = new GatheringTopNRowCollector(inputs, collectExpressions, offset, limit);
-        }
-        int upstreams = remainingUpstreams.get();
-        for (int i = 0; i < upstreams; i++) {
-            wrappedProjector.registerUpstream(this);
-        }
-        remainingUpstreams.set(0);
     }
 
     @Override
     public synchronized boolean setNextRow(Object[] row) {
-        return wrappedProjector.setNextRow(row);
+        assert toCollect >= 1;
+        if (remainingOffset > 0) {
+            remainingOffset--;
+            return true;
+        }
+
+        Object[] evaluatedRow = generateNextRow(row);
+        if (downstream != null) {
+            if (!downstream.setNextRow(evaluatedRow)) {
+                toCollect = -1;
+            }
+        }
+
+        toCollect--;
+        return toCollect > 0;
+    }
+
+    private Object[] generateNextRow(Object[] row) {
+        Object[] evaluatedRow = new Object[inputs.length];
+        for (CollectExpression<?> collectExpression : collectExpressions) {
+            collectExpression.setNextRow(row);
+        }
+        int i = 0;
+        for (Input<?> input : inputs) {
+            evaluatedRow[i++] = input.value();
+        }
+        return evaluatedRow;
     }
 
     @Override
     public void registerUpstream(ProjectorUpstream upstream) {
-        if (wrappedProjector != null) {
-            wrappedProjector.registerUpstream(this);
-        } else {
-            remainingUpstreams.incrementAndGet();
-        }
+        remainingUpstreams.incrementAndGet();
     }
 
     @Override
     public void upstreamFinished() {
-        if (wrappedProjector != null) {
-            wrappedProjector.upstreamFinished();
-        } else if (downStream.isPresent()) {
-            downStream.get().upstreamFinished();
+        if (remainingUpstreams.decrementAndGet() > 0) {
+            return;
         }
-    }
-
-    @Override
-    public Object[][] getRows() {
-        return wrappedProjector.getRows();
-    }
-
-    @Override
-    public Iterator<Object[]> iterator() {
-        return wrappedProjector.iterator();
+        if (downstream != null) {
+            downstream.upstreamFinished();
+        }
     }
 }

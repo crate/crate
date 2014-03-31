@@ -138,16 +138,6 @@ public class GroupingProjector implements Projector {
         }
     }
 
-    @Override
-    public Object[][] getRows() throws IllegalStateException {
-        return rows;
-    }
-
-    @Override
-    public Iterator<Object[]> iterator() {
-        return grouper.iterator();
-    }
-
     private interface Grouper {
         boolean setNextRow(final Object... row);
         Object[][] finish();
