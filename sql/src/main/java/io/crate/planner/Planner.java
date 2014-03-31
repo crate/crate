@@ -583,7 +583,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     private void ESIndex(InsertAnalysis analysis, Plan plan) {
         String index = analysis.table().ident().name();
-        List<String> tablePartitions = Arrays.asList(analysis.table().partitions());
+        List<String> tablePartitions = Arrays.asList(analysis.table().concreteIndices());
         if (analysis.table().isPartitioned()) {
             Iterator<Map<String, Object>> sourceMapsIt = analysis.sourceMaps().iterator();
             for (String partition : analysis.partitions()) {

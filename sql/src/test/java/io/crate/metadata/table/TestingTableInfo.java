@@ -200,7 +200,7 @@ public class TestingTableInfo extends AbstractTableInfo {
     }
 
     @Override
-    public String[] partitions() {
+    public String[] concreteIndices() {
         return new String[]{ident.name()};
     }
 

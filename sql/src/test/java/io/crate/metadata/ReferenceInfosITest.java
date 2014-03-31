@@ -109,8 +109,8 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
         TableInfo entsafterTable = referenceInfos.getTableInfo(new TableIdent(null, "entsafter"));
         assertNotNull(entsafterTable);
-        assertThat(entsafterTable.partitions().length, is(2));
-        assertThat(Arrays.asList(entsafterTable.partitions()), contains("terminator", "transformer"));
+        assertThat(entsafterTable.concreteIndices().length, is(2));
+        assertThat(Arrays.asList(entsafterTable.concreteIndices()), contains("terminator", "transformer"));
     }
 
 
