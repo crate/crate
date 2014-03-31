@@ -21,6 +21,7 @@
 
 package io.crate.metadata.table;
 
+import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -72,7 +73,11 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      */
     public boolean isAlias();
 
-    public String[] partitions();
+    public String[] concreteIndices();
+
+    public List<PartitionName> partitions();
+
+    public List<String> partitionedBy();
 
     /**
      * returns <code>true</code> if this table is a partitioned table,
