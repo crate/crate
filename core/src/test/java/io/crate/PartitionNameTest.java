@@ -89,10 +89,10 @@ public class PartitionNameTest {
         assertEquals(partitionName.values(), partitionName1.values());
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
     public void testPartitionNameNotFromTable() throws Exception {
         String partitionName = Constants.PARTITIONED_TABLE_PREFIX + ".test1._1";
-        PartitionName.fromString(partitionName, "test", 1);
+        assertFalse(PartitionName.tableName(partitionName).equals("test"));
     }
 
     @Test (expected = IllegalArgumentException.class)
