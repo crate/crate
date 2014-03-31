@@ -31,6 +31,7 @@ public enum RowGranularity {
     // a higher ordinal represents a higher granularity, so order matters here
     CLUSTER,
     NODE,
+    INDEX,
     SHARD,
     DOC;
 
