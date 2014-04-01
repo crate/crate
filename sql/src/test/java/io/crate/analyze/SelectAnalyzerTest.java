@@ -1036,4 +1036,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select name from parted order by year(date)");
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectOrderByPartitionedNestedColumn() throws Exception {
+        analyze("select name from parted order by obj['num']");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectOrderByPartitionedNestedColumnInFunction() throws Exception {
+        analyze("select name from parted order by abs(obj['num'])");
+    }
+
 }
