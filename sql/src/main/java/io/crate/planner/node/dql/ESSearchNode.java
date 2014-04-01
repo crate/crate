@@ -42,19 +42,19 @@ public class ESSearchNode extends ESDQLPlanNode {
     private final int offset;
     private final boolean[] reverseFlags;
     private final WhereClause whereClause;
-    private final String indexName;
+    private final String[] indices;
 
-    public ESSearchNode(String indexName,
+    public ESSearchNode(String[] indices,
                         List<Symbol> outputs,
                         @Nullable List<Reference> orderBy,
                         @Nullable boolean[] reverseFlags,
                         @Nullable Integer limit,
                         @Nullable Integer offset,
                         WhereClause whereClause) {
-        assert indexName != null;
+        assert indices != null && indices.length > 0;
         assert outputs != null;
         assert whereClause != null;
-        this.indexName = indexName;
+        this.indices = indices;
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Reference>of());
         this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
         Preconditions.checkArgument(this.orderBy.size() == this.reverseFlags.length,
@@ -68,8 +68,8 @@ public class ESSearchNode extends ESDQLPlanNode {
         this.offset = Objects.firstNonNull(offset, 0);
     }
 
-    public String indexName(){
-        return indexName;
+    public String[] indices(){
+        return indices;
     }
 
     @Override
