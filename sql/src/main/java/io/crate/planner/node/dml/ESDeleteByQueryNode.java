@@ -24,20 +24,18 @@ package io.crate.planner.node.dml;
 import io.crate.analyze.WhereClause;
 import io.crate.planner.node.PlanVisitor;
 
-import java.util.Set;
-
 public class ESDeleteByQueryNode extends DMLPlanNode {
 
-    private final Set<String> indices;
+    private final String[] indices;
     private final WhereClause whereClause;
 
-    public ESDeleteByQueryNode(Set<String> indices, WhereClause whereClause) {
+    public ESDeleteByQueryNode(String[] indices, WhereClause whereClause) {
         assert whereClause != null;
         this.indices = indices;
         this.whereClause = whereClause;
     }
 
-    public Set<String> indices() {
+    public String[] indices() {
         return indices;
     }
 

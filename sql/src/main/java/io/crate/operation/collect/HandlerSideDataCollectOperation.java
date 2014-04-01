@@ -69,6 +69,10 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
             // unassigned shards
             assert collectNode.routing().locations().containsKey(null)
                 && collectNode.maxRowGranularity() == RowGranularity.SHARD;
+        } else if (collectNode.isPartitioned()) {
+            // edge case: partitioned table without actual indices
+            // no results
+            return Futures.immediateFuture(Constants.EMPTY_RESULT);
         }
 
         if (collectNode.maxRowGranularity() == RowGranularity.DOC) {

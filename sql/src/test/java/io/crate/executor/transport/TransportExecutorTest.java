@@ -319,7 +319,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(id_ref, new IntegerLiteral(2)));
 
-        ESDeleteByQueryNode node = new ESDeleteByQueryNode(ImmutableSet.<String>of("characters"),
+        ESDeleteByQueryNode node = new ESDeleteByQueryNode(
+                new String[]{"characters"},
                 new WhereClause(whereClause));
         Plan plan = new Plan();
         plan.add(node);
