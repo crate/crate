@@ -52,6 +52,7 @@ public class CollectNode extends AbstractDQLPlanNode {
     private WhereClause whereClause = WhereClause.MATCH_ALL;
     private RowGranularity maxRowgranularity = RowGranularity.CLUSTER;
     private List<String> downStreamNodes;
+    private boolean isPartitioned = false;
 
     public CollectNode(String id) {
         super(id);
@@ -126,6 +127,15 @@ public class CollectNode extends AbstractDQLPlanNode {
     public boolean isRouted() {
         return routing != null && routing.hasLocations();
     }
+
+    public boolean isPartitioned() {
+        return isPartitioned;
+    }
+
+    public void isPartitioned(boolean isPartitioned) {
+        this.isPartitioned = isPartitioned;
+    }
+
 
     public RowGranularity maxRowGranularity() {
         return maxRowgranularity;

@@ -970,10 +970,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where (date =1395874800000 or date = 1395961200000) and id = 1");
-        assertEquals(ImmutableList.of(
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
                         Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"),
-                analysis.whereClause().partitions());
+                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
         assertTrue(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
