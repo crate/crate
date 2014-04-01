@@ -40,8 +40,7 @@ import java.util.List;
 public class WriterProjection extends Projection {
 
     private static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-            new Value(DataType.LONG), // number of lines written
-            new Value(DataType.STRING) // the output uri as a string
+            new Value(DataType.LONG) // number of lines written
     );
     private Symbol uri;
 
