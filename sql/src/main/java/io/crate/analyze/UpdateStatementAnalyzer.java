@@ -69,8 +69,11 @@ public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysi
             throw new IllegalArgumentException("Updating system columns is not allowed");
         } else if (context.table().primaryKey().contains(columnName)) {
             throw new IllegalArgumentException("Updating a primary key is currently not supported");
-        } else if (context.table().clusteredBy().equals(columnName)) {
+        } else if (context.table().clusteredBy() != null
+                && context.table().clusteredBy().equals(columnName)) {
             throw new IllegalArgumentException("Updating a clustered-by column is currently not supported");
+        } else if (context.table().partitionedBy().contains(columnName)) {
+            throw new IllegalArgumentException("Updating a partitioned-by column is currently not supported");
         }
 
         Symbol value = process(node.expression(), context);

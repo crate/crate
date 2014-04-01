@@ -70,7 +70,7 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
     }
 
     protected UpdateRequest buildUpdateRequest(ESUpdateNode node) {
-        UpdateRequest request = new UpdateRequest(node.index(),
+        UpdateRequest request = new UpdateRequest(node.indices()[0],
                 Constants.DEFAULT_MAPPING_TYPE, node.ids().get(0));
         request.fields(node.columns());
         request.paths(node.updateDoc());

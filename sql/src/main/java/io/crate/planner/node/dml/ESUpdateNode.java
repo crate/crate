@@ -31,7 +31,7 @@ import java.util.*;
 
 public class ESUpdateNode extends DMLPlanNode {
 
-    private final String index;
+    private final String[] indices;
     private final Map<String, Object> updateDoc;
     private final String[] columns;
     private final WhereClause whereClause;
@@ -40,12 +40,12 @@ public class ESUpdateNode extends DMLPlanNode {
     private final List<String> routingValues;
 
 
-    public ESUpdateNode(String index,
+    public ESUpdateNode(String[] indices,
                         Map<Reference, Symbol> assignments,
                         WhereClause whereClause,
                         List<String> ids,
                         List<String> routingValues) {
-        this.index = index;
+        this.indices = indices;
         this.ids = ids;
         this.routingValues = routingValues;
         version = whereClause.version();
@@ -93,8 +93,8 @@ public class ESUpdateNode extends DMLPlanNode {
         return visitor.visitESUpdateNode(this, context);
     }
 
-    public String index() {
-        return index;
+    public String[] indices() {
+        return indices;
     }
 
     public Map<String, Object> updateDoc() {
