@@ -31,7 +31,10 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.status.IndicesStatusResponse;
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -3241,7 +3244,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 new Object[]{
                         1, "Arthur", 0L,
                         2, "Ford", 2437646253L
-                });
+                }
+        );
         ensureGreen();
         refresh();
 
@@ -3287,6 +3291,33 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Long)response.rows()[0][3], is(2437646253L));
         assertThat((Long)response.rows()[0][4], isOneOf(1L, 2437646253L));
         assertThat((Double)response.rows()[0][5], is(1.218823127E9));
+    }
+
+    @Test
+    public void testDropPartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "partitioned by(date) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, date) values(?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L,
+                             2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        ensureGreen();
+        refresh();
+
+        execute("drop table quotes");
+        assertEquals(1L, response.rowCount());
+
+        GetIndexTemplatesResponse response = client().admin().indices()
+                .prepareGetTemplates(PartitionName.templateName("quotes")).execute().get();
+        assertThat(response.getIndexTemplates().size(), is(0));
+
+        IndicesStatusResponse statusResponse = client().admin().indices()
+                .prepareStatus().execute().get();
+        assertThat(statusResponse.getIndices().size(), is(0));
+
+        AliasesExistResponse aliasesExistResponse = client().admin().indices()
+                .prepareAliasesExist("quotes").execute().get();
+        assertFalse(aliasesExistResponse.exists());
     }
 
 }

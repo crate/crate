@@ -48,6 +48,7 @@ import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSet
 import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.count.TransportCountAction;
@@ -87,6 +88,7 @@ public class TransportExecutor implements Executor {
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction;
     private final TransportIndicesAliasesAction transportCreateAliasAction;
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
@@ -113,6 +115,7 @@ public class TransportExecutor implements Executor {
                              TransportDeleteIndexAction transportDeleteIndexAction,
                              TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction,
                              TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                             TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction,
                              TransportIndicesAliasesAction transportCreateAliasAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation
     ) {
@@ -132,6 +135,7 @@ public class TransportExecutor implements Executor {
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.transportDeleteIndexTemplateAction = transportDeleteIndexTemplateAction;
         this.transportCreateAliasAction = transportCreateAliasAction;
         this.injector = injector;
 
@@ -240,6 +244,12 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitESCreateTemplateNode(ESCreateTemplateNode node, Job context) {
             context.addTask(new ESCreateTemplateTask(node, transportPutIndexTemplateAction));
+            return null;
+        }
+
+        @Override
+        public Void visitESDeleteTemplateNode(ESDeleteTemplateNode node, Job context) {
+            context.addTask(new ESDeleteTemplateTask(node, transportDeleteIndexTemplateAction));
             return null;
         }
 
