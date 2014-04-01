@@ -82,7 +82,9 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         t1.join();
         t2.join();
         indexWriter.upstreamFinished();
-        collectingProjector.result().get();
+        Object[][] objects = collectingProjector.result().get();
+        assertThat((Long)objects[0][0], is(200L));
+
         execute("refresh table bulk_import");
         execute("select count(*) from bulk_import");
         assertThat(response.rowCount(), is(1L));
