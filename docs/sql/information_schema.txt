@@ -19,22 +19,22 @@ settings like the number of shards or number of replicas::
 
     cr> select * from information_schema.tables
     ... where table_name not like 'my_table%' order by schema_name asc, table_name asc;
-    +--------------------+-------------------+------------------+--------------------+--------------+
-    | schema_name        | table_name        | number_of_shards | number_of_replicas | clustered_by |
-    +--------------------+-------------------+------------------+--------------------+--------------+
-    | blob               | myblobs           | 3                | 1                  | digest       |
-    | doc                | documents         | 5                | 1                  | _id          |
-    | doc                | locations         | 2                | 0                  | id           |
-    | doc                | partitioned_table | 5                | 1                  | _id          |
-    | doc                | quotes            | 2                | 0                  | id           |
-    | information_schema | columns           | 1                | 0                  | NULL         |
-    | information_schema | routines          | 1                | 0                  | NULL         |
-    | information_schema | table_constraints | 1                | 0                  | NULL         |
-    | information_schema | tables            | 1                | 0                  | NULL         |
-    | sys                | cluster           | 1                | 0                  | NULL         |
-    | sys                | nodes             | 1                | 0                  | NULL         |
-    | sys                | shards            | 1                | 0                  | NULL         |
-    +--------------------+-------------------+------------------+--------------------+--------------+
+    +--------------------+-------------------+------------------+--------------------+--------------+----------------+
+    | schema_name        | table_name        | number_of_shards | number_of_replicas | clustered_by | partitioned_by |
+    +--------------------+-------------------+------------------+--------------------+--------------+----------------+
+    | blob               | myblobs           | 3                | 1                  | digest       | NULL           |
+    | doc                | documents         | 5                | 1                  | _id          | NULL           |
+    | doc                | locations         | 2                | 0                  | id           | NULL           |
+    | doc                | partitioned_table | 5                | 1                  | _id          | [u'date']      |
+    | doc                | quotes            | 2                | 0                  | id           | NULL           |
+    | information_schema | columns           | 1                | 0                  | NULL         | NULL           |
+    | information_schema | routines          | 1                | 0                  | NULL         | NULL           |
+    | information_schema | table_constraints | 1                | 0                  | NULL         | NULL           |
+    | information_schema | tables            | 1                | 0                  | NULL         | NULL           |
+    | sys                | cluster           | 1                | 0                  | NULL         | NULL           |
+    | sys                | nodes             | 1                | 0                  | NULL         | NULL           |
+    | sys                | shards            | 1                | 0                  | NULL         | NULL           |
+    +--------------------+-------------------+------------------+--------------------+--------------+----------------+
     SELECT 12 rows in set (... sec)
 
 

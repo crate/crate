@@ -59,6 +59,21 @@ public abstract class InformationTablesExpression<T>
                     }
                 }
             })
+            .add(new InformationTablesExpression<BytesRef[]>("partitioned_by") {
+                @Override
+                public BytesRef[] value() {
+                    int numPartitionedByCols = row.partitionedBy().size();
+                    if (row.partitionedBy() != null && numPartitionedByCols > 0) {
+                        BytesRef[] partitions = new BytesRef[numPartitionedByCols];
+                        for (int i = 0; i < numPartitionedByCols; i++) {
+                            partitions[i] = new BytesRef(row.partitionedBy().get(i));
+                        }
+                        return partitions;
+                    } else {
+                        return null;
+                    }
+                }
+            })
             .add(new InformationTablesExpression<Integer>("number_of_shards") {
                 @Override
                 public Integer value() {
