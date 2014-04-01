@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.apache.lucene.util.BytesRef;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -81,13 +82,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.tables order by schema_name, table_name");
         assertEquals(7L, response.rowCount());
 
-        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, "0", null});
-        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "routines", 1, "0", null});
-        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "table_constraints", 1, "0", null});
-        assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "tables", 1, "0", null});
-        assertArrayEquals(response.rows()[4], new Object[]{"sys", "cluster", 1, "0", null});
-        assertArrayEquals(response.rows()[5], new Object[]{"sys", "nodes", 1, "0", null});
-        assertArrayEquals(response.rows()[6], new Object[]{"sys", "shards", 1, "0", null});
+        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, "0", null, null});
+        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "routines", 1, "0", null, null});
+        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "table_constraints", 1, "0", null, null});
+        assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "tables", 1, "0", null, null});
+        assertArrayEquals(response.rows()[4], new Object[]{"sys", "cluster", 1, "0", null, null});
+        assertArrayEquals(response.rows()[5], new Object[]{"sys", "nodes", 1, "0", null, null});
+        assertArrayEquals(response.rows()[6], new Object[]{"sys", "shards", 1, "0", null, null});
     }
 
     @Test
@@ -382,7 +383,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(51L, response.rowCount());
+        assertEquals(52L, response.rowCount());
     }
 
     @Test
@@ -728,5 +729,20 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         execute("select sum(number_of_shards) from information_schema.tables");
         assertEquals(1, response.rowCount());
+    }
+
+    @Test
+    public void testPartitionedBy() throws Exception {
+        execute("create table my_table (id integer, name string) partitioned by (name)");
+        execute("create table my_other_table (id integer, name string, content string) " +
+                "partitioned by (name, content)");
+
+        execute("select * from information_schema.tables " +
+                "where schema_name = 'doc' order by table_name");
+
+        String[] row1 = new String[] { "name", "content" };
+        String[] row2 = new String[] { "name" };
+        assertArrayEquals((String[])response.rows()[0][5], row1);
+        assertArrayEquals((String[])response.rows()[1][5], row2);
     }
 }

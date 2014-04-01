@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - feature: added column 'partitioned_by' to table 'information_schema.tables'
+
  - fix: Items of string arrays now get transformed to strings
 
  - It is now possible to specify the columns that should be exported when using
