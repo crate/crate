@@ -123,7 +123,7 @@ public class ESQueryBuilder {
                 } else if (DocSysColumns.RAW.equals(columnIdent)|| DocSysColumns.DOC.equals(columnIdent)){
                     needWholeSource = true;
                 }
-            } else {
+            } else if (node.partitionBy().indexOf(output.info()) < 0) { // do not include partitioned by columns
                 fields.add(columnIdent.fqn());
             }
         }

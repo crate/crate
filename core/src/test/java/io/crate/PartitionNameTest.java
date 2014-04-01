@@ -22,9 +22,11 @@
 package io.crate;
 
 import com.google.common.collect.ImmutableList;
+import org.elasticsearch.common.collect.Tuple;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -123,4 +125,62 @@ public class PartitionNameTest {
         );
     }
 
+    @Test
+    public void testSplit() throws Exception {
+        Tuple<String, String> tableNameValues = PartitionName.split(
+                new PartitionName("t", Arrays.asList("bla", "blubb"),
+                        Arrays.asList("a", "b")).stringValue());
+        assertThat(tableNameValues.v1(), is("t"));
+        assertThat(tableNameValues.v2(), is("081620j2"));
+
+        tableNameValues = PartitionName.split(
+                new PartitionName("t", Arrays.asList("bla", "blubb"),
+                        Arrays.asList(null, "b")).stringValue());
+        assertThat(tableNameValues.v1(), is("t"));
+        assertThat(tableNameValues.v2(), is("08004og="));
+
+        tableNameValues = PartitionName.split(
+                new PartitionName("t", Arrays.asList("bla"),
+                        new ArrayList<String>() {{ add(null); }}).stringValue());
+        assertThat(tableNameValues.v1(), is("t"));
+        assertThat(tableNameValues.v2(), is(PartitionName.NULL_MARKER));
+
+        tableNameValues = PartitionName.split(
+                new PartitionName("t", Arrays.asList("bla"),
+                        Arrays.asList("hoschi")).stringValue());
+        assertThat(tableNameValues.v1(), is("t"));
+        assertThat(tableNameValues.v2(), is(PartitionName.NOT_NULL_MARKER + "hoschi"));
+
+    }
+
+    @Test
+    public void splitTemplateName() throws Exception {
+        assertThat(
+                PartitionName.split(PartitionName.templateName("t")).v1(),
+                is("t"));
+        assertThat(
+                PartitionName.split(PartitionName.templateName("t")).v2(),
+                is(""));
+
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSplitInvalid1() throws Exception {
+        PartitionName.split(Constants.PARTITIONED_TABLE_PREFIX + "lalala.n");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSplitInvalid2() throws Exception {
+        PartitionName.split(Constants.PARTITIONED_TABLE_PREFIX.substring(1) + ".lalala.n");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSplitInvalid3() throws Exception {
+        PartitionName.split("lalala");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSplitInvalid4() throws Exception {
+        PartitionName.split(Constants.PARTITIONED_TABLE_PREFIX + ".lalala");
+    }
 }
