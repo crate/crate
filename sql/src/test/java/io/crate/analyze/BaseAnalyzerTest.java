@@ -109,12 +109,26 @@ public class BaseAnalyzerTest {
             .add("name", DataType.STRING, null)
             .add("date", DataType.TIMESTAMP, null, true)
             .add("obj", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
-            .add("obj", DataType.LONG, Arrays.asList("num"), true)
             // add 2 partitions/simulate already done inserts
             .addPartitions(Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
                     Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000",
                     Constants.PARTITIONED_TABLE_PREFIX + ".parted." + PartitionName.NULL_MARKER)
             .build();
+    static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(null, "multi_parted");
+    static final TableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
+            TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("id", DataType.INTEGER, null)
+            .add("date", DataType.TIMESTAMP, null, true)
+            .add("num", DataType.LONG, null)
+            .add("obj", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("obj", DataType.STRING, Arrays.asList("name"), true)
+                    // add 2 partitions/simulate already done inserts
+            .addPartitions(
+                    new PartitionName("multi_parted", Arrays.asList("date", "obj.num"), Arrays.asList("1395874800000", "0")).stringValue(),
+                    new PartitionName("multi_parted", Arrays.asList("date", "obj.num"), Arrays.asList("1395961200000", "-100")).stringValue(),
+                    new PartitionName("multi_parted", Arrays.asList("date", "obj.num"), Arrays.asList(null, "-100")).stringValue())
+            .build();
+
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.asList(DataType.LONG)),
             DataType.LONG);
