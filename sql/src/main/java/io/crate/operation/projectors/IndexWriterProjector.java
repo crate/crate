@@ -144,10 +144,15 @@ public class IndexWriterProjector implements Projector {
                 return input.value().toString();
             }
         });
-        String clusteredBy = routingInput.value().toString();
+
+        Object routing = routingInput.value();
+        String clusteredBy = null;
+        if (routing != null) {
+            clusteredBy = routing.toString();
+            indexRequest.routing(clusteredBy);
+        }
         Id id = new Id(primaryKeys, primaryKeyValues, clusteredBy, true);
         indexRequest.id(id.stringValue());
-        indexRequest.routing(clusteredBy);
         return indexRequest;
     }
 
