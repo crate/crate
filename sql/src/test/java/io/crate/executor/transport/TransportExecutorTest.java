@@ -512,7 +512,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         // update characters set name='Vogon lyric fan' where id=1
         WhereClause whereClause = new WhereClause(null, false);
         whereClause.clusteredByLiteral(new StringLiteral("1"));
-        ESUpdateNode updateNode = new ESUpdateNode("characters",
+        ESUpdateNode updateNode = new ESUpdateNode(
+                new String[]{"characters"},
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("Vogon lyric fan"));
                 }},
@@ -577,7 +578,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         // update characters set name='mostly harmless' where id=1 and "_version"=?
         WhereClause whereClause = new WhereClause(whereClauseFunction);
         whereClause.version(1L);
-        ESUpdateNode updateNode = new ESUpdateNode("characters",
+        ESUpdateNode updateNode = new ESUpdateNode(
+                new String[]{"characters"},
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},
@@ -640,7 +642,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 )));
 
         // update characters set name='mostly harmless' where id=1 or name='Trillian'
-        ESUpdateNode updateNode = new ESUpdateNode("characters",
+        ESUpdateNode updateNode = new ESUpdateNode(
+                new String[]{"characters"},
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},

@@ -24,10 +24,7 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
@@ -637,7 +634,7 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(ESUpdateNode.class));
 
         ESUpdateNode updateNode = (ESUpdateNode)planNode;
-        assertThat(updateNode.index(), is("users"));
+        assertThat(updateNode.indices(), is(new String[]{"users"}));
         assertThat(updateNode.ids().size(), is(1));
         assertThat(updateNode.ids().get(0), is("1"));
 
