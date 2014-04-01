@@ -22,10 +22,12 @@
 package io.crate.operation.projectors;
 
 import io.crate.Constants;
+import io.crate.exceptions.CrateException;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -35,6 +37,7 @@ import org.elasticsearch.client.Client;
 import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class IndexWriterProjector implements Projector {
@@ -103,6 +106,7 @@ public class IndexWriterProjector implements Projector {
             bulkProcessor.close();
             listener.allRowsAdded.set(true);
             if (listener.inProgress.get() == 0) {
+                downstream.setNextRow(listener.rowsImported.get());
                 downstream.upstreamFinished();
             }
         }
@@ -113,6 +117,7 @@ public class IndexWriterProjector implements Projector {
         if (remainingUpstreams.decrementAndGet() <= 0) {
             bulkProcessor.close();
             if (downstream != null) {
+                downstream.setNextRow(listener.rowsImported.get());
                 downstream.upstreamFailed(throwable);
             }
             return;
@@ -149,6 +154,7 @@ public class IndexWriterProjector implements Projector {
         AtomicInteger inProgress = new AtomicInteger(0);
         final AtomicBoolean allRowsAdded;
         final AtomicReference<Throwable> failure = new AtomicReference<>();
+        final AtomicLong rowsImported = new AtomicLong(0);
         Projector downstream;
 
         Listener() {
@@ -166,11 +172,24 @@ public class IndexWriterProjector implements Projector {
 
         @Override
         public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
+            if (response.hasFailures()) {
+                for (BulkItemResponse item : response.getItems()) {
+                    if (!item.isFailed()) {
+                        rowsImported.incrementAndGet();
+                    } else {
+                        failure.set(new CrateException(item.getFailureMessage()));
+                    }
+                }
+            } else {
+                rowsImported.addAndGet(response.getItems().length);
+            }
+
             if (inProgress.decrementAndGet() == 0 && allRowsAdded.get() && downstream != null) {
                 Throwable throwable = failure.get();
                 if (throwable != null) {
                     downstream.upstreamFailed(throwable);
                 } else {
+                    downstream.setNextRow(rowsImported.get());
                     downstream.upstreamFinished();
                 }
             }
@@ -180,6 +199,7 @@ public class IndexWriterProjector implements Projector {
         public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
             this.failure.set(failure);
             if (inProgress.decrementAndGet() == 0 && allRowsAdded.get() && downstream != null) {
+                downstream.setNextRow(rowsImported.get());
                 downstream.upstreamFailed(failure);
             }
         }
