@@ -24,9 +24,6 @@ package io.crate.executor.transport;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.DataType;
@@ -53,16 +50,14 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.ESCountNode;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.ESSearchNode;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.ImmutableShardRouting;
-import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.search.SearchHits;
@@ -98,6 +93,14 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     Reference version_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(table, "_version"), RowGranularity.DOC, DataType.LONG));
 
+    TableIdent partedTable = new TableIdent(null, "parted");
+    Reference parted_id_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(partedTable, "id"), RowGranularity.DOC, DataType.INTEGER));
+    Reference parted_name_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(partedTable, "name"), RowGranularity.DOC, DataType.STRING));
+    Reference parted_date_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(partedTable, "date"), RowGranularity.DOC, DataType.TIMESTAMP));
+
     @Before
     public void transportSetUp() {
         clusterService = cluster().getInstance(ClusterService.class);
@@ -111,6 +114,19 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         execute("insert into characters (id, name) values (1, 'Arthur')");
         execute("insert into characters (id, name) values (2, 'Ford')");
         execute("insert into characters (id, name) values (3, 'Trillian')");
+        refresh();
+    }
+
+    private void createPartitionedTable() {
+        execute("create table parted (id int, name string, date timestamp) partitioned by (date)");
+        ensureGreen();
+        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Trillian", null,
+                        2, null, 0L,
+                        3, "Ford", 1396388720242L
+                });
+        ensureGreen();
         refresh();
     }
 
@@ -227,7 +243,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
-                null, null, WhereClause.MATCH_ALL
+                null, null, WhereClause.MATCH_ALL,
+                null
         );
         Plan plan = new Plan();
         plan.add(node);
@@ -263,7 +280,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
                 null, null,
-                new WhereClause(whereClause)
+                new WhereClause(whereClause),
+                null
         );
         Plan plan = new Plan();
         plan.add(node);
@@ -276,6 +294,42 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat((Integer) rows[0][0], is(2));
         assertThat((String) rows[0][1], is("Ford"));
+    }
+
+    @Test
+    public void testESSearchTaskPartitioned() throws Exception {
+        createPartitionedTable();
+        // get partitions
+        ImmutableOpenMap<String, List<AliasMetaData>> aliases = client().admin().indices().prepareGetAliases().addAliases("parted").execute().actionGet().getAliases();
+        ESSearchNode node = new ESSearchNode(
+                aliases.keys().toArray(String.class),
+                Arrays.<Symbol>asList(parted_id_ref, parted_name_ref, parted_date_ref),
+                Arrays.<Reference>asList(name_ref),
+                new boolean[]{false},
+                null, null,
+                WhereClause.MATCH_ALL,
+                Arrays.asList(parted_date_ref.info())
+        );
+        Plan plan = new Plan();
+        plan.add(node);
+        Job job = executor.newJob(plan);
+        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
+
+        task.start();
+        Object[][] rows = task.result().get(0).get();
+        assertThat(rows.length, is(3));
+
+        assertThat((Integer) rows[0][0], is(3));
+        assertThat((String)rows[0][1], is("Ford"));
+        assertThat((Long) rows[0][2], is(1396388720242L));
+
+        assertThat((Integer) rows[1][0], is(1));
+        assertThat((String) rows[1][1], is("Trillian"));
+        assertNull(rows[1][2]);
+
+        assertThat((Integer) rows[2][0], is(2));
+        assertNull(rows[2][1]);
+        assertThat((Long) rows[2][2], is(0L));
     }
 
     @Test
@@ -307,7 +361,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
                 null, null,
-                new WhereClause(whereClause)
+                new WhereClause(whereClause),
+                null
         );
         plan = new Plan();
         plan.add(searchNode);
@@ -610,7 +665,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(id_ref, name_ref, version_ref),
                 ImmutableList.<Reference>of(),
                 new boolean[0],
-                null, null, new WhereClause(searchWhereClause)
+                null, null, new WhereClause(searchWhereClause),
+                null
         );
         node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type(), version_ref.info().type()));
         plan = new Plan();
@@ -674,7 +730,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 ImmutableList.of(id_ref),
                 new boolean[]{false},
-                null, null, new WhereClause(searchWhereClause)
+                null, null, new WhereClause(searchWhereClause),
+                null
         );
         node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type()));
         plan = new Plan();

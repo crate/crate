@@ -27,6 +27,7 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.*;
 
 import java.io.IOException;
@@ -148,9 +149,35 @@ public class PartitionName implements Streamable {
                                 int columnCount) throws IOException {
         assert partitionTableName != null;
         assert tableName != null;
-        assert isPartition(partitionTableName, tableName) : "invalid partition table name";
 
-        String valuesString = partitionTableName.substring(Constants.PARTITIONED_TABLE_PREFIX.length()+tableName.length()+2);
+        Tuple<String, String> splitted = split(partitionTableName);
+        assert splitted.v1().equals(tableName) : String.format(
+                Locale.ENGLISH, "%s no partition of table %s", partitionTableName, tableName);
+
+        return decodePartitionName(partitionTableName, splitted.v1(), splitted.v2(), columnCount);
+    }
+
+    public static PartitionName fromStringSafe(String partitionTableName, int columnCount) throws IOException {
+        assert partitionTableName != null;
+        Tuple<String, String> parts = split(partitionTableName);
+        return decodePartitionName(partitionTableName, parts.v1(), parts.v2(), columnCount);
+    }
+
+    /**
+     * decode a partitionTableName with all of its pre-splitted parts into
+     * and instance of <code>PartitionName</code>
+     * @param partitionTableName
+     * @param tableName
+     * @param valuesString
+     * @param columnCount
+     * @return
+     * @throws IOException
+     */
+    private static PartitionName decodePartitionName(String partitionTableName,
+                                              String tableName,
+                                              String valuesString,
+                                              int columnCount) throws IOException {
+        assert columnCount > 0 : "invalid column count";
 
         PartitionName partitionName = new PartitionName(tableName);
         if (columnCount > 1) {
@@ -174,22 +201,43 @@ public class PartitionName implements Streamable {
 
     public static boolean isPartition(String partitionName, String tableName) {
         try {
-            return PartitionName.tableName(partitionName).equals(tableName);
+            return PartitionName.split(partitionName).v1().equals(tableName);
         } catch (IllegalArgumentException e) {
             return false;
         }
     }
 
+    /**
+     * split a given partition nameor template name into its parts <code>tableName</code>
+     * and <code>valuesString</code>.
+     * @param partitionOrTemplateName name of a partition or template
+     * @return a {@linkplain org.elasticsearch.common.collect.Tuple}
+     *         whose first element is the <code>tableName</code>
+     *         and whose second element is the <code>valuesString</code>
+     * @throws java.lang.IllegalArgumentException if <code>partitionName</code> is no invalid
+     */
+    public static Tuple<String, String> split(String partitionOrTemplateName) {
+        List<String> splitted = Splitter.on(".").splitToList(partitionOrTemplateName);
+        if (splitted.size() < 4 || !splitted.get(1).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1))) {
+            throw new IllegalArgumentException("Invalid partition name");
+        }
+        return new Tuple<>(splitted.get(2),
+                Joiner.on(".").join(splitted.subList(3, splitted.size())));
+    }
+
+    /**
+     * compute the template name (used with partitioned tables) from a given table name
+     */
     public static String templateName(String tableName) {
         return Joiner.on('.').join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
     }
 
-    public static String tableName(String templateName) {
-        List<String> parts = Splitter.on(".").splitToList(templateName);
-        if (parts.size() != 4 || !parts.get(1).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1))) {
-            throw new IllegalArgumentException("Invalid partition template name");
-        }
-        return parts.get(2);
+    /**
+     * extract the tableName from the name of a partition or template
+     * @return the tableName as string
+     */
+    public static String tableName(String partitionOrTemplateName) {
+        return PartitionName.split(partitionOrTemplateName).v1();
     }
 
 }

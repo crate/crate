@@ -31,7 +31,10 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Insert;
+import io.crate.sql.tree.Table;
+import io.crate.sql.tree.ValuesList;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.*;
@@ -96,7 +99,7 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
     }
 
     private Reference addColumn(ReferenceIdent ident, InsertAnalysis context, int i) {
-        String column = ident.columnIdent().name();
+        final String column = ident.columnIdent().name();
         Preconditions.checkArgument(!column.startsWith("_"), "Inserting system columns is not allowed");
 
         // set primary key index if found

@@ -185,7 +185,7 @@ public class TestingTableInfo extends AbstractTableInfo {
 
 
     @Override
-    public Collection<ReferenceInfo> partitionedByColumns() {
+    public List<ReferenceInfo> partitionedByColumns() {
         return partitionedByColumns;
     }
 

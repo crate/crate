@@ -8,7 +8,6 @@ import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,7 +41,7 @@ public abstract class AbstractTableInfo implements TableInfo {
     }
 
     @Override
-    public Collection<ReferenceInfo> partitionedByColumns() {
+    public List<ReferenceInfo> partitionedByColumns() {
         return ImmutableList.of();
     }
 
