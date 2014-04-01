@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.ValidationException;
@@ -42,12 +43,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -214,7 +212,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.sourceMaps().size(), is(1));
         Map<String, Object> values = analysis.sourceMaps().get(0);
         assertThat(values.size(), is(1));
-        assertThat((Long)values.get("id"), is(1L));
+        assertThat((Long) values.get("id"), is(1L));
     }
 
     @Test (expected = UnsupportedOperationException.class)
@@ -264,14 +262,15 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         // error because in the schema are non-array types:
         analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
                 new Object[]{
-                        new Long[]{1l ,2l},
+                        new Long[]{1l, 2l},
                         new String[]{"Karl Liebknecht", "Rosa Luxemburg"},
                         new Boolean[]{true, false},
-                        new Map[] {
+                        new Map[]{
                                 new HashMap<String, Object>(),
                                 new HashMap<String, Object>()
                         }
-                });
+                }
+        );
     }
 
     @Test
@@ -284,11 +283,12 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                 });
         assertThat((Long)analysis.sourceMaps().get(0).get("id"), is(0L));
         assertArrayEquals(
-                (Map[])analysis.sourceMaps().get(0).get("friends"),
+                (Map[]) analysis.sourceMaps().get(0).get("friends"),
                 new Map[]{
-                         new MapBuilder<String, Object>().put("name", "Jeltz").map(),
-                         new MapBuilder<String, Object>().put("name", "Prosser").map(),
-                });
+                        new MapBuilder<String, Object>().put("name", "Jeltz").map(),
+                        new MapBuilder<String, Object>().put("name", "Prosser").map(),
+                }
+        );
     }
 
     @Test
@@ -346,5 +346,37 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.partitionedByColumns().size(), is(1));
         assertThat(analysis.partitionMaps().size(), is(1));
         assertThat(analysis.partitionMaps().get(0), hasEntry("date", "0"));
+    }
+
+    @Test
+    public void bulkIndexPartitionedTable() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into parted (id, name, date) " +
+                "values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Trillian", 13963670051500L,
+                        2, "Ford", 0L,
+                        3, "Zaphod", null
+                });
+        assertThat(analysis.partitions(), contains(
+                Constants.PARTITIONED_TABLE_PREFIX + ".parted._13963670051500",
+                Constants.PARTITIONED_TABLE_PREFIX + ".parted._0",
+                Constants.PARTITIONED_TABLE_PREFIX + ".parted.n"
+        ));
+        assertThat(analysis.sourceMaps().size(), is(3));
+        assertThat(analysis.sourceMaps().get(0),
+                allOf(hasEntry("name", (Object)"Trillian"), hasEntry("id", (Object)1)));
+        assertThat(analysis.sourceMaps().get(1),
+                allOf(hasEntry("name", (Object)"Ford"), hasEntry("id", (Object)2)));
+        assertThat(analysis.sourceMaps().get(2),
+                allOf(hasEntry("name", (Object)"Zaphod"), hasEntry("id", (Object)3)));
+
+        assertThat(analysis.partitionMaps().size(), is(3));
+        assertThat(analysis.partitionMaps().get(0),
+                hasEntry("date", "13963670051500"));
+        assertThat(analysis.partitionMaps().get(1),
+                hasEntry("date", "0"));
+        assertThat(analysis.partitionMaps().get(2),
+                hasEntry("date", null));
+
     }
 }

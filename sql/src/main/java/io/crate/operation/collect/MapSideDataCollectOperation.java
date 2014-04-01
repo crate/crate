@@ -54,7 +54,10 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
@@ -232,12 +235,15 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
             } catch (IndexMissingException e) {
                 throw new TableUnknownException(entry.getKey(), e);
             }
+
             for (Integer shardId : entry.getValue()) {
                 Injector shardInjector;
                 try {
                     shardInjector = indexService.shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
-                    CrateCollector crateCollector = shardCollectService.getCollector(collectNode, projectorChain);
+                    CrateCollector crateCollector = shardCollectService.getCollector(
+                            collectNode,
+                            projectorChain);
                     shardCollectors.add(crateCollector);
                 } catch (IndexShardMissingException e) {
                     throw new CrateException(

@@ -67,7 +67,8 @@ public class ESIndexTask extends AbstractESIndexTask {
         super(node);
         this.transport = transport;
 
-        request = buildIndexRequest(this.node.index(),
+        assert node.indices().length == 1 : "invalid number of indices";
+        request = buildIndexRequest(this.node.indices()[0],
                 this.node.sourceMaps().get(0),
                 this.node.ids().get(0),
                 this.node.routingValues().get(0)

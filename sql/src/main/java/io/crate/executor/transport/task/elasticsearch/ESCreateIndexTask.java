@@ -1,8 +1,10 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.exceptions.TaskExecutionException;
 import io.crate.executor.Task;
 import io.crate.planner.node.ddl.ESCreateIndexNode;
 import io.crate.Constants;
@@ -12,6 +14,7 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class ESCreateIndexTask implements Task<Object[][]> {
 
@@ -19,6 +22,8 @@ public class ESCreateIndexTask implements Task<Object[][]> {
     private final CreateIndexRequest request;
     private final List<ListenableFuture<Object[][]>> results;
     private final CreateIndexListener listener;
+
+    private List<ListenableFuture<Object[][]>> upstreamResult = ImmutableList.of();
 
     public ESCreateIndexTask(ESCreateIndexNode node, TransportCreateIndexAction transportCreateIndexAction) {
         this.transport = transportCreateIndexAction;
@@ -30,6 +35,13 @@ public class ESCreateIndexTask implements Task<Object[][]> {
 
     @Override
     public void start() {
+        if (!upstreamResult.isEmpty()) {
+            try {
+                Futures.allAsList(upstreamResult).get();
+            } catch (ExecutionException | InterruptedException e) {
+                throw new TaskExecutionException(this, e);
+            }
+        }
         transport.execute(request, listener);
     }
 
@@ -40,7 +52,7 @@ public class ESCreateIndexTask implements Task<Object[][]> {
 
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException("CreateIndexTask doesn't support upstream results");
+        this.upstreamResult = result;
     }
 
     private static class CreateIndexListener implements ActionListener<CreateIndexResponse> {
