@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.exceptions.CrateException;
 import io.crate.metadata.TableIdent;
@@ -146,6 +147,13 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         Plan plan = new Plan();
         ESDeleteIndexNode node = new ESDeleteIndexNode(analysis.index());
         plan.add(node);
+
+        if (analysis.table().isPartitioned()) {
+            String templateName = PartitionName.templateName(analysis.index());
+            ESDeleteTemplateNode templateNode = new ESDeleteTemplateNode(templateName);
+            plan.add(templateNode);
+        }
+
         plan.expectsAffectedRows(true);
         return plan;
     }
