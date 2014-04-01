@@ -149,7 +149,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     private void rewriteGlobalDistinct(SelectAnalysis context) {
         ArrayList<Symbol> groupBy = new ArrayList<>(context.outputSymbols().size());
-            context.groupBy(groupBy);
+        context.groupBy(groupBy);
 
         for (Symbol s : context.outputSymbols()) {
             if (s.symbolType() == SymbolType.DYNAMIC_REFERENCE) {

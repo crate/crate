@@ -27,6 +27,10 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * plan node for 1 or more documents to index via ESIndexTask
+ * for a single index
+ */
 public class ESIndexNode extends DMLPlanNode {
 
     private String index;

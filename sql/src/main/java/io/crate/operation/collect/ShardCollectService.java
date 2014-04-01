@@ -97,7 +97,7 @@ public class ShardCollectService {
         this.shardNormalizer = new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
-                (isBlobShard ? blobShardReferenceResolver :referenceResolver)
+                (isBlobShard ? blobShardReferenceResolver : referenceResolver)
         );
 
 

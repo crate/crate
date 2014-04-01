@@ -59,6 +59,14 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
             .add("bla", DataType.STRING, null)
             .isAlias(true).build();
 
+    private static TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(null, "parted");
+    private static TableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
+            TEST_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("id", DataType.INTEGER, null)
+            .add("name", DataType.STRING, null)
+            .add("date", DataType.TIMESTAMP, null, true)
+            .build();
+
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {

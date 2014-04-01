@@ -40,6 +40,7 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShardState;
@@ -73,6 +74,9 @@ public class SysShardsExpressionsTest {
             ClusterName clusterName = mock(ClusterName.class);
             when(clusterName.value()).thenReturn("crate");
             bind(ClusterName.class).toInstance(clusterName);
+
+            Index index = new Index(SysShardsTableInfo.IDENT.name());
+            bind(Index.class).toInstance(index);
 
             ShardId shardId = mock(ShardId.class);
             when(shardId.getId()).thenReturn(1);

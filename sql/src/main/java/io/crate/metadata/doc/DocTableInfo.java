@@ -193,7 +193,7 @@ public class DocTableInfo implements TableInfo {
 
         String[] routingIndices = concreteIndices;
         if (whereClause.partitions().size() > 0) {
-            routingIndices = whereClause.partitions().toArray(new String[]{});
+            routingIndices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);
         }
 
         Map<String, Set<String>> routingMap = null;

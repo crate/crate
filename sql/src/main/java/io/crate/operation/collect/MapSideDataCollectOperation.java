@@ -54,7 +54,10 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
@@ -93,6 +96,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     private final ThreadPool threadPool;
     protected final ClusterService clusterService;
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
+    private final Functions functions;
 
     @Inject
     public MapSideDataCollectOperation(ClusterService clusterService,
@@ -101,6 +105,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                                        IndicesService indicesService,
                                        ThreadPool threadPool) {
         this.clusterService = clusterService;
+        this.functions = functions;
         this.indicesService = indicesService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.threadPool = threadPool;
@@ -232,12 +237,15 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
             } catch (IndexMissingException e) {
                 throw new TableUnknownException(entry.getKey(), e);
             }
+
             for (Integer shardId : entry.getValue()) {
                 Injector shardInjector;
                 try {
                     shardInjector = indexService.shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
-                    CrateCollector crateCollector = shardCollectService.getCollector(collectNode, projectorChain);
+                    CrateCollector crateCollector = shardCollectService.getCollector(
+                            collectNode,
+                            projectorChain);
                     shardCollectors.add(crateCollector);
                 } catch (IndexShardMissingException e) {
                     throw new CrateException(

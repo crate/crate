@@ -36,7 +36,7 @@ import java.util.Locale;
 
 public class PartitionName implements Streamable {
 
-    public static final String NULL_MARKER = "N";
+    public static final String NULL_MARKER = "n";
     public static final String NOT_NULL_MARKER = "_";
     private static final Base32 BASE32 = new Base32(true);
 

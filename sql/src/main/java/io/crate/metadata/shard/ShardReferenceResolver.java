@@ -22,12 +22,18 @@
 package io.crate.metadata.shard;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.AbstractReferenceResolver;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.PartitionName;
+import io.crate.exceptions.CrateException;
+import io.crate.metadata.*;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoBuilder;
+import io.crate.operation.reference.partitioned.PartitionedColumnExpression;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.index.Index;
 
-import java.util.HashMap;
+import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 public class ShardReferenceResolver extends AbstractReferenceResolver {
@@ -35,12 +41,52 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
     private final Map<ReferenceIdent, ReferenceImplementation> implementations;
 
     @Inject
-    public ShardReferenceResolver(final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
+    public ShardReferenceResolver(Index index,
+                                  ClusterService clusterService,
+                                  final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
                                   final Map<ReferenceIdent, ShardReferenceImplementation> shardImplementations) {
-        Map<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>(globalImplementations.size() + shardImplementations.size());
-        implementations.putAll(globalImplementations);
-        implementations.putAll(shardImplementations);
-        this.implementations = ImmutableMap.copyOf(implementations);
+        ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder = ImmutableMap.builder();
+                builder.putAll(globalImplementations)
+                .putAll(shardImplementations);
+        String partitionedTableName = null;
+        try {
+            partitionedTableName = PartitionName.tableName(index.name());
+        } catch (IllegalArgumentException e) {
+            // no partition - ignore
+        }
+        if (partitionedTableName != null) {
+            // get DocTableInfo for virtual partitioned table
+            DocTableInfo info = new DocTableInfoBuilder(
+                    new TableIdent("doc", partitionedTableName),
+                    clusterService, true).build();
+            assert info.isPartitioned();
+            int i = 0;
+            int numPartitionedColumns = info.partitionedByColumns().size();
+
+            PartitionName partitionName;
+            try {
+                partitionName = PartitionName.fromString(
+                        index.name(),
+                        partitionedTableName,
+                        numPartitionedColumns);
+            } catch (IOException e) {
+                throw new CrateException(
+                        String.format(Locale.ENGLISH,
+                                "Unable to load PARTITIONED BY columns from partition %s",
+                                index.name())
+                );
+            }
+            assert partitionName.values().size() == numPartitionedColumns : "invalid number of partitioned columns";
+            for (ReferenceInfo partitionedInfo : info.partitionedByColumns()) {
+                builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
+                        partitionedInfo,
+                        partitionName.values().get(i)
+                ));
+                i++;
+            }
+        }
+        this.implementations = builder.build();
+
     }
 
     @Override
