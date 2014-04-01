@@ -36,7 +36,6 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.InOperator;
 import io.crate.operation.operator.OrOperator;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 
 import javax.annotation.Nullable;
@@ -480,9 +479,11 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                 // Query is already normalized in order to put the Reference always on left
                 if (function.arguments().get(0).symbolType() == SymbolType.REFERENCE) {
                     Reference left = (Reference) function.arguments().get(0);
-                    if ((context.hasPartitionedColumn && left.info().granularity() != RowGranularity.INDEX)
+
+                    int partitionByIdx = context.table.partitionedBy().indexOf(left.info().ident().columnIdent().fqn());
+                    if ((context.hasPartitionedColumn && partitionByIdx == -1)
                             || (argumentsProcessed > 0 && !context.hasPartitionedColumn
-                            && left.info().granularity() == RowGranularity.INDEX)) {
+                            && partitionByIdx >= 0)) {
                         throw new UnsupportedFeatureException("Using a partitioned column and a " +
                                 "normal column inside an OR clause is currently not supported");
                     }

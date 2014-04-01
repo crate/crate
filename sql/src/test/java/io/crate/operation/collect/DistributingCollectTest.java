@@ -22,6 +22,8 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.Constants;
+import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
@@ -39,8 +41,6 @@ import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.Constants;
-import io.crate.action.SQLXContentQueryParser;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -52,6 +52,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
@@ -173,6 +174,8 @@ public class DistributingCollectTest {
         protected void configure() {
             IndexShard shard = mock(InternalIndexShard.class);
             bind(IndexShard.class).toInstance(shard);
+            Index index = new Index(TEST_TABLE_NAME);
+            bind(Index.class).toInstance(index);
             bind(ShardId.class).toInstance(shardId);
             MapBinder<ReferenceIdent, ShardReferenceImplementation> binder = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);

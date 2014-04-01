@@ -36,7 +36,7 @@ import java.util.Locale;
 
 public class PartitionName implements Streamable {
 
-    public static final String NULL_MARKER = "N";
+    public static final String NULL_MARKER = "n";
     public static final String NOT_NULL_MARKER = "_";
     private static final Base32 BASE32 = new Base32(true);
 
@@ -76,7 +76,12 @@ public class PartitionName implements Streamable {
     public void readFrom(StreamInput in) throws IOException {
         int size = in.readVInt();
         for (int i=0; i < size; i++) {
-            values.add(in.readBytesRef().utf8ToString());
+            BytesRef value = (BytesRef)DataType.STRING.streamer().readFrom(in);
+            if (value == null) {
+                values.add(null);
+            } else {
+                values.add(value.utf8ToString());
+            }
         }
     }
 
@@ -84,11 +89,8 @@ public class PartitionName implements Streamable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(values.size());
         for (String value : values) {
-            if (value == null) {
-                out.writeBytesRef(null);
-            } else {
-                out.writeBytesRef(new BytesRef(value));
-            }
+            DataType.STRING.streamer().writeTo(out,
+                    value == null ? value : new BytesRef(value));
         }
     }
 

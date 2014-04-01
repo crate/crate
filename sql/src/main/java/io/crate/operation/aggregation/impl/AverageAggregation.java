@@ -22,16 +22,18 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.AggregationState;
-import io.crate.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 public class AverageAggregation extends AggregationFunction<AverageAggregation.AverageAggState> {
 
@@ -39,13 +41,12 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
-        for (DataType t : DataType.NUMERIC_TYPES) {
+        for (DataType t : Iterables.concat(DataType.NUMERIC_TYPES, Arrays.asList(DataType.TIMESTAMP))) {
             mod.registerAggregateFunction(
                     new AverageAggregation(
                             new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataType.DOUBLE, true))
             );
         }
-
     }
 
     AverageAggregation(FunctionInfo info) {

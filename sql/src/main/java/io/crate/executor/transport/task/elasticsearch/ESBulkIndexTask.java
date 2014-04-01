@@ -21,7 +21,9 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.exceptions.TaskExecutionException;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -29,6 +31,9 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.index.IndexRequest;
+
+import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
 
 public class ESBulkIndexTask extends AbstractESIndexTask {
 
@@ -70,9 +75,19 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
         this.request = new BulkRequest();
 
         for (int i = 0; i < this.node.sourceMaps().size(); i++) {
+            String[] indices;
+
+            if (node.indices().length == 1) {
+                // in case we have only one index for all indexRequests
+                String[] arr = new String[node.sourceMaps().size()];
+                Arrays.fill(arr, node.indices()[0]);
+                indices = arr;
+            } else {
+                indices = node.indices();
+            }
 
             IndexRequest indexRequest = buildIndexRequest(
-                    node.index(),
+                    indices[i],
                     node.sourceMaps().get(i),
                     node.ids().get(i),
                     node.routingValues().get(i));
@@ -84,6 +99,14 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
 
     @Override
     public void start() {
+        if (!upStreamResult.isEmpty()) {
+            // wait for all upstream results before starting to index
+            try {
+                Futures.allAsList(upStreamResult).get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new TaskExecutionException(this, e);
+            }
+        }
         this.bulkAction.execute(request, listener);
     }
 }

@@ -2816,6 +2816,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{1, "Ford", 13959981214861L });
         assertThat(response.rowCount(), is(1L));
+        ensureGreen();
         refresh();
 
         String partitionName = new PartitionName("parted",
@@ -2833,6 +2834,63 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testBulkInsertPartitionedTable() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Ford", 13959981214861L,
+                        2, "Trillian", 0L,
+                        3, "Zaphod", null
+                });
+        assertThat(response.rowCount(), is(3L));
+        ensureGreen();
+        refresh();
+
+        String partitionName = new PartitionName("parted",
+                Arrays.asList("date"),
+                Arrays.asList(String.valueOf(13959981214861L))
+        ).stringValue();
+        assertTrue(cluster().clusterService().state().metaData().hasIndex(partitionName));
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+        assertThat(
+                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                is(1L)
+        );
+
+        partitionName = new PartitionName("parted",
+                Arrays.asList("date"),
+                Arrays.asList(String.valueOf(0L))
+        ).stringValue();
+        assertTrue(cluster().clusterService().state().metaData().hasIndex(partitionName));
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+        assertThat(
+                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                is(1L)
+        );
+
+        List<String> nullList = new ArrayList<>();
+        nullList.add(null);
+        partitionName = new PartitionName("parted",
+                Arrays.asList("date"),
+                nullList
+        ).stringValue();
+        assertTrue(cluster().clusterService().state().metaData().hasIndex(partitionName));
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+        assertThat(
+                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                is(1L)
+        );
+    }
+
+    @Test
     public void testInsertPartitionedTableOnlyPartitionedColumns() throws Exception {
         execute("create table parted (name string, date timestamp)" +
                 "partitioned by (name, date)");
@@ -2841,6 +2899,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into parted (name, date) values (?, ?)",
                 new Object[]{"Ford", 13959981214861L});
         assertThat(response.rowCount(), is(1L));
+        ensureGreen();
         refresh();
         String partitionName = new PartitionName("parted",
                 Arrays.asList("name", "date"),
@@ -2864,17 +2923,19 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into parted (name, date) values (?, ?)",
                 new Object[]{"Ford", 13959981214861L});
         assertThat(response.rowCount(), is(1L));
+        ensureGreen();
         refresh();
         execute("insert into parted (name, date) values (?, ?)",
                 new Object[]{"Ford", 13959981214861L});
         assertThat(response.rowCount(), is(1L));
+        ensureGreen();
         refresh();
 
         execute("select count(*) from parted");
         assertThat((Long)response.rows()[0][0], is(2L));
     }
 
-    @Test( expected= DuplicateKeyException.class)
+    @Test(expected = DuplicateKeyException.class)
     public void testInsertPartitionedTablePrimaryKeysDuplicate() throws Exception {
         execute("create table parted (" +
                 "  id int, " +
@@ -2887,6 +2948,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{42, "Zaphod", dateValue});
         assertThat(response.rowCount(), is(1L));
+        ensureGreen();
         refresh();
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{42, "Zaphod", 0L});
@@ -2902,6 +2964,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into parted (id, name) values (?, ?)",
                 new Object[]{1, "Trillian"});
         assertThat(response.rowCount(), is(1L));
+        ensureGreen();
         refresh();
         String partitionName = new PartitionName("parted",
                 Arrays.asList("name", "date"),
@@ -2925,6 +2988,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into parted (id, date, name) values (?, ?, ?)",
                 new Object[]{1, dateValue, "Trillian"});
         assertThat(response.rowCount(), is(1L));
+        ensureGreen();
         refresh();
         String partitionName = new PartitionName("parted",
                 Arrays.asList("name", "date"),
@@ -2949,6 +3013,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
 
     }
+
 
     @Test
     public void testUpdatePartitionedTable() throws Exception {
@@ -3012,6 +3077,159 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select id, quote from quotes");
         assertEquals(0L, response.rowCount());
+    }
+
+
+    public void testGlobalAggregatePartitionedColumns() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("select count(distinct date), count(*), min(date), max(date), " +
+                "any(date) as any_date, avg(date) from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(0L));
+        assertThat((Long)response.rows()[0][1], is(0L));
+        assertNull(response.rows()[0][2]);
+        assertNull(response.rows()[0][3]);
+        assertNull(response.rows()[0][4]);
+        assertNull(response.rows()[0][5]);
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{0, "Trillian", 100L});
+        ensureGreen();
+        refresh();
+
+        execute("select count(distinct date), count(*), min(date), max(date), " +
+                "any(date) as any_date, avg(date) from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(1L));
+        assertThat((Long)response.rows()[0][1], is(1L));
+        assertThat((Long)response.rows()[0][2], is(100L));
+        assertThat((Long) response.rows()[0][3], is(100L));
+        assertThat((Long)response.rows()[0][4], is(100L));
+        assertThat((Double)response.rows()[0][5], is(100.0));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{1, "Ford", 1001L});
+        ensureGreen();
+        refresh();
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{2, "Arthur", 1001L});
+        ensureGreen();
+        refresh();
+
+        execute("select count(distinct date), count(*), min(date), max(date), " +
+                "any(date) as any_date, avg(date) from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(2L));
+        assertThat((Long)response.rows()[0][1], is(3L));
+        assertThat((Long)response.rows()[0][2], is(100L));
+        assertThat((Long)response.rows()[0][3], is(1001L));
+        assertThat((Long)response.rows()[0][4], isOneOf(100L, 1001L));
+        assertThat((Double)response.rows()[0][5], is(700.6666666666666));
+    }
+
+    @Test
+    public void testGroupByPartitionedColumns() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("select date, count(*) from parted group by date");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{0, "Trillian", 100L});
+        ensureGreen();
+        refresh();
+
+        execute("select date, count(*) from parted group by date");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(100L));
+        assertThat((Long)response.rows()[0][1], is(1L));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Arthur", null,
+                        2, "Ford", null
+                });
+        ensureGreen();
+        refresh();
+
+        execute("select date, count(*) from parted group by date order by count(*) desc");
+        assertThat(response.rowCount(), is(2L));
+        assertNull(response.rows()[0][0]);
+        assertThat((Long)response.rows()[0][1], is(2L));
+        assertThat((Long)response.rows()[1][0], is(100L));
+        assertThat((Long)response.rows()[1][1], is(1L));
+    }
+
+    @Test
+    public void testGroupByPartitionedColumnWhereClause() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("select date, count(*) from parted where date > 0 group by date");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{0, "Trillian", 100L});
+        ensureGreen();
+        refresh();
+
+        execute("select date, count(*) from parted where date > 0 group by date");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Arthur", 0L,
+                        2, "Ford", 2437646253L
+                });
+        ensureGreen();
+        refresh();
+
+        execute("select date, count(*) from parted where date > 100 group by date");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(2437646253L));
+        assertThat((Long)response.rows()[0][1], is(1L));
+    }
+
+    @Test
+    public void testGlobalAggregateWhereClause() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("select count(distinct date), count(*), min(date), max(date), " +
+                "any(date) as any_date, avg(date) from parted where date > 0");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(0L));
+        assertThat((Long)response.rows()[0][1], is(0L));
+        assertNull(response.rows()[0][2]);
+        assertNull(response.rows()[0][3]);
+        assertNull(response.rows()[0][4]);
+        assertNull(response.rows()[0][5]);
+
+        execute("insert into parted (id, name, date) values " +
+                        "(?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Arthur", 0L,
+                        2, "Ford", 2437646253L,
+                        3, "Zaphod", 1L,
+                        4, "Trillian", 0L
+                });
+        assertThat(response.rowCount(), is(4L));
+        ensureGreen();
+        refresh();
+
+        execute("select count(distinct date), count(*), min(date), max(date), " +
+                "any(date) as any_date, avg(date) from parted where date > 0");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(2L));
+        assertThat((Long)response.rows()[0][1], is(2L));
+        assertThat((Long)response.rows()[0][2], is(1L));
+        assertThat((Long)response.rows()[0][3], is(2437646253L));
+        assertThat((Long)response.rows()[0][4], isOneOf(1L, 2437646253L));
+        assertThat((Double)response.rows()[0][5], is(1.218823127E9));
     }
 
 }

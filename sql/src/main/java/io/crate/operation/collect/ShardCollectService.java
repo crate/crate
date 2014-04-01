@@ -97,7 +97,7 @@ public class ShardCollectService {
         this.shardNormalizer = new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
-                (isBlobShard ? blobShardReferenceResolver :referenceResolver)
+                (isBlobShard ? blobShardReferenceResolver : referenceResolver)
         );
 
 
@@ -113,16 +113,16 @@ public class ShardCollectService {
      */
     public CrateCollector getCollector(CollectNode collectNode, ShardProjectorChain projectorChain) throws Exception {
 
-        collectNode = collectNode.normalize(shardNormalizer);
+        CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
         Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
-        if (collectNode.whereClause().noMatch()) {
+        if (normalizedCollectNode.whereClause().noMatch()) {
             return CrateCollector.NOOP;
         } else {
-            RowGranularity granularity = collectNode.maxRowGranularity();
+            RowGranularity granularity = normalizedCollectNode.maxRowGranularity();
             if (granularity == RowGranularity.DOC) {
-                CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
-                BytesReference querySource = queryBuilder.convert(collectNode.whereClause());
+                CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(normalizedCollectNode);
+                BytesReference querySource = queryBuilder.convert(normalizedCollectNode.whereClause());
                 return new LuceneDocCollector(clusterService, shardId, indexService,
                         scriptService, cacheRecycler, pageCacheRecycler,sqlxContentQueryParser,
                         docCtx.topLevelInputs(),
@@ -131,7 +131,7 @@ public class ShardCollectService {
                         downstream);
 
             } else if (granularity == RowGranularity.SHARD) {
-                ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(collectNode);
+                ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(normalizedCollectNode);
                 return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), downstream);
             }
             throw new CrateException(String.format("Granularity %s not supported", granularity.name()));
