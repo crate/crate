@@ -29,10 +29,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 public class WriterProjectorTest {
 
@@ -59,9 +56,7 @@ public class WriterProjectorTest {
         Object[][] rows = ((ResultProvider) downstream).result().get();
 
         assertEquals(1, rows.length);
-        String result = TestingHelpers.printedTable(rows);
-        assertThat(result, startsWith("5| /"));
-        assertThat(result, endsWith("/out.json\n"));
+        assertEquals(5L, rows[0][0]);
 
         assertEquals("input line 00\n" +
                 "input line 01\n" +
