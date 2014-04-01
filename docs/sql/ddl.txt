@@ -420,8 +420,8 @@ Creating a partitioned table is done using the :ref:`partitioned_clause`::
 
 For further details, please refer to :ref:`partitioned_clause`.
 
-.. _fulltext-indices:
 
+.. _fulltext-indices:
 
 .. _indices_and_fulltext:
 

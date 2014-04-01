@@ -1,3 +1,5 @@
+.. _sql_ref_refresh:
+
 =======
 REFRESH
 =======
@@ -25,7 +27,8 @@ this change. By default a refresh is scheduled periodically.
 Internally a refresh opens a new table reader, which is then used by
 all subsequent searches on the affected table.
 
-For examples see: :ref:`refreshing_data`.
+For further details see :ref:`refresh_data`. For changing the refresh
+interval see :ref:`sql_ref_refresh_interval`.
 
 Parameters
 ==========

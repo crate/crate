@@ -61,6 +61,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY.name())).thenReturn(userTableInfoRefreshIntervalByOnly);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -122,6 +123,35 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCreateTableWithRefreshInterval() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
+                "CREATE TABLE foo (id int primary key, content string) " +
+                        "with (refresh_interval=5000)");
+        assertThat(analysis.indexSettings().get("refresh_interval"), is("5000"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateTableWithRefreshIntervalWrongNumberFormat() throws Exception {
+        analyze("CREATE TABLE foo (id int primary key, content string) " +
+                        "with (refresh_interval='1asdf')");
+    }
+
+    @Test
+    public void testAlterTableWithRefreshInterval() throws Exception {
+        // alter t set
+        AlterTableAnalysis analysisSet = (AlterTableAnalysis)analyze(
+                "ALTER TABLE user_refresh_interval " +
+                "SET (refresh_interval = '5000')");
+        assertEquals("5000", analysisSet.settings().get("refresh_interval"));
+
+        // alter t reset
+        AlterTableAnalysis analysisReset = (AlterTableAnalysis)analyze(
+                "ALTER TABLE user_refresh_interval " +
+                "RESET (refresh_interval)");
+        assertEquals("1000", analysisReset.settings().get("refresh_interval"));
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithClusteredBy() throws Exception {
         CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
@@ -180,7 +210,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> details = (Map<String, Object>)mappingProperties.get("details");
 
-        assertThat((String)details.get("type"), is("object"));
+        assertThat((String) details.get("type"), is("object"));
         assertThat((String) details.get("dynamic"), is("false"));
     }
 
@@ -559,7 +589,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 hasItem("ft")
         );
         assertThat(
-                (List<String>)((Map<String, Object>)analysis.mappingProperties()
+                (List<String>) ((Map<String, Object>) analysis.mappingProperties()
                         .get("name")).get("copy_to"),
                 hasItem("ft"));
 
