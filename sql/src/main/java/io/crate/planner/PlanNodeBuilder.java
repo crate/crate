@@ -45,6 +45,7 @@ class PlanNodeBuilder {
         node.toCollect(toCollect);
         node.projections(projections);
 
+        node.isPartitioned(analysis.table().isPartitioned());
         setOutputTypes(node);
         return node;
     }
@@ -100,6 +101,7 @@ class PlanNodeBuilder {
         node.maxRowGranularity(analysis.rowGranularity());
         node.projections(projections);
 
+        node.isPartitioned(analysis.table().isPartitioned());
         setOutputTypes(node);
         return node;
     }

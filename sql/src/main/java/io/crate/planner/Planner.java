@@ -25,7 +25,6 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.DataType;
@@ -209,10 +208,31 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     private void ESDeleteByQuery(DeleteAnalysis analysis, Plan plan) {
-        ESDeleteByQueryNode node = new ESDeleteByQueryNode(
-                ImmutableSet.<String>of(analysis.table().ident().name()),
-                analysis.whereClause());
-        plan.add(node);
+        String[] indices = indices(analysis);
+
+        if (!analysis.whereClause().hasQuery() && analysis.table().isPartitioned()) {
+            if (indices.length == 0) {
+                // collect all partitions to drop
+                indices = new String[analysis.table().partitions().size()];
+                for (int i=0; i < analysis.table().partitions().size(); i++) {
+                    indices[i] = analysis.table().partitions().get(i).stringValue();
+                }
+            }
+
+            // drop indices/tables
+            for (int i=0; i < indices.length; i++) {
+                ESDeleteIndexNode dropNode = new ESDeleteIndexNode(indices[i], true);
+                plan.add(dropNode);
+            }
+        } else {
+            // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
+            // forbidden through analysis, we must issue deleteByQuery request in addition
+            // to above deleteIndex request(s)
+            ESDeleteByQueryNode node = new ESDeleteByQueryNode(
+                    indices,
+                    analysis.whereClause());
+            plan.add(node);
+        }
         plan.expectsAffectedRows(true);
     }
 

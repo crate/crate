@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
+import io.crate.Constants;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -32,14 +34,17 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.StringLiteral;
 import org.elasticsearch.common.inject.Module;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -51,6 +56,8 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -88,7 +95,21 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test( expected = UnsupportedOperationException.class )
-    public void testUpdateWhereSysColumn() throws Exception {
+    public void testDeleteWhereSysColumn() throws Exception {
         analyze("delete from users where sys.nodes.id = 'node_1'");
+    }
+
+    @Test
+    public void testDeleteWherePartitionedByColumn() throws Exception {
+        DeleteAnalysis analysis = (DeleteAnalysis) analyze("delete from parted where date = 1395874800000");
+        assertThat(analysis.whereClause().hasQuery(), Matchers.is(false));
+        assertThat(analysis.whereClause().noMatch(), Matchers.is(false));
+        assertEquals(ImmutableList.of(Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000"),
+                analysis.whereClause().partitions());
+
+        analysis = (DeleteAnalysis) analyze("delete from parted");
+        assertThat(analysis.whereClause().hasQuery(), Matchers.is(false));
+        assertThat(analysis.whereClause().noMatch(), Matchers.is(false));
+        assertEquals(ImmutableList.<String>of(), analysis.whereClause().partitions());
     }
 }

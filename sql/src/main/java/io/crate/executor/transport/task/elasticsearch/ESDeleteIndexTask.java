@@ -37,6 +37,7 @@ import java.util.List;
 public class ESDeleteIndexTask implements Task<Object[][]> {
 
     private static final Object[][] RESULT = new Object[][]{ new Object[]{ 1L } };
+    private static final Object[][] RESULT_PARTITION = new Object[][]{ new Object[]{ -1L } };
 
     private final TransportDeleteIndexAction transport;
     private final DeleteIndexRequest request;
@@ -46,14 +47,20 @@ public class ESDeleteIndexTask implements Task<Object[][]> {
     static class DeleteIndexListener implements ActionListener<DeleteIndexResponse> {
 
         private final SettableFuture<Object[][]> future;
+        private final boolean isPartition;
 
-        DeleteIndexListener(SettableFuture<Object[][]> future) {
+        DeleteIndexListener(SettableFuture<Object[][]> future, boolean isPartition) {
             this.future = future;
+            this.isPartition = isPartition;
         }
 
         @Override
         public void onResponse(DeleteIndexResponse deleteIndexResponse) {
-            future.set(RESULT);
+            if (isPartition) {
+                future.set(RESULT_PARTITION);
+            } else {
+                future.set(RESULT);
+            }
         }
 
         @Override
@@ -67,7 +74,7 @@ public class ESDeleteIndexTask implements Task<Object[][]> {
         this.request = new DeleteIndexRequest(node.index());
         this.request.indicesOptions(IndicesOptions.strict());
         SettableFuture <Object[][]> result = SettableFuture.create();
-        this.listener = new DeleteIndexListener(result);
+        this.listener = new DeleteIndexListener(result, node.isPartition());
         this.results = Arrays.<ListenableFuture<Object[][]>>asList(result);
     }
 

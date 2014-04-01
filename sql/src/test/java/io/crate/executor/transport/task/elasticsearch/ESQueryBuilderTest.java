@@ -300,7 +300,7 @@ public class ESQueryBuilderTest {
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, new StringLiteral("Marvin")));
 
         ESDeleteByQueryNode deleteByQueryNode = new ESDeleteByQueryNode(
-                ImmutableSet.<String>of(characters.name()),
+                new String[]{characters.name()},
                 new WhereClause(whereClause));
 
         BytesReference reference = generator.convert(deleteByQueryNode);
