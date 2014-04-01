@@ -434,8 +434,9 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         String uriTemplate = Paths.get(folder.getRoot().toURI()).resolve("testCopyToFile%s.json").toAbsolutePath().toString();
 
-        executor.exec("copy characters to format(?, sys.shards.id)", uriTemplate);
+        SQLResponse response = executor.exec("copy characters to format(?, sys.shards.id)", uriTemplate);
 
+        assertThat(response.rowCount(), is(7L));
         List<String> lines = new ArrayList<>(7);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
         for (Path entry: stream) {

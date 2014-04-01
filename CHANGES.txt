@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - tables can now be exported using the COPY TO statement.
+
  - the ``concurrency`` and ``bulk_size`` options can now be set in the
    ``COPY FROM`` statement.
 

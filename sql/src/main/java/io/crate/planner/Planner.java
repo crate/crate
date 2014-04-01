@@ -160,8 +160,19 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                     ImmutableList.<Projection>of(projection));
 
             plan.add(collectNode);
-            MergeNode mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(), collectNode);
+            AggregationProjection aggregationProjection = new AggregationProjection(
+                    Arrays.asList(new Aggregation(
+                                    analysis.getFunctionInfo(
+                                            new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataType.LONG))
+                                    ),
+                                    Arrays.<Symbol>asList(new InputColumn(0)),
+                                    Aggregation.Step.ITER,
+                                    Aggregation.Step.FINAL
+                            )
+                    ));
+            MergeNode mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(aggregationProjection), collectNode);
             plan.add(mergeNode);
+            plan.expectsAffectedRows(true);
         }
 
         return plan;

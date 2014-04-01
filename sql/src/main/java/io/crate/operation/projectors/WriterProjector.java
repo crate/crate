@@ -86,7 +86,7 @@ public class WriterProjector implements Projector {
         }
         if (downstream != null) {
             if (failure.get() == null){
-                downstream.setNextRow(counter.get(), new BytesRef(uri.toString()));
+                downstream.setNextRow(counter.get());
                 downstream.upstreamFinished();
             } else {
                 downstream.upstreamFailed(failure.get());
