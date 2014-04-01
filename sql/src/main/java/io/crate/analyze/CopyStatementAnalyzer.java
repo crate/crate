@@ -39,7 +39,7 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
     @Override
     public Symbol visitCopyFromStatement(CopyFromStatement node, CopyAnalysis context) {
         if (node.genericProperties().isPresent()) {
-            throw new UnsupportedOperationException("Copy from currently doesn't support any properties");
+            context.settings(settingsFromProperties(node.genericProperties().get(), context));
         }
         context.mode(CopyAnalysis.Mode.FROM);
         process(node.table(), context);

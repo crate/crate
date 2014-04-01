@@ -170,7 +170,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     private void copyFromPlan(CopyAnalysis analysis, Plan plan) {
         List<Projection> projections = Arrays.<Projection>asList(new IndexWriterProjection(
             analysis.table().ident().name(),
-            analysis.table().primaryKey()
+            analysis.table().primaryKey(),
+            analysis.settings()
         ));
 
         // NOTE: this could be further optimized:

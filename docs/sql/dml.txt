@@ -628,7 +628,7 @@ Let's demonstrate this using a relative file path::
 
 Using a relative directory path::
 
-    cr> copy quotes from 'import_data';
+    cr> copy quotes from 'import_data' with (concurrency=1, bulk_size=4);
     COPY OK, 3 rows affected (... sec)
 
 And finally import data using a directory path and a `PCRE`_ file pattern  suffix::

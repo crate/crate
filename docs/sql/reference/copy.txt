@@ -9,7 +9,7 @@ Synopsis
 
 .. code-block:: sql
 
-    COPY table_ident FROM 'path'
+    COPY table_ident FROM 'path' [ WITH ( option = value [, ...] ) ]
 
 Description
 ===========
@@ -35,5 +35,38 @@ Parameters
 :path: A file or directory path with an optional `PCRE`_ file pattern
     suffix. If the path is relative, it is based on the absolute path
     of the node's data location.
+
+
+WITH Clause
+===========
+
+The optional ``WITH`` clause can specify options for the COPY FROM statement.
+
+.. code-block:: sql
+
+    [ WITH ( option = value [, ...] ) ]
+
+where ``option`` can be one of:
+
+bulk_size
+~~~~~~~~~
+
+Crate will process the lines it reads from the ``path`` in bulks. This option
+specifies the size of such a bulk. The default is 10000.
+
+.. warning::
+
+    A bulk_size that is too high will cause a very high load on the cluster and
+    some lines that should be inserted might even be dropped.
+
+concurrency
+~~~~~~~~~~~
+
+The number of parallel bulk actions that should be executed. Default is 4.
+
+.. warning::
+
+    Similar to a high bulk_size a high concurrency setting will cause a very
+    high load on the cluster.
 
 .. _PCRE: http://www.pcre.org/

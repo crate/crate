@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - the ``concurrency`` and ``bulk_size`` options can now be set in the
+   ``COPY FROM`` statement.
+
  - fixed regex pattern support in the `COPY <table> FROM` statement.
 
  - removed support for variables inside a path in the `COPY <table> FROM`
