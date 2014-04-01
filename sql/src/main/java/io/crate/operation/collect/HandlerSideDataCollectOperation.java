@@ -77,7 +77,6 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
             // no results
             return Futures.immediateFuture(Constants.EMPTY_RESULT);
         }
-
         if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
             // we assume information schema here
             return handleWithService(informationSchemaCollectService, collectNode);

@@ -87,6 +87,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             WhereClause whereClause = analysis.whereClause();
             if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()
                     && analysis.table().getRouting(whereClause).hasLocations()) {
+
                     if (analysis.ids().size() > 0
                             && analysis.routingValues().size() > 0
                             && !analysis.table().isAlias()) {
@@ -588,11 +589,14 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         String index = analysis.table().ident().name();
         List<String> tablePartitions = Arrays.asList(analysis.table().concreteIndices());
         if (analysis.table().isPartitioned()) {
-            Iterator<Map<String, Object>> sourceMapsIt = analysis.sourceMaps().iterator();
-            for (String partition : analysis.partitions()) {
-                assert sourceMapsIt.hasNext();
-                Map<String, Object> sourceMap = sourceMapsIt.next();
-                if (!tablePartitions.contains(partition)) {
+            Set<String> createdPartitions = new HashSet<>();
+            List<String> partitions = analysis.partitions();
+            for (String partition : partitions) {
+                assert analysis.sourceMaps().size() == analysis.ids().size() : "invalid number of ids";
+                assert analysis.sourceMaps().size() == analysis.routingValues().size() : "invalid number of routingValues";
+                if (!tablePartitions.contains(partition) && !createdPartitions.contains(partition)) {
+                    // make sure we do not create multiple indices during bulk insert
+                    createdPartitions.add(partition);
                     // create partition-index from template
                     ESCreateIndexNode createIndexNode = new ESCreateIndexNode(
                             partition,
@@ -609,17 +613,17 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                     plan.add(createAliasNode);
                 }
 
-                // always create a document
-                // even if it would be empty
-                ESIndexNode partitionIndexNode = new ESIndexNode(
-                        partition,
-                        Arrays.asList(sourceMap),
-                        analysis.ids(),
-                        analysis.routingValues()
-                );
-                plan.add(partitionIndexNode);
-
             }
+            // always create documents at the end with a single request
+            // even empty ones
+            // --> proper rowCount :)
+            ESIndexNode allIndexNode = new ESIndexNode(
+                    partitions,
+                    analysis.sourceMaps(),
+                    analysis.ids(),
+                    analysis.routingValues()
+            );
+            plan.add(allIndexNode);
         } else {
             ESIndexNode indexNode = new ESIndexNode(index,
                     analysis.sourceMaps(),

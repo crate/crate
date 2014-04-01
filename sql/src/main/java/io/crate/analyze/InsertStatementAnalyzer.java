@@ -176,7 +176,7 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
                     value = ((BytesRef) value).utf8ToString();
                 }
                 if (isPartitionColumn && partitionMap != null) {
-                    partitionMap.put(columnName, value.toString());
+                    partitionMap.put(columnName, value != null ? value.toString() : null);
                 } else {
                     sourceMap.put(
                             columnName,

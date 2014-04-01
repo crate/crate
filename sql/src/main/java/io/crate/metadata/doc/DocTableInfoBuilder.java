@@ -58,17 +58,24 @@ public class DocTableInfoBuilder {
 
     public DocIndexMetaData docIndexMetaData() {
         DocIndexMetaData docIndexMetaData;
-        try {
-            concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
-            docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
-        } catch (IndexMissingException ex) {
-            String templateName = PartitionName.templateName(ident.name());
-            if (!metaData.getTemplates().containsKey(templateName)) {
+        String templateName = PartitionName.templateName(ident.name());
+        if (metaData.getTemplates().containsKey(templateName)) {
+            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.name(), templateName);
+            try {
+                concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
+            } catch(IndexMissingException e) {
+                // no partition created yet
+                concreteIndices = new String[]{ident.name()};
+            }
+        } else {
+            try {
+                concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
+                docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
+            } catch (IndexMissingException ex) {
                 throw new TableUnknownException(ident.name(), ex);
             }
-            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.name(), templateName);
-            concreteIndices = new String[]{ident.name()};
         }
+
         if (concreteIndices.length == 1 || !checkAliasSchema) {
             return docIndexMetaData;
         }

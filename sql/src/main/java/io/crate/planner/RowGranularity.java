@@ -26,14 +26,56 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+/**
+ * granularity of references
+ *
+ * order from large-grained to fine-grained:
+ *
+ * CLUSTER > NODE > SHARD > DOC
+ */
 public enum RowGranularity {
 
     // a higher ordinal represents a higher granularity, so order matters here
     CLUSTER,
     NODE,
-    INDEX,
     SHARD,
     DOC;
+
+    public boolean finerThan(RowGranularity other) {
+        return ordinal() > other.ordinal();
+    }
+
+    public boolean largerThan(RowGranularity other) {
+        return ordinal() < other.ordinal();
+    }
+    /**
+     * return the highest RowGranularity of the two arguments.
+     * Higher means finer granularity, e.g. DOC is higher than SHARD
+     *
+     * @param granularity1
+     * @param granularity2
+     * @return
+     */
+    public static RowGranularity max(RowGranularity granularity1, RowGranularity granularity2) {
+        if (granularity2.ordinal() > granularity1.ordinal()) {
+            return granularity2;
+        }
+        return granularity1;
+    }
+
+    /**
+     * return the lowest RowGranularity of the two arguments.
+     * Lower means rougher granularity, e.g. CLUSTER is lower than NODE.
+     * @param granularity1
+     * @param granularity2
+     * @return
+     */
+    public static RowGranularity min(RowGranularity granularity1, RowGranularity granularity2) {
+        if (granularity2.ordinal() < granularity1.ordinal()) {
+            return granularity2;
+        }
+        return granularity1;
+    }
 
     public static RowGranularity fromStream(StreamInput in) throws IOException {
         return RowGranularity.values()[in.readVInt()];
