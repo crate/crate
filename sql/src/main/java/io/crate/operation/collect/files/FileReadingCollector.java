@@ -39,6 +39,7 @@ import java.util.zip.GZIPInputStream;
 public class FileReadingCollector implements CrateCollector {
 
     private final Path filePath;
+    private final String nodePath;
     private Projector downstream;
     private final boolean compressed;
     private final List<Input<?>> inputs;
@@ -53,8 +54,10 @@ public class FileReadingCollector implements CrateCollector {
                                 List<LineCollectorExpression<?>> collectorExpressions,
                                 Projector downstream,
                                 FileFormat format,
-                                boolean compressed) {
+                                boolean compressed,
+                                @Nullable String nodePath) {
         this.filePath = Paths.get(filePath);
+        this.nodePath = nodePath;
         downstream(downstream);
         this.compressed = compressed;
         this.inputs = inputs;
@@ -63,11 +66,14 @@ public class FileReadingCollector implements CrateCollector {
 
     @Nullable
     private BufferedReader getReader() throws IOException {
-        File file = new File(filePath.toUri());
+        File file;
+        if (!filePath.isAbsolute() && nodePath != null) {
+            file = new File(nodePath, filePath.toString()).getAbsoluteFile();
+        } else {
+            file = new File(filePath.toUri());
+        }
         if (file.isDirectory()) {
             return readerFromDirectory(file);
-        } else if (!file.exists()) {
-            return readerFromRegexUri(file);
         } else if (file.exists()) {
             if (compressed) {
                 return new BufferedReader(
@@ -75,6 +81,8 @@ public class FileReadingCollector implements CrateCollector {
             } else {
                 return new BufferedReader(new InputStreamReader(new FileInputStream(file)));
             }
+        } else if (!file.exists()) {
+            return readerFromRegexUri(file);
         }
         return null;
     }

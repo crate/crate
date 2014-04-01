@@ -29,11 +29,7 @@ import io.crate.DataType;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.exceptions.ExceptionHelper;
-import io.crate.executor.AffectedRowsResponseBuilder;
-import io.crate.executor.Job;
-import io.crate.executor.ResponseBuilder;
-import io.crate.executor.RowsResponseBuilder;
-import io.crate.executor.transport.TransportExecutor;
+import io.crate.executor.*;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
@@ -56,20 +52,20 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
     private final Analyzer analyzer;
     private final Planner planner;
-    private final TransportExecutor transportExecutor;
+    private final Executor executor;
     private final DDLAnalysisDispatcher dispatcher;
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
             Analyzer analyzer,
             Planner planner,
-            TransportExecutor transportExecutor,
+            Executor executor,
             DDLAnalysisDispatcher dispatcher,
             TransportService transportService) {
         super(settings, threadPool);
         this.analyzer = analyzer;
         this.planner = planner;
-        this.transportExecutor = transportExecutor;
+        this.executor = executor;
         this.dispatcher = dispatcher;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
     }
@@ -127,8 +123,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             logger.trace(printer.print(plan));
         }
         final ResponseBuilder responseBuilder = getResponseBuilder(plan);
-        final Job job = transportExecutor.newJob(plan);
-        final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
+        final Job job = executor.newJob(plan);
+        final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(executor.execute(job));
 
         addResultCallback(request, listener, outputNames, plan, responseBuilder, resultFuture);
     }

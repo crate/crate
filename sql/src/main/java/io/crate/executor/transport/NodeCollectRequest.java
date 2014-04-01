@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.FileUriCollectNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
@@ -46,13 +47,22 @@ public class NodeCollectRequest extends TransportRequest {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        collectNode = new CollectNode();
+        if (in.readBoolean()) {
+            collectNode = new FileUriCollectNode();
+        } else {
+            collectNode = new CollectNode();
+        }
         collectNode.readFrom(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        if (collectNode instanceof FileUriCollectNode) {
+            out.writeBoolean(true);
+        } else {
+            out.writeBoolean(false);
+        }
         collectNode.writeTo(out);
     }
 }

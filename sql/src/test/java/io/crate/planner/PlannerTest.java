@@ -2,13 +2,16 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.crate.DataType;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.WhereClause;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -19,10 +22,12 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.ddl.*;
-import io.crate.planner.node.dml.*;
+import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
@@ -31,9 +36,11 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import io.crate.DataType;
-import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
@@ -57,7 +64,7 @@ public class PlannerTest {
 
     private Injector injector;
     private Analyzer analyzer;
-    private Planner planner = new Planner();
+    private Planner planner;
     Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
             .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
@@ -123,6 +130,11 @@ public class PlannerTest {
         @Override
         protected void configure() {
             ClusterService clusterService = mock(ClusterService.class);
+            ClusterState clusterState = mock(ClusterState.class);
+            DiscoveryNodes nodes = mock(DiscoveryNodes.class);
+            when(clusterService.state()).thenReturn(clusterState);
+            when(clusterState.nodes()).thenReturn(nodes);
+            when(nodes.dataNodes()).thenReturn(ImmutableOpenMap.<String, DiscoveryNode>of());
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
             bind(ClusterService.class).toInstance(clusterService);
@@ -137,6 +149,7 @@ public class PlannerTest {
             TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataType.STRING, null)
                     .add("id", DataType.LONG, null)
+                    .add(DocSysColumns.RAW.name(), DataType.STRING, null)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
@@ -163,6 +176,7 @@ public class PlannerTest {
                 .add(new OperatorModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
+        planner = injector.getInstance(Planner.class);
     }
 
     private Plan plan(String statement) {
@@ -654,11 +668,10 @@ public class PlannerTest {
         Plan plan = plan("copy users from '/path/to/file.extension'");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CopyNode.class));
+        assertThat(planNode, instanceOf(FileUriCollectNode.class));
 
-        CopyNode copyNode = (CopyNode)planNode;
-        assertThat(copyNode.index(), is("users"));
-        assertThat(((StringLiteral) copyNode.uri()).valueAsString(), is("/path/to/file.extension"));
+        FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
+        assertThat(((Literal)collectNode.targetUri()).valueAsString(), is("/path/to/file.extension"));
     }
 
     @Test

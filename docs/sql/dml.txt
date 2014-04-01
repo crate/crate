@@ -633,29 +633,7 @@ Using a relative directory path::
 
 And finally import data using a directory path and a `PCRE`_ file pattern  suffix::
 
-    cr> copy quotes from 'import_data/(\\D).json';
-    COPY OK, 3 rows affected (... sec)
-
-Also one could use a defined set of variables inside a path. They are defined by using the
-`${variable_name}` syntax.
-Following variables are supported::
-
-    =======  ============
-    Name     Description
-    =======  ============
-    node     Node name
-    cluster  Cluster name
-    table    Table name
-    =======  ============
-
-Example using path variables::
-
-    cr> copy quotes from 'import_data/${table}.json';
-    COPY OK, 3 rows affected (... sec)
-
-Path variables can be freely combined with `PCRE`_ patterns::
-
-    cr> copy quotes from 'import_data/${table}(\\D*).json';
+    cr> copy quotes from 'import_data/(\\D)*.json';
     COPY OK, 3 rows affected (... sec)
 
 .. _PCRE: http://www.pcre.org/

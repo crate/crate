@@ -24,7 +24,10 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.crate.DataType;
+import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.WhereClause;
+import io.crate.exceptions.CrateException;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -39,9 +42,8 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.action.SQLXContentQueryParser;
-import io.crate.exceptions.CrateException;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -51,6 +53,8 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
@@ -83,7 +87,6 @@ public class LocalDataCollectTest {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
-
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -177,6 +180,7 @@ public class LocalDataCollectTest {
             functionBinder.addBinding(TestFunction.ident).toInstance(new TestFunction());
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
+            bind(Client.class).toInstance(new TransportClient(ImmutableSettings.EMPTY));
 
             bind(SQLXContentQueryParser.class).toInstance(mock(SQLXContentQueryParser.class));
 
@@ -252,8 +256,12 @@ public class LocalDataCollectTest {
         when(indexService.shardSafe(1)).thenReturn(shard1Injector.getInstance(IndexShard.class));
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
-        operation = new MapSideDataCollectOperation(injector.getInstance(ClusterService.class),
-                functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool);
+        operation = new MapSideDataCollectOperation(
+                injector,
+                injector.getInstance(ClusterService.class),
+                functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool,
+                new NodeEnvironment(ImmutableSettings.EMPTY, new Environment())
+        );
     }
 
     private Routing shardRouting(final Integer... shardIds) {

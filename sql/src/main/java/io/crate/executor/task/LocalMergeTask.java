@@ -28,11 +28,12 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.Constants;
 import io.crate.executor.Task;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.Constants;
+import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -54,7 +55,7 @@ public class LocalMergeTask implements Task<Object[][]> {
     private final ThreadPool threadPool;
     private final SettableFuture<Object[][]> result;
     private final List<ListenableFuture<Object[][]>> resultList;
-    private final Object lock = new Object();
+    private final Injector injector;
 
     private List<ListenableFuture<Object[][]>> upstreamResults;
 
@@ -63,7 +64,11 @@ public class LocalMergeTask implements Task<Object[][]> {
      * @param implementationSymbolVisitor symbol visitor (on cluster level)
      * @param mergeNode
      */
-    public LocalMergeTask(ThreadPool threadPool, ImplementationSymbolVisitor implementationSymbolVisitor, MergeNode mergeNode) {
+    public LocalMergeTask(ThreadPool threadPool,
+                          Injector injector,
+                          ImplementationSymbolVisitor implementationSymbolVisitor,
+                          MergeNode mergeNode) {
+        this.injector = injector;
         this.threadPool = threadPool;
         this.symbolVisitor = implementationSymbolVisitor;
         this.mergeNode = mergeNode;
@@ -84,7 +89,7 @@ public class LocalMergeTask implements Task<Object[][]> {
             return;
         }
 
-        final MergeOperation mergeOperation = new MergeOperation(symbolVisitor, mergeNode);
+        final MergeOperation mergeOperation = new MergeOperation(injector, symbolVisitor, mergeNode);
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
 
         Futures.addCallback(mergeOperation.result(), new FutureCallback<Object[][]>() {

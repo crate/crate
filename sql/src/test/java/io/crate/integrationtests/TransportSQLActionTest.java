@@ -2323,6 +2323,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select * from quotes");
         assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(2));
     }
 
     @Test
@@ -2344,7 +2345,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext)");
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "(\\D).json");
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "(\\D)*.json");
         execute("copy quotes from ?", new Object[]{filePath});
         // 2 nodes on same machine resulting in double affected rows
         assertEquals(6L, response.rowCount());

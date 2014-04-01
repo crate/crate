@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.action.import_.TransportImportAction;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
@@ -38,14 +39,14 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.*;
+import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateIndexNode;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
-import io.crate.action.import_.TransportImportAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
@@ -60,6 +61,7 @@ import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.List;
@@ -89,9 +91,11 @@ public class TransportExecutor implements Executor {
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
+    private final Injector injector;
 
     @Inject
-    public TransportExecutor(TransportSearchAction transportSearchAction,
+    public TransportExecutor(Injector injector,
+                             TransportSearchAction transportSearchAction,
                              TransportCollectNodeAction transportCollectNodeAction,
                              TransportMergeNodeAction transportMergeNodeAction,
                              TransportGetAction transportGetAction,
@@ -128,6 +132,7 @@ public class TransportExecutor implements Executor {
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.injector = injector;
 
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
@@ -185,6 +190,7 @@ public class TransportExecutor implements Executor {
             if (node.executionNodes().isEmpty()) {
                 context.addTask(new LocalMergeTask(
                         threadPool,
+                        injector,
                         new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
                         node));
             } else {

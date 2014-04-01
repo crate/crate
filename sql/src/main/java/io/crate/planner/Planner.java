@@ -21,42 +21,54 @@
 
 package io.crate.planner;
 
+import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.analyze.*;
 import io.crate.exceptions.CrateException;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateIndexNode;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
-import io.crate.planner.node.dml.*;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Singleton
 public class Planner extends AnalysisVisitor<Void, Plan> {
 
-
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
     private static final DataTypeVisitor dataTypeVisitor = new DataTypeVisitor();
+    private final ClusterService clusterService;
+
+    @Inject
+    public Planner(ClusterService clusterService) {
+        this.clusterService = clusterService;
+    }
 
     /**
      * dispatch plan creation based on analysis type
@@ -130,12 +142,10 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     @Override
-    protected Plan visitCopyAnalysis(CopyAnalysis analysis, Void context) {
+    protected Plan visitCopyAnalysis(final CopyAnalysis analysis, Void context) {
         Plan plan = new Plan();
         if (analysis.mode() == CopyAnalysis.Mode.FROM) {
-            CopyNode copyNode = new CopyNode(analysis.uri(), analysis.table().ident().name(), analysis.mode());
-            plan.add(copyNode);
-            plan.expectsAffectedRows(true);
+            copyFromPlan(analysis, plan);
         } else if (analysis.mode() == CopyAnalysis.Mode.TO) {
             Reference rawReference = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
 
@@ -155,6 +165,59 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         }
 
         return plan;
+    }
+
+    private void copyFromPlan(CopyAnalysis analysis, Plan plan) {
+        List<Projection> projections = Arrays.<Projection>asList(new IndexWriterProjection(
+            analysis.table().ident().name(),
+            analysis.table().primaryKey()
+        ));
+
+        // NOTE: this could be further optimized:
+        //  if clusteredBy is part of the primary key it would be better to just collect the reference once.
+        List<Reference> references = new ArrayList<>(analysis.table().primaryKey().size() + 1);
+        for (String primaryKey : analysis.table().primaryKey()) {
+            references.add(new Reference(analysis.table().getColumnInfo(new ColumnIdent(primaryKey))));
+        }
+        references.add(new Reference(analysis.table().getColumnInfo(new ColumnIdent(analysis.table().clusteredBy()))));
+        List<Symbol> toCollect = new ArrayList<Symbol>(references);
+        toCollect.add(
+                new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW))
+        );
+
+        FileUriCollectNode collectNode = new FileUriCollectNode(
+                "copyFrom",
+                allNodesRouting(),
+                analysis.uri(),
+                toCollect,
+                projections
+        );
+        PlanNodeBuilder.setOutputTypes(collectNode);
+        plan.add(collectNode);
+        AggregationProjection aggregationProjection = new AggregationProjection(
+                Arrays.asList(new Aggregation(
+                        analysis.getFunctionInfo(
+                            new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataType.LONG))
+                        ),
+                        Arrays.<Symbol>asList(new InputColumn(0)),
+                        Aggregation.Step.ITER,
+                        Aggregation.Step.FINAL
+                    )
+                ));
+        plan.add(PlanNodeBuilder.localMerge(
+                ImmutableList.<Projection>of(aggregationProjection), collectNode));
+        plan.expectsAffectedRows(true);
+    }
+
+    private Routing allNodesRouting() {
+        final Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        clusterService.state().nodes().dataNodes().keys().forEach(new ObjectProcedure<String>() {
+            @Override
+            public void apply(String value) {
+                locations.put(value, ImmutableMap.<String, Set<Integer>>of());
+            }
+        });
+        return new Routing(locations);
     }
 
     @Override

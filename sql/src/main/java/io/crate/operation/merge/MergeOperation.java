@@ -28,6 +28,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.MergeNode;
+import org.elasticsearch.common.inject.Injector;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -42,9 +43,9 @@ public class MergeOperation implements DownstreamOperation {
 
     private AtomicBoolean wantMore = new AtomicBoolean(true);
 
-    public MergeOperation(ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode) {
+    public MergeOperation(Injector injector, ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode) {
         projectorChain = new FlatProjectorChain(mergeNode.projections(),
-                new ProjectionToProjectorVisitor(symbolVisitor));
+                new ProjectionToProjectorVisitor(injector, symbolVisitor));
         downstream(projectorChain.firstProjector());
         this.numUpstreams = mergeNode.numUpstreams();
         projectorChain.startProjections();
