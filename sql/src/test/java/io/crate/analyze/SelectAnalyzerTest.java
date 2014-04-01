@@ -48,6 +48,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 
@@ -60,7 +61,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -90,6 +90,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+        }
+
+        @Override
+        protected void bindFunctions() {
+            super.bindFunctions();
+            functionBinder.addBinding(ABS_FUNCTION_INFO.ident())
+                    .toInstance(new AbsFunction());
+            functionBinder.addBinding(YEAR_FUNCTION_INFO.ident()).toInstance(new YearFunction());
         }
     }
 
@@ -971,8 +979,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where (date =1395874800000 or date = 1395961200000) and id = 1");
         assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+                Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
+                Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
         assertTrue(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
@@ -1007,6 +1015,25 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
             fail("Expected UnsupportedFeatureException");
         } catch (UnsupportedFeatureException e) {
         }
+    }
+
+    @Test
+    public void testSelectPartitionedTableOrderBy() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select id, name from parted order by id, abs(num), name");
+        assertThat(analysis.sortSymbols().size(), is(3));
+        assertThat(analysis.sortSymbols().get(0), Matchers.instanceOf(Reference.class));
+        assertThat(analysis.sortSymbols().get(1), Matchers.instanceOf(Function.class));
+        assertThat(analysis.sortSymbols().get(2), Matchers.instanceOf(Reference.class));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectPartitionedTableOrderByPartitionedColumn() throws Exception {
+        analyze("select name from parted order by date");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectPartitionedTableOrderByPartitionedColumnInFunction() throws Exception {
+        analyze("select name from parted order by year(date)");
     }
 
 }
