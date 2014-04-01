@@ -49,7 +49,7 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      */
     public Collection<ReferenceInfo> columns();
 
-    public Collection<ReferenceInfo> partitionedByColumns();
+    public List<ReferenceInfo> partitionedByColumns();
 
     public RowGranularity rowGranularity();
 

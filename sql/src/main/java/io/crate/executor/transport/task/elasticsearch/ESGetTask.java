@@ -23,11 +23,11 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.Constants;
+import io.crate.DataType;
 import io.crate.executor.Task;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.symbol.*;
-import io.crate.Constants;
-import io.crate.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;

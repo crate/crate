@@ -24,10 +24,7 @@ package io.crate.metadata.doc;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.*;
 import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.exceptions.TableAliasSchemaException;
@@ -57,7 +54,12 @@ public class DocIndexMetaData {
     private final MappingMetaData defaultMappingMetaData;
     private final Map<String, Object> defaultMappingMap;
 
-    private final ImmutableList.Builder<ReferenceInfo> columnsBuilder = ImmutableList.builder();
+    private final ImmutableSortedSet.Builder<ReferenceInfo> columnsBuilder = ImmutableSortedSet.orderedBy(new Comparator<ReferenceInfo>() {
+        @Override
+        public int compare(ReferenceInfo o1, ReferenceInfo o2) {
+            return o1.ident().columnIdent().fqn().compareTo(o2.ident().columnIdent().fqn());
+        }
+    });
 
     // columns should be ordered
     private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> referencesBuilder = ImmutableSortedMap.naturalOrder();
@@ -340,18 +342,11 @@ public class DocIndexMetaData {
 
     @SuppressWarnings("unchecked")
     private ImmutableList<String> getPartitionedBy() {
-        Map<String, Object> metaMap = (Map<String, Object>) defaultMappingMap.get("_meta");
-        if (metaMap != null) {
-            List<List<String>> pKeys = (List)metaMap.get("partitioned_by");
-            if (pKeys != null) {
-                ImmutableList.Builder<String> builder = ImmutableList.builder();
-                for (List<String> partitionedByInfo : pKeys) {
-                    builder.add(partitionedByInfo.get(0));
-                }
-                return builder.build();
-            }
+        ImmutableList.Builder<String> builder = ImmutableList.builder();
+        for (List<String> partitionedByInfo : partitionedByList) {
+            builder.add(partitionedByInfo.get(0));
         }
-        return ImmutableList.of();
+        return builder.build();
     }
 
     @SuppressWarnings("unchecked")
@@ -397,7 +392,7 @@ public class DocIndexMetaData {
     public DocIndexMetaData build() {
         partitionedBy = getPartitionedBy();
         createColumnDefinitions();
-        columns = columnsBuilder.build();
+        columns = ImmutableList.copyOf(columnsBuilder.build());
         partitionedByColumns = partitionedByColumnsBuilder.build();
 
         for (Tuple<ColumnIdent, ReferenceInfo> sysColumns : DocSysColumns.forTable(ident)) {

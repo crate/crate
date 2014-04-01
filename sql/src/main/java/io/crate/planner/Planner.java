@@ -83,7 +83,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
                     if (analysis.ids().size() > 0
                             && analysis.routingValues().size() > 0
-                            && !analysis.table().isAlias()) {
+                            && !analysis.table().isAlias()
+                            && !analysis.table().isPartitioned()) {
                         ESGet(analysis, plan);
                     } else {
                         ESSearch(analysis, plan);
@@ -333,7 +334,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 analysis.reverseFlags(),
                 analysis.limit(),
                 analysis.offset(),
-                analysis.whereClause()
+                analysis.whereClause(),
+                analysis.table().partitionedByColumns()
         );
         node.outputTypes(extractDataTypes(analysis.outputSymbols()));
         plan.add(node);

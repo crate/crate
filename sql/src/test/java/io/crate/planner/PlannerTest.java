@@ -2,6 +2,7 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
@@ -146,8 +147,23 @@ public class PlannerTest {
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
+            TableIdent partedTableIdent = new TableIdent(null, "parted");
+            TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
+                    .add("name", DataType.STRING, null)
+                    .add("id", DataType.STRING, null)
+                    .add("date", DataType.TIMESTAMP, null, true)
+                    .addPartitions(
+                            Constants.PARTITIONED_TABLE_PREFIX + ".parted.n",
+                            Constants.PARTITIONED_TABLE_PREFIX + ".parted._0",
+                            Constants.PARTITIONED_TABLE_PREFIX + ".parted._123"
+                            )
+                    .addPrimaryKey("id")
+                    .addPrimaryKey("date")
+                    .clusteredBy("id")
+                    .build();
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -265,6 +281,20 @@ public class PlannerTest {
         assertThat(node.ids().get(0), is("one"));
         assertFalse(iterator.hasNext());
         assertThat(node.outputs().size(), is(1));
+    }
+
+    @Test
+    public void testGetPlanPartitioned() throws Exception {
+        Plan plan = plan("select name, date from parted where id = 'one' and date = 0");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode node = iterator.next();
+        assertThat(node, instanceOf(ESSearchNode.class));
+        ESSearchNode searchNode = (ESSearchNode)node;
+        assertThat(searchNode.partitionBy().size(), is(1));
+        assertThat(searchNode.indices().length, is(1));
+        assertThat(searchNode.indices()[0], is(Constants.PARTITIONED_TABLE_PREFIX + ".parted._0"));
+
+        assertFalse(iterator.hasNext());
     }
 
     @Test
@@ -440,6 +470,24 @@ public class PlannerTest {
         assertThat(searchNode.outputTypes().size(), is(1));
         assertThat(searchNode.outputTypes().get(0), is(DataType.STRING));
         assertTrue(searchNode.whereClause().hasQuery());
+        assertThat(searchNode.partitionBy().size(), is(0));
+        assertFalse(plan.expectsAffectedRows());
+    }
+
+    @Test
+    public void testESSearchPlanPartitioned() throws Exception {
+        Plan plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESSearchNode.class));
+        ESSearchNode searchNode = (ESSearchNode) planNode;
+
+        assertThat(searchNode.indices(), arrayContaining(
+                Constants.PARTITIONED_TABLE_PREFIX + ".parted._123"));
+        assertThat(searchNode.outputTypes().size(), is(3));
+        assertTrue(searchNode.whereClause().hasQuery());
+        assertThat(searchNode.partitionBy().size(), is(1));
+        assertThat(searchNode.partitionBy().get(0).ident().columnIdent().fqn(), is("date"));
 
         assertFalse(plan.expectsAffectedRows());
     }
