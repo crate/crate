@@ -36,6 +36,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.*;
+import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -255,7 +256,7 @@ public class ESQueryBuilderTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(minScore_ref, new DoubleLiteral(0.4))
         );
-        ESSearchNode node = new ESSearchNode("something",
+        ESSearchNode node = new ESSearchNode(new String[]{"something"},
                 ImmutableList.<Symbol>of(), null, null, null, null, new WhereClause(whereClause));
         BytesReference bytesReference = generator.convert(node);
 
@@ -269,7 +270,7 @@ public class ESQueryBuilderTest {
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, new StringLiteral("Marvin")));
 
         ESSearchNode searchNode = new ESSearchNode(
-                characters.name(),
+                new String[]{characters.name()},
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Reference>of(),
                 new boolean[0],
@@ -311,7 +312,7 @@ public class ESQueryBuilderTest {
     public void testSelect_OnlyVersion() throws Exception {
         Reference version_ref = TestingHelpers.createReference("_version", DataType.INTEGER);
         ESSearchNode searchNode = new ESSearchNode(
-                characters.name(),
+                new String[]{characters.name()},
                 ImmutableList.<Symbol>of(version_ref),
                 null,
                 null,
@@ -345,7 +346,7 @@ public class ESQueryBuilderTest {
                 ColumnIdent.getChild(author.info().ident().columnIdent(), "age"), DataType.INTEGER);
 
         ESSearchNode searchNode = new ESSearchNode(
-                characters.name(),
+                new String[]{characters.name()},
                 ImmutableList.<Symbol>of(author, age),
                 null,
                 null,

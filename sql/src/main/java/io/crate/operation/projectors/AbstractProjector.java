@@ -21,43 +21,47 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import io.crate.operation.Input;
+import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractProjector implements Projector {
 
-    protected Optional<Projector> downStream;
+    protected Projector downstream;
     protected final Input<?>[] inputs;
     protected final CollectExpression<?>[] collectExpressions;
-
-    public AbstractProjector() {
-        inputs = new Input[0];
-        collectExpressions = new CollectExpression[0];
-    }
+    protected final AtomicInteger remainingUpstreams = new AtomicInteger(0);
 
     public AbstractProjector(Input<?>[] inputs, CollectExpression<?>[] collectExpressions) {
         this(inputs, collectExpressions, null);
     }
 
-    public AbstractProjector(Input<?>[] inputs, CollectExpression<?>[] collectExpressions, @Nullable Projector downStream) {
+    public AbstractProjector(
+            Input<?>[] inputs, CollectExpression<?>[] collectExpressions, @Nullable Projector downstream) {
         Preconditions.checkArgument(inputs != null);
         Preconditions.checkArgument(collectExpressions != null);
         this.inputs = inputs;
         this.collectExpressions = collectExpressions;
-        this.downStream = Optional.fromNullable(downStream);
+        this.downstream = downstream;
     }
 
     @Override
-    public void setDownStream(Projector downStream) {
-        this.downStream = Optional.of(downStream);
+    public void downstream(Projector downstream) {
+        downstream.registerUpstream(this);
+        this.downstream = downstream;
     }
 
     @Override
-    public Projector getDownstream() {
-        return downStream.orNull();
+    public Projector downstream() {
+        return downstream;
+    }
+
+    @Override
+    public void registerUpstream(ProjectorUpstream upstream) {
+        remainingUpstreams.incrementAndGet();
     }
 }

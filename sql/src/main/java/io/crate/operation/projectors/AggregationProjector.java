@@ -21,45 +21,23 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.operation.AggregationContext;
+import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.aggregation.AggregationCollector;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.AggregationContext;
 
-import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class AggregationProjector implements Projector {
-
-    private static class RowIterator implements Iterator<Object[]> {
-
-        private final Object[] row;
-        private boolean hasNext = true;
-
-        public RowIterator(Object[] row) {
-            this.row = row;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return hasNext;
-        }
-
-        @Override
-        public Object[] next() {
-            hasNext = false;
-            return row;
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("remove not supported");
-        }
-    }
 
     private final AggregationCollector[] aggregationCollectors;
     private final Set<CollectExpression<?>> collectExpressions;
     private final Object[] row;
-    private Projector downStream;
+    private Projector downstream;
+    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
+    private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
     public AggregationProjector(Set<CollectExpression<?>> collectExpressions,
                                 AggregationContext[] aggregations) {
@@ -73,7 +51,6 @@ public class AggregationProjector implements Projector {
                     aggregations[i].function(),
                     aggregations[i].inputs()
             );
-
             // startCollect creates the aggregationState. In case of the AggregationProjector
             // we only want to have 1 global state not 1 state per node/shard or even document.
             aggregationCollectors[i].startCollect();
@@ -81,20 +58,25 @@ public class AggregationProjector implements Projector {
     }
 
     @Override
-    public void setDownStream(Projector downStream) {
-        this.downStream = downStream;
-    }
-
-    @Override
-    public Projector getDownstream() {
-        return downStream;
-    }
-
-    @Override
     public void startProjection() {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
+
+        if (remainingUpstreams.get() <= 0) {
+            upstreamFinished();
+        }
+    }
+
+    @Override
+    public void downstream(Projector downstream) {
+        this.downstream = downstream;
+        downstream.registerUpstream(this);
+    }
+
+    @Override
+    public Projector downstream() {
+        return downstream;
     }
 
     @Override
@@ -102,34 +84,44 @@ public class AggregationProjector implements Projector {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
-
         for (AggregationCollector aggregationCollector : aggregationCollectors) {
             aggregationCollector.processRow();
         }
-
-        return true;
+        return upstreamFailure.get() == null;
     }
 
     @Override
-    public void finishProjection() {
+    public void registerUpstream(ProjectorUpstream upstream) {
+        remainingUpstreams.incrementAndGet();
+    }
+
+    @Override
+    public void upstreamFinished() {
+        if (remainingUpstreams.decrementAndGet() > 0) {
+            return;
+        }
         for (int i = 0; i < aggregationCollectors.length; i++) {
             row[i] = aggregationCollectors[i].finishCollect();
         }
-
-        if (downStream != null) {
-            downStream.startProjection();
-            downStream.setNextRow(row);
-            downStream.finishProjection();
+        if (downstream != null) {
+            downstream.setNextRow(row);
+            Throwable throwable = upstreamFailure.get();
+            if (throwable != null) {
+                downstream.upstreamFailed(throwable);
+            } else {
+                downstream.upstreamFinished();
+            }
         }
     }
 
     @Override
-    public Object[][] getRows() throws IllegalStateException {
-        return new Object[][]{row};
-    }
-
-    @Override
-    public Iterator<Object[]> iterator() {
-        return new RowIterator(row);
+    public void upstreamFailed(Throwable throwable) {
+        upstreamFailure.set(throwable);
+        if (remainingUpstreams.decrementAndGet() > 0) {
+            return;
+        }
+        if (downstream != null) {
+            downstream.upstreamFailed(throwable);
+        }
     }
 }

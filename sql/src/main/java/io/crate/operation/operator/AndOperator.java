@@ -45,17 +45,33 @@ public class AndOperator extends Operator<Boolean> {
     @Override
     public Symbol normalizeSymbol(Function function) {
         assert (function != null);
+        assert function.arguments().size() == 2;
 
         boolean result = true;
-        for (Symbol symbol : function.arguments()) {
+        int booleanCount = 0;
+        int stripSymbolIdx = -1;
+        for (int i=0; i < function.arguments().size(); i++) {
+            Symbol symbol = function.arguments().get(i);
             if (symbol instanceof BooleanLiteral) {
-                result = result && ((BooleanLiteral) symbol).value();
-            } else {
-                return function; // can't optimize -> return unmodified symbol
+                booleanCount++;
+                boolean value = ((BooleanLiteral) symbol).value();
+                if (stripSymbolIdx == -1 && value) {
+                    stripSymbolIdx = i;
+                }
+                result = result && value;
             }
         }
 
-        return (result) ? BooleanLiteral.TRUE : BooleanLiteral.FALSE;
+        if (stripSymbolIdx == -1 && booleanCount < 2 && result) {
+            return function; // can't optimize -> return unmodified symbol
+        } else if (!result) {
+            return BooleanLiteral.FALSE;
+        } else if (booleanCount == 2) {
+            return (result) ? BooleanLiteral.TRUE : BooleanLiteral.FALSE;
+        }
+        int returnSymbolIdx = stripSymbolIdx == 0 ? 1 : 0;
+
+        return function.arguments().get(returnSymbolIdx);
     }
 
     @Override

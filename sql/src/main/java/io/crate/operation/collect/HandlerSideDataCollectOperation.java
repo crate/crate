@@ -21,11 +21,10 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.exceptions.CrateException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -39,9 +38,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 public class HandlerSideDataCollectOperation implements CollectOperation<Object[][]> {
@@ -74,32 +71,22 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
                 && collectNode.maxRowGranularity() == RowGranularity.SHARD;
         }
 
-        SettableFuture<Object[][]> result = SettableFuture.create();
         if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
             // we assume information schema here
-            try {
-                result.set(handleWithService(informationSchemaCollectService, collectNode));
-            } catch (Exception e) {
-                result.setException(e);
-            }
+            return handleWithService(informationSchemaCollectService, collectNode);
         } else if (collectNode.maxRowGranularity() == RowGranularity.CLUSTER) {
-            result.set(handleCluster(collectNode));
+            return handleCluster(collectNode);
         } else if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
-            try {
-                result.set(handleWithService(unassignedShardsCollectService, collectNode));
-            } catch (Exception e) {
-                result.setException(e);
-            }
+            return handleWithService(unassignedShardsCollectService, collectNode);
         } else {
-            throw new CrateException("unsupported routing");
+            return Futures.immediateFailedFuture(new IllegalStateException("unsupported routing"));
         }
-        return result;
     }
 
-    private Object[][] handleCluster(CollectNode collectNode) {
+    private ListenableFuture<Object[][]> handleCluster(CollectNode collectNode) {
         collectNode = collectNode.normalize(clusterNormalizer);
         if (collectNode.whereClause().noMatch()) {
-            return Constants.EMPTY_RESULT;
+            return Futures.immediateFuture(Constants.EMPTY_RESULT);
         }
         assert collectNode.toCollect().size() > 0;
 
@@ -109,33 +96,29 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
         FlatProjectorChain projectorChain = new FlatProjectorChain(collectNode.projections(), projectorVisitor);
+        SimpleOneRowCollector collector = new SimpleOneRowCollector(
+                inputs, collectExpressions, projectorChain.firstProjector());
 
         projectorChain.startProjections();
-        new SimpleOneRowCollector(inputs, collectExpressions, projectorChain.firstProjector()).doCollect();
-        projectorChain.finishProjections();
-
-        Object[][] collected = projectorChain.result();
-        if (logger.isTraceEnabled()) {
-            logger.trace("collected {} on {}-level",
-                    Objects.toString(Arrays.asList(collected[0])),
-                    collectNode.maxRowGranularity().name().toLowerCase()
-            );
+        try {
+            collector.doCollect();
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
         }
-        return collected;
+        return projectorChain.result();
     }
 
-    private Object[][] handleWithService(CollectService collectService, CollectNode node) throws Exception {
-
+    private ListenableFuture<Object[][]> handleWithService(CollectService collectService, CollectNode node) {
         FlatProjectorChain projectorChain = new FlatProjectorChain(node.projections(), projectorVisitor);
-        projectorChain.startProjections();
         CrateCollector collector = collectService.getCollector(node, projectorChain.firstProjector());
+        projectorChain.startProjections();
         try {
             collector.doCollect();
         } catch (CollectionTerminatedException ex) {
             // ignore
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
         }
-        projectorChain.finishProjections();
-        Object[][] collected = projectorChain.result();
-        return collected;
+        return projectorChain.result();
     }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.operation.merge;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.projectors.FlatProjectorChain;
@@ -37,7 +38,7 @@ public class MergeOperation implements DownstreamOperation {
 
     private final int numUpstreams;
     private final FlatProjectorChain projectorChain;
-    private final Projector downstream;
+    private Projector downstream;
 
     private AtomicBoolean wantMore = new AtomicBoolean(true);
 
@@ -45,9 +46,9 @@ public class MergeOperation implements DownstreamOperation {
         assert mergeNode.projections().size()>0;
         projectorChain = new FlatProjectorChain(mergeNode.projections(),
                 new ProjectionToProjectorVisitor(symbolVisitor));
-        projectorChain.startProjections();
-        downstream = projectorChain.firstProjector();
+        downstream(projectorChain.firstProjector());
         this.numUpstreams = mergeNode.numUpstreams();
+        projectorChain.startProjections();
     }
 
     public boolean addRows(Object[][] rows) throws Exception {
@@ -65,8 +66,23 @@ public class MergeOperation implements DownstreamOperation {
         return numUpstreams;
     }
 
-    public Object[][] result() throws Exception {
-        projectorChain.finishProjections();
+    @Override
+    public void finished() {
+        downstream.upstreamFinished();
+    }
+
+    public ListenableFuture<Object[][]> result() {
         return projectorChain.result();
+    }
+
+    @Override
+    public void downstream(Projector downstream) {
+        downstream.registerUpstream(this);
+        this.downstream = downstream;
+    }
+
+    @Override
+    public Projector downstream() {
+        return downstream;
     }
 }

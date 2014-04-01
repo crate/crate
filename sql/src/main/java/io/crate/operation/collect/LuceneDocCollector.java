@@ -25,7 +25,9 @@ import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.doc.CollectorContext;
 import io.crate.operation.reference.doc.LuceneCollectorExpression;
+import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.search.*;
 import io.crate.Constants;
 import io.crate.action.SQLXContentQueryParser;
@@ -33,6 +35,8 @@ import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
+import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
@@ -43,6 +47,7 @@ import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -50,8 +55,43 @@ import java.util.List;
  */
 public class LuceneDocCollector extends Collector implements CrateCollector {
 
+    private final CollectorFieldsVisitor fieldsVisitor;
+    private boolean visitorEnabled = false;
+    private AtomicReader currentReader;
+
+    public static class CollectorFieldsVisitor extends FieldsVisitor {
+
+        final HashSet<String> requiredFields;
+        private boolean required = false;
+
+        public CollectorFieldsVisitor(int size) {
+            requiredFields = new HashSet<>(size);
+        }
+
+        public boolean addField(String name){
+            required = true;
+            return requiredFields.add(name);
+        }
+
+        public boolean required(){
+            return required;
+        }
+
+        @Override
+        public Status needsField(FieldInfo fieldInfo) throws IOException {
+            if (SourceFieldMapper.NAME.equals(fieldInfo.name)) {
+                return Status.YES;
+            }
+            return requiredFields.contains(fieldInfo.name) ? Status.YES : Status.NO;
+        }
+
+        public void required(boolean required) {
+            this.required = required;
+        }
+    }
+
     private final SearchContext searchContext;
-    private final Projector downStream;
+    private Projector downstream;
     private final List<Input<?>> topLevelInputs;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
 
@@ -66,12 +106,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                               List<LuceneCollectorExpression<?>> collectorExpressions,
                               BytesReference querySource,
                               Projector downStreamProjector) throws Exception {
-        this.downStream = downStreamProjector;
-
-        SearchShardTarget searchShardTarget = new SearchShardTarget(clusterService.localNode().id(), shardId.getIndex(), shardId.id());
-
+        downstream(downStreamProjector);
+        SearchShardTarget searchShardTarget = new SearchShardTarget(
+                clusterService.localNode().id(), shardId.getIndex(), shardId.id());
         this.topLevelInputs = inputs;
         this.collectorExpressions = collectorExpressions;
+        this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
 
         ShardSearchRequest shardSearchRequest = new ShardSearchRequest();
         shardSearchRequest.types(new String[]{Constants.DEFAULT_MAPPING_TYPE});
@@ -90,11 +130,26 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     }
 
     @Override
+    public void downstream(Projector downstream) {
+        downstream.registerUpstream(this);
+        this.downstream = downstream;
+    }
+
+    @Override
+    public Projector downstream() {
+        return downstream;
+    }
+
+    @Override
     public void setScorer(Scorer scorer) throws IOException {}
 
     @Override
     public void collect(int doc) throws IOException {
         Object[] newRow = new Object[topLevelInputs.size()];
+        if (visitorEnabled){
+            fieldsVisitor.reset();
+            currentReader.document(doc, fieldsVisitor);
+        }
         for (LuceneCollectorExpression e : collectorExpressions) {
             e.setNextDocId(doc);
         }
@@ -102,7 +157,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         for (Input<?> input : topLevelInputs) {
             newRow[i++] = input.value();
         }
-        if (!downStream.setNextRow(newRow)) {
+        if (!downstream.setNextRow(newRow)) {
             // no more rows required, we can stop here
             throw new CollectionTerminatedException();
         }
@@ -110,6 +165,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
 
     @Override
     public void setNextReader(AtomicReaderContext context) throws IOException {
+        this.currentReader = context.reader();
         for (LuceneCollectorExpression expr : collectorExpressions) {
             expr.setNextReader(context);
         }
@@ -123,10 +179,13 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     @Override
     public void doCollect() throws Exception {
         // start collect
-        CollectorContext collectorContext = new CollectorContext().searchContext(searchContext);
+        CollectorContext collectorContext = new CollectorContext()
+                .searchContext(searchContext)
+                .visitor(fieldsVisitor);
         for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
+        visitorEnabled = fieldsVisitor.required();
         SearchContext.setCurrent(searchContext);
         Query query = searchContext.query();
         if (query == null) {
@@ -139,6 +198,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         } finally {
             searchContext.release();
             SearchContext.removeCurrent();
+            downstream.upstreamFinished();
         }
     }
 }

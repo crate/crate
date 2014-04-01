@@ -19,19 +19,38 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation;
+package io.crate.operation.reference.doc;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.DataType;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.operation.collect.LuceneDocCollector;
+import org.apache.lucene.util.BytesRef;
 
+public class RawCollectorExpression extends
+        LuceneCollectorExpression<BytesRef> implements ColumnReferenceExpression {
 
-public interface DownstreamOperation extends ProjectorUpstream {
+    public static final String COLUMN_NAME = DocSysColumns.RAW.name();
 
-    /**
-     * add more rows to merge
-     * implementation needs to make sure that this operation is thread-safe
-     */
-    public boolean addRows(Object[][] rows) throws Exception;
-    public int numUpstreams();
-    public void finished();
-    public ListenableFuture<Object[][]> result();
+    private LuceneDocCollector.CollectorFieldsVisitor visitor;
+
+    @Override
+    public void startCollect(CollectorContext context) {
+        context.visitor().required(true);
+        this.visitor = context.visitor();
+    }
+
+    @Override
+    public DataType returnType() {
+        return DataType.STRING;
+    }
+
+    @Override
+    public BytesRef value() {
+        return visitor.source().toBytesRef();
+    }
+
+    @Override
+    public String columnName() {
+        return COLUMN_NAME;
+    }
 }

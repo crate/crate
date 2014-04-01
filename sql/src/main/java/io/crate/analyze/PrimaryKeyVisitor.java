@@ -21,15 +21,22 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.DataType;
+import io.crate.PartitionName;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.InOperator;
 import io.crate.operation.operator.OrOperator;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 
 import javax.annotation.Nullable;
@@ -53,7 +60,7 @@ import java.util.*;
  *  if any column that is neither primary key, nor _version or clustered by column is encountered
  *  the whole context is invalidated.
  */
-public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, Void> {
+public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, Symbol> {
 
     private static final ImmutableSet<String> logicalBinaryExpressions = ImmutableSet.of(
             AndOperator.NAME, OrOperator.NAME
@@ -65,6 +72,8 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     public static class Context {
 
         private final TableInfo table;
+        private final AbstractDataAnalysis analysis;
+        private Symbol whereClause;
         private final ArrayList<KeyBucket> buckets;
 
         private KeyBucket currentBucket;
@@ -72,12 +81,15 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         public boolean versionInvalid = false;
 
         private List keyLiterals;
+        private List partitionLiterals;
         private Long version;
         private Literal clusteredBy;
         public boolean noMatch = false;
+        public boolean hasPartitionedColumn = false;
 
-        public Context(TableInfo tableInfo) {
-            this.table = tableInfo;
+        public Context(AbstractDataAnalysis analysis) {
+            this.analysis = analysis;
+            this.table = analysis.table();
             this.buckets = new ArrayList<>();
             newBucket();
         }
@@ -99,10 +111,12 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
             return version;
         }
 
+        @Nullable
         public Literal clusteredByLiteral() {
             return clusteredBy;
         }
 
+        @Nullable
         public String clusteredBy() {
             if (clusteredBy != null) {
                 return clusteredBy.valueAsString();
@@ -110,8 +124,17 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
             return null;
         }
 
+        @Nullable
+        public List partitionLiterals() {
+            return partitionLiterals;
+        }
+
+        public Symbol whereClause() {
+            return whereClause;
+        }
+
         void newBucket() {
-            currentBucket = new KeyBucket(table.primaryKey().size());
+            currentBucket = new KeyBucket(table.primaryKey().size(), table.partitionedBy().size());
             buckets.add(currentBucket);
         }
 
@@ -119,6 +142,15 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
             if (!versionInvalid && buckets.size() == 1) {
                 version = currentBucket.version;
             }
+            for (KeyBucket bucket : buckets) {
+                if (bucket.partitions.size() > 0) {
+                    if (partitionLiterals == null) {
+                        partitionLiterals = new ArrayList<Literal>();
+                    }
+                    partitionLiterals.addAll(bucket.partitions);
+                }
+            }
+
             if (!invalid) {
                 if (buckets.size() == 1) {
                     clusteredBy = currentBucket.clusteredBy;
@@ -126,6 +158,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                     if (currentBucket.partsFound == table.primaryKey().size()) {
                         keyLiterals = Lists.newArrayList(currentBucket.keyParts);
                     }
+
                 } else if (table.primaryKey().size() == 1) {
                     Set<Literal> keys = new HashSet<>();
                     DataType keyType = DataType.NULL;
@@ -176,18 +209,22 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         private final Literal[] keyParts;
         Long version;
         public Literal clusteredBy;
+        private Set<Literal> partitions;
+        private Literal[] partitionColumnParts;
         public int partsFound = 0;
 
-        KeyBucket(int numKeys) {
+        KeyBucket(int numKeys, int numPartitionColumns) {
             keyParts = new Literal[numKeys];
+            partitionColumnParts = new Literal[numPartitionColumns];
+            partitions = new HashSet<>();
         }
     }
 
     @Nullable
-    public Context process(TableInfo table, Symbol whereClause) {
-        if (table.primaryKey().size() > 0 || table.clusteredBy() != null) {
-            Context context = new Context(table);
-            process(whereClause, context);
+    public Context process(AbstractDataAnalysis analysis, Symbol whereClause) {
+        if (analysis.table().primaryKey().size() > 0 || analysis.table().clusteredBy() != null || analysis.table().partitionedBy().size() > 0) {
+            Context context = new Context(analysis);
+            context.whereClause = process(whereClause, context);
             context.finish();
             return context;
         }
@@ -195,10 +232,11 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     }
 
     @Override
-    public Void visitReference(Reference reference, Context context) {
+    public Symbol visitReference(Reference reference, Context context) {
         String columnName = reference.info().ident().columnIdent().name();
         if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
-            return invalidate(context);
+            invalidate(context);
+            return reference;
         }
 
         // where booleanCol; can be handled like: where booleanCol = true;
@@ -212,31 +250,36 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
             }
         }
 
-        return null;
+        return reference;
     }
 
     @Override
-    public Void visitFunction(Function function, Context context) {
+    public Function visitFunction(Function function, Context context) {
         String functionName = function.info().ident().name();
         if (logicalBinaryExpressions.contains(functionName)) {
-            return continueTraversal(function, context);
-        }
-        if (!PK_COMPARISONS.contains(functionName)) {
-            return invalidate(context);
+            function = continueTraversal(function, context);
+            return function;
         }
 
-        assert function.arguments().size() == 2; // pk comparison functions can't have more than 2
+        assert function.arguments().size() > 0;
         Symbol left = function.arguments().get(0);
-        Symbol right = function.arguments().get(1);
+        Symbol right = null;
 
-        if (left.symbolType() != SymbolType.REFERENCE || !right.symbolType().isLiteral()) {
-            return invalidate(context);
+        if (function.arguments().size() > 1) {
+            right = function.arguments().get(1);
+        }
+
+        if (left.symbolType() != SymbolType.REFERENCE
+                || (right != null && !right.symbolType().isLiteral())) {
+            invalidate(context);
+            return function;
         }
 
         Reference reference = (Reference)left;
         String columnName = reference.info().ident().columnIdent().name();
         if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
-            return invalidate(context);
+            invalidate(context);
+            return function;
         }
 
         boolean clusteredBySet = false;
@@ -247,18 +290,32 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
             }
             if (columnName.equals("_version")) {
                 setVersion(context, right);
-                return null;
+                return function;
             }
         }
 
         int idx = context.table.primaryKey().indexOf(columnName);
-        if (idx < 0 && !clusteredBySet) {
-            // do not return here, as we might be searching for version
+        int partitionIdx = context.table.partitionedBy().indexOf(columnName);
+
+        if (idx < 0 && !clusteredBySet && partitionIdx < 0 && !context.hasPartitionedColumn) {
             invalidate(context);
-        } else if (idx >= 0) {
-            setPrimaryKey(context, (Literal)right, idx);
+            return function;
         }
-        return null;
+        if (idx >= 0 && PK_COMPARISONS.contains(functionName)) {
+            setPrimaryKey(context, (Literal)right, idx);
+        } else if (idx >= 0) {
+            // unsupported pk comparison
+            invalidate(context);
+        }
+        if (partitionIdx >= 0) {
+            context.hasPartitionedColumn = true;
+            boolean matched = setPartitionedBy(context, (Literal)right, partitionIdx, function.info().ident());
+            // rewrite current function so it can be normalized to true or false
+            List<Symbol> booleanSymbols = ImmutableList.<Symbol>of(BooleanLiteral.TRUE, new BooleanLiteral(matched));
+            FunctionInfo info = context.analysis.getFunctionInfo(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.BOOLEAN, DataType.BOOLEAN)));
+            function = context.analysis.allocateFunction(info, booleanSymbols);
+        }
+        return function;
     }
 
     private void setPrimaryKey(Context context, Literal right, int idx) {
@@ -293,6 +350,81 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         }
     }
 
+    private boolean setPartitionedBy(Context context, Literal right, int idx, FunctionIdent functionIdent) {
+        boolean matched = false;
+        if (context.currentBucket.partitionColumnParts[idx] == null) {
+            context.currentBucket.partitionColumnParts[idx] = right;
+            matched = evaluatePartitionedBy(context, right, idx, functionIdent);
+        } else if (!context.currentBucket.partitionColumnParts[idx].equals(right)) {
+            if (context.currentBucket.partitionColumnParts[idx] instanceof SetLiteral) {
+                SetLiteral intersection;
+                if (right instanceof SetLiteral) {
+                    intersection = ((SetLiteral) context.currentBucket.partitionColumnParts[idx]).intersection((SetLiteral) right);
+                } else {
+                    intersection = ((SetLiteral) context.currentBucket.partitionColumnParts[idx])
+                            .intersection(SetLiteral.fromLiterals(right.valueType(), Sets.newHashSet(right)));
+                }
+
+                if (intersection.size() > 0) {
+                    context.currentBucket.partitionColumnParts[idx] = intersection;
+                    return matched;
+                }
+            }
+
+            /**
+             * if we get to this point we've had something like
+             *      where partitionCol = 1 and partitionCol = 2
+             * or
+             *      where partitionCol in (1, 2) and partitionCol = 3
+             *
+             * which can never match so the query doesn't need to be executed.
+             */
+            context.noMatch = true;
+        }
+        return matched;
+    }
+
+    private boolean evaluatePartitionedBy(Context context, Literal right, int idx,
+                                          FunctionIdent ident) {
+        boolean matched = false;
+        Scalar functionImpl;
+        try {
+            functionImpl = (Scalar) context.analysis.getFunctionImplementation(ident);
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "Unsupported function '%s' where only scalars are valid", ident.name()));
+        }
+
+        DataType dataType = right != null ? right.valueType() : DataType.NULL;
+        if (DataType.SET_TYPES.contains(dataType)) {
+            dataType = DataType.REVERSE_SET_TYPE_MAP.get(dataType);
+        }
+
+        Set<Literal> partitions = context.currentBucket.partitions;
+        for (PartitionName partitionName : context.table.partitions()) {
+            String leftValue = partitionName.values().get(idx);
+            Literal left = leftValue != null ? new StringLiteral(leftValue) : null;
+            if (left != null && dataType != DataType.NULL) {
+                // TODO: convert to defined type
+                left = left.convertTo(dataType);
+            }
+
+            boolean result = false;
+            if (ident.argumentTypes().size() == 1) {
+                result = (boolean) functionImpl.evaluate(left);
+            } else if (left != null) {
+                result = (boolean) functionImpl.evaluate(left, right);
+            }
+
+            if (result) {
+                Literal literal = new StringLiteral(partitionName.stringValue());
+                partitions.add(literal);
+                matched = true;
+            }
+        }
+        return matched;
+    }
+
     private void setClusterBy(Context context, Literal right) {
         if (context.currentBucket.clusteredBy == null) {
             context.currentBucket.clusteredBy = right;
@@ -311,7 +443,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         return null;
     }
 
-    private void setVersion(Context context, Symbol right) {
+    private boolean setVersion(Context context, Symbol right) {
         Long version;
         switch (right.symbolType()) {
             case LONG_LITERAL:
@@ -330,19 +462,43 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         } else {
             context.currentBucket.version = version;
         }
+        return false;
     }
 
-    private Void continueTraversal(Function symbol, Context context) {
+    private Function continueTraversal(Function symbol, Context context) {
         String functionName = symbol.info().ident().name();
 
         boolean newBucket = true;
+        int argumentsProcessed = 0;
         for (Symbol argument : symbol.arguments()) {
-            process(argument, context);
+            // TODO: remove this check if we are able to run normal search queries without ESSearch
+            // Just now, we would have to execute 2 separate ESSearch tasks and merge results
+            // which is not supported right now and maybe never will be
+            if (functionName.equals(OrOperator.NAME)
+                    && argument.symbolType() == SymbolType.FUNCTION) {
+                Function function = (Function)argument;
+                // Query is already normalized in order to put the Reference always on left
+                if (function.arguments().get(0).symbolType() == SymbolType.REFERENCE) {
+                    Reference left = (Reference) function.arguments().get(0);
+                    if ((context.hasPartitionedColumn && left.info().granularity() != RowGranularity.TABLE)
+                            || (argumentsProcessed > 0 && !context.hasPartitionedColumn
+                            && left.info().granularity() == RowGranularity.TABLE)) {
+                        throw new UnsupportedFeatureException("Using a partitioned column and a " +
+                                "normal column inside an OR clause is currently not supported");
+                    }
+                }
+            }
+            Symbol argumentNew = process(argument, context);
+            if (!argument.equals(argumentNew)) {
+                symbol.setArgument(argumentsProcessed, argumentNew);
+            }
             if (newBucket && functionName.equals(OrOperator.NAME)) {
                 newBucket = false;
                 context.newBucket();
             }
+            argumentsProcessed++;
         }
-        return null;
+        return symbol;
     }
+
 }

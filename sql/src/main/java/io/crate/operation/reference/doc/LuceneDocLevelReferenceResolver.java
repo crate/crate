@@ -21,10 +21,11 @@
 
 package io.crate.operation.reference.doc;
 
+import io.crate.exceptions.CrateException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
-import io.crate.exceptions.CrateException;
 
 public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolver<LuceneCollectorExpression<?>> {
 
@@ -35,8 +36,20 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
 
     @Override
     public LuceneCollectorExpression<?> getImplementation(ReferenceInfo referenceInfo) {
-        String colName = referenceInfo.ident().columnIdent().fqn();
         assert referenceInfo.granularity() == RowGranularity.DOC;
+
+        if (RawCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())){
+            if (referenceInfo.ident().columnIdent().isColumn()){
+                return new RawCollectorExpression();
+            } else {
+                // TODO: implement an Object source expression which may support subscripts
+                throw new UnsupportedFeatureException(
+                        String.format("_source expression does not support subscripts %",
+                        referenceInfo.ident().columnIdent().fqn()));
+            }
+        }
+
+        String colName = referenceInfo.ident().columnIdent().fqn();
 
         switch (referenceInfo.type()) {
             case BYTE:

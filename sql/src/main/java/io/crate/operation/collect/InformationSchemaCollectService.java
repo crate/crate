@@ -148,20 +148,21 @@ public class InformationSchemaCollectService implements CollectService {
 
         private final List<Input<?>> inputs;
         private final List<InformationCollectorExpression<R, ?>> collectorExpressions;
-        private final Projector downStream;
+        private Projector downstream;
         private final Iterable<R> rows;
         private final Input<Boolean> condition;
 
         protected InformationSchemaCollector(List<Input<?>> inputs,
                                              List<InformationCollectorExpression<R, ?>> collectorExpressions,
-                                             Projector downStream,
+                                             Projector downstream,
                                              Iterable<R> rows,
                                              Input<Boolean> condition) {
             this.inputs = inputs;
             this.collectorExpressions = collectorExpressions;
-            this.downStream = downStream;
             this.rows = rows;
             this.condition = condition;
+            assert downstream != null;
+            downstream(downstream);
         }
 
         @Override
@@ -173,18 +174,31 @@ public class InformationSchemaCollectService implements CollectService {
                 if (!condition.value()) {
                     // no match
                     continue;
-                }
+               }
 
                 Object[] newRow = new Object[inputs.size()];
                 int i = 0;
                 for (Input<?> input : inputs) {
                     newRow[i++] = input.value();
                 }
-                if (!downStream.setNextRow(newRow)) {
+                if (!downstream.setNextRow(newRow)) {
                     // no more rows required, we can stop here
+                    downstream.upstreamFinished();
                     throw new CollectionTerminatedException();
                 }
             }
+            downstream.upstreamFinished();
+        }
+
+        @Override
+        public void downstream(Projector downstream) {
+            downstream.registerUpstream(this);
+            this.downstream = downstream;
+        }
+
+        @Override
+        public Projector downstream() {
+            return downstream;
         }
     }
 

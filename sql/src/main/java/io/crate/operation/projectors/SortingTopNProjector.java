@@ -23,25 +23,24 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
-import io.crate.operation.Input;
-import io.crate.operation.collect.CollectExpression;
-import org.apache.lucene.util.PriorityQueue;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.core.collections.ArrayIterator;
+import io.crate.operation.Input;
+import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.collect.CollectExpression;
+import org.apache.lucene.util.PriorityQueue;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Projector used for sorted limit and offset queries
- *
- * storing rows in a sorted PriorityQueue.
- * Passes rows over to upStresm projector in {@link SortingTopNProjector#finishProjection()} phase.
- */
-public class SortingTopNProjector extends AbstractProjector {
+public class SortingTopNProjector implements Projector, ResultProvider {
+
 
     class RowPriorityQueue extends PriorityQueue<Object[]> {
 
@@ -90,14 +89,16 @@ public class SortingTopNProjector extends AbstractProjector {
     }
 
 
-    private final int start;
-    private final int end;
+    private final int offset;
+    private final int maxSize;
     private final int numOutputs;
 
     private RowPriorityQueue pq;
-    private final AtomicInteger collected = new AtomicInteger(0);
     private final Comparator[] comparators;
-    private Object[][] result = Constants.EMPTY_RESULT;
+    private final Input<?>[] inputs;
+    private final CollectExpression<?>[] collectExpressions;
+    private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
+    private final SettableFuture<Object[][]> result = SettableFuture.create();
 
     /**
      * @param inputs             contains output {@link io.crate.operation.Input}s and orderBy {@link io.crate.operation.Input}s
@@ -108,21 +109,22 @@ public class SortingTopNProjector extends AbstractProjector {
      * @param limit              the number of rows to gather, pass to upStream
      * @param offset             the initial offset, this number of rows are skipped
      */
-    public SortingTopNProjector(Input<?>[] inputs, CollectExpression<?>[] collectExpressions,
+    public SortingTopNProjector(Input<?>[] inputs,
+                                CollectExpression<?>[] collectExpressions,
                                 int numOutputs,
                                 int[] orderBy, boolean[] reverseFlags,
                                 int limit, int offset) {
-        super(inputs, collectExpressions);
         Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
         Preconditions.checkArgument(offset >= 0, "invalid offset");
-        this.start = offset;
+        this.inputs = inputs;
+        this.numOutputs = numOutputs;
+        this.collectExpressions = collectExpressions;
+        this.offset = offset;
+
         if (limit == TopN.NO_LIMIT) {
             limit = Constants.DEFAULT_SELECT_LIMIT;
         }
-        this.end = this.start + limit;
-
-        this.numOutputs = numOutputs;
-
+        this.maxSize = this.offset + limit;
         comparators = new Comparator[orderBy.length];
         for (int i = 0; i < orderBy.length; i++) {
             int col = orderBy[i];
@@ -133,13 +135,26 @@ public class SortingTopNProjector extends AbstractProjector {
 
     @Override
     public void startProjection() {
-        collected.set(0);
-        pq = new RowPriorityQueue(end);
+        pq = new RowPriorityQueue(maxSize);
+        if (remainingUpstreams.get() <= 0) {
+            upstreamFinished();
+            return;
+        }
     }
 
     @Override
     public synchronized boolean setNextRow(Object... row) {
-        collected.incrementAndGet();
+        Object[] evaluatedRow = evaluateRow(row);
+        pq.insertWithOverflow(evaluatedRow);
+        return true;
+    }
+
+    @Override
+    public void registerUpstream(ProjectorUpstream upstream) {
+        remainingUpstreams.incrementAndGet();
+    }
+
+    private Object[] evaluateRow(Object[] row) {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
@@ -148,43 +163,58 @@ public class SortingTopNProjector extends AbstractProjector {
         for (Input<?> input : inputs) {
             evaluatedRow[i++] = input.value();
         }
-        pq.insertWithOverflow(evaluatedRow);
-        return true;
+        return evaluatedRow;
     }
 
     @Override
-    public void finishProjection() {
-        final int resultSize = Math.max(pq.size() - start, 0);
-        if (downStream.isPresent()) {
-            // pass rows to downStream
-            Projector projector = downStream.get();
-
-            projector.startProjection();
-            for (int i = (resultSize - 1); i >= 0; i--) {
-                Object[] row = Arrays.copyOfRange(pq.pop(), 0, numOutputs); // strip order by inputs
-                if (!projector.setNextRow(row)) {
-                    break;
-                }
-            }
-            projector.finishProjection();
-        } else {
-            // store result-array in local buffer
-            result = new Object[resultSize][];
-            for (int i = resultSize - 1; i >= 0; i--) {
-                result[i] = Arrays.copyOfRange(pq.pop(), 0, numOutputs); // strip order by inputs
-            }
+    public void upstreamFinished() {
+        if (remainingUpstreams.decrementAndGet() <= 0) {
+            generateResult();
         }
+    }
+
+    @Override
+    public void upstreamFailed(Throwable throwable) {
+        if (remainingUpstreams.decrementAndGet() <= 0) {
+            result.setException(throwable);
+        }
+    }
+
+    private void generateResult() {
+        final int resultSize = Math.max(pq.size() - offset, 0);
+        Object[][] rows = new Object[resultSize][];
+        for (int i = resultSize - 1; i >= 0; i--) {
+            rows[i] = Arrays.copyOfRange(pq.pop(), 0, numOutputs); // strip order by inputs
+        }
+        result.set(rows);
         pq.clear();
     }
 
     @Override
-    public Object[][] getRows() throws IllegalStateException {
+    public ListenableFuture<Object[][]> result() {
         return result;
     }
 
     @Override
-    public Iterator<Object[]> iterator() {
-        return new ArrayIterator(result, 0, result.length);
+    public Iterator<Object[]> iterator() throws IllegalStateException {
+        if (!result.isDone()) {
+            throw new IllegalStateException("result not ready.");
+        }
+        try {
+            return new ArrayIterator(result.get(), 0, result.get().length);
+        } catch (InterruptedException | ExecutionException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
+    @Override
+    public void downstream(Projector downstream) {
+        throw new UnsupportedOperationException(
+                "SortingTopNProjector is a ResultProvider. Doesn't support downstreams");
+    }
+
+    @Override
+    public Projector downstream() {
+        return null;
+    }
 }

@@ -21,6 +21,8 @@
 
 package io.crate.executor.transport.distributed;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operation.DownstreamOperation;
@@ -44,12 +46,24 @@ public class DownstreamOperationContext {
     private final Object lock = new Object();
 
     public DownstreamOperationContext(DownstreamOperation downstreamOperation,
-                                      SettableFuture<Object[][]> listener,
+                                      final SettableFuture<Object[][]> listener,
                                       Streamer<?>[] streamers,
                                       DistributedRequestContextManager.DoneCallback doneCallback) {
         this.mergeOperationsLeft = new AtomicInteger(downstreamOperation.numUpstreams());
         this.downstreamOperation = downstreamOperation;
         this.listener = listener;
+        Futures.addCallback(downstreamOperation.result(), new FutureCallback<Object[][]>() {
+            @Override
+            public void onSuccess(@Nullable Object[][] result) {
+                listener.set(result);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                listener.setException(t);
+
+            }
+        });
         this.streamers = streamers;
         this.doneCallback = doneCallback;
     }
@@ -66,6 +80,7 @@ public class DownstreamOperationContext {
         } finally {
             if (mergeOperationsLeft.decrementAndGet() == 0) {
                 doneCallback.finished();
+                downstreamOperation.finished();
             }
         }
     }
@@ -86,12 +101,7 @@ public class DownstreamOperationContext {
 
         if (mergeOperationsLeft.decrementAndGet() == 0) {
             doneCallback.finished();
-            try {
-                listener.set(downstreamOperation.result());
-            } catch (Exception e) {
-                logger.error("failed to get downstreamOperation result", e);
-                listener.setException(e);
-            }
+            downstreamOperation.finished();
         }
     }
 

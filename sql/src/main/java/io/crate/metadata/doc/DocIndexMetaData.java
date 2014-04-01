@@ -181,7 +181,7 @@ public class DocIndexMetaData {
     private ReferenceInfo newInfo(ColumnIdent column, DataType type, ReferenceInfo.ObjectType objectType) {
         RowGranularity granularity = RowGranularity.DOC;
         if (partitionedBy.contains(column.name())) {
-            granularity = RowGranularity.INDEX;
+            granularity = RowGranularity.TABLE;
         }
         return new ReferenceInfo(new ReferenceIdent(ident, column), granularity, type, objectType);
     }
@@ -342,14 +342,16 @@ public class DocIndexMetaData {
     private ImmutableList<String> getPartitionedBy() {
         Map<String, Object> metaMap = (Map<String, Object>) defaultMappingMap.get("_meta");
         if (metaMap != null) {
-            ImmutableList.Builder<String> builder = ImmutableList.builder();
             List<List<String>> pKeys = (List)metaMap.get("partitioned_by");
-            for (List<String> partitionedByInfo : pKeys) {
-                builder.add(partitionedByInfo.get(0));
+            if (pKeys != null) {
+                ImmutableList.Builder<String> builder = ImmutableList.builder();
+                for (List<String> partitionedByInfo : pKeys) {
+                    builder.add(partitionedByInfo.get(0));
+                }
+                return builder.build();
             }
-            return builder.build();
         }
-        return ImmutableList.of("");
+        return ImmutableList.of();
     }
 
     @SuppressWarnings("unchecked")

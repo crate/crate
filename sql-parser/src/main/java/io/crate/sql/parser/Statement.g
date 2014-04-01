@@ -462,8 +462,8 @@ qnameOrFunction
     ;
 
 numericLiteral
-    : '+'? number
-    | '-' number
+    : '+'? number -> number
+    | '-' number  -> ^(NEGATIVE number)
     ;
 
 parameterExpr

@@ -87,6 +87,18 @@ public class LocalMergeTask implements Task<Object[][]> {
         final MergeOperation mergeOperation = new MergeOperation(symbolVisitor, mergeNode);
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
 
+        Futures.addCallback(mergeOperation.result(), new FutureCallback<Object[][]>() {
+            @Override
+            public void onSuccess(@Nullable Object[][] rows) {
+                result.set(rows);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
+        });
+
         for (final ListenableFuture<Object[][]> upstreamResult : upstreamResults) {
             Futures.addCallback(upstreamResult, new FutureCallback<Object[][]>() {
                 @Override
@@ -104,17 +116,7 @@ public class LocalMergeTask implements Task<Object[][]> {
                     }
 
                     if (countdown.decrementAndGet() == 0 || !shouldContinue) {
-                        Object[][] mergeResult;
-                        try {
-                            mergeResult = mergeOperation.result();
-                        } catch (Exception e) {
-                            result.setException(e);
-                            logger.error("Failed to get merge result", e);
-                            return;
-                        }
-
-                        assert mergeResult != null;
-                        result.set(mergeResult);
+                        mergeOperation.finished();
                     }
                 }
 

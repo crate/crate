@@ -21,9 +21,14 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.operation.ProjectorUpstream;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A projector which simply collects any rows it gets and makes them available afterwards.
@@ -31,22 +36,32 @@ import java.util.List;
  * there are no other projectors in a chain but the result needs to be fetched at once after all
  * upstreams provided their rows.
  */
-public class CollectingProjector implements Projector {
+public class CollectingProjector implements ResultProvider, Projector {
 
+    private final AtomicInteger upstreamsRemaining;
     public List<Object[]> rows = new ArrayList<>();
+    private SettableFuture<Object[][]> result = SettableFuture.create();
 
+    public CollectingProjector() {
+        this.upstreamsRemaining = new AtomicInteger(0);
+    }
+
+    // TODO: further split Projector interface so that this projector doesn't have downstream / setDownstream
     @Override
-    public void setDownStream(Projector downStream) {
-        throw new UnsupportedOperationException("downstreams not supported by this projector");
+    public void downstream(Projector downstream) {
     }
 
     @Override
-    public Projector getDownstream() {
+    public Projector downstream() {
         return null;
     }
 
     @Override
-    public void startProjection() {}
+    public void startProjection() {
+        if (upstreamsRemaining.get() <= 0) {
+            upstreamFinished();
+        }
+    }
 
     @Override
     public synchronized boolean setNextRow(Object... row) {
@@ -55,15 +70,34 @@ public class CollectingProjector implements Projector {
     }
 
     @Override
-    public void finishProjection() {}
-
-    @Override
-    public Object[][] getRows() throws IllegalStateException {
-        return rows.toArray(new Object[rows.size()][]);
+    public void registerUpstream(ProjectorUpstream upstream) {
+        upstreamsRemaining.incrementAndGet();
     }
 
     @Override
-    public Iterator<Object[]> iterator() {
+    public void upstreamFinished() {
+        if (upstreamsRemaining.decrementAndGet() <= 0) {
+            result.set(rows.toArray(new Object[rows.size()][]));
+        }
+    }
+
+    @Override
+    public void upstreamFailed(Throwable throwable) {
+        if (upstreamsRemaining.decrementAndGet() <= 0) {
+            result.setException(throwable);
+        }
+    }
+
+    @Override
+    public ListenableFuture<Object[][]> result() {
+        return result;
+    }
+
+    @Override
+    public Iterator<Object[]> iterator() throws IllegalStateException {
+        if (!result.isDone()) {
+            throw new IllegalStateException("result not ready yet");
+        }
         return rows.iterator();
     }
 }

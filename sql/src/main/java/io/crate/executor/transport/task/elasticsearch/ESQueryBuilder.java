@@ -120,8 +120,7 @@ public class ESQueryBuilder {
             if (columnIdent.isSystemColumn()){
                 if (DocSysColumns.VERSION.equals(columnIdent)){
                     builder.field("version", true);
-                }
-                else if (DocSysColumns.SOURCE.equals(columnIdent)){
+                } else if (DocSysColumns.RAW.equals(columnIdent)|| DocSysColumns.DOC.equals(columnIdent)){
                     needWholeSource = true;
                 }
             } else {

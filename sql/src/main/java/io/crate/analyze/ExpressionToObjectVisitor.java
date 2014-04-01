@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+
 import io.crate.sql.tree.*;
 
 import java.util.Locale;
@@ -48,8 +49,26 @@ class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
     }
 
     @Override
+    protected Object visitDoubleLiteral(DoubleLiteral node, Object[] context) {
+        return node.getValue();
+    }
+
+    @Override
     protected String visitSubscriptExpression(SubscriptExpression node, Object[] context) {
         return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), null), process(node.index(), null));
+    }
+
+    @Override
+    protected Object visitNegativeExpression(NegativeExpression node, Object[] context) {
+        Object o = process(node.getValue(), context);
+        if (o instanceof Long) {
+            return -1L * (Long)o;
+        } else if (o instanceof Double) {
+            return -1 * (Double)o;
+        } else {
+            throw new UnsupportedOperationException(
+                    String.format("Can't handle negative of %s.", node.getValue()));
+        }
     }
 
     @Override

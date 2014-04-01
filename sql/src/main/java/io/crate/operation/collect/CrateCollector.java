@@ -21,11 +21,24 @@
 
 package io.crate.operation.collect;
 
-public interface CrateCollector {
+import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.projectors.Projector;
+
+public interface CrateCollector extends ProjectorUpstream {
 
     public static final CrateCollector NOOP = new CrateCollector() {
         @Override
         public void doCollect() {
+        }
+
+        @Override
+        public void downstream(Projector downstream) {
+            downstream.registerUpstream(this);
+        }
+
+        @Override
+        public Projector downstream() {
+            return null;
         }
     };
 

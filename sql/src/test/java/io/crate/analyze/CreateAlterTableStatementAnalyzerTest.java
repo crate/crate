@@ -595,4 +595,11 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "name string" +
                 ")");
     }
+
+    @Test
+    public void createTableNegativeReplicas() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
+                "create table t (id int, name string) with (number_of_replicas=-1)");
+        assertThat(analysis.indexSettings().getAsInt("number_of_replicas", 0), is(-1));
+    }
 }

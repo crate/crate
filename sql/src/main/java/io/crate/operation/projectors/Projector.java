@@ -21,26 +21,17 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.operation.ProjectorUpstream;
+
 /**
  * executing a Projection
  */
-public interface Projector extends Iterable<Object[]> {
-
-    /**
-     * set the Projector to hand over the projected rows.
-     * If no downstream Projector was set, rows are simply gathered.
-     *
-     * @param downStream the Projector to hand over projected rows
-     */
-    public void setDownStream(Projector downStream);
-
-    public Projector getDownstream();
+public interface Projector extends ProjectorUpstream {
 
     /**
      * initialize anything needed for proper projecting the projection
      */
     public void startProjection();
-
 
     /**
      * feed this Projector with the next input row.
@@ -54,17 +45,17 @@ public interface Projector extends Iterable<Object[]> {
      */
     public boolean setNextRow(Object ... row);
 
+    public void registerUpstream(ProjectorUpstream upstream);
 
     /**
-     * finish the projection. if rows had to be gathered,
-     * process them to the downStream Projectors.
+     * Has to be called from upstream projectors to indicate that they sent all rows.
+     * After this has been called a upstream projector must not send any more rows to the downstream.
      */
-    public void finishProjection();
+    public void upstreamFinished();
 
     /**
-     * finally, return all collected rows.
-     * @return
-     * @throws java.lang.IllegalStateException if this Projector is not done yet or the projector has a downstream.
+     * Has to be called by the upstream if an exception occurred.
+     * Should be called once the upstream is finished with any other concurrently running actions.
      */
-    public Object[][] getRows() throws IllegalStateException;
+    public void upstreamFailed(Throwable throwable);
 }
