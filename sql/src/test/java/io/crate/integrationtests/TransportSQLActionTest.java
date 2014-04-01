@@ -3007,4 +3007,36 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     }
 
+    @Test
+    public void testUpdatePartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        ensureGreen();
+        refresh();
+
+        execute("update quotes set quote = ? where timestamp = ?",
+                new Object[]{"I'd far rather be happy than right any day.", 1395874800000L});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select id, quote from quotes where timestamp = 1395874800000");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1, response.rows()[0][0]);
+        assertEquals("I'd far rather be happy than right any day.", response.rows()[0][1]);
+
+        execute("update quotes set quote = ?",
+                new Object[]{"Don't panic"});
+        assertEquals(2L, response.rowCount());
+        refresh();
+
+        execute("select id, quote from quotes where quote = ?",
+                new Object[]{"Don't panic"});
+        assertEquals(2L, response.rowCount());
+    }
+
 }

@@ -72,7 +72,8 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
 
     private SearchRequest buildRequest(ESUpdateNode node) {
 
-        SearchRequest searchRequest = new SearchRequest(node.index());
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.indices(node.indices());
         searchRequest.types(Constants.DEFAULT_MAPPING_TYPE);
         searchRequest.preference("_primary");
 
