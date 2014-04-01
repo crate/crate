@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import io.crate.executor.Executor;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import org.elasticsearch.common.inject.AbstractModule;
 
@@ -28,7 +29,7 @@ public class TransportExecutorModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(TransportExecutor.class).asEagerSingleton();
+        bind(Executor.class).to(TransportExecutor.class).asEagerSingleton();
         bind(TransportCollectNodeAction.class).asEagerSingleton();
         bind(TransportMergeNodeAction.class).asEagerSingleton();
     }

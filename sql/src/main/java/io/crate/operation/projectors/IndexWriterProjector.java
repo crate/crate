@@ -21,7 +21,10 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import io.crate.Constants;
+import io.crate.Id;
 import io.crate.exceptions.CrateException;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
@@ -35,6 +38,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -46,25 +50,28 @@ public class IndexWriterProjector implements Projector {
     private final Listener listener;
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final CollectExpression<?>[] collectExpressions;
-    private final Input<?> idInput;
+    private final List<Input<?>> idInputs;
     private final Input<?> sourceInput;
     private final Input<?> routingInput;
     private final String tableName;
     private final Object lock = new Object();
+    private final List<String> primaryKeys;
     private Projector downstream;
 
     public IndexWriterProjector(Client client,
                                 String tableName,
-                                Input<?> idInput,
-                                @Nullable Input<?> routingInput,
+                                List<String> primaryKeys,
+                                List<Input<?>> idInputs,
+                                Input<?> routingInput,
                                 Input<?> sourceInput,
                                 CollectExpression<?>[] collectExpressions,
                                 @Nullable Integer bulkActions,
                                 @Nullable Integer concurrency) {
         listener = new Listener();
         this.tableName = tableName;
+        this.primaryKeys = primaryKeys;
         this.collectExpressions = collectExpressions;
-        this.idInput = idInput;
+        this.idInputs = idInputs;
         this.routingInput = routingInput;
         this.sourceInput = sourceInput;
         BulkProcessor.Builder builder = BulkProcessor.builder(client, listener);
@@ -128,14 +135,19 @@ public class IndexWriterProjector implements Projector {
     private IndexRequest buildRequest() {
         // TODO: reuse logic that is currently  in AbstractESIndexTask
         IndexRequest indexRequest = new IndexRequest(tableName, Constants.DEFAULT_MAPPING_TYPE);
-        indexRequest.source(((BytesRef)sourceInput.value()).bytes, true);
-        indexRequest.id(idInput.value().toString());
-        indexRequest.create(true);
-        indexRequest.opType(IndexRequest.OpType.CREATE);
+        indexRequest.source(((BytesRef)sourceInput.value()).bytes);
 
-        if (routingInput != null) {
-            indexRequest.routing(routingInput.value().toString());
-        }
+        List<String> primaryKeyValues = Lists.transform(idInputs, new Function<Input<?>, String>() {
+            @Nullable
+            @Override
+            public String apply(Input<?> input) {
+                return input.value().toString();
+            }
+        });
+        String clusteredBy = routingInput.value().toString();
+        Id id = new Id(primaryKeys, primaryKeyValues, clusteredBy, true);
+        indexRequest.id(id.stringValue());
+        indexRequest.routing(clusteredBy);
         return indexRequest;
     }
 

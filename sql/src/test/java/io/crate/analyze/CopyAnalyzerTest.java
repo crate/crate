@@ -28,8 +28,8 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.StringLiteral;
-import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -70,7 +70,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyFromExistingTable() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy users from '/some/distant/file.ext'");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(analysis.uri(), is((Symbol)new StringLiteral("/some/distant/file.ext")));
+        assertThat(((Literal)analysis.uri()).valueAsString(), is("/some/distant/file.ext"));
     }
 
     @Test( expected = TableUnknownException.class)
@@ -98,7 +98,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         String path = "/some/distant/file.ext";
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy users from ?", new Object[]{path});
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(((StringLiteral)analysis.uri()).valueAsString(), is(path));
+        assertThat(((Literal)analysis.uri()).valueAsString(), is(path));
     }
 
     @Test( expected = IllegalArgumentException.class )

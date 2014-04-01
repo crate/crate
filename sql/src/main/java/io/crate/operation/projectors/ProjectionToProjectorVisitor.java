@@ -30,6 +30,9 @@ import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.SymbolType;
+import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.inject.Injector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,18 +41,21 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
 
     private final ImplementationSymbolVisitor symbolVisitor;
     private final EvaluatingNormalizer normalizer;
+    private final Injector injector;
 
     public Projector process(Projection projection) {
         return process(projection, null);
     }
 
-    public ProjectionToProjectorVisitor(ImplementationSymbolVisitor symbolVisitor, EvaluatingNormalizer normalizer) {
+    public ProjectionToProjectorVisitor(Injector injector, ImplementationSymbolVisitor symbolVisitor,
+            EvaluatingNormalizer normalizer) {
+        this.injector = injector;
         this.symbolVisitor = symbolVisitor;
         this.normalizer = normalizer;
     }
 
-    public ProjectionToProjectorVisitor(ImplementationSymbolVisitor symbolVisitor) {
-        this(symbolVisitor, new EvaluatingNormalizer(
+    public ProjectionToProjectorVisitor(Injector injector, ImplementationSymbolVisitor symbolVisitor) {
+        this(injector, symbolVisitor, new EvaluatingNormalizer(
                 symbolVisitor.functions(), symbolVisitor.rowGranularity(), symbolVisitor.referenceResolver()));
     }
 
@@ -137,5 +143,26 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 projection.settings()
         );
         return projector;
+    }
+
+    public Projector visitIndexWriterProjection(IndexWriterProjection projection, Void context) {
+        ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
+        List<Input<?>> idInputs = new ArrayList<>();
+        for (Symbol idSymbol : projection.ids()) {
+            idInputs.add(symbolVisitor.process(idSymbol, symbolContext));
+        }
+        Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
+        Input<?> clusteredBy = symbolVisitor.process(projection.clusteredBy(), symbolContext);
+        return new IndexWriterProjector(
+                injector.getInstance(Client.class),
+                projection.tableName(),
+                projection.primaryKeys(),
+                idInputs,
+                clusteredBy,
+                sourceInput,
+                symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
+                projection.bulkActions(),
+                projection.concurrency()
+        );
     }
 }

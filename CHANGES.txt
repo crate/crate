@@ -5,6 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed regex pattern support in the `COPY <table> FROM` statement.
+
+ - removed support for variables inside a path in the `COPY <table> FROM`
+   statement.
+
  - feature: added support to set 'refresh_interval' for tables
 
  - fix: AND operator normalization was wrong if one of the arguments is a boolean

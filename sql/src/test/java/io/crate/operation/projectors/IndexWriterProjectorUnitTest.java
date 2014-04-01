@@ -21,10 +21,12 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
 public class IndexWriterProjectorUnitTest {
@@ -39,7 +41,8 @@ public class IndexWriterProjectorUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 null,
                 "bulk_import",
-                idInput,
+                Arrays.<String>asList("id"),
+                Arrays.<Input<?>>asList(idInput),
                 null,
                 sourceInput,
                 collectExpressions,

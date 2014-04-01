@@ -22,6 +22,8 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.Constants;
+import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
@@ -39,8 +41,8 @@ import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.Constants;
-import io.crate.action.SQLXContentQueryParser;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -103,6 +105,7 @@ public class DistributingCollectTest {
             MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
+            bind(Client.class).toInstance(new TransportClient(ImmutableSettings.EMPTY));
 
             DiscoveryNode testNode = mock(DiscoveryNode.class);
             when(testNode.id()).thenReturn(TEST_NODE_ID);

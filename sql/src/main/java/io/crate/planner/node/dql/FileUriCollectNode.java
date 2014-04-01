@@ -39,6 +39,10 @@ public class FileUriCollectNode extends CollectNode {
     private Symbol targetUri;
     private boolean compressed;
 
+    public FileUriCollectNode() {
+
+    }
+
     public FileUriCollectNode(String id,
                               Routing routing,
                               Symbol targetUri,

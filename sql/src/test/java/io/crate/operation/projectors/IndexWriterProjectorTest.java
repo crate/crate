@@ -22,12 +22,15 @@
 package io.crate.operation.projectors;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.client.Client;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static org.hamcrest.core.Is.is;
 
@@ -47,8 +50,9 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 cluster().getInstance(Client.class),
                 "bulk_import",
+                Arrays.asList("id"),
+                Arrays.<Input<?>>asList(idInput),
                 idInput,
-                null,
                 sourceInput,
                 collectExpressions,
                 20,

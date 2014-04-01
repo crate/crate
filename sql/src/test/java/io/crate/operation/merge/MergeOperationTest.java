@@ -21,11 +21,12 @@
 
 package io.crate.operation.merge;
 
+import io.crate.DataType;
 import io.crate.metadata.*;
+import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
-import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
@@ -35,7 +36,6 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
-import io.crate.DataType;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
@@ -53,11 +53,12 @@ public class MergeOperationTest {
     private GroupProjection groupProjection;
     private AggregationFunction<MinimumAggregation.MinimumAggState<Double>> minAggFunction;
     private ImplementationSymbolVisitor symbolVisitor;
+    private Injector injector;
 
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
-        Injector injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
+        injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
         Functions functions = injector.getInstance(Functions.class);
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
         symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
@@ -84,7 +85,7 @@ public class MergeOperationTest {
                 topNProjection
         ));
 
-        MergeOperation mergeOperation = new MergeOperation(symbolVisitor, mergeNode);
+        MergeOperation mergeOperation = new MergeOperation(injector, symbolVisitor, mergeNode);
 
         Object[][] rows = new Object[20][];
         for (int i=0; i<rows.length; i++) {
@@ -113,7 +114,7 @@ public class MergeOperationTest {
         mergeNode.projections(Arrays.<Projection>asList(
                 groupProjection
         ));
-        MergeOperation mergeOperation = new MergeOperation(symbolVisitor, mergeNode);
+        MergeOperation mergeOperation = new MergeOperation(injector, symbolVisitor, mergeNode);
         Object[][] rows = new Object[1][];
         MinimumAggregation.MinimumAggState<Double> aggState = minAggFunction.newState();
         aggState.setValue(100.0d);

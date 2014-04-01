@@ -35,8 +35,10 @@ import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportResponseHandler;
@@ -166,14 +168,16 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
     private final PlanNodeStreamerVisitor streamerVisitor;
 
     @Inject
-    public DistributingCollectOperation(ClusterService clusterService,
+    public DistributingCollectOperation(Injector injector,
+                                        ClusterService clusterService,
                                         Functions functions,
                                         ReferenceResolver referenceResolver,
                                         IndicesService indicesService,
                                         ThreadPool threadPool,
                                         TransportService transportService,
-                                        PlanNodeStreamerVisitor streamerVisitor) {
-        super(clusterService, functions, referenceResolver, indicesService, threadPool);
+                                        PlanNodeStreamerVisitor streamerVisitor,
+                                        NodeEnvironment nodeEnvironment) {
+        super(injector, clusterService, functions, referenceResolver, indicesService, threadPool, nodeEnvironment);
         this.transportService = transportService;
         this.streamerVisitor = streamerVisitor;
     }

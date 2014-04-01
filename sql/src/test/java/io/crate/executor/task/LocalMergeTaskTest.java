@@ -23,11 +23,12 @@ package io.crate.executor.task;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.DataType;
 import io.crate.metadata.*;
+import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
-import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
@@ -37,7 +38,6 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
-import io.crate.DataType;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -57,11 +57,12 @@ public class LocalMergeTaskTest {
     private ImplementationSymbolVisitor symbolVisitor;
     private AggregationFunction<MinimumAggregation.MinimumAggState<Double>> minAggFunction;
     private GroupProjection groupProjection;
+    private Injector injector;
 
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
-        Injector injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
+        injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
         Functions functions = injector.getInstance(Functions.class);
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
         symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
@@ -111,7 +112,7 @@ public class LocalMergeTaskTest {
 
             ThreadPool threadPool = new ThreadPool();
 
-            LocalMergeTask localMergeTask = new LocalMergeTask(threadPool, symbolVisitor, mergeNode);
+            LocalMergeTask localMergeTask = new LocalMergeTask(threadPool, injector, symbolVisitor, mergeNode);
             localMergeTask.upstreamResult(upstreamResults);
             localMergeTask.start();
 

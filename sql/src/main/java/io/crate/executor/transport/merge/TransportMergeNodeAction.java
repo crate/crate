@@ -21,24 +21,25 @@
 
 package io.crate.executor.transport.merge;
 
+import io.crate.Streamer;
 import io.crate.executor.transport.DistributedResultRequestHandler;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
+import io.crate.operation.DownstreamOperation;
 import io.crate.operation.DownstreamOperationFactory;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.DownstreamOperation;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import io.crate.Streamer;
+import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -60,7 +61,9 @@ public class TransportMergeNodeAction {
     private final ThreadPool threadPool;
 
     @Inject
-    public TransportMergeNodeAction(TransportService transportService, ClusterService clusterService,
+    public TransportMergeNodeAction(final Injector injector,
+                                    TransportService transportService,
+                                    ClusterService clusterService,
                                     ReferenceResolver referenceResolver,
                                     Functions functions,
                                     ThreadPool threadPool) {
@@ -76,7 +79,7 @@ public class TransportMergeNodeAction {
         this.contextManager = new DistributedRequestContextManager(new DownstreamOperationFactory<MergeNode>() {
             @Override
             public DownstreamOperation create(MergeNode node) {
-                return new MergeOperation(implementationSymbolVisitor, node);
+                return new MergeOperation(injector, implementationSymbolVisitor, node);
             }
         }, functions);
 

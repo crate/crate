@@ -30,13 +30,12 @@ import io.crate.metadata.Functions;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import org.apache.lucene.util.BytesRef;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
@@ -46,12 +45,12 @@ import static org.junit.Assert.assertThat;
 
 public class FileReadingCollectorTest {
 
-    private File tmpFile;
-    private File tmpFileGz;
+    private static File tmpFile;
+    private static File tmpFileGz;
     private FileCollectInputSymbolVisitor inputSymbolVisitor;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeClass
+    public static void setUpClass() throws Exception {
         Path copy_from = Files.createTempDirectory("copy_from");
         Path copy_from_gz = Files.createTempDirectory("copy_from_gz");
         tmpFileGz = File.createTempFile("fileReadingCollector", ".json.gz", copy_from_gz.toFile());
@@ -65,6 +64,10 @@ public class FileReadingCollectorTest {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
+    }
+
+    @Before
+    public void setUp() throws Exception {
         Functions functions = new Functions(
                 ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
                 ImmutableMap.<String, DynamicFunctionResolver>of()
@@ -73,8 +76,8 @@ public class FileReadingCollectorTest {
                 new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterClass
+    public static void tearDownClass() throws Exception {
         tmpFile.delete();
         tmpFileGz.delete();
     }
@@ -83,6 +86,14 @@ public class FileReadingCollectorTest {
     public void testNoErrorIfNoSuchFile() throws Throwable {
         // no error, -> don't want to fail just because one node doesn't have a file
         getObjects("/some/path/that/shouldnt/exist/foo.json");
+    }
+
+    @Test
+    public void testRelativeImport() throws Throwable {
+        Path path = Paths.get(".");
+        Path relativePath = path.toAbsolutePath().relativize(tmpFile.toPath());
+        CollectingProjector projector = getObjects(relativePath.toString());
+        assertCorrectResult(projector.result().get());
     }
 
     @Test
@@ -130,7 +141,8 @@ public class FileReadingCollectorTest {
                 context.expressions(),
                 projector,
                 FileReadingCollector.FileFormat.JSON,
-                compressed
+                compressed,
+                null
         );
         projector.startProjection();
         collector.doCollect();

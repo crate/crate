@@ -53,7 +53,6 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         } else if (pathSymbol.symbolType() != SymbolType.STRING_LITERAL) {
             throw new IllegalArgumentException("Invalid COPY FROM statement");
         }
-
         context.uri(pathSymbol);
         return null;
     }

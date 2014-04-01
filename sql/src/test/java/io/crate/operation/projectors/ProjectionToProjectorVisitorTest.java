@@ -62,13 +62,13 @@ public class ProjectionToProjectorVisitorTest {
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>());
         Injector injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
         Functions functions = injector.getInstance(Functions.class);
-        ImplementationSymbolVisitor symbolvisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
-        visitor = new ProjectionToProjectorVisitor(symbolvisitor);
+        ImplementationSymbolVisitor symbolvisitor =
+                new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
+        visitor = new ProjectionToProjectorVisitor(injector, symbolvisitor);
 
         countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.STRING)), DataType.LONG);
         avgInfo = new FunctionInfo(new FunctionIdent(AverageAggregation.NAME, Arrays.asList(DataType.INTEGER)), DataType.DOUBLE);
     }
-
 
     @Test
     public void testSimpleTopNProjection() throws ExecutionException, InterruptedException {
