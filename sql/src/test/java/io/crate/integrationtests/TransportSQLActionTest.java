@@ -3232,12 +3232,4 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Double)response.rows()[0][5], is(1.218823127E9));
     }
 
-    @Test(expected = UnsupportedFeatureException.class)
-    public void testSelectPartitionedTableOrderBy() throws Exception {
-        execute("create table parted (id integer, name string, date timestamp)" +
-                "partitioned by (date)");
-        ensureGreen();
-        execute("select * from parted order by date_trunc('year', date)");
-    }
-
 }
