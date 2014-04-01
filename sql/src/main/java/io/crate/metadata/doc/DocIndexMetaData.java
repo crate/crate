@@ -181,7 +181,7 @@ public class DocIndexMetaData {
     private ReferenceInfo newInfo(ColumnIdent column, DataType type, ReferenceInfo.ObjectType objectType) {
         RowGranularity granularity = RowGranularity.DOC;
         if (partitionedBy.contains(column.name())) {
-            granularity = RowGranularity.INDEX;
+            granularity = RowGranularity.SHARD;
         }
         return new ReferenceInfo(new ReferenceIdent(ident, column), granularity, type, objectType);
     }

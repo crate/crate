@@ -22,8 +22,11 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.DataType;
 import io.crate.analyze.WhereClause;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
@@ -34,10 +37,8 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.IntegerLiteral;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,15 +60,34 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             )
     );
 
+    private static final String PARTITIONED_TABLE_NAME = "parted_table";
+
     private MapSideDataCollectOperation operation;
     private Functions functions;
+    private DocSchemaInfo docSchemaInfo;
 
     @Before
     public void prepare() {
         operation = cluster().getInstance(MapSideDataCollectOperation.class);
         functions = cluster().getInstance(Functions.class);
+        docSchemaInfo = cluster().getInstance(DocSchemaInfo.class);
 
-        execute(String.format("create table %s (" +
+        execute(String.format(Locale.ENGLISH, "create table %s (" +
+                "  id integer," +
+                "  name string," +
+                "  date timestamp" +
+                ") clustered into 2 shards partitioned by (date) with(number_of_replicas=0)", PARTITIONED_TABLE_NAME));
+        ensureGreen();
+        execute(String.format("insert into %s (id, name, date) values (?, ?, ?)",
+                PARTITIONED_TABLE_NAME),
+                new Object[]{1, "Ford", 0L});
+        execute(String.format("insert into %s (id, name, date) values (?, ?, ?)",
+                PARTITIONED_TABLE_NAME),
+                new Object[]{2, "Trillian", 1L});
+        ensureGreen();
+        refresh();
+
+        execute(String.format(Locale.ENGLISH, "create table %s (" +
                 " id integer primary key," +
                 " doc integer" +
                 ") clustered into 2 shards with(number_of_replicas=0)", TEST_TABLE_NAME));
@@ -77,10 +97,10 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         refresh();
     }
 
-    private Routing routing() {
+    private Routing routing(String table) {
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
 
-        for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(TEST_TABLE_NAME)) {
+        for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(table)) {
             Map<String, Set<Integer>> shardIds = locations.get(shardRouting.currentNodeId());
             if (shardIds == null) {
                 shardIds = new HashMap<>();
@@ -93,14 +113,13 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 shardIds.put(shardRouting.index(), shardIdSet);
             }
             shardIdSet.add(shardRouting.id());
-
         }
         return new Routing(locations);
     }
 
     @Test
     public void testCollectDocLevel() throws Exception {
-        CollectNode collectNode = new CollectNode("docCollect", routing());
+        CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         Object[][] result = operation.collect(collectNode).get();
@@ -113,7 +132,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectDocLevelWhereClause() throws Exception {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
-        CollectNode collectNode = new CollectNode("docCollect", routing());
+        CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.whereClause(new WhereClause(new Function(
@@ -129,7 +148,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectWithShardAndNodeExpressions() throws Exception {
-        Routing routing = routing();
+        Routing routing = routing(TEST_TABLE_NAME);
         Set shardIds = routing.locations().get(clusterService().localNode().id()).get(TEST_TABLE_NAME);
 
         CollectNode collectNode = new CollectNode("docCollect", routing);
@@ -156,5 +175,30 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
         assertThat(((BytesRef) result[1][3]).utf8ToString(), is(cluster().clusterName()));
 
+    }
+
+    @Test
+    public void testCollectWithPartitionedColumns() throws Exception {
+        Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL);
+        TableIdent tableIdent = new TableIdent(DocSchemaInfo.NAME, PARTITIONED_TABLE_NAME);
+        CollectNode collectNode = new CollectNode("docCollect", routing);
+        collectNode.toCollect(Arrays.<Symbol>asList(
+                new Reference(new ReferenceInfo(
+                        new ReferenceIdent(tableIdent, "id"),
+                        RowGranularity.DOC, DataType.INTEGER)),
+                new Reference(new ReferenceInfo(
+                        new ReferenceIdent(tableIdent, "date"),
+                        RowGranularity.SHARD, DataType.TIMESTAMP))
+        ));
+        collectNode.maxRowGranularity(RowGranularity.DOC);
+        collectNode.isPartitioned(true);
+
+        Object[][] result = operation.collect(collectNode).get();
+        assertThat(result.length, is(2));
+        assertThat((Integer)result[0][0], isOneOf(1,2));
+        assertThat((Integer)result[1][0], isOneOf(1,2));
+
+        assertThat((Long)result[0][1], isOneOf(0L, 1L));
+        assertThat((Long)result[1][1], isOneOf(0L, 1L));
     }
 }

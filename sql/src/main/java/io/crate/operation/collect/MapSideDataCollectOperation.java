@@ -238,12 +238,15 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
             } catch (IndexMissingException e) {
                 throw new TableUnknownException(entry.getKey(), e);
             }
+
             for (Integer shardId : entry.getValue()) {
                 Injector shardInjector;
                 try {
                     shardInjector = indexService.shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
-                    CrateCollector crateCollector = shardCollectService.getCollector(collectNode, projectorChain);
+                    CrateCollector crateCollector = shardCollectService.getCollector(
+                            collectNode,
+                            projectorChain);
                     shardCollectors.add(crateCollector);
                 } catch (IndexShardMissingException e) {
                     throw new CrateException(

@@ -24,30 +24,42 @@ package io.crate.planner.node.dml;
 import io.crate.planner.node.PlanVisitor;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * plan node for 1 or more documents to index via ESIndexTask
+ * for a single index
+ */
 public class ESIndexNode extends DMLPlanNode {
 
-    private String index;
+    private String[] indices;
 
     private List<Map<String, Object>> sourceMaps;
     private List<String> ids;
     private List<String> routingValues;
 
-    public ESIndexNode(String index,
+    public ESIndexNode(String index,List<Map<String, Object>> sourceMaps,
+                       List<String> ids,
+                       @Nullable List<String> routingValues) {
+        this(Arrays.asList(index), sourceMaps, ids, routingValues);
+    }
+
+    public ESIndexNode(List<String> indices,
                        List<Map<String, Object>> sourceMaps,
                        List<String> ids,
                        @Nullable List<String> routingValues) {
-        assert index != null : "index is null";
-        this.index = index;
+        assert indices != null : "no indices";
+        assert indices.size() == 1 || indices.size() == sourceMaps.size() : "unsupported number of indices";
+        this.indices = indices.toArray(new String[indices.size()]);
         this.sourceMaps = sourceMaps;
         this.ids = ids;
         this.routingValues = routingValues;
     }
 
-    public String index() {
-        return index;
+    public String[] indices() {
+        return indices;
     }
 
     public List<Map<String, Object>> sourceMaps() {

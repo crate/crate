@@ -136,7 +136,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         this.isPartitioned = isPartitioned;
     }
 
-
     public RowGranularity maxRowGranularity() {
         return maxRowgranularity;
     }
