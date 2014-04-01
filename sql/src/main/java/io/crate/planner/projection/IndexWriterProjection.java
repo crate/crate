@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.DataType;
 import io.crate.planner.symbol.InputColumn;
@@ -28,6 +29,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,6 +41,14 @@ public class IndexWriterProjection extends Projection {
             new Value(DataType.LONG)  // number of rows imported
     );
 
+    private final static String CONCURRENCY = "concurrency";
+    private final static int CONCURRENCY_DEFAULT = 4;
+
+    private final static String BULK_SIZE = "bulk_size";
+    private final static int BULK_SIZE_DEFAULT = 10000;
+
+    private Integer concurrency;
+    private Integer bulkActions;
     private String tableName;
     private List<Symbol> idSymbols;
     private List<String> primaryKeys;
@@ -54,7 +64,7 @@ public class IndexWriterProjection extends Projection {
     };
 
     public IndexWriterProjection() {}
-    public IndexWriterProjection(String tableName, List<String> primaryKeys) {
+    public IndexWriterProjection(String tableName, List<String> primaryKeys, Settings settings) {
         this.tableName = tableName;
         this.idSymbols = new ArrayList<>(primaryKeys.size());
         for (int i = 0; i < primaryKeys.size(); i++) {
@@ -63,6 +73,10 @@ public class IndexWriterProjection extends Projection {
         clusteredBySymbol = new InputColumn(primaryKeys.size());
         rawSourceSymbol = new InputColumn(primaryKeys.size() + 1);
         this.primaryKeys = primaryKeys;
+        this.bulkActions = settings.getAsInt(BULK_SIZE, BULK_SIZE_DEFAULT);
+        this.concurrency = settings.getAsInt(CONCURRENCY, CONCURRENCY_DEFAULT);
+        Preconditions.checkArgument(concurrency > 0, "\"concurrency\" must be greater than 0.");
+        Preconditions.checkArgument(bulkActions > 0, "\"bulk_size\" must be greater than 0.");
     }
 
     @Override
@@ -80,13 +94,11 @@ public class IndexWriterProjection extends Projection {
         return OUTPUTS;
     }
 
-    // TODO: make defaults settable
-    //  - currently defaults that are also used by the inout importers are in use::
     public Integer bulkActions() {
-        return 10000;
+        return bulkActions;
     }
     public Integer concurrency() {
-        return 4;
+        return concurrency;
     }
 
     public List<String> primaryKeys() {
@@ -131,6 +143,8 @@ public class IndexWriterProjection extends Projection {
 
         clusteredBySymbol = Symbol.fromStream(in);
         rawSourceSymbol = Symbol.fromStream(in);
+        concurrency = in.readVInt();
+        bulkActions = in.readVInt();
     }
 
     @Override
@@ -147,5 +161,7 @@ public class IndexWriterProjection extends Projection {
         }
         Symbol.toStream(clusteredBySymbol, out);
         Symbol.toStream(rawSourceSymbol, out);
+        out.writeVInt(concurrency);
+        out.writeVInt(bulkActions);
     }
 }

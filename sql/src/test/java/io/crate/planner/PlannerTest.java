@@ -29,10 +29,7 @@ import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -672,6 +669,23 @@ public class PlannerTest {
 
         FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
         assertThat(((Literal)collectNode.targetUri()).valueAsString(), is("/path/to/file.extension"));
+    }
+
+    @Test
+    public void testCopyFromPlanWithParameters() throws Exception {
+        Plan plan = plan("copy users from '/path/to/file.ext' with (concurrency=8, bulk_size=30)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(FileUriCollectNode.class));
+        FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
+        IndexWriterProjection indexWriterProjection = (IndexWriterProjection) collectNode.projections().get(0);
+        assertThat(indexWriterProjection.concurrency(), is(8));
+        assertThat(indexWriterProjection.bulkActions(), is(30));
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testCopyFromPlanWithInvalidParameters() throws Exception {
+        plan("copy users from '/path/to/file.ext' with (concurrency=-28)");
     }
 
     @Test
