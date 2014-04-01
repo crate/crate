@@ -79,14 +79,14 @@ public enum DataType {
     LONG("long", new Streamer<Long>() {
         @Override
         public Long readFrom(StreamInput in) throws IOException {
-            return in.readBoolean() ? null : in.readVLong();
+            return in.readBoolean() ? null : in.readLong();
         }
 
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
             out.writeBoolean(v == null);
             if (v != null) {
-                out.writeVLong(((Number) v).longValue());
+                out.writeLong(((Number) v).longValue());
             }
         }
     }),

@@ -80,6 +80,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             WhereClause whereClause = analysis.whereClause();
             if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()
                     && analysis.table().getRouting(whereClause).hasLocations()) {
+
                     if (analysis.ids().size() > 0
                             && analysis.routingValues().size() > 0
                             && !analysis.table().isAlias()) {
@@ -482,11 +483,14 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         String index = analysis.table().ident().name();
         List<String> tablePartitions = Arrays.asList(analysis.table().concreteIndices());
         if (analysis.table().isPartitioned()) {
-            Iterator<Map<String, Object>> sourceMapsIt = analysis.sourceMaps().iterator();
+            Set<String> createdPartitions = new HashSet<>();
+            int i = 0;
             for (String partition : analysis.partitions()) {
-                assert sourceMapsIt.hasNext();
-                Map<String, Object> sourceMap = sourceMapsIt.next();
-                if (!tablePartitions.contains(partition)) {
+                assert analysis.sourceMaps().size() == analysis.ids().size() : "invalid number of ids";
+                assert analysis.sourceMaps().size() == analysis.routingValues().size() : "invalid number of routingValues";
+                if (!tablePartitions.contains(partition) && !createdPartitions.contains(partition)) {
+                    // make sure we do not create multiple indices during bulk insert
+                    createdPartitions.add(partition);
                     // create partition-index from template
                     ESCreateIndexNode createIndexNode = new ESCreateIndexNode(
                             partition,
@@ -507,12 +511,12 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 // even if it would be empty
                 ESIndexNode partitionIndexNode = new ESIndexNode(
                         partition,
-                        Arrays.asList(sourceMap),
-                        analysis.ids(),
-                        analysis.routingValues()
+                        analysis.sourceMaps().subList(i, i+1),
+                        analysis.ids().subList(i, i+1),
+                        analysis.routingValues().subList(i, i+1)
                 );
                 plan.add(partitionIndexNode);
-
+                i++;
             }
         } else {
             ESIndexNode indexNode = new ESIndexNode(index,

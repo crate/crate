@@ -197,6 +197,18 @@ public abstract class AbstractDataAnalysis extends Analysis {
         return referenceSymbols.values();
     }
 
+    /**
+     * @return the {@link io.crate.planner.RowGranularity} of all references, not considering the granularity of
+     * the table as {@linkplain #rowGranularity()} does.
+     */
+    public RowGranularity referenceGranularity() {
+        RowGranularity granularity = RowGranularity.CLUSTER;
+        for (Reference reference : referenceSymbols.values()) {
+            granularity = RowGranularity.max(granularity, reference.info().granularity());
+        }
+        return granularity;
+    }
+
     public Collection<Function> functions() {
         return functionSymbols.values();
     }

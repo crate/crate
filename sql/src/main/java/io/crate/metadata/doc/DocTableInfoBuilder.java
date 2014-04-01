@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.exceptions.CrateException;
@@ -28,6 +29,7 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -100,6 +102,11 @@ public class DocTableInfoBuilder {
             // default values
             builder.numberOfShards(settings.getAsInt(SETTING_NUMBER_OF_SHARDS, 5));
             builder.numberOfReplicas(settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
+            if (clusterService.state().metaData().hasIndex(index)) {
+                for (ObjectObjectCursor<String, AliasMetaData> cursor : clusterService.state().metaData().index(index).aliases()) {
+                    builder.putAlias(cursor.value);
+                }
+            }
             docIndexMetaData = new DocIndexMetaData(builder.build(), ident);
         } catch (IOException e) {
             throw new CrateException("Unable to build DocIndexMetaData from template", e);

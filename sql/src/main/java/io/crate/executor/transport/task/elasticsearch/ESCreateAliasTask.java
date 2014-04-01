@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -66,7 +67,7 @@ public class ESCreateAliasTask implements Task<Object[][]> {
     private final CreateAliasListener listener;
     private final List<ListenableFuture<Object[][]>> result;
 
-    private List<ListenableFuture<Object[][]>> upstreamResult;
+    private List<ListenableFuture<Object[][]>> upstreamResult = ImmutableList.of();
 
     public ESCreateAliasTask(ESCreateAliasNode node, TransportIndicesAliasesAction transport) {
         this.transport = transport;

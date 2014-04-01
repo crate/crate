@@ -84,7 +84,7 @@ public class TestingTableInfo extends AbstractTableInfo {
                            ReferenceInfo.ObjectType objectType, boolean partitionBy) {
             RowGranularity rowGranularity = granularity;
             if (partitionBy) {
-                rowGranularity = RowGranularity.TABLE;
+                rowGranularity = RowGranularity.SHARD;
             }
             ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path), rowGranularity, type, objectType);
             if (info.ident().isColumn()) {
