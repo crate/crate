@@ -36,6 +36,7 @@ import io.crate.operation.reference.sys.cluster.SysClusterExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.LongLiteral;
+import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import org.apache.lucene.util.BytesRef;
@@ -52,6 +53,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
+import org.joda.time.DateTime;
 import org.junit.Before;
 
 import java.util.*;
@@ -120,6 +122,9 @@ public class BaseAnalyzerTest {
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.asList(DataType.LONG)),
             DataType.LONG);
+    static final FunctionInfo YEAR_FUNCTION_INFO = new FunctionInfo(
+            new FunctionIdent("year", Arrays.asList(DataType.TIMESTAMP)),
+            DataType.STRING);
     Injector injector;
     Analyzer analyzer;
 
@@ -161,6 +166,30 @@ public class BaseAnalyzerTest {
         public Symbol normalizeSymbol(Function symbol) {
             if (symbol.arguments().get(0) instanceof Input) {
                 return new LongLiteral(evaluate((Input<Number>)symbol.arguments().get(0)));
+            }
+            return symbol;
+        }
+    }
+
+    static class YearFunction implements Scalar<String, Long> {
+
+        @Override
+        public String evaluate(Input<Long>... args) {
+            if (args == null || args.length == 0 || args[0] == null) {
+                return null;
+            }
+            return new DateTime(args[0]).year().getAsString();
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return YEAR_FUNCTION_INFO;
+        }
+
+        @Override
+        public Symbol normalizeSymbol(Function symbol) {
+            if (symbol.arguments().get(0) instanceof Input) {
+                return new StringLiteral(evaluate((Input<Long>)symbol.arguments().get(0)));
             }
             return symbol;
         }
