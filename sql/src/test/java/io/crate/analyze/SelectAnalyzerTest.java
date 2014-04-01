@@ -52,10 +52,7 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -89,6 +86,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_MULTI_PK.name())).thenReturn(userTableInfoMultiPk);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name()))
+                    .thenReturn(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -1019,7 +1018,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectPartitionedTableOrderBy() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select id, name from parted order by id, abs(num), name");
+        SelectAnalysis analysis = (SelectAnalysis)analyze(
+                "select id, name from multi_parted order by id, abs(num), name");
         assertThat(analysis.sortSymbols().size(), is(3));
         assertThat(analysis.sortSymbols().get(0), Matchers.instanceOf(Reference.class));
         assertThat(analysis.sortSymbols().get(1), Matchers.instanceOf(Function.class));
@@ -1038,12 +1038,12 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testSelectOrderByPartitionedNestedColumn() throws Exception {
-        analyze("select name from parted order by obj['num']");
+        analyze("select name from multi_parted order by obj['name']");
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testSelectOrderByPartitionedNestedColumnInFunction() throws Exception {
-        analyze("select name from parted order by abs(obj['num'])");
+        analyze("select name from multi_parted order by format('abc %s', obj['name'])");
     }
 
 }
