@@ -108,10 +108,12 @@ public class BaseAnalyzerTest {
             .add("id", DataType.INTEGER, null)
             .add("name", DataType.STRING, null)
             .add("date", DataType.TIMESTAMP, null, true)
+            .add("obj", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("obj", DataType.LONG, Arrays.asList("num"), true)
             // add 2 partitions/simulate already done inserts
             .addPartitions(Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
                     Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000",
-                    Constants.PARTITIONED_TABLE_PREFIX + ".parted."+ PartitionName.NULL_MARKER)
+                    Constants.PARTITIONED_TABLE_PREFIX + ".parted." + PartitionName.NULL_MARKER)
             .build();
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.asList(DataType.LONG)),
