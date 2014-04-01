@@ -5,9 +5,6 @@ CRATE_CLASSPATH=$CRATE_CLASSPATH:$CRATE_HOME/lib/crate-*.jar:$CRATE_HOME/lib/cra
 if [ "x$CRATE_MIN_MEM" = "x" ]; then
     CRATE_MIN_MEM=256m
 fi
-if [ "x$CRATE_MAX_MEM" = "x" ]; then
-    CRATE_MAX_MEM=1g
-fi
 if [ "x$CRATE_HEAP_SIZE" != "x" ]; then
     CRATE_MIN_MEM=$CRATE_HEAP_SIZE
     CRATE_MAX_MEM=$CRATE_HEAP_SIZE
@@ -18,7 +15,9 @@ fi
 # heap in memory on startup to prevent any of it from being swapped
 # out.
 JAVA_OPTS="$JAVA_OPTS -Xms${CRATE_MIN_MEM}"
-JAVA_OPTS="$JAVA_OPTS -Xmx${CRATE_MAX_MEM}"
+if [ "x$CRATE_MAX_MEM" != "x" ]; then
+    JAVA_OPTS="$JAVA_OPTS -Xmx${CRATE_MAX_MEM}"
+fi
 
 # new generation
 if [ "x$CRATE_HEAP_NEWSIZE" != "x" ]; then
