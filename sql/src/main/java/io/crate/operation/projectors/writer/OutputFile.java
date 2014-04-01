@@ -43,7 +43,7 @@ public class OutputFile extends Output {
         this.path = uri.getPath();
         String compressionType = settings.get("compression");
         if (compressionType != null) {
-            Preconditions.checkArgument(compressionType == "gzip",
+            Preconditions.checkArgument(compressionType.equals("gzip"),
                     String.format("Unsupported compression type: '%s'", compressionType));
             compression = true;
         } else {

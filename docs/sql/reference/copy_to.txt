@@ -1,0 +1,73 @@
+.. _copy_to:
+
+=======
+COPY TO
+=======
+
+Export Table Contents to files on crate node machines.
+
+Synopsis
+========
+
+.. code-block:: sql
+
+  COPY table_ident TO { output_uri }
+  [ WITH ( copy_parameter [= value] [, ... ] ) ]
+
+Description
+===========
+
+Copy the contents of a table to one or many files on any cluster node
+containing data from the given table.
+
+.. note::
+
+  Output files will always be stored on the cluster node machines, not
+  on the client machine.
+
+The created files are JSON formatted and contain one table row per
+line.
+
+Parameters
+==========
+
+:table_ident: The name (optionally schema-qualified) of the table to
+  be exported.
+
+Output URI
+==========
+
+The ``output_uri`` can be any expression evaluating to a string.
+The resulting string should be a valid URI of one of the supporting schemes:
+
+ * ``file://``
+
+If no scheme is given (e.g.: '/path/to/file') the default uri-scheme ``file://``
+will be used.
+
+.. _with_clause:
+
+WITH Clause
+===========
+
+The optional WITH clause can specify parameters for the copy statement.
+
+.. code-block:: sql
+
+    [ WITH ( copy_parameter [= value] [, ... ] ) ]
+
+Possible copy_parameters are:
+
+.. _compression:
+
+compression
+-----------
+
+Define if and how the exported data should be compressed.
+Per default no compression is applied.
+
+Possible values for the ``compression`` setting are:
+
+:gzip: The exported data is compressed with gzip_.
+
+.. _gzip: http://www.gzip.org/

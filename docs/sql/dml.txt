@@ -636,6 +636,33 @@ And finally import data using a directory path and a `PCRE`_ file pattern  suffi
     cr> copy quotes from 'import_data/(\\D)*.json';
     COPY OK, 3 rows affected (... sec)
 
+
+Exporting Data
+==============
+
+Data can be exported using the ``COPY TO`` statement. Data gets
+exported distributed on each node holding data of the table to be
+exported.
+
+.. note::
+
+ Data is written per shard, so if there is more than one shard of the
+ exported table on the same node, the output file will get
+ corrupted due to concurrent writes to the same file. The example
+ below shows a way to prevent such cases.
+
+This example shows how to export a given table into files named after
+the table and shard id with gzip compression::
+
+    cr> refresh table quotes;
+    REFRESH OK...
+    cr> copy quotes to format('/tmp/%s_%s.json',
+    ... sys.shards.table_name, sys.shards.id)
+    ... with (compression='gzip');
+    COPY OK, 3 rows affected ...
+
+For further details see :ref:`copy_to`.
+
 .. _PCRE: http://www.pcre.org/
 
 .. _`eventually consistent`: http://en.wikipedia.org/wiki/Eventual_consistency

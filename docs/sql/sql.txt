@@ -11,7 +11,8 @@ supported by Crate.
     reference/select
     reference/insert
     reference/update
-    reference/copy
+    reference/copy_from
+    reference/copy_to
     reference/delete
     reference/refresh
     reference/create_table

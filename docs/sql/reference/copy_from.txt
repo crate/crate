@@ -1,8 +1,8 @@
-====
-COPY
-====
+=========
+COPY FROM
+=========
 
-Copy data between a file and a table.
+Copy data from files into a table.
 
 Synopsis
 ========
