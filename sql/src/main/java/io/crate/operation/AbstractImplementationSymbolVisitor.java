@@ -82,6 +82,10 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
         this.functions = functions;
     }
 
+    public Functions functions() {
+        return functions;
+    }
+
     @Override
     public Input<?> visitFunction(Function function, C context) {
         final FunctionImplementation functionImplementation = functions.get(function.info().ident());

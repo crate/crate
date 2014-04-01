@@ -24,27 +24,32 @@ package io.crate.analyze;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
+import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 public class CopyAnalysis extends AbstractDataAnalysis {
 
+    private Settings settings = ImmutableSettings.EMPTY;
+
     public static enum Mode {
         FROM,
-        INTO
+        TO
     }
 
-    private String path;
+    private Symbol uri;
     private Mode mode;
 
     public CopyAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameters, referenceResolver);
     }
 
-    public String path() {
-        return path;
+    public Symbol uri() {
+        return uri;
     }
 
-    public void path(String path) {
-        this.path = path;
+    public void uri(Symbol uri) {
+        this.uri = uri;
     }
 
     public Mode mode() {
@@ -55,8 +60,17 @@ public class CopyAnalysis extends AbstractDataAnalysis {
         this.mode = mode;
     }
 
+    public void settings(Settings settings){
+        this.settings = settings;
+    }
+
+    public Settings settings(){
+        return settings;
+    }
+
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
         return analysisVisitor.visitCopyAnalysis(this, context);
     }
+
 }

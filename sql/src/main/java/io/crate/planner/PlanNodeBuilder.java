@@ -23,10 +23,10 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.analyze.AbstractDataAnalysis;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
-import io.crate.analyze.AbstractDataAnalysis;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 
@@ -99,7 +99,6 @@ class PlanNodeBuilder {
         node.toCollect(toCollect);
         node.maxRowGranularity(analysis.rowGranularity());
         node.projections(projections);
-
         setOutputTypes(node);
         return node;
     }

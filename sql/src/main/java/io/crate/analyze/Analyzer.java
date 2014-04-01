@@ -131,6 +131,13 @@ public class Analyzer {
         }
 
         @Override
+        public AbstractStatementAnalyzer visitCopyTo(CopyTo node, Context context) {
+            context.analysis = new CopyAnalysis(
+                    referenceInfos, functions, context.parameters, referenceResolver);
+            return copyStatementAnalyzer;
+        }
+
+        @Override
         public AbstractStatementAnalyzer visitDropTable(DropTable node, Context context) {
             context.analysis = new DropTableAnalysis(referenceInfos);
             return dropTableStatementAnalyzer;

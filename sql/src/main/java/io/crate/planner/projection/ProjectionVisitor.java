@@ -58,5 +58,9 @@ public class ProjectionVisitor<C, R> {
     public R visitAggregationProjection(AggregationProjection projection, C context) {
         return visitProjection(projection, context);
     }
+
+    public R visitWriterProjection(WriterProjection projection, C context) {
+        return visitProjection(projection, context);
+    }
 }
 

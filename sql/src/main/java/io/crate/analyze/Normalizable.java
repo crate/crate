@@ -19,45 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dml;
+package io.crate.analyze;
 
-import io.crate.analyze.CopyAnalysis;
-import io.crate.planner.node.PlanVisitor;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+/**
+ * Objects implementing this interface can normalize itself.
+ */
+public interface Normalizable<Normalized> {
 
-public class CopyNode extends DMLPlanNode {
-
-
-    private final CopyAnalysis.Mode mode;
-    private final Symbol uri;
-    private final String index;
-
-    public CopyNode(Symbol uri, String index, CopyAnalysis.Mode mode) {
-        this.uri = uri;
-        this.index = index;
-        this.mode = mode;
-    }
-
-    public Symbol uri() {
-        return uri;
-    }
-
-    public String uriAsString(){
-        // TODO: this method should not be needed anymore, once copy from does not use inout anymore
-        return ((Literal) uri).valueAsString();
-    }
-
-    public String index() {
-        return index;
-    }
-
-    public CopyAnalysis.Mode mode() {
-        return mode;
-    }
-
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitCopyNode(this, context);
-    }
+    /**
+     * Normalize the object with the given normalizer
+     * @param normalizer a normalizer
+     * @return a normalized copy of object or the object itself if not changed
+     */
+    public Normalized normalize(EvaluatingNormalizer normalizer);
 }

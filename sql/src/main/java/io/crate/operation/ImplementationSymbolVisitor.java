@@ -80,11 +80,20 @@ public class ImplementationSymbolVisitor extends
     protected final ReferenceResolver referenceResolver;
     protected final RowGranularity rowGranularity;
 
+
     public ImplementationSymbolVisitor(ReferenceResolver referenceResolver, Functions functions,
                                        RowGranularity rowGranularity) {
         super(functions);
         this.referenceResolver = referenceResolver;
         this.rowGranularity = rowGranularity;
+    }
+
+    public ReferenceResolver referenceResolver() {
+        return referenceResolver;
+    }
+
+    public RowGranularity rowGranularity() {
+        return rowGranularity;
     }
 
     @Override

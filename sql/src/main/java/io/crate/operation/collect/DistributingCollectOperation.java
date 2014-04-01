@@ -49,7 +49,7 @@ import java.util.UUID;
 
 /**
  * handling distributing collect requests
- * collected data is distributed to downStream nodes that further merge/reduce their data
+ * collected data is distributed to downstream nodes that further merge/reduce their data
  */
 public class DistributingCollectOperation extends MapSideDataCollectOperation {
 

@@ -87,7 +87,7 @@ public class ImportTask implements Task<Object[][]> {
         try {
             XContentBuilder jsonBuilder = XContentFactory.jsonBuilder();
             source = jsonBuilder.startObject()
-                    .field("path", copyNode.path())
+                    .field("path", copyNode.uriAsString())
                     .endObject().bytes();
         } catch (IOException e) {
             this.result.setException(e);

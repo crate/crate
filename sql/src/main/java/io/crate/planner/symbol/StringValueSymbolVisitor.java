@@ -19,45 +19,34 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dml;
+package io.crate.planner.symbol;
 
-import io.crate.analyze.CopyAnalysis;
-import io.crate.planner.node.PlanVisitor;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+public class StringValueSymbolVisitor extends SymbolVisitor<Void, String> {
 
-public class CopyNode extends DMLPlanNode {
+    public static final StringValueSymbolVisitor INSTANCE = new StringValueSymbolVisitor();
 
-
-    private final CopyAnalysis.Mode mode;
-    private final Symbol uri;
-    private final String index;
-
-    public CopyNode(Symbol uri, String index, CopyAnalysis.Mode mode) {
-        this.uri = uri;
-        this.index = index;
-        this.mode = mode;
+    private StringValueSymbolVisitor() {
     }
 
-    public Symbol uri() {
-        return uri;
-    }
-
-    public String uriAsString(){
-        // TODO: this method should not be needed anymore, once copy from does not use inout anymore
-        return ((Literal) uri).valueAsString();
-    }
-
-    public String index() {
-        return index;
-    }
-
-    public CopyAnalysis.Mode mode() {
-        return mode;
+    public String process(Symbol symbol) {
+        return process(symbol, null);
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitCopyNode(this, context);
+    protected String visitSymbol(Symbol symbol, Void context) {
+        throw new UnsupportedOperationException(
+                SymbolFormatter.format("Unable to get string value from symbol: %s", symbol));
     }
+
+    @Override
+    public String visitParameter(Parameter symbol, Void context) {
+        return symbol.value().toString();
+    }
+
+    @Override
+    public String visitLiteral(Literal symbol, Void context) {
+        return symbol.valueAsString();
+    }
+
+
 }

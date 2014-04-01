@@ -33,7 +33,10 @@ import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
 public class TestingHelpers {
@@ -96,6 +99,11 @@ public class TestingHelpers {
                 RowGranularity.DOC,
                 dataType
         ));
+    }
+
+    public static String readFile(String path) throws IOException {
+        byte[] encoded = Files.readAllBytes(Paths.get(path));
+        return new BytesRef(encoded).utf8ToString();
     }
 
 }

@@ -22,11 +22,14 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.StringValueSymbolVisitor;
+import io.crate.planner.symbol.SymbolType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,13 +37,20 @@ import java.util.List;
 public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projector> {
 
     private final ImplementationSymbolVisitor symbolVisitor;
+    private final EvaluatingNormalizer normalizer;
 
     public Projector process(Projection projection) {
         return process(projection, null);
     }
 
-    public ProjectionToProjectorVisitor(ImplementationSymbolVisitor symbolVisitor) {
+    public ProjectionToProjectorVisitor(ImplementationSymbolVisitor symbolVisitor, EvaluatingNormalizer normalizer) {
         this.symbolVisitor = symbolVisitor;
+        this.normalizer = normalizer;
+    }
+
+    public ProjectionToProjectorVisitor(ImplementationSymbolVisitor symbolVisitor) {
+        this(symbolVisitor, new EvaluatingNormalizer(
+                symbolVisitor.functions(), symbolVisitor.rowGranularity(), symbolVisitor.referenceResolver()));
     }
 
     @Override
@@ -116,5 +126,16 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 symbolContext.collectExpressions(),
                 symbolContext.aggregations());
         return aggregationProjector;
+    }
+
+    @Override
+    public Projector visitWriterProjection(WriterProjection projection, Void context) {
+        projection = projection.normalize(normalizer);
+        assert projection.uri().symbolType() == SymbolType.STRING_LITERAL;
+        Projector projector = new WriterProjector(
+                StringValueSymbolVisitor.INSTANCE.process(projection.uri()),
+                projection.settings()
+        );
+        return projector;
     }
 }
