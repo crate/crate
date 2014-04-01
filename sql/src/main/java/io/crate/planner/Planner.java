@@ -106,7 +106,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     protected Plan visitUpdateAnalysis(UpdateAnalysis analysis, Void context) {
         Plan plan = new Plan();
         ESUpdateNode node = new ESUpdateNode(
-                analysis.table().ident().name(),
+                indices(analysis),
                 analysis.assignments(),
                 analysis.whereClause(),
                 analysis.ids(),
@@ -297,15 +297,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             orderBy = null;
         }
 
-        String[] indices;
-        if (analysis.whereClause().partitions().size() == 0) {
-            indices = new String[]{analysis.table().ident().name()};
-        } else {
-            indices = analysis.whereClause().partitions().toArray(new String[]{});
-        }
-
         ESSearchNode node = new ESSearchNode(
-                indices,
+                indices(analysis),
                 analysis.outputSymbols(),
                 orderBy,
                 analysis.reverseFlags(),
@@ -574,4 +567,13 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         return type;
     }
 
+    private String[] indices(AbstractDataAnalysis analysis) {
+        String[] indices;
+        if (analysis.whereClause().partitions().size() == 0) {
+            indices = new String[]{analysis.table().ident().name()};
+        } else {
+            indices = analysis.whereClause().partitions().toArray(new String[]{});
+        }
+        return indices;
+    }
 }

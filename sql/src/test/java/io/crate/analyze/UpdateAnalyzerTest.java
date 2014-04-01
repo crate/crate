@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
+import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.ValidationException;
@@ -47,6 +49,7 @@ import java.util.Map;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +69,8 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -273,4 +278,17 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         analyze("update users set name='Ford' where sys.nodes.id = 'node_1'");
     }
 
+    @Test( expected = IllegalArgumentException.class )
+    public void testUpdatePartitionedByColumn() throws Exception {
+        analyze("update parted set date = 1395874800000");
+    }
+
+    @Test
+    public void testUpdateWherePartitionedByColumn() throws Exception {
+        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update parted set id = 2 where date = 1395874800000");
+        assertThat(analysis.whereClause().hasQuery(), is(false));
+        assertThat(analysis.whereClause().noMatch(), is(false));
+        assertEquals(ImmutableList.of(Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000"),
+                    analysis.whereClause().partitions());
+    }
 }

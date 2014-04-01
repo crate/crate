@@ -2,9 +2,11 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.crate.DataType;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.WhereClause;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
@@ -19,9 +21,8 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.ddl.*;
+import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.AggregationProjection;
@@ -31,8 +32,6 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import io.crate.DataType;
-import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -623,7 +622,7 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(ESUpdateNode.class));
 
         ESUpdateNode updateNode = (ESUpdateNode)planNode;
-        assertThat(updateNode.index(), is("users"));
+        assertThat(updateNode.indices(), is(new String[]{"users"}));
         assertThat(updateNode.ids().size(), is(1));
         assertThat(updateNode.ids().get(0), is("1"));
 
