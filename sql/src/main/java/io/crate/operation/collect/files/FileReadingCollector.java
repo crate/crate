@@ -26,13 +26,19 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.Projector;
 import org.apache.lucene.search.CollectionTerminatedException;
 
+import javax.annotation.Nullable;
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 public class FileReadingCollector implements CrateCollector {
 
-    private final String fileUri;
+    private final Path filePath;
     private Projector downstream;
     private final boolean compressed;
     private final List<Input<?>> inputs;
@@ -42,27 +48,45 @@ public class FileReadingCollector implements CrateCollector {
         JSON
     }
 
-    public FileReadingCollector(String fileUri,
+    public FileReadingCollector(String filePath,
                                 List<Input<?>> inputs,
                                 List<LineCollectorExpression<?>> collectorExpressions,
                                 Projector downstream,
                                 FileFormat format,
                                 boolean compressed) {
-        this.fileUri = fileUri;
+        this.filePath = Paths.get(filePath);
         downstream(downstream);
         this.compressed = compressed;
         this.inputs = inputs;
         this.collectorExpressions = collectorExpressions;
     }
 
+    @Nullable
+    private BufferedReader getReader() throws IOException {
+        File file = new File(filePath.toUri());
+        if (file.isDirectory()) {
+            return readerFromDirectory(file);
+        } else if (!file.exists()) {
+            return readerFromRegexUri(file);
+        } else if (file.exists()) {
+            if (compressed) {
+                return new BufferedReader(
+                        new InputStreamReader(new GZIPInputStream(new FileInputStream(file))));
+            } else {
+                return new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+            }
+        }
+        return null;
+    }
+
     @Override
     public void doCollect() throws IOException, CollectionTerminatedException {
-        BufferedReader reader;
-        if (compressed) {
-            reader = new BufferedReader(
-                    new InputStreamReader(new GZIPInputStream(new FileInputStream(fileUri))));
-        } else {
-            reader = new BufferedReader(new FileReader(fileUri));
+        BufferedReader reader = getReader();
+        if (reader == null) {
+            if (downstream != null) {
+                downstream.upstreamFinished();
+            }
+            return;
         }
 
         CollectorContext collectorContext = new CollectorContext();
@@ -90,6 +114,55 @@ public class FileReadingCollector implements CrateCollector {
             downstream.upstreamFinished();
             reader.close();
         }
+    }
+
+    private BufferedReader readerFromRegexUri(File file) throws IOException {
+        File parent = file.getParentFile();
+        if (!parent.isDirectory()) {
+            return null;
+        }
+        File[] files = parent.listFiles();
+        if (files == null) {
+            return null;
+        }
+        Pattern pattern = Pattern.compile(file.getName());
+        List<InputStream> inputStreams = new ArrayList<>(files.length);
+        for (File fi : files) {
+            if (pattern.matcher(fi.getName()).matches()) {
+                try {
+                    if (compressed) {
+                        inputStreams.add(new GZIPInputStream(new FileInputStream(fi)));
+                    } else {
+                        inputStreams.add(new FileInputStream(fi));
+                    }
+                } catch (FileNotFoundException e) {
+                    // ignore - race condition? file got deleted just now.
+                }
+            }
+        }
+        return new BufferedReader(
+                new InputStreamReader(new SequenceInputStream(Collections.enumeration(inputStreams))));
+    }
+
+    private BufferedReader readerFromDirectory(File file) throws IOException {
+        File[] files = file.listFiles();
+        if (files == null) {
+            return null;
+        }
+        List<InputStream> inputStreams = new ArrayList<>(files.length);
+        for (File fi : files) {
+            try {
+                if (compressed) {
+                    inputStreams.add(new GZIPInputStream(new FileInputStream(fi)));
+                } else {
+                    inputStreams.add(new FileInputStream(fi));
+                }
+            } catch (FileNotFoundException e) {
+                // ignore - race condition? file got deleted just now.
+            }
+        }
+        return new BufferedReader(
+                new InputStreamReader(new SequenceInputStream(Collections.enumeration(inputStreams))));
     }
 
     @Override

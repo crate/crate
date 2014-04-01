@@ -30,11 +30,14 @@ import io.crate.metadata.Functions;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import org.apache.lucene.util.BytesRef;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.FileWriter;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.zip.GZIPOutputStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
@@ -44,16 +47,24 @@ import static org.junit.Assert.assertThat;
 public class FileReadingCollectorTest {
 
     private File tmpFile;
+    private File tmpFileGz;
     private FileCollectInputSymbolVisitor inputSymbolVisitor;
 
     @Before
     public void setUp() throws Exception {
-        tmpFile = File.createTempFile("fileReadingCollector", ".json");
+        Path copy_from = Files.createTempDirectory("copy_from");
+        Path copy_from_gz = Files.createTempDirectory("copy_from_gz");
+        tmpFileGz = File.createTempFile("fileReadingCollector", ".json.gz", copy_from_gz.toFile());
+        tmpFile = File.createTempFile("fileReadingCollector", ".json", copy_from.toFile());
+        try (BufferedWriter writer =
+                     new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(tmpFileGz))))) {
+            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
+            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
+        }
         try (FileWriter writer = new FileWriter(tmpFile)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
-
         Functions functions = new Functions(
                 ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
                 ImmutableMap.<String, DynamicFunctionResolver>of()
@@ -62,28 +73,67 @@ public class FileReadingCollectorTest {
                 new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
     }
 
+    @After
+    public void tearDown() throws Exception {
+        tmpFile.delete();
+        tmpFileGz.delete();
+    }
+
     @Test
-    public void testDoCollectRaw() throws Exception {
-        CollectingProjector projector = new CollectingProjector();
-        FileCollectInputSymbolVisitor.Context context =
-                inputSymbolVisitor.process(createReference("_raw", DataType.STRING));
+    public void testNoErrorIfNoSuchFile() throws Throwable {
+        // no error, -> don't want to fail just because one node doesn't have a file
+        getObjects("/some/path/that/shouldnt/exist/foo.json");
+    }
 
-        FileReadingCollector collector = new FileReadingCollector(
-                tmpFile.getAbsolutePath(),
-                context.topLevelInputs(),
-                context.expressions(),
-                projector,
-                FileReadingCollector.FileFormat.JSON,
-                false
-        );
+    @Test
+    public void testCollectFromUriWithRegex() throws Throwable {
+        CollectingProjector projector = getObjects(tmpFile.getParent() + "/file.*\\.json");
+        assertCorrectResult(projector.result().get());
+    }
 
-        projector.startProjection();
-        collector.doCollect();
+    @Test
+    public void testCollectFromDirectory() throws Throwable {
+        CollectingProjector projector = getObjects(tmpFile.getParent());
+        assertCorrectResult(projector.result().get());
+    }
 
-        Object[][] rows = projector.result().get();
+    @Test
+    public void testDoCollectRaw() throws Throwable {
+        CollectingProjector projector = getObjects(tmpFile.getAbsolutePath());
+        assertCorrectResult(projector.result().get());
+    }
+
+    @Test
+    public void testDoCollectRawFromCompressed() throws Throwable {
+        CollectingProjector projector = getObjects(tmpFileGz.getAbsolutePath(), true);
+        assertCorrectResult(projector.result().get());
+    }
+
+    private void assertCorrectResult(Object[][] rows) throws Throwable {
         assertThat(((BytesRef)rows[0][0]).utf8ToString(), is(
                 "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
         assertThat(((BytesRef)rows[1][0]).utf8ToString(), is(
                 "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+    }
+
+    private CollectingProjector getObjects(String fileUri) throws IOException {
+        return getObjects(fileUri, false);
+    }
+
+    private CollectingProjector getObjects(String fileUri, boolean compressed) throws IOException {
+        CollectingProjector projector = new CollectingProjector();
+        FileCollectInputSymbolVisitor.Context context =
+                inputSymbolVisitor.process(createReference("_raw", DataType.STRING));
+        FileReadingCollector collector = new FileReadingCollector(
+                fileUri,
+                context.topLevelInputs(),
+                context.expressions(),
+                projector,
+                FileReadingCollector.FileFormat.JSON,
+                compressed
+        );
+        projector.startProjection();
+        collector.doCollect();
+        return projector;
     }
 }
