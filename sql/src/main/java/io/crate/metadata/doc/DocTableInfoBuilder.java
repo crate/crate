@@ -26,6 +26,7 @@ import io.crate.PartitionName;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -47,10 +48,14 @@ public class DocTableInfoBuilder {
     private final MetaData metaData;
     private final boolean checkAliasSchema;
     private final ClusterService clusterService;
+    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private String[] concreteIndices;
 
-    public DocTableInfoBuilder(TableIdent ident, ClusterService clusterService, boolean checkAliasSchema) {
+    public DocTableInfoBuilder(TableIdent ident, ClusterService clusterService,
+                               TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                               boolean checkAliasSchema) {
         this.clusterService = clusterService;
+        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.metaData = clusterService.state().metaData();
         this.ident = ident;
         this.checkAliasSchema = checkAliasSchema;
@@ -59,8 +64,10 @@ public class DocTableInfoBuilder {
     public DocIndexMetaData docIndexMetaData() {
         DocIndexMetaData docIndexMetaData;
         String templateName = PartitionName.templateName(ident.name());
+        boolean createdFromTemplate = false;
         if (metaData.getTemplates().containsKey(templateName)) {
             docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.name(), templateName);
+            createdFromTemplate = true;
             try {
                 concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
             } catch(IndexMissingException e) {
@@ -79,8 +86,15 @@ public class DocTableInfoBuilder {
         if (concreteIndices.length == 1 || !checkAliasSchema) {
             return docIndexMetaData;
         }
-        for (int i = 1; i < concreteIndices.length; i++) {
-            docIndexMetaData = docIndexMetaData.merge(buildDocIndexMetaData(concreteIndices[i]));
+        for (int i = 0; i < concreteIndices.length; i++) {
+            try {
+                docIndexMetaData = docIndexMetaData.merge(
+                        buildDocIndexMetaData(concreteIndices[i]),
+                        transportPutIndexTemplateAction,
+                        createdFromTemplate);
+            } catch (IOException e) {
+                throw new CrateException("Unable to merge/build new DocIndexMetaData", e);
+            }
         }
         return docIndexMetaData;
     }
