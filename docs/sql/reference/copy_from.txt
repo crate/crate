@@ -32,9 +32,8 @@ Parameters
 :table_ident: The name (optionally schema-qualified) of an existing
     table where the data should be put.
 
-:path: A file or directory path with an optional `PCRE`_ file pattern
-    suffix. If the path is relative, it is based on the absolute path
-    of the node's data location.
+:path: A file or directory path, it is based on the absolute path of the node's
+data location. The filename may contain globbing wildcards.
 
 
 WITH Clause
@@ -68,5 +67,3 @@ The number of parallel bulk actions that should be executed. Default is 4.
 
     Similar to a high bulk_size a high concurrency setting will cause a very
     high load on the cluster.
-
-.. _PCRE: http://www.pcre.org/

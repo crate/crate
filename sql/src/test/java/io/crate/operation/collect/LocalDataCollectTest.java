@@ -53,8 +53,6 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
@@ -259,8 +257,7 @@ public class LocalDataCollectTest {
         operation = new MapSideDataCollectOperation(
                 injector,
                 injector.getInstance(ClusterService.class),
-                functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool,
-                new NodeEnvironment(ImmutableSettings.EMPTY, new Environment())
+                functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool
         );
     }
 

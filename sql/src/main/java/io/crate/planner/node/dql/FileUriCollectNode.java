@@ -38,6 +38,7 @@ public class FileUriCollectNode extends CollectNode {
 
     private Symbol targetUri;
     private boolean compressed;
+    private boolean sharedStorage;
 
     public FileUriCollectNode() {
 
@@ -50,7 +51,10 @@ public class FileUriCollectNode extends CollectNode {
                               List<Projection> projections) {
         super(id, routing, toCollect, projections);
         this.targetUri = targetUri;
+
+        // TODO make configurable
         this.compressed = false;
+        this.sharedStorage = false;
     }
 
     public Symbol targetUri() {
@@ -114,7 +118,12 @@ public class FileUriCollectNode extends CollectNode {
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)
                 .add("compressed", compressed)
+                .add("sharedStorage", sharedStorage)
                 .toString();
+    }
+
+    public boolean sharedStorage() {
+        return sharedStorage;
     }
 }
 
