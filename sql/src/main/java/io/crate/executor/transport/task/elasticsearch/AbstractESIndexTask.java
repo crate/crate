@@ -21,41 +21,21 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
-import io.crate.executor.Task;
+import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.Nullable;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
-public abstract class AbstractESIndexTask implements Task<Object[][]> {
+public abstract class AbstractESIndexTask extends AbstractChainedTask<Object[][]> {
 
-    protected final SettableFuture<Object[][]> result;
-    protected final List<ListenableFuture<Object[][]>> results;
     protected final ESIndexNode node;
-    protected List<ListenableFuture<Object[][]>> upStreamResult = ImmutableList.of();
 
     public AbstractESIndexTask(ESIndexNode node) {
+        super();
         this.node = node;
-
-        result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
-    }
-
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        return results;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        this.upStreamResult = result;
     }
 
     protected IndexRequest buildIndexRequest(String index,
