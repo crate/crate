@@ -24,12 +24,12 @@ package io.crate.analyze;
 import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import io.crate.exceptions.AmbiguousAliasException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Query;
-import io.crate.exceptions.AmbiguousAliasException;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

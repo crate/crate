@@ -2828,12 +2828,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ).stringValue();
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+        assertThat(
+                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                is(1L)
+        );
 
-        // TODO: query all fields when partitioned select is implemented
-        execute("select id, name from parted");
+        execute("select id, name, date from parted");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer)response.rows()[0][0], is(1));
         assertThat((String)response.rows()[0][1], is("Ford"));
+        assertThat((Long)response.rows()[0][2], is(13959981214861L));
     }
 
     @Test
@@ -2911,10 +2916,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).aliases().get("parted"));
         assertThat(
-                client().prepareCount("parted").setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
                 is(1L)
         );
+        execute("select * from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols(), arrayContaining("date", "name"));
+        assertThat((Long)response.rows()[0][0], is(13959981214861L));
+        assertThat((String)response.rows()[0][1], is("Ford"));
     }
 
     @Test
@@ -2934,8 +2944,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         refresh();
 
-        execute("select count(*) from parted");
-        assertThat((Long)response.rows()[0][0], is(2L));
+        execute("select name, date from parted");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((String)response.rows()[0][0], is("Ford"));
+        assertThat((String)response.rows()[1][0], is("Ford"));
+
+        assertThat((Long)response.rows()[0][1], is(13959981214861L));
+        assertThat((Long)response.rows()[1][1], is(13959981214861L));
     }
 
     @Test(expected = DuplicateKeyException.class)
@@ -2975,10 +2990,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).aliases().get("parted"));
 
-        // TODO: query all fields when partitioned select is implemented
-        execute("select id, name from parted");
+        execute("select id, name, date from parted");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((String)response.rows()[0][1], is("Trillian"));
+        assertNull(response.rows()[0][2]);
     }
 
     @Test
@@ -3001,7 +3017,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromPartitionedTable() throws Exception {
+    public void testSelectFromPartitionedTableWhereClause() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureGreen();
@@ -3014,7 +3030,24 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select id, quote from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000) and id = 1");
         assertEquals(1L, response.rowCount());
+    }
 
+    @Test
+    public void testSelectFromPartitioneTable() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        ensureGreen();
+        refresh();
+        execute("select id, quote, timestamp as ts, timestamp from quotes where timestamp > 1395874800000");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(2));
+        assertThat((String)response.rows()[0][1], is("Time is an illusion. Lunchtime doubly so"));
+        assertThat((Long)response.rows()[0][2], is(1395961200000L));
     }
 
 
@@ -3238,8 +3271,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDropPartitionedTable() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp) " +
-                "partitioned by(date) with (number_of_replicas=0)");
+        execute("create table quotes (" +
+                "  id integer, " +
+                "  quote string, " +
+                "  date timestamp" +
+                ") partitioned by (date) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into quotes (id, quote, date) values(?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L,
@@ -3261,6 +3297,25 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         AliasesExistResponse aliasesExistResponse = client().admin().indices()
                 .prepareAliasesExist("quotes").execute().get();
         assertFalse(aliasesExistResponse.exists());
+    }
+
+    @Test
+    public void testPartitionedTableSelectById() throws Exception {
+        execute("create table quotes (id integer, quote string, num double, primary key (id, num)) partitioned by (num)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, num) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Don't panic", 4.0d,
+                        2, "Time is an illusion. Lunchtime doubly so", -4.0d
+                });
+        ensureGreen();
+        refresh();
+        execute("select * from quotes where id = 1 and num = 4");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(Joiner.on(", ").join(response.cols()), is("id, num, quote"));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((Double)response.rows()[0][1], is(4.0d));
+        assertThat((String)response.rows()[0][2], is("Don't panic"));
     }
 
 }

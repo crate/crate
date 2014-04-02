@@ -84,7 +84,7 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public Collection<ReferenceInfo> partitionedByColumns() {
+    public List<ReferenceInfo> partitionedByColumns() {
         return ImmutableList.of();
     }
 

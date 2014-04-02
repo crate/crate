@@ -25,11 +25,12 @@ package io.crate.planner.node.dql;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import io.crate.Constants;
 import io.crate.analyze.WhereClause;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.Constants;
 import org.elasticsearch.common.Nullable;
 
 import java.util.Arrays;
@@ -44,13 +45,29 @@ public class ESSearchNode extends ESDQLPlanNode {
     private final WhereClause whereClause;
     private final String[] indices;
 
+    private final List<ReferenceInfo> partitionBy;
+
+    /**
+     *
+     * @param indices
+     * @param outputs
+     * @param orderBy
+     * @param reverseFlags
+     * @param limit
+     * @param offset
+     * @param whereClause
+     * @param partitionBy list of columns
+     *                    the queried is partitioned by
+     */
     public ESSearchNode(String[] indices,
                         List<Symbol> outputs,
                         @Nullable List<Reference> orderBy,
                         @Nullable boolean[] reverseFlags,
                         @Nullable Integer limit,
                         @Nullable Integer offset,
-                        WhereClause whereClause) {
+                        WhereClause whereClause,
+                        @Nullable List<ReferenceInfo> partitionBy
+                        ) {
         assert indices != null && indices.length > 0;
         assert outputs != null;
         assert whereClause != null;
@@ -66,6 +83,8 @@ public class ESSearchNode extends ESDQLPlanNode {
         // TODO: move constant to some other location?
         this.limit = Objects.firstNonNull(limit, Constants.DEFAULT_SELECT_LIMIT);
         this.offset = Objects.firstNonNull(offset, 0);
+
+        this.partitionBy = Objects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
     }
 
     public String[] indices(){
@@ -93,6 +112,10 @@ public class ESSearchNode extends ESDQLPlanNode {
         return orderBy;
     }
 
+    public List<ReferenceInfo> partitionBy() {
+        return partitionBy;
+    }
+
     public WhereClause whereClause() {
         return whereClause;
     }
@@ -110,6 +133,7 @@ public class ESSearchNode extends ESDQLPlanNode {
                 .add("orderBy", orderBy())
                 .add("reverseFlags", Arrays.toString(reverseFlags()))
                 .add("whereClause", whereClause())
+                .add("partitionBy", partitionBy)
                 .toString();
     }
 }

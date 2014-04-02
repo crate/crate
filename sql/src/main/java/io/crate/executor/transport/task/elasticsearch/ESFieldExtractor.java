@@ -21,11 +21,17 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import io.crate.PartitionName;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.StringLiteral;
 import org.elasticsearch.search.SearchHit;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -94,6 +100,40 @@ public abstract class ESFieldExtractor {
             }
             Object result = down(top, 0);
             return result == NOT_FOUND ? null : result;
+        }
+    }
+
+    public static class PartitionedByColumnExtractor extends ESFieldExtractor {
+
+        private final Reference reference;
+        private final List<ReferenceInfo> partitionedByInfos;
+        private final int valueIdx;
+        private final Map<String, List<String>> cache;
+
+        public PartitionedByColumnExtractor(Reference reference, List<ReferenceInfo> partitionedByInfos) {
+            this.reference = reference;
+            this.partitionedByInfos = partitionedByInfos;
+            this.valueIdx = partitionedByInfos.indexOf(reference.info());
+            this.cache = new HashMap<>();
+        }
+
+        @Override
+        public Object extract(SearchHit hit) {
+            try {
+                List<String> values = cache.get(hit.index());
+                if (values == null) {
+                    values = PartitionName
+                            .fromStringSafe(hit.index(),
+                                    partitionedByInfos.size()).values();
+                }
+                String value = values.get(valueIdx);
+                if (value == null) {
+                    return null;
+                }
+                return new StringLiteral(value).convertValueTo(reference.info().type());
+            } catch (IOException|IllegalArgumentException e) {
+                return null;
+            }
         }
     }
 

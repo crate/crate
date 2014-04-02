@@ -150,10 +150,6 @@ public class DocTableInfo implements TableInfo {
         return columns;
     }
 
-    public Collection<ReferenceInfo> partitionedByColumns() {
-        return partitionedByColumns;
-    }
-
     @Override
     public RowGranularity rowGranularity() {
         return RowGranularity.DOC;
@@ -261,14 +257,25 @@ public class DocTableInfo implements TableInfo {
         return concreteIndices;
     }
 
-    @Override
-    public boolean isPartitioned() {
-        return isPartitioned;
+    /**
+     * columns this table is partitioned by.
+     *
+     * guaranteed to be in the same order as defined in CREATE TABLE statement
+     * @return always a list, never null
+     */
+    public List<ReferenceInfo> partitionedByColumns() {
+        return partitionedByColumns;
     }
 
+    /**
+     * column names of columns this table is partitioned by (in dotted syntax).
+     *
+     * guaranteed to be in the same order as defined in CREATE TABLE statement
+     * @return always a list, never null
+     */
     @Override
-    public Iterator<ReferenceInfo> iterator() {
-        return references.values().iterator();
+    public List<String> partitionedBy() {
+        return partitionedBy;
     }
 
     @Override
@@ -277,7 +284,12 @@ public class DocTableInfo implements TableInfo {
     }
 
     @Override
-    public List<String> partitionedBy() {
-        return partitionedBy;
+    public boolean isPartitioned() {
+        return isPartitioned;
+    }
+
+    @Override
+    public Iterator<ReferenceInfo> iterator() {
+        return references.values().iterator();
     }
 }
