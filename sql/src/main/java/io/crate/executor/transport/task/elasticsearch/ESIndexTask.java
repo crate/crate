@@ -21,16 +21,14 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.exceptions.TaskExecutionException;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
 
-import java.util.concurrent.ExecutionException;
+import java.util.List;
 
 public class ESIndexTask extends AbstractESIndexTask {
 
@@ -78,15 +76,7 @@ public class ESIndexTask extends AbstractESIndexTask {
     }
 
     @Override
-    public void start() {
-        if (!upStreamResult.isEmpty()) {
-            // wait for all upstream results before starting to index
-            try {
-                Futures.allAsList(upStreamResult).get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new TaskExecutionException(this, e);
-            }
-        }
+    protected void doStart(List<Object[][]> upstreamResults) {
         transport.execute(request, listener);
     }
 }
