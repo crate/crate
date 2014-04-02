@@ -1,58 +1,32 @@
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.exceptions.TaskExecutionException;
-import io.crate.executor.Task;
-import io.crate.planner.node.ddl.ESCreateIndexNode;
 import io.crate.Constants;
+import io.crate.executor.transport.task.AbstractChainedTask;
+import io.crate.planner.node.ddl.ESCreateIndexNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
-public class ESCreateIndexTask implements Task<Object[][]> {
+public class ESCreateIndexTask extends AbstractChainedTask<Object[][]> {
 
     private final TransportCreateIndexAction transport;
     private final CreateIndexRequest request;
-    private final List<ListenableFuture<Object[][]>> results;
     private final CreateIndexListener listener;
 
-    private List<ListenableFuture<Object[][]>> upstreamResult = ImmutableList.of();
-
     public ESCreateIndexTask(ESCreateIndexNode node, TransportCreateIndexAction transportCreateIndexAction) {
+        super();
         this.transport = transportCreateIndexAction;
         this.request = buildRequest(node);
-        SettableFuture<Object[][]> result = SettableFuture.create();
-        this.results = ImmutableList.<ListenableFuture<Object[][]>>of(result);
-        this.listener = new CreateIndexListener(result);
+        this.listener = new CreateIndexListener(this.result);
     }
 
     @Override
-    public void start() {
-        if (!upstreamResult.isEmpty()) {
-            try {
-                Futures.allAsList(upstreamResult).get();
-            } catch (ExecutionException | InterruptedException e) {
-                throw new TaskExecutionException(this, e);
-            }
-        }
+    protected void doStart(List<Object[][]> upstreamResults) {
         transport.execute(request, listener);
-    }
-
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        return results;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        this.upstreamResult = result;
     }
 
     private static class CreateIndexListener implements ActionListener<CreateIndexResponse> {

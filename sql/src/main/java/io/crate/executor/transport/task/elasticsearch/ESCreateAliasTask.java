@@ -21,23 +21,17 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.exceptions.TaskExecutionException;
-import io.crate.executor.Task;
+import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.ddl.ESCreateAliasNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesResponse;
 import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
-public class ESCreateAliasTask implements Task<Object[][]> {
+public class ESCreateAliasTask extends AbstractChainedTask<Object[][]> {
 
     private static class CreateAliasListener implements ActionListener<IndicesAliasesResponse> {
 
@@ -65,15 +59,11 @@ public class ESCreateAliasTask implements Task<Object[][]> {
     private final TransportIndicesAliasesAction transport;
     private final IndicesAliasesRequest request;
     private final CreateAliasListener listener;
-    private final List<ListenableFuture<Object[][]>> result;
-
-    private List<ListenableFuture<Object[][]>> upstreamResult = ImmutableList.of();
 
     public ESCreateAliasTask(ESCreateAliasNode node, TransportIndicesAliasesAction transport) {
+        super();
         this.transport = transport;
-        SettableFuture<Object[][]> future = SettableFuture.create();
-        result = Arrays.<ListenableFuture<Object[][]>>asList(future);
-        listener = new CreateAliasListener(future);
+        listener = new CreateAliasListener(this.result);
 
         request = new IndicesAliasesRequest().addAlias(
                 node.aliasName(),
@@ -82,24 +72,7 @@ public class ESCreateAliasTask implements Task<Object[][]> {
     }
 
     @Override
-    public void start() {
-        if (!upstreamResult.isEmpty()) {
-            try {
-                Futures.allAsList(upstreamResult).get();
-            } catch (ExecutionException|InterruptedException e) {
-                throw new TaskExecutionException(this, e);
-            }
-        }
+    protected void doStart(List<Object[][]> upstreamResults) {
         transport.execute(request, listener);
-    }
-
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        return result;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        this.upstreamResult = result;
     }
 }
