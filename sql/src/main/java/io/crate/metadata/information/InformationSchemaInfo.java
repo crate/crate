@@ -44,6 +44,13 @@ public class InformationSchemaInfo implements SchemaInfo {
             .addPrimaryKey("table_name")
             .build();
 
+    public static final InformationTableInfo TABLE_INFO_TABLE_PARTITIONS = new InformationTableInfo.Builder("table_partitions")
+            .add("table_name", DataType.STRING, null)
+            .add("schema_name", DataType.STRING, null)
+            .add("partition_ident", DataType.STRING, null)
+            .add("values", DataType.OBJECT, null)
+            .build();
+
     public static final InformationTableInfo TABLE_INFO_COLUMNS = new InformationTableInfo.Builder("columns")
             .add("schema_name", DataType.STRING, null)
             .add("table_name", DataType.STRING, null)
@@ -70,6 +77,7 @@ public class InformationSchemaInfo implements SchemaInfo {
     public static final ImmutableMap<String, TableInfo> TABLE_INFOS =
             ImmutableMap.<String, TableInfo>builder()
                     .put(TABLE_INFO_TABLES.ident().name(), TABLE_INFO_TABLES)
+                    .put(TABLE_INFO_TABLE_PARTITIONS.ident().name(), TABLE_INFO_TABLE_PARTITIONS)
                     .put(TABLE_INFO_COLUMNS.ident().name(), TABLE_INFO_COLUMNS)
                     .put(TABLE_INFO_TABLE_CONSTRAINTS.ident().name(), TABLE_INFO_TABLE_CONSTRAINTS)
                     .put(TABLE_INFO_ROUTINES.ident().name(), TABLE_INFO_ROUTINES)

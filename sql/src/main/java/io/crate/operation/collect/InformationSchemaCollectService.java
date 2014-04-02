@@ -55,6 +55,7 @@ public class InformationSchemaCollectService implements CollectService {
     private final ImmutableMap<String, Iterable<?>> iterables;
 
     private final RoutineInfos routineInfos;
+    private final Iterable<TablePartitionInfo> tablePartitionsIterable;
 
     @Inject
     protected InformationSchemaCollectService(Functions functions, ReferenceInfos referenceInfos,
@@ -73,6 +74,7 @@ public class InformationSchemaCollectService implements CollectService {
                         return input;
                     }
                 });
+        tablePartitionsIterable = FluentIterable.from(new TablePartitionInfos(tablesIterable));
         columnsIterable = FluentIterable
                 .from(tablesIterable)
                 .transformAndConcat(new Function<TableInfo, Iterable<ColumnContext>>() {
@@ -99,6 +101,7 @@ public class InformationSchemaCollectService implements CollectService {
                 "tables", tablesIterable,
                 "columns", columnsIterable,
                 "table_constraints", tableConstraintsIterable,
+                "table_partitions", tablePartitionsIterable,
                 "routines", routinesIterable
         );
     }
