@@ -29,6 +29,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoBuilder;
 import io.crate.operation.reference.partitioned.PartitionedColumnExpression;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.Index;
@@ -44,6 +45,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
     @Inject
     public ShardReferenceResolver(Index index,
                                   ClusterService clusterService,
+                                  final TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                                   final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
                                   final Map<ReferenceIdent, ShardReferenceImplementation> shardImplementations) {
         ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder = ImmutableMap.builder();
@@ -59,7 +61,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
             // get DocTableInfo for virtual partitioned table
             DocTableInfo info = new DocTableInfoBuilder(
                     new TableIdent(DocSchemaInfo.NAME, realTableName),
-                    clusterService, true).build();
+                    clusterService, transportPutIndexTemplateAction, true).build();
             assert info.isPartitioned();
             int i = 0;
             int numPartitionedColumns = info.partitionedByColumns().size();

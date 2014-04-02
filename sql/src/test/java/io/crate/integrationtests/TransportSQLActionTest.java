@@ -3050,7 +3050,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Long)response.rows()[0][2], is(1395961200000L));
     }
 
-
     @Test
     public void testUpdatePartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
@@ -3286,9 +3285,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("drop table quotes");
         assertEquals(1L, response.rowCount());
 
-        GetIndexTemplatesResponse response = client().admin().indices()
+        GetIndexTemplatesResponse getIndexTemplatesResponse = client().admin().indices()
                 .prepareGetTemplates(PartitionName.templateName("quotes")).execute().get();
-        assertThat(response.getIndexTemplates().size(), is(0));
+        assertThat(getIndexTemplatesResponse.getIndexTemplates().size(), is(0));
 
         IndicesStatusResponse statusResponse = client().admin().indices()
                 .prepareStatus().execute().get();
@@ -3316,6 +3315,70 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Integer)response.rows()[0][0], is(1));
         assertThat((Double)response.rows()[0][1], is(4.0d));
         assertThat((String)response.rows()[0][2], is("Don't panic"));
+    }
+
+    @Test
+    public void testInsertDynamicToPartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp," +
+                "author object as (name string)) " +
+                "partitioned by(date) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?), (?, ?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L,
+                                new HashMap<String, Object>(){{put("name", "Douglas");}},
+                             2, "Time is an illusion. Lunchtime doubly so", 1395961200000L,
+                                new HashMap<String, Object>(){{put("name", "Ford");}}});
+        ensureGreen();
+        refresh();
+
+        execute("select * from information_schema.columns where table_name = 'quotes'");
+        assertEquals(5L, response.rowCount());
+
+        execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?)",
+                new Object[]{3, "I'd far rather be happy than right any day", 1395874800000L,
+                        new HashMap<String, Object>(){{put("name", "Douglas");put("surname", "Adams");}}});
+        ensureGreen();
+        refresh();
+
+        execute("select * from information_schema.columns where table_name = 'quotes'");
+        assertEquals(6L, response.rowCount());
+
+        execute("select author['surname'] from quotes order by id");
+        assertEquals(3L, response.rowCount());
+        assertNull(response.rows()[0][0]);
+        assertNull(response.rows()[1][0]);
+        assertEquals("Adams", response.rows()[2][0]);
+    }
+
+    @Test
+    public void testPartitionedTableAllConstraintsRoundTrip() throws Exception {
+        execute("create table quotes (id integer primary key, quote string, " +
+                "date timestamp primary key, user_id string primary key) " +
+                "partitioned by(date, user_id) clustered by (id) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
+        assertEquals(1L, response.rowCount());
+        execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
+        assertEquals(1L, response.rowCount());
+        ensureGreen();
+        refresh();
+
+        execute("select id, quote from quotes where user_id = 'Arthur'");
+        assertEquals(1L, response.rowCount());
+
+        execute("update quotes set quote = ? where user_id = ?",
+                new Object[]{"I'd far rather be happy than right any day", "Arthur"});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("delete from quotes where user_id = 'Arthur' and id = 1 and date = 1395874800000");
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(1L, response.rowCount());
     }
 
 }
