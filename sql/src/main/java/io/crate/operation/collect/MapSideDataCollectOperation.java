@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -32,6 +33,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.files.FileCollectInputSymbolVisitor;
+import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -47,7 +49,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.indices.IndexMissingException;
@@ -55,10 +56,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
@@ -66,7 +64,6 @@ import java.util.Set;
 public class MapSideDataCollectOperation implements CollectOperation<Object[][]> {
 
     private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
-    private final NodeEnvironment nodeEnvironment;
     private ESLogger logger = Loggers.getLogger(getClass());
     private final ProjectionToProjectorVisitor projectorVisitor;
 
@@ -105,8 +102,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                                        Functions functions,
                                        ReferenceResolver referenceResolver,
                                        IndicesService indicesService,
-                                       ThreadPool threadPool,
-                                       NodeEnvironment nodeEnvironment) {
+                                       ThreadPool threadPool) {
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
@@ -119,7 +115,6 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         this.fileInputSymbolVisitor =
                 new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
         this.projectorVisitor = new ProjectionToProjectorVisitor(injector, nodeImplementationSymbolVisitor);
-        this.nodeEnvironment = nodeEnvironment;
     }
 
 
@@ -165,7 +160,12 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
 
         FlatProjectorChain projectorChain = new FlatProjectorChain(
                 collectNode.projections(), projectorVisitor);
-        CrateCollector collector = getCollector(collectNode, projectorChain);
+        CrateCollector collector;
+        try {
+            collector = getCollector(collectNode, projectorChain);
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
         projectorChain.startProjections();
         try {
             collector.doCollect();
@@ -176,7 +176,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     }
 
     private CrateCollector getCollector(CollectNode collectNode,
-                                        FlatProjectorChain projectorChain) {
+                                        FlatProjectorChain projectorChain) throws Exception {
         if (collectNode instanceof FileUriCollectNode) {
             FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.process(collectNode);
             FileUriCollectNode fileUriCollectNode = (FileUriCollectNode)collectNode;
@@ -187,9 +187,9 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                             "targetUri symbol \"%s\" must be a literal", fileUriCollectNode.targetUri())
             );
 
-            assert nodeEnvironment.nodeDataLocations().length > 0;
-            String nodePath = nodeEnvironment.nodeDataLocations()[0].getAbsolutePath();
-            // TODO: s3 support and explicit file schema in uri
+            String[] readers = fileUriCollectNode.executionNodes().toArray(
+                    new String[fileUriCollectNode.executionNodes().size()]);
+            Arrays.sort(readers);
             return new FileReadingCollector(
                     ((Literal)fileUriCollectNode.targetUri()).valueAsString(),
                     context.topLevelInputs(),
@@ -197,7 +197,10 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     projectorChain.firstProjector(),
                     fileUriCollectNode.fileFormat(),
                     fileUriCollectNode.compressed(),
-                    nodePath
+                    ImmutableMap.<String, FileInputFactory>of(),
+                    fileUriCollectNode.sharedStorage(),
+                    readers.length,
+                    Arrays.binarySearch(readers, clusterService.localNode().id())
             );
         } else {
             ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.process(collectNode);

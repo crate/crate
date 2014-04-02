@@ -3,10 +3,8 @@ import doctest
 import zc.customdoctests
 from crate.testing.layer import CrateLayer
 import os
-import requests
 import shutil
 import re
-import json
 
 from crate.crash.command import CrateCmd
 cmd = CrateCmd()
@@ -97,9 +95,7 @@ def setUpQuotes(test):
         ) clustered by(id) into 2 shards with(number_of_replicas=0)
     """.strip())
 
-    crate_wd = empty_layer.wdPath()
-    cluster_name = "Testing44200"
-    import_dir = os.path.join(crate_wd, cluster_name, "nodes", "0", "import_data")
+    import_dir = '/tmp/import_data'
     if not os.path.isdir(import_dir):
         os.mkdir(import_dir)
     shutil.copy(project_path('sql/src/test/resources/essetup/data/copy', 'test_copy_from.json'),

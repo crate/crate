@@ -38,7 +38,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportResponseHandler;
@@ -175,9 +174,8 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                                         IndicesService indicesService,
                                         ThreadPool threadPool,
                                         TransportService transportService,
-                                        PlanNodeStreamerVisitor streamerVisitor,
-                                        NodeEnvironment nodeEnvironment) {
-        super(injector, clusterService, functions, referenceResolver, indicesService, threadPool, nodeEnvironment);
+                                        PlanNodeStreamerVisitor streamerVisitor) {
+        super(injector, clusterService, functions, referenceResolver, indicesService, threadPool);
         this.transportService = transportService;
         this.streamerVisitor = streamerVisitor;
     }
