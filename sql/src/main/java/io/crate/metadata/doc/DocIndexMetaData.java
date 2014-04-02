@@ -27,6 +27,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.*;
 import io.crate.Constants;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
@@ -34,6 +35,8 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
@@ -439,9 +442,26 @@ public class DocIndexMetaData {
         return true;
     }
 
-    public DocIndexMetaData merge(DocIndexMetaData other) {
+    public DocIndexMetaData merge(DocIndexMetaData other,
+                                  TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                                  boolean thisIsCreatedFromTemplate)
+            throws IOException {
         // TODO: merge schemas if not equal, for now we just return this after making sure the schema is the same
         if (schemaEquals(other)) {
+            return this;
+        } else if (thisIsCreatedFromTemplate) {
+            if (this.references.size() < other.references.size()) {
+                // this is older, update template and return other
+                String templateName = PartitionName.templateName(name());
+                PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
+                        .mapping(Constants.DEFAULT_MAPPING_TYPE, other.defaultMappingMap)
+                        .create(false)
+                        .settings(other.metaData.settings())
+                        .template(templateName + "*");
+                transportPutIndexTemplateAction.execute(request);
+                return other;
+            }
+            // other is older, just return this
             return this;
         } else {
             throw new TableAliasSchemaException(other.name());

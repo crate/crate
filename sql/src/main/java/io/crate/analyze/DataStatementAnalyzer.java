@@ -369,7 +369,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 if (pkc.hasPartitionedColumn) {
                     // query was modified, normalize it again
                     whereClause = new WhereClause(pkc.whereClause());
-                    context.whereClause(whereClause);
+                    whereClause = context.whereClause(whereClause);
                 }
                 whereClause.clusteredByLiteral(pkc.clusteredByLiteral());
                 if (pkc.noMatch) {

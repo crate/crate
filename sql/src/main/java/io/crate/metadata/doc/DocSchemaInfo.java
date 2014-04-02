@@ -35,6 +35,7 @@ import io.crate.exceptions.CrateException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -48,6 +49,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     public static final String NAME = "doc";
     private final ClusterService clusterService;
+    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
 
     private static final Predicate<String> tablesFilter = new Predicate<String>() {
         @Override
@@ -69,9 +71,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private final Function<String, TableInfo> tableInfoFunction;
 
     @Inject
-    public DocSchemaInfo(ClusterService clusterService) {
+    public DocSchemaInfo(ClusterService clusterService,
+                         TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
         this.clusterService = clusterService;
         clusterService.add(this);
+        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
             @Override
@@ -84,7 +88,8 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private DocTableInfo innerGetTableInfo(String name) {
         boolean checkAliasSchema = clusterService.state().metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
-                new TableIdent(NAME, name), clusterService, checkAliasSchema);
+                new TableIdent(NAME, name), clusterService,
+                transportPutIndexTemplateAction, checkAliasSchema);
         return builder.build();
     }
 

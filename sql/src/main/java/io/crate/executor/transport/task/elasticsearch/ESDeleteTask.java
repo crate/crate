@@ -50,6 +50,7 @@ public class ESDeleteTask implements Task<Object[][]> {
 
 
         request = new DeleteRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.id());
+        request.routing(node.routing());
         if (node.version().isPresent()) {
             request.version(node.version().get());
         }

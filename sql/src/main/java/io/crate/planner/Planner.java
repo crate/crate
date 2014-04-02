@@ -206,7 +206,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         WhereClause whereClause = analysis.whereClause();
         if (analysis.ids().size() == 1 && analysis.routingValues().size() == 1) {
             plan.add(new ESDeleteNode(
-                    analysis.table().ident().name(),
+                    indices(analysis)[0],
                     analysis.ids().get(0),
                     analysis.routingValues().get(0),
                     whereClause.version()));
