@@ -28,6 +28,7 @@ import com.google.common.collect.Collections2;
 import org.apache.lucene.util.BytesRef;
 import io.crate.DataType;
 import io.crate.action.sql.SQLResponse;
+import org.elasticsearch.common.collect.HppcMaps;
 
 import javax.annotation.Nullable;
 import java.util.Set;
@@ -60,13 +61,14 @@ public class RowsResponseBuilder implements ResponseBuilder {
         // if the map is coming from a ESSearchTask/EsGetTask they already contain strings
         // and we have no case in which another Task returns a Map with ByteRefs/Strings inside.
         final IntArrayList stringColumns = new IntArrayList();
-        final IntArrayList stringSetColumns = new IntArrayList();
+        final IntArrayList stringCollectionColumns = new IntArrayList();
         int idx = 0;
         for (DataType dataType : dataTypes) {
             if (dataType == DataType.STRING) {
                 stringColumns.add(idx);
-            } else if (dataType == DataType.STRING_SET) {
-                stringSetColumns.add(idx);
+            } else if (dataType == DataType.STRING_SET ||
+                    dataType == DataType.STRING_ARRAY) {
+                stringCollectionColumns.add(idx);
             }
             idx++;
         }
@@ -79,18 +81,29 @@ public class RowsResponseBuilder implements ResponseBuilder {
                 }
             }
 
-            for (IntCursor stringSetColumn : stringSetColumns) {
-                Object value = rows[r][stringSetColumn.value];
-                if (value != null && value instanceof Set) {
-                    rows[r][stringSetColumn.value] = Collections2.transform((Set<BytesRef>) value, new Function<BytesRef, String>() {
-                        @Nullable
-                        @Override
-                        public String apply(@Nullable BytesRef input) {
-                            return input == null ? null : input.utf8ToString();
+            for (IntCursor stringCollectionColumn : stringCollectionColumns) {
+                Object value = rows[r][stringCollectionColumn.value];
+                if (value != null) {
+                    if (value instanceof Set) {
+                        rows[r][stringCollectionColumn.value] = Collections2.transform((Set<BytesRef>) value, new Function<BytesRef, String>() {
+                            @Nullable
+                            @Override
+                            public String apply(@Nullable BytesRef input) {
+                                return input == null ? null : input.utf8ToString();
+                            }
+                        });
+                    } else if (value instanceof BytesRef[]) {
+                        BytesRef[] values = (BytesRef[]) value;
+                        String[] valuesString = new String[values.length];
+                        for (int i = 0; i < values.length; i++) {
+                            valuesString[i] = values[i] == null ? null : values[i].utf8ToString();
                         }
-                    });
+                        rows[r][stringCollectionColumn.value] = valuesString;
+                    }
                 }
             }
         }
     }
+
+
 }
