@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - feature: added column 'partitioned_by' to table 'information_schema.tables'
+
  - fix: Items of string arrays now get transformed to strings
 
  - fix: AND operator normalization was wrong if one of the arguments is a boolean

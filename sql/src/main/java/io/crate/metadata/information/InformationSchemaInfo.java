@@ -39,6 +39,7 @@ public class InformationSchemaInfo implements SchemaInfo {
             .add("number_of_shards", DataType.INTEGER, null)
             .add("number_of_replicas", DataType.STRING, null)
             .add("clustered_by", DataType.STRING, null)
+            .add("partitioned_by", DataType.STRING_ARRAY, null)
             .addPrimaryKey("schema_name")
             .addPrimaryKey("table_name")
             .build();
