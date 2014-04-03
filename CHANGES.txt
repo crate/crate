@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: Items of string arrays now get transformed to strings
+
  - fix: AND operator normalization was wrong if one of the arguments is a boolean
 
 2014/03/26 0.34.0
