@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.WhereClause;
@@ -25,6 +26,7 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.ddl.ESDeleteTemplateNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
@@ -169,9 +171,19 @@ public class PlannerTest {
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
+            TableIdent emptyPartedTableIdent = new TableIdent(null, "empty_parted");
+            TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
+                    .add("name", DataType.STRING, null)
+                    .add("id", DataType.STRING, null)
+                    .add("date", DataType.TIMESTAMP, null, true)
+                    .addPrimaryKey("id")
+                    .addPrimaryKey("date")
+                    .clusteredBy("id")
+                    .build();
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
+            when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -753,6 +765,37 @@ public class PlannerTest {
 
         ESDeleteIndexNode node = (ESDeleteIndexNode) planNode;
         assertThat(node.index(), is("users"));
+    }
+
+    @Test
+    public void testDropPartitionedTable() throws Exception {
+        Plan plan = plan("drop table parted");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+
+        assertThat(planNode, instanceOf(ESDeleteIndexNode.class));
+        ESDeleteIndexNode node = (ESDeleteIndexNode) planNode;
+        assertThat(node.index(), is("parted"));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESDeleteTemplateNode.class));
+        ESDeleteTemplateNode templateNode = (ESDeleteTemplateNode) planNode;
+        assertThat(templateNode.templateName(), is(PartitionName.templateName("parted")));
+
+        assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testDropEmptyPartitionedTable() throws Exception {
+        Plan plan = plan("drop table empty_parted");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+
+        assertThat(planNode, instanceOf(ESDeleteTemplateNode.class));
+        ESDeleteTemplateNode templateNode = (ESDeleteTemplateNode) planNode;
+        assertThat(templateNode.templateName(), is(PartitionName.templateName("empty_parted")));
+
+        assertFalse(iterator.hasNext());
     }
 
     @Test
