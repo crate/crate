@@ -21,8 +21,10 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
@@ -30,10 +32,7 @@ import io.crate.PartitionName;
 import io.crate.executor.Job;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.planner.Plan;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
-import io.crate.planner.node.ddl.ESCreateIndexNode;
-import io.crate.planner.node.ddl.ESCreateTemplateNode;
-import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.ddl.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -46,6 +45,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -301,5 +301,76 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat(templateMeta.template(), Matchers.is(".partitioned.partitioned.*"));
         assertThat(templateMeta.settings().toDelimitedString(','),
                 Matchers.is("index.number_of_replicas=0,index.number_of_shards=2,"));
+    }
+
+    @Test
+    public void testDeleteTemplateTask() throws Exception {
+        Settings indexSettings = ImmutableSettings.builder()
+                .put("number_of_replicas", 0)
+                .put("number_of_shards", 2)
+                .build();
+        Map<String, Object> mapping = ImmutableMap.<String, Object>of(
+                "properties", ImmutableMap.of(
+                        "id", ImmutableMap.builder()
+                                .put("type", "integer")
+                                .put("store", false)
+                                .put("index", "not_analyzed")
+                                .put("doc_values", true).build(),
+                        "name", ImmutableMap.builder()
+                                .put("type", "string")
+                                .put("store", false)
+                                .put("index", "not_analyzed")
+                                .put("doc_values", true).build(),
+                        "names", ImmutableMap.builder()
+                                .put("type", "string")
+                                .put("store", false)
+                                .put("index", "not_analyzed")
+                                .put("doc_values", false).build()
+                ),
+                "_meta", ImmutableMap.of(
+                        "partitioned_by", ImmutableList.<List<String>>of(
+                                ImmutableList.of("name", "string")
+                        )
+                )
+        );
+        final String templateName = PartitionName.templateName("partitioned");
+        String templatePrefix = PartitionName.templateName("partitioned") + "*";
+
+        ESCreateTemplateNode planNode = new ESCreateTemplateNode(
+                templateName,
+                templatePrefix,
+                indexSettings,
+                mapping);
+        Plan plan = new Plan();
+        plan.add(planNode);
+        plan.expectsAffectedRows(true);
+
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> futures = executor.execute(job);
+        ListenableFuture<List<Object[][]>> listenableFuture = Futures.allAsList(futures);
+        Object[][] objects = listenableFuture.get().get(0);
+        assertThat((Long)objects[0][0], Matchers.is(1L));
+
+        refresh();
+
+        ESDeleteTemplateNode deleteTemplateNode = new ESDeleteTemplateNode(templateName);
+        plan = new Plan();
+        plan.add(deleteTemplateNode);
+        plan.expectsAffectedRows(true);
+
+        job = executor.newJob(plan);
+        futures = executor.execute(job);
+        listenableFuture = Futures.allAsList(futures);
+        objects = listenableFuture.get().get(0);
+        assertThat((Long)objects[0][0], Matchers.is(1L));
+
+        GetIndexTemplatesResponse response = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        assertFalse(Iterables.filter(response.getIndexTemplates(), new Predicate<IndexTemplateMetaData>() {
+            @Override
+            public boolean apply(@Nullable IndexTemplateMetaData input) {
+                return input != null && input.getName().equals(templateName);
+            }
+        }).iterator().hasNext());
     }
 }

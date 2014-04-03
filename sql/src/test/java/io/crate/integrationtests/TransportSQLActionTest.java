@@ -3437,6 +3437,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select * from quotes");
         assertEquals(1L, response.rowCount());
-    }
 
+        execute("drop table quotes");
+        assertEquals(1L, response.rowCount());
+    }
 }

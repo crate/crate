@@ -250,8 +250,13 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     @Override
     protected Plan visitDropTableAnalysis(DropTableAnalysis analysis, Void context) {
         Plan plan = new Plan();
-        ESDeleteIndexNode node = new ESDeleteIndexNode(analysis.index());
-        plan.add(node);
+
+        if (!analysis.table().isPartitioned() || analysis.table().partitions().size() > 0) {
+            // delete index always for normal tables
+            // and for partitioned tables only if partitions exist
+            ESDeleteIndexNode node = new ESDeleteIndexNode(analysis.index());
+            plan.add(node);
+        }
 
         if (analysis.table().isPartitioned()) {
             String templateName = PartitionName.templateName(analysis.index());
