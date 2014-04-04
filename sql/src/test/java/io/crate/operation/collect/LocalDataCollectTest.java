@@ -42,6 +42,7 @@ import org.apache.lucene.util.BytesRef;
 import io.crate.DataType;
 import io.crate.action.SQLXContentQueryParser;
 import io.crate.exceptions.CrateException;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -195,6 +196,9 @@ public class LocalDataCollectTest {
             MapBinder<ReferenceIdent, ReferenceImplementation> binder = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
             binder.addBinding(TestExpression.ident).toInstance(new TestExpression());
+
+            TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
+            bind(TransportPutIndexTemplateAction.class).toInstance(transportPutIndexTemplateAction);
 
             bind(IndexService.class).toInstance(indexService);
         }
