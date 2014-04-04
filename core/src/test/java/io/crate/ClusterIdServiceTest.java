@@ -39,7 +39,7 @@ public class ClusterIdServiceTest extends CrateIntegrationTest {
         ensureGreen();
 
         ClusterIdService clusterIdService = cluster().getInstance(ClusterIdService.class, node_0);
-        assertNotNull(clusterIdService.clusterId());
+        assertNotNull(clusterIdService.clusterId().get());
     }
 
     @Test
@@ -71,26 +71,26 @@ public class ClusterIdServiceTest extends CrateIntegrationTest {
         ensureGreen();
 
         ClusterIdService clusterIdServiceNode0 = cluster().getInstance(ClusterIdService.class, node_0);
-        ClusterId clusterId = clusterIdServiceNode0.clusterId();
+        ClusterId clusterId = clusterIdServiceNode0.clusterId().get();
         assertNotNull(clusterId);
 
         String node_1 = cluster().startNode(localSettings);
         ensureGreen();
 
         ClusterIdService clusterIdServiceNode1 = cluster().getInstance(ClusterIdService.class, node_1);
-        assertNotNull(clusterIdServiceNode1.clusterId());
+        assertNotNull(clusterIdServiceNode1.clusterId().get());
 
-        assertEquals(clusterId, clusterIdServiceNode1.clusterId());
+        assertEquals(clusterId, clusterIdServiceNode1.clusterId().get());
 
         cluster().stopNode(node_0);
         ensureGreen();
 
-        assertEquals(clusterId, clusterIdServiceNode1.clusterId());
+        assertEquals(clusterId, clusterIdServiceNode1.clusterId().get());
 
         String node_2 = cluster().startNode(localSettings);
         ensureGreen();
         ClusterIdService clusterIdServiceNode2 = cluster().getInstance(ClusterIdService.class, node_2);
-        assertEquals(clusterId, clusterIdServiceNode2.clusterId());
+        assertEquals(clusterId, clusterIdServiceNode2.clusterId().get());
     }
 
 }

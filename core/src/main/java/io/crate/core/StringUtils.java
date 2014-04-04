@@ -21,11 +21,12 @@
 
 package io.crate.core;
 
-import com.google.common.base.Splitter;
-
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -61,5 +62,45 @@ public class StringUtils {
         }
 
         return JOINER.join(s);
+    }
+
+    /**
+     * check if a collection of Strings containing dotted paths contains at least one element
+     * beginning with <code>prefix</code>, which consists of one or more complete path elements
+     *
+     * e.g. <code>StringUtils.pathListContainsPrefix(["a", "ba.cv"], "ba")</code> returns <code>true</code>
+     *      but <code>StringUtils.pathListContainsPrefix(["a", "ba.cv"], "b")</code> returns <code>false</code>
+     * @param pathCollection a collection of Strings containing dotted paths
+     * @param prefix the prefix to search for
+     * @return true if at least one element in the list has <code>prefix</code> as prefix, false otherwise
+     */
+    public static boolean pathListContainsPrefix(Collection<String> pathCollection, String prefix) {
+        for (String elem : pathCollection) {
+            if (elem.startsWith(prefix) &&
+                    (elem.length() == prefix.length() ||
+                            (elem.length() > prefix.length() && elem.charAt(prefix.length()) == '.'))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get the first path from a collection of Strings containing dotted paths
+     * beginning with <code>prefix</code>, which consists of one or more complete path elements
+     * @param pathCollection a collection of Strings containing dotted paths
+     * @param prefix the prefix to search for
+     * @return the found path or null
+     */
+    public static @Nullable
+    String getPathByPrefix(Collection<String> pathCollection, String prefix) {
+        for (String elem : pathCollection) {
+            if (elem.startsWith(prefix) &&
+                    (elem.length() == prefix.length() ||
+                            (elem.length() > prefix.length() && elem.charAt(prefix.length()) == '.'))) {
+                return elem;
+            }
+        }
+        return null;
     }
 }
