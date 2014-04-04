@@ -7,14 +7,31 @@ configurations {
     all*.exclude group: 'org.elasticsearch'
 }
 
-task getVersion (dependsOn: 'classes') << {
+task release(dependsOn: 'distTar') << {
+    logger.info("released version: " + getVersion.version);
+
+}
+
+task getVersion ( dependsOn: 'classes') << {
     def stdout = new ByteArrayOutputStream()
     javaexec {
         classpath = sourceSets.main.runtimeClasspath
         main = 'io.crate.Version'
         standardOutput = stdout
     }
-    ext.version = stdout.toString().trim().split(" ")[1].replace(',','')
+    ext.gitTag = "git describe".execute().in.text.trim()
+    ext.version = stdout.toString().trim().split(" ")[1].replace(',','').trim()
+
+    if (gradle.taskGraph.hasTask(release)) {
+        assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
+    } else {
+        ext.version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
+    }
+
+    logger.quiet("gitTag: " + gitTag)
+    logger.quiet("version: " + version)
+
+
 }
 
 task dist {

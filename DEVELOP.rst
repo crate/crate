@@ -56,6 +56,11 @@ Building a tarball and a zip is done by gradle with the command::
 
  $ ./gradlew dist
 
+Building a release tarball is done via tha ``release`` task, which
+checks that the git tag points to the version of crate checked out::
+
+ $ ./gradlew release
+
 The resulting tarball and zip will reside in the folder
 ``./app/build/distributions``.
 
