@@ -2,8 +2,8 @@
 Changes for Crate Data
 ======================
 
-Unreleased
-==========
+2014/04/04 0.34.1
+=================
 
  - fix: do not display internal blob table names in ``sys.shards.table_name``
 
