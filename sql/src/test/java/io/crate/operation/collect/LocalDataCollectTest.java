@@ -44,6 +44,7 @@ import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -197,6 +198,9 @@ public class LocalDataCollectTest {
             MapBinder<ReferenceIdent, ReferenceImplementation> binder = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
             binder.addBinding(TestExpression.ident).toInstance(new TestExpression());
+
+            TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
+            bind(TransportPutIndexTemplateAction.class).toInstance(transportPutIndexTemplateAction);
 
             bind(IndexService.class).toInstance(indexService);
         }

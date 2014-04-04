@@ -32,6 +32,7 @@ import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.shard.ShardTableNameExpression;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -98,6 +99,9 @@ public class SysShardsExpressionsTest {
             when(indexShard.routingEntry()).thenReturn(shardRouting);
             when(shardRouting.primary()).thenReturn(true);
             when(shardRouting.relocatingNodeId()).thenReturn("node_X");
+
+            TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
+            bind(TransportPutIndexTemplateAction.class).toInstance(transportPutIndexTemplateAction);
 
             when(indexShard.state()).thenReturn(IndexShardState.STARTED);
         }
