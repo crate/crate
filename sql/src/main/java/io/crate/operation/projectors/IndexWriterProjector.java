@@ -98,7 +98,9 @@ public class IndexWriterProjector implements Projector {
             }
             indexRequest = buildRequest();
         }
-        bulkProcessor.add(indexRequest);
+        if (indexRequest != null) {
+            bulkProcessor.add(indexRequest);
+        }
         return true;
     }
 
@@ -135,7 +137,11 @@ public class IndexWriterProjector implements Projector {
     private IndexRequest buildRequest() {
         // TODO: reuse logic that is currently  in AbstractESIndexTask
         IndexRequest indexRequest = new IndexRequest(tableName, Constants.DEFAULT_MAPPING_TYPE);
-        indexRequest.source(((BytesRef)sourceInput.value()).bytes);
+        if (sourceInput.value() != null) {
+            indexRequest.source(((BytesRef) sourceInput.value()).bytes);
+        } else {
+            return null;
+        }
 
         List<String> primaryKeyValues = Lists.transform(idInputs, new Function<Input<?>, String>() {
             @Nullable

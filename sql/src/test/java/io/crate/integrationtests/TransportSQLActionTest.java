@@ -2349,7 +2349,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext)");
 
-        execute("copy quotes from ? with (concurrency=2)", new Object[]{copyFilePath});
+        execute("copy quotes from ? with (concurrency=2)", new Object[]{copyFilePath + "/*"});
         // 2 nodes on same machine resulting in double affected rows
         assertEquals(6L, response.rowCount());
         refresh();
@@ -2363,7 +2363,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext)");
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "(\\D)*.json");
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "*.json");
         execute("copy quotes from ?", new Object[]{filePath});
         // 2 nodes on same machine resulting in double affected rows
         assertEquals(6L, response.rowCount());

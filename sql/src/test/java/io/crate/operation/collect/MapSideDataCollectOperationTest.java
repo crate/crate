@@ -33,8 +33,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
@@ -79,8 +77,7 @@ public class MapSideDataCollectOperationTest {
                 functions,
                 referenceResolver,
                 indicesService,
-                new ThreadPool(ImmutableSettings.EMPTY, null),
-                new NodeEnvironment(ImmutableSettings.EMPTY, new Environment())
+                new ThreadPool(ImmutableSettings.EMPTY, null)
         );
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");
