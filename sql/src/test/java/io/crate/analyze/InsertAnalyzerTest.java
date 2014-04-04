@@ -21,6 +21,10 @@
 
 package io.crate.analyze;
 
+import io.crate.DataType;
+import io.crate.Id;
+import io.crate.exceptions.CrateException;
+import io.crate.exceptions.ValidationException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
@@ -31,9 +35,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import io.crate.DataType;
-import io.crate.exceptions.CrateException;
-import io.crate.exceptions.ValidationException;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -63,6 +65,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
+            when(schemaInfo.getTableInfo(NESTED_PK_TABLE_IDENT.name())).thenReturn(nestedPkTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -278,7 +281,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                     }
                 });
         assertThat((LongLiteral)analysis.values().get(0).get(0), is(new LongLiteral(0L)));
-        assertThat(((ArrayLiteral)analysis.values().get(0).get(1)).itemType(), is(DataType.OBJECT));
+        assertThat(((ArrayLiteral) analysis.values().get(0).get(1)).itemType(), is(DataType.OBJECT));
     }
 
     @Test
@@ -295,4 +298,40 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{1, "1"});
     }
 
+    @Test
+    public void testNestedPk() throws Exception {
+        // FYI: insert nested clustered by test here too
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into nested_pk (id, o) values (?, ?)",
+                new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
+        assertThat(analysis.ids().size(), is(1));
+        assertThat(analysis.ids().get(0),
+                is(new Id(Arrays.asList("id", "o.b"), Arrays.asList("1", "4"), "o.b").stringValue()));
+    }
+
+    @Test
+    public void testNestedPkAllColumns() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into nested_pk values (?, ?)",
+                new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
+        assertThat(analysis.ids().size(), is(1));
+        assertThat(analysis.ids().get(0),
+                is(new Id(Arrays.asList("id", "o.b"), Arrays.asList("1", "4"), "o.b").stringValue()));
+    }
+
+    @Test( expected = IllegalArgumentException.class)
+    public void testMissingNestedPk() throws Exception {
+        analyze("insert into nested_pk (id) values (?)", new Object[]{1});
+    }
+
+    @Test( expected = IllegalArgumentException.class)
+    public void testMissingNestedPkInMap() throws Exception {
+        analyze("insert into nested_pk (id, o) values (?, ?)", new Object[]{1, new HashMap<String, Object>()});
+    }
+
+    @Test
+    public void testTwistedNestedPk() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into nested_pk (o, id) values (?, ?)",
+                new Object[]{new MapBuilder<String, Object>().put("b", 4).map(), 1});
+        assertThat(analysis.ids().get(0),
+                is(new Id(Arrays.asList("id", "o.b"), Arrays.asList("1", "4"), "o.b").stringValue()));
+    }
 }

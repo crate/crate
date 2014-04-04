@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: detect nested primary keys and clustered by values in insert analysis
+
  - fix: correctly update ``ping_counters`` for udc
 
  - update crash_standalone to 0.8.3

@@ -33,13 +33,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class StringUtils {
-    private static final Splitter SPLITTER = Splitter.on('.');
-    private static final Joiner JOINER = Joiner.on('.');
+    public static final Splitter PATH_SPLITTER = Splitter.on('.');
+    public static final Joiner PATH_JOINER = Joiner.on('.');
+
     private static final Pattern PATTERN = Pattern.compile("\\['([^\\]])*'\\]");
     private static final Pattern SQL_PATTERN = Pattern.compile("(.+?)(?:\\['([^\\]])*'\\])+");
 
     public static String dottedToSqlPath(String dottedPath) {
-        Iterable<String> splitted = SPLITTER.split(dottedPath);
+        Iterable<String> splitted = PATH_SPLITTER.split(dottedPath);
         Iterator<String> iter = splitted.iterator();
         StringBuilder builder = new StringBuilder(iter.next());
         while (iter.hasNext()) {
@@ -61,7 +62,29 @@ public class StringUtils {
             idx = m.end();
         }
 
-        return JOINER.join(s);
+        return PATH_JOINER.join(s);
+    }
+
+    public static boolean pathListContainsPrefix(Collection<String> pathList, String prefix) {
+        for (String elem : pathList) {
+            if (elem.startsWith(prefix) &&
+                    (elem.length() == prefix.length() ||
+                            (elem.length() > prefix.length() && elem.charAt(prefix.length()) == '.'))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static @Nullable String getPathByPrefix(Collection<String> pathList, String prefix) {
+        for (String elem : pathList) {
+            if (elem.startsWith(prefix) &&
+                    (elem.length() == prefix.length() ||
+                            (elem.length() > prefix.length() && elem.charAt(prefix.length()) == '.'))) {
+                return elem;
+            }
+        }
+        return null;
     }
 
     /**

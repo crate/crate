@@ -98,6 +98,15 @@ public class BaseAnalyzerTest {
             .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
             .clusteredBy("id")
             .build();
+    static final TableIdent NESTED_PK_TABLE_IDENT = new TableIdent(null, "nested_pk");
+    static final TableInfo nestedPkTableInfo = TestingTableInfo.builder(NESTED_PK_TABLE_IDENT, RowGranularity.DOC, shardRouting)
+            .add("id", DataType.LONG, null)
+            .add("o", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("o", DataType.BYTE, Arrays.asList("b"))
+            .addPrimaryKey("id")
+            .addPrimaryKey("o.b")
+            .clusteredBy("o.b")
+            .build();
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.asList(DataType.LONG)),
             DataType.LONG);
