@@ -35,18 +35,15 @@ import java.util.Map;
 
 public class TablePropertiesAnalysis {
 
-    private final static String NUMBER_OF_REPLICAS = "number_of_replicas";
-    private final static String AUTO_EXPAND_REPLICAS = "auto_expand_replicas";
-
     private static final ExpressionToObjectVisitor expressionVisitor = new ExpressionToObjectVisitor();
 
     private static final ImmutableMap<String, SettingsApplier> supportedProperties =
             ImmutableMap.<String, SettingsApplier>builder()
-                    .put(NUMBER_OF_REPLICAS, new NumberOfReplicasSettingApplier())
+                    .put(NumberOfReplicas.NUMBER_OF_REPLICAS, new NumberOfReplicasSettingApplier())
                     .build();
 
     private static final ImmutableMap<String, Object> defaultValues = ImmutableMap.<String, Object>builder()
-            .put(NUMBER_OF_REPLICAS, 1)
+            .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
             .build();
 
     public static Settings propertiesToSettings(GenericProperties properties, Object[] parameters) {
@@ -80,14 +77,14 @@ public class TablePropertiesAnalysis {
                           Object[] parameters,
                           List<Expression> expressions) {
             Preconditions.checkArgument(expressions.size() == 1,
-                    String.format("Invalid number of arguments passed to \"%s\"", NUMBER_OF_REPLICAS));
+                    String.format("Invalid number of arguments passed to \"%s\"", NumberOfReplicas.NUMBER_OF_REPLICAS));
 
             Object numReplicas = expressionVisitor.process(expressions.get(0), parameters);
 
             NumberOfReplicas numberOfReplicas = new NumberOfReplicas(numReplicas.toString());
 
             // in case the number_of_replicas is changing from auto_expand to a fixed number -> disable auto expand
-            settingsBuilder.put(AUTO_EXPAND_REPLICAS, false);
+            settingsBuilder.put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, false);
             settingsBuilder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
         }
     }

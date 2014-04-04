@@ -27,12 +27,15 @@ import java.util.regex.Pattern;
 
 public class NumberOfReplicas {
 
+    public final static String NUMBER_OF_REPLICAS = "number_of_replicas";
+    public final static String AUTO_EXPAND_REPLICAS = "auto_expand_replicas";
+
     private static final Pattern EXPAND_REPLICA_PATTERN = Pattern.compile("\\d+\\-(all|\\d+)");
     private final String esSettingKey;
     private final String esSettingsValue;
 
     public NumberOfReplicas(Integer replicas) {
-        this.esSettingKey = "number_of_replicas";
+        this.esSettingKey = NUMBER_OF_REPLICAS;
         this.esSettingsValue = replicas.toString();
     }
 
@@ -44,12 +47,12 @@ public class NumberOfReplicas {
             Preconditions.checkArgument(EXPAND_REPLICA_PATTERN.matcher(replicas).matches(),
                     "The \"number_of_replicas\" range \"%s\" isn't valid", replicas);
 
-            this.esSettingKey = "auto_expand_replicas";
+            this.esSettingKey = AUTO_EXPAND_REPLICAS;
             this.esSettingsValue = replicas;
             return;
         }
 
-        this.esSettingKey = "number_of_replicas";
+        this.esSettingKey = NUMBER_OF_REPLICAS;
         this.esSettingsValue = replicas;
     }
 
