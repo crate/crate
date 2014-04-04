@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.PartitionName;
@@ -33,9 +34,11 @@ import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.status.IndicesStatusResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -3441,4 +3444,56 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("drop table quotes");
         assertEquals(1L, response.rowCount());
     }
+
+    @Test
+    public void testAlterPartitionTable() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
+        ensureGreen();
+
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
+                .prepareGetTemplates(Constants.PARTITIONED_TABLE_PREFIX + ".quotes.").execute().actionGet();
+        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
+
+        execute("insert into quotes (id, quote, date) values(?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L,
+                        2, "Time is an illusion. Lunchtime doubly so", 1395961200000L,
+                });
+        ensureGreen();
+        refresh();
+
+        execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
+        assertEquals("0-all", response.rows()[0][0]);
+        assertEquals(3, response.rows()[0][1]);
+
+        execute("alter table quotes set (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("select number_of_replicas from information_schema.tables where table_name = 'quotes'");
+        assertEquals("0", response.rows()[0][0]);
+
+        templatesResponse = client().admin().indices()
+                .prepareGetTemplates(Constants.PARTITIONED_TABLE_PREFIX + ".quotes.").execute().actionGet();
+        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1), is(0));
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
+        assertThat(templateSettings.getAsBoolean(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, true), is(false));
+
+        List<String> partitions = ImmutableList.of(
+                Constants.PARTITIONED_TABLE_PREFIX + ".quotes._1395874800000",
+                Constants.PARTITIONED_TABLE_PREFIX + ".quotes._1395961200000"
+        );
+        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
+                partitions.get(0), partitions.get(1)
+        ).execute().get();
+
+        for (String index : partitions) {
+            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("0"));
+            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+        }
+    }
+
 }

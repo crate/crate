@@ -35,8 +35,8 @@ import java.util.Map;
 
 public class TablePropertiesAnalysis {
 
-    private final static String NUMBER_OF_REPLICAS = "number_of_replicas";
-    private final static String AUTO_EXPAND_REPLICAS = "auto_expand_replicas";
+    public final static String NUMBER_OF_REPLICAS = "number_of_replicas";
+    public final static String AUTO_EXPAND_REPLICAS = "auto_expand_replicas";
     public final static String REFRESH_INTERVAL = "refresh_interval";
 
     private static final ExpressionToObjectVisitor expressionVisitor = new ExpressionToObjectVisitor();
