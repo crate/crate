@@ -33,7 +33,10 @@ import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.analyze.*;
 import io.crate.exceptions.CrateException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -50,6 +53,7 @@ import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -57,6 +61,7 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Singleton
 public class Planner extends AnalysisVisitor<Void, Plan> {
@@ -197,12 +202,15 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW))
         );
 
+        DiscoveryNodes allNodes = clusterService.state().nodes();
         FileUriCollectNode collectNode = new FileUriCollectNode(
                 "copyFrom",
-                allNodesRouting(),
+                generateRouting(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize())),
                 analysis.uri(),
                 toCollect,
-                projections
+                projections,
+                analysis.settings().get("compression", null),
+                analysis.settings().getAsBoolean("shared", null)
         );
         PlanNodeBuilder.setOutputTypes(collectNode);
         plan.add(collectNode);
@@ -221,12 +229,15 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         plan.expectsAffectedRows(true);
     }
 
-    private Routing allNodesRouting() {
+    private Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {
+        final AtomicInteger counter = new AtomicInteger(maxNodes);
         final Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
-        clusterService.state().nodes().dataNodes().keys().forEach(new ObjectProcedure<String>() {
+        allNodes.dataNodes().keys().forEach(new ObjectProcedure<String>() {
             @Override
             public void apply(String value) {
-                locations.put(value, ImmutableMap.<String, Set<Integer>>of());
+                if (counter.getAndDecrement() > 0) {
+                    locations.put(value, ImmutableMap.<String, Set<Integer>>of());
+                }
             }
         });
         return new Routing(locations);

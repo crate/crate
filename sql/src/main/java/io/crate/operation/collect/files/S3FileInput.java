@@ -118,4 +118,9 @@ public class S3FileInput implements FileInput {
         }
         return null;
     }
+
+    @Override
+    public boolean sharedStorageDefault() {
+        return true;
+    }
 }

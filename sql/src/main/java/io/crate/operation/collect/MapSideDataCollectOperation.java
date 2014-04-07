@@ -196,7 +196,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     context.expressions(),
                     projectorChain.firstProjector(),
                     fileUriCollectNode.fileFormat(),
-                    fileUriCollectNode.compressed(),
+                    fileUriCollectNode.compression(),
                     ImmutableMap.<String, FileInputFactory>of(),
                     fileUriCollectNode.sharedStorage(),
                     readers.length,
