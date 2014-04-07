@@ -26,6 +26,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.projectors.writer.Output;
 import io.crate.operation.projectors.writer.OutputFile;
+import io.crate.operation.projectors.writer.OutputS3;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.Settings;
 
@@ -60,6 +61,8 @@ public class WriterProjector implements Projector {
         }
         if (this.uri.getScheme() == null || this.uri.getScheme().equals("file")) {
             this.output = new OutputFile(this.uri, settings);
+        } else if (this.uri.getScheme().equalsIgnoreCase("s3")) {
+            this.output = new OutputS3(this.uri, settings);
         } else {
             throw new UnsupportedFeatureException(String.format("Unknown scheme '%s'", this.uri.getScheme()));
         }
