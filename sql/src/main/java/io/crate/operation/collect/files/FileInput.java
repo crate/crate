@@ -41,4 +41,6 @@ public interface FileInput {
     List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException;
 
     InputStream getStream(URI uri) throws IOException;
+
+    boolean sharedStorageDefault();
 }
