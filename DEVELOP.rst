@@ -56,8 +56,10 @@ Building a tarball and a zip is done by gradle with the command::
 
  $ ./gradlew dist
 
-Building a release tarball is done via tha ``release`` task, which
-checks that the git tag points to the version of crate checked out::
+Building a release tarball is done via the ``release`` task. This task
+actually only runs the ``distTar`` task but additionally checks that
+the output of ``git describe --tag`` matches the current version of
+Crate::
 
  $ ./gradlew release
 
