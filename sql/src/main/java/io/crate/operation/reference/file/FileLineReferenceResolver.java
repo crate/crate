@@ -32,18 +32,30 @@ public class FileLineReferenceResolver implements DocLevelReferenceResolver<Line
 
     public static final FileLineReferenceResolver INSTANCE = new FileLineReferenceResolver();
 
-    private static final Map<String, LineCollectorExpression<?>> implementations =
-            ImmutableMap.<String, LineCollectorExpression<?>>of(
-                    SourceLineExpression.COLUMN_NAME, new SourceLineExpression());
+    // need to create a new instance here so that each collector will have its own instance.
+    // otherwise multiple collectors would share the same state.
+    private static final Map<String, ExpressionBuilder> expressionBuilder =
+            ImmutableMap.<String, ExpressionBuilder>of(
+                    SourceLineExpression.COLUMN_NAME, new ExpressionBuilder() {
+                        @Override
+                        public LineCollectorExpression<?> create() {
+                            return new SourceLineExpression();
+                        }
+                    });
 
     private FileLineReferenceResolver() {
     }
 
     public LineCollectorExpression<?> getImplementation(ReferenceInfo info) {
-        LineCollectorExpression<?> expression = implementations.get(info.ident().columnIdent().name());
-        if (expression != null) {
-            return expression;
+        ExpressionBuilder builder = expressionBuilder.get(info.ident().columnIdent().name());
+        if (builder != null) {
+            return builder.create();
         }
         return new ColumnExtractingLineExpression(info.ident().columnIdent());
+    }
+
+
+    interface ExpressionBuilder {
+        LineCollectorExpression<?> create();
     }
 }
