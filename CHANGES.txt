@@ -9,17 +9,16 @@ Unreleased
 
  - tables can now be exported using the COPY TO statement.
 
- - the ``concurrency`` and ``bulk_size`` options can now be set in the
-   ``COPY FROM`` statement.
+ - S3 support added to COPY FROM statement
 
- - fixed regex pattern support in the `COPY <table> FROM` statement.
+ - various new options in COPY statements
 
- - removed support for variables inside a path in the `COPY <table> FROM`
-   statement.
+ - COPY FROM now supports globs
 
  - feature: added support to set 'refresh_interval' for tables
 
- - fix: AND operator normalization was wrong if one of the arguments is a boolean
+ - fix: AND operator normalization was wrong if one of the arguments
+   is a boolean
 
 2014/04/04 0.34.1
 =================
