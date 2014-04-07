@@ -12,7 +12,6 @@ Synopsis
     CREATE TABLE table_name ( [
     { column_name data_type [ column_constraint [ ... ] ] | table_constraint }
     [, ... ] ] )
-    [ PARTITIONED BY (column_name [, ...] ) ]
     [ CLUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
     [ WITH ( table_parameter [= value] [, ... ] ) ]
 
@@ -106,33 +105,6 @@ distributed accross a cluster.
     the primary key if specified, otherwise the internal ``_id``
     column.
 
-
-.. _partitioned_clause:
-
-PARTITIONED Clause
-==================
-
-The PARTITIONED clause splits the created table
-into separate internal tables for every distinct combination of values
-in the listed columns.
-
-.. code-block:: sql
-
-    [ PARTITIONED BY ( column_name [ , ... ] ) ]
-
-:column_name: a column from the table definition this table gets partitioned by.
-
-Several restrictions apply to columns that can be used here:
-
-* columns may not be part of `clustered_clause`_.
-* columns may not be of type array or inside an array (e.g. an object array).
-* columns may not be of type object.
-* columns may not be indexed with a :ref:`sql_ddl_index_fulltext`.
-* if the table has a `primary_key_constraint`_ the columns in PARTITIONED clause
-  have to be part of it
-
-
-.. note:: Columns referenced in the PARTITIONED clause cannot be altered by an ``UPDATE`` statement.
 
 .. _with_clause:
 

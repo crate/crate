@@ -21,6 +21,8 @@
 
 package io.crate;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -37,6 +39,7 @@ public class ClusterIdService implements ClusterStateListener {
     private final ClusterService clusterService;
     private final ESLogger logger = Loggers.getLogger(ClusterIdService.class);
     private ClusterId clusterId = null;
+    private final SettableFuture<ClusterId> clusterIdFuture = SettableFuture.create();
 
     public static final String clusterIdSettingsKey = "cluster_id";
 
@@ -45,7 +48,7 @@ public class ClusterIdService implements ClusterStateListener {
         this.clusterService = clusterService;
 
         // Add to listen for state changes
-        this.clusterService.add((ClusterStateListener)this);
+        this.clusterService.add(this);
     }
 
     @Override
@@ -68,8 +71,12 @@ public class ClusterIdService implements ClusterStateListener {
         applyClusterIdFromSettings();
     }
 
-    public ClusterId clusterId() {
-        return clusterId;
+    /**
+     * return a ListenableFuture that is available once the clusterId is set
+     * @return
+     */
+    public ListenableFuture<ClusterId> clusterId() {
+        return clusterIdFuture;
     }
 
     private void generateClusterId() {
@@ -80,6 +87,7 @@ public class ClusterIdService implements ClusterStateListener {
                 logger.debug("[{}] Generated ClusterId {}",
                         clusterService.state().nodes().localNodeId(), clusterId.value());
             }
+            clusterIdFuture.set(clusterId);
         }
     }
 
@@ -100,7 +108,9 @@ public class ClusterIdService implements ClusterStateListener {
                 logger.debug("[{}] Read ClusterId from settings {}",
                     clusterService.state().nodes().localNodeId(), clusterId.value());
             }
+            clusterIdFuture.set(clusterId);
         }
+
 
         return true;
     }

@@ -400,26 +400,6 @@ For details of the range syntax refer to :ref:`number_of_replicas`.
 
   The number of replicas can be changed at any time.
 
-.. _sql_ddl_partitioned_by:
-
-Partitioned Tables
-==================
-
-A partitioned table is a virtual table that is internally split up into several
-real tables, by the value of one or more columns. For every distinct combination
-of values in those configured columns one separate table is created.
-
-Creating a partitioned table is done using the :ref:`partitioned_clause`::
-
-    cr> create table partitioned_table (
-    ...   id long,
-    ...   title string,
-    ...   date timestamp
-    ... ) partitioned by (date);
-    CREATE OK (... sec)
-
-For further details, please refer to :ref:`partitioned_clause`.
-
 
 .. _fulltext-indices:
 

@@ -45,7 +45,9 @@ import java.util.concurrent.Executors;
 public class HttpTestServer {
 
     private final int port;
+    private final boolean fail;
     private final static JsonFactory jsonFactory;
+    private Channel channel;
     public List<String> responses = new ArrayList<>();
 
     static {
@@ -56,8 +58,14 @@ public class HttpTestServer {
     }
 
 
-    public HttpTestServer(int port) {
+    /**
+     *
+     * @param port the port to listen on
+     * @param fail of set to true, the server will emit error responses
+     */
+    public HttpTestServer(int port, boolean fail) {
         this.port = port;
+        this.fail = fail;
     }
 
     public void run() {
@@ -90,7 +98,16 @@ public class HttpTestServer {
         });
 
         // Bind and start to accept incoming connections.
-        bootstrap.bind(new InetSocketAddress(port));
+        channel = bootstrap.bind(new InetSocketAddress(port));
+
+    }
+
+    public void shutDown() {
+        try {
+            channel.close().await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) throws Exception {
@@ -100,7 +117,7 @@ public class HttpTestServer {
         } else {
             port = 8080;
         }
-        new HttpTestServer(port).run();
+        new HttpTestServer(port, false).run();
     }
 
     public class HttpTestServerHandler extends SimpleChannelUpstreamHandler {
@@ -115,13 +132,17 @@ public class HttpTestServer {
 
             if (msg instanceof HttpRequest) {
                 HttpRequest request = (HttpRequest) msg;
-                HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-
                 String uri = request.getUri();
                 QueryStringDecoder decoder = new QueryStringDecoder(uri);
                 logger.debug("Got Request for " + uri);
+                HttpResponse response;
 
                 BytesStreamOutput out = new BytesStreamOutput();
+                if (fail) {
+                    response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST);
+                } else {
+                    response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+                }
                 try {
                     JsonGenerator generator = jsonFactory.createGenerator(out, JsonEncoding.UTF8);
                     generator.writeStartObject();
@@ -142,10 +163,9 @@ public class HttpTestServer {
                 } catch (Exception ex) {
                     response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR);
                 }
-
                 response.setContent(ChannelBuffers.copiedBuffer(out.bytes().toUtf8(), CharsetUtil.UTF_8));
-                responses.add(out.bytes().toUtf8());
 
+                responses.add(out.bytes().toUtf8());
                 if (logger.isDebugEnabled()) {
                     logger.debug("Sending response: " + out.bytes().toUtf8());
                 }

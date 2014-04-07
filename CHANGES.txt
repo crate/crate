@@ -19,11 +19,19 @@ Unreleased
 
  - fix: AND operator normalization was wrong if one of the arguments is a boolean
 
-2014/03/26 0.34.0
+2014/04/04 0.34.1
 =================
 
- - feature: ``CREATE TABLE`` now supports ``PARTITIONED BY``
-   to create partitioned tables.
+ - fix: do not display internal blob table names in ``sys.shards.table_name``
+
+ - fix: detect nested primary keys and clustered by values in insert analysis
+
+ - fix: correctly update ``ping_counters`` for udc
+
+ - update crash_standalone to 0.8.3
+
+2014/03/26 0.34.0
+=================
 
  - feature: added table information_schema.routines
 
