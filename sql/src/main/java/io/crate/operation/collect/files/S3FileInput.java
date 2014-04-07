@@ -32,14 +32,12 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class S3FileInput implements FileInput {
@@ -91,8 +89,8 @@ public class S3FileInput implements FileInput {
     public List<URI> listUris(URI uri, Predicate<URI> uriPredicate) throws IOException {
         String bucketName = uri.getHost();
         AmazonS3 client = client(uri);
-        String[] pathParts = uri.getPath().split("/");
-        String prefix = Joiner.on("/").join(Arrays.copyOfRange(pathParts, 0, pathParts.length - 1));
+        String prefix;
+        prefix = uri.getPath().length() > 1 ? uri.getPath().substring(1) : "";
         ObjectListing list = client.listObjects(bucketName, prefix);
         List<URI> uris = new ArrayList<>();
         do {
