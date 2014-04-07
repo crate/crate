@@ -107,6 +107,7 @@ public class FileReadingCollectorTest {
     public void testNoErrorIfNoSuchFile() throws Throwable {
         // no error, -> don't want to fail just because one node doesn't have a file
         getObjects("/some/path/that/shouldnt/exist/foo.json");
+        getObjects("/some/path/that/shouldnt/exist/*");
     }
 
     @Test (expected = IllegalArgumentException.class)

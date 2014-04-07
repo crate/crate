@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.files;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -38,7 +37,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -130,10 +128,7 @@ public class FileReadingCollector implements CrateCollector {
                 this.preGlobUri = URI.create(prefix);
             } else {
                 // pattern like /tmp/foo/asdf*.json
-                String[] parts = hasGlobMatcher.group(1).split("/");
-                this.preGlobUri = URI.create(
-                        Joiner.on("/").join(Arrays.copyOfRange(parts, 0, parts.length - 1))
-                );
+                this.preGlobUri = URI.create(hasGlobMatcher.group(1));
             }
             final Pattern globPattern = Pattern.compile(Globs.toUnixRegexPattern(this.fileUri.toString()));
             globPredicate = new Predicate<URI>() {
