@@ -29,6 +29,7 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.ImmutableMap;
 import io.crate.DataType;
+import io.crate.external.S3ClientHelper;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -165,7 +166,26 @@ public class FileReadingCollectorTest {
                 ImmutableMap.<String, FileInputFactory>of("s3", new FileInputFactory() {
                     @Override
                     public FileInput create() throws IOException {
-                        return new MockedS3FileInput();
+                        return new S3FileInput(new S3ClientHelper() {
+                            @Override
+                            protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
+                                AmazonS3 client = mock(AmazonS3Client.class);
+                                ObjectListing objectListing = mock(ObjectListing.class);
+                                S3ObjectSummary summary = mock(S3ObjectSummary.class);
+                                S3Object s3Object = mock(S3Object.class);
+
+                                S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
+
+                                when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
+                                when(objectListing.getObjectSummaries()).thenReturn(Arrays.asList(summary));
+                                when(summary.getKey()).thenReturn("foo");
+                                when(client.getObject("fake_bucket", "foo")).thenReturn(s3Object);
+                                when(s3Object.getObjectContent()).thenReturn(inputStream);
+                                when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
+                                when(objectListing.isTruncated()).thenReturn(false);
+                                return client;
+                            }
+                        });
                     }
                 }),
                 false,
@@ -175,27 +195,5 @@ public class FileReadingCollectorTest {
         projector.startProjection();
         collector.doCollect();
         return projector;
-    }
-
-    public class MockedS3FileInput extends S3FileInput {
-
-        @Override
-        protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
-            AmazonS3 client = mock(AmazonS3Client.class);
-            ObjectListing objectListing = mock(ObjectListing.class);
-            S3ObjectSummary summary = mock(S3ObjectSummary.class);
-            S3Object s3Object = mock(S3Object.class);
-
-            S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
-
-            when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
-            when(objectListing.getObjectSummaries()).thenReturn(Arrays.asList(summary));
-            when(summary.getKey()).thenReturn("foo");
-            when(client.getObject("fake_bucket", "foo")).thenReturn(s3Object);
-            when(s3Object.getObjectContent()).thenReturn(inputStream);
-            when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
-            when(objectListing.isTruncated()).thenReturn(false);
-            return client;
-        }
     }
 }
