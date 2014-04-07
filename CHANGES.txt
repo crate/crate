@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.4.2
+
  - tables can now be exported using the COPY TO statement.
 
  - the ``concurrency`` and ``bulk_size`` options can now be set in the
