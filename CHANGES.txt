@@ -13,7 +13,7 @@ Unreleased
 
  - various new options in COPY statements
 
- - COPY FROM now supports globs
+ - COPY FROM now supports globs and expressions in uris.
 
  - feature: added support to set 'refresh_interval' for tables
 

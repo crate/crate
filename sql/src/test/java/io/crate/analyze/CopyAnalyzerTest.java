@@ -29,12 +29,12 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Parameter;
 import io.crate.planner.symbol.StringLiteral;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -93,17 +93,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         String path = "/some/distant/file.ext";
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy users from ?", new Object[]{path});
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(((Literal)analysis.uri()).valueAsString(), is(path));
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void testCopyFromInvalidPath() throws Exception {
-        analyze("copy users from 1.2");
-    }
-
-    @Test( expected = IllegalArgumentException.class )
-    public void testCopyFromInvalidParameter() throws Exception {
-        analyze("copy users from ?", new Object[]{new HashMap<String, Object>()});
+        assertThat((String)((Parameter)analysis.uri()).value(), is(path));
     }
 
     @Test

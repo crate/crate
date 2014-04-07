@@ -11,7 +11,7 @@ Synopsis
 
 .. code-block:: sql
 
-    COPY table_ident FROM '<uri>' [ WITH ( option = value [, ...] ) ]
+    COPY table_ident FROM uri [ WITH ( option = value [, ...] ) ]
 
 where `option` can be one of:
 
@@ -72,9 +72,9 @@ Parameters
 :table_ident: The name (optionally schema-qualified) of an existing
     table where the data should be put.
 
-:uri: A uri as defined in `RFC2396`_.
-      The supported schemes are listed above. The last part of the path may
-      also contain ``*`` wildcards to match multiple files.
+:uri: An expression which evaluates to a uri as defined in `RFC2396`_. The
+      supported schemes are listed above. The last part of the path may also
+      contain ``*`` wildcards to match multiple files.
 
 WITH Clause
 ===========

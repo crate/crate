@@ -21,12 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.DataType;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.Parameter;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -44,15 +41,6 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         context.mode(CopyAnalysis.Mode.FROM);
         process(node.table(), context);
         Symbol pathSymbol = process(node.path(), context);
-
-        if (pathSymbol.symbolType() == SymbolType.PARAMETER) {
-            if (((Parameter) pathSymbol).guessedValueType() != DataType.STRING) {
-                throw new IllegalArgumentException("Invalid COPY FROM statement");
-            }
-            pathSymbol = ((Parameter) pathSymbol).toLiteral(DataType.STRING);
-        } else if (pathSymbol.symbolType() != SymbolType.STRING_LITERAL) {
-            throw new IllegalArgumentException("Invalid COPY FROM statement");
-        }
         context.uri(pathSymbol);
         return null;
     }

@@ -41,10 +41,8 @@ import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.SymbolFormatter;
+import io.crate.planner.symbol.StringValueSymbolVisitor;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.logging.ESLogger;
@@ -181,17 +179,11 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
             FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.process(collectNode);
             FileUriCollectNode fileUriCollectNode = (FileUriCollectNode)collectNode;
 
-             // after normalize this must be a literal
-            Preconditions.checkArgument(fileUriCollectNode.targetUri().symbolType().isLiteral(),
-                    SymbolFormatter.format(
-                            "targetUri symbol \"%s\" must be a literal", fileUriCollectNode.targetUri())
-            );
-
             String[] readers = fileUriCollectNode.executionNodes().toArray(
                     new String[fileUriCollectNode.executionNodes().size()]);
             Arrays.sort(readers);
             return new FileReadingCollector(
-                    ((Literal)fileUriCollectNode.targetUri()).valueAsString(),
+                    StringValueSymbolVisitor.INSTANCE.process(fileUriCollectNode.targetUri()),
                     context.topLevelInputs(),
                     context.expressions(),
                     projectorChain.firstProjector(),
