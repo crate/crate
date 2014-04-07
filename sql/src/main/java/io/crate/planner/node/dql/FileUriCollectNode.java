@@ -31,14 +31,15 @@ import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
 public class FileUriCollectNode extends CollectNode {
 
     private Symbol targetUri;
-    private boolean compressed;
-    private boolean sharedStorage;
+    private String compression;
+    private Boolean sharedStorage;
 
     public FileUriCollectNode() {
 
@@ -48,13 +49,13 @@ public class FileUriCollectNode extends CollectNode {
                               Routing routing,
                               Symbol targetUri,
                               List<Symbol> toCollect,
-                              List<Projection> projections) {
+                              List<Projection> projections,
+                              String compression,
+                              Boolean sharedStorage) {
         super(id, routing, toCollect, projections);
         this.targetUri = targetUri;
-
-        // TODO make configurable
-        this.compressed = false;
-        this.sharedStorage = false;
+        this.compression = compression;
+        this.sharedStorage = sharedStorage;
     }
 
     public Symbol targetUri() {
@@ -63,10 +64,6 @@ public class FileUriCollectNode extends CollectNode {
 
     public FileReadingCollector.FileFormat fileFormat() {
         return FileReadingCollector.FileFormat.JSON;
-    }
-
-    public void compressed(boolean compressed) {
-        this.compressed = compressed;
     }
 
     @Override
@@ -82,7 +79,13 @@ public class FileUriCollectNode extends CollectNode {
             return this;
         }
         FileUriCollectNode result = new FileUriCollectNode(
-                id(), routing(), normalizedTargetUri, normalizedToCollect, projections());
+                id(),
+                routing(),
+                normalizedTargetUri,
+                normalizedToCollect,
+                projections(),
+                compression(),
+                sharedStorage());
         result.downStreamNodes(downStreamNodes());
         result.maxRowGranularity(maxRowGranularity());
         result.whereClause(normalizedWhereClause);
@@ -92,21 +95,24 @@ public class FileUriCollectNode extends CollectNode {
         return result;
     }
 
-    public boolean compressed() {
-        return compressed;
+    @Nullable
+    public String compression() {
+        return compression;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        compressed = in.readBoolean();
+        compression = in.readOptionalString();
+        sharedStorage = in.readOptionalBoolean();
         targetUri = Symbol.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeBoolean(compressed);
+        out.writeOptionalString(compression);
+        out.writeOptionalBoolean(sharedStorage);
         Symbol.toStream(targetUri, out);
     }
 
@@ -117,12 +123,13 @@ public class FileUriCollectNode extends CollectNode {
                 .add("targetUri", targetUri)
                 .add("projections", projections)
                 .add("outputTypes", outputTypes)
-                .add("compressed", compressed)
-                .add("sharedStorage", sharedStorage)
+                .add("compression", compression)
+                .add("sharedStorageDefault", sharedStorage)
                 .toString();
     }
 
-    public boolean sharedStorage() {
+    @Nullable
+    public Boolean sharedStorage() {
         return sharedStorage;
     }
 }

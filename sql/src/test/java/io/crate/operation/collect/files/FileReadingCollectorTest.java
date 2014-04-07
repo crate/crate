@@ -123,7 +123,7 @@ public class FileReadingCollectorTest {
 
     @Test
     public void testCollectFromDirectory() throws Throwable {
-        CollectingProjector projector = getObjects(tmpFile.getParent() + "/*", false);
+        CollectingProjector projector = getObjects(tmpFile.getParent() + "/*");
         assertCorrectResult(projector.result().get());
     }
 
@@ -135,7 +135,7 @@ public class FileReadingCollectorTest {
 
     @Test
     public void testDoCollectRawFromCompressed() throws Throwable {
-        CollectingProjector projector = getObjects(tmpFileGz.getAbsolutePath(), true);
+        CollectingProjector projector = getObjects(tmpFileGz.getAbsolutePath(), "gzip");
         assertCorrectResult(projector.result().get());
     }
 
@@ -147,10 +147,10 @@ public class FileReadingCollectorTest {
     }
 
     private CollectingProjector getObjects(String fileUri) throws Throwable {
-        return getObjects(fileUri, false);
+        return getObjects(fileUri, null);
     }
 
-    private CollectingProjector getObjects(String fileUri, boolean compressed) throws Throwable {
+    private CollectingProjector getObjects(String fileUri, String compression) throws Throwable {
         CollectingProjector projector = new CollectingProjector();
         FileCollectInputSymbolVisitor.Context context =
                 inputSymbolVisitor.process(createReference("_raw", DataType.STRING));
@@ -160,7 +160,7 @@ public class FileReadingCollectorTest {
                 context.expressions(),
                 projector,
                 FileReadingCollector.FileFormat.JSON,
-                compressed,
+                compression,
                 ImmutableMap.<String, FileInputFactory>of("s3", new FileInputFactory() {
                     @Override
                     public FileInput create() throws IOException {

@@ -2329,8 +2329,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testCopyFromFileWithoutPK() throws Exception {
         execute("create table quotes (id int, " +
-            "quote string index using fulltext)");
-        refresh();
+            "quote string index using fulltext) with (number_of_replicas=0)");
+        ensureGreen();
 
         String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{filePath});
@@ -2347,11 +2347,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testCopyFromDirectory() throws Exception {
         execute("create table quotes (id int primary key, " +
-                "quote string index using fulltext)");
+                "quote string index using fulltext) with (number_of_replicas=0)");
+        ensureGreen();
 
-        execute("copy quotes from ? with (concurrency=2)", new Object[]{copyFilePath + "/*"});
-        // 2 nodes on same machine resulting in double affected rows
-        assertEquals(6L, response.rowCount());
+        execute("copy quotes from ? with (concurrency=2, shared=true)", new Object[]{copyFilePath + "/*"});
+        assertEquals(3L, response.rowCount());
         refresh();
 
         execute("select * from quotes");
@@ -2361,7 +2361,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testCopyFromFilePattern() throws Exception {
         execute("create table quotes (id int primary key, " +
-                "quote string index using fulltext)");
+                "quote string index using fulltext) with (number_of_replicas=0)");
+        ensureGreen();
 
         String filePath = Joiner.on(File.separator).join(copyFilePath, "*.json");
         execute("copy quotes from ?", new Object[]{filePath});

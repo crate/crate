@@ -58,4 +58,9 @@ public class LocalFsFileInput implements FileInput {
             return null;
         }
     }
+
+    @Override
+    public boolean sharedStorageDefault() {
+        return false;
+    }
 }

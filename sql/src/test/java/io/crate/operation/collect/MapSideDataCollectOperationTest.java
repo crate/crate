@@ -97,7 +97,9 @@ public class MapSideDataCollectOperationTest {
                         createReference("name", DataType.STRING),
                         createReference(new ColumnIdent("details", "age"), DataType.INTEGER)
                 ),
-                Arrays.<Projection>asList()
+                Arrays.<Projection>asList(),
+                null,
+                false
         );
         ListenableFuture<Object[][]> resultFuture = collectOperation.collect(collectNode);
         Object[][] objects = resultFuture.get();
