@@ -45,8 +45,6 @@ The resulting string should be a valid URI of one of the supporting schemes:
 If no scheme is given (e.g.: '/path/to/file') the default uri-scheme ``file://``
 will be used.
 
-.. _with_clause:
-
 WITH Clause
 ===========
 

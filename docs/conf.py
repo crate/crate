@@ -15,7 +15,7 @@ nitpicky = True
 
 html_show_sourcelink = False
 
-exclude_trees = ['pyenv', 'tmp', 'out', 'parts', 'clients']
+exclude_trees = ['pyenv', 'tmp', 'out', 'parts', 'clients', 'eggs']
 
 extensions = ['sphinx.ext.autodoc']
 
