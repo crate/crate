@@ -47,6 +47,14 @@ public class LocalFsFileInput implements FileInput {
         path = file.toPath();
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
             @Override
+            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                if (exc instanceof AccessDeniedException) {
+                    return FileVisitResult.CONTINUE;
+                }
+                throw exc;
+            }
+
+            @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 URI uri = file.toUri();
                 if (uriPredicate.apply(uri)) {
