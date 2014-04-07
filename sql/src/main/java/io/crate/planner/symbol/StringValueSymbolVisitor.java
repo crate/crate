@@ -47,6 +47,4 @@ public class StringValueSymbolVisitor extends SymbolVisitor<Void, String> {
     public String visitLiteral(Literal symbol, Void context) {
         return symbol.valueAsString();
     }
-
-
 }
