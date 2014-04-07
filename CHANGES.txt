@@ -5,7 +5,7 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - updated crate-admin to 0.4.2
+ - updated crate-admin to 0.4.3
 
  - tables can now be exported using the COPY TO statement.
 
