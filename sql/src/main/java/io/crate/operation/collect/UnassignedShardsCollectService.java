@@ -68,8 +68,9 @@ public class UnassignedShardsCollectService implements CollectService {
                 @Override
                 public Iterable<UnassignedShard> apply(@Nullable Map.Entry<String, Set<Integer>> input) {
                     assert input != null;
-                    final String tableName = input.getKey();
-                    final String schemaName = BlobIndices.isBlobIndex(input.getKey()) ? BlobSchemaInfo.NAME : DocSchemaInfo.NAME;
+                    boolean isBlobIndex = BlobIndices.isBlobIndex(input.getKey());
+                    final String tableName = isBlobIndex ? BlobIndices.stripPrefix.apply(input.getKey()) : input.getKey();
+                    final String schemaName = isBlobIndex ? BlobSchemaInfo.NAME : DocSchemaInfo.NAME;
                     return FluentIterable.from(input.getValue())
                             .transform(new Function<Integer, UnassignedShard>() {
                                 @Nullable

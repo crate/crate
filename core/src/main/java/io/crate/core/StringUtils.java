@@ -65,28 +65,6 @@ public class StringUtils {
         return PATH_JOINER.join(s);
     }
 
-    public static boolean pathListContainsPrefix(Collection<String> pathList, String prefix) {
-        for (String elem : pathList) {
-            if (elem.startsWith(prefix) &&
-                    (elem.length() == prefix.length() ||
-                            (elem.length() > prefix.length() && elem.charAt(prefix.length()) == '.'))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static @Nullable String getPathByPrefix(Collection<String> pathList, String prefix) {
-        for (String elem : pathList) {
-            if (elem.startsWith(prefix) &&
-                    (elem.length() == prefix.length() ||
-                            (elem.length() > prefix.length() && elem.charAt(prefix.length()) == '.'))) {
-                return elem;
-            }
-        }
-        return null;
-    }
-
     /**
      * check if a collection of Strings containing dotted paths contains at least one element
      * beginning with <code>prefix</code>, which consists of one or more complete path elements

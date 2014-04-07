@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: do not display internal blob table names in ``sys.shards.table_name``
+
  - fix: detect nested primary keys and clustered by values in insert analysis
 
  - fix: correctly update ``ping_counters`` for udc
