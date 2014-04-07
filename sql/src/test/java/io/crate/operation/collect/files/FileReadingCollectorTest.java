@@ -21,6 +21,12 @@
 
 package io.crate.operation.collect.files;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.ImmutableMap;
 import io.crate.DataType;
 import io.crate.metadata.DynamicFunctionResolver;
@@ -30,17 +36,24 @@ import io.crate.metadata.Functions;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import org.apache.lucene.util.BytesRef;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.zip.GZIPOutputStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class FileReadingCollectorTest {
@@ -83,28 +96,35 @@ public class FileReadingCollectorTest {
     }
 
     @Test
-    public void testNoErrorIfNoSuchFile() throws Throwable {
-        // no error, -> don't want to fail just because one node doesn't have a file
-        getObjects("/some/path/that/shouldnt/exist/foo.json");
+    public void testCollectFromS3Uri() throws Throwable {
+        // this test just verifies the s3 schema detection and bucketName / prefix extraction from the uri.
+        // real s3 interaction is mocked completely.
+        CollectingProjector projector = getObjects("s3://fake_bucket/foo");
+        projector.result().get();
     }
 
     @Test
+    public void testNoErrorIfNoSuchFile() throws Throwable {
+        // no error, -> don't want to fail just because one node doesn't have a file
+        getObjects("/some/path/that/shouldnt/exist/foo.json");
+        getObjects("/some/path/that/shouldnt/exist/*");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
     public void testRelativeImport() throws Throwable {
-        Path path = Paths.get(".");
-        Path relativePath = path.toAbsolutePath().relativize(tmpFile.toPath());
-        CollectingProjector projector = getObjects(relativePath.toString());
+        CollectingProjector projector = getObjects("xy");
         assertCorrectResult(projector.result().get());
     }
 
     @Test
-    public void testCollectFromUriWithRegex() throws Throwable {
-        CollectingProjector projector = getObjects(tmpFile.getParent() + "/file.*\\.json");
+    public void testCollectFromUriWithGlob() throws Throwable {
+        CollectingProjector projector = getObjects(tmpFile.getParent() + "/file*.json");
         assertCorrectResult(projector.result().get());
     }
 
     @Test
     public void testCollectFromDirectory() throws Throwable {
-        CollectingProjector projector = getObjects(tmpFile.getParent());
+        CollectingProjector projector = getObjects(tmpFile.getParent() + "/*");
         assertCorrectResult(projector.result().get());
     }
 
@@ -116,7 +136,7 @@ public class FileReadingCollectorTest {
 
     @Test
     public void testDoCollectRawFromCompressed() throws Throwable {
-        CollectingProjector projector = getObjects(tmpFileGz.getAbsolutePath(), true);
+        CollectingProjector projector = getObjects(tmpFileGz.getAbsolutePath(), "gzip");
         assertCorrectResult(projector.result().get());
     }
 
@@ -127,11 +147,11 @@ public class FileReadingCollectorTest {
                 "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
     }
 
-    private CollectingProjector getObjects(String fileUri) throws IOException {
-        return getObjects(fileUri, false);
+    private CollectingProjector getObjects(String fileUri) throws Throwable {
+        return getObjects(fileUri, null);
     }
 
-    private CollectingProjector getObjects(String fileUri, boolean compressed) throws IOException {
+    private CollectingProjector getObjects(String fileUri, String compression) throws Throwable {
         CollectingProjector projector = new CollectingProjector();
         FileCollectInputSymbolVisitor.Context context =
                 inputSymbolVisitor.process(createReference("_raw", DataType.STRING));
@@ -141,11 +161,41 @@ public class FileReadingCollectorTest {
                 context.expressions(),
                 projector,
                 FileReadingCollector.FileFormat.JSON,
-                compressed,
-                null
+                compression,
+                ImmutableMap.<String, FileInputFactory>of("s3", new FileInputFactory() {
+                    @Override
+                    public FileInput create() throws IOException {
+                        return new MockedS3FileInput();
+                    }
+                }),
+                false,
+                1,
+                0
         );
         projector.startProjection();
         collector.doCollect();
         return projector;
+    }
+
+    public class MockedS3FileInput extends S3FileInput {
+
+        @Override
+        protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
+            AmazonS3 client = mock(AmazonS3Client.class);
+            ObjectListing objectListing = mock(ObjectListing.class);
+            S3ObjectSummary summary = mock(S3ObjectSummary.class);
+            S3Object s3Object = mock(S3Object.class);
+
+            S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
+
+            when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
+            when(objectListing.getObjectSummaries()).thenReturn(Arrays.asList(summary));
+            when(summary.getKey()).thenReturn("foo");
+            when(client.getObject("fake_bucket", "foo")).thenReturn(s3Object);
+            when(s3Object.getObjectContent()).thenReturn(inputStream);
+            when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
+            when(objectListing.isTruncated()).thenReturn(false);
+            return client;
+        }
     }
 }

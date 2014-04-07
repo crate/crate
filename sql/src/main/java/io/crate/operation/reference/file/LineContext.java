@@ -26,6 +26,7 @@ import io.crate.operation.collect.files.CollectorContext;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
+import javax.annotation.Nullable;
 import java.util.LinkedList;
 import java.util.Map;
 
@@ -40,14 +41,23 @@ public class LineContext {
     private byte[] rawSource;
     private Map<String, Object> parsedSource;
 
+    @Nullable
     public BytesRef sourceAsBytesRef() {
-        return new BytesRef(rawSource);
+        if (rawSource != null) {
+            return new BytesRef(rawSource);
+        }
+        return null;
     }
 
     public Object get(ColumnIdent columnIdent) {
         if (parsedSource == null) {
             // TODO: optimize if collectorContext has prefetchColumns
-            parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
+
+            try {
+                parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
+            } catch (NullPointerException e) {
+                return null;
+            }
         }
 
         LinkedList<String> path = new LinkedList<>(columnIdent.path());

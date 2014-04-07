@@ -21,81 +21,144 @@
 
 package io.crate.operation.collect.files;
 
+import com.google.common.base.Objects;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.Projector;
 import org.apache.lucene.search.CollectionTerminatedException;
 
 import javax.annotation.Nullable;
-import java.io.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 public class FileReadingCollector implements CrateCollector {
 
-    private final Path filePath;
-    private final String nodePath;
+    private final Map<String, FileInputFactory> fileInputFactoryMap;
+    private final URI fileUri;
+    private final Predicate<URI> globPredicate;
+    private final Boolean shared;
+    private final int numReaders;
+    private final int readerNumber;
+    private URI preGlobUri;
     private Projector downstream;
     private final boolean compressed;
     private final List<Input<?>> inputs;
     private final List<LineCollectorExpression<?>> collectorExpressions;
 
+    private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("(.*)[^\\\\]\\*.*");
+    private static final Predicate<URI> MATCH_ALL_PREDICATE = new Predicate<URI>() {
+        @Override
+        public boolean apply(@Nullable URI input) {
+            return true;
+        }
+    };
+
+    private static final Map<String, FileInputFactory> builtInFileInputFactories =
+            ImmutableMap.<String, FileInputFactory>of(
+                    "s3", new FileInputFactory() {
+                        @Override
+                        public FileInput create() throws IOException {
+                            return new S3FileInput();
+                        }
+                    },
+                    "file", new FileInputFactory() {
+
+                        @Override
+                        public FileInput create() throws IOException {
+                            return new LocalFsFileInput();
+                        }
+                    }
+    );
+
     public enum FileFormat {
         JSON
     }
 
-    public FileReadingCollector(String filePath,
+    public FileReadingCollector(String fileUri,
                                 List<Input<?>> inputs,
                                 List<LineCollectorExpression<?>> collectorExpressions,
                                 Projector downstream,
                                 FileFormat format,
-                                boolean compressed,
-                                @Nullable String nodePath) {
-        this.filePath = Paths.get(filePath);
-        this.nodePath = nodePath;
+                                String compression,
+                                Map<String, FileInputFactory> additionalFileInputFactories,
+                                Boolean shared,
+                                int numReaders,
+                                int readerNumber) {
+        if (fileUri.startsWith("/")) {
+            this.fileUri = URI.create("file://" + fileUri);
+        } else {
+            this.fileUri = URI.create(fileUri);
+            if (this.fileUri.getScheme() == null) {
+                throw new IllegalArgumentException("relative fileURIs are not allowed");
+            }
+            if (this.fileUri.getScheme().equals("file") && !this.fileUri.getSchemeSpecificPart().startsWith("///")) {
+                throw new IllegalArgumentException("Invalid fileURI");
+            }
+        }
         downstream(downstream);
-        this.compressed = compressed;
+        this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.inputs = inputs;
         this.collectorExpressions = collectorExpressions;
+        this.fileInputFactoryMap = new HashMap<>(builtInFileInputFactories);
+        this.fileInputFactoryMap.putAll(additionalFileInputFactories);
+        this.shared = shared;
+        this.numReaders = numReaders;
+        this.readerNumber = readerNumber;
+        Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(this.fileUri.toString());
+        if (!hasGlobMatcher.matches()) {
+            globPredicate = null;
+        } else {
+            String prefix = hasGlobMatcher.group(1);
+            int afterSlashIdx = fileUri.lastIndexOf("/") + 1;
+            if (afterSlashIdx <= fileUri.length() && fileUri.substring(afterSlashIdx, afterSlashIdx + 1).equals("*")) {
+                // pattern like /tmp/foo/*  --> can use the prefix directly
+                this.preGlobUri = URI.create(prefix);
+            } else {
+                // pattern like /tmp/foo/asdf*.json
+                this.preGlobUri = URI.create(hasGlobMatcher.group(1));
+            }
+            final Pattern globPattern = Pattern.compile(Globs.toUnixRegexPattern(this.fileUri.toString()));
+            globPredicate = new Predicate<URI>() {
+                @Override
+                public boolean apply(URI input) {
+                    return globPattern.matcher(input.toString()).matches();
+                }
+            };
+        }
     }
 
     @Nullable
-    private BufferedReader getReader() throws IOException {
-        File file;
-        if (!filePath.isAbsolute() && nodePath != null) {
-            file = new File(nodePath, filePath.toString()).getAbsoluteFile();
-        } else {
-            file = new File(filePath.toUri());
-        }
-        if (file.isDirectory()) {
-            return readerFromDirectory(file);
-        } else if (file.exists()) {
-            if (compressed) {
-                return new BufferedReader(
-                        new InputStreamReader(new GZIPInputStream(new FileInputStream(file))));
-            } else {
-                return new BufferedReader(new InputStreamReader(new FileInputStream(file)));
-            }
-        } else if (!file.exists()) {
-            return readerFromRegexUri(file);
+    private FileInput getFileInput() throws IOException {
+        FileInputFactory fileInputFactory = fileInputFactoryMap.get(fileUri.getScheme());
+        if (fileInputFactory != null) {
+            return fileInputFactory.create();
         }
         return null;
     }
 
     @Override
     public void doCollect() throws IOException, CollectionTerminatedException {
-        BufferedReader reader = getReader();
-        if (reader == null) {
+        FileInput fileInput = getFileInput();
+        if (fileInput == null) {
             if (downstream != null) {
                 downstream.upstreamFinished();
             }
             return;
         }
+        Predicate<URI> uriPredicate = generateUriPredicate(fileInput);
 
         CollectorContext collectorContext = new CollectorContext();
         for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
@@ -103,74 +166,81 @@ public class FileReadingCollector implements CrateCollector {
         }
         Object[] newRow;
         String line;
+        List<URI> uris;
+        uris = getUris(fileInput, uriPredicate);
         try {
-            while ((line = reader.readLine()) != null) {
-                collectorContext.lineContext().rawSource(line.getBytes());
-                newRow = new Object[inputs.size()];
-                for (LineCollectorExpression expression : collectorExpressions) {
-                    expression.setNextLine(line);
+            for (URI uri : uris) {
+                InputStream inputStream = fileInput.getStream(uri);
+                if (inputStream == null) {
+                    continue;
                 }
-                int i = 0;
-                for (Input<?> input : inputs) {
-                    newRow[i++] = input.value();
-                }
-                if (!downstream.setNextRow(newRow)) {
-                    throw new CollectionTerminatedException();
+                BufferedReader reader;
+                reader = createReader(inputStream);
+
+                try {
+                    while ((line = reader.readLine()) != null) {
+                        collectorContext.lineContext().rawSource(line.getBytes());
+                        newRow = new Object[inputs.size()];
+                        for (LineCollectorExpression expression : collectorExpressions) {
+                            expression.setNextLine(line);
+                        }
+                        int i = 0;
+                        for (Input<?> input : inputs) {
+                            newRow[i++] = input.value();
+                        }
+                        if (!downstream.setNextRow(newRow)) {
+                            throw new CollectionTerminatedException();
+                        }
+                    }
+                } finally {
+                    reader.close();
                 }
             }
         } finally {
             downstream.upstreamFinished();
-            reader.close();
         }
     }
 
-    private BufferedReader readerFromRegexUri(File file) throws IOException {
-        File parent = file.getParentFile();
-        if (!parent.isDirectory()) {
-            return null;
+    private BufferedReader createReader(InputStream inputStream) throws IOException {
+        BufferedReader reader;
+        if (compressed) {
+            reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(inputStream)));
+        } else {
+            reader = new BufferedReader(new InputStreamReader(inputStream));
         }
-        File[] files = parent.listFiles();
-        if (files == null) {
-            return null;
-        }
-        Pattern pattern = Pattern.compile(file.getName());
-        List<InputStream> inputStreams = new ArrayList<>(files.length);
-        for (File fi : files) {
-            if (pattern.matcher(fi.getName()).matches()) {
-                try {
-                    if (compressed) {
-                        inputStreams.add(new GZIPInputStream(new FileInputStream(fi)));
-                    } else {
-                        inputStreams.add(new FileInputStream(fi));
-                    }
-                } catch (FileNotFoundException e) {
-                    // ignore - race condition? file got deleted just now.
-                }
-            }
-        }
-        return new BufferedReader(
-                new InputStreamReader(new SequenceInputStream(Collections.enumeration(inputStreams))));
+        return reader;
     }
 
-    private BufferedReader readerFromDirectory(File file) throws IOException {
-        File[] files = file.listFiles();
-        if (files == null) {
-            return null;
+    private List<URI> getUris(FileInput fileInput, Predicate<URI> uriPredicate) throws IOException {
+        List<URI> uris;
+        if (preGlobUri != null) {
+            uris = fileInput.listUris(preGlobUri, uriPredicate);
+        } else if (uriPredicate.apply(fileUri)) {
+            uris = ImmutableList.of(fileUri);
+        } else {
+            uris = ImmutableList.of();
         }
-        List<InputStream> inputStreams = new ArrayList<>(files.length);
-        for (File fi : files) {
-            try {
-                if (compressed) {
-                    inputStreams.add(new GZIPInputStream(new FileInputStream(fi)));
-                } else {
-                    inputStreams.add(new FileInputStream(fi));
+        return uris;
+    }
+
+    private Predicate<URI> generateUriPredicate(FileInput fileInput) {
+        Predicate<URI> moduloPredicate;
+        boolean sharedStorage = Objects.firstNonNull(shared, fileInput.sharedStorageDefault());
+        if (sharedStorage) {
+            moduloPredicate = new Predicate<URI>() {
+                @Override
+                public boolean apply(URI input) {
+                    return Math.abs(input.hashCode()) % numReaders == readerNumber;
                 }
-            } catch (FileNotFoundException e) {
-                // ignore - race condition? file got deleted just now.
-            }
+            };
+        } else {
+            moduloPredicate = MATCH_ALL_PREDICATE;
         }
-        return new BufferedReader(
-                new InputStreamReader(new SequenceInputStream(Collections.enumeration(inputStreams))));
+
+        if (globPredicate != null) {
+            return Predicates.and(moduloPredicate, globPredicate);
+        }
+        return moduloPredicate;
     }
 
     @Override
