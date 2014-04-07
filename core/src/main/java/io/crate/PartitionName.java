@@ -115,26 +115,22 @@ public class PartitionName implements Streamable {
         if (partitionName != null) {
             return partitionName;
         }
+        return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, partitionIdent());
+    }
+
+    public String partitionIdent() {
         if (values.size() == 0) {
             return null;
         } else if (values.size() == 1) {
             String value = values.get(0);
-            if (value == null) {
-                value = NULL_MARKER;
-            } else {
-                value = NOT_NULL_MARKER + value;
-            }
-            return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, value);
+            return (value == null) ? NULL_MARKER : NOT_NULL_MARKER + value;
         }
-        BytesReference bytesReference = bytes();
         if (bytes() == null) {
             return null;
         }
-        return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName,
-                BASE32.encodeAsString(bytesReference.toBytes()).toLowerCase(Locale.ROOT));
+        BytesReference bytesReference = bytes();
+        return BASE32.encodeAsString(bytesReference.toBytes()).toLowerCase(Locale.ROOT);
     }
-
-
 
     @Nullable
     public String toString() {

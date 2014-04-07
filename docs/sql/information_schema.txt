@@ -30,12 +30,13 @@ settings like the number of shards or number of replicas::
     | information_schema | columns           | 1                | 0                  | NULL         | NULL           |
     | information_schema | routines          | 1                | 0                  | NULL         | NULL           |
     | information_schema | table_constraints | 1                | 0                  | NULL         | NULL           |
+    | information_schema | table_partitions  | 1                | 0                  | NULL         | NULL           |
     | information_schema | tables            | 1                | 0                  | NULL         | NULL           |
     | sys                | cluster           | 1                | 0                  | NULL         | NULL           |
     | sys                | nodes             | 1                | 0                  | NULL         | NULL           |
     | sys                | shards            | 1                | 0                  | NULL         | NULL           |
     +--------------------+-------------------+------------------+--------------------+--------------+----------------+
-    SELECT 12 rows in set (... sec)
+    SELECT 13 rows in set (... sec)
 
 
 Columns
@@ -123,6 +124,41 @@ their type, name and which table they are defined in.
     +--------------------+-------------------+-------------------------------------------------+-----------------+
     SELECT 9 rows in set (... sec)
 
+
+Table Partitions
+================
+
+This table can be queried to get information about all partitioned tables,
+Each partition of a table is represented as one row. The row contains the
+information table name, schema name, partition ident, and the values of the
+partition. ``values`` is a key-value object with the 'partitioned by column'
+as key(s) and the corresponding value as value(s).
+
+For futher information see :ref:`sql_ddl_partitioned_by`.
+
+.. hide:
+
+    cr> create table a_partitioned_table (id int, content string) partitioned by (content)
+    CREATE OK (... sec)
+    cr> insert into a_partitioned_table (id, content) values (1, 'content_a')
+    INSERT OK, 1 row affected (... sec)
+    cr> insert into a_partitioned_table (id, content) values (2, 'content_b')
+    INSERT OK, 1 row affected (... sec)
+
+The following example shows a table where the column 'content' of table
+'a_partitioned_table' has been used to partition the table. The table has two
+partitions. The partitions are introduced when data is inserted where
+'content' is 'content_a', and 'content_b'::
+
+    cr> select * from information_schema.table_partitions
+    ... order by table_name, partition_ident
+    +---------------------+-------------+-----------------+----------------------------+
+    | table_name          | schema_name | partition_ident | values                     |
+    +---------------------+-------------+-----------------+----------------------------+
+    | a_partitioned_table | doc         | _content_a      | {u'content': u'content_a'} |
+    | a_partitioned_table | doc         | _content_b      | {u'content': u'content_b'} |
+    +---------------------+-------------+-----------------+----------------------------+
+    SELECT 2 rows in set (... sec)
 
 Indices
 =======
