@@ -22,6 +22,7 @@
 package io.crate.operation.collect.files;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -53,7 +54,7 @@ public class S3FileInput implements FileInput {
         }
         return new AmazonS3Client(
                 new BasicAWSCredentials(accessKey, secretKey),
-                new ClientConfiguration()
+                new ClientConfiguration().withProtocol(Protocol.HTTP) // TODO: use https and fix certificate validation
         );
     }
 
