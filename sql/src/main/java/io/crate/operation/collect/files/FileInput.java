@@ -31,12 +31,14 @@ import java.util.List;
 public interface FileInput {
 
     /**
-     * if fileUri contains a globbing expression or points to a directory this method
-     * returns all uris that are within that directory (and match the globbing expression)
+     * this method returns all files that are found within fileUri
      *
-     * if it points to a single file that file will be the only element of the list.
-     *
-     * found uris are only returned if they match the predicate.
+     * @param fileUri uri that points to a directory
+     *                (and may optionally contain a "file hint" - which is the part after the last slash.)
+     *                a concrete implementation may ignore the file hint.
+     * @param uriPredicate predicate that a concrete implementation of FileInput must use to pre-filter the returned uris
+     * @return a list of Uris
+     * @throws IOException
      */
     List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException;
 

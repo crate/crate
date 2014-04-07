@@ -22,6 +22,7 @@
 package io.crate.operation.collect.files;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 
 import java.io.*;
 import java.net.URI;
@@ -36,6 +37,14 @@ public class LocalFsFileInput implements FileInput {
     public List<URI> listUris(final URI fileUri, final Predicate<URI> uriPredicate) throws IOException {
         final List<URI> uris = new ArrayList<>();
         Path path = Paths.get(fileUri);
+        File file = path.toFile();
+        if (!file.isDirectory()) {
+            file = file.getParentFile();
+        }
+        if (file == null || !file.exists()) {
+            return ImmutableList.of();
+        }
+        path = file.toPath();
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
