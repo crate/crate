@@ -23,7 +23,9 @@ package io.crate.core;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import java.util.Arrays;
+
+import static org.junit.Assert.*;
 
 public class StringUtilsTest {
     @Test
@@ -42,5 +44,19 @@ public class StringUtilsTest {
         assertEquals("a.b.c", StringUtils.sqlToDottedPath("a['b']['c']"));
         assertEquals("[]", StringUtils.sqlToDottedPath("[]"));
         assertEquals("a[abc]", StringUtils.sqlToDottedPath("a[abc]"));
+    }
+
+    @Test
+    public void testPathListContainsPrefix() throws Exception {
+        assertTrue(StringUtils.pathListContainsPrefix(Arrays.asList("a", "b"), "b"));
+        assertTrue(StringUtils.pathListContainsPrefix(Arrays.asList("a", "b.c"), "b"));
+        assertFalse(StringUtils.pathListContainsPrefix(Arrays.asList("a", "bc"), "b"));
+    }
+
+    @Test
+    public void testGetPathListByPrefix() throws Exception {
+        assertEquals(StringUtils.getPathByPrefix(Arrays.asList("a", "b"), "b"), "b");
+        assertEquals(StringUtils.getPathByPrefix(Arrays.asList("a", "b.c"), "b"), "b.c");
+        assertEquals(StringUtils.getPathByPrefix(Arrays.asList("a", "bc"), "b"), null);
     }
 }

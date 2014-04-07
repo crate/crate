@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import io.crate.ClusterIdService;
 import io.crate.Version;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -40,6 +41,7 @@ import java.io.InputStreamReader;
 import java.net.*;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -72,12 +74,20 @@ public class PingTask extends TimerTask {
         return OperatingSystem.getInstance().toMap();
     }
 
-    public String getClusterId() {
-        return clusterIdService.clusterId().value().toString();
+    public @Nullable String getClusterId() {
+        // wait until clusterId is available (master has been elected)
+        try {
+            return clusterIdService.clusterId().get().value().toString();
+        } catch (InterruptedException|ExecutionException e) {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Error getting cluster id", e);
+            }
+            return null;
+        }
     }
 
     public Boolean isMasterNode() {
-        return new Boolean(clusterService.state().nodes().localNodeMaster());
+        return clusterService.state().nodes().localNodeMaster();
     }
 
     public Map<String, Object> getCounters() {
@@ -106,7 +116,9 @@ public class PingTask extends TimerTask {
                 }
 
             } catch (SocketException e) {
-                e.printStackTrace();
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Error getting network interface", e);
+                }
             }
 
         }
@@ -126,8 +138,8 @@ public class PingTask extends TimerTask {
         URI uri = new URI(this.pingUrl);
 
         Map<String, String> queryMap = new HashMap<>();
+        queryMap.put("cluster_id", getClusterId()); // block until clusterId is available
         queryMap.put("kernel", XContentFactory.jsonBuilder().map(getKernelData()).string());
-        queryMap.put("cluster_id", getClusterId());
         queryMap.put("master", isMasterNode().toString());
         queryMap.put("ping_count", XContentFactory.jsonBuilder().map(getCounters()).string());
         queryMap.put("hardware_address", getHardwareAddress());
@@ -178,6 +190,7 @@ public class PingTask extends TimerTask {
             } else {
                 conn.getInputStream().close();
             }
+            successCounter.incrementAndGet();
         } catch (Exception e) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Error sending UDC information", e);

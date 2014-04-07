@@ -37,22 +37,17 @@ fi
 echo "Fetching origin..."
 git fetch origin > /dev/null
 
-# check if current branch is master
+# get current branc
 BRANCH=`git branch | grep "^*" | cut -d " " -f 2`
-if [ "$BRANCH" != "master" ]
-then
-   echo "Current branch is $BRANCH. Must be master."
-   echo "Aborting."
-   exit -1
-fi
+echo "Current branch is $BRANCH."
 
-# check if master == origin/master
-MASTER_COMMIT=`git show --format="%H" master`
-ORIGINMASTER_COMMIT=`git show --format="%H" origin/master`
+# check if BRANCH == origin/BRANCH
+LOCAL_COMMIT=`git show --format="%H" $BRANCH`
+ORIGIN_COMMIT=`git show --format="%H" origin/$BRANCH`
 
-if [ "$MASTER_COMMIT" != "$ORIGINMASTER_COMMIT" ]
+if [ "$LOCAL_COMMIT" != "$ORIGIN_COMMIT" ]
 then
-   echo "Local master is not up to date. "
+   echo "Local $BRANCH is not up to date. "
    echo "Aborting."
    exit -1
 fi
