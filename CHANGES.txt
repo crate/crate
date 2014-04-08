@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.5.0
+
  - fixed an issue where sometimes ``COPY TO`` ignores settings.
 
  - fixed a NullPointerException that could occur using the COPY TO statement if
