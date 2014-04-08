@@ -342,11 +342,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         MergeNode mergeNode = new MergeNode("merge", 1);
         mergeNode.inputTypes(Arrays.asList(DataType.INTEGER, DataType.TIMESTAMP));
         mergeNode.outputTypes(Arrays.asList(DataType.INTEGER, DataType.TIMESTAMP));
-        TopNProjection topN = new TopNProjection(
-                Constants.DEFAULT_SELECT_LIMIT,
-                TopN.NO_OFFSET,
-                ImmutableList.<Symbol>of(),
-                new boolean[0]);
+        TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
         topN.outputs(Arrays.asList(new InputColumn(0), function));
         mergeNode.projections(Arrays.<Projection>asList(topN));
         Plan plan = new Plan();

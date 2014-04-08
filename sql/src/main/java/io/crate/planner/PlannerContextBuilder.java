@@ -22,11 +22,11 @@
 package io.crate.planner;
 
 import com.google.common.collect.Lists;
+import io.crate.exceptions.CrateException;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
-import io.crate.exceptions.CrateException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,6 +59,13 @@ public class PlannerContextBuilder {
 
     public List<Symbol> toCollect() {
         return Lists.newArrayList(context.toCollectAllocation.keySet());
+    }
+
+    public PlannerContextBuilder searchOutput(List<Symbol> symbols) {
+        for (Symbol symbol : symbols) {
+            context.outputs.add(Planner.referenceExtractor.process(symbol, context));
+        }
+        return this;
     }
 
     /**
