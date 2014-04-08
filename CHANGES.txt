@@ -2,8 +2,8 @@
 Changes for Crate Data
 ======================
 
-Unreleased
-==========
+2014/04/08 0.35.1
+=================
 
  - updated crate-admin to 0.5.0
 
