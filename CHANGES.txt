@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed an issue where sometimes ``COPY TO`` ignores settings.
+
  - fixed a NullPointerException that could occur using the COPY TO statement if
    the target directory doesn't exist.
 
