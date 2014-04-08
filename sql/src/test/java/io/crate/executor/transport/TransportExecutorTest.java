@@ -43,8 +43,6 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OrOperator;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.ddl.ESCreateAliasNode;
-import io.crate.planner.node.ddl.ESCreateIndexNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.ESCountNode;
@@ -59,7 +57,6 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.search.SearchHits;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -409,7 +406,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         sourceMap.put(id_ref.info().ident().columnIdent().name(), 99);
         sourceMap.put(name_ref.info().ident().columnIdent().name(), "Marvin");
 
-        ESIndexNode indexNode = new ESIndexNode("characters",
+        ESIndexNode indexNode = new ESIndexNode(
+                new String[]{"characters"},
                 Arrays.asList(sourceMap),
                 ImmutableList.of("99"),
                 ImmutableList.of("99")
@@ -453,25 +451,17 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 .map();
         PartitionName partitionName = new PartitionName("parted",
                 Arrays.asList("date"), Arrays.asList("13959981214861"));
-        ESCreateIndexNode createNode = new ESCreateIndexNode(
-                partitionName.stringValue(), ImmutableSettings.EMPTY,
-                Collections.emptyMap());
-        ESCreateAliasNode createAliasNode = new ESCreateAliasNode(
-                partitionName.stringValue(), "parted");
-        ESIndexNode indexNode = new ESIndexNode(partitionName.stringValue(),
+        ESIndexNode indexNode = new ESIndexNode(
+                new String[]{partitionName.stringValue()},
                 Arrays.asList(sourceMap),
                 ImmutableList.of("123"),
                 ImmutableList.of("123")
                 );
         Plan plan = new Plan();
-        plan.add(createNode);
-        plan.add(createAliasNode);
         plan.add(indexNode);
         plan.expectsAffectedRows(true);
         Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESCreateIndexTask.class));
-        assertThat(job.tasks().get(1), instanceOf(ESCreateAliasTask.class));
-        assertThat(job.tasks().get(2), instanceOf(ESIndexTask.class));
+        assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
         List<ListenableFuture<Object[][]>> result = executor.execute(job);
         Object[][] indexResult = result.get(0).get();
         assertThat((Long)indexResult[0][0], is(1L));
@@ -525,7 +515,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         sourceMap2.put(id_ref.info().ident().columnIdent().name(), 42);
         sourceMap2.put(name_ref.info().ident().columnIdent().name(), "Deep Thought");
 
-        ESIndexNode indexNode = new ESIndexNode("characters",
+        ESIndexNode indexNode = new ESIndexNode(
+                new String[]{"characters"},
                 Arrays.asList(sourceMap1, sourceMap2),
                 ImmutableList.of("99", "42"),
                 ImmutableList.of("99", "42")

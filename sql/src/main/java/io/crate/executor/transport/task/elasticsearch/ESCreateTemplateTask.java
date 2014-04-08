@@ -26,6 +26,7 @@ import io.crate.Constants;
 import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
@@ -71,10 +72,14 @@ public class ESCreateTemplateTask extends AbstractChainedTask<Object[][]> {
     }
 
     private PutIndexTemplateRequest buildRequest(ESCreateTemplateNode node) {
-        return new PutIndexTemplateRequest(node.templateName())
+        PutIndexTemplateRequest templateRequest = new PutIndexTemplateRequest(node.templateName())
                 .mapping(Constants.DEFAULT_MAPPING_TYPE, node.mapping())
                 .create(true)
                 .settings(node.indexSettings())
                 .template(node.indexMatch());
+        if (node.alias() != null) {
+            templateRequest.alias(new Alias(node.alias()));
+        }
+        return templateRequest;
     }
 }

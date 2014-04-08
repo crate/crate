@@ -24,7 +24,6 @@ package io.crate.planner.node.dml;
 import io.crate.planner.node.PlanVisitor;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -40,19 +39,13 @@ public class ESIndexNode extends DMLPlanNode {
     private List<String> ids;
     private List<String> routingValues;
 
-    public ESIndexNode(String index,List<Map<String, Object>> sourceMaps,
-                       List<String> ids,
-                       @Nullable List<String> routingValues) {
-        this(Arrays.asList(index), sourceMaps, ids, routingValues);
-    }
-
-    public ESIndexNode(List<String> indices,
+    public ESIndexNode(String[] indices,
                        List<Map<String, Object>> sourceMaps,
                        List<String> ids,
                        @Nullable List<String> routingValues) {
         assert indices != null : "no indices";
-        assert indices.size() == 1 || indices.size() == sourceMaps.size() : "unsupported number of indices";
-        this.indices = indices.toArray(new String[indices.size()]);
+        assert indices.length == 1 || indices.length == sourceMaps.size() : "unsupported number of indices";
+        this.indices = indices;
         this.sourceMaps = sourceMaps;
         this.ids = ids;
         this.routingValues = routingValues;
