@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,30 +21,28 @@
 
 package io.crate.operation.reference.file;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.operation.collect.files.CollectorContext;
 import io.crate.operation.collect.files.LineCollectorExpression;
-import io.crate.operation.reference.DocLevelReferenceResolver;
 
 import java.util.Map;
 
-public class FileLineReferenceResolver implements DocLevelReferenceResolver<LineCollectorExpression<?>> {
+public class SourceAsMapLineExpression extends LineCollectorExpression<Map<String, Object>> {
 
-    public static final FileLineReferenceResolver INSTANCE = new FileLineReferenceResolver();
+    public static final String COLUMN_NAME = DocSysColumns.DOC.name();
+    private LineContext context;
 
-    private static final Map<String, LineCollectorExpression<?>> implementations =
-            ImmutableMap.<String, LineCollectorExpression<?>>of(
-                    SourceLineExpression.COLUMN_NAME, new SourceLineExpression(),
-                    SourceAsMapLineExpression.COLUMN_NAME, new SourceAsMapLineExpression());
-
-    private FileLineReferenceResolver() {
+    @Override
+    public Map<String, Object> value() {
+        return context.sourceAsMap();
     }
 
-    public LineCollectorExpression<?> getImplementation(ReferenceInfo info) {
-        LineCollectorExpression<?> expression = implementations.get(info.ident().columnIdent().name());
-        if (expression != null) {
-            return expression;
-        }
-        return new ColumnExtractingLineExpression(info.ident().columnIdent());
+    @Override
+    public void setNextLine(String line) {
+    }
+
+    @Override
+    public void startCollect(CollectorContext context) {
+        this.context = context.lineContext();
     }
 }

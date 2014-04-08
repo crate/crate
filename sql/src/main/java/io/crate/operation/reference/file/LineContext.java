@@ -44,6 +44,13 @@ public class LineContext {
         return new BytesRef(rawSource);
     }
 
+    public Map<String, Object> sourceAsMap() {
+        if (parsedSource == null) {
+            parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
+        }
+        return parsedSource;
+    }
+
     public Object get(ColumnIdent columnIdent) {
         if (parsedSource == null) {
             // TODO: optimize if collectorContext has prefetchColumns

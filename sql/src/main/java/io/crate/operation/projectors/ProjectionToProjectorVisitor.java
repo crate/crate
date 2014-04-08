@@ -147,9 +147,13 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
 
     public Projector visitIndexWriterProjection(IndexWriterProjection projection, Void context) {
         ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
-        List<Input<?>> idInputs = new ArrayList<>();
+        List<Input<?>> idInputs = new ArrayList<>(projection.ids().size());
         for (Symbol idSymbol : projection.ids()) {
             idInputs.add(symbolVisitor.process(idSymbol, symbolContext));
+        }
+        List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
+        for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
+            partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
         Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
         Input<?> clusteredBy = symbolVisitor.process(projection.clusteredBy(), symbolContext);
@@ -158,11 +162,15 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 projection.tableName(),
                 projection.primaryKeys(),
                 idInputs,
+                projection.partitionedBy(),
+                partitionedByInputs,
                 clusteredBy,
                 sourceInput,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 projection.bulkActions(),
-                projection.concurrency()
+                projection.concurrency(),
+                projection.includes(),
+                projection.excludes()
         );
     }
 }
