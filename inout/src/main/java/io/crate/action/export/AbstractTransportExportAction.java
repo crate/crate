@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.service.IndexShard;
@@ -77,12 +78,14 @@ public abstract class AbstractTransportExportAction extends TransportBroadcastOp
 
     private final PageCacheRecycler pageRecycler;
 
+    private final BigArrays bigArrays;
+
     private String nodePath;
 
     public AbstractTransportExportAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
                                          TransportService transportService, IndicesService indicesService,
                                          ScriptService scriptService, CacheRecycler cacheRecycler,
-                                         PageCacheRecycler pageRecycler,
+                                         PageCacheRecycler pageRecycler, BigArrays bigArrays,
                                          IExportParser exportParser, Exporter exporter,
                                          NodeEnvironment nodeEnv) {
         super(settings, threadPool, clusterService, transportService);
@@ -90,6 +93,7 @@ public abstract class AbstractTransportExportAction extends TransportBroadcastOp
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
         this.pageRecycler = pageRecycler;
+        this.bigArrays = bigArrays;
         this.exportParser = exportParser;
         this.exporter = exporter;
         File[] paths = nodeEnv.nodeDataLocations();
@@ -176,7 +180,7 @@ public abstract class AbstractTransportExportAction extends TransportBroadcastOp
         ExportContext context = new ExportContext(0,
                 new ShardSearchRequest().types(request.types()).filteringAliases(request.filteringAliases()),
                 shardTarget, indexShard.acquireSearcher("crate/inout"), indexService, indexShard,
-                scriptService, cacheRecycler, pageRecycler, nodePath);
+                scriptService, cacheRecycler, pageRecycler, bigArrays, nodePath);
         ExportContext.setCurrent(context);
 
         try {

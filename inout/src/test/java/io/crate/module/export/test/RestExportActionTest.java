@@ -385,7 +385,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
 
         client().prepareIndex("test", "type", "1")
             .setSource("field1", "value1_1")
-            .setVersion(0)
+            .setVersion(1)
             .setVersionType(VersionType.EXTERNAL)
             .execute().actionGet();
         refresh();
@@ -396,7 +396,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
         List<Map<String, Object>> infos = getExports(response);
         assertEquals(3, infos.size());
         assertEquals(
-                "{\"_id\":\"1\",\"_version\":0,\"_source\":{\"field1\":\"value1_1\"}}\n",
+                "{\"_id\":\"1\",\"_version\":1,\"_source\":{\"field1\":\"value1_1\"}}\n",
                 infos.get(0).get("stdout"));
     }
 

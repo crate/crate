@@ -35,6 +35,7 @@ import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
 import org.elasticsearch.index.service.IndexService;
@@ -101,6 +102,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                               ScriptService scriptService,
                               CacheRecycler cacheRecycler,
                               PageCacheRecycler pageCacheRecycler,
+                              BigArrays bigArrays,
                               SQLXContentQueryParser sqlxContentQueryParser,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
@@ -124,7 +126,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                 indexShard,
                 scriptService,
                 cacheRecycler,
-                pageCacheRecycler
+                pageCacheRecycler,
+                bigArrays
         );
         sqlxContentQueryParser.parse(searchContext, querySource);
     }

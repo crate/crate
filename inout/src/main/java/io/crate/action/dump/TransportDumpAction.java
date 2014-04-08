@@ -29,6 +29,7 @@ import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
@@ -45,10 +46,10 @@ public class TransportDumpAction extends AbstractTransportExportAction {
     public TransportDumpAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
                                TransportService transportService, IndicesService indicesService,
                                ScriptService scriptService, CacheRecycler cacheRecycler,
-                               PageCacheRecycler pageRecycler,
+                               PageCacheRecycler pageRecycler, BigArrays bigArrays,
                                DumpParser dumpParser, Exporter exporter, NodeEnvironment nodeEnv) {
         super(settings, threadPool, clusterService, transportService, indicesService, scriptService,
-            cacheRecycler, pageRecycler, dumpParser, exporter, nodeEnv);
+            cacheRecycler, pageRecycler, bigArrays, dumpParser, exporter, nodeEnv);
     }
 
     @Override

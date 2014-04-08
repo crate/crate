@@ -21,18 +21,18 @@
 
 package io.crate.action.searchinto;
 
+import io.crate.action.searchinto.parser.SearchIntoParser;
+import io.crate.searchinto.Writer;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import io.crate.action.searchinto.parser.SearchIntoParser;
-import io.crate.searchinto.Writer;
 
 
 /**
@@ -44,11 +44,11 @@ public class TransportSearchIntoAction extends AbstractTransportSearchIntoAction
     public TransportSearchIntoAction(Settings settings,
             ThreadPool threadPool, ClusterService clusterService,
             TransportService transportService, CacheRecycler cacheRecycler,
-            PageCacheRecycler pageCacheRecycler,
+            PageCacheRecycler pageCacheRecycler, BigArrays bigArrays,
             IndicesService indicesService, ScriptService scriptService,
             SearchIntoParser parser, Writer writer) {
         super(settings, threadPool, clusterService, transportService, cacheRecycler,
-                pageCacheRecycler, indicesService, scriptService, parser, writer);
+                pageCacheRecycler, bigArrays, indicesService, scriptService, parser, writer);
     }
 
     @Override
