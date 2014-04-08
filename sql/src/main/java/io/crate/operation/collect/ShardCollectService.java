@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
@@ -55,6 +56,7 @@ public class ShardCollectService {
     private final ScriptService scriptService;
     private final CacheRecycler cacheRecycler;
     private final PageCacheRecycler pageCacheRecycler;
+    private final BigArrays bigArrays;
     private final SQLXContentQueryParser sqlxContentQueryParser;
     private final ESQueryBuilder queryBuilder;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
@@ -69,6 +71,7 @@ public class ShardCollectService {
                                ScriptService scriptService,
                                CacheRecycler cacheRecycler,
                                PageCacheRecycler pageCacheRecycler,
+                               BigArrays bigArrays,
                                SQLXContentQueryParser sqlxContentQueryParser,
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
@@ -80,6 +83,7 @@ public class ShardCollectService {
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
         this.pageCacheRecycler = pageCacheRecycler;
+        this.bigArrays = bigArrays;
         this.sqlxContentQueryParser = sqlxContentQueryParser;
 
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
@@ -122,7 +126,8 @@ public class ShardCollectService {
                 CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(normalizedCollectNode);
                 BytesReference querySource = queryBuilder.convert(normalizedCollectNode.whereClause());
                 return new LuceneDocCollector(clusterService, shardId, indexService,
-                        scriptService, cacheRecycler, pageCacheRecycler,sqlxContentQueryParser,
+                        scriptService, cacheRecycler, pageCacheRecycler, bigArrays,
+                        sqlxContentQueryParser,
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions(),
                         querySource,
