@@ -2,8 +2,8 @@
 Changes for Crate Data
 ======================
 
-unreleased
-==========
+2014/04/08 0.35.3
+=================
 
  - downgraded crate-theme to fix a doc rendering bug
 
