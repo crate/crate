@@ -71,8 +71,10 @@ public class OutputFile extends Output {
 
     @Override
     public void close() throws IOException {
-        os.close();
-        os = null;
+        if (os != null) { // if open failed os is null here
+            os.close();
+            os = null;
+        }
     }
 
     @Override
