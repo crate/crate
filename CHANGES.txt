@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - upgraded to ES 1.1.0
+
  - feature: added table 'information_schema.table_partitions'
 
  - feature: added column 'partitioned_by' to table 'information_schema.tables'
