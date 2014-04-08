@@ -41,14 +41,7 @@ public class OutputFile extends Output {
     public OutputFile(URI uri, Settings settings) {
         Preconditions.checkArgument(uri.getHost() == null);
         this.path = uri.getPath();
-        String compressionType = settings.get("compression");
-        if (compressionType != null) {
-            Preconditions.checkArgument(compressionType.equals("gzip"),
-                    String.format("Unsupported compression type: '%s'", compressionType));
-            compression = true;
-        } else {
-            compression = false;
-        }
+        compression = parseCompression(settings);
         this.overwrite = true;
     }
 
