@@ -21,10 +21,10 @@
 
 package io.crate.operation.reference.doc;
 
+import io.crate.Constants;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.RAMDirectory;
-import io.crate.Constants;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.FieldDataType;
@@ -32,6 +32,7 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.indices.fielddata.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.fielddata.breaker.DummyCircuitBreakerService;
 import org.elasticsearch.search.internal.SearchContext;
@@ -55,6 +56,8 @@ public abstract class DocLevelExpressionsTest {
     public void prepare() throws Exception {
         CircuitBreakerService circuitBreakerService = new DummyCircuitBreakerService();
         ifd = new IndexFieldDataService(new Index("test"), circuitBreakerService);
+        IndexService indexService = mock(IndexService.class);
+        ifd.setIndexService(indexService);
 
         MapperService mapperService = mock(MapperService.class);
         FieldMapper fieldMapper = mock(FieldMapper.class);

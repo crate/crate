@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.service.IndexShard;
@@ -60,9 +61,9 @@ public class SearchIntoContext extends DefaultSearchContext {
             SearchShardTarget shardTarget, Engine.Searcher engineSearcher,
             IndexService indexService, IndexShard indexShard,
             ScriptService scriptService, CacheRecycler cacheRecycler,
-            PageCacheRecycler pageRecycler) {
+            PageCacheRecycler pageRecycler, BigArrays bigArrays) {
         super(id, request, shardTarget, engineSearcher, indexService,
-                indexShard, scriptService, cacheRecycler, pageRecycler);
+                indexShard, scriptService, cacheRecycler, pageRecycler, bigArrays);
     }
 
     public String targetType() {

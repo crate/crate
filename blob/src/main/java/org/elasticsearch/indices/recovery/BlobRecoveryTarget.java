@@ -150,7 +150,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
             //            String.format("tried blob recovery on none-blob index {}", request.shardId().index()));
             //}
 
-            RecoveryStatus onGoingIndexRecovery = indexRecoveryTarget.peerRecoveryStatus(request.shardId());
+            RecoveryStatus onGoingIndexRecovery = indexRecoveryTarget.recoveryStatus(request.shardId());
 
             if (onGoingIndexRecovery.isCanceled()) {
                 throw new IndexShardClosedException(request.shardId());
