@@ -112,7 +112,7 @@ public class WriterProjection extends Projection {
                 outputNames.add(in.readString());
             }
         }
-        ImmutableSettings.readSettingsFromStream(in);
+        settings = ImmutableSettings.readSettingsFromStream(in);
     }
 
     @Override
