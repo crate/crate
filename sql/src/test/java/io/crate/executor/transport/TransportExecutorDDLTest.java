@@ -264,12 +264,14 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         );
         String templateName = PartitionName.templateName("partitioned");
         String templatePrefix = PartitionName.templateName("partitioned") + "*";
+        final String alias = "aliasName";
 
         ESCreateTemplateNode planNode = new ESCreateTemplateNode(
                 templateName,
                 templatePrefix,
                 indexSettings,
-                mapping);
+                mapping,
+                alias);
         Plan plan = new Plan();
         plan.add(planNode);
         plan.expectsAffectedRows(true);
@@ -301,6 +303,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat(templateMeta.template(), Matchers.is(".partitioned.partitioned.*"));
         assertThat(templateMeta.settings().toDelimitedString(','),
                 Matchers.is("index.number_of_replicas=0,index.number_of_shards=2,"));
+        assertThat(templateMeta.aliases().get(alias).alias(), Matchers.is(alias));
     }
 
     @Test
@@ -335,12 +338,14 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         );
         final String templateName = PartitionName.templateName("partitioned");
         String templatePrefix = PartitionName.templateName("partitioned") + "*";
+        final String alias = "aliasName";
 
         ESCreateTemplateNode planNode = new ESCreateTemplateNode(
                 templateName,
                 templatePrefix,
                 indexSettings,
-                mapping);
+                mapping,
+                alias);
         Plan plan = new Plan();
         plan.add(planNode);
         plan.expectsAffectedRows(true);

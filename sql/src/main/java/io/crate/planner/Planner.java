@@ -33,20 +33,25 @@ import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.exceptions.CrateException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.planner.node.ddl.*;
-import io.crate.planner.node.dml.*;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -261,7 +266,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                     analysis.templateName(),
                     analysis.templatePrefix(),
                     analysis.indexSettings(),
-                    analysis.mapping()
+                    analysis.mapping(),
+                    tableIdent.name()
             );
             plan.add(node);
         } else {
@@ -601,51 +607,16 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     private void ESIndex(InsertAnalysis analysis, Plan plan) {
-        String index = analysis.table().ident().name();
-        List<String> tablePartitions = Arrays.asList(analysis.table().concreteIndices());
+        String[] indices = new String[]{analysis.table().ident().name()};
         if (analysis.table().isPartitioned()) {
-            Set<String> createdPartitions = new HashSet<>();
-            List<String> partitions = analysis.partitions();
-            for (String partition : partitions) {
-                assert analysis.sourceMaps().size() == analysis.ids().size() : "invalid number of ids";
-                assert analysis.sourceMaps().size() == analysis.routingValues().size() : "invalid number of routingValues";
-                if (!tablePartitions.contains(partition) && !createdPartitions.contains(partition)) {
-                    // make sure we do not create multiple indices during bulk insert
-                    createdPartitions.add(partition);
-                    // create partition-index from template
-                    ESCreateIndexNode createIndexNode = new ESCreateIndexNode(
-                            partition,
-                            ImmutableSettings.EMPTY, // setting and mapping
-                            Collections.emptyMap()   // will be applied from template
-                    );
-                    plan.add(createIndexNode);
-
-                    // create alias for partition-index
-                    ESCreateAliasNode createAliasNode = new ESCreateAliasNode(
-                            partition,
-                            index
-                    );
-                    plan.add(createAliasNode);
-                }
-
-            }
-            // always create documents at the end with a single request
-            // even empty ones
-            // --> proper rowCount :)
-            ESIndexNode allIndexNode = new ESIndexNode(
-                    partitions,
-                    analysis.sourceMaps(),
-                    analysis.ids(),
-                    analysis.routingValues()
-            );
-            plan.add(allIndexNode);
-        } else {
-            ESIndexNode indexNode = new ESIndexNode(index,
-                    analysis.sourceMaps(),
-                    analysis.ids(),
-                    analysis.routingValues());
-            plan.add(indexNode);
+            indices = analysis.partitions().toArray(new String[analysis.partitions().size()]);
         }
+        ESIndexNode indexNode = new ESIndexNode(
+                indices,
+                analysis.sourceMaps(),
+                analysis.ids(),
+                analysis.routingValues());
+        plan.add(indexNode);
         plan.expectsAffectedRows(true);
     }
 
