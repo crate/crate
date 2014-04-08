@@ -38,6 +38,8 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -51,6 +53,7 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class LocalMergeTaskTest {
 
@@ -62,7 +65,15 @@ public class LocalMergeTaskTest {
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
-        injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
+        injector = new ModulesBuilder()
+                .add(new AggregationImplModule())
+                .add(new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        bind(Client.class).toInstance(mock(Client.class));
+                    }
+                })
+                .createInjector();
         Functions functions = injector.getInstance(Functions.class);
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
         symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
@@ -112,7 +123,8 @@ public class LocalMergeTaskTest {
 
             ThreadPool threadPool = new ThreadPool();
 
-            LocalMergeTask localMergeTask = new LocalMergeTask(threadPool, injector, symbolVisitor, mergeNode);
+            LocalMergeTask localMergeTask = new LocalMergeTask(
+                    threadPool, injector.getProvider(Client.class), symbolVisitor, mergeNode);
             localMergeTask.upstreamResult(upstreamResults);
             localMergeTask.start();
 

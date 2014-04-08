@@ -33,7 +33,8 @@ import io.crate.executor.Task;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.node.dql.MergeNode;
-import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -55,7 +56,7 @@ public class LocalMergeTask implements Task<Object[][]> {
     private final ThreadPool threadPool;
     private final SettableFuture<Object[][]> result;
     private final List<ListenableFuture<Object[][]>> resultList;
-    private final Injector injector;
+    private final Provider<Client> clientProvider;
 
     private List<ListenableFuture<Object[][]>> upstreamResults;
 
@@ -65,10 +66,10 @@ public class LocalMergeTask implements Task<Object[][]> {
      * @param mergeNode
      */
     public LocalMergeTask(ThreadPool threadPool,
-                          Injector injector,
+                          Provider<Client> clientProvider,
                           ImplementationSymbolVisitor implementationSymbolVisitor,
                           MergeNode mergeNode) {
-        this.injector = injector;
+        this.clientProvider = clientProvider;
         this.threadPool = threadPool;
         this.symbolVisitor = implementationSymbolVisitor;
         this.mergeNode = mergeNode;
@@ -89,7 +90,7 @@ public class LocalMergeTask implements Task<Object[][]> {
             return;
         }
 
-        final MergeOperation mergeOperation = new MergeOperation(injector, symbolVisitor, mergeNode);
+        final MergeOperation mergeOperation = new MergeOperation(clientProvider, symbolVisitor, mergeNode);
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
 
         Futures.addCallback(mergeOperation.result(), new FutureCallback<Object[][]>() {

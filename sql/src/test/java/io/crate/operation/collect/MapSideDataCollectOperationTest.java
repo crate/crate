@@ -29,9 +29,10 @@ import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -69,10 +70,14 @@ public class MapSideDataCollectOperationTest {
                 return null;
             }
         };
-        Injector injector = mock(Injector.class);
-
+        Provider<Client> clientProvider = new Provider<Client>() {
+            @Override
+            public Client get() {
+                return mock(Client.class);
+            }
+        };
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
-                injector,
+                clientProvider,
                 clusterService,
                 functions,
                 referenceResolver,
