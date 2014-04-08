@@ -24,6 +24,7 @@ package io.crate.planner.node.ddl;
 import io.crate.planner.node.PlanVisitor;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 public class ESCreateTemplateNode extends DDLPlanNode {
@@ -32,6 +33,7 @@ public class ESCreateTemplateNode extends DDLPlanNode {
     private final String indexMatch;
     private final Map<String, Object> mapping;
     private final Settings indexSettings;
+    private final String alias;
 
     /**
      *
@@ -44,9 +46,11 @@ public class ESCreateTemplateNode extends DDLPlanNode {
     public ESCreateTemplateNode(String templateName,
                                 String indexMatch,
                                 Settings indexSettings,
-                                Map<String, Object> mapping) {
+                                Map<String, Object> mapping,
+                                @Nullable String alias) {
         this.templateName = templateName;
         this.indexMatch = indexMatch;
+        this.alias = alias;
         this.mapping = mapping;
         this.indexSettings = indexSettings;
     }
@@ -57,6 +61,11 @@ public class ESCreateTemplateNode extends DDLPlanNode {
 
     public String indexMatch() {
         return indexMatch;
+    }
+
+    @Nullable
+    public String alias() {
+        return alias;
     }
 
     public Map<String, Object> mapping() {

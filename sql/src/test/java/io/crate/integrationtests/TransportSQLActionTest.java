@@ -3033,7 +3033,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInserPartitionedTableSomePartitionedColumns() throws Exception {
+    public void testInsertPartitionedTableSomePartitionedColumns() throws Exception {
         // insert only some partitioned column values
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (name, date)");
