@@ -11,7 +11,7 @@ Synopsis
 
 .. code-block:: sql
 
-  COPY table_ident TO { output_uri }
+  COPY table_ident TO [DIRECTORY] { output_uri }
   [ WITH ( copy_parameter [= value] [, ... ] ) ]
 
 Description
@@ -27,6 +27,10 @@ containing data from the given table.
 
 The created files are JSON formatted and contain one table row per
 line.
+
+If the ``DIRECTORY`` keyword is given, the uri is treated as a directory path.
+This will generate one or more files in the given directory, named in such a
+way to prevent filename conflicts.
 
 Parameters
 ==========

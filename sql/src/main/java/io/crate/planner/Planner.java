@@ -156,6 +156,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
             WriterProjection projection = new WriterProjection();
             projection.uri(analysis.uri());
+            projection.isDirectoryUri(analysis.directoryUri());
             projection.settings(analysis.settings());
             PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
                     .output(ImmutableList.<Symbol>of(rawReference));
