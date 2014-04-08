@@ -21,6 +21,9 @@
 
 package io.crate.operation.projectors.writer;
 
+import com.google.common.base.Preconditions;
+import org.elasticsearch.common.settings.Settings;
+
 import java.io.OutputStream;
 
 public abstract class Output {
@@ -31,4 +34,14 @@ public abstract class Output {
 
     public abstract OutputStream getOutputStream();
 
+    protected boolean parseCompression(Settings settings) {
+        String compressionType = settings.get("compression");
+        if (compressionType != null) {
+            Preconditions.checkArgument(compressionType.equals("gzip"),
+                    String.format("Unsupported compression type: '%s'", compressionType));
+            return true;
+        }
+
+        return false;
+    }
 }
