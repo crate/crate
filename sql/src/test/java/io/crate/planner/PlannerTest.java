@@ -27,7 +27,10 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.ddl.ESDeleteTemplateNode;
-import io.crate.planner.node.dml.*;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
@@ -495,6 +498,15 @@ public class PlannerTest {
         assertThat(searchNode.outputTypes().get(0), is(DataType.STRING));
         assertTrue(searchNode.whereClause().hasQuery());
         assertThat(searchNode.partitionBy().size(), is(0));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+        assertTrue(mergeNode.hasProjections());
+        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(mergeNode.outputTypes().size(), is(1));
+        assertThat(mergeNode.outputTypes().get(0), is(DataType.STRING));
+
         assertFalse(plan.expectsAffectedRows());
     }
 
@@ -512,6 +524,16 @@ public class PlannerTest {
         assertTrue(searchNode.whereClause().hasQuery());
         assertThat(searchNode.partitionBy().size(), is(1));
         assertThat(searchNode.partitionBy().get(0).ident().columnIdent().fqn(), is("date"));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+        assertTrue(mergeNode.hasProjections());
+        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(mergeNode.outputTypes().size(), is(3));
+        assertThat(mergeNode.outputTypes().get(0), is(DataType.STRING));
+        assertThat(mergeNode.outputTypes().get(1), is(DataType.STRING));
+        assertThat(mergeNode.outputTypes().get(2), is(DataType.TIMESTAMP));
 
         assertFalse(plan.expectsAffectedRows());
     }

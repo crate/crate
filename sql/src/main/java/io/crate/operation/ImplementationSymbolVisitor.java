@@ -109,7 +109,7 @@ public class ImplementationSymbolVisitor extends
     @Override
     public Input<?> visitReference(Reference symbol, Context context) {
         Input<?> result;
-        if (symbol.info().granularity().largerThan(rowGranularity)) {
+        if (!symbol.info().granularity().finerThan(rowGranularity)) {
             ReferenceImplementation impl = referenceResolver.getImplementation(symbol.info().ident());
             if (impl != null && impl instanceof Input<?>) {
                 // collect collectExpressions separately

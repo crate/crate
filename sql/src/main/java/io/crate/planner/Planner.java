@@ -38,6 +38,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
@@ -431,7 +432,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             tnp.outputs(contextBuilder.outputs());
             projections = ImmutableList.<Projection>of(tnp);
         } else {
-            projections = ImmutableList.<Projection>of();
+            projections = ImmutableList.of();
         }
 
         CollectNode collectNode = PlanNodeBuilder.collect(analysis, contextBuilder.toCollect(), projections);
@@ -451,25 +452,26 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     private void ESSearch(SelectAnalysis analysis, Plan plan) {
         // this is an es query
         // this only supports INFOS as order by
-        List<Reference> orderBy;
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
+                .output(analysis.outputSymbols());
+
+        List<Reference> orderBy = null;
         if (analysis.isSorted()) {
             orderBy = Lists.transform(analysis.sortSymbols(), new com.google.common.base.Function<Symbol, Reference>() {
+                @Nullable
                 @Override
-                public Reference apply(Symbol input) {
-                    Preconditions.checkArgument(input.symbolType() == SymbolType.REFERENCE
-                            || input.symbolType() == SymbolType.DYNAMIC_REFERENCE,
-                            "Unsupported order symbol for ESPlan", input);
-                    return (Reference) input;
+                public Reference apply(@Nullable Symbol symbol) {
+                    Preconditions.checkArgument(symbol != null
+                                    && (symbol.symbolType() == SymbolType.REFERENCE
+                                    || symbol.symbolType() == SymbolType.DYNAMIC_REFERENCE),
+                            "Unsupported order symbol for ESPlan", symbol);
+                    return (Reference)symbol;
                 }
             });
-
-        } else {
-            orderBy = null;
         }
-
         ESSearchNode node = new ESSearchNode(
                 indices(analysis),
-                analysis.outputSymbols(),
+                contextBuilder.toCollect(),
                 orderBy,
                 analysis.reverseFlags(),
                 analysis.limit(),
@@ -477,8 +479,17 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 analysis.whereClause(),
                 analysis.table().partitionedByColumns()
         );
-        node.outputTypes(extractDataTypes(analysis.outputSymbols()));
+        node.outputTypes(extractDataTypes(contextBuilder.toCollect()));
         plan.add(node);
+
+        TopNProjection topN = new TopNProjection(
+                Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                TopN.NO_OFFSET, // offset handled by ESSearch
+                ImmutableList.<Symbol>of(), // order by handled by ESSearch
+                new boolean[0]
+        );
+        topN.outputs(contextBuilder.outputs());
+        plan.add(PlanNodeBuilder.localMerge(Arrays.<Projection>asList(topN), node));
     }
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan) {
