@@ -36,8 +36,11 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.Provider;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,6 +52,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 
 public class ProjectionToProjectorVisitorTest {
@@ -60,11 +64,20 @@ public class ProjectionToProjectorVisitorTest {
     @Before
     public void prepare() {
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>());
-        Injector injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
+        Injector injector = new ModulesBuilder()
+                .add(new AggregationImplModule())
+                .add(new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        bind(Client.class).toInstance(mock(Client.class));
+                    }
+                })
+                .createInjector();
         Functions functions = injector.getInstance(Functions.class);
+        Provider<Client> clientProvider = injector.getProvider(Client.class);
         ImplementationSymbolVisitor symbolvisitor =
                 new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
-        visitor = new ProjectionToProjectorVisitor(injector, symbolvisitor);
+        visitor = new ProjectionToProjectorVisitor(clientProvider, symbolvisitor);
 
         countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.STRING)), DataType.LONG);
         avgInfo = new FunctionInfo(new FunctionIdent(AverageAggregation.NAME, Arrays.asList(DataType.INTEGER)), DataType.DOUBLE);

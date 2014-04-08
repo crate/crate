@@ -42,9 +42,13 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.SymbolFormatter;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexShardMissingException;
@@ -95,7 +99,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
 
     @Inject
-    public MapSideDataCollectOperation(Injector injector,
+    public MapSideDataCollectOperation(Provider<Client> clientProvider,
                                        ClusterService clusterService,
                                        Functions functions,
                                        ReferenceResolver referenceResolver,
@@ -112,7 +116,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         );
         this.fileInputSymbolVisitor =
                 new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
-        this.projectorVisitor = new ProjectionToProjectorVisitor(injector, nodeImplementationSymbolVisitor);
+        this.projectorVisitor = new ProjectionToProjectorVisitor(clientProvider, nodeImplementationSymbolVisitor);
     }
 
 

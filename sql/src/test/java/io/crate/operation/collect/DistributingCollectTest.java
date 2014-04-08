@@ -104,9 +104,10 @@ public class DistributingCollectTest {
         @Override
         protected void configure() {
             MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+            bind(Client.class).toInstance(new TransportClient(ImmutableSettings.EMPTY));
+
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
-            bind(Client.class).toInstance(new TransportClient(ImmutableSettings.EMPTY));
 
             DiscoveryNode testNode = mock(DiscoveryNode.class);
             when(testNode.id()).thenReturn(TEST_NODE_ID);
@@ -201,6 +202,8 @@ public class DistributingCollectTest {
                 .add(new OperatorModule())
                 .add(new TestModule())
                 .createInjector();
+        operation = injector.getInstance(DistributingCollectOperation.class);
+
         Injector shard0Injector = injector.createChildInjector(
                 new TestShardModule(0)
         );
@@ -211,8 +214,6 @@ public class DistributingCollectTest {
         when(indexService.shardInjectorSafe(1)).thenReturn(shard1Injector);
         when(indexService.shardSafe(0)).thenReturn(shard0Injector.getInstance(IndexShard.class));
         when(indexService.shardSafe(1)).thenReturn(shard1Injector.getInstance(IndexShard.class));
-
-        operation = injector.getInstance(DistributingCollectOperation.class);
     }
 
     private final Routing nodeRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(1){{

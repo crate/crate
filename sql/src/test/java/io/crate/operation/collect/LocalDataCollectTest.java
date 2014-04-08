@@ -42,15 +42,12 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.*;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -261,8 +258,9 @@ public class LocalDataCollectTest {
         when(indexService.shardSafe(1)).thenReturn(shard1Injector.getInstance(IndexShard.class));
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
+        Provider<Client> clientProvider = injector.getProvider(Client.class);
         operation = new MapSideDataCollectOperation(
-                injector,
+                clientProvider,
                 injector.getInstance(ClusterService.class),
                 functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool
         );

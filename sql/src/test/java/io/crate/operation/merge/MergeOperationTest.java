@@ -36,6 +36,8 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
@@ -47,6 +49,7 @@ import java.util.Collections;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class MergeOperationTest {
 
@@ -58,7 +61,15 @@ public class MergeOperationTest {
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
-        injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
+        injector = new ModulesBuilder()
+                .add(new AggregationImplModule())
+                .add(new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        bind(Client.class).toInstance(mock(Client.class));
+                    }
+                })
+                .createInjector();
         Functions functions = injector.getInstance(Functions.class);
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
         symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
@@ -85,7 +96,8 @@ public class MergeOperationTest {
                 topNProjection
         ));
 
-        MergeOperation mergeOperation = new MergeOperation(injector, symbolVisitor, mergeNode);
+        MergeOperation mergeOperation = new MergeOperation(
+                injector.getProvider(Client.class), symbolVisitor, mergeNode);
 
         Object[][] rows = new Object[20][];
         for (int i=0; i<rows.length; i++) {
@@ -114,7 +126,8 @@ public class MergeOperationTest {
         mergeNode.projections(Arrays.<Projection>asList(
                 groupProjection
         ));
-        MergeOperation mergeOperation = new MergeOperation(injector, symbolVisitor, mergeNode);
+        MergeOperation mergeOperation = new MergeOperation(
+                injector.getProvider(Client.class), symbolVisitor, mergeNode);
         Object[][] rows = new Object[1][];
         MinimumAggregation.MinimumAggState<Double> aggState = minAggFunction.newState();
         aggState.setValue(100.0d);
