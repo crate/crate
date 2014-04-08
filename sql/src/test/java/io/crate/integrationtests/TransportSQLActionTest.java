@@ -2335,6 +2335,34 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyFromIntoPartitionedTable() throws Exception {
+        execute("create table quotes (id integer primary key, " +
+                "quote string index using fulltext) partitioned by (id)");
+        ensureGreen();
+        refresh();
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{filePath});
+        // 2 nodes on same machine resulting in double affected rows
+        assertEquals(6L, response.rowCount());
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+        refresh();
+        ensureGreen();
+
+        for (String id : ImmutableList.of("1", "2", "3")) {
+            String partitionName = new PartitionName("quotes", ImmutableList.of("id"), ImmutableList.of(id)).stringValue();
+            assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                    .getState().metaData().indices().get(partitionName));
+            assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                    .getState().metaData().indices().get(partitionName).aliases().get("quotes"));
+        }
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(2));
+    }
+
+    @Test
     public void testCopyFromFileWithoutPK() throws Exception {
         execute("create table quotes (id int, " +
             "quote string index using fulltext)");

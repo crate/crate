@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -52,11 +53,14 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 "bulk_import",
                 Arrays.asList("id"),
                 Arrays.<Input<?>>asList(idInput),
+                ImmutableList.<String>of(),
+                ImmutableList.<Input<?>>of(),
                 idInput,
                 sourceInput,
                 collectExpressions,
                 20,
-                2
+                2,
+                null, null
         );
         indexWriter.registerUpstream(null);
         indexWriter.startProjection();

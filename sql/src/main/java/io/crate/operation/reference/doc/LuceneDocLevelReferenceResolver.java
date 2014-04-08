@@ -38,9 +38,14 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
     public LuceneCollectorExpression<?> getImplementation(ReferenceInfo referenceInfo) {
         assert referenceInfo.granularity() == RowGranularity.DOC;
 
-        if (RawCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())){
+        if (RawCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())
+                || DocCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())){
             if (referenceInfo.ident().columnIdent().isColumn()){
-                return new RawCollectorExpression();
+                if (RawCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {
+                    return new RawCollectorExpression();
+                } else {
+                    return new DocCollectorExpression();
+                }
             } else {
                 // TODO: implement an Object source expression which may support subscripts
                 throw new UnsupportedFeatureException(

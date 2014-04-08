@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.Id;
+import io.crate.PartitionName;
 import io.crate.exceptions.CrateException;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
@@ -36,9 +37,11 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -56,17 +59,25 @@ public class IndexWriterProjector implements Projector {
     private final String tableName;
     private final Object lock = new Object();
     private final List<String> primaryKeys;
+    private final List<String> partitionedBy;
+    private final List<Input<?>> partitionedByInputs;
+    private final String[] includes;
+    private final String[] excludes;
     private Projector downstream;
 
     public IndexWriterProjector(Client client,
                                 String tableName,
                                 List<String> primaryKeys,
                                 List<Input<?>> idInputs,
+                                List<String> partitionedBy,
+                                List<Input<?>> partitionedByInputs,
                                 Input<?> routingInput,
                                 Input<?> sourceInput,
                                 CollectExpression<?>[] collectExpressions,
                                 @Nullable Integer bulkActions,
-                                @Nullable Integer concurrency) {
+                                @Nullable Integer concurrency,
+                                @Nullable String[] includes,
+                                @Nullable String[] excludes) {
         listener = new Listener();
         this.tableName = tableName;
         this.primaryKeys = primaryKeys;
@@ -74,6 +85,10 @@ public class IndexWriterProjector implements Projector {
         this.idInputs = idInputs;
         this.routingInput = routingInput;
         this.sourceInput = sourceInput;
+        this.partitionedBy = partitionedBy;
+        this.partitionedByInputs = partitionedByInputs;
+        this.includes = includes;
+        this.excludes = excludes;
         BulkProcessor.Builder builder = BulkProcessor.builder(client, listener);
         if (bulkActions != null) {
             builder.setBulkActions(bulkActions);
@@ -134,11 +149,41 @@ public class IndexWriterProjector implements Projector {
 
     private IndexRequest buildRequest() {
         // TODO: reuse logic that is currently  in AbstractESIndexTask
-        IndexRequest indexRequest = new IndexRequest(tableName, Constants.DEFAULT_MAPPING_TYPE);
-        indexRequest.source(((BytesRef)sourceInput.value()).bytes);
+        IndexRequest indexRequest = new IndexRequest();
+        indexRequest.type(Constants.DEFAULT_MAPPING_TYPE);
+
+        if (partitionedBy.size() > 0) {
+            List<String> partitionedByValues = Lists.transform(partitionedByInputs, new Function<Input<?>, String>() {
+                @Nullable
+                @Override
+                public String apply(Input<?> input) {
+                    Object value = input.value();
+                    if (value == null) {
+                        return null;
+                    }
+                    return value.toString();
+                }
+            });
+
+            String partition = new PartitionName(tableName, partitionedBy, partitionedByValues).stringValue();
+            indexRequest.index(partition);
+
+        } else {
+            indexRequest.index(tableName);
+        }
+
+        Object value = sourceInput.value();
+        if (includes != null || excludes != null) {
+            assert value instanceof Map;
+            // exclude partitioned columns from source
+            Map<String, Object> sourceAsMap = XContentMapValues.filter((Map) value, includes, excludes);
+            indexRequest.source(sourceAsMap);
+        } else {
+            assert value instanceof BytesRef;
+            indexRequest.source(((BytesRef) value).bytes);
+        }
 
         List<String> primaryKeyValues = Lists.transform(idInputs, new Function<Input<?>, String>() {
-            @Nullable
             @Override
             public String apply(Input<?> input) {
                 return input.value().toString();
