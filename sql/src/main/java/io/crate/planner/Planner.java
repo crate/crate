@@ -33,10 +33,7 @@ import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.exceptions.CrateException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -193,23 +190,51 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     private void copyFromPlan(CopyAnalysis analysis, Plan plan) {
+        int clusteredByPrimaryKeyIdx = analysis.table().primaryKey().indexOf(analysis.table().clusteredBy());
+        List<String> partitionedBy = new ArrayList<>(analysis.table().partitionedBy());
+
         List<Projection> projections = Arrays.<Projection>asList(new IndexWriterProjection(
-            analysis.table().ident().name(),
-            analysis.table().primaryKey(),
-            analysis.settings()
+                analysis.table().ident().name(),
+                analysis.table().primaryKey(),
+                analysis.table().partitionedBy(),
+                clusteredByPrimaryKeyIdx,
+                analysis.settings(),
+                null,
+                partitionedBy.size() > 0 ? partitionedBy.toArray(new String[partitionedBy.size()]) : null
         ));
 
-        // NOTE: this could be further optimized:
-        //  if clusteredBy is part of the primary key it would be better to just collect the reference once.
-        List<Reference> references = new ArrayList<>(analysis.table().primaryKey().size() + 1);
+        partitionedBy.removeAll(analysis.table().primaryKey());
+
+        int referencesSize = analysis.table().primaryKey().size() + partitionedBy.size() + 1;
+        referencesSize = clusteredByPrimaryKeyIdx == -1 ? referencesSize + 1 : referencesSize;
+        List<Symbol> toCollect = new ArrayList<>(referencesSize);
+        // add primaryKey columns
         for (String primaryKey : analysis.table().primaryKey()) {
-            references.add(new Reference(analysis.table().getColumnInfo(new ColumnIdent(primaryKey))));
+            toCollect.add(
+                    new Reference(analysis.table().getColumnInfo(new ColumnIdent(primaryKey)))
+            );
         }
-        references.add(new Reference(analysis.table().getColumnInfo(new ColumnIdent(analysis.table().clusteredBy()))));
-        List<Symbol> toCollect = new ArrayList<Symbol>(references);
-        toCollect.add(
-                new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW))
-        );
+
+        // add partitioned columns (if not part of primaryKey)
+        for (String partitionedColumn : partitionedBy) {
+            toCollect.add(
+                    new Reference(analysis.table().getColumnInfo(new ColumnIdent(partitionedColumn)))
+            );
+        }
+
+        // add clusteredBy column (if not part of primaryKey)
+        if (clusteredByPrimaryKeyIdx == -1) {
+            toCollect.add(
+                    new Reference(analysis.table().getColumnInfo(new ColumnIdent(analysis.table().clusteredBy())))
+            );
+        }
+
+        // finally add _raw or _doc
+        if (analysis.table().isPartitioned()) {
+            toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.DOC)));
+        } else {
+            toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW)));
+        }
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
         FileUriCollectNode collectNode = new FileUriCollectNode(

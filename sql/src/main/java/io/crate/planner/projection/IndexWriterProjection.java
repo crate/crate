@@ -27,6 +27,7 @@ import io.crate.DataType;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -52,8 +53,12 @@ public class IndexWriterProjection extends Projection {
     private String tableName;
     private List<Symbol> idSymbols;
     private List<String> primaryKeys;
+    private List<String> partitionedBy;
+    private List<Symbol> partitionedBySymbols;
     private Symbol rawSourceSymbol;
     private Symbol clusteredBySymbol;
+    private String[] includes;
+    private String[] excludes;
 
     public static final ProjectionFactory<IndexWriterProjection> FACTORY =
             new ProjectionFactory<IndexWriterProjection>() {
@@ -64,15 +69,41 @@ public class IndexWriterProjection extends Projection {
     };
 
     public IndexWriterProjection() {}
-    public IndexWriterProjection(String tableName, List<String> primaryKeys, Settings settings) {
+    public IndexWriterProjection(String tableName, List<String> primaryKeys,
+                                 List<String> partitionedBy, int clusteredByIdx,
+                                 Settings settings,
+                                 @Nullable String[] includes,
+                                 @Nullable String[] excludes) {
         this.tableName = tableName;
+        this.primaryKeys = primaryKeys;
         this.idSymbols = new ArrayList<>(primaryKeys.size());
         for (int i = 0; i < primaryKeys.size(); i++) {
             idSymbols.add(new InputColumn(i));
         }
-        clusteredBySymbol = new InputColumn(primaryKeys.size());
-        rawSourceSymbol = new InputColumn(primaryKeys.size() + 1);
-        this.primaryKeys = primaryKeys;
+        int currentInputIndex = primaryKeys.size();
+
+        this.partitionedBy = partitionedBy;
+        this.partitionedBySymbols = new ArrayList<>(partitionedBy.size());
+        for (String partitionedColumn : partitionedBy) {
+            int idx = primaryKeys.indexOf(partitionedColumn);
+            if (idx == -1) {
+                idx = currentInputIndex;
+                currentInputIndex++;
+            }
+            partitionedBySymbols.add(new InputColumn(idx));
+        }
+
+        if (clusteredByIdx == -1) {
+            clusteredByIdx = currentInputIndex;
+            currentInputIndex++;
+        }
+        clusteredBySymbol = new InputColumn(clusteredByIdx);
+
+        rawSourceSymbol = new InputColumn(currentInputIndex);
+
+        this.includes = includes;
+        this.excludes = excludes;
+
         this.bulkActions = settings.getAsInt(BULK_SIZE, BULK_SIZE_DEFAULT);
         this.concurrency = settings.getAsInt(CONCURRENCY, CONCURRENCY_DEFAULT);
         Preconditions.checkArgument(concurrency > 0, "\"concurrency\" must be greater than 0.");
@@ -113,12 +144,30 @@ public class IndexWriterProjection extends Projection {
         return clusteredBySymbol;
     }
 
+    public List<String> partitionedBy() {
+        return partitionedBy;
+    }
+
+    public List<Symbol> partitionedBySymbols() {
+        return partitionedBySymbols;
+    }
+
     public Symbol rawSource() {
         return rawSourceSymbol;
     }
 
     public String tableName() {
         return tableName;
+    }
+
+    @Nullable
+    public String[] includes() {
+        return includes;
+    }
+
+    @Nullable
+    public String[] excludes() {
+        return excludes;
     }
 
     @Override
@@ -141,10 +190,37 @@ public class IndexWriterProjection extends Projection {
             primaryKeys.add(in.readString());
         }
 
+        int numPartitionedSymbols = in.readVInt();
+        partitionedBySymbols = new ArrayList<>(numPartitionedSymbols);
+        for (int i = 0; i < numPartitionedSymbols; i++) {
+            partitionedBySymbols.add(Symbol.fromStream(in));
+        }
+
+        int numPartitionedBy = in.readVInt();
+        partitionedBy = new ArrayList<>(numPartitionedBy);
+        for (int i = 0; i < numPartitionedBy; i++) {
+            partitionedBy.add(in.readString());
+        }
+
         clusteredBySymbol = Symbol.fromStream(in);
         rawSourceSymbol = Symbol.fromStream(in);
         concurrency = in.readVInt();
         bulkActions = in.readVInt();
+
+        if (in.readBoolean()) {
+            int length = in.readVInt();
+            includes = new String[length];
+            for (int i = 0; i < length; i++) {
+                includes[i] = in.readString();
+            }
+        }
+        if (in.readBoolean()) {
+            int length = in.readVInt();
+            excludes = new String[length];
+            for (int i = 0; i < length; i++) {
+                excludes[i] = in.readString();
+            }
+        }
     }
 
     @Override
@@ -159,9 +235,36 @@ public class IndexWriterProjection extends Projection {
         for (String primaryKey : primaryKeys) {
             out.writeString(primaryKey);
         }
+        out.writeVInt(partitionedBySymbols.size());
+        for (Symbol partitionedSymbol : partitionedBySymbols) {
+            Symbol.toStream(partitionedSymbol, out);
+        }
+        out.writeVInt(partitionedBy.size());
+        for (String partitionedCol : partitionedBy) {
+            out.writeString(partitionedCol);
+        }
         Symbol.toStream(clusteredBySymbol, out);
         Symbol.toStream(rawSourceSymbol, out);
         out.writeVInt(concurrency);
         out.writeVInt(bulkActions);
+
+        if (includes == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeVInt(includes.length);
+            for (String include : includes) {
+                out.writeString(include);
+            }
+        }
+        if (excludes == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeVInt(excludes.length);
+            for (String exclude : excludes) {
+                out.writeString(exclude);
+            }
+        }
     }
 }
