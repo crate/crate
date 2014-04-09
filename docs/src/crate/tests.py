@@ -131,7 +131,9 @@ def test_suite():
         s.layer = empty_layer
         suite.addTest(s)
     for fn in ('sql/dml.txt', 'sql/occ.txt', 'sql/ddl.txt',
-               'sql/information_schema.txt', 'sql/aggregation.txt',
+               'sql/information_schema.txt',
+               'sql/partitioned_tables.txt',
+               'sql/aggregation.txt',
                'sql/scalar.txt', 'sql/stats.txt',
                'hello.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
