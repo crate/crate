@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed a serialization error that occured if COUNT(distinct <col>) was used
+   on a column of type LONG
+
  - fixed a NPE that could occur using COPY FROM
 
 2014/04/08 0.35.3
