@@ -124,12 +124,12 @@ public abstract class CollectSetAggregation<T extends Comparable<T>> extends Agg
                             return new CollectSetAggState<Long>() {
                                 @Override
                                 public void readFrom(StreamInput in) throws IOException {
-                                    setValue(dataType.streamer().readFrom(in));
+                                    setValue(DataType.LONG_SET.streamer().readFrom(in));
                                 }
 
                                 @Override
                                 public void writeTo(StreamOutput out) throws IOException {
-                                    dataType.streamer().writeTo(out, value());
+                                    DataType.LONG_SET.streamer().writeTo(out, value());
                                 }
                             };
                         }
