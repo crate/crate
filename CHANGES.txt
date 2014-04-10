@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/04/10 0.35.4
+=================
+
  - fixed a serialization error that occured if COUNT(distinct <col>) was used
    on a column of type LONG
 
