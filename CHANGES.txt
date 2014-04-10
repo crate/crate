@@ -2,6 +2,11 @@
 Changes for Crate Data
 ======================
 
+Unreleased
+==========
+
+ - fixed a NPE that could occur using COPY FROM
+
 2014/04/08 0.35.3
 =================
 

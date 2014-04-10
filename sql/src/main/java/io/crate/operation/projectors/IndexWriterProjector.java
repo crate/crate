@@ -147,6 +147,8 @@ public class IndexWriterProjector implements Projector {
             @Nullable
             @Override
             public String apply(Input<?> input) {
+                if (input.value() == null)
+                    return null;
                 return input.value().toString();
             }
         });

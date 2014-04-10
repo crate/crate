@@ -24,10 +24,14 @@ package io.crate.operation.projectors;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.client.Client;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
+
+import static org.mockito.Mockito.mock;
 
 public class IndexWriterProjectorUnitTest {
 
@@ -58,5 +62,30 @@ public class IndexWriterProjectorUnitTest {
         } catch (InterruptedException | ExecutionException e) {
             throw e.getCause();
         }
+    }
+
+    @Test
+    public void testNullPKValue() throws Throwable {
+        // this test jus verifies that the idInput which returns a null value doesn't cause a NullPointerException
+        CollectingProjector collectingProjector = new CollectingProjector();
+        InputCollectExpression<Object> idInput = new InputCollectExpression<>(0);
+        InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(1);
+        InputCollectExpression<Object> routingInput = new InputCollectExpression<>(0);
+        CollectExpression[] collectExpressions = new CollectExpression[]{ idInput, sourceInput, routingInput };
+        final IndexWriterProjector indexWriter = new IndexWriterProjector(
+                mock(Client.class),
+                "bulk_import",
+                Arrays.<String>asList("id"),
+                Arrays.<Input<?>>asList(idInput),
+                routingInput,
+                sourceInput,
+                collectExpressions,
+                20,
+                2
+        );
+        indexWriter.downstream(collectingProjector);
+        indexWriter.registerUpstream(null);
+        indexWriter.setNextRow(null, new BytesRef("{\"y\": \"x\"}"));
+        indexWriter.upstreamFinished();
     }
 }
