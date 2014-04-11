@@ -83,6 +83,13 @@ The table schema is as follows:
 |          | ``{u'used_percent': 72, u'used': 8482299904,`` | 'free': Long,           |
 |          | ``u'free_percent': 27, u'free': 107634688}``   |                         |
 +----------+------------------------------------------------+-------------------------+
+| heap     | Shows an object with nested                    | Object:                 |
+|          | columns containing                             | 'max': Long,            |
+|          | current heap statistics.                       | 'used': Long,           |
+|          | Take the following as an example:              | 'free': Long,           |
+|          | ``{u'used': 8482299904,``                      |                         |
+|          | ``u'max': 8589934592, u'free': 107634688}``    |                         |
++----------+------------------------------------------------+-------------------------+
 | fs       | Shows an object with nested                    | Object:                 |
 |          | columns containing                             | 'total': Long,          |
 |          | current file system                            | 'used_percent': Double, |

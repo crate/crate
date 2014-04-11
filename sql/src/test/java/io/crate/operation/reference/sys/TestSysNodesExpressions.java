@@ -43,6 +43,8 @@ import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.monitor.fs.FsStats;
+import org.elasticsearch.monitor.jvm.JvmService;
+import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.node.service.NodeService;
@@ -148,6 +150,18 @@ public class TestSysNodesExpressions {
             when(httpServer.info()).thenReturn(httpInfo);
             bind(HttpServer.class).toInstance(httpServer);
 
+            JvmService jvmService = mock(JvmService.class);
+            JvmStats jvmStats = mock(JvmStats.class);
+            JvmStats.Mem jvmStatsMem = mock(JvmStats.Mem.class);
+            ByteSizeValue heapByteSizeValueMax = mock(ByteSizeValue.class);
+            when(heapByteSizeValueMax.bytes()).thenReturn(123456L);
+            when(jvmStatsMem.getHeapMax()).thenReturn(heapByteSizeValueMax);
+            when(jvmStatsMem.getHeapUsed()).thenReturn(heapByteSizeValueMax);
+
+            when(jvmStats.mem()).thenReturn(jvmStatsMem);
+            when(jvmService.stats()).thenReturn(jvmStats);
+            bind(JvmService.class).toInstance(jvmService);
+
             bind(ReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
         }
     }
@@ -241,6 +255,19 @@ public class TestSysNodesExpressions {
 
         assertEquals(12345342234L, v.get("used"));
         assertEquals(new Short("22"), v.get("used_percent"));
+    }
+
+    @Test
+    public void testHeap() throws Exception {
+
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "heap");
+        SysObjectReference<Object> heap = (SysObjectReference<Object>) resolver.getImplementation(ident);
+
+        Map<String, Object> v = heap.value();
+
+        assertEquals(123456L, v.get("max"));
+        assertEquals(123456L, v.get("used"));
+        assertEquals(0L, v.get("free"));
     }
 
     @Test

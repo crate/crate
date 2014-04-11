@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added sys.nodes.heap expression
+
 2014/04/10 0.35.4
 =================
 
