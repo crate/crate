@@ -27,7 +27,10 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.projection.*;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.StringValueSymbolVisitor;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Injector;
 
@@ -133,6 +136,16 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
 
     @Override
     public Projector visitWriterProjection(WriterProjection projection, Void context) {
+        ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
+
+        List<Input<?>> inputs = null;
+        if (!projection.inputs().isEmpty()) {
+            inputs = new ArrayList<>(projection.inputs().size());
+            for (Symbol symbol : projection.inputs()) {
+                inputs.add(symbolVisitor.process(symbol, symbolContext));
+            }
+        }
+
         projection = projection.normalize(normalizer);
         String uri = StringValueSymbolVisitor.INSTANCE.process(projection.uri());
         if (projection.isDirectoryUri()) {
@@ -149,7 +162,12 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
             }
             uri = sb.toString();
         }
-        return new WriterProjector(uri, projection.settings());
+        return new WriterProjector(
+                uri,
+                projection.settings(),
+                inputs,
+                symbolContext.collectExpressions()
+        );
     }
 
     public Projector visitIndexWriterProjection(IndexWriterProjection projection, Void context) {

@@ -30,6 +30,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Parameter;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.StringLiteral;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -108,6 +109,14 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyToDirectory() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy users to directory '/foo'");
         assertThat(analysis.directoryUri(), is(true));
+    }
+
+    @Test
+    public void testCopyToWithColumnList() throws Exception {
+        CopyAnalysis analysis = (CopyAnalysis)analyze("copy users (id, name) to DIRECTORY '/tmp'");
+        assertThat(analysis.outputSymbols().size(), is(2));
+        assertThat(((Reference)analysis.outputSymbols().get(0)).info().ident().columnIdent().name(), is("id"));
+        assertThat(((Reference)analysis.outputSymbols().get(1)).info().ident().columnIdent().name(), is("name"));
     }
 
     @Test

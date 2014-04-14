@@ -11,7 +11,7 @@ Synopsis
 
 .. code-block:: sql
 
-  COPY table_ident TO [DIRECTORY] { output_uri }
+  COPY table_ident [ column (, ...) ] TO [DIRECTORY] { output_uri }
   [ WITH ( copy_parameter [= value] [, ... ] ) ]
 
 Description
@@ -37,6 +37,14 @@ Parameters
 
 :table_ident: The name (optionally schema-qualified) of the table to
   be exported.
+
+:column: (optional) A list of column expressions that should be exported.
+
+.. note::
+
+    Declaring columns changes the output format to JSON list format. In order
+    to read this format the COPY FROM statement has to be invoked with the
+    columns specified.
 
 Output URI
 ==========
