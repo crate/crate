@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: it is not possible anymore to create a (blob) table with number of
+   shards smaller than 1.
+
  - fix: all unassigned shards are now considered in ``sys.shards`` table
 
  - updated crate-theme to 0.0.15 to fix documentation link in the admin-ui

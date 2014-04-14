@@ -292,8 +292,11 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
             context.routing(routingColumn);
         }
-        context.indexSettingsBuilder().put("number_of_shards",
-                node.numberOfShards().or(Constants.DEFAULT_NUM_SHARDS));
+        int numShards = node.numberOfShards().or(Constants.DEFAULT_NUM_SHARDS);
+        if (numShards < 1) {
+            throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
+        }
+        context.indexSettingsBuilder().put("number_of_shards", numShards);
         return null;
     }
 
