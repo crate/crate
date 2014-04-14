@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-theme to 0.0.15 to fix documentation link in the admin-ui
+
  - added s3 support for COPY TO
 
  - added sys.nodes.heap expression
