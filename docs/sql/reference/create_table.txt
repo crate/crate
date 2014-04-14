@@ -97,7 +97,8 @@ CLUSTERED Clause
 The optional CLUSTERED clause specifies how a table should be
 distributed accross a cluster.
 
-:num_shards: specifies the number of shards a table is stored in, the default is 5.
+:num_shards: specifies the number of shards a table is stored in.
+    Must be greater than 0; the default is 5.
 
 :routing_column: allows to explicitly specify a column or field on
     which basis rows are sharded. all rows having the same value in

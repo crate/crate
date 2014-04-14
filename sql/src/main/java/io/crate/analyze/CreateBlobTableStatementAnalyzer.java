@@ -34,7 +34,11 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
 
         if (node.clusteredBy().isPresent()) {
             ClusteredBy clusteredBy = node.clusteredBy().get();
-            context.numberOfShards(clusteredBy.numberOfShards().orNull());
+            Integer numShards = clusteredBy.numberOfShards().orNull();
+            if (numShards != null && numShards < 1) {
+                throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
+            }
+            context.numberOfShards(numShards);
         }
 
         if (node.genericProperties().isPresent()) {
