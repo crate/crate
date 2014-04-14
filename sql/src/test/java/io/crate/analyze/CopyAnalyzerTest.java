@@ -105,6 +105,12 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCopyToDirectory() throws Exception {
+        CopyAnalysis analysis = (CopyAnalysis)analyze("copy users to directory '/foo'");
+        assertThat(analysis.directoryUri(), is(true));
+    }
+
+    @Test
     public void testCopyToFileWithParams() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy users to '/blah.txt' with (compression='gzip')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
@@ -112,6 +118,4 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         assertThat(((StringLiteral)analysis.uri()).valueAsString(), is("/blah.txt"));
         assertThat(analysis.settings().get("compression"), is("gzip"));
     }
-
-
 }

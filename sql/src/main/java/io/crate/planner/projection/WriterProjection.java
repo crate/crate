@@ -24,9 +24,13 @@ package io.crate.planner.projection;
 import com.google.common.collect.ImmutableList;
 import io.crate.DataType;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.operation.scalar.FormatFunction;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.Value;
+import io.crate.planner.symbol.*;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,6 +39,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class WriterProjection extends Projection {
@@ -42,7 +47,18 @@ public class WriterProjection extends Projection {
     private static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
             new Value(DataType.LONG) // number of lines written
     );
+
+    private final static Reference SHARD_ID_REF = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
+    private final static Reference TABLE_NAME_REF = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("table_name")));
+
+    public static final Symbol DIRECTORY_TO_FILENAME = new Function(new FunctionInfo(
+            new FunctionIdent(FormatFunction.NAME, Arrays.asList(DataType.STRING, DataType.STRING, DataType.STRING)),
+            DataType.STRING),
+            Arrays.<Symbol>asList(new StringLiteral("%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF)
+    );
+
     private Symbol uri;
+    private boolean isDirectoryUri = false;
 
     @Nullable
     private Settings settings = ImmutableSettings.EMPTY;
@@ -87,6 +103,14 @@ public class WriterProjection extends Projection {
         return settings;
     }
 
+    public void isDirectoryUri(boolean isDirectoryUri) {
+        this.isDirectoryUri = isDirectoryUri;
+    }
+
+    public boolean isDirectoryUri() {
+        return isDirectoryUri;
+    }
+
     @Override
     public List<Symbol> outputs() {
         return OUTPUTS;
@@ -104,6 +128,7 @@ public class WriterProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
+        isDirectoryUri = in.readBoolean();
         uri = Symbol.fromStream(in);
         int size = in.readVInt();
         if (size > 0) {
@@ -117,6 +142,7 @@ public class WriterProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        out.writeBoolean(isDirectoryUri);
         Symbol.toStream(uri, out);
         if (outputNames != null) {
             out.writeVInt(outputNames.size());
@@ -136,9 +162,11 @@ public class WriterProjection extends Projection {
 
         WriterProjection that = (WriterProjection) o;
 
-        if (outputNames != null ? !outputNames.equals(that.outputNames) : that.outputNames != null) return false;
-        if (settings != null ? !settings.equals(that.settings) : that.settings != null) return false;
-        if (uri != null ? !uri.equals(that.uri) : that.uri != null) return false;
+        if (isDirectoryUri != that.isDirectoryUri) return false;
+        if (outputNames != null ? !outputNames.equals(that.outputNames) : that.outputNames != null)
+            return false;
+        if (!settings.equals(that.settings)) return false;
+        if (!uri.equals(that.uri)) return false;
 
         return true;
     }
@@ -147,6 +175,8 @@ public class WriterProjection extends Projection {
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + uri.hashCode();
+        result = 31 * result + (isDirectoryUri ? 1 : 0);
+        result = 31 * result + settings.hashCode();
         result = 31 * result + (outputNames != null ? outputNames.hashCode() : 0);
         return result;
     }
@@ -157,6 +187,7 @@ public class WriterProjection extends Projection {
                 "uri=" + uri +
                 ", settings=" + settings +
                 ", outputNames=" + outputNames +
+                ", isDirectory=" + isDirectoryUri +
                 '}';
     }
 

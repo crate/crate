@@ -39,6 +39,7 @@ public class CopyAnalysis extends AbstractDataAnalysis {
 
     private Symbol uri;
     private Mode mode;
+    private boolean directoryUri;
 
     public CopyAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameters, referenceResolver);
@@ -46,6 +47,14 @@ public class CopyAnalysis extends AbstractDataAnalysis {
 
     public Symbol uri() {
         return uri;
+    }
+
+    public void directoryUri(boolean directoryUri) {
+        this.directoryUri = directoryUri;
+    }
+
+    public boolean directoryUri() {
+        return this.directoryUri;
     }
 
     public void uri(Symbol uri) {

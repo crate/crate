@@ -27,10 +27,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.projection.*;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.StringValueSymbolVisitor;
-import io.crate.planner.symbol.SymbolType;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Injector;
 
@@ -137,12 +134,22 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
     @Override
     public Projector visitWriterProjection(WriterProjection projection, Void context) {
         projection = projection.normalize(normalizer);
-        assert projection.uri().symbolType() == SymbolType.STRING_LITERAL;
-        Projector projector = new WriterProjector(
-                StringValueSymbolVisitor.INSTANCE.process(projection.uri()),
-                projection.settings()
-        );
-        return projector;
+        String uri = StringValueSymbolVisitor.INSTANCE.process(projection.uri());
+        if (projection.isDirectoryUri()) {
+            StringBuilder sb = new StringBuilder(uri);
+            Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME);
+            assert resolvedFileName instanceof StringLiteral;
+            String fileName = StringValueSymbolVisitor.INSTANCE.process(resolvedFileName);
+            if (!uri.endsWith("/")) {
+                sb.append("/");
+            }
+            sb.append(fileName);
+            if (projection.settings().get("compression", "").equalsIgnoreCase("gzip")) {
+                sb.append(".gz");
+            }
+            uri = sb.toString();
+        }
+        return new WriterProjector(uri, projection.settings());
     }
 
     public Projector visitIndexWriterProjection(IndexWriterProjection projection, Void context) {

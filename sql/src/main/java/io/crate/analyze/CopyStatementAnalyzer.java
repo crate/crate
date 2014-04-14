@@ -54,11 +54,8 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         }
         process(node.table(), context);
         context.uri(process(node.targetUri(), context));
+        context.directoryUri(node.directoryUri());
 
-        if (node.directoryUri()) {
-            // TODO: add format symbols to generate shard specific uris
-            throw new UnsupportedFeatureException("directory URI not supprted");
-        }
         return null;
     }
 

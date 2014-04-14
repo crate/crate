@@ -41,13 +41,15 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrationTest {
+
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -431,7 +433,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     @Test
     public void testCopyToFile() throws Exception {
-
         String uriTemplate = Paths.get(folder.getRoot().toURI()).resolve("testCopyToFile%s.json").toAbsolutePath().toString();
 
         SQLResponse response = executor.exec("copy characters to format(?, sys.shards.id)", uriTemplate);
@@ -448,8 +449,25 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             assertThat(line, startsWith("{"));
             assertThat(line, endsWith("}"));
         }
-
     }
 
+    @Test
+    public void testCopyToDirectory() throws Exception {
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        SQLResponse response = executor.exec("copy characters to DIRECTORY ?", uriTemplate);
+        assertThat(response.rowCount(), is(7L));
+        List<String> lines = new ArrayList<>(7);
+        DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
+        for (Path entry: stream) {
+            lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
+        }
+        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1.json"));
+        assertTrue(path.toFile().exists());
 
+        assertThat(lines.size(), is(7));
+        for (String line : lines) {
+            assertThat(line, startsWith("{"));
+            assertThat(line, endsWith("}"));
+        }
+    }
 }

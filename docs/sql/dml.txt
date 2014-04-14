@@ -647,9 +647,7 @@ the table and shard id with gzip compression::
 
     cr> refresh table quotes;
     REFRESH OK...
-    cr> copy quotes to format('/tmp/%s_%s.json',
-    ... sys.shards.table_name, sys.shards.id)
-    ... with (compression='gzip');
+    cr> copy quotes to DIRECTORY '/tmp/' with (compression='gzip');
     COPY OK, 3 rows affected ...
 
 For further details see :ref:`copy_to`.
