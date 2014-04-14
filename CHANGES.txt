@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/04/14 0.35.5
+=================
+
  - updated crate-admin to hotfix release 0.5.2
 
  - fix: it is not possible anymore to create a (blob) table with number of
