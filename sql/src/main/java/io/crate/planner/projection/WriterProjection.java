@@ -59,8 +59,8 @@ public class WriterProjection extends Projection {
 
     private Symbol uri;
     private boolean isDirectoryUri = false;
+    private List<Symbol> inputs = ImmutableList.of();
 
-    @Nullable
     private Settings settings = ImmutableSettings.EMPTY;
 
     @Nullable
@@ -116,6 +116,14 @@ public class WriterProjection extends Projection {
         return OUTPUTS;
     }
 
+    public void inputs(List<Symbol> symbols) {
+        inputs = symbols;
+    }
+
+    public List<Symbol> inputs() {
+        return inputs;
+    }
+
     @Override
     public ProjectionType projectionType() {
         return ProjectionType.WRITER;
@@ -137,6 +145,11 @@ public class WriterProjection extends Projection {
                 outputNames.add(in.readString());
             }
         }
+        int numInputs = in.readVInt();
+        inputs = new ArrayList<>(numInputs);
+        for (int i = 0; i < numInputs; i++) {
+            inputs.add(Symbol.fromStream(in));
+        }
         settings = ImmutableSettings.readSettingsFromStream(in);
     }
 
@@ -151,6 +164,10 @@ public class WriterProjection extends Projection {
             }
         } else {
             out.writeVInt(0);
+        }
+        out.writeVInt(inputs.size());
+        for (Symbol symbol : inputs) {
+            Symbol.toStream(symbol, out);
         }
         ImmutableSettings.writeSettingsToStream(settings, out);
     }
@@ -203,4 +220,5 @@ public class WriterProjection extends Projection {
         }
         return this;
     }
+
 }

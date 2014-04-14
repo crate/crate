@@ -23,17 +23,24 @@ package io.crate.operation.projectors;
 
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
+import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.writer.Output;
 import io.crate.operation.projectors.writer.OutputFile;
 import io.crate.operation.projectors.writer.OutputS3;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -43,17 +50,31 @@ public class WriterProjector implements Projector {
     private static final byte NEW_LINE = (byte) '\n';
 
     private final URI uri;
+    private final Set<CollectExpression<?>> collectExpressions;
+    private final List<Input<?>> inputs;
     private Output output;
-    private OutputStream outputStream;
 
     protected final AtomicInteger remainingUpstreams = new AtomicInteger();
     protected final AtomicLong counter = new AtomicLong();
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
     private Projector downstream;
+    private RowWriter rowWriter;
 
-    public WriterProjector(String uri, Settings settings) {
-
+    /**
+     * @param inputs a list of {@link io.crate.operation.Input}.
+     *               If null the row that is received in {@link #setNextRow(Object...)}
+     *               is expected to contain the raw source in its first column.
+     *               That raw source is then written to the output
+     *
+     *               If inputs is not null the inputs are consumed to write a JSON array to the output.
+     */
+    public WriterProjector(String uri,
+                           Settings settings,
+                           @Nullable List<Input<?>> inputs,
+                           Set<CollectExpression<?>> collectExpressions) {
+        this.collectExpressions = collectExpressions;
+        this.inputs = inputs;
         try {
             this.uri = new URI(uri);
         } catch (URISyntaxException e) {
@@ -73,16 +94,21 @@ public class WriterProjector implements Projector {
         counter.set(0);
         try {
             output.open();
+            if (inputs != null && !inputs.isEmpty()) {
+                rowWriter = new ColumnRowWriter(output.getOutputStream(), collectExpressions, inputs, failure);
+            } else {
+                rowWriter = new RawRowWriter(output.getOutputStream(), failure);
+            }
         } catch (IOException e) {
             failure.set(new CrateException("Failed to open output", e));
-            return;
         }
-        outputStream = output.getOutputStream();
     }
-
 
     private void endProjection() {
         try {
+            if (rowWriter != null) {
+                rowWriter.close();
+            }
             output.close();
         } catch (IOException e) {
             failure.set(new CrateException("Failed to close output", e));
@@ -102,13 +128,7 @@ public class WriterProjector implements Projector {
         if (failure.get()!=null){
             return false;
         }
-        BytesRef value = (BytesRef) row[0];
-        try {
-            outputStream.write(value.bytes, value.offset, value.length);
-            outputStream.write(NEW_LINE);
-        } catch (IOException e) {
-            failure.set(new CrateException("Failed to write row to output", e));
-        }
+        rowWriter.write(row);
         counter.incrementAndGet();
         return true;
     }
@@ -140,5 +160,79 @@ public class WriterProjector implements Projector {
     @Override
     public Projector downstream() {
         return downstream;
+    }
+
+
+    interface RowWriter {
+        void write(Object[] row);
+        void close();
+    }
+
+    class RawRowWriter implements RowWriter {
+
+        private final OutputStream outputStream;
+        private final AtomicReference<Throwable> failure;
+
+        RawRowWriter(OutputStream outputStream, AtomicReference<Throwable> failure) {
+            this.outputStream = outputStream;
+            this.failure = failure;
+        }
+
+        @Override
+        public void write(Object[] row) {
+            BytesRef value = (BytesRef)row[0];
+            try {
+                outputStream.write(value.bytes, value.offset, value.length);
+                outputStream.write(NEW_LINE);
+            } catch (IOException e) {
+                failure.set(new CrateException("Failed to write row to output", e));
+            }
+        }
+
+        @Override
+        public void close() {
+
+        }
+    }
+
+    class ColumnRowWriter implements RowWriter {
+        private final Set<CollectExpression<?>> collectExpressions;
+        private final List<Input<?>> inputs;
+        private final AtomicReference<Throwable> failure;
+        private final OutputStream outputStream;
+        private final XContentBuilder builder;
+
+        ColumnRowWriter(OutputStream outputStream,
+                  Set<CollectExpression<?>> collectExpressions,
+                  List<Input<?>> inputs,
+                  AtomicReference<Throwable> failure) throws IOException {
+            this.outputStream = outputStream;
+            this.collectExpressions = collectExpressions;
+            this.inputs = inputs;
+            this.failure = failure;
+            builder = XContentFactory.jsonBuilder(outputStream);
+        }
+
+        public void write(Object[] row) {
+            for (CollectExpression<?> collectExpression : collectExpressions) {
+                collectExpression.setNextRow(row);
+            }
+            try {
+                builder.startArray();
+                for (Input<?> input : inputs) {
+                    builder.value(input.value());
+                }
+                builder.endArray();
+                builder.flush();
+                outputStream.write(NEW_LINE);
+            } catch (IOException e) {
+                failure.set(new CrateException("Failed to write row to output", e));
+            }
+        }
+
+        @Override
+        public void close() {
+            builder.close();
+        }
     }
 }

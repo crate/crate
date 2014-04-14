@@ -21,6 +21,8 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.collect.ImmutableSet;
+import io.crate.operation.collect.CollectExpression;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -41,7 +43,12 @@ public class WriterProjectorTest {
 
         String uri = folder.newFile("out.json").getAbsolutePath();
         Settings settings = ImmutableSettings.EMPTY;
-        WriterProjector projector = new WriterProjector(uri, settings);
+        WriterProjector projector = new WriterProjector(
+                uri,
+                settings,
+                null,
+                ImmutableSet.<CollectExpression<?>>of()
+        );
         Projector downstream = new CollectingProjector();
         projector.downstream(downstream);
 
