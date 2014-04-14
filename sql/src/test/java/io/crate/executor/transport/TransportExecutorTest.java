@@ -57,6 +57,8 @@ import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.ImmutableShardRouting;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -103,40 +105,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         execute("insert into characters (id, name) values (2, 'Ford')");
         execute("insert into characters (id, name) values (3, 'Trillian')");
         refresh();
-    }
-
-    @Test
-    public void testRemoteCollectTaskWithUnassignedShards() throws Exception {
-        Routing routing = new Routing(new HashMap<String, Map<String, Set<Integer>>>() {{
-            put(null, ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)));
-        }});
-        CollectNode collectNode = new CollectNode("collect", routing);
-        collectNode.toCollect(Arrays.<Symbol>asList(
-            new Reference(new ReferenceInfo(
-                new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataType.INTEGER
-            )),
-            new Reference(new ReferenceInfo(
-                new ReferenceIdent(new TableIdent("sys", "shards"), "state"), RowGranularity.SHARD, DataType.STRING
-            ))
-        ));
-        collectNode.whereClause(WhereClause.MATCH_ALL);
-        collectNode.maxRowGranularity(RowGranularity.SHARD);
-        TopNProjection topN = new TopNProjection(10, 0,
-            Arrays.<Symbol>asList(new InputColumn(0)),
-            new boolean[] { false });
-        topN.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
-
-        collectNode.projections(Arrays.<Projection>asList(topN));
-        collectNode.outputTypes(Arrays.<DataType>asList(DataType.INTEGER, DataType.STRING));
-
-        Plan plan = new Plan();
-        plan.add(collectNode);
-        Job job = executor.newJob(plan);
-
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] rows = Futures.allAsList(result).get().get(0);
-
-        assertThat(rows.length, is(2));
     }
 
     @Test

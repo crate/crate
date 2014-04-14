@@ -95,9 +95,9 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         execute("select * from sys.shards where table_name = 'sbolb'");
-        assertThat(response.rowCount(), is(12L));
-        for (int i = 0; i<response.rowCount(); i++) {
-            assertThat((String)response.rows()[0][1], is("sbolb"));
+        assertThat(response.rowCount(), is(16L));
+        for (int i = 0; i < response.rowCount(); i++) {
+            assertThat((String)response.rows()[i][1], is("sbolb"));
         }
         execute("select count(*) from sys.shards " +
                 "where schema_name='blob' and table_name != 'blobs' " +
