@@ -119,6 +119,7 @@ public class TestStatementBuilder
         printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
         printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
 
+        printStatement("copy foo (a, b) from '/folder/file.extension'");
         printStatement("copy foo from '/folder/file.extension'");
         printStatement("copy foo from ?");
         printStatement("copy foo from ? with (some_property=1)");

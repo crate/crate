@@ -98,8 +98,7 @@ tokens {
     VALUES_LIST;
     ASSIGNMENT;
     ASSIGNMENT_LIST;
-    COPY_FROM;
-    COPY_TO;
+    COPY;
     INDEX_COLUMNS;
     GENERIC_PROPERTIES;
     GENERIC_PROPERTY;
@@ -194,8 +193,7 @@ statement
     | insertStmt
     | deleteStmt
     | updateStmt
-    | copyFromStmt
-    | copyToStmt
+    | copyStmt
     | createAnalyzerStmt
     | refreshStmt
     ;
@@ -739,14 +737,15 @@ assignment
     : subscript EQ expr -> ^(ASSIGNMENT subscript expr)
     ;
 
-copyToStmt
-    : COPY table columnList? TO DIRECTORY? expr
-      ( WITH '(' genericProperties ')' )? -> ^(COPY_TO table columnList? DIRECTORY? expr genericProperties?)
+
+copyStmt
+    : COPY table columnList? toFrom DIRECTORY? expr
+      ( WITH '(' genericProperties ')' )? -> ^(COPY toFrom DIRECTORY? table columnList? expr genericProperties?)
     ;
 
-copyFromStmt
-    : COPY table FROM expr
-      ( WITH '(' genericProperties ')' )? -> ^(COPY_FROM table expr genericProperties?)
+toFrom
+    : FROM
+    | TO
     ;
 
 alterBlobTableStmt
