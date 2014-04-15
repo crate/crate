@@ -59,8 +59,9 @@ import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.update.TransportUpdateAction;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.List;
@@ -92,10 +93,10 @@ public class TransportExecutor implements Executor {
     private final TransportIndicesAliasesAction transportCreateAliasAction;
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
-    private final Injector injector;
+    private final Provider<Client> clientProvider;
 
     @Inject
-    public TransportExecutor(Injector injector,
+    public TransportExecutor(Provider<Client> clientProvider,
                              TransportSearchAction transportSearchAction,
                              TransportCollectNodeAction transportCollectNodeAction,
                              TransportMergeNodeAction transportMergeNodeAction,
@@ -117,8 +118,7 @@ public class TransportExecutor implements Executor {
                              TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                              TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction,
                              TransportIndicesAliasesAction transportCreateAliasAction,
-                             HandlerSideDataCollectOperation handlerSideDataCollectOperation
-    ) {
+                             HandlerSideDataCollectOperation handlerSideDataCollectOperation) {
         this.transportGetAction = transportGetAction;
         this.transportMultiGetAction = transportMultiGetAction;
         this.transportCollectNodeAction = transportCollectNodeAction;
@@ -137,7 +137,7 @@ public class TransportExecutor implements Executor {
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.transportDeleteIndexTemplateAction = transportDeleteIndexTemplateAction;
         this.transportCreateAliasAction = transportCreateAliasAction;
-        this.injector = injector;
+        this.clientProvider = clientProvider;
 
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
@@ -195,7 +195,7 @@ public class TransportExecutor implements Executor {
             if (node.executionNodes().isEmpty()) {
                 context.addTask(new LocalMergeTask(
                         threadPool,
-                        injector,
+                        clientProvider,
                         new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
                         node));
             } else {

@@ -38,11 +38,12 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
@@ -64,7 +65,7 @@ public class ShardCollectService {
     private final ProjectionToProjectorVisitor projectorVisitor;
 
     @Inject
-    public ShardCollectService(Injector injector,
+    public ShardCollectService(Provider<Client> clientProvider,
                                ClusterService clusterService,
                                ShardId shardId,
                                IndexService indexService,
@@ -101,7 +102,7 @@ public class ShardCollectService {
                 RowGranularity.SHARD,
                 (isBlobShard ? blobShardReferenceResolver : referenceResolver)
         );
-        this.projectorVisitor = new ProjectionToProjectorVisitor(injector,
+        this.projectorVisitor = new ProjectionToProjectorVisitor(clientProvider,
                 shardImplementationSymbolVisitor, shardNormalizer);
     }
 

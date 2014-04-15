@@ -337,18 +337,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
      */
     @Test
     public void testColsAreCaseSensitive() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "firstName", "type=string,store=true,index=not_analyzed",
-                        "firstname", "type=string,store=true,index=not_analyzed")
-                .execute().actionGet();
+        execute("create table test (\"firstName\" string, \"lastName\" string)");
+        ensureGreen();
+        execute("insert into test (\"firstname\", \"firstName\") values ('LowerCase', 'CamelCase')");
+        refresh();
 
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
-                .setSource("{\"firstname\":\"LowerCase\",\"firstName\":\"CamelCase\"}")
-                .execute().actionGet();
-
-        execute(
-                "select FIRSTNAME, \"firstname\", \"firstName\" from test");
+        execute("select FIRSTNAME, \"firstname\", \"firstName\" from test");
         assertArrayEquals(new String[]{"firstname", "firstname", "firstName"}, response.cols());
         assertEquals(1, response.rowCount());
         assertEquals("LowerCase", response.rows()[0][0]);
@@ -3122,7 +3116,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromPartitioneTable() throws Exception {
+    public void testSelectFromPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureGreen();
@@ -3137,6 +3131,43 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Integer)response.rows()[0][0], is(2));
         assertThat((String)response.rows()[0][1], is("Time is an illusion. Lunchtime doubly so"));
         assertThat((Long)response.rows()[0][2], is(1395961200000L));
+    }
+
+    @Test
+    public void testSelectPrimaryKeyFromPartitionedTable() throws Exception {
+        execute("create table stuff (" +
+                "  id integer primary key, " +
+                "  type byte primary key," +
+                "  content string) " +
+                "partitioned by(type) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into stuff (id, type, content) values(?, ?, ?)",
+                new Object[]{1, 127, "Don't panic"});
+        execute("insert into stuff (id, type, content) values(?, ?, ?)",
+                new Object[]{2, 126, "Time is an illusion. Lunchtime doubly so"});
+        execute("insert into stuff (id, type, content) values(?, ?, ?)",
+                new Object[]{3, 126, "Now panic"});
+        ensureGreen();
+        refresh();
+
+        execute("select id, type, content from stuff where id=2 and type=126");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(2));
+        byte b = 126;
+        assertThat((Byte)response.rows()[0][1], is(b));
+        assertThat((String)response.rows()[0][2], is("Time is an illusion. Lunchtime doubly so"));
+
+        // multiget
+        execute("select id, type, content from stuff where id in (2, 3) and type=126 order by id");
+        assertThat(response.rowCount(), is(2L));
+
+        assertThat((Integer)response.rows()[0][0], is(2));
+        assertThat((Byte)response.rows()[0][1], is(b));
+        assertThat((String)response.rows()[0][2], is("Time is an illusion. Lunchtime doubly so"));
+
+        assertThat((Integer)response.rows()[1][0], is(3));
+        assertThat((Byte)response.rows()[1][1], is(b));
+        assertThat((String)response.rows()[1][2], is("Now panic"));
     }
 
     @Test
@@ -3489,7 +3520,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into quotes (id, quote, date) values(?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L,
                         2, "Time is an illusion. Lunchtime doubly so", 1395961200000L,
-                });
+                }
+        );
         ensureGreen();
         refresh();
 
@@ -3522,6 +3554,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("0"));
             assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
         }
+    }
+
+    @Test
+    public void testSelectFormatFunction() throws Exception {
+        this.setup.setUpLocations();
+        ensureGreen();
+        refresh();
+
+        execute("select format('%s is a %s', name, kind) as sentence from locations order by name");
+        assertThat(response.rowCount(), is(13L));
+        assertArrayEquals(response.cols(), new String[]{"sentence"});
+        assertThat(response.rows()[0].length, is(1));
+        assertThat((String)response.rows()[0][0], is(" is a Planet"));
+        assertThat((String)response.rows()[1][0], is("Aldebaran is a Star System"));
+        assertThat((String)response.rows()[2][0], is("Algol is a Star System"));
+        // ...
     }
 
 }

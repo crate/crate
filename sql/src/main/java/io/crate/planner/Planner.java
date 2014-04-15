@@ -24,9 +24,11 @@ package io.crate.planner;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.DataType;
@@ -41,6 +43,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
@@ -64,6 +67,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Planner extends AnalysisVisitor<Void, Plan> {
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
+    static final PlannerReferenceExtractor referenceExtractor = new PlannerReferenceExtractor();
     private static final DataTypeVisitor dataTypeVisitor = new DataTypeVisitor();
     private final ClusterService clusterService;
 
@@ -98,8 +102,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
                     if (analysis.ids().size() > 0
                             && analysis.routingValues().size() > 0
-                            && !analysis.table().isAlias()
-                            && !analysis.table().isPartitioned()) {
+                            && !analysis.table().isAlias()) {
                         ESGet(analysis, plan);
                     } else {
                         ESSearch(analysis, plan);
@@ -385,10 +388,19 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
+        String indexName;
+        if (analysis.table().isPartitioned()) {
+            assert analysis.whereClause().partitions().size() == 1 : "ambiguous partitions for ESGet";
+            indexName = analysis.whereClause().partitions().get(0);
+        } else {
+            indexName = analysis.table().ident().name();
+        }
+
         ESGetNode getNode = new ESGetNode(
-                analysis.table().ident().name(),
+                indexName,
                 analysis.ids(),
-                analysis.routingValues());
+                analysis.routingValues(),
+                analysis.table().partitionedByColumns());
         getNode.outputs(contextBuilder.toCollect());
         getNode.outputTypes(extractDataTypes(analysis.outputSymbols()));
         plan.add(getNode);
@@ -425,7 +437,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             tnp.outputs(contextBuilder.outputs());
             projections = ImmutableList.<Projection>of(tnp);
         } else {
-            projections = ImmutableList.<Projection>of();
+            projections = ImmutableList.of();
         }
 
         CollectNode collectNode = PlanNodeBuilder.collect(analysis, contextBuilder.toCollect(), projections);
@@ -445,25 +457,41 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     private void ESSearch(SelectAnalysis analysis, Plan plan) {
         // this is an es query
         // this only supports INFOS as order by
-        List<Reference> orderBy;
-        if (analysis.isSorted()) {
-            orderBy = Lists.transform(analysis.sortSymbols(), new com.google.common.base.Function<Symbol, Reference>() {
-                @Override
-                public Reference apply(Symbol input) {
-                    Preconditions.checkArgument(input.symbolType() == SymbolType.REFERENCE
-                            || input.symbolType() == SymbolType.DYNAMIC_REFERENCE,
-                            "Unsupported order symbol for ESPlan", input);
-                    return (Reference) input;
-                }
-            });
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
+                .searchOutput(analysis.outputSymbols());
+        final Predicate<Symbol> symbolIsReference = new Predicate<Symbol>() {
+            @Override
+            public boolean apply(@Nullable Symbol input) {
+                return input instanceof Reference;
+            }
+        };
 
+        boolean needsProjection = !Iterables.all(analysis.outputSymbols(), symbolIsReference);
+        List<Symbol> searchSymbols;
+        if (needsProjection) {
+            searchSymbols = contextBuilder.toCollect();
         } else {
-            orderBy = null;
+            searchSymbols = analysis.outputSymbols();
         }
 
+        List<Reference> orderBy = null;
+        if (analysis.isSorted()) {
+            orderBy = Lists.transform(analysis.sortSymbols(), new com.google.common.base.Function<Symbol, Reference>() {
+                @Nullable
+                @Override
+                public Reference apply(@Nullable Symbol symbol) {
+                    if (!symbolIsReference.apply(symbol)) {
+                        throw new IllegalArgumentException(
+                                SymbolFormatter.format(
+                                        "Unsupported order symbol for ESPlan: %s", symbol));
+                    }
+                    return (Reference)symbol;
+                }
+            });
+        }
         ESSearchNode node = new ESSearchNode(
                 indices(analysis),
-                analysis.outputSymbols(),
+                searchSymbols,
                 orderBy,
                 analysis.reverseFlags(),
                 analysis.limit(),
@@ -471,8 +499,17 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 analysis.whereClause(),
                 analysis.table().partitionedByColumns()
         );
-        node.outputTypes(extractDataTypes(analysis.outputSymbols()));
+        node.outputTypes(extractDataTypes(searchSymbols));
         plan.add(node);
+        // only add projection if we have scalar functions
+        if (needsProjection) {
+            TopNProjection topN = new TopNProjection(
+                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    TopN.NO_OFFSET
+            );
+            topN.outputs(contextBuilder.outputs());
+            plan.add(PlanNodeBuilder.localMerge(Arrays.<Projection>asList(topN), node));
+        }
     }
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan) {

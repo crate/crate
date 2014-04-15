@@ -27,7 +27,10 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.ddl.ESDeleteTemplateNode;
-import io.crate.planner.node.dml.*;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
@@ -43,6 +46,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -312,13 +316,12 @@ public class PlannerTest {
         Plan plan = plan("select name, date from parted where id = 'one' and date = 0");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode node = iterator.next();
-        assertThat(node, instanceOf(ESSearchNode.class));
-        ESSearchNode searchNode = (ESSearchNode)node;
-        assertThat(searchNode.partitionBy().size(), is(1));
-        assertThat(searchNode.indices().length, is(1));
-        assertThat(searchNode.indices()[0], is(Constants.PARTITIONED_TABLE_PREFIX + ".parted._0"));
-
-        assertFalse(iterator.hasNext());
+        assertThat(node, instanceOf(ESGetNode.class));
+        ESGetNode getNode = (ESGetNode) node;
+        assertThat(getNode.index(),
+                is(new PartitionName("parted", Arrays.asList("date"), Arrays.asList("0")).stringValue()));
+        assertThat(getNode.outputTypes().get(0), is(DataType.STRING));
+        assertThat(getNode.outputTypes().get(1), is(DataType.TIMESTAMP));
     }
 
     @Test
@@ -495,6 +498,8 @@ public class PlannerTest {
         assertThat(searchNode.outputTypes().get(0), is(DataType.STRING));
         assertTrue(searchNode.whereClause().hasQuery());
         assertThat(searchNode.partitionBy().size(), is(0));
+
+        assertFalse(iterator.hasNext());
         assertFalse(plan.expectsAffectedRows());
     }
 
@@ -513,6 +518,38 @@ public class PlannerTest {
         assertThat(searchNode.partitionBy().size(), is(1));
         assertThat(searchNode.partitionBy().get(0).ident().columnIdent().fqn(), is("date"));
 
+        assertFalse(iterator.hasNext());
+        assertFalse(plan.expectsAffectedRows());
+    }
+
+    @Test
+    public void testESSearchPlanFunction() throws Exception {
+        Plan plan = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESSearchNode.class));
+        ESSearchNode searchNode = (ESSearchNode) planNode;
+
+        assertThat(searchNode.outputs().size(), is(1));
+        assertThat(searchNode.outputs().get(0).info().ident().columnIdent().fqn(), is("name"));
+
+        assertThat(searchNode.outputTypes().size(), is(1));
+        assertThat(searchNode.outputTypes().get(0), is(DataType.STRING));
+        assertTrue(searchNode.whereClause().hasQuery());
+        assertThat(searchNode.partitionBy().size(), is(0));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+        assertTrue(mergeNode.hasProjections());
+        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(mergeNode.outputTypes().size(), is(2));
+        assertThat(mergeNode.outputTypes().get(0), is(DataType.STRING));
+        assertThat(mergeNode.projections().get(0).outputs().get(0), instanceOf(Function.class));
+        assertThat(mergeNode.outputTypes().get(1), is(DataType.STRING));
+        assertThat(mergeNode.projections().get(0).outputs().get(1), instanceOf(InputColumn.class));
+
+        assertFalse(iterator.hasNext());
         assertFalse(plan.expectsAffectedRows());
     }
 

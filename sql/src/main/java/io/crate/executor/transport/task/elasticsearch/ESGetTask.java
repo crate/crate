@@ -21,11 +21,15 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.DataType;
+import io.crate.PartitionName;
+import io.crate.exceptions.CrateException;
 import io.crate.executor.Task;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.symbol.*;
 import org.elasticsearch.action.ActionListener;
@@ -34,24 +38,54 @@ import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.io.IOException;
+import java.util.*;
 
 public class ESGetTask implements Task<Object[][]> {
 
     private final static Visitor visitor = new Visitor();
-
+    private final ESGetNode node;
     private final List<ListenableFuture<Object[][]>> results;
     private final TransportAction transportAction;
     private final ActionRequest request;
     private final ActionListener listener;
+
+    private final Map<String, Object> partitionValues;
 
     public ESGetTask(TransportMultiGetAction multiGetAction, TransportGetAction getAction, ESGetNode node) {
         assert multiGetAction != null;
         assert getAction != null;
         assert node != null;
         assert node.ids().size() > 0;
+
+        this.node = node;
+
+        if (this.node.partitionBy().isEmpty()) {
+            this.partitionValues = ImmutableMap.of();
+        } else {
+            try {
+                PartitionName partitionName = PartitionName.fromStringSafe(
+                        node.index(),
+                        this.node.partitionBy().size()
+                );
+                int numPartitionColumns = this.node.partitionBy().size();
+                this.partitionValues = new HashMap<>(numPartitionColumns);
+                for (int i = 0; i<this.node.partitionBy().size(); i++) {
+                    ReferenceInfo info = this.node.partitionBy().get(i);
+                    // TODO: avoid creating StringLiteral for conversion only,
+                    // refactor type conversion for simple values
+                    StringLiteral literal = new StringLiteral(partitionName.values().get(i));
+                    this.partitionValues.put(
+                            info.ident().columnIdent().fqn(),
+                            literal.convertValueTo(info.type())
+                    );
+                }
+
+            } catch (IOException e) {
+                throw new CrateException("Error creating ESGetTask", e);
+            }
+        }
+
 
         final Context ctx = new Context(node.outputs().size());
         for (Symbol symbol : node.outputs()) {
@@ -103,6 +137,13 @@ public class ESGetTask implements Task<Object[][]> {
                     @Override
                     public Object extract(GetResponse response) {
                         return response.getId();
+                    }
+                };
+            } else if (partitionValues.containsKey(field)) {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        return partitionValues.get(field);
                     }
                 };
             } else {

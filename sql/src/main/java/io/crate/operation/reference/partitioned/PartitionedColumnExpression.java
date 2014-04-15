@@ -37,6 +37,8 @@ public class PartitionedColumnExpression implements Input, ShardReferenceImpleme
         if (stringValue == null) {
             this.value = null;
         } else {
+            // TODO: avoid creating StringLiteral for conversion only,
+            // refactor type conversion for simple values
             this.value = new StringLiteral(stringValue).convertValueTo(info.type());
         }
     }

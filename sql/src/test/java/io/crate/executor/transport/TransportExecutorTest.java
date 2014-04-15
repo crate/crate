@@ -39,18 +39,18 @@ import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.executor.transport.task.inout.ImportTask;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OrOperator;
+import io.crate.operation.projectors.TopN;
+import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.*;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.ESCountNode;
-import io.crate.planner.node.dql.ESGetNode;
-import io.crate.planner.node.dql.ESSearchNode;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
@@ -296,6 +296,67 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat((Integer) rows[0][0], is(2));
         assertThat((String) rows[0][1], is("Ford"));
+    }
+
+    @Test
+    public void testESSearchTaskWithFunction() throws Exception {
+        execute("create table searchf (id int primary key, date timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into searchf (id, date) values (1, '1980-01-01'), (2, '1980-01-02')");
+        refresh();
+
+        Reference id_ref = new Reference(new ReferenceInfo(
+                new ReferenceIdent(
+                        new TableIdent(DocSchemaInfo.NAME, "searchf"),
+                        "id"),
+                RowGranularity.DOC,
+                DataType.INTEGER
+        ));
+        Reference date_ref = new Reference(new ReferenceInfo(
+                new ReferenceIdent(
+                        new TableIdent(DocSchemaInfo.NAME, "searchf"),
+                        "date"),
+                RowGranularity.DOC,
+                DataType.TIMESTAMP
+        ));
+        Function function = new Function(new FunctionInfo(
+                new FunctionIdent(DateTruncFunction.NAME, asList(DataType.STRING, DataType.TIMESTAMP)),
+                DataType.TIMESTAMP, false
+        ), Arrays.<Symbol>asList(new StringLiteral("day"), new InputColumn(1)));
+        Function whereClause = new Function(new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, asList(DataType.INTEGER, DataType.INTEGER)),
+                DataType.BOOLEAN),
+                Arrays.<Symbol>asList(id_ref, new IntegerLiteral(2))
+        );
+
+        ESSearchNode node = new ESSearchNode(
+                new String[]{"searchf"},
+                Arrays.<Symbol>asList(id_ref, date_ref),
+                Arrays.asList(id_ref),
+                new boolean[]{false},
+                null, null,
+                new WhereClause(whereClause),
+                null
+        );
+        MergeNode mergeNode = new MergeNode("merge", 1);
+        mergeNode.inputTypes(Arrays.asList(DataType.INTEGER, DataType.TIMESTAMP));
+        mergeNode.outputTypes(Arrays.asList(DataType.INTEGER, DataType.TIMESTAMP));
+        TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
+        topN.outputs(Arrays.asList(new InputColumn(0), function));
+        mergeNode.projections(Arrays.<Projection>asList(topN));
+        Plan plan = new Plan();
+        plan.add(node);
+        plan.add(mergeNode);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().size(), is(2));
+
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+        assertThat(rows.length, is(1));
+
+        assertThat((Integer) rows[0][0], is(2));
+        assertEquals(315619200000L, rows[0][1]);
+
     }
 
     @Test
