@@ -48,7 +48,7 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
         .add(new UnassignedShardCollectorExpression<Boolean>(ShardPrimaryExpression.NAME) {
             @Override
             public Boolean value() {
-                return null;
+                return row.primary();
             }
         })
         .add(new UnassignedShardCollectorExpression<BytesRef>(ShardRelocatingNodeExpression.NAME) {

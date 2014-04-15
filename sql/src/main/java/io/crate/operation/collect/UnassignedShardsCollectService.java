@@ -22,14 +22,10 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import io.crate.blob.v2.BlobIndices;
 import io.crate.metadata.Functions;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
 import io.crate.operation.Input;
@@ -38,15 +34,15 @@ import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.BooleanLiteral;
-import io.crate.sql.tree.IsNotNullPredicate;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class UnassignedShardsCollectService implements CollectService {
@@ -66,23 +62,48 @@ public class UnassignedShardsCollectService implements CollectService {
         this.clusterService = clusterService;
     }
 
+    protected class UnassignedShardIteratorContext {
+
+        Set<ShardId> seenPrimaries;
+
+        /**
+         * Determine if <code>shardId</code> is a primary or secondary shard.
+         * @param shardId
+         * @return
+         */
+        public boolean isPrimary(ShardId shardId) {
+            if (seenPrimaries == null) {
+                // be lazy
+                // inspect all shards. add any primary shard for a id to the 'seen' set.
+                seenPrimaries = new HashSet<>();
+                for (ShardRouting shardRouting : clusterService.state().routingTable().allShards()) {
+                    if (shardRouting.primary()) {
+                        seenPrimaries.add(shardRouting.shardId());
+                    }
+                }
+            }
+
+            // if shardId can be added, there was no primary shard (hence, all shards for an id are unassigned).
+            // -> add, return true: elect as primary shard.
+            return seenPrimaries.add(shardId);
+        }
+
+    }
+
     private Iterable<UnassignedShard> createIterator() {
         List<ShardRouting> allShards = clusterService.state().routingTable().allShards();
         if (allShards == null || allShards.size() == 0) {
             return NO_SHARDS;
         }
 
+        final UnassignedShardIteratorContext context = new UnassignedShardIteratorContext();
         return FluentIterable.from(allShards).transform(new Function<ShardRouting, UnassignedShard>() {
             @Nullable
             @Override
             public UnassignedShard apply(@Nullable ShardRouting input) {
                 assert input != null;
-                String index = input.index();
-                boolean isBlobIndex = BlobIndices.isBlobIndex(index);
-                final String tableName = isBlobIndex ? BlobIndices.stripPrefix.apply(index) : index;
-                final String schemaName = isBlobIndex ? BlobSchemaInfo.NAME : DocSchemaInfo.NAME;
                 if (input.unassigned()) {
-                    return new UnassignedShard(schemaName, tableName, input.id());
+                    return new UnassignedShard(input.shardId(), context.isPrimary(input.shardId()));
                 }
                 return null;
             }
