@@ -26,20 +26,15 @@ public class UnassignedShard {
             tableName = index;
         }
 
-        try {
-            tableName = PartitionName.tableName(index);
-        } catch (IllegalArgumentException e) {
-            // no partition
-        }
-        this.tableName = tableName;
-
         String ident = "";
         try {
+            tableName = PartitionName.tableName(index);
             ident = PartitionName.ident(index);
         } catch (IllegalArgumentException e) {
             // no partition
         }
 
+        this.tableName = tableName;
         partitionIdent = ident;
         this.primary = primary;
         this.id = shardId.id();
