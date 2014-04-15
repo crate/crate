@@ -109,11 +109,24 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     @Override
     public ListenableFuture<Long> visitRefreshTableAnalysis(RefreshTableAnalysis analysis, Void context) {
         final SettableFuture<Long> future = SettableFuture.create();
-        final String tableName = analysis.table().ident().name();
-        if (analysis.schema().systemSchema()) {
-            future.set(null); // shortcut when refreshing on system tables
+        String[] indexNames;
+        if (analysis.table().isPartitioned()) {
+            if (analysis.partitionName() == null) {
+                // refresh all partitions
+                indexNames = analysis.table().concreteIndices();
+            } else {
+                // refresh a single partition
+                indexNames = new String[]{ analysis.partitionName().stringValue() };
+            }
+
         } else {
-            RefreshRequest request = new RefreshRequest(tableName);
+            indexNames = new String[]{analysis.table().ident().name()};
+        }
+        if (analysis.schema().systemSchema() || indexNames.length == 0) {
+            future.set(null); // shortcut when refreshing on system tables
+                              // or empty partitioned tables
+        } else {
+            RefreshRequest request = new RefreshRequest(indexNames);
             transportRefreshAction.execute(request, new ActionListener<RefreshResponse>() {
                 @Override
                 public void onResponse(RefreshResponse refreshResponse) {
