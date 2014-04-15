@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: elect one shard as primary shard for unassigned shards
+
  - upgraded to ES 1.1.0
 
  - feature: added table 'information_schema.table_partitions'

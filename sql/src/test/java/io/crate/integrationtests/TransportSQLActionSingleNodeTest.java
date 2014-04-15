@@ -50,4 +50,45 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat((Long) response.rows()[0][0], is(expectedUnassignedShards));
     }
 
+    @Test
+    public void testPrimarySecondaryUnassignedShards() throws Exception {
+        int numReplicas = 3;
+        int numShards = 5;
+
+        execute("create table locations (id integer primary key, name string) " +
+                "clustered into " + numShards + " shards with(number_of_replicas=" + numReplicas + ")");
+        ensureYellow();
+
+        execute("select \"primary\", state, count(*) from sys.shards where table_name = 'locations' group by \"primary\", state order by \"primary\"");
+        assertThat(response.rowCount(), is(2L));
+        assertEquals(new Boolean(false), response.rows()[0][0]);
+        assertEquals("UNASSIGNED", response.rows()[0][1]);
+        assertEquals(15L, response.rows()[0][2]);
+        assertEquals(new Boolean(true), response.rows()[1][0]);
+        assertEquals("STARTED", response.rows()[1][1]);
+        assertEquals(5L, response.rows()[1][2]);
+    }
+
+    @Test
+    public void testPrimarySecondaryUnassignedShardsWithPartitions() throws Exception {
+        int numReplicas = 1;
+        int numShards = 5;
+
+        execute("create table locations (id integer primary key, name string) " +
+                "partitioned by (id) clustered into " + numShards + " shards with(number_of_replicas=" + numReplicas + ")");
+        execute("insert into locations (id, name) values (1, 'name1')");
+        execute("insert into locations (id, name) values (2, 'name2')");
+        refresh();
+        ensureYellow();
+
+        execute("select \"primary\", state, count(*) from sys.shards where table_name = 'locations' group by \"primary\", state order by \"primary\"");
+        assertThat(response.rowCount(), is(2L));
+        assertEquals(new Boolean(false), response.rows()[0][0]);
+        assertEquals("UNASSIGNED", response.rows()[0][1]);
+        assertEquals(10L, response.rows()[0][2]);
+        assertEquals(new Boolean(true), response.rows()[1][0]);
+        assertEquals("STARTED", response.rows()[1][1]);
+        assertEquals(10L, response.rows()[1][2]);
+    }
+
 }
