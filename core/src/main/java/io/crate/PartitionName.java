@@ -45,6 +45,7 @@ public class PartitionName implements Streamable {
     private final String tableName;
 
     private String partitionName;
+    private String ident;
 
     public PartitionName(String tableName, List<String> columns, List<String> values) {
         this(tableName, columns, values, true);
@@ -112,24 +113,25 @@ public class PartitionName implements Streamable {
 
     @Nullable
     public String stringValue() {
-        if (partitionName != null) {
-            return partitionName;
+        if (partitionName == null) {
+            partitionName = Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, ident());
         }
-        return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, partitionIdent());
+        return partitionName;
     }
 
-    public String partitionIdent() {
-        if (values.size() == 0) {
-            return null;
-        } else if (values.size() == 1) {
-            String value = values.get(0);
-            return (value == null) ? NULL_MARKER : NOT_NULL_MARKER + value;
+    public String ident() {
+        if (ident == null) {
+            if (values.size() == 0) {
+                return null;
+            } else if (values.size() == 1) {
+                String value = values.get(0);
+                ident = (value == null) ? NULL_MARKER : NOT_NULL_MARKER + value;
+            } else {
+                BytesReference bytesReference = bytes();
+                ident = BASE32.encodeAsString(bytesReference.toBytes()).toLowerCase(Locale.ROOT);
+            }
         }
-        if (bytes() == null) {
-            return null;
-        }
-        BytesReference bytesReference = bytes();
-        return BASE32.encodeAsString(bytesReference.toBytes()).toLowerCase(Locale.ROOT);
+        return ident;
     }
 
     @Nullable
@@ -176,6 +178,7 @@ public class PartitionName implements Streamable {
         assert columnCount > 0 : "invalid column count";
 
         PartitionName partitionName = new PartitionName(tableName);
+        partitionName.ident = valuesString;
         if (columnCount > 1) {
             byte[] inputBytes = BASE32.decode(valuesString.toUpperCase(Locale.ROOT));
             BytesStreamInput in = new BytesStreamInput(inputBytes, true);
@@ -234,6 +237,14 @@ public class PartitionName implements Streamable {
      */
     public static String tableName(String partitionOrTemplateName) {
         return PartitionName.split(partitionOrTemplateName).v1();
+    }
+
+    /**
+     * extract the ident from the name of a partition or template
+     * @return the ident as string
+     */
+    public static String ident(String partitionOrTemplateName) {
+        return PartitionName.split(partitionOrTemplateName).v2();
     }
 
 }

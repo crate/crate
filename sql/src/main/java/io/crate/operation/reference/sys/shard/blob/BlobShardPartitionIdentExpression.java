@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -18,28 +18,31 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
-package io.crate.operation.reference.sys.shard;
+
+package io.crate.operation.reference.sys.shard.blob;
 
 import io.crate.PartitionName;
+import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
+import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
-public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
+public class BlobShardPartitionIdentExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation {
 
-    public static final String NAME = "table_name";
+    public static final String NAME = "partition_ident";
     private final BytesRef value;
 
     @Inject
-    public ShardTableNameExpression(ShardId shardId) {
+    public BlobShardPartitionIdentExpression(ShardId shardId) {
         super(NAME);
-        String tableName = shardId.getIndex();
+        String ident = "";
         try {
-            tableName = PartitionName.tableName(tableName);
+            ident = PartitionName.ident(shardId.getIndex());
         } catch (IllegalArgumentException e) {
             // no partition
         }
-        this.value = new BytesRef(tableName);
+        value = new BytesRef(ident);
     }
 
     @Override
