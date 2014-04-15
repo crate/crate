@@ -27,6 +27,12 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
                 return new BytesRef(this.row.tableName());
             }
         })
+        .add(new UnassignedShardCollectorExpression<BytesRef>(ShardPartitionIdentExpression.NAME) {
+            @Override
+            public BytesRef value() {
+                return new BytesRef(this.row.partitionIdent());
+            }
+        })
         .add(new UnassignedShardCollectorExpression<Integer>(ShardIdExpression.NAME) {
             @Override
             public Integer value() {

@@ -79,7 +79,7 @@ public class TablePartitionInfos implements Iterable<TablePartitionInfo> {
             List<TablePartitionInfo> tablePartitionInfos = new ArrayList<>();
             for (PartitionName pn : info.partitions()) {
                 Map<String, Object> values = new HashMap<>();
-                String partitionIdent = pn.partitionIdent();
+                String partitionIdent = pn.ident();
                 for (int i = 0; i < info.partitionedByColumns().size(); i++) {
                     // column
                     ReferenceInfo referenceInfo = info.partitionedByColumns().get(i);

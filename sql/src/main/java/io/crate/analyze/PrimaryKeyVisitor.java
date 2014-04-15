@@ -36,6 +36,7 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.InOperator;
 import io.crate.operation.operator.OrOperator;
+import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.planner.symbol.*;
 
 import javax.annotation.Nullable;
@@ -262,14 +263,13 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
         assert function.arguments().size() > 0;
         Symbol left = function.arguments().get(0);
-        Symbol right = null;
+        Symbol right = Null.INSTANCE;
 
         if (function.arguments().size() > 1) {
             right = function.arguments().get(1);
         }
 
-        if (left.symbolType() != SymbolType.REFERENCE
-                || (right != null && !right.symbolType().isLiteral())) {
+        if (left.symbolType() != SymbolType.REFERENCE || !right.symbolType().isLiteral()) {
             invalidate(context);
             return function;
         }
@@ -394,7 +394,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                     "Unsupported function '%s' where only scalars are valid", ident.name()));
         }
 
-        DataType dataType = right != null ? right.valueType() : DataType.NULL;
+        DataType dataType = right.valueType();
         if (DataType.SET_TYPES.contains(dataType)) {
             dataType = DataType.REVERSE_SET_TYPE_MAP.get(dataType);
         }

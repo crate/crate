@@ -52,7 +52,10 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -498,10 +501,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testMultipleCompoundPrimaryKeys() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
-            "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo') " +
-                    "or (schema_name='doc' and id = 2 and table_name = 'bla')");
-        assertEquals(ImmutableList.of("AwNkb2MDZm9vATE=", "AwNkb2MDYmxhATI="), analysis.ids());
-        assertEquals(ImmutableList.of("AwNkb2MDZm9vATE=", "AwNkb2MDYmxhATI="), analysis.routingValues());
+            "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo' and partition_ident='') " +
+                    "or (schema_name='doc' and id = 2 and table_name = 'bla' and partition_ident='')");
+        assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), analysis.ids());
+        assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), analysis.routingValues());
         assertFalse(analysis.whereClause().clusteredBy().isPresent());
 
         analysis = (SelectAnalysis)analyze(
@@ -544,16 +547,16 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void test3ColPrimaryKey() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc'");
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc' and partition_ident=''");
         // base64 encoded versions of Streamable of ["doc","jalla","1"]
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.ids());
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.routingValues());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.ids());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.routingValues());
         assertFalse(analysis.noMatch());
 
-        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc'");
+        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc' and partition_ident=''");
         // base64 encoded versions of Streamable of ["doc","jalla","1"]
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.ids());
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.routingValues());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.ids());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.routingValues());
         assertFalse(analysis.noMatch());
 
 
@@ -561,7 +564,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(ImmutableList.of(), analysis.ids());
         assertFalse(analysis.noMatch());
 
-        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2");
+        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2 and partition_ident=''");
         assertEquals(ImmutableList.of(), analysis.ids());
         assertTrue(analysis.noMatch());
     }
@@ -586,11 +589,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void test3ColPrimaryKeySetLiteral() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle')");
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle') and partition_ident=''");
         assertEquals(2, analysis.ids().size());
         // base64 encoded versions of Streamable of ["doc","jalla","1"] and ["doc","kelle","1"]
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ==", "AwNkb2MFa2VsbGUBMQ=="), analysis.ids());
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ==", "AwNkb2MFa2VsbGUBMQ=="), analysis.routingValues());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="), analysis.ids());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="), analysis.routingValues());
     }
 
     @Test

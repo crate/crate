@@ -73,4 +73,10 @@ public class Null extends Literal<Void, Null> {
     public int hashCode() {
         return 0;
     }
+
+    @Override
+    public String valueAsString() {
+        return null;
+    }
+
 }

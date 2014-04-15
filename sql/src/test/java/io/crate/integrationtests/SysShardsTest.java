@@ -109,15 +109,15 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name = 'characters'");
         assertEquals(10L, response.rowCount());
-        assertEquals(8, response.cols().length);
+        assertEquals(9, response.cols().length);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = transportExecutor.exec("select * from sys.shards");
         assertEquals(30L, response.rowCount());
-        assertEquals(8, response.cols().length);
-        assertEquals("schema_name, table_name, id, num_docs, primary, relocating_node, size, state",
+        assertEquals(9, response.cols().length);
+        assertEquals("schema_name, table_name, id, partition_ident, num_docs, primary, relocating_node, size, state",
             Joiner.on(", ").join(response.cols()));
     }
 
@@ -126,7 +126,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name like 'charact%'");
         assertEquals(10L, response.rowCount());
-        assertEquals(8, response.cols().length);
+        assertEquals(9, response.cols().length);
     }
 
     @Test
@@ -134,7 +134,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name not like 'quotes%'");
         assertEquals(20L, response.rowCount());
-        assertEquals(8, response.cols().length);
+        assertEquals(9, response.cols().length);
     }
 
     @Test
@@ -142,7 +142,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name in ('characters')");
         assertEquals(10L, response.rowCount());
-        assertEquals(8, response.cols().length);
+        assertEquals(9, response.cols().length);
     }
 
     @Test(expected = UnsupportedFeatureException.class)
