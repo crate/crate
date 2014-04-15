@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -89,6 +90,30 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertEquals(new Boolean(true), response.rows()[1][0]);
         assertEquals("STARTED", response.rows()[1][1]);
         assertEquals(10L, response.rows()[1][2]);
+    }
+
+    @Test
+    public void testPartitionIdentPrimarySecondaryUnassignedShards() throws Exception {
+        int numReplicas = 1;
+        int numShards = 5;
+
+        execute("create table locations (id integer primary key, name string) " +
+                "partitioned by (id) clustered into " + numShards + " shards with(number_of_replicas=" + numReplicas + ")");
+        execute("insert into locations (id, name) values (1, 'name1')");
+        execute("insert into locations (id, name) values (2, 'name2')");
+        refresh();
+        ensureYellow();
+
+        execute("select table_name, partition_ident, state from sys.shards where table_name = 'locations' " +
+                "group by table_name, partition_ident, state order by partition_ident, state");
+        assertThat(response.rowCount(), is(4L));
+
+        String expected = "locations| _1| STARTED\n" +
+                "locations| _1| UNASSIGNED\n" +
+                "locations| _2| STARTED\n" +
+                "locations| _2| UNASSIGNED\n";
+
+       assertEquals(expected, TestingHelpers.printedTable(response.rows()));
     }
 
 }
