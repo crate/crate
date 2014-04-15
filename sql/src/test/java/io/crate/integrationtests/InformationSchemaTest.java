@@ -196,10 +196,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where schema_name='blob'");
         assertEquals(0L, response.rowCount());
 
-        // TODO: replace with "create blob table test" SQL stmt when supported
-        prepareCreate(".blob_test")
-                .setSettings(new HashMap<String, Object>(){{put("blobs_enabled", true);}})
-                .execute().actionGet();
+        execute("create blob table test");
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
@@ -209,6 +206,22 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(5, response.rows()[0][1]);
         assertEquals("1", response.rows()[0][2]);
         assertEquals("digest", response.rows()[0][3]);
+    }
+
+    @Test
+    public void testSelectPartitionedTablesFromInformationSchemaTable() throws Exception {
+        execute("create table test (id int primary key, name string) partitioned by (id)");
+        execute("insert into test (id, name) values (1, 'Youri'), (2, 'Ruben')");
+        ensureGreen();
+
+        execute("select table_name, number_of_shards, number_of_replicas, " +
+                "clustered_by, partitioned_by from INFORMATION_SCHEMA.Tables where schema_name = 'doc'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals(5, response.rows()[0][1]);
+        assertEquals("1", response.rows()[0][2]);
+        assertEquals("id", response.rows()[0][3]);
+        assertArrayEquals(new String[]{"id"}, (String[])response.rows()[0][4]);
     }
 
     @Test
