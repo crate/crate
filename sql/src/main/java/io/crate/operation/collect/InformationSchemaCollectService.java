@@ -26,6 +26,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.information.InformationCollectorExpression;
@@ -71,7 +72,13 @@ public class InformationSchemaCollectService implements CollectService {
                     @Nullable
                     @Override
                     public Iterable<TableInfo> apply(@Nullable SchemaInfo input) {
-                        return input;
+                        // filter out partitions
+                        return FluentIterable.from(input).filter(new Predicate<TableInfo>() {
+                            @Override
+                            public boolean apply(@Nullable TableInfo input) {
+                                return !PartitionName.isPartition(input.ident().name());
+                            }
+                        });
                     }
                 });
         tablePartitionsIterable = FluentIterable.from(new TablePartitionInfos(tablesIterable));
