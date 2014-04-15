@@ -51,7 +51,11 @@ public class LineContext {
 
     public Map<String, Object> sourceAsMap() {
         if (parsedSource == null) {
-            parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
+            try {
+                parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
+            } catch (NullPointerException e) {
+                return null;
+            }
         }
         return parsedSource;
     }

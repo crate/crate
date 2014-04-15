@@ -41,6 +41,12 @@ public class FileLineReferenceResolver implements DocLevelReferenceResolver<Line
                         public LineCollectorExpression<?> create() {
                             return new SourceLineExpression();
                         }
+                    },
+                    SourceAsMapLineExpression.COLUMN_NAME, new ExpressionBuilder() {
+                        @Override
+                        public LineCollectorExpression<?> create() {
+                            return new SourceAsMapLineExpression();
+                        }
                     });
 
     private FileLineReferenceResolver() {
