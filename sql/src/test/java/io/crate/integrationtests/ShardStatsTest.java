@@ -65,7 +65,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         assertEquals(45L, response.rowCount());
         assertEquals(9, response.cols().length);
         assertEquals("UNASSIGNED", response.rows()[44][8]);
-        assertEquals(null, response.rows()[44][5]);
+        assertEquals(false, response.rows()[44][5]);
     }
 
     @Test
@@ -80,7 +80,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         assertEquals(3, response.cols().length);
         assertThat((Long) response.rows()[0][0], greaterThanOrEqualTo(5L));
         assertEquals("UNASSIGNED", response.rows()[0][1]);
-        assertEquals(null, response.rows()[0][2]);
+        assertEquals(false, response.rows()[0][2]);
     }
 
     @Test
