@@ -21,6 +21,9 @@
 
 package io.crate.analyze;
 
+import io.crate.PartitionName;
+import io.crate.exceptions.CrateException;
+import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
@@ -28,11 +31,16 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.Locale;
+
 public class RefreshTableAnalysis extends AbstractDDLAnalysis {
 
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
     private SchemaInfo schemaInfo;
+    private PartitionName partitionName;
 
     protected RefreshTableAnalysis(ReferenceInfos referenceInfos, Object[] parameters) {
         super(parameters);
@@ -58,6 +66,10 @@ public class RefreshTableAnalysis extends AbstractDDLAnalysis {
         return tableInfo;
     }
 
+    public @Nullable PartitionName partitionName() {
+        return partitionName;
+    }
+
     @Override
     public SchemaInfo schema() {
         return schemaInfo;
@@ -71,5 +83,34 @@ public class RefreshTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
         return analysisVisitor.visitRefreshTableAnalysis(this, context);
+    }
+
+    public void partitionIdent(String ident) {
+        assert table() != null;
+
+        if (!table().isPartitioned()) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH,
+                            "Table '%s' is not partitioned", table().ident().name()));
+        }
+        try {
+            this.partitionName = PartitionName.fromPartitionIdent(
+                    table().ident().name(),
+                    ident,
+                    table().partitionedByColumns().size()
+            );
+        } catch (IOException e) {
+            throw new CrateException("Error parsing partition ident", e);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Invalid partition ident for table '%s': '%s'",
+                            table().ident().name(), ident), e);
+        }
+
+        if (!table().partitions().contains(this.partitionName)) {
+            throw new PartitionUnknownException(
+                    this.table().ident().name(),
+                    this.partitionName.ident());
+        }
     }
 }

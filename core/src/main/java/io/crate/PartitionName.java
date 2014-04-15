@@ -23,6 +23,7 @@ package io.crate;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import io.crate.core.StringUtils;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
@@ -143,6 +144,23 @@ public class PartitionName implements Streamable {
         return values;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        PartitionName that = (PartitionName) o;
+
+        if (!stringValue().equals(that.stringValue())) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return stringValue().hashCode();
+    }
+
     public static PartitionName fromString(String partitionTableName, String tableName,
                                 int columnCount) throws IOException {
         assert partitionTableName != null;
@@ -152,49 +170,46 @@ public class PartitionName implements Streamable {
         assert splitted.v1().equals(tableName) : String.format(
                 Locale.ENGLISH, "%s no partition of table %s", partitionTableName, tableName);
 
-        return decodePartitionName(partitionTableName, splitted.v1(), splitted.v2(), columnCount);
+        return fromPartitionIdent(splitted.v1(), splitted.v2(), columnCount);
     }
 
     public static PartitionName fromStringSafe(String partitionTableName, int columnCount) throws IOException {
         assert partitionTableName != null;
         Tuple<String, String> parts = split(partitionTableName);
-        return decodePartitionName(partitionTableName, parts.v1(), parts.v2(), columnCount);
+        return fromPartitionIdent(parts.v1(), parts.v2(), columnCount);
     }
 
     /**
      * decode a partitionTableName with all of its pre-splitted parts into
      * and instance of <code>PartitionName</code>
-     * @param partitionTableName
      * @param tableName
-     * @param valuesString
+     * @param partitionIdent
      * @param columnCount
      * @return
      * @throws IOException
      */
-    private static PartitionName decodePartitionName(String partitionTableName,
-                                              String tableName,
-                                              String valuesString,
-                                              int columnCount) throws IOException {
+    public static PartitionName fromPartitionIdent(String tableName,
+                                                   String partitionIdent,
+                                                   int columnCount) throws IOException {
         assert columnCount > 0 : "invalid column count";
 
         PartitionName partitionName = new PartitionName(tableName);
-        partitionName.ident = valuesString;
+        partitionName.ident = partitionIdent;
         if (columnCount > 1) {
-            byte[] inputBytes = BASE32.decode(valuesString.toUpperCase(Locale.ROOT));
+            byte[] inputBytes = BASE32.decode(partitionIdent.toUpperCase(Locale.ROOT));
             BytesStreamInput in = new BytesStreamInput(inputBytes, true);
             partitionName.readFrom(in);
         } else {
-            String marker = valuesString.substring(0, 1);
+            String marker = partitionIdent.substring(0, 1);
             if (marker.equals(NULL_MARKER)) {
-                valuesString = null;
+                partitionIdent = null;
             } else if (marker.equals(NOT_NULL_MARKER)) {
-                valuesString = valuesString.substring(1);
+                partitionIdent = partitionIdent.substring(1);
             } else {
-                throw new IllegalArgumentException("Invalid given input string");
+                throw new IllegalArgumentException("Invalid partition ident");
             }
-            partitionName.values().add(valuesString);
+            partitionName.values().add(partitionIdent);
         }
-        partitionName.partitionName = partitionTableName;
         return partitionName;
     }
 
@@ -228,7 +243,7 @@ public class PartitionName implements Streamable {
      * compute the template name (used with partitioned tables) from a given table name
      */
     public static String templateName(String tableName) {
-        return Joiner.on('.').join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
+        return StringUtils.PATH_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
     }
 
     /**
@@ -246,5 +261,4 @@ public class PartitionName implements Streamable {
     public static String ident(String partitionOrTemplateName) {
         return PartitionName.split(partitionOrTemplateName).v2();
     }
-
 }

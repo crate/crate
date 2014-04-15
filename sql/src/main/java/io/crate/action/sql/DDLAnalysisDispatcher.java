@@ -111,7 +111,14 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         final SettableFuture<Long> future = SettableFuture.create();
         String[] indexNames;
         if (analysis.table().isPartitioned()) {
-            indexNames = analysis.table().concreteIndices();
+            if (analysis.partitionName() == null) {
+                // refresh all partitions
+                indexNames = analysis.table().concreteIndices();
+            } else {
+                // refresh a single partition
+                indexNames = new String[]{ analysis.partitionName().stringValue() };
+            }
+
         } else {
             indexNames = new String[]{analysis.table().ident().name()};
         }
