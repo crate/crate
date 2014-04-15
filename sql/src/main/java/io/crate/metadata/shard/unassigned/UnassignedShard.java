@@ -17,7 +17,7 @@ public class UnassignedShard {
     public UnassignedShard(ShardId shardId, Boolean primary) {
         String index = shardId.index().name();
         boolean isBlobIndex = BlobIndices.isBlobIndex(index);
-        String tableName = null;
+        String tableName;
         if (isBlobIndex) {
             this.schemaName = BlobSchemaInfo.NAME;
             tableName = BlobIndices.stripPrefix.apply(index);
@@ -35,7 +35,7 @@ public class UnassignedShard {
 
         String ident = "";
         try {
-            ident = PartitionName.ident(tableName);
+            ident = PartitionName.ident(index);
         } catch (IllegalArgumentException e) {
             // no partition
         }
