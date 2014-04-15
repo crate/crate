@@ -3566,10 +3566,32 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(13L));
         assertArrayEquals(response.cols(), new String[]{"sentence"});
         assertThat(response.rows()[0].length, is(1));
-        assertThat((String)response.rows()[0][0], is(" is a Planet"));
-        assertThat((String)response.rows()[1][0], is("Aldebaran is a Star System"));
-        assertThat((String)response.rows()[2][0], is("Algol is a Star System"));
+        assertThat((String) response.rows()[0][0], is(" is a Planet"));
+        assertThat((String) response.rows()[1][0], is("Aldebaran is a Star System"));
+        assertThat((String) response.rows()[2][0], is("Algol is a Star System"));
         // ...
+
+    }
+
+    @Test
+    public void testRefreshPartitionedTableAllPartitions() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
+        ensureGreen();
+
+        execute("refresh table parted");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("insert into parted (id, name, date) values (1, 'Trillian', '1970-01-01')");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select count(*) from parted");
+        assertThat((Long)response.rows()[0][0], is(0L));
+
+        execute("refresh table parted");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("select count(*) from parted");
+        assertThat((Long)response.rows()[0][0], is(1L));
     }
 
 }
