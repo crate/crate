@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,29 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors.writer;
+package io.crate.operation.collect.files;
 
-import com.google.common.base.Preconditions;
-import org.elasticsearch.common.settings.Settings;
 
-import java.io.OutputStream;
+import java.io.IOException;
 
-public abstract class Output {
+public interface FileInputFactory {
 
-    public abstract void open() throws java.io.IOException;
-
-    public abstract void close() throws java.io.IOException;
-
-    public abstract OutputStream getOutputStream();
-
-    protected boolean parseCompression(Settings settings) {
-        String compressionType = settings.get("compression");
-        if (compressionType != null) {
-            Preconditions.checkArgument(compressionType.equals("gzip"),
-                    String.format("Unsupported compression type: '%s'", compressionType));
-            return true;
-        }
-
-        return false;
-    }
+    public FileInput create() throws IOException;
 }

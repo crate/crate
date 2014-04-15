@@ -60,6 +60,10 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("mem", DataType.LONG, ImmutableList.of("used"));
         register("mem", DataType.SHORT, ImmutableList.of("free_percent"));
         register("mem", DataType.SHORT, ImmutableList.of("used_percent"));
+        register("heap", DataType.OBJECT, null);
+        register("heap", DataType.LONG, ImmutableList.of("free"));
+        register("heap", DataType.LONG, ImmutableList.of("used"));
+        register("heap", DataType.LONG, ImmutableList.of("max"));
         register("fs", DataType.OBJECT, null);
         register("fs", DataType.LONG, ImmutableList.of("total"));
         register("fs", DataType.LONG, ImmutableList.of("free"));

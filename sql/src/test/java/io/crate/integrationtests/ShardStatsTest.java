@@ -30,6 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
 
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -80,5 +81,28 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][0], greaterThanOrEqualTo(5L));
         assertEquals("UNASSIGNED", response.rows()[0][1]);
         assertEquals(null, response.rows()[0][2]);
+    }
+
+    @Test
+    public void testTableNameBlobTable() throws Exception {
+        execute("select * from sys.shards where table_name = 'blobs'");
+        assertThat(response.rowCount(), is(10L));
+        for (int i = 0; i<response.rowCount(); i++) {
+            assertThat((String)response.rows()[0][1], is("blobs"));
+        }
+
+        execute("create blob table sbolb clustered into 4 shards with (number_of_replicas=3)");
+        ensureYellow();
+
+        execute("select * from sys.shards where table_name = 'sbolb'");
+        assertThat(response.rowCount(), is(16L));
+        for (int i = 0; i < response.rowCount(); i++) {
+            assertThat((String)response.rows()[i][1], is("sbolb"));
+        }
+        execute("select count(*) from sys.shards " +
+                "where schema_name='blob' and table_name != 'blobs' " +
+                "and table_name != 'sbolb'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(0L));
     }
 }

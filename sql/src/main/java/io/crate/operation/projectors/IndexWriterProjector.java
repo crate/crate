@@ -113,7 +113,9 @@ public class IndexWriterProjector implements Projector {
             }
             indexRequest = buildRequest();
         }
-        bulkProcessor.add(indexRequest);
+        if (indexRequest != null) {
+            bulkProcessor.add(indexRequest);
+        }
         return true;
     }
 
@@ -150,6 +152,11 @@ public class IndexWriterProjector implements Projector {
     private IndexRequest buildRequest() {
         // TODO: reuse logic that is currently  in AbstractESIndexTask
         IndexRequest indexRequest = new IndexRequest();
+        if (sourceInput.value() != null) {
+            indexRequest.source(((BytesRef)sourceInput.value()).bytes);
+        } else {
+            return null;
+        }
         indexRequest.type(Constants.DEFAULT_MAPPING_TYPE);
 
         if (partitionedBy.size() > 0) {
@@ -186,6 +193,8 @@ public class IndexWriterProjector implements Projector {
         List<String> primaryKeyValues = Lists.transform(idInputs, new Function<Input<?>, String>() {
             @Override
             public String apply(Input<?> input) {
+                if (input.value() == null)
+                    return null;
                 return input.value().toString();
             }
         });

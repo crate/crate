@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,29 +19,33 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors.writer;
+package io.crate.core.collections;
 
-import com.google.common.base.Preconditions;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.core.StringUtils;
+import org.elasticsearch.common.Nullable;
 
-import java.io.OutputStream;
+import java.util.List;
+import java.util.Map;
 
-public abstract class Output {
+public class StringObjectMaps {
 
-    public abstract void open() throws java.io.IOException;
-
-    public abstract void close() throws java.io.IOException;
-
-    public abstract OutputStream getOutputStream();
-
-    protected boolean parseCompression(Settings settings) {
-        String compressionType = settings.get("compression");
-        if (compressionType != null) {
-            Preconditions.checkArgument(compressionType.equals("gzip"),
-                    String.format("Unsupported compression type: '%s'", compressionType));
-            return true;
+    public static @Nullable Object getByPath(Map<String, Object> map, String path) {
+        assert path != null;
+        Object tmp;
+        List<String> splittedPath = StringUtils.PATH_SPLITTER.splitToList(path);
+        for (String pathElement : splittedPath.subList(0, splittedPath.size() - 1)) {
+            tmp = map.get(pathElement);
+            if (tmp != null && tmp instanceof Map) {
+                map = (Map<String, Object>) tmp;
+            } else {
+                break;
+            }
         }
 
-        return false;
+        if (map != null) {
+            // get last path element
+            return map.get(splittedPath.get(splittedPath.size()-1));
+        }
+        return null;
     }
 }

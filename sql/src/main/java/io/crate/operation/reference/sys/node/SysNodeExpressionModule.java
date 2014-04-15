@@ -52,5 +52,6 @@ public class SysNodeExpressionModule extends AbstractModule {
         bindExpr(NodeMemoryExpression.NAME, NodeMemoryExpression.class);
         bindExpr(NodeNameExpression.NAME, NodeNameExpression.class);
         bindExpr(NodePortExpression.NAME, NodePortExpression.class);
+        bindExpr(NodeHeapExpression.NAME, NodeHeapExpression.class);
     }
 }

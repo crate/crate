@@ -129,9 +129,12 @@ public class PlannerTest {
             ClusterService clusterService = mock(ClusterService.class);
             ClusterState clusterState = mock(ClusterState.class);
             DiscoveryNodes nodes = mock(DiscoveryNodes.class);
+            DiscoveryNode node = mock(DiscoveryNode.class);
             when(clusterService.state()).thenReturn(clusterState);
             when(clusterState.nodes()).thenReturn(nodes);
-            when(nodes.dataNodes()).thenReturn(ImmutableOpenMap.<String, DiscoveryNode>of());
+            ImmutableOpenMap<String, DiscoveryNode> dataNodes =
+                    ImmutableOpenMap.<String, DiscoveryNode>builder().fPut("foo", node).build();
+            when(nodes.dataNodes()).thenReturn(dataNodes);
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
             bind(ClusterService.class).toInstance(clusterService);
@@ -729,8 +732,18 @@ public class PlannerTest {
     }
 
     @Test
+    public void testCopyFromNumReadersSetting() throws Exception {
+        Plan plan = plan("copy users from '/path/to/file.extension' with (num_readers=1)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(FileUriCollectNode.class));
+        FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
+        assertThat(collectNode.executionNodes().size(), is(1));
+    }
+
+    @Test
     public void testCopyFromPlanWithParameters() throws Exception {
-        Plan plan = plan("copy users from '/path/to/file.ext' with (concurrency=8, bulk_size=30)");
+        Plan plan = plan("copy users from '/path/to/file.ext' with (concurrency=8, bulk_size=30, compression='gzip', shared=true)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(FileUriCollectNode.class));
@@ -738,6 +751,15 @@ public class PlannerTest {
         IndexWriterProjection indexWriterProjection = (IndexWriterProjection) collectNode.projections().get(0);
         assertThat(indexWriterProjection.concurrency(), is(8));
         assertThat(indexWriterProjection.bulkActions(), is(30));
+        assertThat(collectNode.compression(), is("gzip"));
+        assertThat(collectNode.sharedStorage(), is(true));
+
+        // verify defaults:
+        plan = plan("copy users from '/path/to/file.ext'");
+        iterator = plan.iterator();
+        collectNode = (FileUriCollectNode)iterator.next();
+        assertNull(collectNode.compression());
+        assertNull(collectNode.sharedStorage());
     }
 
     @Test (expected = IllegalArgumentException.class)

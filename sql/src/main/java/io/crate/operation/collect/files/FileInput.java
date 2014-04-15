@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,29 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.projectors.writer;
+package io.crate.operation.collect.files;
 
-import com.google.common.base.Preconditions;
-import org.elasticsearch.common.settings.Settings;
+import com.google.common.base.Predicate;
 
-import java.io.OutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.util.List;
 
-public abstract class Output {
+public interface FileInput {
 
-    public abstract void open() throws java.io.IOException;
+    /**
+     * this method returns all files that are found within fileUri
+     *
+     * @param fileUri uri that points to a directory
+     *                (and may optionally contain a "file hint" - which is the part after the last slash.)
+     *                a concrete implementation may ignore the file hint.
+     * @param uriPredicate predicate that a concrete implementation of FileInput must use to pre-filter the returned uris
+     * @return a list of Uris
+     * @throws IOException
+     */
+    List<URI> listUris(URI fileUri, Predicate<URI> uriPredicate) throws IOException;
 
-    public abstract void close() throws java.io.IOException;
+    InputStream getStream(URI uri) throws IOException;
 
-    public abstract OutputStream getOutputStream();
-
-    protected boolean parseCompression(Settings settings) {
-        String compressionType = settings.get("compression");
-        if (compressionType != null) {
-            Preconditions.checkArgument(compressionType.equals("gzip"),
-                    String.format("Unsupported compression type: '%s'", compressionType));
-            return true;
-        }
-
-        return false;
-    }
+    boolean sharedStorageDefault();
 }

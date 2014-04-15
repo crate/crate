@@ -1,3 +1,5 @@
+.. _copy_from:
+
 =========
 COPY FROM
 =========
@@ -9,22 +11,60 @@ Synopsis
 
 .. code-block:: sql
 
-    COPY table_ident FROM 'path' [ WITH ( option = value [, ...] ) ]
+    COPY table_ident FROM uri [ WITH ( option = value [, ...] ) ]
+
+where `option` can be one of:
+
+- `bulk_size` *integer*
+- `concurrency` *integer*
+- `shared` *boolean*
+- `num_readers` *integer*
+- `compression` *string*
 
 Description
 ===========
 
-COPY FROM copies data from the filesystem of any cluster node to a
-specified table.
+COPY FROM copies data from a URI to the specified table.
 
-The files to be copied from need to be accessible from the crate
-server process and the name must be specified from the viewpoint of
-the server.
+The nodes in the cluster will attempt to access the resources available under
+the URI and import the data.
 
-The input files need to have one line per record. Records are
-formatted in JSON.
+The file(s) must contain one JSON formatted row per line.
 
 For examples see: :ref:`importing_data`.
+
+
+Supported URI Schemes
+=====================
+
+file
+----
+
+The default scheme used if the scheme isn't part of the used URI.
+
+The filepath given must be an absolute path and accessable by the crate
+process.
+
+By default each node will attempt to read the files specified. If the URI
+points to a shared folder the ``shared`` option must be set to true in order to
+avoid duplicate imports.
+
+
+s3
+--
+
+Can be used to access buckets on the Amazon AWS S3 Service::
+
+    s3://[<accesskey>:<secretkey>]@<bucketname>/<path>
+
+If the accesskey and secret key is ommited an attempt to load the credentials
+from the environment or java settings is made.
+
+Environment Variables - AWS_ACCESS_KEY_ID and AWS_SECRET_KEY
+Java System Properties - aws.accessKeyId and aws.secretKey
+
+Using a s3 URI will set the ``shared`` option implicitly.
+
 
 Parameters
 ==========
@@ -32,10 +72,9 @@ Parameters
 :table_ident: The name (optionally schema-qualified) of an existing
     table where the data should be put.
 
-:path: A file or directory path with an optional `PCRE`_ file pattern
-    suffix. If the path is relative, it is based on the absolute path
-    of the node's data location.
-
+:uri: An expression which evaluates to a uri as defined in `RFC2396`_. The
+      supported schemes are listed above. The last part of the path may also
+      contain ``*`` wildcards to match multiple files.
 
 WITH Clause
 ===========
@@ -46,13 +85,16 @@ The optional ``WITH`` clause can specify options for the COPY FROM statement.
 
     [ WITH ( option = value [, ...] ) ]
 
-where ``option`` can be one of:
+Options
+-------
 
 bulk_size
-~~~~~~~~~
+^^^^^^^^^
 
 Crate will process the lines it reads from the ``path`` in bulks. This option
 specifies the size of such a bulk. The default is 10000.
+
+Must be set to a number greater than 0
 
 .. warning::
 
@@ -60,13 +102,37 @@ specifies the size of such a bulk. The default is 10000.
     some lines that should be inserted might even be dropped.
 
 concurrency
-~~~~~~~~~~~
+^^^^^^^^^^^
 
 The number of parallel bulk actions that should be executed. Default is 4.
+Must be set to a number greater than 0.
 
 .. warning::
 
     Similar to a high bulk_size a high concurrency setting will cause a very
     high load on the cluster.
 
-.. _PCRE: http://www.pcre.org/
+shared
+^^^^^^
+
+This option should be set if the URI points to a shared storage. It will
+prevent multiple nodes/readers from importing the same file.
+
+The default value depends on the used URI scheme.
+
+num_readers
+^^^^^^^^^^^
+
+The number of nodes that will read the resources specified in the URI. Defaults
+to the number of nodes available in the cluster. If the option is set to a
+number greater than the number of available nodes it will still only use each
+node only once to do the import.
+
+Must be an integer that is greater than 0.
+
+compression
+^^^^^^^^^^^
+
+The default value is ``null``. Can be set to ``gzip`` to read gzipped files.
+
+.. _`RFC2396`: http://www.ietf.org/rfc/rfc2396.txt

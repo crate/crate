@@ -23,6 +23,8 @@ package io.crate.analyze;
 
 import io.crate.Constants;
 import io.crate.DataType;
+import io.crate.DataType;
+import io.crate.Id;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.MetaDataModule;
@@ -34,6 +36,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.*;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -66,6 +69,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(NESTED_PK_TABLE_IDENT.name())).thenReturn(nestedPkTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -351,12 +355,13 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void bulkIndexPartitionedTable() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis) analyze("insert into parted (id, name, date) " +
-                "values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                        "values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
                 new Object[]{
                         1, "Trillian", 13963670051500L,
                         2, "Ford", 0L,
                         3, "Zaphod", null
-                });
+                }
+        );
         assertThat(analysis.partitions(), contains(
                 Constants.PARTITIONED_TABLE_PREFIX + ".parted._13963670051500",
                 Constants.PARTITIONED_TABLE_PREFIX + ".parted._0",
@@ -364,11 +369,11 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         ));
         assertThat(analysis.sourceMaps().size(), is(3));
         assertThat(analysis.sourceMaps().get(0),
-                allOf(hasEntry("name", (Object)"Trillian"), hasEntry("id", (Object)1)));
+                allOf(hasEntry("name", (Object) "Trillian"), hasEntry("id", (Object) 1)));
         assertThat(analysis.sourceMaps().get(1),
-                allOf(hasEntry("name", (Object)"Ford"), hasEntry("id", (Object)2)));
+                allOf(hasEntry("name", (Object) "Ford"), hasEntry("id", (Object) 2)));
         assertThat(analysis.sourceMaps().get(2),
-                allOf(hasEntry("name", (Object)"Zaphod"), hasEntry("id", (Object)3)));
+                allOf(hasEntry("name", (Object) "Zaphod"), hasEntry("id", (Object) 3)));
 
         assertThat(analysis.partitionMaps().size(), is(3));
         assertThat(analysis.partitionMaps().get(0),
@@ -377,6 +382,41 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                 hasEntry("date", "0"));
         assertThat(analysis.partitionMaps().get(2),
                 hasEntry("date", null));
+    }
 
+    public void testNestedPk() throws Exception {
+        // FYI: insert nested clustered by test here too
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into nested_pk (id, o) values (?, ?)",
+                new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
+        assertThat(analysis.ids().size(), is(1));
+        assertThat(analysis.ids().get(0),
+                is(new Id(Arrays.asList("id", "o.b"), Arrays.asList("1", "4"), "o.b").stringValue()));
+    }
+
+    @Test
+    public void testNestedPkAllColumns() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into nested_pk values (?, ?)",
+                new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
+        assertThat(analysis.ids().size(), is(1));
+        assertThat(analysis.ids().get(0),
+                is(new Id(Arrays.asList("id", "o.b"), Arrays.asList("1", "4"), "o.b").stringValue()));
+    }
+
+    @Test( expected = IllegalArgumentException.class)
+    public void testMissingNestedPk() throws Exception {
+        analyze("insert into nested_pk (id) values (?)", new Object[]{1});
+    }
+
+    @Test( expected = IllegalArgumentException.class)
+    public void testMissingNestedPkInMap() throws Exception {
+        analyze("insert into nested_pk (id, o) values (?, ?)", new Object[]{1, new HashMap<String, Object>()});
+    }
+
+    @Test
+    public void testTwistedNestedPk() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into nested_pk (o, id) values (?, ?)",
+                new Object[]{new MapBuilder<String, Object>().put("b", 4).map(), 1});
+        assertThat(analysis.ids().get(0),
+                is(new Id(Arrays.asList("id", "o.b"), Arrays.asList("1", "4"), "o.b").stringValue()));
     }
 }

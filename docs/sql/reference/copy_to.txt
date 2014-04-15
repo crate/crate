@@ -11,7 +11,7 @@ Synopsis
 
 .. code-block:: sql
 
-  COPY table_ident TO { output_uri }
+  COPY table_ident TO [DIRECTORY] { output_uri }
   [ WITH ( copy_parameter [= value] [, ... ] ) ]
 
 Description
@@ -28,6 +28,10 @@ containing data from the given table.
 The created files are JSON formatted and contain one table row per
 line.
 
+If the ``DIRECTORY`` keyword is given, the uri is treated as a directory path.
+This will generate one or more files in the given directory, named in such a
+way to prevent filename conflicts.
+
 Parameters
 ==========
 
@@ -41,9 +45,17 @@ The ``output_uri`` can be any expression evaluating to a string.
 The resulting string should be a valid URI of one of the supporting schemes:
 
  * ``file://``
+ * ``s3://[<accesskey>:<secretkey>@]<bucketname>/<path>``
 
 If no scheme is given (e.g.: '/path/to/file') the default uri-scheme ``file://``
 will be used.
+
+.. note::
+
+    If the s3 scheme is used without specifying any credentials an attempt is
+    made to read these information from the AWS_ACCESS_KEY_ID and
+    AWS_SECRET_KEY environment variables. In addition to that the Java System
+    properties aws.accessKeyId and aws.secretKey are also used as a fallback.
 
 WITH Clause
 ===========

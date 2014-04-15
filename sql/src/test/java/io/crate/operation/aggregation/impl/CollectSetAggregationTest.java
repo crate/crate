@@ -22,9 +22,13 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
-import io.crate.operation.aggregation.AggregationTest;
 import io.crate.DataType;
+import io.crate.metadata.FunctionIdent;
+import io.crate.operation.aggregation.AggregationFunction;
+import io.crate.operation.aggregation.AggregationState;
+import io.crate.operation.aggregation.AggregationTest;
+import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import java.util.Set;
@@ -51,6 +55,20 @@ public class CollectSetAggregationTest extends AggregationTest {
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());
         assertTrue(((Set)result[0][0]).contains(0.7d));
+    }
+
+    @Test
+    public void testLongSerialization() throws Exception {
+        FunctionIdent fi = new FunctionIdent("collect_set", ImmutableList.of(DataType.LONG));
+        AggregationFunction impl = (AggregationFunction) functions.get(fi);
+        AggregationState state = impl.newState();
+
+        BytesStreamOutput streamOutput = new BytesStreamOutput();
+        state.writeTo(streamOutput);
+
+        AggregationState newState = impl.newState();
+        newState.readFrom(new BytesStreamInput(streamOutput.bytes()));
+        assertEquals(state.value(), newState.value());
     }
 
     @Test

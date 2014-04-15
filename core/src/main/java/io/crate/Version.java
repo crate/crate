@@ -145,12 +145,39 @@ public class Version {
     public static final Version V_0_34_00 = new Version(V_0_34_00_ID, false,
             org.elasticsearch.Version.V_1_0_1);
 
+    public static final int V_0_34_01_ID = /*00*/340199;
+    public static final Version V_0_34_01 = new Version(V_0_34_01_ID, false,
+            org.elasticsearch.Version.V_1_0_1);
+
     public static final int V_0_35_00_ID = /*00*/350099;
-    public static final Version V_0_35_00 = new Version(V_0_35_00_ID, true,
+    public static final Version V_0_35_00 = new Version(V_0_35_00_ID, false,
+            org.elasticsearch.Version.V_1_0_1);
+
+    public static final int V_0_35_01_ID = /*00*/350199;
+    public static final Version V_0_35_01 = new Version(V_0_35_01_ID, false,
+            org.elasticsearch.Version.V_1_0_1);
+
+    public static final int V_0_35_02_ID = /*00*/350299;
+    public static final Version V_0_35_02 = new Version(V_0_35_02_ID, false,
+            org.elasticsearch.Version.V_1_0_1);
+
+    public static final int V_0_35_03_ID = /*00*/350399;
+    public static final Version V_0_35_03 = new Version(V_0_35_03_ID, false,
+            org.elasticsearch.Version.V_1_0_1);
+
+    public static final int V_0_35_04_ID = /*00*/350499;
+    public static final Version V_0_35_04 = new Version(V_0_35_04_ID, false,
+            org.elasticsearch.Version.V_1_0_1);
+
+    public static final int V_0_35_05_ID = /*00*/350599;
+    public static final Version V_0_35_05 = new Version(V_0_35_05_ID, false,
+            org.elasticsearch.Version.V_1_0_1);
+
+    public static final int V_0_36_00_ID = /*00*/360099;
+    public static final Version V_0_36_00 = new Version(V_0_36_00_ID, true,
             org.elasticsearch.Version.V_1_1_0);
 
-
-    public static final Version CURRENT = V_0_35_00;
+    public static final Version CURRENT = V_0_36_00;
 
     static {
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +
@@ -218,8 +245,22 @@ public class Version {
                 return V_0_33_00;
             case V_0_34_00_ID:
                 return V_0_34_00;
+            case V_0_34_01_ID:
+                return V_0_34_01;
             case V_0_35_00_ID:
                 return V_0_35_00;
+            case V_0_35_01_ID:
+                return V_0_35_01;
+            case V_0_35_02_ID:
+                return V_0_35_02;
+            case V_0_35_03_ID:
+                return V_0_35_03;
+            case V_0_35_04_ID:
+                return V_0_35_04;
+            case V_0_35_05_ID:
+                return V_0_35_05;
+            case V_0_36_00_ID:
+                return V_0_36_00;
             default:
                 return new Version(id, null, org.elasticsearch.Version.CURRENT);
         }

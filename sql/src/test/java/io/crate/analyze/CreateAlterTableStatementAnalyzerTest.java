@@ -575,6 +575,20 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "  clustered by (id) into 5 shards");
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testClusteredIntoZeroShards() throws Exception {
+        analyze("create table my_table (" +
+                "  id integer," +
+                "  name string" +
+                ") clustered into 0 shards");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBlobTableClusteredIntoZeroShards() throws Exception {
+        analyze("create blob table my_table " +
+                "clustered into 0 shards");
+    }
+
     @Test
     public void testEarlyPrimaryKeyConstraint() throws Exception {
         CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
