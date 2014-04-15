@@ -1,4 +1,6 @@
 
+.. _information_schema:
+
 ==================
 Information Schema
 ==================
@@ -124,6 +126,8 @@ their type, name and which table they are defined in.
     +--------------------+-------------------+-------------------------------------------------+-----------------+
     SELECT 9 rows in set (... sec)
 
+
+.. _is_table_partitions:
 
 Table Partitions
 ================

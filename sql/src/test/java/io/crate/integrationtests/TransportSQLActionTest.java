@@ -3581,8 +3581,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("refresh table parted");
         assertThat(response.rowCount(), is(-1L));
 
-        execute("insert into parted (id, name, date) values (1, 'Trillian', '1970-01-01')");
-        assertThat(response.rowCount(), is(1L));
+        execute("insert into parted (id, name, date) values " +
+                "(1, 'Trillian', '1970-01-01'), " +
+                "(2, 'Arthur', '1970-01-07')");
+        assertThat(response.rowCount(), is(2L));
 
         execute("select count(*) from parted");
         assertThat((Long)response.rows()[0][0], is(0L));
@@ -3591,7 +3593,48 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(-1L));
 
         execute("select count(*) from parted");
-        assertThat((Long)response.rows()[0][0], is(1L));
+        assertThat((Long)response.rows()[0][0], is(2L));
+    }
+
+    @Test(expected = PartitionUnknownException.class)
+    public void testRefreshEmptyPartitionedTable() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
+        ensureGreen();
+
+        execute("refresh table parted partition n");
+    }
+
+    @Test
+    public void testRefreshPartitionedTableSinglePartitions() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
+        ensureGreen();
+        execute("insert into parted (id, name, date) values " +
+                "(1, 'Trillian', '1970-01-01'), " +
+                "(2, 'Arthur', '1970-01-07')");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select * from parted");
+        assertThat(response.rowCount(), is(0L));
+
+        String partitionIdent = new PartitionName("parted",
+                Arrays.asList("date"),
+                Arrays.asList("0")).ident();
+
+        execute("refresh table parted PARTITION \"" + partitionIdent + "\"");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("select * from parted");
+        assertThat(response.rowCount(), is(1L));
+
+        partitionIdent = new PartitionName("parted",
+                Arrays.asList("date"),
+                Arrays.asList("518400000")).ident();
+
+        execute("refresh table parted PARTITION \"" + partitionIdent + "\"");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("select * from parted");
+        assertThat(response.rowCount(), is(2L));
     }
 
 }

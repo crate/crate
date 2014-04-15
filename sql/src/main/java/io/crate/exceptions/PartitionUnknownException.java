@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,19 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.exceptions;
 
-import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.RefreshStatement;
+import org.elasticsearch.rest.RestStatus;
 
-public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, RefreshTableAnalysis> {
+import java.util.Locale;
+
+public class PartitionUnknownException extends CrateException {
+    public PartitionUnknownException(String tableName, String partitionIdent) {
+        super(String.format(Locale.ENGLISH,
+                "No partition for table '%s' with ident '%s' exists",
+                tableName,
+                partitionIdent));
+    }
 
     @Override
-    public Void visitRefreshStatement(RefreshStatement node, RefreshTableAnalysis context) {
-        context.table(TableIdent.of(node.table()));
-        if (node.partitionIdent().isPresent()) {
-            context.partitionIdent(node.partitionIdent().get());
-        }
-        return null;
+    public int errorCode() {
+        return 4046;
+    }
+
+    @Override
+    public RestStatus status() {
+        return RestStatus.NOT_FOUND;
     }
 }
