@@ -152,6 +152,10 @@ public class IndexWriterProjector implements Projector {
     private IndexRequest buildRequest() {
         // TODO: reuse logic that is currently  in AbstractESIndexTask
         IndexRequest indexRequest = new IndexRequest();
+        Object value = sourceInput.value();
+        if (value == null) {
+            return null;
+        }
         indexRequest.type(Constants.DEFAULT_MAPPING_TYPE);
 
         if (partitionedBy.size() > 0) {
@@ -174,7 +178,6 @@ public class IndexWriterProjector implements Projector {
             indexRequest.index(tableName);
         }
 
-        Object value = sourceInput.value();
         if (includes != null || excludes != null) {
             assert value instanceof Map;
             // exclude partitioned columns from source
