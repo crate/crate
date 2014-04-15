@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -25,21 +25,21 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
-public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
+public class ShardPartitionIdentExpression extends SysShardExpression<BytesRef> {
 
-    public static final String NAME = "table_name";
+    public static final String NAME = "partition_ident";
     private final BytesRef value;
 
     @Inject
-    public ShardTableNameExpression(ShardId shardId) {
+    public ShardPartitionIdentExpression(ShardId shardId) {
         super(NAME);
-        String tableName = shardId.getIndex();
+        String ident = "";
         try {
-            tableName = PartitionName.tableName(tableName);
+            ident = PartitionName.ident(shardId.getIndex());
         } catch (IllegalArgumentException e) {
             // no partition
         }
-        this.value = new BytesRef(tableName);
+        value = new BytesRef(ident);
     }
 
     @Override

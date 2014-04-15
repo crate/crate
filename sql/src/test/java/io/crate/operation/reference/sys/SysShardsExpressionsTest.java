@@ -21,6 +21,7 @@
 
 package io.crate.operation.reference.sys;
 
+import io.crate.Constants;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -29,6 +30,7 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
+import io.crate.operation.reference.sys.shard.ShardPartitionIdentExpression;
 import io.crate.operation.reference.sys.shard.ShardTableNameExpression;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import org.apache.lucene.util.BytesRef;
@@ -50,6 +52,8 @@ import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.index.store.StoreStats;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import static junit.framework.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
@@ -61,6 +65,8 @@ public class SysShardsExpressionsTest {
     private Injector injector;
     private ReferenceResolver resolver;
     private ReferenceInfos referenceInfos;
+
+    private String indexName = "wikipedia_de";
 
     class TestModule extends AbstractModule {
 
@@ -81,7 +87,12 @@ public class SysShardsExpressionsTest {
 
             ShardId shardId = mock(ShardId.class);
             when(shardId.getId()).thenReturn(1);
-            when(shardId.getIndex()).thenReturn("wikipedia_de");
+            when(shardId.getIndex()).thenAnswer(new Answer<String>() {
+                @Override
+                public String answer(InvocationOnMock invocation) throws Throwable {
+                    return indexName;
+                }
+            });
             bind(ShardId.class).toInstance(shardId);
 
             IndexShard indexShard = mock(IndexShard.class);
@@ -189,6 +200,39 @@ public class SysShardsExpressionsTest {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardTableNameExpression.NAME);
         SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
+    }
+
+    @Test
+    public void testTableNameOfPartition() throws Exception {
+        // expression should return the real table name
+        indexName = Constants.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
+        setUp();
+        ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardTableNameExpression.NAME);
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
+
+        // reset indexName
+        indexName = "wikipedia_de";
+    }
+
+    @Test
+    public void testPartitionIdent() throws Exception {
+        indexName = Constants.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
+        setUp();
+        ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardPartitionIdentExpression.NAME);
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef("_1"), shardExpression.value());
+
+        // reset indexName
+        indexName = "wikipedia_de";
+    }
+
+    @Test
+    public void testPartitionIdentOfNonPartition() throws Exception {
+        // expression should return NULL on non partitioned tables
+        ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardPartitionIdentExpression.NAME);
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef(""), shardExpression.value());
     }
 
 }

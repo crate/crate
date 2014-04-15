@@ -27,7 +27,6 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
-import org.apache.lucene.util.BytesRef;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,7 +34,6 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Map;
 
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
@@ -240,7 +238,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(dotJoiner.join(response.rows()[2][0], response.rows()[2][1]), is("sys.nodes"));
         assertThat(commaJoiner.join((Collection<?>)response.rows()[2][2]), is("id"));
         assertThat(dotJoiner.join(response.rows()[3][0], response.rows()[3][1]), is("sys.shards"));
-        assertThat(commaJoiner.join((Collection<?>)response.rows()[3][2]), is("schema_name, table_name, id"));
+        assertThat(commaJoiner.join((Collection<?>)response.rows()[3][2]), is("schema_name, table_name, id, partition_ident"));
 
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
@@ -385,7 +383,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(56L, response.rowCount());
+        assertEquals(57L, response.rowCount());
     }
 
     @Test
