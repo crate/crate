@@ -54,6 +54,9 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
             context.settings(settingsFromProperties(node.genericProperties().get(), context));
         }
         process(node.table(), context);
+        if (context.table().isPartitioned()) {
+            throw new UnsupportedFeatureException("COPY TO using a partitioned table is not supported yet");
+        }
         context.uri(process(node.targetUri(), context));
         context.directoryUri(node.directoryUri());
 
