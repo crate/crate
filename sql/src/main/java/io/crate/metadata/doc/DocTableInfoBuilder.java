@@ -72,7 +72,7 @@ public class DocTableInfoBuilder {
                 concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
             } catch(IndexMissingException e) {
                 // no partition created yet
-                concreteIndices = new String[]{ident.name()};
+                concreteIndices = new String[]{};
             }
         } else {
             try {
