@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -125,5 +126,10 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.mode(), is(CopyAnalysis.Mode.TO));
         assertThat(((StringLiteral)analysis.uri()).valueAsString(), is("/blah.txt"));
         assertThat(analysis.settings().get("compression"), is("gzip"));
+    }
+
+    @Test ( expected = UnsupportedFeatureException.class )
+    public void testCopyToFileWithPartitionedTable() throws Exception {
+        analyze("copy parted to '/blah.txt'");
     }
 }
