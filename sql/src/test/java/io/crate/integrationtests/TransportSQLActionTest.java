@@ -3695,7 +3695,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
         ensureGreen();
 
-        execute("refresh table parted partition n");
+        execute("refresh table parted partition 'n'");
     }
 
     @Test
@@ -3714,7 +3714,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 Arrays.asList("date"),
                 Arrays.asList("0"));
 
-        execute("refresh table parted PARTITION \"" + partitionName.ident() + "\"");
+        execute("refresh table parted PARTITION '" + partitionName.ident() + "'");
         assertThat(response.rowCount(), is(-1L));
 
         execute("select * from parted");
@@ -3724,7 +3724,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 Arrays.asList("date"),
                 Arrays.asList("518400000"));
 
-        execute("refresh table parted PARTITION \"" + partitionName.ident() + "\"");
+        execute("refresh table parted PARTITION '" + partitionName.ident() + "'");
         assertThat(response.rowCount(), is(-1L));
 
         execute("select * from parted");

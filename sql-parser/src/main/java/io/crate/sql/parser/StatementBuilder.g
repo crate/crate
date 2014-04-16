@@ -861,5 +861,5 @@ namedProperties returns [NamedProperties value]
     ;
 
 refresh returns [RefreshStatement value]
-    : ^(REFRESH namedTable ident?) { $value = new RefreshStatement($namedTable.value, $ident.value); }
+    : ^(REFRESH namedTable expr?) { $value = new RefreshStatement($namedTable.value, $expr.value); }
     ;

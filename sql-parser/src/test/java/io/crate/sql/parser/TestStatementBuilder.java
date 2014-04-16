@@ -208,11 +208,13 @@ public class TestStatementBuilder
                 ")");
         printStatement("refresh table t");
         printStatement("refresh table schemah.tableh");
+        printStatement("refresh table tableh partition 'ident'");
 
         printStatement("alter table t set (number_of_replicas=4)");
         printStatement("alter table schema.t set (number_of_replicas=4)");
         printStatement("alter table t reset (number_of_replicas)");
         printStatement("alter table t reset (property1, property2, property3)");
+
     }
 
     @Test

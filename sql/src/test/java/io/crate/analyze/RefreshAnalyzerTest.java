@@ -91,28 +91,28 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRefreshPartition() throws Exception {
-        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table parted PARTITION \"_1395874800000\"");
+        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table parted PARTITION '_1395874800000'");
         assertThat(analysis.table().ident().name(), is("parted"));
         assertThat(analysis.partitionName().stringValue(), is(".partitioned.parted._1395874800000"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testRefreshInvalidPartitioned() throws Exception {
-        analyze("refresh table parted partition \"hddsGNJHSGFEFZÜ\""); // invalid base32
+        analyze("refresh table parted partition 'hddsGNJHSGFEFZÜ'"); // invalid base32
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testRefreshNonPartitioned() throws Exception {
-        analyze("refresh table users partition n");
+        analyze("refresh table users partition 'n'");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testRefreshSysPartitioned() throws Exception {
-        analyze("refresh table sys.shards partition n");
+        analyze("refresh table sys.shards partition 'n'");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testRefreshBlobPartitioned() throws Exception {
-        analyze("refresh table blob.blobs partition n");
+        analyze("refresh table blob.blobs partition 'n'");
     }
 }
