@@ -111,19 +111,19 @@ their type, name and which table they are defined in.
     cr> select * from information_schema.table_constraints
     ... where table_name not like 'my_table%'
     ... order by schema_name desc, table_name desc limit 10;
-    +--------------------+-------------------+-------------------------------------------------+-----------------+
-    | schema_name        | table_name        | constraint_name                                 | constraint_type |
-    +--------------------+-------------------+-------------------------------------------------+-----------------+
-    | sys                | shards            | [u'schema_name', u'table_name', u'id']          | PRIMARY_KEY     |
-    | sys                | nodes             | [u'id']                                         | PRIMARY_KEY     |
-    | information_schema | tables            | [u'schema_name', u'table_name']                 | PRIMARY_KEY     |
-    | information_schema | columns           | [u'schema_name', u'table_name', u'column_name'] | PRIMARY_KEY     |
-    | doc                | quotes            | [u'id']                                         | PRIMARY_KEY     |
-    | doc                | partitioned_table | [u'_id']                                        | PRIMARY_KEY     |
-    | doc                | locations         | [u'id']                                         | PRIMARY_KEY     |
-    | doc                | documents         | [u'_id']                                        | PRIMARY_KEY     |
-    | blob               | myblobs           | [u'digest']                                     | PRIMARY_KEY     |
-    +--------------------+-------------------+-------------------------------------------------+-----------------+
+    +--------------------+-------------------+------------------------------------------------------------+-----------------+
+    | schema_name        | table_name        | constraint_name                                            | constraint_type |
+    +--------------------+-------------------+------------------------------------------------------------+-----------------+
+    | sys                | shards            | [u'schema_name', u'table_name', u'id', u'partition_ident'] | PRIMARY_KEY     |
+    | sys                | nodes             | [u'id']                                                    | PRIMARY_KEY     |
+    | information_schema | tables            | [u'schema_name', u'table_name']                            | PRIMARY_KEY     |
+    | information_schema | columns           | [u'schema_name', u'table_name', u'column_name']            | PRIMARY_KEY     |
+    | doc                | quotes            | [u'id']                                                    | PRIMARY_KEY     |
+    | doc                | partitioned_table | [u'_id']                                                   | PRIMARY_KEY     |
+    | doc                | locations         | [u'id']                                                    | PRIMARY_KEY     |
+    | doc                | documents         | [u'_id']                                                   | PRIMARY_KEY     |
+    | blob               | myblobs           | [u'digest']                                                | PRIMARY_KEY     |
+    +--------------------+-------------------+------------------------------------------------------------+-----------------+
     SELECT 9 rows in set (... sec)
 
 
@@ -138,7 +138,7 @@ information table name, schema name, partition ident, and the values of the
 partition. ``values`` is a key-value object with the 'partitioned by column'
 as key(s) and the corresponding value as value(s).
 
-For futher information see :ref:`sql_ddl_partitioned_by`.
+For further information see :ref:`sql_ddl_partitioned_by`.
 
 .. hide:
 

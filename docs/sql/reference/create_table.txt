@@ -1,3 +1,5 @@
+.. _ref-create-table:
+
 ============
 CREATE TABLE
 ============
@@ -12,6 +14,7 @@ Synopsis
     CREATE TABLE table_name ( [
     { column_name data_type [ column_constraint [ ... ] ] | table_constraint }
     [, ... ] ] )
+    [ PARTITIONED BY (column_name [, ...] ) ]
     [ CLUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
     [ WITH ( table_parameter [= value] [, ... ] ) ]
 
@@ -89,7 +92,7 @@ column constraint or a table constraint.
 For further details about the meaning of the options see
 :ref:`indices_and_fulltext`.
 
-.. _clustered_clause:
+.. _ref_clustered_clause:
 
 CLUSTERED Clause
 ================
@@ -105,6 +108,33 @@ distributed accross a cluster.
     ``routing_column`` are stored in the same shard. The default is
     the primary key if specified, otherwise the internal ``_id``
     column.
+
+.. _partitioned_clause:
+
+PARTITIONED Clause
+==================
+
+The PARTITIONED clause splits the created table
+into separate partitions for every distinct combination of values
+in the listed columns.
+
+.. code-block:: sql
+
+    [ PARTITIONED BY ( column_name [ , ... ] ) ]
+
+:column_name: a column from the table definition this table gets partitioned by.
+
+Several restrictions apply to columns that can be used here:
+
+* columns may not be part of :ref:`ref_clustered_clause`.
+* columns may not be of type array or inside an array (e.g. an object array).
+* columns may not be of type object.
+* columns may not be indexed with a :ref:`sql_ddl_index_fulltext`.
+* if the table has a :ref:`primary_key_constraint` the columns in PARTITIONED clause have to be part of it
+
+
+.. note:: Columns referenced in the PARTITIONED clause cannot be altered by an ``UPDATE`` statement.
+
 
 
 .. _with_clause:
