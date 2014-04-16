@@ -42,9 +42,8 @@ Parameters
 
 .. note::
 
-    Declaring columns changes the output format to JSON list format. In order
-    to read this format the COPY FROM statement has to be invoked with the
-    columns specified.
+    Declaring columns changes the output to JSON list format, which is
+    currently not supported by the COPY FROM statement.
 
 Output URI
 ==========
