@@ -47,6 +47,8 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
                         String.format("_source expression does not support subscripts %",
                         referenceInfo.ident().columnIdent().fqn()));
             }
+        } else if (DocCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {
+            return DocCollectorExpression.create(referenceInfo);
         }
 
         String colName = referenceInfo.ident().columnIdent().fqn();
