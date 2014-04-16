@@ -29,7 +29,6 @@ import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLResponse;
-import io.crate.analyze.TablePropertiesAnalysis;
 import io.crate.exceptions.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
@@ -41,10 +40,12 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResp
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -3507,6 +3508,50 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testPartitionedTableNestedAllConstraintsRoundTrip() throws Exception {
+        execute("create table quotes (" +
+                "id integer, " +
+                "quote string, " +
+                "created object as(" +
+                "  date timestamp, " +
+                "  user_id string)" +
+                ") partitioned by(created['date']) clustered by (id) with (number_of_replicas=0)");
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
+        execute("insert into quotes (id, quote, created) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", new MapBuilder<String, Object>().put("date", 1395874800000L).put("user_id", "Arthur").map()});
+        assertEquals(1L, response.rowCount());
+        execute("insert into quotes (id, quote, created) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", new MapBuilder<String, Object>().put("date", 1395961200000L).put("user_id", "Ford").map()});
+        assertEquals(1L, response.rowCount());
+        ensureGreen();
+        refresh();
+
+        execute("select id, quote, created from quotes where created['user_id'] = 'Arthur'");
+        assertEquals(1L, response.rowCount());
+        assertThat((Map<String, Object>)response.rows()[0][2], Matchers.<String, Object>hasEntry("date", 1395874800000L));
+
+        execute("update quotes set quote = ? where created['date'] = ?",
+                new Object[]{"I'd far rather be happy than right any day", 1395874800000L});
+        assertEquals(1L, response.rowCount());
+
+        execute("refresh table quotes");
+
+        execute("select count(*) from quotes where quote=?", new Object[]{"I'd far rather be happy than right any day"});
+        assertThat((Long)response.rows()[0][0], is(1L));
+
+        execute("delete from quotes where created['user_id'] = 'Arthur' and id = 1 and created['date'] = 1395874800000");
+        assertEquals(-1L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(1L, response.rowCount());
+
+        execute("drop table quotes");
+        assertEquals(1L, response.rowCount());
+    }
+
+    @Test
     public void testAlterPartitionTable() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
@@ -3692,12 +3737,23 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=-1)");
         ensureGreen();
         execute("insert into parted (id, name, date) values " +
-                "(1, 'Trillian', '1970-01-01'), " +
+                "(1, 'Trillian', '1970-01-01')," +
                 "(2, 'Arthur', '1970-01-07')");
         assertThat(response.rowCount(), is(2L));
 
+        execute("refresh table parted");
+        assertThat(response.rowCount(), is(-1L));
+
         execute("select * from parted");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount(), is(2L));
+
+        execute("insert into parted (id, name, date) values " +
+                "(3, 'Zaphod', '1970-01-01')," +
+                "(4, 'Marvin', '1970-01-07')");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select * from parted");
+        assertThat(response.rowCount(), is(2L));
 
         PartitionName partitionName = new PartitionName("parted", Arrays.asList("0"));
 
@@ -3705,7 +3761,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(-1L));
 
         execute("select * from parted");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount(), is(3L));
 
         partitionName = new PartitionName("parted", Arrays.asList("518400000"));
 
@@ -3713,14 +3769,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(-1L));
 
         execute("select * from parted");
-        assertThat(response.rowCount(), is(2L));
-
-        String templateName = PartitionName.templateName("parted");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-                .prepareGetTemplates(templateName).execute().actionGet();
-        Settings  templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
-        assertThat(templateSettings.get(TablePropertiesAnalysis.REFRESH_INTERVAL), is("-1"));
+        assertThat(response.rowCount(), is(4L));
     }
 
 }
