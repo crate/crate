@@ -32,7 +32,7 @@ import java.util.Map;
 
 public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateAnalyzerAnalysis> {
 
-    private final ExpressionVisitor expressionVisitor = new ExpressionVisitor();
+    private final ExpressionToStringVisitor expressionVisitor = new ExpressionToStringVisitor();
 
     @Override
     public Void visitCreateAnalyzer(CreateAnalyzer node, CreateAnalyzerAnalysis context) {
@@ -235,48 +235,4 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
             builder.putArray(name, values.toArray(new String[values.size()]));
         }
     }
-
-    private class ExpressionVisitor extends AstVisitor<String, Object[]> {
-
-        @Override
-        protected String visitQualifiedNameReference(QualifiedNameReference node, Object[] parameters) {
-            return node.getName().getSuffix();
-        }
-
-        @Override
-        protected String visitStringLiteral(StringLiteral node, Object[] parameters) {
-            return node.getValue();
-        }
-
-        @Override
-        protected String visitBooleanLiteral(BooleanLiteral node, Object[] parameters) {
-            return Boolean.toString(node.getValue());
-        }
-
-        @Override
-        protected String visitDoubleLiteral(DoubleLiteral node, Object[] parameters) {
-            return Double.toString(node.getValue());
-        }
-
-        @Override
-        protected String visitLongLiteral(LongLiteral node, Object[] parameters) {
-            return Long.toString(node.getValue());
-        }
-
-        @Override
-        public String visitParameterExpression(ParameterExpression node, Object[] parameters) {
-            return parameters[node.index()].toString();
-        }
-
-        @Override
-        protected String visitNegativeExpression(NegativeExpression node, Object[] context) {
-            return "-" + process(node.getValue(), context);
-        }
-
-        @Override
-        protected String visitNode(Node node, Object[] context) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle %s.", node));
-        }
-    }
-
 }

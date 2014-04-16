@@ -96,6 +96,15 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.partitionName().stringValue(), is(".partitioned.parted._1395874800000"));
     }
 
+    @Test
+    public void testRefreshPartitionsParameter() throws Exception {
+        RefreshTableAnalysis analysis = (RefreshTableAnalysis) analyze(
+                "refresh table parted PARTITION ?",
+                new Object[]{"_1395874800000"});
+        assertThat(analysis.table().ident().name(), is("parted"));
+        assertThat(analysis.partitionName().stringValue(), is(".partitioned.parted._1395874800000"));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testRefreshInvalidPartitioned() throws Exception {
         analyze("refresh table parted partition 'hddsGNJHSGFEFZÜ'"); // invalid base32

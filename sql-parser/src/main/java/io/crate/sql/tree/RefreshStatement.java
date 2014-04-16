@@ -23,33 +23,24 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 
 import javax.annotation.Nullable;
 
 public class RefreshStatement extends Statement {
 
     private final Table table;
-    private final Optional<String> partitionIdent;
+    private final Optional<Expression> partitionIdent;
 
     public RefreshStatement(Table table, @Nullable Expression partitionIdent) {
         this.table = table;
-
-        if (partitionIdent != null) {
-            Preconditions.checkArgument(partitionIdent instanceof StringLiteral,
-                    "invalid partition ident. must be string.");
-            this.partitionIdent = Optional.of(((StringLiteral) partitionIdent).getValue());
-        } else {
-            this.partitionIdent = Optional.absent();
-        }
-
+        this.partitionIdent = Optional.fromNullable(partitionIdent);
     }
 
     public Table table() {
         return table;
     }
 
-    public Optional<String> partitionIdent() {
+    public Optional<Expression> partitionIdent() {
         return partitionIdent;
     }
 
