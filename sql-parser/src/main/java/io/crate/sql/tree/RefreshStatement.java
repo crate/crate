@@ -29,9 +29,9 @@ import javax.annotation.Nullable;
 public class RefreshStatement extends Statement {
 
     private final Table table;
-    private final Optional<String> partitionIdent;
+    private final Optional<Expression> partitionIdent;
 
-    public RefreshStatement(Table table, @Nullable String partitionIdent) {
+    public RefreshStatement(Table table, @Nullable Expression partitionIdent) {
         this.table = table;
         this.partitionIdent = Optional.fromNullable(partitionIdent);
     }
@@ -40,7 +40,7 @@ public class RefreshStatement extends Statement {
         return table;
     }
 
-    public Optional<String> partitionIdent() {
+    public Optional<Expression> partitionIdent() {
         return partitionIdent;
     }
 
