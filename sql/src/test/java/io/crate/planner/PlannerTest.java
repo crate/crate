@@ -705,6 +705,16 @@ public class PlannerTest {
         assertNull(collectNode.sharedStorage());
     }
 
+    @Test
+    public void testCopyToWithColumnsReferenceRewrite() throws Exception {
+        Plan plan = plan("copy users (name) to '/file.ext'");
+        CollectNode node = (CollectNode)plan.iterator().next();
+        Reference nameRef = (Reference)node.toCollect().get(0);
+
+        assertThat(nameRef.info().ident().columnIdent().name(), is(DocSysColumns.DOC.name()));
+        assertThat(nameRef.info().ident().columnIdent().path().get(0), is("name"));
+    }
+
     @Test (expected = IllegalArgumentException.class)
     public void testCopyFromPlanWithInvalidParameters() throws Exception {
         plan("copy users from '/path/to/file.ext' with (concurrency=-28)");
