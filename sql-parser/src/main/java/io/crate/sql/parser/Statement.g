@@ -919,7 +919,7 @@ namedProperties
     ;
 
 refreshStmt
-    : REFRESH TABLE table ( PARTITION literalOrParameter )? -> ^(REFRESH table literalOrParameter?)
+    : REFRESH TABLE table ( PARTITION STRING? )? -> ^(REFRESH table STRING?)
     ;
 
 nonReserved
