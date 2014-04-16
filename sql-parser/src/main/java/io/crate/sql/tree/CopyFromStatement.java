@@ -23,20 +23,25 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class CopyFromStatement extends Statement {
 
     private final Table table;
     private final Expression path;
     private final Optional<GenericProperties> genericProperties;
+    private final List<Expression> columns;
 
     public CopyFromStatement(Table table,
+                             @Nullable List<Expression> columns,
                              Expression path,
                              @Nullable GenericProperties genericProperties) {
 
         this.table = table;
+        this.columns = Objects.firstNonNull(columns, ImmutableList.<Expression>of());
         this.path = path;
         this.genericProperties = Optional.fromNullable(genericProperties);
     }
@@ -47,6 +52,10 @@ public class CopyFromStatement extends Statement {
 
     public Expression path() {
         return path;
+    }
+
+    public List<Expression> columns() {
+        return columns;
     }
 
     public Optional<GenericProperties> genericProperties() {
@@ -62,6 +71,7 @@ public class CopyFromStatement extends Statement {
 
         if (!genericProperties.equals(that.genericProperties)) return false;
         if (!path.equals(that.path)) return false;
+        if (!columns.equals(that.columns)) return false;
         if (!table.equals(that.table)) return false;
 
         return true;
@@ -72,6 +82,7 @@ public class CopyFromStatement extends Statement {
         int result = table.hashCode();
         result = 31 * result + path.hashCode();
         result = 31 * result + genericProperties.hashCode();
+        result = 31 * result + path.hashCode();
         return result;
     }
 
@@ -80,6 +91,7 @@ public class CopyFromStatement extends Statement {
         return Objects.toStringHelper(this)
                 .add("table", table)
                 .add("path", path)
+                .add("columns", columns)
                 .add("properties", genericProperties)
                 .toString();
     }

@@ -87,8 +87,7 @@ statement returns [Statement value]
     | insert                    { $value = $insert.value; }
     | delete                    { $value = $delete.value; }
     | update                    { $value = $update.value; }
-    | copyFrom                  { $value = $copyFrom.value; }
-    | copyTo                    { $value = $copyTo.value; }
+    | copy                      { $value = $copy.value; }
     | createAnalyzer            { $value = $createAnalyzer.value; }
     | refresh                   { $value = $refresh.value; }
     ;
@@ -651,23 +650,21 @@ assignment returns [Assignment value]
     | ^(ASSIGNMENT qname expr) { $value = new Assignment(new QualifiedNameReference($qname.value), $expr.value); }
     ;
 
-copyTo returns [Statement value]
-    : ^(COPY_TO namedTable columnList? d=copyToTargetSpec[false] expr genericProperties?)
+copy returns [Statement value]
+    : ^(COPY FROM namedTable columnList? expr genericProperties?) 
+        {
+            $value = new CopyFromStatement($namedTable.value,
+                                           $columnList.value,
+                                           $expr.value,
+                                           $genericProperties.value);
+        }
+    | ^(COPY TO d=copyToTargetSpec[false] namedTable columnList? expr genericProperties?) 
         {
             $value = new CopyTo($namedTable.value,
                                 $columnList.value,
                                 $d.value,
                                 $expr.value,
                                 $genericProperties.value);
-        }
-    ;
-
-copyFrom returns [Statement value]
-    : ^(COPY_FROM namedTable path=expr genericProperties?)
-        {
-            $value = new CopyFromStatement($namedTable.value,
-                                           $path.value,
-                                           $genericProperties.value);
         }
     ;
 
