@@ -49,7 +49,7 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
             } else {
                 // TODO: implement an Object source expression which may support subscripts
                 throw new UnsupportedFeatureException(
-                        String.format("_source expression does not support subscripts %",
+                        String.format("_source expression does not support subscripts %s",
                         referenceInfo.ident().columnIdent().fqn()));
             }
         } else if (DocCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {

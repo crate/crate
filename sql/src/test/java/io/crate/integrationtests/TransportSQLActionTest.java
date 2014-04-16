@@ -2346,7 +2346,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         for (String id : ImmutableList.of("1", "2", "3")) {
-            String partitionName = new PartitionName("quotes", ImmutableList.of("id"), ImmutableList.of(id)).stringValue();
+            String partitionName = new PartitionName("quotes", ImmutableList.of(id)).stringValue();
             assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                     .getState().metaData().indices().get(partitionName));
             assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
@@ -2918,7 +2918,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertTrue(clusterService().state().metaData().aliases().containsKey("parted"));
 
         String partitionName = new PartitionName("parted",
-                Arrays.asList("date"),
                 Arrays.asList(String.valueOf(13959981214861L))
         ).stringValue();
         MetaData metaData = client().admin().cluster().prepareState().execute().actionGet()
@@ -2953,7 +2952,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
 
         String partitionName = new PartitionName("parted",
-                Arrays.asList("date"),
                 Arrays.asList(String.valueOf(13959981214861L))
         ).stringValue();
         assertTrue(cluster().clusterService().state().metaData().hasIndex(partitionName));
@@ -2965,10 +2963,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 is(1L)
         );
 
-        partitionName = new PartitionName("parted",
-                Arrays.asList("date"),
-                Arrays.asList(String.valueOf(0L))
-        ).stringValue();
+        partitionName = new PartitionName("parted", Arrays.asList(String.valueOf(0L))).stringValue();
         assertTrue(cluster().clusterService().state().metaData().hasIndex(partitionName));
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).aliases().get("parted"));
@@ -2980,10 +2975,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         List<String> nullList = new ArrayList<>();
         nullList.add(null);
-        partitionName = new PartitionName("parted",
-                Arrays.asList("date"),
-                nullList
-        ).stringValue();
+        partitionName = new PartitionName("parted", nullList).stringValue();
         assertTrue(cluster().clusterService().state().metaData().hasIndex(partitionName));
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).aliases().get("parted"));
@@ -3006,7 +2998,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         refresh();
         String partitionName = new PartitionName("parted",
-                Arrays.asList("name", "date"),
                 Arrays.asList("Ford", String.valueOf(13959981214861L))
         ).stringValue();
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
@@ -3081,7 +3072,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         refresh();
         String partitionName = new PartitionName("parted",
-                Arrays.asList("name", "date"),
                 Arrays.asList("Trillian", null)).stringValue();
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).aliases().get("parted"));
@@ -3106,7 +3096,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         refresh();
         String partitionName = new PartitionName("parted",
-                Arrays.asList("name", "date"),
                 Arrays.asList("Trillian", dateValue.toString())).stringValue();
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).aliases().get("parted"));
@@ -3570,8 +3559,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
 
         List<String> partitions = ImmutableList.of(
-                new PartitionName("quotes", Arrays.asList("date"), Arrays.asList("1395874800000")).stringValue(),
-                new PartitionName("quotes", Arrays.asList("date"), Arrays.asList("1395961200000")).stringValue()
+                new PartitionName("quotes", Arrays.asList("1395874800000")).stringValue(),
+                new PartitionName("quotes", Arrays.asList("1395961200000")).stringValue()
         );
         Thread.sleep(1000);
         GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
@@ -3635,8 +3624,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
 
         List<String> partitions = ImmutableList.of(
-                new PartitionName("quotes", Arrays.asList("date"), Arrays.asList("1395874800000")).stringValue(),
-                new PartitionName("quotes", Arrays.asList("date"), Arrays.asList("1395961200000")).stringValue()
+                new PartitionName("quotes", Arrays.asList("1395874800000")).stringValue(),
+                new PartitionName("quotes", Arrays.asList("1395961200000")).stringValue()
         );
         Thread.sleep(1000);
         GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
@@ -3695,7 +3684,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
         ensureGreen();
 
-        execute("refresh table parted partition 'n'");
+        execute("refresh table parted partition '0400===='");
     }
 
     @Test
@@ -3710,9 +3699,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from parted");
         assertThat(response.rowCount(), is(0L));
 
-        PartitionName partitionName = new PartitionName("parted",
-                Arrays.asList("date"),
-                Arrays.asList("0"));
+        PartitionName partitionName = new PartitionName("parted", Arrays.asList("0"));
 
         execute("refresh table parted PARTITION '" + partitionName.ident() + "'");
         assertThat(response.rowCount(), is(-1L));
@@ -3720,9 +3707,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from parted");
         assertThat(response.rowCount(), is(1L));
 
-        partitionName = new PartitionName("parted",
-                Arrays.asList("date"),
-                Arrays.asList("518400000"));
+        partitionName = new PartitionName("parted", Arrays.asList("518400000"));
 
         execute("refresh table parted PARTITION '" + partitionName.ident() + "'");
         assertThat(response.rowCount(), is(-1L));

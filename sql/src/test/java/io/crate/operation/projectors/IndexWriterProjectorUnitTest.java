@@ -48,7 +48,6 @@ public class IndexWriterProjectorUnitTest {
                 "bulk_import",
                 Arrays.<String>asList("id"),
                 Arrays.<Input<?>>asList(idInput),
-                ImmutableList.<String>of(),
                 ImmutableList.<Input<?>>of(),
                 null,
                 sourceInput,
@@ -81,11 +80,13 @@ public class IndexWriterProjectorUnitTest {
                 "bulk_import",
                 Arrays.<String>asList("id"),
                 Arrays.<Input<?>>asList(idInput),
+                ImmutableList.<Input<?>>of(),
                 routingInput,
                 sourceInput,
                 collectExpressions,
                 20,
-                2
+                2,
+                null, null
         );
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);

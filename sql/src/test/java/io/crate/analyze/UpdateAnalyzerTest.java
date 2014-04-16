@@ -22,8 +22,8 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ColumnIdent;
@@ -288,7 +288,8 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         UpdateAnalysis analysis = (UpdateAnalysis) analyze("update parted set id = 2 where date = 1395874800000");
         assertThat(analysis.whereClause().hasQuery(), is(false));
         assertThat(analysis.whereClause().noMatch(), is(false));
-        assertEquals(ImmutableList.of(Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000"),
+        assertEquals(ImmutableList.of(
+                        new PartitionName("parted", Arrays.asList("1395874800000")).stringValue()),
                     analysis.whereClause().partitions());
     }
 }

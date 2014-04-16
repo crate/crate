@@ -108,10 +108,10 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
                 "group by table_name, partition_ident, state order by partition_ident, state");
         assertThat(response.rowCount(), is(4L));
 
-        String expected = "locations| _1| STARTED\n" +
-                "locations| _1| UNASSIGNED\n" +
-                "locations| _2| STARTED\n" +
-                "locations| _2| UNASSIGNED\n";
+        String expected = "locations| 04132| STARTED\n" +
+                "locations| 04132| UNASSIGNED\n" +
+                "locations| 04134| STARTED\n" +
+                "locations| 04134| UNASSIGNED\n";
 
        assertEquals(expected, TestingHelpers.printedTable(response.rows()));
     }

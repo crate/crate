@@ -2,7 +2,6 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
@@ -46,10 +45,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
@@ -170,9 +166,9 @@ public class PlannerTest {
                     .add("id", DataType.STRING, null)
                     .add("date", DataType.TIMESTAMP, null, true)
                     .addPartitions(
-                            Constants.PARTITIONED_TABLE_PREFIX + ".parted.n",
-                            Constants.PARTITIONED_TABLE_PREFIX + ".parted._0",
-                            Constants.PARTITIONED_TABLE_PREFIX + ".parted._123"
+                            new PartitionName("parted", new ArrayList<String>(){{add(null);}}).stringValue(),
+                            new PartitionName("parted", Arrays.asList("0")).stringValue(),
+                            new PartitionName("parted", Arrays.asList("123")).stringValue()
                             )
                     .addPrimaryKey("id")
                     .addPrimaryKey("date")
@@ -319,7 +315,7 @@ public class PlannerTest {
         assertThat(node, instanceOf(ESGetNode.class));
         ESGetNode getNode = (ESGetNode) node;
         assertThat(getNode.index(),
-                is(new PartitionName("parted", Arrays.asList("date"), Arrays.asList("0")).stringValue()));
+                is(new PartitionName("parted", Arrays.asList("0")).stringValue()));
         assertThat(getNode.outputTypes().get(0), is(DataType.STRING));
         assertThat(getNode.outputTypes().get(1), is(DataType.TIMESTAMP));
     }
@@ -512,7 +508,7 @@ public class PlannerTest {
         ESSearchNode searchNode = (ESSearchNode) planNode;
 
         assertThat(searchNode.indices(), arrayContaining(
-                Constants.PARTITIONED_TABLE_PREFIX + ".parted._123"));
+                new PartitionName("parted", Arrays.asList("123")).stringValue()));
         assertThat(searchNode.outputTypes().size(), is(3));
         assertTrue(searchNode.whereClause().hasQuery());
         assertThat(searchNode.partitionBy().size(), is(1));

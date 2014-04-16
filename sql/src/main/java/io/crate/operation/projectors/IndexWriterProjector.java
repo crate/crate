@@ -59,7 +59,6 @@ public class IndexWriterProjector implements Projector {
     private final String tableName;
     private final Object lock = new Object();
     private final List<String> primaryKeys;
-    private final List<String> partitionedBy;
     private final List<Input<?>> partitionedByInputs;
     private final String[] includes;
     private final String[] excludes;
@@ -69,7 +68,6 @@ public class IndexWriterProjector implements Projector {
                                 String tableName,
                                 List<String> primaryKeys,
                                 List<Input<?>> idInputs,
-                                List<String> partitionedBy,
                                 List<Input<?>> partitionedByInputs,
                                 Input<?> routingInput,
                                 Input<?> sourceInput,
@@ -85,7 +83,6 @@ public class IndexWriterProjector implements Projector {
         this.idInputs = idInputs;
         this.routingInput = routingInput;
         this.sourceInput = sourceInput;
-        this.partitionedBy = partitionedBy;
         this.partitionedByInputs = partitionedByInputs;
         this.includes = includes;
         this.excludes = excludes;
@@ -158,7 +155,7 @@ public class IndexWriterProjector implements Projector {
         }
         indexRequest.type(Constants.DEFAULT_MAPPING_TYPE);
 
-        if (partitionedBy.size() > 0) {
+        if (partitionedByInputs.size() > 0) {
             List<String> partitionedByValues = Lists.transform(partitionedByInputs, new Function<Input<?>, String>() {
                 @Nullable
                 @Override
@@ -171,7 +168,7 @@ public class IndexWriterProjector implements Projector {
                 }
             });
 
-            String partition = new PartitionName(tableName, partitionedBy, partitionedByValues).stringValue();
+            String partition = new PartitionName(tableName, partitionedByValues).stringValue();
             indexRequest.index(partition);
 
         } else {

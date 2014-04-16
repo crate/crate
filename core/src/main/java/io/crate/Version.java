@@ -175,7 +175,7 @@ public class Version {
 
     public static final int V_0_36_00_ID = /*00*/360099;
     public static final Version V_0_36_00 = new Version(V_0_36_00_ID, true,
-            org.elasticsearch.Version.V_1_0_1);
+            org.elasticsearch.Version.V_1_1_0);
 
     public static final Version CURRENT = V_0_36_00;
 

@@ -187,7 +187,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 projection.tableName(),
                 projection.primaryKeys(),
                 idInputs,
-                projection.partitionedBy(),
                 partitionedByInputs,
                 clusteredBy,
                 sourceInput,

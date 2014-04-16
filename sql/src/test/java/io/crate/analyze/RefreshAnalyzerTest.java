@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.PartitionName;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -91,18 +92,20 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRefreshPartition() throws Exception {
-        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table parted PARTITION '_1395874800000'");
+        PartitionName partition = new PartitionName("parted", Arrays.asList("1395874800000"));
+        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table parted PARTITION '" + partition.ident() + "'");
         assertThat(analysis.table().ident().name(), is("parted"));
-        assertThat(analysis.partitionName().stringValue(), is(".partitioned.parted._1395874800000"));
+        assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
     }
 
     @Test
     public void testRefreshPartitionsParameter() throws Exception {
+        PartitionName partition = new PartitionName("parted", Arrays.asList("1395874800000"));
         RefreshTableAnalysis analysis = (RefreshTableAnalysis) analyze(
                 "refresh table parted PARTITION ?",
-                new Object[]{"_1395874800000"});
+                new Object[]{partition.ident()});
         assertThat(analysis.table().ident().name(), is("parted"));
-        assertThat(analysis.partitionName().stringValue(), is(".partitioned.parted._1395874800000"));
+        assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
     }
 
     @Test(expected = IllegalArgumentException.class)
