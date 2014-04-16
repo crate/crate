@@ -27,11 +27,9 @@ public class UnassignedShard {
         }
 
         String ident = "";
-        try {
+        if (PartitionName.isPartition(index)) {
             tableName = PartitionName.tableName(index);
             ident = PartitionName.ident(index);
-        } catch (IllegalArgumentException e) {
-            // no partition
         }
 
         this.tableName = tableName;

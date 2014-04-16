@@ -22,6 +22,7 @@
 package io.crate;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import io.crate.core.StringUtils;
 import org.apache.commons.codec.binary.Base32;
@@ -47,6 +48,16 @@ public class PartitionName implements Streamable {
 
     private String partitionName;
     private String ident;
+
+    private static final Predicate indexNamePartsPredicate = new Predicate<List<String>>() {
+        @Override
+        public boolean apply(List<String> input) {
+            if (input.size() < 4 || !input.get(1).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1))) {
+                return false;
+            }
+            return true;
+        }
+    };
 
     public PartitionName(String tableName, List<String> columns, List<String> values) {
         this(tableName, columns, values, true);
@@ -213,12 +224,17 @@ public class PartitionName implements Streamable {
         return partitionName;
     }
 
-    public static boolean isPartition(String partitionName, String tableName) {
-        try {
-            return PartitionName.split(partitionName).v1().equals(tableName);
-        } catch (IllegalArgumentException e) {
+    public static boolean isPartition(String index, String tableName) {
+        List<String> splitted = Splitter.on(".").splitToList(index);
+        if (!indexNamePartsPredicate.apply(splitted)) {
             return false;
         }
+        return splitted.get(2).equals(tableName);
+    }
+
+    public static boolean isPartition(String index) {
+        List<String> splitted = Splitter.on(".").splitToList(index);
+        return indexNamePartsPredicate.apply(splitted);
     }
 
     /**
@@ -232,7 +248,7 @@ public class PartitionName implements Streamable {
      */
     public static Tuple<String, String> split(String partitionOrTemplateName) {
         List<String> splitted = Splitter.on(".").splitToList(partitionOrTemplateName);
-        if (splitted.size() < 4 || !splitted.get(1).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1))) {
+        if (!indexNamePartsPredicate.apply(splitted)) {
             throw new IllegalArgumentException("Invalid partition name");
         }
         return new Tuple<>(splitted.get(2),
