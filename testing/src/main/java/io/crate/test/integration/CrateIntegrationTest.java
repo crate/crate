@@ -183,8 +183,6 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
             // didn't ack the delete
             wipeTemplates();
             wipeRepositories();
-            ensureAllSearchersClosed();
-            ensureAllFilesClosed();
             logger.info("[{}#{}]: cleaned up after test", getTestClass().getSimpleName(), getTestName());
         } finally {
             currentCluster.afterTest();

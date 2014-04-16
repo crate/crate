@@ -11,13 +11,17 @@ Synopsis
 
 .. code-block:: sql
 
-    REFRESH TABLE table_ident
+    REFRESH TABLE table_ident [PARTITION partition_ident]
 
 Description
 ===========
 
 The REFRESH TABLE command refreshes a table and all its rows,
 making all changes made to that table available to all further commands.
+
+If the ``PARTITION`` clause is given a single partition of a partitioned
+table will be refreshed. If this clause is omitted, all partitions will be
+refreshed.
 
 Without issuing this statement there is no guarantee that a change
 (``UPDATE``, ``DELETE``, ``COPY`` or ``INSERT``) will be seen by an
@@ -35,4 +39,8 @@ Parameters
 
 :table_ident: The name (optionally schema-qualified) of an existing
     table that is to be refreshed.
+
+:partition_ident: This opaque string value identifies a partition of a partitioned table
+    as listed in :ref:`is_table_partitions`.
+
 

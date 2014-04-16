@@ -21,10 +21,12 @@
 
 package io.crate.analyze;
 
+import io.crate.PartitionName;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.Module;
@@ -52,6 +54,13 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
             when(blobTableInfo.ident()).thenReturn(TEST_BLOB_TABLE_IDENT);
             when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(blobTableInfo);
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
+
+            SchemaInfo docSchemaInfo = mock(SchemaInfo.class);
+            when(docSchemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(docSchemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+
+            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(docSchemaInfo);
         }
     }
 
@@ -79,5 +88,43 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.table().ident().schema(), is("blob"));
         assertThat(analysis.table().ident().name(), is("blobs"));
 
+    }
+
+    @Test
+    public void testRefreshPartition() throws Exception {
+        PartitionName partition = new PartitionName("parted", Arrays.asList("1395874800000"));
+        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table parted PARTITION '" + partition.ident() + "'");
+        assertThat(analysis.table().ident().name(), is("parted"));
+        assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
+    }
+
+    @Test
+    public void testRefreshPartitionsParameter() throws Exception {
+        PartitionName partition = new PartitionName("parted", Arrays.asList("1395874800000"));
+        RefreshTableAnalysis analysis = (RefreshTableAnalysis) analyze(
+                "refresh table parted PARTITION ?",
+                new Object[]{partition.ident()});
+        assertThat(analysis.table().ident().name(), is("parted"));
+        assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRefreshInvalidPartitioned() throws Exception {
+        analyze("refresh table parted partition 'hddsGNJHSGFEFZÜ'"); // invalid base32
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRefreshNonPartitioned() throws Exception {
+        analyze("refresh table users partition 'n'");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRefreshSysPartitioned() throws Exception {
+        analyze("refresh table sys.shards partition 'n'");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRefreshBlobPartitioned() throws Exception {
+        analyze("refresh table blob.blobs partition 'n'");
     }
 }

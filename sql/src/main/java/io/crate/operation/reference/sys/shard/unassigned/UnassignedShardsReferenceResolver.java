@@ -27,6 +27,12 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
                 return new BytesRef(this.row.tableName());
             }
         })
+        .add(new UnassignedShardCollectorExpression<BytesRef>(ShardPartitionIdentExpression.NAME) {
+            @Override
+            public BytesRef value() {
+                return new BytesRef(this.row.partitionIdent());
+            }
+        })
         .add(new UnassignedShardCollectorExpression<Integer>(ShardIdExpression.NAME) {
             @Override
             public Integer value() {
@@ -42,7 +48,7 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
         .add(new UnassignedShardCollectorExpression<Boolean>(ShardPrimaryExpression.NAME) {
             @Override
             public Boolean value() {
-                return null;
+                return row.primary();
             }
         })
         .add(new UnassignedShardCollectorExpression<BytesRef>(ShardRelocatingNodeExpression.NAME) {

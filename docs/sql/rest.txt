@@ -143,6 +143,8 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4045  Unknown schema.
     ----- ---------------------------------------------------------------------
+    4046  Unknown Partition.
+    ----- ---------------------------------------------------------------------
     4091  A document with the same primary key exists already.
     ----- ---------------------------------------------------------------------
     4092  A VersionConflict. Might be thrown if an attempt was made to update
@@ -151,4 +153,8 @@ Currently the defined error codes are:
     4093  A table with the same name exists already.
     ----- ---------------------------------------------------------------------
     4094  The used table alias contains tables with different schema.
+    ----- ---------------------------------------------------------------------
+    4095  Alter table using a table alias is not supported.
+    ----- ---------------------------------------------------------------------
+    5001  The execution of one or more tasks failed.
     ===== =====================================================================

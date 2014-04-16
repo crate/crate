@@ -26,14 +26,24 @@ import io.crate.planner.node.PlanVisitor;
 public class ESDeleteIndexNode extends DDLPlanNode {
 
     private final String index;
+    private final boolean partition;
 
     public ESDeleteIndexNode(String index) {
+        this(index, false);
+    }
+
+    public ESDeleteIndexNode(String index, boolean partition) {
         assert index != null : "index is null";
         this.index = index;
+        this.partition = partition;
     }
 
     public String index() {
         return index;
+    }
+
+    public boolean isPartition() {
+        return partition;
     }
 
     @Override

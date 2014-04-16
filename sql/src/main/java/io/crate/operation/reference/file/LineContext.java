@@ -49,6 +49,17 @@ public class LineContext {
         return null;
     }
 
+    public Map<String, Object> sourceAsMap() {
+        if (parsedSource == null) {
+            try {
+                parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
+            } catch (NullPointerException e) {
+                return null;
+            }
+        }
+        return parsedSource;
+    }
+
     public Object get(ColumnIdent columnIdent) {
         if (parsedSource == null) {
             // TODO: optimize if collectorContext has prefetchColumns

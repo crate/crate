@@ -24,6 +24,7 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.operation.operator.*;
@@ -90,7 +91,7 @@ public class ESQueryBuilderTest {
         generator = new ESQueryBuilder();
     }
 
-    private void xcontetAssert(Function whereClause, String expected) throws IOException {
+    private void xcontentAssert(Function whereClause, String expected) throws IOException {
         BytesReference reference = generator.convert(new WhereClause(whereClause));
         String actual = reference.toUtf8();
         assertThat(actual, is(expected));
@@ -110,7 +111,7 @@ public class ESQueryBuilderTest {
         Function rightAnd = new Function(andImpl.info(), Arrays.<Symbol>asList(eqAge, eqLong));
         Function leftAnd = new Function(andImpl.info(), Arrays.<Symbol>asList(eqName, rightAnd));
 
-        xcontetAssert(leftAnd, "{\"query\":{\"bool\":{\"must\":[{\"term\":{\"name\":\"Marvin\"}},{\"bool\":{\"must\":[{\"term\":{\"age\":84}},{\"term\":{\"long_ref\":8}}]}}]}}}");
+        xcontentAssert(leftAnd, "{\"query\":{\"bool\":{\"must\":[{\"term\":{\"name\":\"Marvin\"}},{\"bool\":{\"must\":[{\"term\":{\"age\":84}},{\"term\":{\"long_ref\":8}}]}}]}}}");
     }
 
 
@@ -126,7 +127,7 @@ public class ESQueryBuilderTest {
 
         Function whereClause = new Function(orImpl.info(), Arrays.<Symbol>asList(eqMarvin, eqTrillian));
 
-        xcontetAssert(whereClause, "{\"query\":{\"bool\":{\"minimum_should_match\":1,\"should\":[{\"term\":{\"name\":\"Marvin\"}},{\"term\":{\"name\":\"Trillian\"}}]}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"bool\":{\"minimum_should_match\":1,\"should\":[{\"term\":{\"name\":\"Marvin\"}},{\"term\":{\"name\":\"Trillian\"}}]}}}");
     }
 
     @Test
@@ -134,42 +135,42 @@ public class ESQueryBuilderTest {
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataType.STRING)));
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, new StringLiteral("Marvin")));
 
-        xcontetAssert(whereClause, "{\"query\":{\"term\":{\"name\":\"Marvin\"}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"term\":{\"name\":\"Marvin\"}}}");
     }
 
     @Test
     public void testWhereReferenceEqIntegerLiteral() throws Exception {
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataType.INTEGER)));
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(age_ref, new IntegerLiteral(40)));
-        xcontetAssert(whereClause, "{\"query\":{\"term\":{\"age\":40}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"term\":{\"age\":40}}}");
     }
 
     @Test
     public void testWhereReferenceLtDoubleLiteral() throws Exception {
         FunctionImplementation ltImpl = functions.get(new FunctionIdent(LtOperator.NAME, typeX2(DataType.DOUBLE)));
         Function whereClause = new Function(ltImpl.info(), Arrays.<Symbol>asList(weight_ref, new DoubleLiteral(54.3)));
-        xcontetAssert(whereClause, "{\"query\":{\"range\":{\"weight\":{\"lt\":54.3}}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"range\":{\"weight\":{\"lt\":54.3}}}}");
     }
 
     @Test
     public void testWhereReferenceLteFloatLiteral() throws Exception {
         FunctionImplementation impl = functions.get(new FunctionIdent(LteOperator.NAME, typeX2(DataType.FLOAT)));
         Function whereClause = new Function(impl.info(), Arrays.<Symbol>asList(float_ref, new FloatLiteral(42.1)));
-        xcontetAssert(whereClause, "{\"query\":{\"range\":{\"float_ref\":{\"lte\":42.1}}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"range\":{\"float_ref\":{\"lte\":42.1}}}}");
     }
 
     @Test
     public void testWhereReferenceGtLong() throws Exception {
         FunctionImplementation impl = functions.get(new FunctionIdent(GtOperator.NAME, typeX2(DataType.LONG)));
         Function whereClause = new Function(impl.info(), Arrays.<Symbol>asList(long_ref, new LongLiteral(8L)));
-        xcontetAssert(whereClause, "{\"query\":{\"range\":{\"long_ref\":{\"gt\":8}}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"range\":{\"long_ref\":{\"gt\":8}}}}");
     }
 
     @Test
     public void testWhereReferenceEqShort() throws Exception {
         FunctionImplementation impl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataType.SHORT)));
         Function whereClause = new Function(impl.info(), Arrays.<Symbol>asList(short_ref, Literal.forType(DataType.SHORT, (short)2)));
-        xcontetAssert(whereClause, "{\"query\":{\"term\":{\"short_ref\":2}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"term\":{\"short_ref\":2}}}");
     }
 
     @Test
@@ -178,7 +179,7 @@ public class ESQueryBuilderTest {
         Function whereClause = new Function(impl.info(),
                 Arrays.<Symbol>asList(isParanoid, Literal.forType(isParanoid.valueType(), true)));
 
-        xcontetAssert(whereClause, "{\"query\":{\"term\":{\"isParanoid\":true}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"term\":{\"isParanoid\":true}}}");
     }
 
     @Test
@@ -186,7 +187,7 @@ public class ESQueryBuilderTest {
         FunctionImplementation impl = functions.get(new FunctionIdent(LikeOperator.NAME, typeX2(name_ref.valueType())));
         Function whereClause = new Function(impl.info(),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("%thu%")));
-        xcontetAssert(whereClause, "{\"query\":{\"wildcard\":{\"name\":\"*thu*\"}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"wildcard\":{\"name\":\"*thu*\"}}}");
     }
 
     @Test
@@ -197,7 +198,7 @@ public class ESQueryBuilderTest {
         Function likeClause = new Function(likeOp.info(),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("%thu%")));
         Function whereClause = new Function(notOp.info(), Arrays.<Symbol>asList(likeClause));
-        xcontetAssert(whereClause, "{\"query\":{\"bool\":{\"must_not\":{\"wildcard\":{\"name\":\"*thu*\"}}}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"bool\":{\"must_not\":{\"wildcard\":{\"name\":\"*thu*\"}}}}}");
     }
 
     @Test
@@ -206,7 +207,7 @@ public class ESQueryBuilderTest {
                 new FunctionIdent(IsNullPredicate.NAME, Arrays.asList(extrafield.valueType())));
 
         Function isNull = new Function(isNullImpl.info(), Arrays.<Symbol>asList(extrafield));
-        xcontetAssert(isNull, "{\"query\":{\"filtered\":{\"filter\":{\"missing\":{\"field\":\"extrafield\",\"existence\":true,\"null_value\":true}}}}}");
+        xcontentAssert(isNull, "{\"query\":{\"filtered\":{\"filter\":{\"missing\":{\"field\":\"extrafield\",\"existence\":true,\"null_value\":true}}}}}");
     }
 
     @Test
@@ -243,7 +244,7 @@ public class ESQueryBuilderTest {
         Function match = new Function(matchImpl.info(),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("arthur")));
 
-        xcontetAssert(match, "{\"query\":{\"match\":{\"name\":\"arthur\"}}}");
+        xcontentAssert(match, "{\"query\":{\"match\":{\"name\":\"arthur\"}}}");
     }
 
     @Test
@@ -256,8 +257,8 @@ public class ESQueryBuilderTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(minScore_ref, new DoubleLiteral(0.4))
         );
-        ESSearchNode node = new ESSearchNode("something",
-                ImmutableList.<Symbol>of(), null, null, null, null, new WhereClause(whereClause));
+        ESSearchNode node = new ESSearchNode(new String[]{"something"},
+                ImmutableList.<Symbol>of(), null, null, null, null, new WhereClause(whereClause), null);
         BytesReference bytesReference = generator.convert(node);
 
         assertThat(bytesReference.toUtf8(),
@@ -270,13 +271,14 @@ public class ESQueryBuilderTest {
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, new StringLiteral("Marvin")));
 
         ESSearchNode searchNode = new ESSearchNode(
-                characters.name(),
+                new String[]{characters.name()},
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Reference>of(),
                 new boolean[0],
                 null,
                 null,
-                new WhereClause(whereClause));
+                new WhereClause(whereClause),
+                null);
 
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
@@ -300,7 +302,7 @@ public class ESQueryBuilderTest {
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, new StringLiteral("Marvin")));
 
         ESDeleteByQueryNode deleteByQueryNode = new ESDeleteByQueryNode(
-                ImmutableSet.<String>of(characters.name()),
+                new String[]{characters.name()},
                 new WhereClause(whereClause));
 
         BytesReference reference = generator.convert(deleteByQueryNode);
@@ -312,13 +314,14 @@ public class ESQueryBuilderTest {
     public void testSelect_OnlyVersion() throws Exception {
         Reference version_ref = TestingHelpers.createReference("_version", DataType.INTEGER);
         ESSearchNode searchNode = new ESSearchNode(
-                characters.name(),
+                new String[]{characters.name()},
                 ImmutableList.<Symbol>of(version_ref),
                 null,
                 null,
                 null,
                 null,
-                WhereClause.MATCH_ALL);
+                WhereClause.MATCH_ALL,
+                null);
 
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
@@ -346,18 +349,38 @@ public class ESQueryBuilderTest {
                 ColumnIdent.getChild(author.info().ident().columnIdent(), "age"), DataType.INTEGER);
 
         ESSearchNode searchNode = new ESSearchNode(
-                characters.name(),
+                new String[]{characters.name()},
                 ImmutableList.<Symbol>of(author, age),
                 null,
                 null,
                 null,
                 null,
-                WhereClause.MATCH_ALL);
+                WhereClause.MATCH_ALL,
+                null);
 
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
         assertThat(actual, is(
                 "{\"_source\":{\"include\":[\"author\"]},\"query\":{\"match_all\":{}},\"from\":0,\"size\":10000}"));
+    }
+
+    @Test
+    public void testSelect_excludePartitionedColumns() throws Exception {
+        PartitionName partitionName = new PartitionName(characters.name(), Arrays.asList("0.5"));
+        ESSearchNode searchNode = new ESSearchNode(
+                new String[]{partitionName.stringValue()},
+                ImmutableList.<Symbol>of(name_ref, weight_ref),
+                null,
+                null,
+                null,
+                null,
+                WhereClause.MATCH_ALL,
+                Arrays.asList(weight_ref.info()));
+
+        BytesReference reference = generator.convert(searchNode);
+        String actual = reference.toUtf8();
+        assertThat(actual, is(
+                "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}},\"from\":0,\"size\":10000}"));
     }
 
 }

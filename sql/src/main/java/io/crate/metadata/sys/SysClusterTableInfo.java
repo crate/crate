@@ -83,7 +83,7 @@ public class SysClusterTableInfo extends SysTableInfo {
     }
 
     @Override
-    public String[] partitions() {
+    public String[] concreteIndices() {
         return PARTITIONS;
     }
 

@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -51,6 +52,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -71,6 +73,13 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyFromExistingTable() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy users from '/some/distant/file.ext'");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(((Literal)analysis.uri()).valueAsString(), is("/some/distant/file.ext"));
+    }
+
+    @Test
+    public void testCopyFromExistingPartitionedTable() throws Exception {
+        CopyAnalysis analysis = (CopyAnalysis)analyze("copy parted from '/some/distant/file.ext'");
+        assertThat(analysis.table().ident(), is(TEST_PARTITIONED_TABLE_IDENT));
         assertThat(((Literal)analysis.uri()).valueAsString(), is("/some/distant/file.ext"));
     }
 
@@ -126,5 +135,10 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.mode(), is(CopyAnalysis.Mode.TO));
         assertThat(((StringLiteral)analysis.uri()).valueAsString(), is("/blah.txt"));
         assertThat(analysis.settings().get("compression"), is("gzip"));
+    }
+
+    @Test ( expected = UnsupportedFeatureException.class )
+    public void testCopyToFileWithPartitionedTable() throws Exception {
+        analyze("copy parted to '/blah.txt'");
     }
 }

@@ -32,7 +32,7 @@ import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Provider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,21 +41,21 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
 
     private final ImplementationSymbolVisitor symbolVisitor;
     private final EvaluatingNormalizer normalizer;
-    private final Injector injector;
+    private final Provider<Client> clientProvider;
 
     public Projector process(Projection projection) {
         return process(projection, null);
     }
 
-    public ProjectionToProjectorVisitor(Injector injector, ImplementationSymbolVisitor symbolVisitor,
+    public ProjectionToProjectorVisitor(Provider<Client> clientProvider, ImplementationSymbolVisitor symbolVisitor,
             EvaluatingNormalizer normalizer) {
-        this.injector = injector;
+        this.clientProvider = clientProvider;
         this.symbolVisitor = symbolVisitor;
         this.normalizer = normalizer;
     }
 
-    public ProjectionToProjectorVisitor(Injector injector, ImplementationSymbolVisitor symbolVisitor) {
-        this(injector, symbolVisitor, new EvaluatingNormalizer(
+    public ProjectionToProjectorVisitor(Provider<Client> clientProvider, ImplementationSymbolVisitor symbolVisitor) {
+        this(clientProvider, symbolVisitor, new EvaluatingNormalizer(
                 symbolVisitor.functions(), symbolVisitor.rowGranularity(), symbolVisitor.referenceResolver()));
     }
 
@@ -172,22 +172,29 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
 
     public Projector visitIndexWriterProjection(IndexWriterProjection projection, Void context) {
         ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
-        List<Input<?>> idInputs = new ArrayList<>();
+        List<Input<?>> idInputs = new ArrayList<>(projection.ids().size());
         for (Symbol idSymbol : projection.ids()) {
             idInputs.add(symbolVisitor.process(idSymbol, symbolContext));
+        }
+        List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
+        for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
+            partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
         Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
         Input<?> clusteredBy = symbolVisitor.process(projection.clusteredBy(), symbolContext);
         return new IndexWriterProjector(
-                injector.getInstance(Client.class),
+                clientProvider.get(),
                 projection.tableName(),
                 projection.primaryKeys(),
                 idInputs,
+                partitionedByInputs,
                 clusteredBy,
                 sourceInput,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 projection.bulkActions(),
-                projection.concurrency()
+                projection.concurrency(),
+                projection.includes(),
+                projection.excludes()
         );
     }
 }

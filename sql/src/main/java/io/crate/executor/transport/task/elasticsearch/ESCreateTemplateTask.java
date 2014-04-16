@@ -21,20 +21,19 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
-import io.crate.executor.Task;
+import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 
-import java.util.Arrays;
 import java.util.List;
 
-public class ESCreateTemplateTask implements Task<Object[][]> {
+public class ESCreateTemplateTask extends AbstractChainedTask<Object[][]> {
 
     private static class CreateTemplateListener implements ActionListener<PutIndexTemplateResponse> {
 
@@ -56,39 +55,31 @@ public class ESCreateTemplateTask implements Task<Object[][]> {
         }
     }
 
-    private final List<ListenableFuture<Object[][]>> results;
     private final TransportPutIndexTemplateAction transport;
     private final PutIndexTemplateRequest request;
     private final CreateTemplateListener listener;
 
     public ESCreateTemplateTask(ESCreateTemplateNode node, TransportPutIndexTemplateAction transport) {
+        super();
         this.transport = transport;
-        SettableFuture<Object[][]> result = SettableFuture.create();
-        this.results = Arrays.<ListenableFuture<Object[][]>>asList(result);
         this.listener = new CreateTemplateListener(result);
         this.request = buildRequest(node);
     }
 
     @Override
-    public void start() {
+    protected void doStart(List<Object[][]> upstreamResults) {
         transport.execute(request, listener);
     }
 
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        return results;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException();
-    }
-
     private PutIndexTemplateRequest buildRequest(ESCreateTemplateNode node) {
-        return new PutIndexTemplateRequest(node.templateName())
+        PutIndexTemplateRequest templateRequest = new PutIndexTemplateRequest(node.templateName())
                 .mapping(Constants.DEFAULT_MAPPING_TYPE, node.mapping())
                 .create(true)
                 .settings(node.indexSettings())
                 .template(node.indexMatch());
+        if (node.alias() != null) {
+            templateRequest.alias(new Alias(node.alias()));
+        }
+        return templateRequest;
     }
 }

@@ -23,18 +23,28 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
+import io.crate.PartitionName;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLResponse;
+import io.crate.analyze.TablePropertiesAnalysis;
 import io.crate.exceptions.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.elasticsearch.action.admin.indices.status.IndicesStatusResponse;
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -329,18 +339,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
      */
     @Test
     public void testColsAreCaseSensitive() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "firstName", "type=string,store=true,index=not_analyzed",
-                        "firstname", "type=string,store=true,index=not_analyzed")
-                .execute().actionGet();
+        execute("create table test (\"firstName\" string, \"lastName\" string)");
+        ensureGreen();
+        execute("insert into test (\"firstname\", \"firstName\") values ('LowerCase', 'CamelCase')");
+        refresh();
 
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
-                .setSource("{\"firstname\":\"LowerCase\",\"firstName\":\"CamelCase\"}")
-                .execute().actionGet();
-
-        execute(
-                "select FIRSTNAME, \"firstname\", \"firstName\" from test");
+        execute("select FIRSTNAME, \"firstname\", \"firstName\" from test");
         assertArrayEquals(new String[]{"firstname", "firstname", "firstName"}, response.cols());
         assertEquals(1, response.rowCount());
         assertEquals("LowerCase", response.rows()[0][0]);
@@ -1640,7 +1644,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.version.created\":\"1000199\"" +
+                "\"index.version.created\":\"1010099\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -1667,7 +1671,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"0\"," +
-                "\"index.version.created\":\"1000199\"" +
+                "\"index.version.created\":\"1010099\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
 
@@ -1677,7 +1681,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"5000\"," +
-                "\"index.version.created\":\"1000199\"" +
+                "\"index.version.created\":\"1010099\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedSetSettings, getIndexSettings("test"), false);
 
@@ -1687,7 +1691,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"1000\"," +
-                "\"index.version.created\":\"1000199\"" +
+                "\"index.version.created\":\"1010099\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedResetSettings, getIndexSettings("test"), false);
     }
@@ -1804,7 +1808,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"2\"," +
                 "\"index.number_of_shards\":\"10\"," +
-                "\"index.version.created\":\"1000199\"" +
+                "\"index.version.created\":\"1010099\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -2320,6 +2324,34 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(6L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(2));
+    }
+
+    @Test
+    public void testCopyFromIntoPartitionedTable() throws Exception {
+        execute("create table quotes (id integer primary key, " +
+                "quote string index using fulltext) partitioned by (id)");
+        ensureGreen();
+        refresh();
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{filePath});
+        // 2 nodes on same machine resulting in double affected rows
+        assertEquals(6L, response.rowCount());
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+        refresh();
+        ensureGreen();
+
+        for (String id : ImmutableList.of("1", "2", "3")) {
+            String partitionName = new PartitionName("quotes", ImmutableList.of(id)).stringValue();
+            assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                    .getState().metaData().indices().get(partitionName));
+            assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                    .getState().metaData().indices().get(partitionName).aliases().get("quotes"));
+        }
 
         execute("select * from quotes");
         assertEquals(3L, response.rowCount());
@@ -2843,6 +2875,852 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select v from b where v and not v");
         assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void testCreatePartitionedTableAndQueryMeta() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("select * from information_schema.tables where schema_name='doc' order by table_name");
+        assertEquals(1L, response.rowCount());
+        assertEquals("quotes", response.rows()[0][1]);
+
+        execute("select * from information_schema.columns where table_name='quotes' order by ordinal_position");
+        assertEquals(3L, response.rowCount());
+        assertEquals("id", response.rows()[0][2]);
+        assertEquals("quote", response.rows()[1][2]);
+        assertEquals("timestamp", response.rows()[2][2]);
+
+    }
+
+    @Test
+    public void testInsertPartitionedTable() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        String templateName = PartitionName.templateName("parted");
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        assertThat(templatesResponse.getIndexTemplates().get(0).template(),
+                is(templateName + "*"));
+        assertThat(templatesResponse.getIndexTemplates().get(0).name(),
+                is(templateName));
+        assertTrue(templatesResponse.getIndexTemplates().get(0).aliases().containsKey("parted"));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{1, "Ford", 13959981214861L });
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
+        refresh();
+
+        assertTrue(clusterService().state().metaData().aliases().containsKey("parted"));
+
+        String partitionName = new PartitionName("parted",
+                Arrays.asList(String.valueOf(13959981214861L))
+        ).stringValue();
+        MetaData metaData = client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData();
+        assertNotNull(metaData.indices().get(partitionName).aliases().get("parted"));
+        assertThat(
+                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                is(1L)
+        );
+
+        execute("select id, name, date from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((String)response.rows()[0][1], is("Ford"));
+        assertThat((Long)response.rows()[0][2], is(13959981214861L));
+    }
+
+    @Test
+    public void testBulkInsertPartitionedTable() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Ford", 13959981214861L,
+                        2, "Trillian", 0L,
+                        3, "Zaphod", null
+                });
+        assertThat(response.rowCount(), is(3L));
+        ensureGreen();
+        refresh();
+
+        String partitionName = new PartitionName("parted",
+                Arrays.asList(String.valueOf(13959981214861L))
+        ).stringValue();
+        assertTrue(cluster().clusterService().state().metaData().hasIndex(partitionName));
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+        assertThat(
+                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                is(1L)
+        );
+
+        partitionName = new PartitionName("parted", Arrays.asList(String.valueOf(0L))).stringValue();
+        assertTrue(cluster().clusterService().state().metaData().hasIndex(partitionName));
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+        assertThat(
+                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                is(1L)
+        );
+
+        List<String> nullList = new ArrayList<>();
+        nullList.add(null);
+        partitionName = new PartitionName("parted", nullList).stringValue();
+        assertTrue(cluster().clusterService().state().metaData().hasIndex(partitionName));
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+        assertThat(
+                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                is(1L)
+        );
+    }
+
+    @Test
+    public void testInsertPartitionedTableOnlyPartitionedColumns() throws Exception {
+        execute("create table parted (name string, date timestamp)" +
+                "partitioned by (name, date)");
+        ensureGreen();
+
+        execute("insert into parted (name, date) values (?, ?)",
+                new Object[]{"Ford", 13959981214861L});
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
+        refresh();
+        String partitionName = new PartitionName("parted",
+                Arrays.asList("Ford", String.valueOf(13959981214861L))
+        ).stringValue();
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+        assertThat(
+                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                is(1L)
+        );
+        execute("select * from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols(), arrayContaining("date", "name"));
+        assertThat((Long)response.rows()[0][0], is(13959981214861L));
+        assertThat((String)response.rows()[0][1], is("Ford"));
+    }
+
+    @Test
+    public void testInsertPartitionedTableOnlyPartitionedColumnsAlreadyExsists() throws Exception {
+        execute("create table parted (name string, date timestamp)" +
+                "partitioned by (name, date)");
+        ensureGreen();
+
+        execute("insert into parted (name, date) values (?, ?)",
+                new Object[]{"Ford", 13959981214861L});
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
+        refresh();
+        execute("insert into parted (name, date) values (?, ?)",
+                new Object[]{"Ford", 13959981214861L});
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
+        refresh();
+
+        execute("select name, date from parted");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((String)response.rows()[0][0], is("Ford"));
+        assertThat((String)response.rows()[1][0], is("Ford"));
+
+        assertThat((Long)response.rows()[0][1], is(13959981214861L));
+        assertThat((Long)response.rows()[1][1], is(13959981214861L));
+    }
+
+    @Test(expected = DuplicateKeyException.class)
+    public void testInsertPartitionedTablePrimaryKeysDuplicate() throws Exception {
+        execute("create table parted (" +
+                "  id int, " +
+                "  name string, " +
+                "  date timestamp," +
+                "  primary key (id, name)" +
+                ") partitioned by (id, name)");
+        ensureGreen();
+        Long dateValue = System.currentTimeMillis();
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{42, "Zaphod", dateValue});
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
+        refresh();
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{42, "Zaphod", 0L});
+    }
+
+    @Test
+    public void testInsertPartitionedTableSomePartitionedColumns() throws Exception {
+        // insert only some partitioned column values
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (name, date)");
+        ensureGreen();
+
+        execute("insert into parted (id, name) values (?, ?)",
+                new Object[]{1, "Trillian"});
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
+        refresh();
+        String partitionName = new PartitionName("parted",
+                Arrays.asList("Trillian", null)).stringValue();
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+
+        execute("select id, name, date from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((String)response.rows()[0][1], is("Trillian"));
+        assertNull(response.rows()[0][2]);
+    }
+
+    @Test
+    public void testInsertPartitionedTableReversedPartitionedColumns() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (name, date)");
+        ensureGreen();
+
+        Long dateValue = System.currentTimeMillis();
+        execute("insert into parted (id, date, name) values (?, ?, ?)",
+                new Object[]{1, dateValue, "Trillian"});
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
+        refresh();
+        String partitionName = new PartitionName("parted",
+                Arrays.asList("Trillian", dateValue.toString())).stringValue();
+        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+    }
+
+    @Test
+    public void testSelectFromPartitionedTableWhereClause() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        ensureGreen();
+        refresh();
+
+        execute("select id, quote from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000) and id = 1");
+        assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testSelectFromPartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        ensureGreen();
+        refresh();
+        execute("select id, quote, timestamp as ts, timestamp from quotes where timestamp > 1395874800000");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(2));
+        assertThat((String)response.rows()[0][1], is("Time is an illusion. Lunchtime doubly so"));
+        assertThat((Long)response.rows()[0][2], is(1395961200000L));
+    }
+
+    @Test
+    public void testSelectPrimaryKeyFromPartitionedTable() throws Exception {
+        execute("create table stuff (" +
+                "  id integer primary key, " +
+                "  type byte primary key," +
+                "  content string) " +
+                "partitioned by(type) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into stuff (id, type, content) values(?, ?, ?)",
+                new Object[]{1, 127, "Don't panic"});
+        execute("insert into stuff (id, type, content) values(?, ?, ?)",
+                new Object[]{2, 126, "Time is an illusion. Lunchtime doubly so"});
+        execute("insert into stuff (id, type, content) values(?, ?, ?)",
+                new Object[]{3, 126, "Now panic"});
+        ensureGreen();
+        refresh();
+
+        execute("select id, type, content from stuff where id=2 and type=126");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(2));
+        byte b = 126;
+        assertThat((Byte)response.rows()[0][1], is(b));
+        assertThat((String)response.rows()[0][2], is("Time is an illusion. Lunchtime doubly so"));
+
+        // multiget
+        execute("select id, type, content from stuff where id in (2, 3) and type=126 order by id");
+        assertThat(response.rowCount(), is(2L));
+
+        assertThat((Integer)response.rows()[0][0], is(2));
+        assertThat((Byte)response.rows()[0][1], is(b));
+        assertThat((String)response.rows()[0][2], is("Time is an illusion. Lunchtime doubly so"));
+
+        assertThat((Integer)response.rows()[1][0], is(3));
+        assertThat((Byte)response.rows()[1][1], is(b));
+        assertThat((String)response.rows()[1][2], is("Now panic"));
+    }
+
+    @Test
+    public void testUpdatePartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        ensureGreen();
+        refresh();
+
+        execute("update quotes set quote = ? where timestamp = ?",
+                new Object[]{"I'd far rather be happy than right any day.", 1395874800000L});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select id, quote from quotes where timestamp = 1395874800000");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1, response.rows()[0][0]);
+        assertEquals("I'd far rather be happy than right any day.", response.rows()[0][1]);
+
+        execute("update quotes set quote = ?",
+                new Object[]{"Don't panic"});
+        assertEquals(2L, response.rowCount());
+        refresh();
+
+        execute("select id, quote from quotes where quote = ?",
+                new Object[]{"Don't panic"});
+        assertEquals(2L, response.rowCount());
+    }
+
+    @Test
+    public void testDeleteFromPartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{3, "I'd far rather be happy than right any day", 1396303200000L});
+        ensureGreen();
+        refresh();
+
+        execute("delete from quotes where timestamp = 1395874800000 and id = 1");
+        assertEquals(-1, response.rowCount());
+        refresh();
+
+        execute("select id, quote from quotes where timestamp = 1395874800000");
+        assertEquals(0L, response.rowCount());
+
+        execute("select id, quote from quotes");
+        assertEquals(2L, response.rowCount());
+
+        execute("delete from quotes");
+        assertEquals(-1, response.rowCount());
+        refresh();
+
+        execute("select id, quote from quotes");
+        assertEquals(0L, response.rowCount());
+    }
+
+
+    public void testGlobalAggregatePartitionedColumns() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("select count(distinct date), count(*), min(date), max(date), " +
+                "any(date) as any_date, avg(date) from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(0L));
+        assertThat((Long)response.rows()[0][1], is(0L));
+        assertNull(response.rows()[0][2]);
+        assertNull(response.rows()[0][3]);
+        assertNull(response.rows()[0][4]);
+        assertNull(response.rows()[0][5]);
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{0, "Trillian", 100L});
+        ensureGreen();
+        refresh();
+
+        execute("select count(distinct date), count(*), min(date), max(date), " +
+                "any(date) as any_date, avg(date) from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(1L));
+        assertThat((Long)response.rows()[0][1], is(1L));
+        assertThat((Long)response.rows()[0][2], is(100L));
+        assertThat((Long) response.rows()[0][3], is(100L));
+        assertThat((Long)response.rows()[0][4], is(100L));
+        assertThat((Double)response.rows()[0][5], is(100.0));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{1, "Ford", 1001L});
+        ensureGreen();
+        refresh();
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{2, "Arthur", 1001L});
+        ensureGreen();
+        refresh();
+
+        execute("select count(distinct date), count(*), min(date), max(date), " +
+                "any(date) as any_date, avg(date) from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(2L));
+        assertThat((Long)response.rows()[0][1], is(3L));
+        assertThat((Long)response.rows()[0][2], is(100L));
+        assertThat((Long)response.rows()[0][3], is(1001L));
+        assertThat((Long)response.rows()[0][4], isOneOf(100L, 1001L));
+        assertThat((Double)response.rows()[0][5], is(700.6666666666666));
+    }
+
+    @Test
+    public void testGroupByPartitionedColumns() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("select date, count(*) from parted group by date");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{0, "Trillian", 100L});
+        ensureGreen();
+        refresh();
+
+        execute("select date, count(*) from parted group by date");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(100L));
+        assertThat((Long)response.rows()[0][1], is(1L));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Arthur", null,
+                        2, "Ford", null
+                });
+        ensureGreen();
+        refresh();
+
+        execute("select date, count(*) from parted group by date order by count(*) desc");
+        assertThat(response.rowCount(), is(2L));
+        assertNull(response.rows()[0][0]);
+        assertThat((Long)response.rows()[0][1], is(2L));
+        assertThat((Long)response.rows()[1][0], is(100L));
+        assertThat((Long)response.rows()[1][1], is(1L));
+    }
+
+    @Test
+    public void testGroupByPartitionedColumnWhereClause() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("select date, count(*) from parted where date > 0 group by date");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?)",
+                new Object[]{0, "Trillian", 100L});
+        ensureGreen();
+        refresh();
+
+        execute("select date, count(*) from parted where date > 0 group by date");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Arthur", 0L,
+                        2, "Ford", 2437646253L
+                }
+        );
+        ensureGreen();
+        refresh();
+
+        execute("select date, count(*) from parted where date > 100 group by date");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(2437646253L));
+        assertThat((Long)response.rows()[0][1], is(1L));
+    }
+
+    @Test
+    public void testGlobalAggregateWhereClause() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("select count(distinct date), count(*), min(date), max(date), " +
+                "any(date) as any_date, avg(date) from parted where date > 0");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(0L));
+        assertThat((Long)response.rows()[0][1], is(0L));
+        assertNull(response.rows()[0][2]);
+        assertNull(response.rows()[0][3]);
+        assertNull(response.rows()[0][4]);
+        assertNull(response.rows()[0][5]);
+
+        execute("insert into parted (id, name, date) values " +
+                        "(?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Arthur", 0L,
+                        2, "Ford", 2437646253L,
+                        3, "Zaphod", 1L,
+                        4, "Trillian", 0L
+                });
+        assertThat(response.rowCount(), is(4L));
+        ensureGreen();
+        refresh();
+
+        execute("select count(distinct date), count(*), min(date), max(date), " +
+                "any(date) as any_date, avg(date) from parted where date > 0");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(2L));
+        assertThat((Long)response.rows()[0][1], is(2L));
+        assertThat((Long)response.rows()[0][2], is(1L));
+        assertThat((Long)response.rows()[0][3], is(2437646253L));
+        assertThat((Long)response.rows()[0][4], isOneOf(1L, 2437646253L));
+        assertThat((Double)response.rows()[0][5], is(1.218823127E9));
+    }
+
+    @Test
+    public void testDropPartitionedTable() throws Exception {
+        execute("create table quotes (" +
+                "  id integer, " +
+                "  quote string, " +
+                "  date timestamp" +
+                ") partitioned by (date) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, date) values(?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L,
+                             2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        ensureGreen();
+        refresh();
+
+        execute("drop table quotes");
+        assertEquals(1L, response.rowCount());
+
+        GetIndexTemplatesResponse getIndexTemplatesResponse = client().admin().indices()
+                .prepareGetTemplates(PartitionName.templateName("quotes")).execute().get();
+        assertThat(getIndexTemplatesResponse.getIndexTemplates().size(), is(0));
+
+        IndicesStatusResponse statusResponse = client().admin().indices()
+                .prepareStatus().execute().get();
+        assertThat(statusResponse.getIndices().size(), is(0));
+
+        AliasesExistResponse aliasesExistResponse = client().admin().indices()
+                .prepareAliasesExist("quotes").execute().get();
+        assertFalse(aliasesExistResponse.exists());
+    }
+
+    @Test
+    public void testPartitionedTableSelectById() throws Exception {
+        execute("create table quotes (id integer, quote string, num double, primary key (id, num)) partitioned by (num)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, num) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Don't panic", 4.0d,
+                        2, "Time is an illusion. Lunchtime doubly so", -4.0d
+                });
+        ensureGreen();
+        refresh();
+        execute("select * from quotes where id = 1 and num = 4");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(Joiner.on(", ").join(response.cols()), is("id, num, quote"));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((Double)response.rows()[0][1], is(4.0d));
+        assertThat((String)response.rows()[0][2], is("Don't panic"));
+    }
+
+    @Test
+    public void testInsertDynamicToPartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp," +
+                "author object as (name string)) " +
+                "partitioned by(date) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?), (?, ?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L,
+                                new HashMap<String, Object>(){{put("name", "Douglas");}},
+                             2, "Time is an illusion. Lunchtime doubly so", 1395961200000L,
+                                new HashMap<String, Object>(){{put("name", "Ford");}}});
+        ensureGreen();
+        refresh();
+
+        execute("select * from information_schema.columns where table_name = 'quotes'");
+        assertEquals(5L, response.rowCount());
+
+        execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?)",
+                new Object[]{3, "I'd far rather be happy than right any day", 1395874800000L,
+                        new HashMap<String, Object>(){{put("name", "Douglas");put("surname", "Adams");}}});
+        ensureGreen();
+        refresh();
+
+        execute("select * from information_schema.columns where table_name = 'quotes'");
+        assertEquals(6L, response.rowCount());
+
+        execute("select author['surname'] from quotes order by id");
+        assertEquals(3L, response.rowCount());
+        assertNull(response.rows()[0][0]);
+        assertNull(response.rows()[1][0]);
+        assertEquals("Adams", response.rows()[2][0]);
+    }
+
+    @Test
+    public void testPartitionedTableAllConstraintsRoundTrip() throws Exception {
+        execute("create table quotes (id integer primary key, quote string, " +
+                "date timestamp primary key, user_id string primary key) " +
+                "partitioned by(date, user_id) clustered by (id) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
+        assertEquals(1L, response.rowCount());
+        execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
+        assertEquals(1L, response.rowCount());
+        ensureGreen();
+        refresh();
+
+        execute("select id, quote from quotes where user_id = 'Arthur'");
+        assertEquals(1L, response.rowCount());
+
+        execute("update quotes set quote = ? where user_id = ?",
+                new Object[]{"I'd far rather be happy than right any day", "Arthur"});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("delete from quotes where user_id = 'Arthur' and id = 1 and date = 1395874800000");
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(1L, response.rowCount());
+
+        execute("drop table quotes");
+        assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testAlterPartitionTable() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
+        ensureGreen();
+        assertThat(response.rowCount(), is(1L));
+
+        String templateName = PartitionName.templateName("quotes");
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
+
+        execute("alter table quotes set (number_of_replicas=0)");
+        ensureGreen();
+
+        templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
+        assertThat(templateSettings.getAsBoolean(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, true), is(false));
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
+
+        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L,
+                             2, "Now panic", 1395961200000L}
+        );
+        assertThat(response.rowCount(), is(2L));
+        ensureGreen();
+        refresh();
+
+        assertTrue(clusterService().state().metaData().aliases().containsKey("quotes"));
+
+        execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
+        assertEquals("0", response.rows()[0][0]);
+        assertEquals(3, response.rows()[0][1]);
+
+        execute("alter table quotes set (number_of_replicas='1-all')");
+        ensureGreen();
+
+        execute("select number_of_replicas from information_schema.tables where table_name = 'quotes'");
+        assertEquals("1-all", response.rows()[0][0]);
+
+        templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1), is(0));
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
+
+        List<String> partitions = ImmutableList.of(
+                new PartitionName("quotes", Arrays.asList("1395874800000")).stringValue(),
+                new PartitionName("quotes", Arrays.asList("1395961200000")).stringValue()
+        );
+        Thread.sleep(1000);
+        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
+                partitions.get(0), partitions.get(1)
+        ).execute().get();
+
+        for (String index : partitions) {
+            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
+            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
+        }
+    }
+
+    @Test
+    public void testAlterTableResetEmptyPartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas='1-all')");
+        ensureGreen();
+        assertThat(response.rowCount(), is(1L));
+
+        String templateName = PartitionName.templateName("quotes");
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
+
+        execute("alter table quotes reset (number_of_replicas)");
+        ensureGreen();
+
+        templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+
+    }
+
+    @Test
+    public void testAlterTableResetPartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas='1-all')");
+        ensureGreen();
+        assertThat(response.rowCount(), is(1L));
+
+        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L,
+                             2, "Now panic", 1395961200000L}
+        );
+        assertThat(response.rowCount(), is(2L));
+        ensureGreen();
+        refresh();
+
+        execute("alter table quotes reset (number_of_replicas)");
+        ensureGreen();
+
+        String templateName = PartitionName.templateName("quotes");
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        Settings  templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+
+        List<String> partitions = ImmutableList.of(
+                new PartitionName("quotes", Arrays.asList("1395874800000")).stringValue(),
+                new PartitionName("quotes", Arrays.asList("1395961200000")).stringValue()
+        );
+        Thread.sleep(1000);
+        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
+                partitions.get(0), partitions.get(1)
+        ).execute().get();
+
+        for (String index : partitions) {
+            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
+            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+        }
+
+    }
+
+    @Test
+    public void testSelectFormatFunction() throws Exception {
+        this.setup.setUpLocations();
+        ensureGreen();
+        refresh();
+
+        execute("select format('%s is a %s', name, kind) as sentence from locations order by name");
+        assertThat(response.rowCount(), is(13L));
+        assertArrayEquals(response.cols(), new String[]{"sentence"});
+        assertThat(response.rows()[0].length, is(1));
+        assertThat((String) response.rows()[0][0], is(" is a Planet"));
+        assertThat((String) response.rows()[1][0], is("Aldebaran is a Star System"));
+        assertThat((String) response.rows()[2][0], is("Algol is a Star System"));
+        // ...
+
+    }
+
+    @Test
+    public void testRefreshPartitionedTableAllPartitions() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
+        ensureGreen();
+
+        execute("refresh table parted");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("insert into parted (id, name, date) values " +
+                "(1, 'Trillian', '1970-01-01'), " +
+                "(2, 'Arthur', '1970-01-07')");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select count(*) from parted");
+        assertThat((Long)response.rows()[0][0], is(0L));
+
+        execute("refresh table parted");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("select count(*) from parted");
+        assertThat((Long)response.rows()[0][0], is(2L));
+    }
+
+    @Test(expected = PartitionUnknownException.class)
+    public void testRefreshEmptyPartitionedTable() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
+        ensureGreen();
+
+        execute("refresh table parted partition '0400===='");
+    }
+
+    @Test
+    public void testRefreshPartitionedTableSinglePartitions() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=-1)");
+        ensureGreen();
+        execute("insert into parted (id, name, date) values " +
+                "(1, 'Trillian', '1970-01-01'), " +
+                "(2, 'Arthur', '1970-01-07')");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select * from parted");
+        assertThat(response.rowCount(), is(0L));
+
+        PartitionName partitionName = new PartitionName("parted", Arrays.asList("0"));
+
+        execute("refresh table parted PARTITION '" + partitionName.ident() + "'");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("select * from parted");
+        assertThat(response.rowCount(), is(1L));
+
+        partitionName = new PartitionName("parted", Arrays.asList("518400000"));
+
+        execute("refresh table parted PARTITION '" + partitionName.ident() + "'");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("select * from parted");
+        assertThat(response.rowCount(), is(2L));
+
+        String templateName = PartitionName.templateName("parted");
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        Settings  templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
+        assertThat(templateSettings.get(TablePropertiesAnalysis.REFRESH_INTERVAL), is("-1"));
     }
 
 }

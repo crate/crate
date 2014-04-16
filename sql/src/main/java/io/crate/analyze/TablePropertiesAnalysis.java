@@ -24,10 +24,13 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.NumberOfReplicas;
+import io.crate.core.StringUtils;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.service.InternalIndexShard;
 
 import java.util.List;
 import java.util.Locale;
@@ -35,9 +38,9 @@ import java.util.Map;
 
 public class TablePropertiesAnalysis {
 
-    private final static String NUMBER_OF_REPLICAS = "number_of_replicas";
-    private final static String AUTO_EXPAND_REPLICAS = "auto_expand_replicas";
-    public final static String REFRESH_INTERVAL = "refresh_interval";
+    public final static String NUMBER_OF_REPLICAS = IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
+    public final static String AUTO_EXPAND_REPLICAS = IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS;
+    public final static String REFRESH_INTERVAL = InternalIndexShard.INDEX_REFRESH_INTERVAL;
 
     private static final ExpressionToObjectVisitor expressionVisitor = new ExpressionToObjectVisitor();
 
@@ -47,16 +50,27 @@ public class TablePropertiesAnalysis {
                     .put(REFRESH_INTERVAL, new RefreshIntervalSettingApplier())
                     .build();
 
-    private static final ImmutableMap<String, Object> defaultValues = ImmutableMap.<String, Object>builder()
-            .put(NUMBER_OF_REPLICAS, 1)
-            .put(REFRESH_INTERVAL, 1000) // ms
+    private static final ImmutableMap<String, Settings> defaultValues = ImmutableMap.<String, Settings>builder()
+                    .put(NUMBER_OF_REPLICAS, ImmutableSettings.builder()
+                            .put(NUMBER_OF_REPLICAS, 1)
+                            .put(AUTO_EXPAND_REPLICAS, false)
+                            .build())
+            .put(REFRESH_INTERVAL, ImmutableSettings.builder().put(REFRESH_INTERVAL, 1000).build()) // ms
             .build();
 
     public static Settings propertiesToSettings(GenericProperties properties, Object[] parameters) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        return propertiesToSettings(properties, parameters, false);
+    }
 
+    public static Settings propertiesToSettings(GenericProperties properties, Object[] parameters, boolean withDefaults) {
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        if (withDefaults) {
+            for (Settings defaultSetting : defaultValues.values()) {
+                builder.put(defaultSetting);
+            }
+        }
         for (Map.Entry<String, List<Expression>> entry : properties.properties().entrySet()) {
-            SettingsApplier settingsApplier = supportedProperties.get(entry.getKey());
+            SettingsApplier settingsApplier = supportedProperties.get(normalizeKey(entry.getKey()));
             if (settingsApplier == null) {
                 throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "TABLES don't have the \"%s\" property", entry.getKey()));
@@ -68,11 +82,19 @@ public class TablePropertiesAnalysis {
         return builder.build();
     }
 
-    public static Object getDefault(String property) {
-        Preconditions.checkArgument(defaultValues.containsKey(property),
+    public static Settings getDefault(String property) {
+        String normalizedKey = normalizeKey(property);
+        Preconditions.checkArgument(defaultValues.containsKey(normalizedKey),
                 "TABLE doesn't have a property \"%s\"", property);
 
-        return defaultValues.get(property);
+        return defaultValues.get(normalizedKey);
+    }
+
+    public static String normalizeKey(String property) {
+        if (!property.startsWith("index.")) {
+            return StringUtils.PATH_JOINER.join("index", property);
+        }
+        return property;
     }
 
 

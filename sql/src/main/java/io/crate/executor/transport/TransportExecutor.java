@@ -41,15 +41,14 @@ import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanVisitor;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
-import io.crate.planner.node.ddl.ESCreateIndexNode;
-import io.crate.planner.node.ddl.ESCreateTemplateNode;
-import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.count.TransportCountAction;
@@ -60,8 +59,9 @@ import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.update.TransportUpdateAction;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.List;
@@ -89,12 +89,14 @@ public class TransportExecutor implements Executor {
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction;
+    private final TransportIndicesAliasesAction transportCreateAliasAction;
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
-    private final Injector injector;
+    private final Provider<Client> clientProvider;
 
     @Inject
-    public TransportExecutor(Injector injector,
+    public TransportExecutor(Provider<Client> clientProvider,
                              TransportSearchAction transportSearchAction,
                              TransportCollectNodeAction transportCollectNodeAction,
                              TransportMergeNodeAction transportMergeNodeAction,
@@ -114,8 +116,9 @@ public class TransportExecutor implements Executor {
                              TransportDeleteIndexAction transportDeleteIndexAction,
                              TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction,
                              TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                             HandlerSideDataCollectOperation handlerSideDataCollectOperation
-    ) {
+                             TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction,
+                             TransportIndicesAliasesAction transportCreateAliasAction,
+                             HandlerSideDataCollectOperation handlerSideDataCollectOperation) {
         this.transportGetAction = transportGetAction;
         this.transportMultiGetAction = transportMultiGetAction;
         this.transportCollectNodeAction = transportCollectNodeAction;
@@ -132,7 +135,9 @@ public class TransportExecutor implements Executor {
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-        this.injector = injector;
+        this.transportDeleteIndexTemplateAction = transportDeleteIndexTemplateAction;
+        this.transportCreateAliasAction = transportCreateAliasAction;
+        this.clientProvider = clientProvider;
 
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
@@ -190,7 +195,7 @@ public class TransportExecutor implements Executor {
             if (node.executionNodes().isEmpty()) {
                 context.addTask(new LocalMergeTask(
                         threadPool,
-                        injector,
+                        clientProvider,
                         new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
                         node));
             } else {
@@ -231,8 +236,20 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
+        public Void visitESCreateAliasNode(ESCreateAliasNode node, Job context) {
+            context.addTask(new ESCreateAliasTask(node, transportCreateAliasAction));
+            return null;
+        }
+
+        @Override
         public Void visitESCreateTemplateNode(ESCreateTemplateNode node, Job context) {
             context.addTask(new ESCreateTemplateTask(node, transportPutIndexTemplateAction));
+            return null;
+        }
+
+        @Override
+        public Void visitESDeleteTemplateNode(ESDeleteTemplateNode node, Job context) {
+            context.addTask(new ESDeleteTemplateTask(node, transportDeleteIndexTemplateAction));
             return null;
         }
 

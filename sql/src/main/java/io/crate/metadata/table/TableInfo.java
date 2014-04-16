@@ -21,6 +21,7 @@
 
 package io.crate.metadata.table;
 
+import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -48,6 +49,8 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      */
     public Collection<ReferenceInfo> columns();
 
+    public List<ReferenceInfo> partitionedByColumns();
+
     public RowGranularity rowGranularity();
 
     public TableIdent ident();
@@ -70,7 +73,20 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      */
     public boolean isAlias();
 
-    public String[] partitions();
+    public String[] concreteIndices();
+
+    public List<PartitionName> partitions();
+
+    public List<String> partitionedBy();
+
+    /**
+     * returns <code>true</code> if this table is a partitioned table,
+     * <code>false</code> otherwise
+     *
+     * if so, {@linkplain #partitions()} returns the concrete indices that make
+     * up this virtual partitioned table
+     */
+    public boolean isPartitioned();
 
     /**
      * return a Dynamic Reference used when a column does not exist in the table mapping

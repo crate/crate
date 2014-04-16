@@ -25,6 +25,10 @@ import org.elasticsearch.rest.RestStatus;
 
 public class DuplicateKeyException extends CrateException {
 
+    public DuplicateKeyException(String msg) {
+        super(msg);
+    }
+
     public DuplicateKeyException(String msg, Throwable e) {
         super(msg, e);
     }

@@ -24,13 +24,15 @@ package io.crate.planner;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.exceptions.CrateException;
 import io.crate.metadata.*;
@@ -38,10 +40,8 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
-import io.crate.planner.node.ddl.ESCreateIndexNode;
-import io.crate.planner.node.ddl.ESCreateTemplateNode;
-import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.operation.projectors.TopN;
+import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
@@ -64,6 +64,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Planner extends AnalysisVisitor<Void, Plan> {
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
+    static final PlannerReferenceExtractor referenceExtractor = new PlannerReferenceExtractor();
     private static final DataTypeVisitor dataTypeVisitor = new DataTypeVisitor();
     private final ClusterService clusterService;
 
@@ -95,6 +96,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             WhereClause whereClause = analysis.whereClause();
             if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()
                     && analysis.table().getRouting(whereClause).hasLocations()) {
+
                     if (analysis.ids().size() > 0
                             && analysis.routingValues().size() > 0
                             && !analysis.table().isAlias()) {
@@ -111,7 +113,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     @Override
     protected Plan visitInsertAnalysis(InsertAnalysis analysis, Void context) {
-        Preconditions.checkState(analysis.values().size() >= 1, "no values given");
+        Preconditions.checkState(!analysis.sourceMaps().isEmpty(), "no values given");
         Plan plan = new Plan();
         ESIndex(analysis, plan);
         return plan;
@@ -121,7 +123,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     protected Plan visitUpdateAnalysis(UpdateAnalysis analysis, Void context) {
         Plan plan = new Plan();
         ESUpdateNode node = new ESUpdateNode(
-                analysis.table().ident().name(),
+                indices(analysis),
                 analysis.assignments(),
                 analysis.whereClause(),
                 analysis.ids(),
@@ -191,23 +193,51 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     private void copyFromPlan(CopyAnalysis analysis, Plan plan) {
+        int clusteredByPrimaryKeyIdx = analysis.table().primaryKey().indexOf(analysis.table().clusteredBy());
+        List<String> partitionedBy = new ArrayList<>(analysis.table().partitionedBy());
+
         List<Projection> projections = Arrays.<Projection>asList(new IndexWriterProjection(
-            analysis.table().ident().name(),
-            analysis.table().primaryKey(),
-            analysis.settings()
+                analysis.table().ident().name(),
+                analysis.table().primaryKey(),
+                analysis.table().partitionedBy(),
+                clusteredByPrimaryKeyIdx,
+                analysis.settings(),
+                null,
+                partitionedBy.size() > 0 ? partitionedBy.toArray(new String[partitionedBy.size()]) : null
         ));
 
-        // NOTE: this could be further optimized:
-        //  if clusteredBy is part of the primary key it would be better to just collect the reference once.
-        List<Reference> references = new ArrayList<>(analysis.table().primaryKey().size() + 1);
+        partitionedBy.removeAll(analysis.table().primaryKey());
+
+        int referencesSize = analysis.table().primaryKey().size() + partitionedBy.size() + 1;
+        referencesSize = clusteredByPrimaryKeyIdx == -1 ? referencesSize + 1 : referencesSize;
+        List<Symbol> toCollect = new ArrayList<>(referencesSize);
+        // add primaryKey columns
         for (String primaryKey : analysis.table().primaryKey()) {
-            references.add(new Reference(analysis.table().getColumnInfo(new ColumnIdent(primaryKey))));
+            toCollect.add(
+                    new Reference(analysis.table().getColumnInfo(new ColumnIdent(primaryKey)))
+            );
         }
-        references.add(new Reference(analysis.table().getColumnInfo(new ColumnIdent(analysis.table().clusteredBy()))));
-        List<Symbol> toCollect = new ArrayList<Symbol>(references);
-        toCollect.add(
-                new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW))
-        );
+
+        // add partitioned columns (if not part of primaryKey)
+        for (String partitionedColumn : partitionedBy) {
+            toCollect.add(
+                    new Reference(analysis.table().getColumnInfo(new ColumnIdent(partitionedColumn)))
+            );
+        }
+
+        // add clusteredBy column (if not part of primaryKey)
+        if (clusteredByPrimaryKeyIdx == -1) {
+            toCollect.add(
+                    new Reference(analysis.table().getColumnInfo(new ColumnIdent(analysis.table().clusteredBy())))
+            );
+        }
+
+        // finally add _raw or _doc
+        if (analysis.table().isPartitioned()) {
+            toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.DOC)));
+        } else {
+            toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW)));
+        }
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
         FileUriCollectNode collectNode = new FileUriCollectNode(
@@ -253,8 +283,20 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     @Override
     protected Plan visitDropTableAnalysis(DropTableAnalysis analysis, Void context) {
         Plan plan = new Plan();
-        ESDeleteIndexNode node = new ESDeleteIndexNode(analysis.index());
-        plan.add(node);
+
+        if (!analysis.table().isPartitioned() || analysis.table().partitions().size() > 0) {
+            // delete index always for normal tables
+            // and for partitioned tables only if partitions exist
+            ESDeleteIndexNode node = new ESDeleteIndexNode(analysis.index());
+            plan.add(node);
+        }
+
+        if (analysis.table().isPartitioned()) {
+            String templateName = PartitionName.templateName(analysis.index());
+            ESDeleteTemplateNode templateNode = new ESDeleteTemplateNode(templateName);
+            plan.add(templateNode);
+        }
+
         plan.expectsAffectedRows(true);
         return plan;
     }
@@ -269,8 +311,9 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             ESCreateTemplateNode node = new ESCreateTemplateNode(
                     analysis.templateName(),
                     analysis.templatePrefix(),
-                    analysis.indexSettings(),
-                    analysis.mapping()
+                    analysis.indexSettings().getByPrefix("index."), // strip 'index' prefix for template api
+                    analysis.mapping(),
+                    tableIdent.name()
             );
             plan.add(node);
         } else {
@@ -306,7 +349,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         WhereClause whereClause = analysis.whereClause();
         if (analysis.ids().size() == 1 && analysis.routingValues().size() == 1) {
             plan.add(new ESDeleteNode(
-                    analysis.table().ident().name(),
+                    indices(analysis)[0],
                     analysis.ids().get(0),
                     analysis.routingValues().get(0),
                     whereClause.version()));
@@ -318,10 +361,31 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     private void ESDeleteByQuery(DeleteAnalysis analysis, Plan plan) {
-        ESDeleteByQueryNode node = new ESDeleteByQueryNode(
-                ImmutableSet.<String>of(analysis.table().ident().name()),
-                analysis.whereClause());
-        plan.add(node);
+        String[] indices = indices(analysis);
+
+        if (!analysis.whereClause().hasQuery() && analysis.table().isPartitioned()) {
+            if (indices.length == 0) {
+                // collect all partitions to drop
+                indices = new String[analysis.table().partitions().size()];
+                for (int i=0; i < analysis.table().partitions().size(); i++) {
+                    indices[i] = analysis.table().partitions().get(i).stringValue();
+                }
+            }
+
+            // drop indices/tables
+            for (int i=0; i < indices.length; i++) {
+                ESDeleteIndexNode dropNode = new ESDeleteIndexNode(indices[i], true);
+                plan.add(dropNode);
+            }
+        } else {
+            // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
+            // forbidden through analysis, we must issue deleteByQuery request in addition
+            // to above deleteIndex request(s)
+            ESDeleteByQueryNode node = new ESDeleteByQueryNode(
+                    indices,
+                    analysis.whereClause());
+            plan.add(node);
+        }
         plan.expectsAffectedRows(true);
     }
 
@@ -330,10 +394,19 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
+        String indexName;
+        if (analysis.table().isPartitioned()) {
+            assert analysis.whereClause().partitions().size() == 1 : "ambiguous partitions for ESGet";
+            indexName = analysis.whereClause().partitions().get(0);
+        } else {
+            indexName = analysis.table().ident().name();
+        }
+
         ESGetNode getNode = new ESGetNode(
-                analysis.table().ident().name(),
+                indexName,
                 analysis.ids(),
-                analysis.routingValues());
+                analysis.routingValues(),
+                analysis.table().partitionedByColumns());
         getNode.outputs(contextBuilder.toCollect());
         getNode.outputTypes(extractDataTypes(analysis.outputSymbols()));
         plan.add(getNode);
@@ -370,7 +443,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             tnp.outputs(contextBuilder.outputs());
             projections = ImmutableList.<Projection>of(tnp);
         } else {
-            projections = ImmutableList.<Projection>of();
+            projections = ImmutableList.of();
         }
 
         CollectNode collectNode = PlanNodeBuilder.collect(analysis, contextBuilder.toCollect(), projections);
@@ -390,32 +463,59 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     private void ESSearch(SelectAnalysis analysis, Plan plan) {
         // this is an es query
         // this only supports INFOS as order by
-        List<Reference> orderBy;
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
+                .searchOutput(analysis.outputSymbols());
+        final Predicate<Symbol> symbolIsReference = new Predicate<Symbol>() {
+            @Override
+            public boolean apply(@Nullable Symbol input) {
+                return input instanceof Reference;
+            }
+        };
+
+        boolean needsProjection = !Iterables.all(analysis.outputSymbols(), symbolIsReference);
+        List<Symbol> searchSymbols;
+        if (needsProjection) {
+            searchSymbols = contextBuilder.toCollect();
+        } else {
+            searchSymbols = analysis.outputSymbols();
+        }
+
+        List<Reference> orderBy = null;
         if (analysis.isSorted()) {
             orderBy = Lists.transform(analysis.sortSymbols(), new com.google.common.base.Function<Symbol, Reference>() {
+                @Nullable
                 @Override
-                public Reference apply(Symbol input) {
-                    Preconditions.checkArgument(input.symbolType() == SymbolType.REFERENCE
-                            || input.symbolType() == SymbolType.DYNAMIC_REFERENCE,
-                            "Unsupported order symbol for ESPlan", input);
-                    return (Reference) input;
+                public Reference apply(@Nullable Symbol symbol) {
+                    if (!symbolIsReference.apply(symbol)) {
+                        throw new IllegalArgumentException(
+                                SymbolFormatter.format(
+                                        "Unsupported order symbol for ESPlan: %s", symbol));
+                    }
+                    return (Reference)symbol;
                 }
             });
-
-        } else {
-            orderBy = null;
         }
         ESSearchNode node = new ESSearchNode(
-                analysis.table().ident().name(),
-                analysis.outputSymbols(),
+                indices(analysis),
+                searchSymbols,
                 orderBy,
                 analysis.reverseFlags(),
                 analysis.limit(),
                 analysis.offset(),
-                analysis.whereClause()
+                analysis.whereClause(),
+                analysis.table().partitionedByColumns()
         );
-        node.outputTypes(extractDataTypes(analysis.outputSymbols()));
+        node.outputTypes(extractDataTypes(searchSymbols));
         plan.add(node);
+        // only add projection if we have scalar functions
+        if (needsProjection) {
+            TopNProjection topN = new TopNProjection(
+                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    TopN.NO_OFFSET
+            );
+            topN.outputs(contextBuilder.outputs());
+            plan.add(PlanNodeBuilder.localMerge(Arrays.<Projection>asList(topN), node));
+        }
     }
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan) {
@@ -587,8 +687,12 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     private void ESIndex(InsertAnalysis analysis, Plan plan) {
-        String index = analysis.table().ident().name();
-        ESIndexNode indexNode = new ESIndexNode(index,
+        String[] indices = new String[]{analysis.table().ident().name()};
+        if (analysis.table().isPartitioned()) {
+            indices = analysis.partitions().toArray(new String[analysis.partitions().size()]);
+        }
+        ESIndexNode indexNode = new ESIndexNode(
+                indices,
                 analysis.sourceMaps(),
                 analysis.ids(),
                 analysis.routingValues());
@@ -642,4 +746,13 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         return type;
     }
 
+    private String[] indices(AbstractDataAnalysis analysis) {
+        String[] indices;
+        if (analysis.whereClause().partitions().size() == 0) {
+            indices = new String[]{analysis.table().ident().name()};
+        } else {
+            indices = analysis.whereClause().partitions().toArray(new String[]{});
+        }
+        return indices;
+    }
 }

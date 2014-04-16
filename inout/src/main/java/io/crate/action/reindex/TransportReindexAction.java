@@ -26,6 +26,7 @@ import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -40,10 +41,11 @@ public class TransportReindexAction extends AbstractTransportSearchIntoAction {
     public TransportReindexAction(Settings settings, ThreadPool threadPool,
             ClusterService clusterService, TransportService transportService,
             CacheRecycler cacheRecycler, PageCacheRecycler pageRecycler,
+            BigArrays bigArrays,
             IndicesService indicesService, ScriptService scriptService,
             ReindexParser parser, Writer writer) {
         super(settings, threadPool, clusterService, transportService, cacheRecycler, pageRecycler,
-                indicesService, scriptService, parser, writer);
+                bigArrays, indicesService, scriptService, parser, writer);
     }
 
     @Override

@@ -5,16 +5,28 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - It is now possible to specify the columns that should be exported when using
+ - feature: implemented partitioned tables
+
+ - feature: added table 'information_schema.table_partitions'
+
+ - feature: added column 'partitioned_by' to table 'information_schema.tables'
+
+ - feature: added s3 support for COPY TO
+
+ - feature: It is now possible to specify the columns that should be exported when using
    the COPY TO statement.
 
- - added the ``DIRECTORY`` keyword to COPY TO
+ - feature: added the ``DIRECTORY`` keyword to COPY TO
 
- - updated crate-theme to 0.0.15 to fix documentation link in the admin-ui
+ - feature: added sys.nodes.heap expression
 
- - added s3 support for COPY TO
+ - upgraded to ES 1.1.0
 
- - added sys.nodes.heap expression
+ - fix: elect one shard as primary shard for unassigned shards
+
+ - fix: Items of string arrays now get transformed to strings
+
+ - fix: updated crate-theme to 0.0.15 to fix documentation link in the admin-ui
 
 2014/04/14 0.35.5
 =================

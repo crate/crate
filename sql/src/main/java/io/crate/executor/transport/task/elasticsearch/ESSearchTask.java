@@ -23,13 +23,13 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.exceptions.ExceptionHelper;
 import io.crate.executor.Task;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
-import io.crate.exceptions.ExceptionHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -67,7 +67,7 @@ public class ESSearchTask implements Task<Object[][]> {
 
         try {
             request.source(queryBuilder.convert(searchNode), false);
-            request.indices(new String[]{searchNode.indexName()});
+            request.indices(searchNode.indices());
             request.routing(searchNode.whereClause().clusteredBy().orNull());
 
             transportSearchAction.execute(request, new ActionListener<SearchResponse>() {
@@ -107,7 +107,7 @@ public class ESSearchTask implements Task<Object[][]> {
     private ESFieldExtractor[] buildExtractor(final List<? extends Reference> outputs) {
         ESFieldExtractor[] extractors = new ESFieldExtractor[outputs.size()];
         int i = 0;
-        for (Reference reference : outputs) {
+        for (final Reference reference : outputs) {
             final ColumnIdent columnIdent = reference.info().ident().columnIdent();
             if (DocSysColumns.VERSION.equals(columnIdent)) {
                 extractors[i] = new ESFieldExtractor() {
@@ -144,6 +144,10 @@ public class ESSearchTask implements Task<Object[][]> {
                         return hit.getScore();
                     }
                 };
+            } else if (searchNode.partitionBy().contains(reference.info())) {
+                extractors[i] = new ESFieldExtractor.PartitionedByColumnExtractor(
+                        reference, searchNode.partitionBy()
+                );
             } else {
                 extractors[i] = new ESFieldExtractor.Source(columnIdent);
             }

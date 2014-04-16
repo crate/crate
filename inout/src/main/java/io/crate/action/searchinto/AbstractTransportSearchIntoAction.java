@@ -40,6 +40,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.indices.IndicesService;
@@ -78,19 +79,22 @@ public abstract class AbstractTransportSearchIntoAction extends
 
     private final PageCacheRecycler pageRecycler;
 
+    private final BigArrays bigArrays;
+
     private final Writer writer;
 
     @Inject
     public AbstractTransportSearchIntoAction(Settings settings,
             ThreadPool threadPool, ClusterService clusterService,
             TransportService transportService, CacheRecycler cacheRecycler,
-            PageCacheRecycler pageRecycler,
+            PageCacheRecycler pageRecycler, BigArrays bigArrays,
             IndicesService indicesService, ScriptService scriptService,
             ISearchIntoParser parser, Writer writer) {
         super(settings, threadPool, clusterService, transportService);
         this.indicesService = indicesService;
         this.cacheRecycler = cacheRecycler;
         this.pageRecycler = pageRecycler;
+        this.bigArrays = bigArrays;
         this.scriptService = scriptService;
         this.parser = parser;
         this.writer = writer;
@@ -193,7 +197,7 @@ public abstract class AbstractTransportSearchIntoAction extends
         SearchIntoContext context = new SearchIntoContext(0,
                 new ShardSearchRequest().types(request.types()).filteringAliases(request.filteringAliases()),
                 shardTarget, indexShard.acquireSearcher("crate/inout"), indexService, indexShard,
-                scriptService, cacheRecycler, pageRecycler
+                scriptService, cacheRecycler, pageRecycler, bigArrays
         );
         SearchIntoContext.setCurrent(context);
 

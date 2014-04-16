@@ -21,15 +21,30 @@
 
 package io.crate.metadata.doc;
 
-import io.crate.metadata.TableIdent;
+import io.crate.Constants;
+import io.crate.PartitionName;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.TableIdent;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.io.FileSystemUtils;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.ESLoggerFactory;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 
 public class DocTableInfoBuilder {
 
@@ -37,10 +52,15 @@ public class DocTableInfoBuilder {
     private final MetaData metaData;
     private final boolean checkAliasSchema;
     private final ClusterService clusterService;
+    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private String[] concreteIndices;
+    ESLogger logger = ESLoggerFactory.getLogger(FileSystemUtils.class.getName());
 
-    public DocTableInfoBuilder(TableIdent ident, ClusterService clusterService, boolean checkAliasSchema) {
+    public DocTableInfoBuilder(TableIdent ident, ClusterService clusterService,
+                               TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                               boolean checkAliasSchema) {
         this.clusterService = clusterService;
+        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.metaData = clusterService.state().metaData();
         this.ident = ident;
         this.checkAliasSchema = checkAliasSchema;
@@ -48,17 +68,38 @@ public class DocTableInfoBuilder {
 
     public DocIndexMetaData docIndexMetaData() {
         DocIndexMetaData docIndexMetaData;
-        try {
-            concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
-        } catch (IndexMissingException ex) {
-            throw new TableUnknownException(ident.name(), ex);
+        String templateName = PartitionName.templateName(ident.name());
+        boolean createdFromTemplate = false;
+        if (metaData.getTemplates().containsKey(templateName)) {
+            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.name(), templateName);
+            createdFromTemplate = true;
+            try {
+                concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
+            } catch(IndexMissingException e) {
+                // no partition created yet
+                concreteIndices = new String[]{};
+            }
+        } else {
+            try {
+                concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
+                docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
+            } catch (IndexMissingException ex) {
+                throw new TableUnknownException(ident.name(), ex);
+            }
         }
-        docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
+
         if (concreteIndices.length == 1 || !checkAliasSchema) {
             return docIndexMetaData;
         }
-        for (int i = 1; i < concreteIndices.length; i++) {
-            docIndexMetaData = docIndexMetaData.merge(buildDocIndexMetaData(concreteIndices[i]));
+        for (int i = 0; i < concreteIndices.length; i++) {
+            try {
+                docIndexMetaData = docIndexMetaData.merge(
+                        buildDocIndexMetaData(concreteIndices[i]),
+                        transportPutIndexTemplateAction,
+                        createdFromTemplate);
+            } catch (IOException e) {
+                throw new CrateException("Unable to merge/build new DocIndexMetaData", e);
+            }
         }
         return docIndexMetaData;
     }
@@ -73,11 +114,50 @@ public class DocTableInfoBuilder {
         return docIndexMetaData.build();
     }
 
+    private DocIndexMetaData buildDocIndexMetaDataFromTemplate(String index, String templateName) {
+        IndexTemplateMetaData indexTemplateMetaData = metaData.getTemplates().get(templateName);
+        DocIndexMetaData docIndexMetaData;
+        try {
+            IndexMetaData.Builder builder = new IndexMetaData.Builder(index);
+            builder.putMapping(Constants.DEFAULT_MAPPING_TYPE,
+                    indexTemplateMetaData.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).toString());
+            Settings settings = indexTemplateMetaData.settings();
+            builder.settings(settings);
+            // default values
+            builder.numberOfShards(settings.getAsInt(SETTING_NUMBER_OF_SHARDS, 5));
+            builder.numberOfReplicas(settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
+            docIndexMetaData = new DocIndexMetaData(builder.build(), ident);
+        } catch (IOException e) {
+            throw new CrateException("Unable to build DocIndexMetaData from template", e);
+        }
+        return docIndexMetaData.build();
+    }
+
     public DocTableInfo build() {
         DocIndexMetaData md = docIndexMetaData();
-        return new DocTableInfo(ident, md.columns(), md.references(), md.primaryKey(), md.routingCol(),
+
+        List<PartitionName> partitions = new ArrayList<>();
+        if (md.partitionedBy().size() > 0) {
+            for(String index : concreteIndices) {
+                if (PartitionName.isPartition(index, ident.name())) {
+                    try {
+                        PartitionName partitionName = PartitionName.fromString(index, ident.name());
+                        partitions.add(partitionName);
+                    } catch (IllegalArgumentException e) {
+                        // ignore
+                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", index, ident.name()));
+                    }
+                }
+            }
+        }
+
+        return new DocTableInfo(ident, md.columns(), md.partitionedByColumns(),
+                md.references(), md.primaryKey(), md.routingCol(),
                 md.isAlias(), md.hasAutoGeneratedPrimaryKey(),
-                concreteIndices, clusterService, md.numberOfShards(), md.numberOfReplicas());
+                concreteIndices, clusterService,
+                md.numberOfShards(), md.numberOfReplicas(),
+                md.partitionedBy(),
+                partitions);
     }
 
 }

@@ -126,7 +126,7 @@ public class SysNodesTableInfo extends SysTableInfo {
     }
 
     @Override
-    public String[] partitions() {
+    public String[] concreteIndices() {
         return PARTITIONS;
     }
 

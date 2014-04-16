@@ -42,17 +42,16 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.*;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
@@ -197,6 +196,9 @@ public class LocalDataCollectTest {
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
             binder.addBinding(TestExpression.ident).toInstance(new TestExpression());
 
+            TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
+            bind(TransportPutIndexTemplateAction.class).toInstance(transportPutIndexTemplateAction);
+
             bind(IndexService.class).toInstance(indexService);
         }
     }
@@ -216,6 +218,8 @@ public class LocalDataCollectTest {
         protected void configure() {
             IndexShard shard = mock(InternalIndexShard.class);
             bind(IndexShard.class).toInstance(shard);
+            Index index = new Index(TEST_TABLE_NAME);
+            bind(Index.class).toInstance(index);
             bind(ShardId.class).toInstance(shardId);
             MapBinder<ReferenceIdent, ShardReferenceImplementation> binder = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
@@ -254,8 +258,9 @@ public class LocalDataCollectTest {
         when(indexService.shardSafe(1)).thenReturn(shard1Injector.getInstance(IndexShard.class));
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
+        Provider<Client> clientProvider = injector.getProvider(Client.class);
         operation = new MapSideDataCollectOperation(
-                injector,
+                clientProvider,
                 injector.getInstance(ClusterService.class),
                 functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool
         );

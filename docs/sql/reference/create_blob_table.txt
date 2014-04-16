@@ -21,4 +21,4 @@ CREATE BLOB TABLE will create a new table for holding BLOBS. For
 details and examples see :ref:`blob_support`.
 
 The CLUSTERED and WITH clauses follow the same semantics described
-under :ref:`clustered_clause` and :ref:`with_clause`.
+under :ref:`ref_clustered_clause` and :ref:`with_clause`.

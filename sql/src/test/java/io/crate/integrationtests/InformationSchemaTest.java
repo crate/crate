@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
@@ -79,15 +80,16 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultTables() throws Exception {
         execute("select * from information_schema.tables order by schema_name, table_name");
-        assertEquals(7L, response.rowCount());
+        assertEquals(8L, response.rowCount());
 
-        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, "0", null});
-        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "routines", 1, "0", null});
-        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "table_constraints", 1, "0", null});
-        assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "tables", 1, "0", null});
-        assertArrayEquals(response.rows()[4], new Object[]{"sys", "cluster", 1, "0", null});
-        assertArrayEquals(response.rows()[5], new Object[]{"sys", "nodes", 1, "0", null});
-        assertArrayEquals(response.rows()[6], new Object[]{"sys", "shards", 1, "0", null});
+        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, "0", null, null});
+        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "routines", 1, "0", null, null});
+        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "table_constraints", 1, "0", null, null});
+        assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "table_partitions", 1, "0", null, null});
+        assertArrayEquals(response.rows()[4], new Object[]{"information_schema", "tables", 1, "0", null, null});
+        assertArrayEquals(response.rows()[5], new Object[]{"sys", "cluster", 1, "0", null, null});
+        assertArrayEquals(response.rows()[6], new Object[]{"sys", "nodes", 1, "0", null, null});
+        assertArrayEquals(response.rows()[7], new Object[]{"sys", "shards", 1, "0", null, null});
     }
 
     @Test
@@ -95,7 +97,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         serviceSetup();
 
         execute("select * from information_schema.tables");
-        assertEquals(10L, response.rowCount());
+        assertEquals(11L, response.rowCount());
 
         client().execute(SQLAction.INSTANCE,
             new SQLRequest("create table t4 (col1 integer, col2 string)")).actionGet();
@@ -105,9 +107,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         Thread.sleep(10);
 
         execute("select * from information_schema.tables");
-        assertEquals(11L, response.rowCount());
+        assertEquals(12L, response.rowCount());
     }
-
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderBy() throws Exception {
@@ -195,10 +196,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where schema_name='blob'");
         assertEquals(0L, response.rowCount());
 
-        // TODO: replace with "create blob table test" SQL stmt when supported
-        prepareCreate(".blob_test")
-                .setSettings(new HashMap<String, Object>(){{put("blobs_enabled", true);}})
-                .execute().actionGet();
+        execute("create blob table test");
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
@@ -208,6 +206,22 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(5, response.rows()[0][1]);
         assertEquals("1", response.rows()[0][2]);
         assertEquals("digest", response.rows()[0][3]);
+    }
+
+    @Test
+    public void testSelectPartitionedTablesFromInformationSchemaTable() throws Exception {
+        execute("create table test (id int primary key, name string) partitioned by (id)");
+        execute("insert into test (id, name) values (1, 'Youri'), (2, 'Ruben')");
+        ensureGreen();
+
+        execute("select table_name, number_of_shards, number_of_replicas, " +
+                "clustered_by, partitioned_by from INFORMATION_SCHEMA.Tables where schema_name = 'doc'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals(5, response.rows()[0][1]);
+        assertEquals("1", response.rows()[0][2]);
+        assertEquals("id", response.rows()[0][3]);
+        assertArrayEquals(new String[]{"id"}, (String[])response.rows()[0][4]);
     }
 
     @Test
@@ -237,7 +251,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(dotJoiner.join(response.rows()[2][0], response.rows()[2][1]), is("sys.nodes"));
         assertThat(commaJoiner.join((Collection<?>)response.rows()[2][2]), is("id"));
         assertThat(dotJoiner.join(response.rows()[3][0], response.rows()[3][1]), is("sys.shards"));
-        assertThat(commaJoiner.join((Collection<?>)response.rows()[3][2]), is("schema_name, table_name, id"));
+        assertThat(commaJoiner.join((Collection<?>)response.rows()[3][2]), is("schema_name, table_name, id, partition_ident"));
 
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
@@ -382,7 +396,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(51L, response.rowCount());
+        assertEquals(57L, response.rowCount());
     }
 
     @Test
@@ -567,7 +581,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("select count(*) from information_schema.tables");
         assertEquals(1, response.rowCount());
-        assertEquals(10L, response.rows()[0][0]); // 3 + 5
+        assertEquals(11L, response.rows()[0][0]); // 3 + 5
     }
 
     @Test
@@ -583,8 +597,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     public void selectGlobalExpressionGroupBy() throws Exception {
         serviceSetup();
         execute("select table_name, count(column_name), sys.cluster.name " +
-                        "from information_schema.columns where schema_name='doc' group by table_name, sys.cluster.name " +
-                        "order by table_name");
+                "from information_schema.columns where schema_name='doc' group by table_name, sys.cluster.name " +
+                "order by table_name");
         assertEquals(3, response.rowCount());
 
         assertEquals("t1", response.rows()[0][0]);
@@ -729,4 +743,69 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select sum(number_of_shards) from information_schema.tables");
         assertEquals(1, response.rowCount());
     }
+
+    @Test
+    public void testPartitionedBy() throws Exception {
+        execute("create table my_table (id integer, name string) partitioned by (name)");
+        execute("create table my_other_table (id integer, name string, content string) " +
+                "partitioned by (name, content)");
+
+        execute("select * from information_schema.tables " +
+                "where schema_name = 'doc' order by table_name");
+
+        String[] row1 = new String[] { "name", "content" };
+        String[] row2 = new String[] { "name" };
+        assertArrayEquals((String[]) response.rows()[0][5], row1);
+        assertArrayEquals((String[]) response.rows()[1][5], row2);
+    }
+
+    @Test
+    public void testInformationSchemaTablePartitions() throws Exception {
+        execute("create table my_table (par int, content string) partitioned by (par)");
+        execute("insert into my_table (par, content) values (1, 'content1')");
+        execute("insert into my_table (par, content) values (1, 'content2')");
+        execute("insert into my_table (par, content) values (2, 'content3')");
+        execute("insert into my_table (par, content) values (2, 'content4')");
+        execute("insert into my_table (par, content) values (2, 'content5')");
+        execute("insert into my_table (par, content) values (3, 'content6')");
+        ensureGreen();
+
+        execute("select * from information_schema.table_partitions order by table_name, partition_ident");
+        assertEquals(3, response.rowCount());
+
+        Object[] row1 = new Object[] { "my_table", "doc", "04132", ImmutableMap.of("par", 1) };
+        Object[] row2 = new Object[] { "my_table", "doc", "04134", ImmutableMap.of("par", 2) };
+        Object[] row3 = new Object[] { "my_table", "doc", "04136", ImmutableMap.of("par", 3) };
+
+        assertArrayEquals(row1, response.rows()[0]);
+        assertArrayEquals(row2, response.rows()[1]);
+        assertArrayEquals(row3, response.rows()[2]);
+    }
+
+    @Test
+    public void testInformationSchemaTablePartitionsMultiCol() throws Exception {
+        execute("create table my_table (par int, par_str string, content string) partitioned by (par, par_str)");
+        execute("insert into my_table (par, par_str, content) values (1, 'foo', 'content1')");
+        execute("insert into my_table (par, par_str, content) values (1, 'bar', 'content2')");
+        execute("insert into my_table (par, par_str, content) values (2, 'foo', 'content3')");
+        execute("insert into my_table (par, par_str, content) values (2, 'bar', 'content4')");
+        execute("insert into my_table (par, par_str, content) values (2, 'asdf', 'content5')");
+        ensureGreen();
+
+        execute("select * from information_schema.table_partitions order by table_name, partition_ident");
+        assertEquals(5, response.rowCount());
+
+        Object[] row1 = new Object[] { "my_table", "doc", "08132132c5p0", ImmutableMap.of("par", 1, "par_str", "bar") };
+        Object[] row2 = new Object[] { "my_table", "doc", "08132136dtng", ImmutableMap.of("par", 1, "par_str", "foo") };
+        Object[] row3 = new Object[] { "my_table", "doc", "08134132c5p0", ImmutableMap.of("par", 2, "par_str", "bar") };
+        Object[] row4 = new Object[] { "my_table", "doc", "08134136dtng", ImmutableMap.of("par", 2, "par_str", "foo") };
+        Object[] row5 = new Object[] { "my_table", "doc", "081341b1edi6c", ImmutableMap.of("par", 2, "par_str", "asdf") };
+
+        assertArrayEquals(row1, response.rows()[0]);
+        assertArrayEquals(row2, response.rows()[1]);
+        assertArrayEquals(row3, response.rows()[2]);
+        assertArrayEquals(row4, response.rows()[3]);
+        assertArrayEquals(row5, response.rows()[4]);
+    }
+
 }

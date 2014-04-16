@@ -1,4 +1,6 @@
 
+.. _information_schema:
+
 ==================
 Information Schema
 ==================
@@ -19,22 +21,24 @@ settings like the number of shards or number of replicas::
 
     cr> select * from information_schema.tables
     ... where table_name not like 'my_table%' order by schema_name asc, table_name asc;
-    +--------------------+-------------------+------------------+--------------------+--------------+
-    | schema_name        | table_name        | number_of_shards | number_of_replicas | clustered_by |
-    +--------------------+-------------------+------------------+--------------------+--------------+
-    | blob               | myblobs           | 3                | 1                  | digest       |
-    | doc                | documents         | 5                | 1                  | _id          |
-    | doc                | locations         | 2                | 0                  | id           |
-    | doc                | quotes            | 2                | 0                  | id           |
-    | information_schema | columns           | 1                | 0                  | NULL         |
-    | information_schema | routines          | 1                | 0                  | NULL         |
-    | information_schema | table_constraints | 1                | 0                  | NULL         |
-    | information_schema | tables            | 1                | 0                  | NULL         |
-    | sys                | cluster           | 1                | 0                  | NULL         |
-    | sys                | nodes             | 1                | 0                  | NULL         |
-    | sys                | shards            | 1                | 0                  | NULL         |
-    +--------------------+-------------------+------------------+--------------------+--------------+
-    SELECT 11 rows in set (... sec)
+    +--------------------+-------------------+------------------+--------------------+--------------+----------------+
+    | schema_name        | table_name        | number_of_shards | number_of_replicas | clustered_by | partitioned_by |
+    +--------------------+-------------------+------------------+--------------------+--------------+----------------+
+    | blob               | myblobs           | 3                | 1                  | digest       | NULL           |
+    | doc                | documents         | 5                | 1                  | _id          | NULL           |
+    | doc                | locations         | 2                | 0                  | id           | NULL           |
+    | doc                | partitioned_table | 5                | 1                  | _id          | [u'date']      |
+    | doc                | quotes            | 2                | 0                  | id           | NULL           |
+    | information_schema | columns           | 1                | 0                  | NULL         | NULL           |
+    | information_schema | routines          | 1                | 0                  | NULL         | NULL           |
+    | information_schema | table_constraints | 1                | 0                  | NULL         | NULL           |
+    | information_schema | table_partitions  | 1                | 0                  | NULL         | NULL           |
+    | information_schema | tables            | 1                | 0                  | NULL         | NULL           |
+    | sys                | cluster           | 1                | 0                  | NULL         | NULL           |
+    | sys                | nodes             | 1                | 0                  | NULL         | NULL           |
+    | sys                | shards            | 1                | 0                  | NULL         | NULL           |
+    +--------------------+-------------------+------------------+--------------------+--------------+----------------+
+    SELECT 13 rows in set (... sec)
 
 
 Columns
@@ -46,25 +50,28 @@ definition like data type and ordinal position inside the table::
     cr> select * from information_schema.columns
     ... where schema_name='doc' and table_name not like 'my_table%'
     ... order by table_name asc, column_name asc;
-    +-------------+------------+------------------+------------------+--------------+
-    | schema_name | table_name | column_name      | ordinal_position | data_type    |
-    +-------------+------------+------------------+------------------+--------------+
-    | doc         | documents  | body             | 1                | string       |
-    | doc         | documents  | title            | 2                | string       |
-    | doc         | locations  | date             | 1                | timestamp    |
-    | doc         | locations  | description      | 2                | string       |
-    | doc         | locations  | id               | 3                | string       |
-    | doc         | locations  | kind             | 4                | string       |
-    | doc         | locations  | name             | 5                | string       |
-    | doc         | locations  | position         | 6                | integer      |
-    | doc         | locations  | race             | 7                | object       |
-    | doc         | locations  | race.description | 8                | string       |
-    | doc         | locations  | race.interests   | 9                | string_array |
-    | doc         | locations  | race.name        | 10               | string       |
-    | doc         | quotes     | id               | 1                | integer      |
-    | doc         | quotes     | quote            | 2                | string       |
-    +-------------+------------+------------------+------------------+--------------+
-    SELECT 14 rows in set (... sec)
+    +-------------+-------------------+------------------+------------------+--------------+
+    | schema_name | table_name        | column_name      | ordinal_position | data_type    |
+    +-------------+-------------------+------------------+------------------+--------------+
+    | doc         | documents         | body             | 1                | string       |
+    | doc         | documents         | title            | 2                | string       |
+    | doc         | locations         | date             | 1                | timestamp    |
+    | doc         | locations         | description      | 2                | string       |
+    | doc         | locations         | id               | 3                | string       |
+    | doc         | locations         | kind             | 4                | string       |
+    | doc         | locations         | name             | 5                | string       |
+    | doc         | locations         | position         | 6                | integer      |
+    | doc         | locations         | race             | 7                | object       |
+    | doc         | locations         | race.description | 8                | string       |
+    | doc         | locations         | race.interests   | 9                | string_array |
+    | doc         | locations         | race.name        | 10               | string       |
+    | doc         | partitioned_table | date             | 1                | timestamp    |
+    | doc         | partitioned_table | id               | 2                | long         |
+    | doc         | partitioned_table | title            | 3                | string       |
+    | doc         | quotes            | id               | 1                | integer      |
+    | doc         | quotes            | quote            | 2                | string       |
+    +-------------+-------------------+------------------+------------------+--------------+
+    SELECT 17 rows in set (... sec)
 
 
 You can even query this tables' own columns (attention: this might lead to infinite recursion of your mind, beware!)::
@@ -104,20 +111,58 @@ their type, name and which table they are defined in.
     cr> select * from information_schema.table_constraints
     ... where table_name not like 'my_table%'
     ... order by schema_name desc, table_name desc limit 10;
-    +--------------------+------------+-------------------------------------------------+-----------------+
-    | schema_name        | table_name | constraint_name                                 | constraint_type |
-    +--------------------+------------+-------------------------------------------------+-----------------+
-    | sys                | shards     | [u'schema_name', u'table_name', u'id']          | PRIMARY_KEY     |
-    | sys                | nodes      | [u'id']                                         | PRIMARY_KEY     |
-    | information_schema | tables     | [u'schema_name', u'table_name']                 | PRIMARY_KEY     |
-    | information_schema | columns    | [u'schema_name', u'table_name', u'column_name'] | PRIMARY_KEY     |
-    | doc                | quotes     | [u'id']                                         | PRIMARY_KEY     |
-    | doc                | locations  | [u'id']                                         | PRIMARY_KEY     |
-    | doc                | documents  | [u'_id']                                        | PRIMARY_KEY     |
-    | blob               | myblobs    | [u'digest']                                     | PRIMARY_KEY     |
-    +--------------------+------------+-------------------------------------------------+-----------------+
-    SELECT 8 rows in set (... sec)
+    +--------------------+-------------------+------------------------------------------------------------+-----------------+
+    | schema_name        | table_name        | constraint_name                                            | constraint_type |
+    +--------------------+-------------------+------------------------------------------------------------+-----------------+
+    | sys                | shards            | [u'schema_name', u'table_name', u'id', u'partition_ident'] | PRIMARY_KEY     |
+    | sys                | nodes             | [u'id']                                                    | PRIMARY_KEY     |
+    | information_schema | tables            | [u'schema_name', u'table_name']                            | PRIMARY_KEY     |
+    | information_schema | columns           | [u'schema_name', u'table_name', u'column_name']            | PRIMARY_KEY     |
+    | doc                | quotes            | [u'id']                                                    | PRIMARY_KEY     |
+    | doc                | partitioned_table | [u'_id']                                                   | PRIMARY_KEY     |
+    | doc                | locations         | [u'id']                                                    | PRIMARY_KEY     |
+    | doc                | documents         | [u'_id']                                                   | PRIMARY_KEY     |
+    | blob               | myblobs           | [u'digest']                                                | PRIMARY_KEY     |
+    +--------------------+-------------------+------------------------------------------------------------+-----------------+
+    SELECT 9 rows in set (... sec)
 
+
+.. _is_table_partitions:
+
+Table Partitions
+================
+
+This table can be queried to get information about all partitioned tables,
+Each partition of a table is represented as one row. The row contains the
+information table name, schema name, partition ident, and the values of the
+partition. ``values`` is a key-value object with the 'partitioned by column'
+as key(s) and the corresponding value as value(s).
+
+For further information see :ref:`sql_ddl_partitioned_by`.
+
+.. hide:
+
+    cr> create table a_partitioned_table (id int, content string) partitioned by (content)
+    CREATE OK (... sec)
+    cr> insert into a_partitioned_table (id, content) values (1, 'content_a')
+    INSERT OK, 1 row affected (... sec)
+    cr> insert into a_partitioned_table (id, content) values (2, 'content_b')
+    INSERT OK, 1 row affected (... sec)
+
+The following example shows a table where the column 'content' of table
+'a_partitioned_table' has been used to partition the table. The table has two
+partitions. The partitions are introduced when data is inserted where
+'content' is 'content_a', and 'content_b'::
+
+    cr> select * from information_schema.table_partitions
+    ... order by table_name, partition_ident
+    +---------------------+-------------+--------------------+----------------------------+
+    | table_name          | schema_name | partition_ident    | values                     |
+    +---------------------+-------------+--------------------+----------------------------+
+    | a_partitioned_table | doc         | 04566rreehimst2vc4 | {u'content': u'content_a'} |
+    | a_partitioned_table | doc         | 04566rreehimst2vc8 | {u'content': u'content_b'} |
+    +---------------------+-------------+--------------------+----------------------------+
+    SELECT 2 rows in set (... sec)
 
 Indices
 =======

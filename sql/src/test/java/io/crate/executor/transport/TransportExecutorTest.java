@@ -24,21 +24,26 @@ package io.crate.executor.transport;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Constants;
+import io.crate.DataType;
+import io.crate.PartitionName;
+import io.crate.action.sql.SQLResponse;
 import io.crate.analyze.CopyAnalysis;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.executor.transport.task.inout.ImportTask;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OrOperator;
+import io.crate.operation.projectors.TopN;
+import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.*;
@@ -46,19 +51,19 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.ESCountNode;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.ESSearchNode;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
-import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.ImmutableShardRouting;
-import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.search.SearchHits;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,6 +96,14 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     Reference version_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(table, "_version"), RowGranularity.DOC, DataType.LONG));
 
+    TableIdent partedTable = new TableIdent(null, "parted");
+    Reference parted_id_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(partedTable, "id"), RowGranularity.DOC, DataType.INTEGER));
+    Reference parted_name_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(partedTable, "name"), RowGranularity.DOC, DataType.STRING));
+    Reference parted_date_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(partedTable, "date"), RowGranularity.DOC, DataType.TIMESTAMP));
+
     @Before
     public void transportSetUp() {
         clusterService = cluster().getInstance(ClusterService.class);
@@ -104,6 +117,19 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         execute("insert into characters (id, name) values (1, 'Arthur')");
         execute("insert into characters (id, name) values (2, 'Ford')");
         execute("insert into characters (id, name) values (3, 'Trillian')");
+        refresh();
+    }
+
+    private void createPartitionedTable() {
+        execute("create table parted (id int, name string, date timestamp) partitioned by (date)");
+        ensureGreen();
+        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Trillian", null,
+                        2, null, 0L,
+                        3, "Ford", 1396388720242L
+                });
+        ensureGreen();
         refresh();
     }
 
@@ -216,11 +242,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         ESSearchNode node = new ESSearchNode(
-                "characters",
+                new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
-                null, null, WhereClause.MATCH_ALL
+                null, null, WhereClause.MATCH_ALL,
+                null
         );
         Plan plan = new Plan();
         plan.add(node);
@@ -251,12 +278,13 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("Ford")));
 
         ESSearchNode node = new ESSearchNode(
-                "characters",
+                new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
                 null, null,
-                new WhereClause(whereClause)
+                new WhereClause(whereClause),
+                null
         );
         Plan plan = new Plan();
         plan.add(node);
@@ -272,6 +300,103 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testESSearchTaskWithFunction() throws Exception {
+        execute("create table searchf (id int primary key, date timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into searchf (id, date) values (1, '1980-01-01'), (2, '1980-01-02')");
+        refresh();
+
+        Reference id_ref = new Reference(new ReferenceInfo(
+                new ReferenceIdent(
+                        new TableIdent(DocSchemaInfo.NAME, "searchf"),
+                        "id"),
+                RowGranularity.DOC,
+                DataType.INTEGER
+        ));
+        Reference date_ref = new Reference(new ReferenceInfo(
+                new ReferenceIdent(
+                        new TableIdent(DocSchemaInfo.NAME, "searchf"),
+                        "date"),
+                RowGranularity.DOC,
+                DataType.TIMESTAMP
+        ));
+        Function function = new Function(new FunctionInfo(
+                new FunctionIdent(DateTruncFunction.NAME, asList(DataType.STRING, DataType.TIMESTAMP)),
+                DataType.TIMESTAMP, false
+        ), Arrays.<Symbol>asList(new StringLiteral("day"), new InputColumn(1)));
+        Function whereClause = new Function(new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, asList(DataType.INTEGER, DataType.INTEGER)),
+                DataType.BOOLEAN),
+                Arrays.<Symbol>asList(id_ref, new IntegerLiteral(2))
+        );
+
+        ESSearchNode node = new ESSearchNode(
+                new String[]{"searchf"},
+                Arrays.<Symbol>asList(id_ref, date_ref),
+                Arrays.asList(id_ref),
+                new boolean[]{false},
+                null, null,
+                new WhereClause(whereClause),
+                null
+        );
+        MergeNode mergeNode = new MergeNode("merge", 1);
+        mergeNode.inputTypes(Arrays.asList(DataType.INTEGER, DataType.TIMESTAMP));
+        mergeNode.outputTypes(Arrays.asList(DataType.INTEGER, DataType.TIMESTAMP));
+        TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
+        topN.outputs(Arrays.asList(new InputColumn(0), function));
+        mergeNode.projections(Arrays.<Projection>asList(topN));
+        Plan plan = new Plan();
+        plan.add(node);
+        plan.add(mergeNode);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().size(), is(2));
+
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+        assertThat(rows.length, is(1));
+
+        assertThat((Integer) rows[0][0], is(2));
+        assertEquals(315619200000L, rows[0][1]);
+
+    }
+
+    @Test
+    public void testESSearchTaskPartitioned() throws Exception {
+        createPartitionedTable();
+        // get partitions
+        ImmutableOpenMap<String, List<AliasMetaData>> aliases = client().admin().indices().prepareGetAliases().addAliases("parted").execute().actionGet().getAliases();
+        ESSearchNode node = new ESSearchNode(
+                aliases.keys().toArray(String.class),
+                Arrays.<Symbol>asList(parted_id_ref, parted_name_ref, parted_date_ref),
+                Arrays.<Reference>asList(name_ref),
+                new boolean[]{false},
+                null, null,
+                WhereClause.MATCH_ALL,
+                Arrays.asList(parted_date_ref.info())
+        );
+        Plan plan = new Plan();
+        plan.add(node);
+        Job job = executor.newJob(plan);
+        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
+
+        task.start();
+        Object[][] rows = task.result().get(0).get();
+        assertThat(rows.length, is(3));
+
+        assertThat((Integer) rows[0][0], is(3));
+        assertThat((String)rows[0][1], is("Ford"));
+        assertThat((Long) rows[0][2], is(1396388720242L));
+
+        assertThat((Integer) rows[1][0], is(1));
+        assertThat((String) rows[1][1], is("Trillian"));
+        assertNull(rows[1][2]);
+
+        assertThat((Integer) rows[2][0], is(2));
+        assertNull(rows[2][1]);
+        assertThat((Long) rows[2][2], is(0L));
+    }
+
+    @Test
     public void testESDeleteByQueryTask() throws Exception {
         insertCharacters();
 
@@ -280,7 +405,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(id_ref, new IntegerLiteral(2)));
 
-        ESDeleteByQueryNode node = new ESDeleteByQueryNode(ImmutableSet.<String>of("characters"),
+        ESDeleteByQueryNode node = new ESDeleteByQueryNode(
+                new String[]{"characters"},
                 new WhereClause(whereClause));
         Plan plan = new Plan();
         plan.add(node);
@@ -294,12 +420,13 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         // verify deletion
         ESSearchNode searchNode = new ESSearchNode(
-                "characters",
+                new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
                 null, null,
-                new WhereClause(whereClause)
+                new WhereClause(whereClause),
+                null
         );
         plan = new Plan();
         plan.add(searchNode);
@@ -346,7 +473,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         sourceMap.put(id_ref.info().ident().columnIdent().name(), 99);
         sourceMap.put(name_ref.info().ident().columnIdent().name(), "Marvin");
 
-        ESIndexNode indexNode = new ESIndexNode("characters",
+        ESIndexNode indexNode = new ESIndexNode(
+                new String[]{"characters"},
                 Arrays.asList(sourceMap),
                 ImmutableList.of("99"),
                 ImmutableList.of("99")
@@ -377,6 +505,56 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testESIndexPartitionedTableTask() throws Exception {
+        execute("create table parted (" +
+                "  id int, " +
+                "  name string, " +
+                "  date timestamp" +
+                ") partitioned by (date)");
+        ensureGreen();
+        Map<String, Object> sourceMap = new MapBuilder<String, Object>()
+                .put("id", 0L)
+                .put("name", "Trillian")
+                .map();
+        PartitionName partitionName = new PartitionName("parted", Arrays.asList("13959981214861"));
+        ESIndexNode indexNode = new ESIndexNode(
+                new String[]{partitionName.stringValue()},
+                Arrays.asList(sourceMap),
+                ImmutableList.of("123"),
+                ImmutableList.of("123")
+                );
+        Plan plan = new Plan();
+        plan.add(indexNode);
+        plan.expectsAffectedRows(true);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] indexResult = result.get(0).get();
+        assertThat((Long)indexResult[0][0], is(1L));
+
+        refresh();
+
+        assertTrue(
+                client().admin().indices().prepareExists(partitionName.stringValue())
+                        .execute().actionGet().isExists()
+        );
+        assertTrue(
+                client().admin().indices().prepareAliasesExist("parted")
+                        .execute().actionGet().exists()
+        );
+        SearchHits hits = client().prepareSearch(partitionName.stringValue())
+                .setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                .addFields("id", "name")
+                .setQuery(new MapBuilder<String, Object>()
+                                .put("match_all", new HashMap<String, Object>())
+                                .map()
+                ).execute().actionGet().getHits();
+        assertThat(hits.getTotalHits(), is(1L));
+        assertThat((Integer) hits.getHits()[0].field("id").getValues().get(0), is(0));
+        assertThat((String)hits.getHits()[0].field("name").getValues().get(0), is("Trillian"));
+    }
+
+    @Test
     public void testESCountTask() throws Exception {
         insertCharacters();
         Plan plan = new Plan();
@@ -403,7 +581,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         sourceMap2.put(id_ref.info().ident().columnIdent().name(), 42);
         sourceMap2.put(name_ref.info().ident().columnIdent().name(), "Deep Thought");
 
-        ESIndexNode indexNode = new ESIndexNode("characters",
+        ESIndexNode indexNode = new ESIndexNode(
+                new String[]{"characters"},
                 Arrays.asList(sourceMap1, sourceMap2),
                 ImmutableList.of("99", "42"),
                 ImmutableList.of("99", "42")
@@ -446,7 +625,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         // update characters set name='Vogon lyric fan' where id=1
         WhereClause whereClause = new WhereClause(null, false);
         whereClause.clusteredByLiteral(new StringLiteral("1"));
-        ESUpdateNode updateNode = new ESUpdateNode("characters",
+        ESUpdateNode updateNode = new ESUpdateNode(
+                new String[]{"characters"},
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("Vogon lyric fan"));
                 }},
@@ -511,7 +691,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         // update characters set name='mostly harmless' where id=1 and "_version"=?
         WhereClause whereClause = new WhereClause(whereClauseFunction);
         whereClause.version(1L);
-        ESUpdateNode updateNode = new ESUpdateNode("characters",
+        ESUpdateNode updateNode = new ESUpdateNode(
+                new String[]{"characters"},
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},
@@ -537,11 +718,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
         ESSearchNode node = new ESSearchNode(
-                "characters",
+                new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref, version_ref),
                 ImmutableList.<Reference>of(),
                 new boolean[0],
-                null, null, new WhereClause(searchWhereClause)
+                null, null, new WhereClause(searchWhereClause),
+                null
         );
         node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type(), version_ref.info().type()));
         plan = new Plan();
@@ -574,7 +756,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 )));
 
         // update characters set name='mostly harmless' where id=1 or name='Trillian'
-        ESUpdateNode updateNode = new ESUpdateNode("characters",
+        ESUpdateNode updateNode = new ESUpdateNode(
+                new String[]{"characters"},
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},
@@ -600,11 +783,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
         ESSearchNode node = new ESSearchNode(
-                "characters",
+                new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 ImmutableList.of(id_ref),
                 new boolean[]{false},
-                null, null, new WhereClause(searchWhereClause)
+                null, null, new WhereClause(searchWhereClause),
+                null
         );
         node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type()));
         plan = new Plan();

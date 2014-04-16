@@ -34,8 +34,9 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import org.apache.lucene.search.CollectionTerminatedException;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -53,7 +54,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     private final UnassignedShardsCollectService unassignedShardsCollectService;
 
     @Inject
-    public HandlerSideDataCollectOperation(Injector injector,
+    public HandlerSideDataCollectOperation(Provider<Client> clientProvider,
                                            Functions functions,
                                            ReferenceResolver referenceResolver,
                                            InformationSchemaCollectService informationSchemaCollectService,
@@ -63,7 +64,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         this.clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         this.implementationVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         this.projectorVisitor = new ProjectionToProjectorVisitor(
-                injector, implementationVisitor, clusterNormalizer);
+                clientProvider, implementationVisitor, clusterNormalizer);
     }
 
     @Override
@@ -72,8 +73,11 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
             // unassigned shards
             assert collectNode.routing().locations().containsKey(null)
                 && collectNode.maxRowGranularity() == RowGranularity.SHARD;
+        } else if (collectNode.isPartitioned()) {
+            // edge case: partitioned table without actual indices
+            // no results
+            return Futures.immediateFuture(Constants.EMPTY_RESULT);
         }
-
         if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
             // we assume information schema here
             return handleWithService(informationSchemaCollectService, collectNode);

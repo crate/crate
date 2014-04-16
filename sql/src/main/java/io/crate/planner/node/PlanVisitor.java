@@ -95,4 +95,12 @@ public class PlanVisitor<C, R> {
     public R visitESCreateTemplateNode(ESCreateTemplateNode node, C context) {
         return visitPlanNode(node, context);
     }
+
+    public R visitESDeleteTemplateNode(ESDeleteTemplateNode node, C context) {
+        return visitPlanNode(node, context);
+    }
+
+    public R visitESCreateAliasNode(ESCreateAliasNode node, C context) {
+        return visitPlanNode(node, context);
+    }
 }

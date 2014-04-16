@@ -23,27 +23,25 @@ package io.crate.analyze;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.IntSet;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.PartitionName;
+import io.crate.metadata.*;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class InsertAnalysis extends AbstractDataAnalysis {
 
-    // TODO: change this to Map<Reference, Symbol> like in UpdateAnalysis
-    // at all these are assignments too
-    private List<List<Symbol>> values;
     private List<Reference> columns;
-    private boolean visitingValues = false;
+    private List<Reference> partitionedByColumns;
     private IntSet primaryKeyColumnIndices = new IntOpenHashSet(); // optional
+    private IntSet partitionedByColumnsIndices = new IntOpenHashSet();
     private int routingColumnIndex = -1;
 
     private final List<Map<String, Object>> sourceMaps = new ArrayList<>();
+    private List<Map<String, String>> partitionMaps = new ArrayList<>();
 
     public InsertAnalysis(ReferenceInfos referenceInfos,
                           Functions functions,
@@ -52,43 +50,74 @@ public class InsertAnalysis extends AbstractDataAnalysis {
         super(referenceInfos, functions, parameters, referenceResolver);
     }
 
-    public void visitValues() {
-        this.visitingValues = true;
-    }
-
-    public boolean isVisitingValues() {
-        return this.visitingValues;
-    }
-
-    public void allocateValues() {
-        this.values = new ArrayList<>();
-    }
-
-    public void allocateValues(int numValues) {
-        this.values = new ArrayList<>(numValues);
-    }
-
-    public void addValues(List<Symbol> values) {
-        if (this.values == null) {
-            allocateValues();
+    @Override
+    public void editableTable(TableIdent tableIdent) {
+        super.editableTable(tableIdent);
+        if (table().isPartitioned()) {
+            for (Map<String, String> partitionMap : partitionMaps) {
+                partitionMap = new HashMap<>(table().partitionedByColumns().size());
+                for (ReferenceInfo partInfo : table().partitionedByColumns()) {
+                    // initialize with null values for missing partitioned columns
+                    partitionMap.put(partInfo.ident().columnIdent().name(), null);
+                }
+            }
         }
-        for (Symbol s : values) {
-            s = normalizer.process(s, null);
-        }
-        this.values.add(values);
-
-    }
-
-    public List<List<Symbol>> values() {
-        return values;
     }
 
     public List<Reference> columns() {
         return columns;
     }
 
+    public List<Reference> partitionedByColumns() {
+        return partitionedByColumns;
+    }
+
+    public IntSet partitionedByIndices() {
+        return partitionedByColumnsIndices;
+    }
+
+    public void addPartitionedByIndex(int i) {
+        this.partitionedByColumnsIndices.add(i);
+    }
+
+    public List<Map<String, String>> partitionMaps() {
+        return partitionMaps;
+    }
+
+    // create and add a new partition map
+    public Map<String, String> newPartitionMap() {
+        Map<String, String> map = new HashMap<>(table().partitionedByColumns().size());
+        for (ReferenceInfo partInfo : table().partitionedByColumns()) {
+            // initialize with null values for missing partitioned columns
+            map.put(partInfo.ident().columnIdent().name(), null);
+        }
+        partitionMaps.add(map);
+        return map;
+    }
+
+    public List<String> partitions() {
+        List<String> partitionValues = new ArrayList<>(partitionMaps.size());
+        for (Map<String, String> map : partitionMaps) {
+            List<String> values = new ArrayList<>(map.size());
+            List<String> columnNames = partitionedByColumnNames();
+            for (String columnName : columnNames) {
+                values.add(map.get(columnName));
+            }
+            PartitionName partitionName = new PartitionName(
+                table().ident().name(),
+                values
+            );
+            partitionValues.add(partitionName.stringValue());
+        }
+        return partitionValues;
+    }
+
     public void columns(List<Reference> columns) {
         this.columns = columns;
+    }
+
+    public void partitionedByColumns(List<Reference> columns) {
+        this.partitionedByColumns = columns;
     }
 
     public IntSet primaryKeyColumnIndices() {
@@ -97,6 +126,19 @@ public class InsertAnalysis extends AbstractDataAnalysis {
 
     public void addPrimaryKeyColumnIdx(int primaryKeyColumnIdx) {
         this.primaryKeyColumnIndices.add(primaryKeyColumnIdx);
+    }
+
+    /**
+     * TODO: use proper info from DocTableInfo when implemented
+     * @return
+     */
+    private List<String> partitionedByColumnNames() {
+        assert table != null;
+        List<String> names = new ArrayList<>(table.partitionedByColumns().size());
+        for (ReferenceInfo info : table.partitionedByColumns()) {
+            names.add(info.ident().columnIdent().fqn());
+        }
+        return names;
     }
 
     public void routingColumnIndex(int routingColumnIndex) {

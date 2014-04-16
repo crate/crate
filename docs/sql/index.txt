@@ -16,6 +16,7 @@ see :doc:`sql`. For general information about SQL please refer to
    aggregation
    scalar
    occ
+   partitioned_tables
    rest
    analyzer
    information_schema

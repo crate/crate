@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.exceptions.AmbiguousAliasException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -46,15 +47,14 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -83,7 +83,19 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_MULTI_PK.name())).thenReturn(userTableInfoMultiPk);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name()))
+                    .thenReturn(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+        }
+
+        @Override
+        protected void bindFunctions() {
+            super.bindFunctions();
+            functionBinder.addBinding(ABS_FUNCTION_INFO.ident())
+                    .toInstance(new AbsFunction());
+            functionBinder.addBinding(YEAR_FUNCTION_INFO.ident()).toInstance(new YearFunction());
         }
     }
 
@@ -485,10 +497,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testMultipleCompoundPrimaryKeys() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
-            "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo') " +
-                    "or (schema_name='doc' and id = 2 and table_name = 'bla')");
-        assertEquals(ImmutableList.of("AwNkb2MDZm9vATE=", "AwNkb2MDYmxhATI="), analysis.ids());
-        assertEquals(ImmutableList.of("AwNkb2MDZm9vATE=", "AwNkb2MDYmxhATI="), analysis.routingValues());
+            "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo' and partition_ident='') " +
+                    "or (schema_name='doc' and id = 2 and table_name = 'bla' and partition_ident='')");
+        assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), analysis.ids());
+        assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), analysis.routingValues());
         assertFalse(analysis.whereClause().clusteredBy().isPresent());
 
         analysis = (SelectAnalysis)analyze(
@@ -531,16 +543,16 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void test3ColPrimaryKey() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc'");
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc' and partition_ident=''");
         // base64 encoded versions of Streamable of ["doc","jalla","1"]
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.ids());
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.routingValues());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.ids());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.routingValues());
         assertFalse(analysis.noMatch());
 
-        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc'");
+        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc' and partition_ident=''");
         // base64 encoded versions of Streamable of ["doc","jalla","1"]
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.ids());
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.routingValues());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.ids());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.routingValues());
         assertFalse(analysis.noMatch());
 
 
@@ -548,7 +560,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(ImmutableList.of(), analysis.ids());
         assertFalse(analysis.noMatch());
 
-        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2");
+        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2 and partition_ident=''");
         assertEquals(ImmutableList.of(), analysis.ids());
         assertTrue(analysis.noMatch());
     }
@@ -573,11 +585,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void test3ColPrimaryKeySetLiteral() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle')");
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle') and partition_ident=''");
         assertEquals(2, analysis.ids().size());
         // base64 encoded versions of Streamable of ["doc","jalla","1"] and ["doc","kelle","1"]
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ==", "AwNkb2MFa2VsbGUBMQ=="), analysis.ids());
-        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ==", "AwNkb2MFa2VsbGUBMQ=="), analysis.routingValues());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="), analysis.ids());
+        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="), analysis.routingValues());
     }
 
     @Test
@@ -601,7 +613,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> outputSymbols = analysis.outputSymbols;
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(LongLiteral.class));
-        assertThat(((LongLiteral)outputSymbols.get(0)).value(), is(0L));
+        assertThat(((LongLiteral) outputSymbols.get(0)).value(), is(0L));
     }
 
     @Test
@@ -706,22 +718,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         for (Symbol s : distinctAnalysis.groupBy()) {
             assertTrue(distinctAnalysis.groupBy().contains(s));
         }
-    }
-
-    @Test
-    public void testInsertMultipleValues() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze(
-                "insert into users (id, name, awesome) values (?, ?, ?), (?, ?, ?)",
-                new Object[]{ 99, "Marvin", true, 42, "Deep Thought", false });
-        assertThat(analysis.values().size(), is(2));
-
-        assertThat(((LongLiteral)analysis.values().get(0).get(0)).value(), is(99l));
-        assertThat(((StringLiteral)analysis.values().get(0).get(1)).value().utf8ToString(), is("Marvin"));
-        assertThat(((BooleanLiteral)analysis.values().get(0).get(2)).value(), is(true));
-
-        assertThat(((LongLiteral)analysis.values().get(1).get(0)).value(), is(42l));
-        assertThat(((StringLiteral)analysis.values().get(1).get(1)).value().utf8ToString(), is("Deep Thought"));
-        assertThat(((BooleanLiteral)analysis.values().get(1).get(2)).value(), is(false));
     }
 
     @Test
@@ -837,7 +833,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testFilterByLiteralBoolean() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from users where awesome=TRUE");
-        assertThat(((Function)analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.BOOLEAN_LITERAL));
+        assertThat(((Function) analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.BOOLEAN_LITERAL));
     }
 
     @Test(expected = SQLParseException.class)
@@ -913,6 +909,124 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         // table tweets has fields "id" and user['id']
         // this order by clause referenced id, not user['id']
         analyze("select * from users order by friends.id");
+    }
+
+    @Test
+    public void testSelectFromPartitionedTable() throws Exception {
+        String partition1 = new PartitionName("parted", Arrays.asList("1395874800000")).stringValue();
+        String partition2 = new PartitionName("parted", Arrays.asList("1395961200000")).stringValue();
+        String partition3 = new PartitionName("parted", new ArrayList<String>(){{add(null);}}).stringValue();
+
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000");
+        assertEquals(ImmutableList.of(partition1), analysis.whereClause().partitions());
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date >= 1395874800000");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date < 1395874800000");
+        assertEquals(ImmutableList.of(), analysis.whereClause().partitions());
+        assertTrue(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000 and date = 1395961200000");
+        assertEquals(ImmutableList.of(), analysis.whereClause().partitions());
+        assertTrue(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000 or date = 1395961200000");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date < 1395874800000 or date > 1395874800000");
+        assertEquals(ImmutableList.of(partition2), analysis.whereClause().partitions());
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date in (1395874800000, 1395961200000)");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date in (1395874800000, 1395961200000) and id = 1");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
+        assertTrue(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date in (1395874800000) or date in (1395961200000)");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395961200000 and id = 1");
+        assertEquals(ImmutableList.of(partition2), analysis.whereClause().partitions());
+        assertTrue(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where (date =1395874800000 or date = 1395961200000) and id = 1");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
+        assertTrue(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000 and id is null");
+        assertEquals(ImmutableList.of(partition1), analysis.whereClause().partitions());
+        assertTrue(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+        analysis = (SelectAnalysis)analyze("select id, name from parted where date is null and id = 1");
+        assertEquals(ImmutableList.of(partition3), analysis.whereClause().partitions());
+        assertTrue(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
+
+    }
+
+    @Test
+    public void testSelectFromPartitionedTableUnsupported() throws Exception {
+        // these queries won't work because we would have to execute 2 separate ESSearch tasks
+        // and merge results which is not supported right now and maybe never will be
+        try {
+            analyze("select id, name from parted where date = 1395961200000 or id = 1");
+            fail("Expected UnsupportedFeatureException");
+        } catch (UnsupportedFeatureException e) {
+        }
+
+        try {
+            analyze("select id, name from parted where id = 1 or date = 1395961200000");
+            fail("Expected UnsupportedFeatureException");
+        } catch (UnsupportedFeatureException e) {
+        }
+    }
+
+    @Test
+    public void testSelectPartitionedTableOrderBy() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze(
+                "select id, name from multi_parted order by id, abs(num), name");
+        assertThat(analysis.sortSymbols().size(), is(3));
+        assertThat(analysis.sortSymbols().get(0), Matchers.instanceOf(Reference.class));
+        assertThat(analysis.sortSymbols().get(1), Matchers.instanceOf(Function.class));
+        assertThat(analysis.sortSymbols().get(2), Matchers.instanceOf(Reference.class));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectPartitionedTableOrderByPartitionedColumn() throws Exception {
+        analyze("select name from parted order by date");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectPartitionedTableOrderByPartitionedColumnInFunction() throws Exception {
+        analyze("select name from parted order by year(date)");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectOrderByPartitionedNestedColumn() throws Exception {
+        analyze("select name from multi_parted order by obj['name']");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectOrderByPartitionedNestedColumnInFunction() throws Exception {
+        analyze("select name from multi_parted order by format('abc %s', obj['name'])");
     }
 
 }

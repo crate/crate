@@ -27,6 +27,7 @@ import io.crate.export.OutputFile;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.service.IndexShard;
@@ -60,9 +61,9 @@ public class ExportContext extends DefaultSearchContext {
     public ExportContext(long id, ShardSearchRequest request, SearchShardTarget shardTarget,
                          Engine.Searcher engineSearcher, IndexService indexService, IndexShard indexShard,
                          ScriptService scriptService, CacheRecycler cacheRecycler,
-                         PageCacheRecycler pageRecycler, String nodePath) {
+                         PageCacheRecycler pageRecycler, BigArrays bigArrays, String nodePath) {
         super(id, request, shardTarget, engineSearcher, indexService, indexShard, scriptService,
-                cacheRecycler, pageRecycler);
+                cacheRecycler, pageRecycler, bigArrays);
         this.nodePath = nodePath;
     }
 

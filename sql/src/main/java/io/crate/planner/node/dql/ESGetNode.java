@@ -22,7 +22,10 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.node.PlanVisitor;
+import org.elasticsearch.common.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,17 +36,27 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     private final String index;
     private final List<String> ids;
     private final List<String> routingValues;
+    private final List<ReferenceInfo> partitionBy;
 
-    public ESGetNode(String index, List<String> ids, List<String> routingValues) {
+    public ESGetNode(String index,
+                     List<String> ids,
+                     List<String> routingValues,
+                     @Nullable List<ReferenceInfo> partitionBy) {
         this.index = index;
         this.ids = ids;
         this.routingValues = routingValues;
+        this.partitionBy = Objects.firstNonNull(partitionBy,
+                ImmutableList.<ReferenceInfo>of());
+    }
+
+    public ESGetNode(String index,
+                     List<String> ids,
+                     List<String> routingValues) {
+        this(index, ids, routingValues, null);
     }
 
     public ESGetNode(String index, String id, String routingValue) {
-        this.index = index;
-        this.ids = Arrays.asList(id);
-        this.routingValues = Arrays.asList(routingValue);
+        this(index, Arrays.asList(id), Arrays.asList(routingValue), null);
     }
 
     public String index() {
@@ -63,12 +76,17 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
         return routingValues;
     }
 
+    public List<ReferenceInfo> partitionBy() {
+        return partitionBy;
+    }
+
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
                 .add("index", index)
                 .add("ids", ids)
                 .add("outputs", outputs)
+                .add("partitionBy", partitionBy)
                 .toString();
     }
 }

@@ -3,12 +3,12 @@ package io.crate.metadata.doc;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
 import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.index.IndexMetaDataExtractor;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -235,6 +235,65 @@ public class DocIndexMetaDataTest {
                 ImmutableList.of("_doc", "_id", "_raw", "_score", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
                         "person", "person.birthday", "person.first_name", "title")));
 
+    }
+
+    @Test
+    public void testExtractPartitionedByColumns() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject("_meta")
+                .field("primary_keys", "id")
+                .startArray("partitioned_by")
+                    .startArray()
+                        .value("datum").value("date")
+                    .endArray()
+                .endArray()
+                .endObject()
+                .startObject("properties")
+                .startObject("id")
+                .field("type", "integer")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("title")
+                .field("type", "string")
+                .field("index", "no")
+                .endObject()
+                .startObject("content")
+                .field("type", "string")
+                .field("index", "analyzed")
+                .field("analyzer", "standard")
+                .endObject()
+                .startObject("person")
+                .startObject("properties")
+                .startObject("first_name")
+                .field("type", "string")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("birthday")
+                .field("type", "date")
+                .field("index", "not_analyzed")
+                .endObject()
+                .endObject()
+                .endObject()
+                .startObject("nested")
+                .field("type", "nested")
+                .startObject("properties")
+                .startObject("inner_nested")
+                .field("type", "date")
+                .field("index", "not_analyzed")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+
+        assertEquals(6, md.columns().size());
+        assertEquals(15, md.references().size());
+        assertEquals(1, md.partitionedByColumns().size());
+        assertThat(md.partitionedByColumns().get(0).type(), is(DataType.TIMESTAMP));
+        assertThat(md.partitionedByColumns().get(0).ident().columnIdent().fqn(), is("datum"));
     }
 
     private Map<String, Object> sortProperties(Map<String, Object> mappingSource) {

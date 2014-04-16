@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -47,11 +48,13 @@ public class IndexWriterProjectorUnitTest {
                 "bulk_import",
                 Arrays.<String>asList("id"),
                 Arrays.<Input<?>>asList(idInput),
+                ImmutableList.<Input<?>>of(),
                 null,
                 sourceInput,
                 collectExpressions,
                 20,
-                2
+                2,
+                null, null
         );
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);
@@ -77,11 +80,13 @@ public class IndexWriterProjectorUnitTest {
                 "bulk_import",
                 Arrays.<String>asList("id"),
                 Arrays.<Input<?>>asList(idInput),
+                ImmutableList.<Input<?>>of(),
                 routingInput,
                 sourceInput,
                 collectExpressions,
                 20,
-                2
+                2,
+                null, null
         );
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);

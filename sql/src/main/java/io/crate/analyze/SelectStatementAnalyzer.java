@@ -26,6 +26,7 @@ import io.crate.DataType;
 import io.crate.exceptions.SQLParseException;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
@@ -37,6 +38,7 @@ import java.util.Locale;
 public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysis> {
 
     private final static AggregationSearcher aggregationSearcher = new AggregationSearcher();
+    private final static SortSymbolValidator sortSymbolValidator = new SortSymbolValidator();
 
     @Override
     protected Symbol visitSelect(Select node, SelectAnalysis context) {
@@ -149,7 +151,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     private void rewriteGlobalDistinct(SelectAnalysis context) {
         ArrayList<Symbol> groupBy = new ArrayList<>(context.outputSymbols().size());
-            context.groupBy(groupBy);
+        context.groupBy(groupBy);
 
         for (Symbol s : context.outputSymbols()) {
             if (s.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
@@ -249,6 +251,8 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         if (sortSymbol.symbolType() == SymbolType.PARAMETER) {
             sortSymbol = ((Parameter)sortSymbol).toLiteral();
         }
+        // validate sortSymbol
+        sortSymbolValidator.process(sortSymbol, context.table);
         return sortSymbol;
     }
 
@@ -279,6 +283,37 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         @Override
         public Void visitAggregation(Aggregation symbol, AggregationSearcherContext context) {
             context.found = true;
+            return null;
+        }
+    }
+
+    /**
+     * validate that sortSymbols don't contain partition by columns
+     */
+    static class SortSymbolValidator extends SymbolVisitor<TableInfo, Void> {
+
+        @Override
+        public Void visitFunction(Function symbol, TableInfo context) {
+            for (Symbol arg : symbol.arguments()) {
+                process(arg, context);
+
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, TableInfo context) {
+            if (context.partitionedBy().contains(symbol.info().ident().columnIdent().fqn())) {
+                throw new UnsupportedOperationException(
+                        SymbolFormatter.format(
+                                "cannot use partitioned column %s in ORDER BY clause",
+                                symbol));
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitSymbol(Symbol symbol, TableInfo context) {
             return null;
         }
     }

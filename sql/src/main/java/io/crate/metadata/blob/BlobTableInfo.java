@@ -23,6 +23,7 @@ package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.DataType;
+import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
@@ -80,6 +81,11 @@ public class BlobTableInfo implements TableInfo {
     @Override
     public Collection<ReferenceInfo> columns() {
         return columns;
+    }
+
+    @Override
+    public List<ReferenceInfo> partitionedByColumns() {
+        return ImmutableList.of();
     }
 
     @Override
@@ -163,8 +169,23 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public String[] partitions() {
+    public String[] concreteIndices() {
         return Strings.EMPTY_ARRAY;
+    }
+
+    @Override
+    public boolean isPartitioned() {
+        return false;
+    }
+
+    @Override
+    public List<PartitionName> partitions() {
+        return new ArrayList<>(0);
+    }
+
+    @Override
+    public List<String> partitionedBy() {
+        return ImmutableList.of();
     }
 
     @Override

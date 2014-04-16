@@ -20,6 +20,7 @@
  */
 package io.crate.operation.reference.sys.shard;
 
+import io.crate.PartitionName;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
@@ -32,7 +33,13 @@ public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
     @Inject
     public ShardTableNameExpression(ShardId shardId) {
         super(NAME);
-        this.value = new BytesRef(shardId.getIndex());
+        String tableName = shardId.getIndex();
+        try {
+            tableName = PartitionName.tableName(tableName);
+        } catch (IllegalArgumentException e) {
+            // no partition
+        }
+        this.value = new BytesRef(tableName);
     }
 
     @Override

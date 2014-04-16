@@ -29,6 +29,7 @@ import io.crate.Constants;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -54,10 +55,9 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
-        context.indexSettingsBuilder().put("number_of_replicas", TablePropertiesAnalysis.getDefault("number_of_replicas"));
         if (node.properties().isPresent()) {
             Settings settings =
-                    TablePropertiesAnalysis.propertiesToSettings(node.properties().get(), context.parameters());
+                    TablePropertiesAnalysis.propertiesToSettings(node.properties().get(), context.parameters(), true);
             context.indexSettingsBuilder().put(settings);
         }
 
@@ -296,7 +296,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         if (numShards < 1) {
             throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
         }
-        context.indexSettingsBuilder().put("number_of_shards", numShards);
+        context.indexSettingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
         return null;
     }
 
@@ -305,7 +305,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         for (Expression partitionByColumn : node.columns()) {
             String columnName = expressionVisitor.process(partitionByColumn, null).toString();
 
-            Map<String, Object> columnDefinition = context.getColumnDefinition(columnName);
+            Map<String, Object> columnDefinition = context.popColumnDefinition(columnName);
             String type;
             if (columnDefinition != null) {
                 if (context.primaryKeys().size() > 0 && !context.primaryKeys().contains(columnName)) {

@@ -106,7 +106,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
-        } else if (tableInfo.isAlias()) {
+        } else if (tableInfo.isAlias() && !tableInfo.isPartitioned()) {
             throw new UnsupportedOperationException(
                     String.format("aliases are read only cannot modify \"%s\"", tableIdent.name()));
         }
@@ -181,6 +181,16 @@ public abstract class AbstractDataAnalysis extends Analysis {
                             Joiner.on(", ").join(ident.argumentTypes())));
         }
         return implementation.info();
+    }
+
+    public FunctionImplementation getFunctionImplementation(FunctionIdent ident) {
+        FunctionImplementation implementation = functions.get(ident);
+        if (implementation == null) {
+            throw new UnsupportedOperationException(
+                    String.format("unknown function: %s(%s)", ident.name(),
+                            Joiner.on(", ").join(ident.argumentTypes())));
+        }
+        return implementation;
     }
 
     public Collection<Reference> references() {
