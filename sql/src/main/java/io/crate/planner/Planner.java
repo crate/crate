@@ -152,15 +152,20 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         if (analysis.mode() == CopyAnalysis.Mode.FROM) {
             copyFromPlan(analysis, plan);
         } else if (analysis.mode() == CopyAnalysis.Mode.TO) {
-            Reference rawReference = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
-
             WriterProjection projection = new WriterProjection();
             projection.uri(analysis.uri());
             projection.isDirectoryUri(analysis.directoryUri());
             projection.settings(analysis.settings());
-            PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                    .output(ImmutableList.<Symbol>of(rawReference));
 
+            PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
+            if (analysis.outputSymbols() != null && !analysis.outputSymbols().isEmpty()) {
+                // TODO: rewrite to lookup from DocReference (to avoid fieldcache)
+                contextBuilder = contextBuilder.output(analysis.outputSymbols());
+                projection.inputs(contextBuilder.outputs());
+            } else {
+                Reference rawReference = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
+                contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(rawReference));
+            }
             CollectNode collectNode = PlanNodeBuilder.collect(analysis,
                     contextBuilder.toCollect(),
                     ImmutableList.<Projection>of(projection));
