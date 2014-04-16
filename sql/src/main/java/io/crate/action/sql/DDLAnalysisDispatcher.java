@@ -21,6 +21,7 @@
 
 package io.crate.action.sql;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -31,6 +32,7 @@ import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.AlterTableAliasException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
@@ -43,11 +45,14 @@ import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemp
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
@@ -161,11 +166,20 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     @Override
     public ListenableFuture<Long> visitAlterTableAnalysis(final AlterTableAnalysis analysis, Void context) {
         final SettableFuture<Long> result = SettableFuture.create();
+        final String[] indices = analysis.table().isPartitioned()
+                ? analysis.table().concreteIndices()
+                : new String[]{ analysis.table().ident().name() };
 
-        String[] indices = new String[]{analysis.table().ident().name()};
+        if (analysis.table().isAlias()) {
+            throw new AlterTableAliasException(analysis.table().ident().name());
+        }
 
+        final List<ListenableFuture<?>> results = new ArrayList<>(
+                indices.length + (analysis.table().isPartitioned() ? 1 : 0)
+        );
         if (analysis.table().isPartitioned()) {
-            indices = analysis.table().concreteIndices();
+            final SettableFuture<?> templateFuture = SettableFuture.create();
+            results.add(templateFuture);
 
             // update template
             final String templateName = PartitionName.templateName(analysis.table().ident().name());
@@ -178,7 +192,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                     try {
                         mapping = response.getIndexTemplates().get(0).getMappings().get(Constants.DEFAULT_MAPPING_TYPE).string();
                     } catch (IOException e) {
-                        result.setException(e);
+                        templateFuture.setException(e);
                         return;
                     }
                     ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
@@ -190,15 +204,19 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                             .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
                             .settings(settingsBuilder.build())
                             .template(response.getIndexTemplates().get(0).template());
+                    for (ObjectObjectCursor<String, AliasMetaData> container : response.getIndexTemplates().get(0).aliases()) {
+                        Alias alias = new Alias(container.key);
+                        request.alias(alias);
+                    }
                     transportPutIndexTemplateAction.execute(request, new ActionListener<PutIndexTemplateResponse>() {
                         @Override
                         public void onResponse(PutIndexTemplateResponse putIndexTemplateResponse) {
-                            result.set(null);
+                            templateFuture.set(null);
                         }
 
                         @Override
                         public void onFailure(Throwable e) {
-                            result.setException(e);
+                            templateFuture.setException(e);
                         }
                     });
 
@@ -206,32 +224,41 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
 
                 @Override
                 public void onFailure(Throwable e) {
-                    result.setException(e);
+                    templateFuture.setException(e);
                 }
             });
 
-
-        } else if (analysis.table().isAlias()) {
-            throw new AlterTableAliasException(analysis.table().ident().name());
         }
-
-        for (int i = 0; i < indices.length; i++) {
+        // update every concrete index
+        for (String index : indices) {
             UpdateSettingsRequest request = new UpdateSettingsRequest(
                     analysis.settings(),
-                    indices[i]);
-
+                    index);
+            final SettableFuture<?> future = SettableFuture.create();
+            results.add(future);
             transportUpdateSettingsAction.execute(request, new ActionListener<UpdateSettingsResponse>() {
                 @Override
                 public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
-                    result.set(null);
+                    future.set(null);
                 }
 
                 @Override
                 public void onFailure(Throwable e) {
-                    result.setException(e);
+                    future.setException(e);
                 }
             });
         }
+        Futures.addCallback(Futures.allAsList(results), new FutureCallback<List<?>>() {
+            @Override
+            public void onSuccess(@Nullable List<?> resultList) {
+                result.set(null);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
+        });
 
         return result;
     }
