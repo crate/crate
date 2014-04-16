@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
+import io.crate.PartitionName;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -104,7 +104,8 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         DeleteAnalysis analysis = (DeleteAnalysis) analyze("delete from parted where date = 1395874800000");
         assertThat(analysis.whereClause().hasQuery(), Matchers.is(false));
         assertThat(analysis.whereClause().noMatch(), Matchers.is(false));
-        assertEquals(ImmutableList.of(Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000"),
+        assertEquals(ImmutableList.of(
+                        new PartitionName("parted", Arrays.asList("1395874800000")).stringValue()),
                 analysis.whereClause().partitions());
 
         analysis = (DeleteAnalysis) analyze("delete from parted");

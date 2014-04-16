@@ -21,10 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.Constants;
-import io.crate.DataType;
 import io.crate.DataType;
 import io.crate.Id;
+import io.crate.PartitionName;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.MetaDataModule;
@@ -36,15 +35,11 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
@@ -363,9 +358,9 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                 }
         );
         assertThat(analysis.partitions(), contains(
-                Constants.PARTITIONED_TABLE_PREFIX + ".parted._13963670051500",
-                Constants.PARTITIONED_TABLE_PREFIX + ".parted._0",
-                Constants.PARTITIONED_TABLE_PREFIX + ".parted.n"
+                new PartitionName("parted", Arrays.asList("13963670051500")).stringValue(),
+                new PartitionName("parted", Arrays.asList("0")).stringValue(),
+                new PartitionName("parted", new ArrayList<String>(){{add(null);}}).stringValue()
         ));
         assertThat(analysis.sourceMaps().size(), is(3));
         assertThat(analysis.sourceMaps().get(0),

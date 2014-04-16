@@ -29,7 +29,6 @@ import io.crate.planner.symbol.StringLiteral;
 import org.elasticsearch.search.SearchHit;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -123,15 +122,14 @@ public abstract class ESFieldExtractor {
                 List<String> values = cache.get(hit.index());
                 if (values == null) {
                     values = PartitionName
-                            .fromStringSafe(hit.index(),
-                                    partitionedByInfos.size()).values();
+                            .fromStringSafe(hit.index()).values();
                 }
                 String value = values.get(valueIdx);
                 if (value == null) {
                     return null;
                 }
                 return new StringLiteral(value).convertValueTo(reference.info().type());
-            } catch (IOException|IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 return null;
             }
         }

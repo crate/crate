@@ -31,7 +31,6 @@ import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -55,7 +54,6 @@ public class TestingTableInfo extends AbstractTableInfo {
         private final ImmutableList.Builder<String> partitionedBy = ImmutableList.builder();
         private final ImmutableList.Builder<PartitionName> partitions = ImmutableList.builder();
         private String clusteredBy;
-        private int partitionedByColumnCount = 0;
 
 
         private final RowGranularity granularity;
@@ -94,7 +92,6 @@ public class TestingTableInfo extends AbstractTableInfo {
             if (partitionBy) {
                 partitionedByColumns.add(info);
                 partitionedBy.add(info.ident().columnIdent().fqn());
-                partitionedByColumnCount++;
             }
             return this;
         }
@@ -116,12 +113,8 @@ public class TestingTableInfo extends AbstractTableInfo {
 
         public Builder addPartitions(String... partitionNames) {
             for (String partitionName : partitionNames) {
-                try {
-                    PartitionName partition = PartitionName.fromString(partitionName, ident.name(), partitionedByColumnCount);
-                    partitions.add(partition);
-                } catch (IOException e) {
-                    // ignore
-                }
+                PartitionName partition = PartitionName.fromString(partitionName, ident.name());
+                partitions.add(partition);
             }
             return this;
         }

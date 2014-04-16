@@ -38,7 +38,6 @@ import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
-import java.io.IOException;
 import java.util.*;
 
 public class ESGetTask implements Task<Object[][]> {
@@ -64,10 +63,7 @@ public class ESGetTask implements Task<Object[][]> {
             this.partitionValues = ImmutableMap.of();
         } else {
             try {
-                PartitionName partitionName = PartitionName.fromStringSafe(
-                        node.index(),
-                        this.node.partitionBy().size()
-                );
+                PartitionName partitionName = PartitionName.fromStringSafe(node.index());
                 int numPartitionColumns = this.node.partitionBy().size();
                 this.partitionValues = new HashMap<>(numPartitionColumns);
                 for (int i = 0; i<this.node.partitionBy().size(); i++) {
@@ -81,7 +77,7 @@ public class ESGetTask implements Task<Object[][]> {
                     );
                 }
 
-            } catch (IOException e) {
+            } catch (IllegalArgumentException e) {
                 throw new CrateException("Error creating ESGetTask", e);
             }
         }

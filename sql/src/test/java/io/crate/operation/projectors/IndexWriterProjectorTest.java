@@ -53,7 +53,6 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 "bulk_import",
                 Arrays.asList("id"),
                 Arrays.<Input<?>>asList(idInput),
-                ImmutableList.<String>of(),
                 ImmutableList.<Input<?>>of(),
                 idInput,
                 sourceInput,

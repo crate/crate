@@ -32,12 +32,16 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.io.FileSystemUtils;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
@@ -50,6 +54,7 @@ public class DocTableInfoBuilder {
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private String[] concreteIndices;
+    ESLogger logger = ESLoggerFactory.getLogger(FileSystemUtils.class.getName());
 
     public DocTableInfoBuilder(TableIdent ident, ClusterService clusterService,
                                TransportPutIndexTemplateAction transportPutIndexTemplateAction,
@@ -136,10 +141,11 @@ public class DocTableInfoBuilder {
             for(String index : concreteIndices) {
                 if (PartitionName.isPartition(index, ident.name())) {
                     try {
-                        PartitionName partitionName = PartitionName.fromString(index, ident.name(), md.partitionedBy().size());
+                        PartitionName partitionName = PartitionName.fromString(index, ident.name());
                         partitions.add(partitionName);
-                    } catch (IOException e) {
+                    } catch (IllegalArgumentException e) {
                         // ignore
+                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", index, ident.name()));
                     }
                 }
             }

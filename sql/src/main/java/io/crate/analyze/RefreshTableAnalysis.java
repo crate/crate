@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.PartitionName;
-import io.crate.exceptions.CrateException;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
@@ -32,7 +31,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.Locale;
 
 public class RefreshTableAnalysis extends AbstractDDLAnalysis {
@@ -96,11 +94,8 @@ public class RefreshTableAnalysis extends AbstractDDLAnalysis {
         try {
             this.partitionName = PartitionName.fromPartitionIdent(
                     table().ident().name(),
-                    ident,
-                    table().partitionedByColumns().size()
+                    ident
             );
-        } catch (IOException e) {
-            throw new CrateException("Error parsing partition ident", e);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid partition ident for table '%s': '%s'",

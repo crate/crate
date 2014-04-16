@@ -53,7 +53,6 @@ public class IndexWriterProjection extends Projection {
     private String tableName;
     private List<Symbol> idSymbols;
     private List<String> primaryKeys;
-    private List<String> partitionedBy;
     private List<Symbol> partitionedBySymbols;
     private Symbol rawSourceSymbol;
     private Symbol clusteredBySymbol;
@@ -82,7 +81,6 @@ public class IndexWriterProjection extends Projection {
         }
         int currentInputIndex = primaryKeys.size();
 
-        this.partitionedBy = partitionedBy;
         this.partitionedBySymbols = new ArrayList<>(partitionedBy.size());
         for (String partitionedColumn : partitionedBy) {
             int idx = primaryKeys.indexOf(partitionedColumn);
@@ -144,10 +142,6 @@ public class IndexWriterProjection extends Projection {
         return clusteredBySymbol;
     }
 
-    public List<String> partitionedBy() {
-        return partitionedBy;
-    }
-
     public List<Symbol> partitionedBySymbols() {
         return partitionedBySymbols;
     }
@@ -196,12 +190,6 @@ public class IndexWriterProjection extends Projection {
             partitionedBySymbols.add(Symbol.fromStream(in));
         }
 
-        int numPartitionedBy = in.readVInt();
-        partitionedBy = new ArrayList<>(numPartitionedBy);
-        for (int i = 0; i < numPartitionedBy; i++) {
-            partitionedBy.add(in.readString());
-        }
-
         clusteredBySymbol = Symbol.fromStream(in);
         rawSourceSymbol = Symbol.fromStream(in);
         concurrency = in.readVInt();
@@ -238,10 +226,6 @@ public class IndexWriterProjection extends Projection {
         out.writeVInt(partitionedBySymbols.size());
         for (Symbol partitionedSymbol : partitionedBySymbols) {
             Symbol.toStream(partitionedSymbol, out);
-        }
-        out.writeVInt(partitionedBy.size());
-        for (String partitionedCol : partitionedBy) {
-            out.writeString(partitionedCol);
         }
         Symbol.toStream(clusteredBySymbol, out);
         Symbol.toStream(rawSourceSymbol, out);

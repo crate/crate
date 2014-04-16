@@ -28,7 +28,6 @@ import io.crate.core.StringUtils;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.*;
 
@@ -36,15 +35,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 public class PartitionName implements Streamable {
 
-    public static final String NULL_MARKER = "n";
-    public static final String NOT_NULL_MARKER = "_";
-    private static final Base32 BASE32 = new Base32(true);
+    private static final Pattern paddingPattern = Pattern.compile("=");
 
-    private final List<String> values = new ArrayList<>();
-    private final String tableName;
+    private final List<String> values;
+    private String tableName;
 
     private String partitionName;
     private String ident;
@@ -59,27 +57,17 @@ public class PartitionName implements Streamable {
         }
     };
 
-    public PartitionName(String tableName, List<String> columns, List<String> values) {
-        this(tableName, columns, values, true);
-    }
-
-    public PartitionName(String tableName, List<String> columns, List<String> values,
-                         boolean create) {
+    public PartitionName(String tableName, List<String> values) {
         this.tableName = tableName;
-        if (columns.size() != values.size()) {
-            // Key/Values count does not match, cannot compute partition name
-            if (create) {
-                throw new IllegalArgumentException("Missing required partitioned-by values");
-            }
-            return;
-        }
-        for (int i=0; i<columns.size(); i++)  {
-            this.values.add(values.get(i));
-        }
+        this.values = values;
     }
 
     private PartitionName(String tableName) {
-        this.tableName = tableName;
+        this(tableName, new ArrayList<String>());
+    }
+
+    private PartitionName() {
+        values = new ArrayList<>();
     }
 
     public boolean isValid() {
@@ -88,6 +76,7 @@ public class PartitionName implements Streamable {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
+        tableName = in.readString();
         int size = in.readVInt();
         for (int i=0; i < size; i++) {
             BytesRef value = (BytesRef)DataType.STRING.streamer().readFrom(in);
@@ -101,6 +90,7 @@ public class PartitionName implements Streamable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(tableName);
         out.writeVInt(values.size());
         for (String value : values) {
             DataType.STRING.streamer().writeTo(out,
@@ -109,21 +99,46 @@ public class PartitionName implements Streamable {
     }
 
     @Nullable
-    public BytesReference bytes() {
+    public void decodeIdent(@Nullable String ident) throws IOException {
+        if (ident == null) {
+            return;
+        }
+        byte[] inputBytes = new Base32(true).decode(ident.toUpperCase(Locale.ROOT));
+        BytesStreamInput in = new BytesStreamInput(inputBytes, true);
+        int size = in.readVInt();
+        for (int i=0; i < size; i++) {
+            BytesRef value = (BytesRef)DataType.STRING.streamer().readFrom(in);
+            if (value == null) {
+                values.add(null);
+            } else {
+                values.add(value.utf8ToString());
+            }
+        }
+    }
+
+    @Nullable
+    private String encodeIdent() {
         if (values.size() == 0) {
             return null;
         }
+
         BytesStreamOutput out = new BytesStreamOutput();
         try {
-            writeTo(out);
+            out.writeVInt(values.size());
+            for (String value : values) {
+                DataType.STRING.streamer().writeTo(out,
+                        value == null ? value : new BytesRef(value));
+            }
             out.close();
         } catch (IOException e) {
             //
         }
-        return out.bytes();
+        String identBase32 = new Base32(true)
+                .encodeAsString(out.bytes().toBytes()).toLowerCase(Locale.ROOT);
+        // decode doesn't need padding, remove it
+        return paddingPattern.matcher(identBase32).replaceAll("");
     }
 
-    @Nullable
     public String stringValue() {
         if (partitionName == null) {
             partitionName = Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, ident());
@@ -131,17 +146,10 @@ public class PartitionName implements Streamable {
         return partitionName;
     }
 
+    @Nullable
     public String ident() {
         if (ident == null) {
-            if (values.size() == 0) {
-                return null;
-            } else if (values.size() == 1) {
-                String value = values.get(0);
-                ident = (value == null) ? NULL_MARKER : NOT_NULL_MARKER + value;
-            } else {
-                BytesReference bytesReference = bytes();
-                ident = BASE32.encodeAsString(bytesReference.toBytes()).toLowerCase(Locale.ROOT);
-            }
+            ident = encodeIdent();
         }
         return ident;
     }
@@ -172,8 +180,7 @@ public class PartitionName implements Streamable {
         return stringValue().hashCode();
     }
 
-    public static PartitionName fromString(String partitionTableName, String tableName,
-                                int columnCount) throws IOException {
+    public static PartitionName fromString(String partitionTableName, String tableName) {
         assert partitionTableName != null;
         assert tableName != null;
 
@@ -181,13 +188,13 @@ public class PartitionName implements Streamable {
         assert splitted.v1().equals(tableName) : String.format(
                 Locale.ENGLISH, "%s no partition of table %s", partitionTableName, tableName);
 
-        return fromPartitionIdent(splitted.v1(), splitted.v2(), columnCount);
+        return fromPartitionIdent(splitted.v1(), splitted.v2());
     }
 
-    public static PartitionName fromStringSafe(String partitionTableName, int columnCount) throws IOException {
+    public static PartitionName fromStringSafe(String partitionTableName) {
         assert partitionTableName != null;
         Tuple<String, String> parts = split(partitionTableName);
-        return fromPartitionIdent(parts.v1(), parts.v2(), columnCount);
+        return fromPartitionIdent(parts.v1(), parts.v2());
     }
 
     /**
@@ -195,31 +202,18 @@ public class PartitionName implements Streamable {
      * and instance of <code>PartitionName</code>
      * @param tableName
      * @param partitionIdent
-     * @param columnCount
      * @return
      * @throws IOException
      */
     public static PartitionName fromPartitionIdent(String tableName,
-                                                   String partitionIdent,
-                                                   int columnCount) throws IOException {
-        assert columnCount > 0 : "invalid column count";
-
+                                                   String partitionIdent) {
         PartitionName partitionName = new PartitionName(tableName);
         partitionName.ident = partitionIdent;
-        if (columnCount > 1) {
-            byte[] inputBytes = BASE32.decode(partitionIdent.toUpperCase(Locale.ROOT));
-            BytesStreamInput in = new BytesStreamInput(inputBytes, true);
-            partitionName.readFrom(in);
-        } else {
-            String marker = partitionIdent.substring(0, 1);
-            if (marker.equals(NULL_MARKER)) {
-                partitionIdent = null;
-            } else if (marker.equals(NOT_NULL_MARKER)) {
-                partitionIdent = partitionIdent.substring(1);
-            } else {
-                throw new IllegalArgumentException("Invalid partition ident");
-            }
-            partitionName.values().add(partitionIdent);
+        try {
+            partitionName.decodeIdent(partitionIdent);
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Invalid partition ident: %s", partitionIdent), e);
         }
         return partitionName;
     }

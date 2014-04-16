@@ -156,12 +156,12 @@ partitions. The partitions are introduced when data is inserted where
 
     cr> select * from information_schema.table_partitions
     ... order by table_name, partition_ident
-    +---------------------+-------------+-----------------+----------------------------+
-    | table_name          | schema_name | partition_ident | values                     |
-    +---------------------+-------------+-----------------+----------------------------+
-    | a_partitioned_table | doc         | _content_a      | {u'content': u'content_a'} |
-    | a_partitioned_table | doc         | _content_b      | {u'content': u'content_b'} |
-    +---------------------+-------------+-----------------+----------------------------+
+    +---------------------+-------------+--------------------+----------------------------+
+    | table_name          | schema_name | partition_ident    | values                     |
+    +---------------------+-------------+--------------------+----------------------------+
+    | a_partitioned_table | doc         | 04566rreehimst2vc4 | {u'content': u'content_a'} |
+    | a_partitioned_table | doc         | 04566rreehimst2vc8 | {u'content': u'content_b'} |
+    +---------------------+-------------+--------------------+----------------------------+
     SELECT 2 rows in set (... sec)
 
 Indices

@@ -34,7 +34,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.Index;
 
-import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 
@@ -51,16 +50,12 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
         ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder = ImmutableMap.builder();
                 builder.putAll(globalImplementations)
                 .putAll(shardImplementations);
-        String realTableName = null;
-        try {
-            realTableName = PartitionName.tableName(index.name());
-        } catch (IllegalArgumentException e) {
-            // no partition - ignore
-        }
-        if (realTableName != null) {
+
+        if (PartitionName.isPartition(index.name())) {
+            String tableName = PartitionName.tableName(index.name());
             // get DocTableInfo for virtual partitioned table
             DocTableInfo info = new DocTableInfoBuilder(
-                    new TableIdent(DocSchemaInfo.NAME, realTableName),
+                    new TableIdent(DocSchemaInfo.NAME, tableName),
                     clusterService, transportPutIndexTemplateAction, true).build();
             assert info.isPartitioned();
             int i = 0;
@@ -70,9 +65,8 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
             try {
                 partitionName = PartitionName.fromString(
                         index.name(),
-                        realTableName,
-                        numPartitionedColumns);
-            } catch (IOException e) {
+                        tableName);
+            } catch (IllegalArgumentException e) {
                 throw new CrateException(
                         String.format(Locale.ENGLISH,
                                 "Unable to load PARTITIONED BY columns from partition %s",
