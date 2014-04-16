@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.exceptions.AmbiguousAliasException;
@@ -52,10 +51,7 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -917,15 +913,17 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectFromPartitionedTable() throws Exception {
+        String partition1 = new PartitionName("parted", Arrays.asList("1395874800000")).stringValue();
+        String partition2 = new PartitionName("parted", Arrays.asList("1395961200000")).stringValue();
+        String partition3 = new PartitionName("parted", new ArrayList<String>(){{add(null);}}).stringValue();
+
         SelectAnalysis analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000");
-        assertEquals(ImmutableList.of(Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000"), analysis.whereClause().partitions());
+        assertEquals(ImmutableList.of(partition1), analysis.whereClause().partitions());
         assertFalse(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where date >= 1395874800000");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
         assertFalse(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
@@ -938,65 +936,47 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertTrue(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000 or date = 1395961200000");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
         assertFalse(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where date < 1395874800000 or date > 1395874800000");
-        assertEquals(ImmutableList.of(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"),
-                analysis.whereClause().partitions());
+        assertEquals(ImmutableList.of(partition2), analysis.whereClause().partitions());
         assertFalse(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where date in (1395874800000, 1395961200000)");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
         assertFalse(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where date in (1395874800000, 1395961200000) and id = 1");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
         assertTrue(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where date in (1395874800000) or date in (1395961200000)");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
         assertFalse(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395961200000 and id = 1");
-        assertEquals(ImmutableList.of(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"),
-                analysis.whereClause().partitions());
+        assertEquals(ImmutableList.of(partition2), analysis.whereClause().partitions());
         assertTrue(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where (date =1395874800000 or date = 1395961200000) and id = 1");
-        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(
-                Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000",
-                Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395961200000"));
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
         assertTrue(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000 and id is null");
-        assertEquals(ImmutableList.of(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted._1395874800000"),
-                analysis.whereClause().partitions());
+        assertEquals(ImmutableList.of(partition1), analysis.whereClause().partitions());
         assertTrue(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id, name from parted where date is null and id = 1");
-        assertEquals(ImmutableList.of(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".parted." + PartitionName.NULL_MARKER),
-                analysis.whereClause().partitions());
+        assertEquals(ImmutableList.of(partition3), analysis.whereClause().partitions());
         assertTrue(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 

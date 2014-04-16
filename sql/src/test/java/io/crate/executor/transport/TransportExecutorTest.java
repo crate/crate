@@ -24,9 +24,6 @@ package io.crate.executor.transport;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.DataType;
@@ -515,8 +512,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 .put("id", 0L)
                 .put("name", "Trillian")
                 .map();
-        PartitionName partitionName = new PartitionName("parted",
-                Arrays.asList("date"), Arrays.asList("13959981214861"));
+        PartitionName partitionName = new PartitionName("parted", Arrays.asList("13959981214861"));
         ESIndexNode indexNode = new ESIndexNode(
                 new String[]{partitionName.stringValue()},
                 Arrays.asList(sourceMap),

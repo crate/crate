@@ -105,7 +105,6 @@ public class InsertAnalysis extends AbstractDataAnalysis {
             }
             PartitionName partitionName = new PartitionName(
                 table().ident().name(),
-                columnNames,
                 values
             );
             partitionValues.add(partitionName.stringValue());

@@ -36,58 +36,55 @@ public class PartitionNameTest {
 
     @Test
     public void testSingleColumn() throws Exception {
-        PartitionName partitionName = new PartitionName("test",
-                ImmutableList.of("id"), ImmutableList.of("1"));
+        PartitionName partitionName = new PartitionName("test", ImmutableList.of("1"));
 
+        assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(1));
-        assertThat(partitionName.stringValue(),
-                is(Constants.PARTITIONED_TABLE_PREFIX+".test."+PartitionName.NOT_NULL_MARKER+partitionName.values().get(0)));
+        assertEquals(ImmutableList.of("1"), partitionName.values());
 
-        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test", 1);
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
         assertEquals(partitionName.values(), partitionName1.values());
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
     public void testWithoutValue() throws Exception {
-        new PartitionName("test", ImmutableList.of("id"), ImmutableList.<String>of());
+        PartitionName partitionName = new PartitionName("test", ImmutableList.<String>of());
+        assertFalse(partitionName.isValid());
     }
 
     @Test
     public void testMultipleColumns() throws Exception {
-        PartitionName partitionName = new PartitionName("test",
-                ImmutableList.of("id", "name"), ImmutableList.of("1", "foo"));
+        PartitionName partitionName = new PartitionName("test", ImmutableList.of("1", "foo"));
 
         assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(2));
         assertEquals(ImmutableList.of("1", "foo"), partitionName.values());
 
-        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test", 2);
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
         assertEquals(partitionName.values(), partitionName1.values());
     }
 
     @Test
     public void testNull() throws Exception {
-        PartitionName partitionName = new PartitionName("test",
-                ImmutableList.of("id"), new ArrayList<String>(){{add(null);}});
+        PartitionName partitionName = new PartitionName("test", new ArrayList<String>(){{add(null);}});
 
         assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(1));
-        assertEquals(Constants.PARTITIONED_TABLE_PREFIX+".test."+PartitionName.NULL_MARKER, partitionName.stringValue());
+        assertEquals(null, partitionName.values().get(0));
 
-        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test", 1);
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
         assertEquals(partitionName.values(), partitionName1.values());
     }
 
     @Test
     public void testEmptyStringValue() throws Exception {
-        PartitionName partitionName = new PartitionName("test",
-                ImmutableList.of("id"), ImmutableList.of(""));
+        PartitionName partitionName = new PartitionName("test", ImmutableList.of(""));
 
         assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(1));
-        assertEquals(Constants.PARTITIONED_TABLE_PREFIX+".test."+PartitionName.NOT_NULL_MARKER, partitionName.stringValue());
+        assertEquals(ImmutableList.of(""), partitionName.values());
 
-        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test", 1);
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
         assertEquals(partitionName.values(), partitionName1.values());
     }
 
@@ -100,7 +97,7 @@ public class PartitionNameTest {
     @Test (expected = IllegalArgumentException.class)
     public void testInvalidValueString() throws Exception {
         String partitionName = Constants.PARTITIONED_TABLE_PREFIX + ".test.1";
-        PartitionName.fromString(partitionName, "test", 1);
+        PartitionName.fromString(partitionName, "test");
     }
 
     @Test
@@ -128,28 +125,24 @@ public class PartitionNameTest {
     @Test
     public void testSplit() throws Exception {
         Tuple<String, String> tableNameValues = PartitionName.split(
-                new PartitionName("t", Arrays.asList("bla", "blubb"),
-                        Arrays.asList("a", "b")).stringValue());
+                new PartitionName("t", Arrays.asList("a", "b")).stringValue());
         assertThat(tableNameValues.v1(), is("t"));
         assertThat(tableNameValues.v2(), is("081620j2"));
 
         tableNameValues = PartitionName.split(
-                new PartitionName("t", Arrays.asList("bla", "blubb"),
-                        Arrays.asList(null, "b")).stringValue());
+                new PartitionName("t", Arrays.asList(null, "b")).stringValue());
         assertThat(tableNameValues.v1(), is("t"));
-        assertThat(tableNameValues.v2(), is("08004og="));
+        assertThat(tableNameValues.v2(), is("08004og"));
 
         tableNameValues = PartitionName.split(
-                new PartitionName("t", Arrays.asList("bla"),
-                        new ArrayList<String>() {{ add(null); }}).stringValue());
+                new PartitionName("t",  new ArrayList<String>() {{ add(null); }}).stringValue());
         assertThat(tableNameValues.v1(), is("t"));
-        assertThat(tableNameValues.v2(), is(PartitionName.NULL_MARKER));
+        assertThat(tableNameValues.v2(), is("0400"));
 
         tableNameValues = PartitionName.split(
-                new PartitionName("t", Arrays.asList("bla"),
-                        Arrays.asList("hoschi")).stringValue());
+                new PartitionName("t", Arrays.asList("hoschi")).stringValue());
         assertThat(tableNameValues.v1(), is("t"));
-        assertThat(tableNameValues.v2(), is(PartitionName.NOT_NULL_MARKER + "hoschi"));
+        assertThat(tableNameValues.v2(), is("043mgrrjcdk6i"));
 
     }
 
