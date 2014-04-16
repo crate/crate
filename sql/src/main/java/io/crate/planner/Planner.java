@@ -305,7 +305,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             ESCreateTemplateNode node = new ESCreateTemplateNode(
                     analysis.templateName(),
                     analysis.templatePrefix(),
-                    analysis.indexSettings(),
+                    analysis.indexSettings().getByPrefix("index."), // strip 'index' prefix for template api
                     analysis.mapping(),
                     tableIdent.name()
             );

@@ -31,6 +31,7 @@ import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -98,8 +99,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "create table foo (id integer primary key, name string) " +
                 "clustered into 3 shards with (number_of_replicas=0)");
 
-        assertThat(analysis.indexSettings().get("number_of_shards"), is("3"));
-        assertThat(analysis.indexSettings().get("number_of_replicas"), is("0"));
+        assertThat(analysis.indexSettings().get(IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("3"));
+        assertThat(analysis.indexSettings().get(TablePropertiesAnalysis.NUMBER_OF_REPLICAS), is("0"));
 
         Map<String, Object> metaMapping = analysis.metaMapping();
         Map<String, Object> metaName = (Map<String, Object>)((Map<String, Object>)
@@ -127,7 +128,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
                 "CREATE TABLE foo (id int primary key, content string) " +
                         "with (refresh_interval=5000)");
-        assertThat(analysis.indexSettings().get("refresh_interval"), is("5000"));
+        assertThat(analysis.indexSettings().get(TablePropertiesAnalysis.REFRESH_INTERVAL), is("5000"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -142,13 +143,13 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         AlterTableAnalysis analysisSet = (AlterTableAnalysis)analyze(
                 "ALTER TABLE user_refresh_interval " +
                 "SET (refresh_interval = '5000')");
-        assertEquals("5000", analysisSet.settings().get("refresh_interval"));
+        assertEquals("5000", analysisSet.settings().get(TablePropertiesAnalysis.REFRESH_INTERVAL));
 
         // alter t reset
         AlterTableAnalysis analysisReset = (AlterTableAnalysis)analyze(
                 "ALTER TABLE user_refresh_interval " +
                 "RESET (refresh_interval)");
-        assertEquals("1000", analysisReset.settings().get("refresh_interval"));
+        assertEquals("1000", analysisReset.settings().get(TablePropertiesAnalysis.REFRESH_INTERVAL));
     }
 
     @Test
@@ -328,7 +329,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 (AlterTableAnalysis)analyze("alter table users set (number_of_replicas=2)");
 
         assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.settings().get("number_of_replicas"), is("2"));
+        assertThat(analysis.settings().get(TablePropertiesAnalysis.NUMBER_OF_REPLICAS), is("2"));
     }
 
     @Test
@@ -337,7 +338,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 (AlterTableAnalysis)analyze("alter table users reset (number_of_replicas)");
 
         assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.settings().get("number_of_replicas"), is("1"));
+        assertThat(analysis.settings().get(IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
+        assertThat(analysis.settings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
     }
 
     @Test (expected = IllegalArgumentException.class)
@@ -644,6 +646,6 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     public void createTableNegativeReplicas() throws Exception {
         CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
                 "create table t (id int, name string) with (number_of_replicas=-1)");
-        assertThat(analysis.indexSettings().getAsInt("number_of_replicas", 0), is(-1));
+        assertThat(analysis.indexSettings().getAsInt(TablePropertiesAnalysis.NUMBER_OF_REPLICAS, 0), is(-1));
     }
 }

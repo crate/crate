@@ -22,13 +22,14 @@
 package io.crate.core;
 
 import com.google.common.base.Preconditions;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 
 import java.util.regex.Pattern;
 
 public class NumberOfReplicas {
 
-    public final static String NUMBER_OF_REPLICAS = "number_of_replicas";
-    public final static String AUTO_EXPAND_REPLICAS = "auto_expand_replicas";
+    public final static String NUMBER_OF_REPLICAS = IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
+    public final static String AUTO_EXPAND_REPLICAS = IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS;
 
     private static final Pattern EXPAND_REPLICA_PATTERN = Pattern.compile("\\d+\\-(all|\\d+)");
     private final String esSettingKey;
