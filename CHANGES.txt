@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - It is now possible to specify the columns that should be exported when using
+   the COPY TO statement.
+
  - added the ``DIRECTORY`` keyword to COPY TO
 
  - updated crate-theme to 0.0.15 to fix documentation link in the admin-ui

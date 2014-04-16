@@ -28,10 +28,12 @@ import io.crate.sql.tree.*;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
+
 
     @Override
     public Symbol visitCopyFromStatement(CopyFromStatement node, CopyAnalysis context) {
@@ -47,7 +49,6 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
 
     @Override
     public Symbol visitCopyTo(CopyTo node, CopyAnalysis context) {
-
         context.mode(CopyAnalysis.Mode.TO);
         if (node.genericProperties().isPresent()) {
             context.settings(settingsFromProperties(node.genericProperties().get(), context));
@@ -56,6 +57,11 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         context.uri(process(node.targetUri(), context));
         context.directoryUri(node.directoryUri());
 
+        List<Symbol> columns = new ArrayList<>(node.columns().size());
+        for (Expression expression : node.columns()) {
+            columns.add(process(expression, context));
+        }
+        context.outputSymbols(columns);
         return null;
     }
 

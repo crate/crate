@@ -434,9 +434,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testCopyToFile() throws Exception {
         String uriTemplate = Paths.get(folder.getRoot().toURI()).resolve("testCopyToFile%s.json").toAbsolutePath().toString();
-
         SQLResponse response = executor.exec("copy characters to format(?, sys.shards.id)", uriTemplate);
-
         assertThat(response.rowCount(), is(7L));
         List<String> lines = new ArrayList<>(7);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
@@ -449,6 +447,33 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             assertThat(line, startsWith("{"));
             assertThat(line, endsWith("}"));
         }
+    }
+
+    @Test
+    public void testCopyColumnsToDirectory() throws Exception {
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        SQLResponse response = executor.exec("copy characters (name, details['job']) to DIRECTORY ?", uriTemplate);
+        assertThat(response.rowCount(), is(7L));
+        List<String> lines = new ArrayList<>(7);
+        DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
+        for (Path entry: stream) {
+            lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
+        }
+        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1.json"));
+        assertTrue(path.toFile().exists());
+        assertThat(lines.size(), is(7));
+
+        boolean foundJob = false;
+        boolean foundName = false;
+        for (String line : lines) {
+            foundName = foundName || line.contains("Arthur Dent");
+            foundJob = foundJob || line.contains("Sandwitch Maker");
+            assertThat(line.split(",").length, is(2));
+            assertThat(line.trim(), startsWith("["));
+            assertThat(line.trim(), endsWith("]"));
+        }
+        assertTrue(foundJob);
+        assertTrue(foundName);
     }
 
     @Test
