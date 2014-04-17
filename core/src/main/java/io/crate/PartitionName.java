@@ -39,7 +39,8 @@ import java.util.regex.Pattern;
 
 public class PartitionName implements Streamable {
 
-    private static final Pattern paddingPattern = Pattern.compile("=");
+    private static final Base32 BASE32 = new Base32(true);
+    private static final Pattern PADDING_PATTERN = Pattern.compile("=");
 
     private final List<String> values;
     private String tableName;
@@ -103,7 +104,7 @@ public class PartitionName implements Streamable {
         if (ident == null) {
             return;
         }
-        byte[] inputBytes = new Base32(true).decode(ident.toUpperCase(Locale.ROOT));
+        byte[] inputBytes = BASE32.decode(ident.toUpperCase(Locale.ROOT));
         BytesStreamInput in = new BytesStreamInput(inputBytes, true);
         int size = in.readVInt();
         for (int i=0; i < size; i++) {
@@ -133,10 +134,9 @@ public class PartitionName implements Streamable {
         } catch (IOException e) {
             //
         }
-        String identBase32 = new Base32(true)
-                .encodeAsString(out.bytes().toBytes()).toLowerCase(Locale.ROOT);
+        String identBase32 = BASE32.encodeAsString(out.bytes().toBytes()).toLowerCase(Locale.ROOT);
         // decode doesn't need padding, remove it
-        return paddingPattern.matcher(identBase32).replaceAll("");
+        return PADDING_PATTERN.matcher(identBase32).replaceAll("");
     }
 
     public String stringValue() {
