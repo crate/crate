@@ -22,7 +22,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.import_.TransportImportAction;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
@@ -32,7 +31,6 @@ import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.executor.transport.task.DistributedMergeTask;
 import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.executor.transport.task.elasticsearch.*;
-import io.crate.executor.transport.task.inout.ImportTask;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -42,7 +40,10 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.node.ddl.*;
-import io.crate.planner.node.dml.*;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
@@ -85,7 +86,6 @@ public class TransportExecutor implements Executor {
     private final TransportIndexAction transportIndexAction;
     private final TransportBulkAction transportBulkAction;
     private final TransportUpdateAction transportUpdateAction;
-    private final TransportImportAction transportImportAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
@@ -112,7 +112,6 @@ public class TransportExecutor implements Executor {
                              TransportIndexAction transportIndexAction,
                              TransportBulkAction transportBulkAction,
                              TransportUpdateAction transportUpdateAction,
-                             TransportImportAction transportImportAction,
                              TransportDeleteIndexAction transportDeleteIndexAction,
                              TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction,
                              TransportPutIndexTemplateAction transportPutIndexTemplateAction,
@@ -131,7 +130,6 @@ public class TransportExecutor implements Executor {
         this.transportIndexAction = transportIndexAction;
         this.transportBulkAction = transportBulkAction;
         this.transportUpdateAction = transportUpdateAction;
-        this.transportImportAction = transportImportAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
@@ -279,19 +277,6 @@ public class TransportExecutor implements Executor {
                 context.addTask(new ESUpdateByQueryTask(transportSearchAction, node));
             }
             return null;
-        }
-
-        @Override
-        public Void visitCopyNode(CopyNode copyNode, Job context) {
-            switch(copyNode.mode()) {
-                case FROM:
-                    context.addTask(new ImportTask(transportImportAction, copyNode));
-                    break;
-                case TO:
-                    throw new UnsupportedOperationException("COPY TO statement not supported yet.");
-            }
-            return null;
-
         }
 
         @Override
