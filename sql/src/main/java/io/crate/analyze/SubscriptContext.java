@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.TableIdent;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +30,7 @@ public class SubscriptContext {
 
     private String column;
     private List<String> parts = new ArrayList<>();
+    private TableIdent tableIdent;
 
     public String column() {
         return column;
@@ -43,5 +46,13 @@ public class SubscriptContext {
 
     public void add(String part) {
         parts.add(0, part);
+    }
+
+    public void tableIdent(TableIdent tableIdent) {
+        this.tableIdent = tableIdent;
+    }
+
+    public TableIdent tableIdent() {
+        return tableIdent;
     }
 }
