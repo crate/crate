@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: queries like "select sys.nodes.name, * from sys.shards" now also work
+   correctly if there are unassigned shards
+
  - feature: implemented partitioned tables
 
  - feature: added table 'information_schema.table_partitions'

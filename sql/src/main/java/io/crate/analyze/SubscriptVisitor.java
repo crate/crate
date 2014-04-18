@@ -22,7 +22,10 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
+import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
+
+import java.util.List;
 
 
 public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
@@ -47,6 +50,15 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
 
     @Override
     protected Void visitQualifiedNameReference(QualifiedNameReference node, SubscriptContext context) {
+        List<String> parts = node.getName().getParts();
+        switch (parts.size()) {
+            case 3:
+                context.tableIdent(new TableIdent(parts.get(0), parts.get(1)));
+                break;
+            case 2:
+                context.tableIdent(new TableIdent(null, parts.get(0)));
+                break;
+        }
         context.column(node.getSuffix().getSuffix());
         return null;
     }
