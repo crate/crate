@@ -21,19 +21,15 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.PartitionName;
-import io.crate.action.sql.SQLResponse;
-import io.crate.analyze.CopyAnalysis;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.elasticsearch.*;
-import io.crate.executor.transport.task.inout.ImportTask;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -46,11 +42,10 @@ import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dml.*;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.ESCountNode;
-import io.crate.planner.node.dql.ESGetNode;
-import io.crate.planner.node.dql.ESSearchNode;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -68,7 +63,6 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
 import java.util.*;
 
 import static java.util.Arrays.asList;
@@ -805,30 +799,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat((Integer)rows[1][0], is(3));
         assertThat((String)rows[1][1], is("mostly harmless"));
-
-    }
-
-    @Test
-    public void testImportTask() throws Exception {
-        execute("create table quotes (id int primary key, " +
-                "quote string index using fulltext)");
-        ensureGreen();
-        Symbol uri = new StringLiteral(Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json"));
-
-        CopyNode copyNode = new CopyNode(uri, "quotes", CopyAnalysis.Mode.FROM);
-        Plan plan = new Plan();
-        plan.add(copyNode);
-        plan.expectsAffectedRows(true);
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ImportTask.class));
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get();
-        // 2 nodes on same machine resulting in double affected rows
-        assertThat((Long)rows[0][0], is(6l));
-
-        refresh();
-        SQLResponse response = execute("select count(*) from quotes");
-        assertThat((Long)response.rows()[0][0], is(3l));
 
     }
 }

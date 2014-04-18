@@ -68,10 +68,6 @@ public class PlanVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitCopyNode(CopyNode copyNode, C context) {
-        return visitPlanNode(copyNode, context);
-    }
-
     public R visitESCreateIndexNode(ESCreateIndexNode esCreateTableNode, C context) {
         return visitDDLPlanNode(esCreateTableNode, context);
     }

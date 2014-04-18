@@ -69,7 +69,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "10 shards");
         execute(
             "create table t3 (col1 integer, col2 string) with (number_of_replicas=8)");
-        refresh();
+        ensureYellow();
     }
 
     @After
