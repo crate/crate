@@ -16,6 +16,10 @@ public abstract class UnassignedShardCollectorExpression<T> implements Reference
         this.info = SysShardsTableInfo.INFOS.get(new ColumnIdent(name));
     }
 
+    protected UnassignedShardCollectorExpression(ReferenceInfo info) {
+        this.info = info;
+    }
+
     @Override
     public ReferenceImplementation getChildImplementation(String name) {
         return null;

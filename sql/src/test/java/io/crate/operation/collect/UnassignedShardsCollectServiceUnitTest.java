@@ -35,7 +35,7 @@ public class UnassignedShardsCollectServiceUnitTest {
     @Test
     public void testIsPrimaryAllShardsUnassinged() throws Exception {
         UnassignedShardsCollectService.UnassignedShardIteratorContext context =
-                new UnassignedShardsCollectService(null, null).new UnassignedShardIteratorContext();
+                new UnassignedShardsCollectService(null, null, null).new UnassignedShardIteratorContext();
         // Set<ShardId> must be instantiated but empty,
         // which means: no primary shards available; all shards unassigned for a specific table name and shard id
         context.seenPrimaries = new HashSet<>();

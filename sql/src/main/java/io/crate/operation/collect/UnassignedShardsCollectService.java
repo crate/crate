@@ -54,10 +54,12 @@ public class UnassignedShardsCollectService implements CollectService {
 
     @Inject
     @SuppressWarnings("unchecked")
-    public UnassignedShardsCollectService(Functions functions, ClusterService clusterService) {
+    public UnassignedShardsCollectService(Functions functions,
+                                          ClusterService clusterService,
+                                          UnassignedShardsReferenceResolver unassignedShardsReferenceResolver) {
         this.inputSymbolVisitor = new CollectInputSymbolVisitor<Input<?>>(
             functions,
-            (DocLevelReferenceResolver)new UnassignedShardsReferenceResolver()
+            (DocLevelReferenceResolver)unassignedShardsReferenceResolver
         );
         this.clusterService = clusterService;
     }

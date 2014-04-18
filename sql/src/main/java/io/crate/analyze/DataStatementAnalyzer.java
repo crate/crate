@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -41,6 +42,7 @@ import io.crate.sql.tree.StringLiteral;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.*;
+
 
 abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends AbstractStatementAnalyzer<Symbol, T> {
 
@@ -160,7 +162,10 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         SubscriptContext subscriptContext = new SubscriptContext();
         node.accept(visitor, subscriptContext);
         ReferenceIdent ident = new ReferenceIdent(
-                context.table().ident(), subscriptContext.column(), subscriptContext.parts());
+                Objects.firstNonNull(subscriptContext.tableIdent(), context.table().ident()),
+                subscriptContext.column(),
+                subscriptContext.parts()
+        );
         return context.allocateReference(ident);
     }
 
