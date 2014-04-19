@@ -17,5 +17,6 @@ configurations {
 
 jar {
     baseName 'crate-client'
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
 }
 
