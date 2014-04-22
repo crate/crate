@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - feature: updated crash to 0.9.0 which now uses urllib3 instead of requests.
+
+ - fix: updated crate-admin to 0.6.1 to prevent display glitches
+
  - feature: implemented partitioned tables
 
  - feature: added table 'information_schema.table_partitions'
