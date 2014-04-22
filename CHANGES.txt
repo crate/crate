@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/04/22 0.36.0
+=================
+
  - feature: updated crash to 0.9.0 which now uses urllib3 instead of requests.
 
  - fix: updated crate-admin to 0.6.1 to prevent display glitches
@@ -17,8 +20,8 @@ Unreleased
 
  - feature: added s3 support for COPY TO
 
- - feature: It is now possible to specify the columns that should be exported when using
-   the COPY TO statement.
+ - feature: It is now possible to specify the columns that should be exported
+   when using the COPY TO statement.
 
  - feature: added the ``DIRECTORY`` keyword to COPY TO
 
