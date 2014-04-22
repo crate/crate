@@ -24,11 +24,7 @@ package io.crate;
 
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.jvm.JvmInfo;
-
-import java.io.IOException;
 
 public class Version {
 
@@ -36,146 +32,6 @@ public class Version {
     // The logic for ID is: XXYYZZAA, where XX is major version, YY is minor version, ZZ is revision, and AA is Beta/RC indicator
     // AA values below 50 are beta builds, and below 99 are RC builds, with 99 indicating a release
     // the (internal) format of the id is there so we can easily do after/before checks on the id
-
-    public static final int V_0_20_00_ID = /*00*/200099;
-    public static final Version V_0_20_00 = new Version(V_0_20_00_ID, false,
-        org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_20_01_ID = /*00*/200199;
-    public static final Version V_0_20_01 = new Version(V_0_20_01_ID, false,
-            org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_20_02_ID = /*00*/200299;
-    public static final Version V_0_20_02 = new Version(V_0_20_02_ID, false,
-            org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_20_03_ID = /*00*/200399;
-    public static final Version V_0_20_03 = new Version(V_0_20_03_ID, false,
-            org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_20_04_ID = /*00*/200499;
-    public static final Version V_0_20_04 = new Version(V_0_20_04_ID, false,
-            org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_21_00_ID = /*00*/210099;
-    public static final Version V_0_21_00 = new Version(V_0_21_00_ID, false,
-            org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_21_01_ID = /*00*/210199;
-    public static final Version V_0_21_01 = new Version(V_0_21_01_ID, false,
-            org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_22_00_ID = /*00*/220099;
-    public static final Version V_0_22_00 = new Version(V_0_22_00_ID, false,
-            org.elasticsearch.Version.V_0_90_11);
-
-    public static final int V_0_22_01_ID = /*00*/220199;
-    public static final Version V_0_22_01 = new Version(V_0_22_01_ID, false,
-            org.elasticsearch.Version.V_0_90_11);
-
-    public static final int V_0_22_02_ID = /*00*/220299;
-    public static final Version V_0_22_02 = new Version(V_0_22_02_ID, false,
-            org.elasticsearch.Version.V_0_90_11);
-
-    public static final int V_0_23_00_ID = /*00*/230000;
-    public static final Version V_0_23_00 = new Version(V_0_23_00_ID, false,
-            org.elasticsearch.Version.V_0_90_11);
-
-    public static final int V_0_23_01_ID = /*00*/230199;
-    public static final Version V_0_23_01 = new Version(V_0_23_01_ID, false,
-            org.elasticsearch.Version.V_0_90_11);
-
-    public static final int V_0_23_02_ID = /*00*/230299;
-    public static final Version V_0_23_02 = new Version(V_0_23_02_ID, false,
-            org.elasticsearch.Version.V_0_90_11);
-
-    public static final int V_0_24_00_ID = /*00*/240099;
-    public static final Version V_0_24_00 = new Version(V_0_24_00_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_25_00_ID = /*00*/250099;
-    public static final Version V_0_25_00 = new Version(V_0_25_00_ID, false,
-        org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_26_00_ID = /*00*/260099;
-    public static final Version V_0_26_00 = new Version(V_0_26_00_ID, false,
-        org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_27_00_ID = /*00*/270099;
-    public static final Version V_0_27_00 = new Version(V_0_27_00_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_28_00_ID = /*00*/280099;
-    public static final Version V_0_28_00 = new Version(V_0_28_00_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_29_00_ID = /*00*/290099;
-    public static final Version V_0_29_00 = new Version(V_0_29_00_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_30_00_ID = /*00*/300099;
-    public static final Version V_0_30_00 = new Version(V_0_30_00_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_31_00_ID = /*00*/310099;
-    public static final Version V_0_31_00 = new Version(V_0_31_00_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_32_00_ID = /*00*/320099;
-    public static final Version V_0_32_00 = new Version(V_0_32_00_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_32_01_ID = /*00*/320199;
-    public static final Version V_0_32_01 = new Version(V_0_32_01_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_32_02_ID = /*00*/320299;
-    public static final Version V_0_32_02 = new Version(V_0_32_02_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_32_03_ID = /*00*/320399;
-    public static final Version V_0_32_03 = new Version(V_0_32_03_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_33_00_ID = /*00*/330099;
-    public static final Version V_0_33_00 = new Version(V_0_33_00_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_34_00_ID = /*00*/340099;
-    public static final Version V_0_34_00 = new Version(V_0_34_00_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_34_01_ID = /*00*/340199;
-    public static final Version V_0_34_01 = new Version(V_0_34_01_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_35_00_ID = /*00*/350099;
-    public static final Version V_0_35_00 = new Version(V_0_35_00_ID, false,
-            org.elasticsearch.Version.V_1_1_0);
-
-    public static final int V_0_35_01_ID = /*00*/350199;
-    public static final Version V_0_35_01 = new Version(V_0_35_01_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_35_02_ID = /*00*/350299;
-    public static final Version V_0_35_02 = new Version(V_0_35_02_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_35_03_ID = /*00*/350399;
-    public static final Version V_0_35_03 = new Version(V_0_35_03_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_35_04_ID = /*00*/350499;
-    public static final Version V_0_35_04 = new Version(V_0_35_04_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_35_05_ID = /*00*/350599;
-    public static final Version V_0_35_05 = new Version(V_0_35_05_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
-
-    public static final int V_0_35_06_ID = /*00*/350699;
-    public static final Version V_0_35_06 = new Version(V_0_35_06_ID, false,
-            org.elasticsearch.Version.V_1_0_1);
 
     public static final int V_0_36_00_ID = /*00*/360099;
     public static final Version V_0_36_00 = new Version(V_0_36_00_ID, true,
@@ -187,98 +43,6 @@ public class Version {
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +
                 "upgraded to [" + org.elasticsearch.Version.CURRENT + "] is still set to [" +
                 CURRENT.esVersion + "]";
-    }
-
-    public static Version readVersion(StreamInput in) throws IOException {
-        return fromId(in.readVInt());
-    }
-
-    public static Version fromId(int id) {
-        switch (id) {
-            case V_0_20_00_ID:
-                return V_0_20_00;
-            case V_0_20_01_ID:
-                return V_0_20_01;
-            case V_0_20_02_ID:
-                return V_0_20_02;
-            case V_0_20_03_ID:
-                return V_0_20_03;
-            case V_0_20_04_ID:
-                return V_0_20_04;
-            case V_0_21_00_ID:
-                return V_0_21_00;
-            case V_0_21_01_ID:
-                return V_0_21_01;
-            case V_0_22_00_ID:
-                return V_0_22_00;
-            case V_0_22_01_ID:
-                return V_0_22_01;
-            case V_0_22_02_ID:
-                return V_0_22_02;
-            case V_0_23_00_ID:
-                return V_0_23_00;
-            case V_0_23_01_ID:
-                return V_0_23_01;
-            case V_0_23_02_ID:
-                return V_0_23_02;
-            case V_0_24_00_ID:
-                return V_0_24_00;
-            case V_0_25_00_ID:
-                return V_0_25_00;
-            case V_0_26_00_ID:
-                return V_0_26_00;
-            case V_0_27_00_ID:
-                return V_0_27_00;
-            case V_0_28_00_ID:
-                return V_0_28_00;
-            case V_0_29_00_ID:
-                return V_0_29_00;
-            case V_0_30_00_ID:
-                return V_0_30_00;
-            case V_0_31_00_ID:
-                return V_0_31_00;
-            case V_0_32_00_ID:
-                return V_0_32_00;
-            case V_0_32_01_ID:
-                return V_0_32_01;
-            case V_0_32_02_ID:
-                return V_0_32_02;
-            case V_0_32_03_ID:
-                return V_0_32_03;
-            case V_0_33_00_ID:
-                return V_0_33_00;
-            case V_0_34_00_ID:
-                return V_0_34_00;
-            case V_0_34_01_ID:
-                return V_0_34_01;
-            case V_0_35_00_ID:
-                return V_0_35_00;
-            case V_0_35_01_ID:
-                return V_0_35_01;
-            case V_0_35_02_ID:
-                return V_0_35_02;
-            case V_0_35_03_ID:
-                return V_0_35_03;
-            case V_0_35_04_ID:
-                return V_0_35_04;
-            case V_0_35_05_ID:
-                return V_0_35_05;
-            case V_0_36_00_ID:
-                return V_0_36_00;
-            default:
-                return new Version(id, null, org.elasticsearch.Version.CURRENT);
-        }
-    }
-
-    public static void writeVersion(Version version, StreamOutput out) throws IOException {
-        out.writeVInt(version.id);
-    }
-
-    /**
-     * Returns the smallest version between the 2.
-     */
-    public static Version smallest(Version version1, Version version2) {
-        return version1.id < version2.id ? version1 : version2;
     }
 
     public final int id;
@@ -307,16 +71,8 @@ public class Version {
         return version.id < id;
     }
 
-    public boolean onOrAfter(Version version) {
-        return version.id <= id;
-    }
-
     public boolean before(Version version) {
         return version.id > id;
-    }
-
-    public boolean onOrBefore(Version version) {
-        return version.id >= id;
     }
 
     /**
