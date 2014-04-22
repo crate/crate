@@ -327,19 +327,14 @@ statement and is used to route a row to a particular shard. Example::
     CREATE OK (... sec)
 
 
-If a primary key constraint is defined, the routing column definition
-can be omitted or must match a primary key column. So the following two
-examples result in the same behaviour::
-
-    cr> create table my_table7 (
-    ...   first_column int primary key,
-    ...   second_column string
-    ... );
-    CREATE OK (... sec)
+If primary key constraints are defined, the routing column definition
+can be omitted as primary key columns are always used for routing by default.
+If the routing column is defined explicitly, it must match a primary key column::
 
     cr> create table my_table8 (
     ...   first_column int primary key,
-    ...   second_column string
+    ...   second_column string primary key,
+    ...   third_column string
     ... ) clustered by (first_column);
     CREATE OK (... sec)
 
@@ -348,7 +343,8 @@ Example for combining custom routing and shard definition::
 
     cr> create table my_table9 (
     ...   first_column int primary key,
-    ...   second_column string
+    ...   second_column string primary key,
+    ...   third_column string
     ... ) clustered by (first_column) into 10 shards;
     CREATE OK (... sec)
 
