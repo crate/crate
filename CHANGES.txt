@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/04/22 0.35.6
+=================
+
  - fix: queries like "select sys.nodes.name, * from sys.shards" now also work
    correctly if there are unassigned shards
 
