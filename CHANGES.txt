@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: updated crate-admin to 0.6.1 to prevent display glitches
+
  - feature: implemented partitioned tables
 
  - feature: added table 'information_schema.table_partitions'
