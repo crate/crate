@@ -72,7 +72,6 @@ dependencies {
     compile project(':es')
     compile project(':sql')
     compile project(':admin-ui')
-    compile project(':inout')
     compile project(':blob')
     compile project(':udc')
 

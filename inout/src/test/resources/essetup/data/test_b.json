@@ -1,8 +1,0 @@
-{ "index" : { "_index" : "users", "_type" : "d", "_id" : "1" } }
-{ "name": "car"}
-{ "index" : { "_index" : "users", "_type" : "d", "_id" : "2" } }
-{ "name": "bike"}
-{ "index" : { "_index" : "users", "_type" : "d", "_id" : "3" } }
-{ "name": "train"}
-{ "index" : { "_index" : "users", "_type" : "d", "_id" : "4" } }
-{ "name": "bus"}
