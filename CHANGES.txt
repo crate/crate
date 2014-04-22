@@ -5,9 +5,6 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: queries like "select sys.nodes.name, * from sys.shards" now also work
-   correctly if there are unassigned shards
-
  - feature: implemented partitioned tables
 
  - feature: added table 'information_schema.table_partitions'
@@ -30,6 +27,12 @@ Unreleased
  - fix: Items of string arrays now get transformed to strings
 
  - fix: updated crate-theme to 0.0.15 to fix documentation link in the admin-ui
+
+2014/04/22 0.35.6
+=================
+
+ - fix: queries like "select sys.nodes.name, * from sys.shards" now also work
+   correctly if there are unassigned shards
 
 2014/04/14 0.35.5
 =================

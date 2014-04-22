@@ -173,6 +173,10 @@ public class Version {
     public static final Version V_0_35_05 = new Version(V_0_35_05_ID, false,
             org.elasticsearch.Version.V_1_0_1);
 
+    public static final int V_0_35_06_ID = /*00*/350699;
+    public static final Version V_0_35_06 = new Version(V_0_35_06_ID, false,
+            org.elasticsearch.Version.V_1_0_1);
+
     public static final int V_0_36_00_ID = /*00*/360099;
     public static final Version V_0_36_00 = new Version(V_0_36_00_ID, true,
             org.elasticsearch.Version.V_1_1_0);
