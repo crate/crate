@@ -35,6 +35,11 @@ Unreleased
 
  - fix: updated crate-theme to 0.0.15 to fix documentation link in the admin-ui
 
+2014/04/24 0.35.7
+=================
+
+ - fix: throw appropriate exceptions when using unsupported expressions
+
 2014/04/22 0.35.6
 =================
 

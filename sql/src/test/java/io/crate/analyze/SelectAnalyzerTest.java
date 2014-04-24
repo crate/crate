@@ -1029,4 +1029,18 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select name from multi_parted order by format('abc %s', obj['name'])");
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void testArithmeticExpressions() throws Exception {
+        analyze("select 1 + 1 from users");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testJoin() throws Exception {
+        analyze("select * from users join users_multi_pk on users.id = users.multi_pk.id");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testUnion() throws Exception {
+        analyze("select * from users union select * from users_multi_pk");
+    }
 }
