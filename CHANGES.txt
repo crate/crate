@@ -5,6 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/04/24 0.36.1
+=================
+
+ - fix: throw appropriate exceptions when using unsupported expressions
+
 2014/04/22 0.36.0
 =================
 
