@@ -59,12 +59,6 @@ public abstract class AbstractStatementAnalyzer<R extends Object, T extends Anal
     }
 
     @Override
-    protected R visitNode(Node node, T context) {
-        System.out.println("Not analyzed node: " + node);
-        return super.visitNode(node, context);
-    }
-
-    @Override
     protected R visitTable(Table node, T context) {
         Preconditions.checkState(context.table() == null, "selecting from multiple tables is not supported");
         TableIdent tableIdent = TableIdent.of(node);
@@ -73,5 +67,130 @@ public abstract class AbstractStatementAnalyzer<R extends Object, T extends Anal
         }
         context.table(tableIdent);
         return null;
+    }
+
+    @Override
+    protected R visitNode(Node node, T context) {
+        throw new UnsupportedOperationException("Unsupported statement.");
+    }
+
+    /*
+     * not supported yet expressions
+     *
+     * remove those methods if expressions gets supported
+     */
+    @Override
+    protected R visitExtract(Extract node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitCast(Cast node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitArithmeticExpression(ArithmeticExpression node, T context) {
+       return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitBetweenPredicate(BetweenPredicate node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitCoalesceExpression(CoalesceExpression node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitWith(With node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitWithQuery(WithQuery node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitWhenClause(WhenClause node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    public R visitWindow(Window node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitSimpleCaseExpression(SimpleCaseExpression node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitNullIfExpression(NullIfExpression node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitIfExpression(IfExpression node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitSearchedCaseExpression(SearchedCaseExpression node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitSubqueryExpression(SubqueryExpression node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitUnion(Union node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitIntersect(Intersect node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitExcept(Except node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitTableSubquery(TableSubquery node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitJoin(Join node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitSampledRelation(SampledRelation node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitCurrentTime(CurrentTime node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    protected R visitExists(ExistsPredicate node, T context) {
+        return visitNode(node, context);
+    }
+
+    @Override
+    public R visitInputReference(InputReference node, T context) {
+        return visitNode(node, context);
     }
 }
