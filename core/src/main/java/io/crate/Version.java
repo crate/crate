@@ -42,7 +42,6 @@ public class Version {
     public static final Version V_0_37_00 = new Version(V_0_37_00_ID, true,
             org.elasticsearch.Version.V_1_1_0);
 
-
     public static final Version CURRENT = V_0_37_00;
 
     static {
