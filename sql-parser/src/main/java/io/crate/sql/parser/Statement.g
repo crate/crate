@@ -108,6 +108,7 @@ tokens {
     INDEX_OFF;
     ANALYZER_ELEMENTS;
     NAMED_PROPERTIES;
+    ARRAY_CMP;
 }
 
 @header {
@@ -403,7 +404,8 @@ booleanPrimary
 
 predicate
     : (predicatePrimary -> predicatePrimary)
-      ( cmpOp e=predicatePrimary                                  -> ^(cmpOp $predicate $e)
+      ( cmpOp quant=setCmpQuantifier '(' e=predicatePrimary ')'   -> ^(ARRAY_CMP $predicate cmpOp $quant $e)
+      | cmpOp e=predicatePrimary                                  -> ^(cmpOp $predicate $e)
       | IS DISTINCT FROM e=predicatePrimary                       -> ^(IS_DISTINCT_FROM $predicate $e)
       | IS NOT DISTINCT FROM e=predicatePrimary                   -> ^(NOT ^(IS_DISTINCT_FROM $predicate $e))
       | BETWEEN min=predicatePrimary AND max=predicatePrimary     -> ^(BETWEEN $predicate $min $max)
@@ -502,6 +504,10 @@ nullOrdering
 
 cmpOp
     : EQ | NEQ | LT | LTE | GT | GTE
+    ;
+
+setCmpQuantifier
+    : ANY | SOME | ALL
     ;
 
 subquery
@@ -942,6 +948,8 @@ FROM: 'FROM';
 TO: 'TO';
 AS: 'AS';
 ALL: 'ALL';
+ANY: 'ANY';
+SOME: 'SOME';
 DIRECTORY: 'DIRECTORY';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
