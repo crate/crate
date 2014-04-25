@@ -532,4 +532,8 @@ public abstract class AstVisitor<R, C>
     public R visitPartitionedBy(PartitionedBy node, C context) {
         return visitNode(node, context);
     }
+
+    public R visitArrayComparisonExpression(ArrayComparisonExpression node, C context) {
+        return visitExpression(node, context);
+    }
 }
