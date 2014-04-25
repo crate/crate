@@ -21,21 +21,22 @@
 
 package io.crate.sql.parser;
 
-import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.*;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.*;
 import org.antlr.runtime.tree.CommonTree;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.google.common.base.Strings.repeat;
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static io.crate.sql.parser.TreePrinter.treeToString;
-import static com.google.common.base.Strings.repeat;
 import static java.lang.String.format;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
@@ -188,7 +189,7 @@ public class TestStatementBuilder
                 "   filter_1," +
                 "   filter_2," +
                 "   filter_3 WITH (" +
-                "     \"some\"=?" +
+                "     \"key\"=?" +
                 "   )" +
                 " )," +
                 " tokenizer my_tokenizer WITH (" +
@@ -198,7 +199,7 @@ public class TestStatementBuilder
                 " char_filters (" +
                 "   filter_1," +
                 "   filter_2 WITH (" +
-                "     some='property'" +
+                "     key='property'" +
                 "   )," +
                 "   filter_3" +
                 " )" +
@@ -295,6 +296,30 @@ public class TestStatementBuilder
         expression = SqlParser.createExpression("ABS(1)");
         QualifiedName functionName = ((FunctionCall)expression).getName();
         assertThat(functionName.getSuffix(), is("abs"));
+    }
+
+    @Test
+    public void testArrayComparison() throws Exception {
+        Expression anyExpression = SqlParser.createExpression("1 = ANY (arrayColumnRef)");
+        assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
+        ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression)anyExpression;
+        assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
+        assertThat(arrayComparisonExpression.getLeft(), instanceOf(LongLiteral.class));
+        assertThat(arrayComparisonExpression.getRight(), instanceOf(QualifiedNameReference.class));
+
+        Expression someExpression = SqlParser.createExpression("1 = SOME (arrayColumnRef)");
+        assertThat(someExpression, instanceOf(ArrayComparisonExpression.class));
+        ArrayComparisonExpression someArrayComparison = (ArrayComparisonExpression)someExpression;
+        assertThat(someArrayComparison.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
+        assertThat(someArrayComparison.getLeft(), instanceOf(LongLiteral.class));
+        assertThat(someArrayComparison.getRight(), instanceOf(QualifiedNameReference.class));
+
+        Expression allExpression = SqlParser.createExpression("'StringValue' = ALL (arrayColumnRef)");
+        assertThat(allExpression, instanceOf(ArrayComparisonExpression.class));
+        ArrayComparisonExpression allArrayComparison = (ArrayComparisonExpression)allExpression;
+        assertThat(allArrayComparison.quantifier(), is(ArrayComparisonExpression.Quantifier.ALL));
+        assertThat(allArrayComparison.getLeft(), instanceOf(StringLiteral.class));
+        assertThat(allArrayComparison.getRight(), instanceOf(QualifiedNameReference.class));
     }
 
     @Test

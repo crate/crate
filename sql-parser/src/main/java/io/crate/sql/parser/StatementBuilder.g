@@ -334,6 +334,7 @@ expr returns [Expression value]
     | functionCall          { $value = $functionCall.value; }
     | arithmeticExpression  { $value = $arithmeticExpression.value; }
     | comparisonExpression  { $value = $comparisonExpression.value; }
+    | arrayComparisonExpression { $value = $arrayComparisonExpression.value; }
     | ^(AND a=expr b=expr)  { $value = LogicalBinaryExpression.and($a.value, $b.value); }
     | ^(OR a=expr b=expr)   { $value = LogicalBinaryExpression.or($a.value, $b.value); }
     | ^(NOT e=expr)         { $value = new NotExpression($e.value); }
@@ -467,6 +468,11 @@ comparisonExpression returns [ComparisonExpression value]
     : ^(t=comparisonType a=expr b=expr) { $value = new ComparisonExpression($t.value, $a.value, $b.value); }
     ;
 
+arrayComparisonExpression returns [ArrayComparisonExpression value]
+    : ^(ARRAY_CMP a=expr compType=comparisonType quant=setCompareQuantifier b=expr)
+        { $value = new ArrayComparisonExpression($compType.value, $quant.value, $a.value, $b.value); }
+    ;
+
 comparisonType returns [ComparisonExpression.Type value]
     : EQ                    { $value = ComparisonExpression.Type.EQUAL; }
     | NEQ                   { $value = ComparisonExpression.Type.NOT_EQUAL; }
@@ -475,6 +481,12 @@ comparisonType returns [ComparisonExpression.Type value]
     | GT                    { $value = ComparisonExpression.Type.GREATER_THAN; }
     | GTE                   { $value = ComparisonExpression.Type.GREATER_THAN_OR_EQUAL; }
     | IS_DISTINCT_FROM      { $value = ComparisonExpression.Type.IS_DISTINCT_FROM; }
+    ;
+
+setCompareQuantifier returns [ArrayComparisonExpression.Quantifier value]
+    : ANY                   { $value = ArrayComparisonExpression.Quantifier.ANY; }
+    | SOME                  { $value = ArrayComparisonExpression.Quantifier.ANY; }
+    | ALL                   { $value = ArrayComparisonExpression.Quantifier.ALL; }
     ;
 
 intervalValue returns [IntervalLiteral value]
