@@ -27,6 +27,7 @@ import io.crate.PartitionName;
 import io.crate.exceptions.AmbiguousAliasException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -46,6 +47,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
@@ -54,6 +56,7 @@ import org.junit.Test;
 import java.util.*;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -711,9 +714,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis distinctAnalysis = (SelectAnalysis) analyze("select distinct * from users");
         SelectAnalysis groupByAnalysis =
                 (SelectAnalysis) analyze(
-                        "select _version, awesome, details, friends, id, name, other_id " +
+                        "select _version, awesome, details, friends, counters, id, name, other_id " +
                         "from users " +
-                        "group by _version, awesome, details, friends, id, name, other_id");
+                        "group by _version, awesome, details, friends, counters, id, name, other_id");
         assertEquals(groupByAnalysis.groupBy().size(), distinctAnalysis.groupBy().size());
         for (Symbol s : distinctAnalysis.groupBy()) {
             assertTrue(distinctAnalysis.groupBy().contains(s));
@@ -1042,5 +1045,50 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testUnion() throws Exception {
         analyze("select * from users union select * from users_multi_pk");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testArrayCompareInvalidArray() throws Exception {
+        analyze("select * from users where 'George' = ANY (name)");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testArrayCompareObjectArray() throws Exception {
+        // TODO: remove this artificial limitation in general
+        analyze("select * from users where ? = ANY (friends)", new Object[]{
+                new MapBuilder<String, Object>().put("id", 1L).map()
+        });
+    }
+
+    @Test
+    public void testArrayCompareAny() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where 0 = ANY (counters)");
+        assertThat(analysis.whereClause().hasQuery(), is(true));
+
+        FunctionInfo anyInfo = ((Function)analysis.whereClause().query()).info();
+        assertThat(anyInfo.ident().name(), is("any_="));
+        assertThat(anyInfo.ident().argumentTypes(), contains(DataType.LONG_ARRAY, DataType.LONG));
+    }
+
+    @Test
+    public void testArrayCompareAnyNeq() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where ? != ANY (counters)",
+                new Object[]{ 4.3F });
+        assertThat(analysis.whereClause().hasQuery(), is(true));
+
+        Function notFunction = ((Function)analysis.whereClause().query());
+        assertThat(notFunction.info().ident().name(), is("op_not"));
+
+        FunctionInfo anyInfo = ((Function)notFunction.arguments().get(0)).info();
+        assertThat(anyInfo.ident().name(), is("any_="));
+        assertThat(anyInfo.ident().argumentTypes(), contains(DataType.LONG_ARRAY, DataType.LONG));
+
+        SelectAnalysis notAnalysis = (SelectAnalysis) analyze("select * from users where NOT ? = ANY (counters)", new Object[]{4.1F});
+        assertThat(notAnalysis.whereClause().query(), is(analysis.whereClause().query()));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testArrayCompareAll() throws Exception {
+        analyze("select * from users where 0 = ALL (counters)");
     }
 }

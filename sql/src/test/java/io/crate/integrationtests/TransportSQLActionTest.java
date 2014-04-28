@@ -3780,7 +3780,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("refresh table test");
         execute("select _version, c from test");
 
-        long version = (Long)response.rows()[0][0];
+        long version = (Long) response.rows()[0][0];
         assertThat(version, is(1L));
 
         // with primary key optimization:
@@ -3792,8 +3792,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("refresh table test");
         execute("select _version, c from test");
-        assertThat((Long)response.rows()[0][0], is(2L));
-        assertThat((Integer)response.rows()[0][1], is(2));
+        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat((Integer) response.rows()[0][1], is(2));
 
 
         // without primary key optimization:
@@ -3805,8 +3805,82 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("refresh table test");
         execute("select _version, c from test");
-        assertThat((Long)response.rows()[0][0], is(3L));
-        assertThat((Integer)response.rows()[0][1], is(4));
+        assertThat((Long) response.rows()[0][0], is(3L));
+        assertThat((Integer) response.rows()[0][1], is(4));
+    }
+
+    @Test
+    public void testAnyArray() throws Exception {
+        execute("create table any_table (" +
+                "  id int primary key," +
+                "  temps array(double)," +
+                "  names array(string)" +
+                ") with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into any_table (id, temps, names) values (?,?,?), (?,?,?), (?,?,?), (?,?,?)",
+                new Object[]{
+                        1, Arrays.asList(0L, 0L, 0L), Arrays.asList("Dornbirn", "Berlin", "St. Margrethen"),
+                        2, Arrays.asList(0, 1, -1), Arrays.asList("Dornbirn", "Dornbirn", "Dornbirn"),
+                        3, Arrays.asList(42, -42), Arrays.asList("Hangelsberg", "Berlin"),
+                        4, null, null,
+                });
+        assertThat(response.rowCount(), is(4L));
+        refresh();
+
+        execute("select count(*) from any_table where 'Berlin' = ANY (names)");
+        assertThat((Long)response.rows()[0][0], is(2L));
+
+        execute("select id, names from any_table where 'Berlin' = ANY (names) order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((Integer)response.rows()[1][0], is(3));
+
+        execute("select id from any_table where 'Berlin' != ANY (names) order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer)response.rows()[0][0], is(2));
+        assertThat((Integer)response.rows()[1][0], is(4));
+
+        execute("select count(id) from any_table where 0.0 < ANY (temps)");
+        assertThat((Long)response.rows()[0][0], is(2L));
+
+        execute("select id, names from any_table where 0.0 < ANY (temps) order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer) response.rows()[0][0], is(2));
+        assertThat((Integer)response.rows()[1][0], is(3));
+
+        execute("select count(*) from any_table where 0.0 > ANY (temps)");
+        assertThat((Long)response.rows()[0][0], is(2L));
+
+        execute("select id, names from any_table where 0.0 > ANY (temps) order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer)response.rows()[0][0], is(2));
+        assertThat((Integer)response.rows()[1][0], is(3));
+
+    }
+
+    @Test
+    public void testNotAnyArray() throws Exception {
+        execute("create table any_table (" +
+                "  id int primary key," +
+                "  temps array(double)," +
+                "  names array(string)" +
+                ") with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into any_table (id, temps, names) values (?,?,?), (?,?,?), (?,?,?), (?,?,?)",
+                new Object[]{
+                        1, Arrays.asList(0L, 0L, 0L), Arrays.asList("Dornbirn", "Berlin", "St. Margrethen"),
+                        2, Arrays.asList(0, 1, -1), Arrays.asList("Dornbirn", "Dornbirn", "Dornbirn"),
+                        3, Arrays.asList(42, -42), Arrays.asList("Hangelsberg", "Berlin"),
+                        4, null, null,
+                });
+        assertThat(response.rowCount(), is(4L));
+        refresh();
+
+        execute("select id from any_table where NOT 'Hangelsberg' = ANY (names) order by id");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((Integer)response.rows()[1][0], is(2));
+        assertThat((Integer)response.rows()[2][0], is(4));
     }
 
 }

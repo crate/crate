@@ -28,6 +28,8 @@ import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.is;
+
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
@@ -224,5 +226,15 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
         exec("select * from sys.shards");
         assertEquals(5L, response.rowCount()); // t3 isn't included
+    }
+
+    @Test
+    public void testAnyInformationSchema() throws Exception {
+        execute("create table t1 (id integer, date timestamp, names array(string)) partitioned by (date)");
+        execute("create table t2 (id integer, num long, names array(string)) partitioned by (num)");
+        ensureGreen();
+        execute("select table_name from information_schema.tables where 'date' = ANY (partitioned_by)");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String)response.rows()[0][0], is("t1"));
     }
 }

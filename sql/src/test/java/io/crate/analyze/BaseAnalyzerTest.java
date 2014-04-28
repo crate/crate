@@ -74,6 +74,7 @@ public class BaseAnalyzerTest {
             .add("details", DataType.OBJECT, null)
             .add("awesome", DataType.BOOLEAN, null)
             .add("_version", DataType.INTEGER, null)
+            .add("counters", DataType.LONG_ARRAY, null)
             .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
             .add("friends", DataType.LONG, Arrays.asList("id"))
             .addPrimaryKey("id")
@@ -150,6 +151,7 @@ public class BaseAnalyzerTest {
     static final FunctionInfo YEAR_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("year", Arrays.asList(DataType.TIMESTAMP)),
             DataType.STRING);
+
     Injector injector;
     Analyzer analyzer;
 
@@ -273,7 +275,6 @@ public class BaseAnalyzerTest {
         injector = builder.createInjector();
         analyzer = injector.getInstance(Analyzer.class);
     }
-
 
 
     protected static Function getFunctionByName(String functionName, Collection c) {

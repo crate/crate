@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,22 +19,25 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.operator;
+package io.crate.operation.operator.any;
 
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
-import io.crate.DataType;
+import io.crate.operation.operator.OperatorModule;
+import io.crate.sql.tree.ComparisonExpression;
 
+public class AnyEqOperator extends AnyOperator<AnyEqOperator> {
 
-public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {
-
-    public static final String NAME = "op_=";
+    public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
 
     public static void register(OperatorModule module) {
-        for (DataType type : DataType.ALL_TYPES) {
-            module.registerOperatorFunction(new EqOperator(generateInfo(NAME, type)));
-        }
+        module.registerDynamicOperatorFunction(NAME, new AnyEqOperator());
+    }
+
+    protected AnyEqOperator() {
+    }
+
+    protected AnyEqOperator(FunctionInfo functionInfo) {
+        super(functionInfo);
     }
 
     @Override
@@ -42,21 +45,13 @@ public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {
         return comparisonResult == 0;
     }
 
-    protected EqOperator(FunctionInfo info) {
-        super(info);
+    @Override
+    protected String name() {
+        return NAME;
     }
 
     @Override
-    public Boolean evaluate(Input<Object>... args) {
-        assert args.length == 2;
-        Object left = args[0].value();
-        if (left == null){
-            return null;
-        }
-        Object right = args[1].value();
-        if (right == null){
-            return null;
-        }
-        return left.equals(right);
+    protected AnyEqOperator newInstance(FunctionInfo info) {
+        return new AnyEqOperator(info);
     }
 }

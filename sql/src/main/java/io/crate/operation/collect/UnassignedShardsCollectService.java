@@ -159,7 +159,8 @@ public class UnassignedShardsCollectService implements CollectService {
                 for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
                 }
-                if (!condition.value()) {
+                Boolean match = condition.value();
+                if (match == null || !match) {
                     // no match
                     continue;
                 }

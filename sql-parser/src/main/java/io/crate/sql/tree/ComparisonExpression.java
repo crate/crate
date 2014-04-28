@@ -23,6 +23,7 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
 
 public class ComparisonExpression
         extends Expression
@@ -36,6 +37,15 @@ public class ComparisonExpression
         GREATER_THAN(">"),
         GREATER_THAN_OR_EQUAL(">="),
         IS_DISTINCT_FROM("IS DISTINCT FROM");
+
+        public static ImmutableMap<Type, Type> INVERSE_MAP = ImmutableMap.<Type, Type>builder()
+                .put(EQUAL, NOT_EQUAL)
+                .put(NOT_EQUAL, EQUAL)
+                .put(LESS_THAN, GREATER_THAN_OR_EQUAL)
+                .put(LESS_THAN_OR_EQUAL, GREATER_THAN)
+                .put(GREATER_THAN, LESS_THAN_OR_EQUAL)
+                .put(GREATER_THAN_OR_EQUAL, LESS_THAN)
+                .build();
 
         private final String value;
 

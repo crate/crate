@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - implemented ANY operator for array containment checks
+
 2014/04/29 0.36.2
 =================
 
