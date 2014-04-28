@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - minor documentation improvements
+
 2014/04/22 0.36.0
 =================
 

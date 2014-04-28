@@ -201,6 +201,7 @@ You can expand this limit by using an explicit LIMIT-clause.
 But you are encouraged to make use of a windowing using LIMIT and OFFSET to iterate through all the results
 of a potentially large resultset instead of expanding the default limit.
 
+
 Inner/Nested Objects
 --------------------
 
@@ -228,6 +229,12 @@ Query for a property of an inner object::
     +-----------+----------------+
     SELECT 1 row in set (... sec)
 
+
+.. note::
+
+    It is currently not possible to insert objects using crash. In order to do
+    that it is necessary to use one of the client libraries like
+    `crate-python`_ or use the :doc:`rest`.
 
 .. _sql_dml_aggregation:
 
@@ -655,3 +662,4 @@ For further details see :ref:`copy_to`.
 .. _PCRE: http://www.pcre.org/
 
 .. _`eventually consistent`: http://en.wikipedia.org/wiki/Eventual_consistency
+.. _`crate-python`: https://pypi.python.org/pypi/crate/
