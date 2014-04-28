@@ -380,6 +380,36 @@ public enum DataType {
         return ARRAY_TYPES_MAP.get(this);
     }
 
+    public DataType elementType() {
+        if (isArrayType()) {
+            return REVERSE_ARRAY_TYPE_MAP.get(this);
+        } else if (isSetType()) {
+            return REVERSE_SET_TYPE_MAP.get(this);
+        } else {
+            return this;
+        }
+    }
+
+    public boolean isPrimitiveType() {
+        return PRIMITIVE_TYPES.contains(this);
+    }
+
+    public boolean isCompoundType() {
+        return !isPrimitiveType();
+    }
+
+    public boolean isArrayType() {
+        return ARRAY_TYPES.contains(this);
+    }
+
+    public boolean isSetType() {
+        return SET_TYPES.contains(this);
+    }
+
+    public boolean isCollectionType() {
+        return isArrayType() || isSetType();
+    }
+
     @Nullable
     public static DataType guess(Object value) {
         return forValue(value, false);

@@ -7,6 +7,8 @@ Changes for Crate Data
 
  - fix: date range queries (``WHERE ts > '1970-02-01'``) were misinterpreted
 
+ - implemented ANY operator for array containment checks
+
 2014/04/29 0.36.2
 =================
 

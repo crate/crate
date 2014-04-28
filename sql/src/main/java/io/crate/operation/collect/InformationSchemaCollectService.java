@@ -181,7 +181,8 @@ public class InformationSchemaCollectService implements CollectService {
                 for (InformationCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
                 }
-                if (!condition.value()) {
+                Boolean match = condition.value();
+                if (match == null || !match) {
                     // no match
                     continue;
                }
