@@ -19,52 +19,73 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.udc;
+package io.crate.udc.ping;
 
+import com.google.common.util.concurrent.SettableFuture;
+import io.crate.ClusterId;
+import io.crate.ClusterIdService;
 import io.crate.http.HttpTestServer;
-import io.crate.test.integration.CrateIntegrationTest;
-import io.crate.udc.plugin.UDCPlugin;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.HttpServerTransport;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
+import static junit.framework.TestCase.assertNotNull;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.TEST, numNodes = 0)
-public class UDCServiceTest extends CrateIntegrationTest {
+public class PingTaskTest {
+
+    private ClusterService clusterService;
+    private HttpServerTransport httpServerTransport;
+    private ClusterIdService clusterIdService;
+
+    @Before
+    public void setUp() throws Exception {
+        clusterService = mock(ClusterService.class);
+        clusterIdService = mock(ClusterIdService.class);
+        httpServerTransport = mock(HttpServerTransport.class);
+        DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
+        BoundTransportAddress boundAddress = mock(BoundTransportAddress.class);
+        TransportAddress transportAddress = new InetSocketTransportAddress(
+                InetAddress.getLocalHost().getHostName(), 4200);
+
+        SettableFuture<ClusterId> clusterIdFuture = SettableFuture.create();
+        clusterIdFuture.set(new ClusterId(UUID.randomUUID()));
+        when(clusterIdService.clusterId()).thenReturn(clusterIdFuture);
+        when(clusterService.localNode()).thenReturn(discoveryNode);
+        when(discoveryNode.isMasterNode()).thenReturn(true);
+        when(httpServerTransport.boundAddress()).thenReturn(boundAddress);
+        when(boundAddress.publishAddress()).thenReturn(transportAddress);
+    }
 
     @Test
-    public void testUDCService() throws Exception {
-        HttpTestServer httpTestServer = new HttpTestServer(18080, false);
-        httpTestServer.run();
-        sleep(100);
+    public void testSuccessfulPingTaskRun() throws Exception {
+        HttpTestServer testServer = new HttpTestServer(18080, false);
+        testServer.run();
 
-        Settings settings = settingsBuilder()
-                .put(UDCPlugin.ENABLED_SETTING_NAME, true)
-                .put(UDCPlugin.URL_SETTING_NAME, "http://localhost:18080/")
-                .put(UDCPlugin.INITIAL_DELAY_SETTING_NAME, new TimeValue(4, TimeUnit.SECONDS))
-                .put(UDCPlugin.INTERVAL_SETTING_NAME, new TimeValue(1, TimeUnit.SECONDS))
-                .build();
-        cluster().startNode(settings);
-        ensureGreen();
-
-        sleep(1000);
-        assertThat(httpTestServer.responses.size(), greaterThanOrEqualTo(1));
-
-        sleep(1000);
-        assertThat(httpTestServer.responses.size(), greaterThanOrEqualTo(2));
-
-        // validate content of responses
-        for (long i=0; i<httpTestServer.responses.size(); i++) {
-            String json = httpTestServer.responses.get((int)i);
+        PingTask task = new PingTask(
+                clusterService, clusterIdService, httpServerTransport, "http://localhost:18080/");
+        task.run();
+        assertThat(testServer.responses.size(), is(1));
+        task.run();
+        assertThat(testServer.responses.size(), is(2));
+        for (long i=0; i< testServer.responses.size(); i++) {
+            String json = testServer.responses.get((int)i);
             Map<String,String> map = new HashMap<>();
             ObjectMapper mapper = new ObjectMapper();
             try {
@@ -96,32 +117,23 @@ public class UDCServiceTest extends CrateIntegrationTest {
             assertNotNull(map.get("crate_version"));
             assertTrue(map.containsKey("java_version"));
             assertNotNull(map.get("java_version"));
-
         }
-        httpTestServer.shutDown();
-        cluster().stopCurrentMasterNode();
+        testServer.shutDown();
     }
 
     @Test
-    public void testPingTaskCountersFailures() throws Exception {
-        HttpTestServer httpTestServer = new HttpTestServer(18082, true);
-        httpTestServer.run();
+    public void testUnsuccessfulPingTaskRun() throws Exception {
+        HttpTestServer testServer = new HttpTestServer(18081, true);
+        testServer.run();
+        PingTask task = new PingTask(
+                clusterService, clusterIdService, httpServerTransport, "http://localhost:18081/");
+        task.run();
+        assertThat(testServer.responses.size(), is(1));
+        task.run();
+        assertThat(testServer.responses.size(), is(2));
 
-        Settings settings = settingsBuilder()
-                .put(UDCPlugin.ENABLED_SETTING_NAME, true)
-                .put(UDCPlugin.URL_SETTING_NAME, "http://localhost:18082/")
-                .put(UDCPlugin.INITIAL_DELAY_SETTING_NAME, new TimeValue(4, TimeUnit.SECONDS))
-                .put(UDCPlugin.INTERVAL_SETTING_NAME, new TimeValue(1, TimeUnit.SECONDS))
-                .build();
-        cluster().startNode(settings);
-        ensureGreen();
-
-        sleep(2000);
-        assertThat(httpTestServer.responses.size(), greaterThanOrEqualTo(1));
-
-        // validate content of responses
-        for (long i=0; i<httpTestServer.responses.size(); i++) {
-            String json = httpTestServer.responses.get((int)i);
+        for (long i=0; i< testServer.responses.size(); i++) {
+            String json = testServer.responses.get((int)i);
             Map<String,String> map = new HashMap<>();
             ObjectMapper mapper = new ObjectMapper();
             try {
@@ -153,9 +165,8 @@ public class UDCServiceTest extends CrateIntegrationTest {
             assertNotNull(map.get("crate_version"));
             assertTrue(map.containsKey("java_version"));
             assertNotNull(map.get("java_version"));
-
         }
-        httpTestServer.shutDown();
-        cluster().stopCurrentMasterNode();
+
+        testServer.shutDown();
     }
 }

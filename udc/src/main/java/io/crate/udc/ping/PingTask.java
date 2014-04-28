@@ -87,7 +87,7 @@ public class PingTask extends TimerTask {
     }
 
     public Boolean isMasterNode() {
-        return clusterService.state().nodes().localNodeMaster();
+        return clusterService.localNode().isMasterNode();
     }
 
     public Map<String, Object> getCounters() {
@@ -98,13 +98,19 @@ public class PingTask extends TimerTask {
     }
 
     public String getHardwareAddress() {
-        String hardwareAddress = null;
         TransportAddress transportAddress = httpServerTransport.boundAddress().publishAddress();
-        if (transportAddress instanceof InetSocketTransportAddress) {
-            InetAddress inetAddress = ((InetSocketTransportAddress) transportAddress).address().getAddress();
-            try {
-                NetworkInterface networkInterface = NetworkInterface.getByInetAddress(inetAddress);
-                if (networkInterface != null) {
+        if (!(transportAddress instanceof InetSocketTransportAddress)) {
+            return null;
+        }
+
+        String hardwareAddress = null;
+        InetAddress inetAddress = ((InetSocketTransportAddress) transportAddress).address().getAddress();
+        try {
+            NetworkInterface networkInterface = NetworkInterface.getByInetAddress(inetAddress);
+            if (networkInterface != null) {
+                if (networkInterface.getName().equals("lo")) {
+                    hardwareAddress = "loopback device";
+                } else {
                     byte[] hardwareAddressBytes = networkInterface.getHardwareAddress();
                     StringBuilder sb = new StringBuilder(18);
                     for (byte b : hardwareAddressBytes) {
@@ -114,13 +120,12 @@ public class PingTask extends TimerTask {
                     }
                     hardwareAddress = sb.toString();
                 }
-
-            } catch (SocketException e) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Error getting network interface", e);
-                }
             }
 
+        } catch (SocketException e) {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Error getting network interface", e);
+            }
         }
         return hardwareAddress;
     }
