@@ -70,6 +70,10 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("fs", DataType.LONG, ImmutableList.of("used"));
         register("fs", DataType.DOUBLE, ImmutableList.of("free_percent"));
         register("fs", DataType.DOUBLE, ImmutableList.of("used_percent"));
+        register("version", DataType.OBJECT, null);
+        register("version", DataType.STRING, ImmutableList.of("number"));
+        register("version", DataType.STRING, ImmutableList.of("build_hash"));
+        register("version", DataType.BOOLEAN, ImmutableList.of("build_snapshot"));
     }
 
     private final ClusterService clusterService;

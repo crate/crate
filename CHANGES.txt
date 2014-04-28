@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - feature: implemented version in sys.nodes
+
  - fix: the version check for update statements that contain a ``_version``
    column in the where clause is now atomic.
 
