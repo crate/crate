@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: the version check for update statements that contain a ``_version``
+   column in the where clause is now atomic.
+
  - minor documentation improvements
 
 2014/04/22 0.36.0
