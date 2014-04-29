@@ -5,6 +5,16 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.6.3 which includes the following fixes:
+
+    - fix: make sure twitter import stops when user navigates away from
+      tutorial view
+
+    - fix: allow horizontal scrolling in console result table
+
+    - fixed broken redirect after twitter authentication in 'get started'
+      section
+
  - feature: implemented version in sys.nodes
 
  - fix: the version check for update statements that contain a ``_version``
