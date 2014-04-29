@@ -20,6 +20,8 @@
  */
 package io.crate.operation.reference.sys;
 
+import io.crate.Build;
+import io.crate.Version;
 import io.crate.metadata.GlobalReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceResolver;
@@ -27,9 +29,11 @@ import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
+import junit.framework.Assert;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -284,6 +288,19 @@ public class TestSysNodesExpressions {
 
         assertEquals(29.15395550655783, v.get("free_percent"));
         assertEquals(70.84604449344218, v.get("used_percent"));
+    }
+
+    @Test
+    public void testVersion() throws Exception {
+
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version");
+        SysObjectReference<Object> version = (SysObjectReference<Object>) resolver.getImplementation(ident);
+
+        Map<String, Object> v = version.value();
+        assertEquals(Version.CURRENT.number(), v.get("number"));
+        assertEquals(Build.CURRENT.hash(), v.get("build_hash"));
+        assertEquals(Version.CURRENT.snapshot, (Boolean)v.get("build_snapshot"));
+
     }
 
 }
