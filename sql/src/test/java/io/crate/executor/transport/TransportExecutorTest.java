@@ -60,6 +60,9 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ImmutableShardRouting;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.hamcrest.Matchers;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.search.SearchHits;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -484,31 +487,19 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void testUpdateByQueryTaskWithVersion() throws Exception {
         insertCharacters();
 
-        // get version
-        ESGetNode getNode = new ESGetNode("characters", Arrays.asList("1"), Arrays.asList("1"));
-        getNode.outputs(ImmutableList.<Symbol>of(id_ref, version_ref));
-        Plan getPlan = new Plan();
-        getPlan.add(getNode);
-        Job getJob = executor.newJob(getPlan);
-        List<ListenableFuture<Object[][]>> getResult = executor.execute(getJob);
-        Object[][] objects = getResult.get(0).get();
-
-        assertThat(objects.length, is(1));
-        Integer id = (Integer)objects[0][0];
-        Long version = (Long)objects[0][1];
         // do update
         Function whereClauseFunction = new Function(AndOperator.INFO, Arrays.<Symbol>asList(
                 new Function(new FunctionInfo(
                         new FunctionIdent(EqOperator.NAME, asList(DataType.LONG, DataType.LONG)),
                         DataType.BOOLEAN),
-                        Arrays.<Symbol>asList(version_ref, new LongLiteral(version))
+                        Arrays.<Symbol>asList(version_ref, new LongLiteral(1L))
                 ),
                 new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME, asList(DataType.INTEGER, DataType.INTEGER)), DataType.BOOLEAN),
-                        Arrays.<Symbol>asList(id_ref, new IntegerLiteral(id))
+                        new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)), DataType.BOOLEAN),
+                        Arrays.<Symbol>asList(name_ref, new StringLiteral("Arthur"))
                 )));
 
-        // update characters set name='mostly harmless' where id=1 and "_version"=?
+        // update characters set name='mostly harmless' where name='Arthur' and "_version"=?
         WhereClause whereClause = new WhereClause(whereClauseFunction);
         whereClause.version(1L);
         ESUpdateNode updateNode = new ESUpdateNode("characters",
@@ -516,8 +507,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},
                 whereClause,
-                asList("1"),
-                asList("1")
+                ImmutableList.<String>of(),
+                ImmutableList.<String>of()
         );
         Plan plan = new Plan();
         plan.add(updateNode);
@@ -529,23 +520,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Object[][] rows = result.get(0).get();
         assertThat((Long) rows[0][0], is(1l));
 
-        refresh();
-
-        // verify update
-        Function searchWhereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
-                DataType.BOOLEAN),
-                Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
-        ESSearchNode node = new ESSearchNode(
-                "characters",
-                Arrays.<Symbol>asList(id_ref, name_ref, version_ref),
-                ImmutableList.<Reference>of(),
-                new boolean[0],
-                null, null, new WhereClause(searchWhereClause)
-        );
-        node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type(), version_ref.info().type()));
+        ESGetNode getNode = new ESGetNode("characters", "1", "1");
+        getNode.outputs(Arrays.<Symbol>asList(id_ref, name_ref, version_ref));
         plan = new Plan();
-        plan.add(node);
+        plan.add(getNode);
         plan.expectsAffectedRows(false);
 
         job = executor.newJob(plan);
@@ -555,7 +533,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(rows.length, is(1));
         assertThat((Integer)rows[0][0], is(1));
         assertThat((String)rows[0][1], is("mostly harmless"));
-        assertThat((Long)rows[0][2], Matchers.greaterThan(version));
+        assertThat((Long)rows[0][2], is(2L));
     }
 
     @Test

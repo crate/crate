@@ -28,9 +28,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.transport.RemoteTransportException;
 
 public class ESUpdateByIdTask extends AbstractESUpdateTask {
-    public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
     private final TransportUpdateAction transport;
     private final ActionListener<UpdateResponse> listener;
@@ -51,7 +52,14 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
 
         @Override
         public void onFailure(Throwable e) {
-            future.setException(e);
+            if (e instanceof RemoteTransportException) {
+                e = e.getCause();
+            }
+            if (e instanceof VersionConflictEngineException) {
+                future.set(new Object[][] { new Object[] { 0L }});
+            } else {
+                future.setException(e);
+            }
         }
     }
 
@@ -74,7 +82,11 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
                 Constants.DEFAULT_MAPPING_TYPE, node.ids().get(0));
         request.fields(node.columns());
         request.paths(node.updateDoc());
-        request.retryOnConflict(UPDATE_RETRY_ON_CONFLICT);
+        if (node.version().isPresent()) {
+            request.version(node.version().get());
+        } else {
+            request.retryOnConflict(Constants.UPDATE_RETRY_ON_CONFLICT);
+        }
         request.routing(node.routingValues().get(0));
         return request;
     }

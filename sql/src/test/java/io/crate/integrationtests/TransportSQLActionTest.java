@@ -2845,4 +2845,40 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(0L, response.rowCount());
     }
 
+    @Test
+    public void testUpdateVersionHandling() throws Exception {
+        execute("create table test (id int primary key, c int) with (number_of_replicas=0, refresh_interval=0)");
+        execute("insert into test (id, c) values (1, 1)");
+        execute("refresh table test");
+        execute("select _version, c from test");
+
+        long version = (Long)response.rows()[0][0];
+        assertThat(version, is(1L));
+
+        // with primary key optimization:
+
+        execute("update test set c = 2 where id = 1 and _version = 1"); // this one works
+        assertThat(response.rowCount(), is(1L));
+        execute("update test set c = 3 where id = 1 and _version = 1"); // this doesn't
+        assertThat(response.rowCount(), is(0L));
+
+        execute("refresh table test");
+        execute("select _version, c from test");
+        assertThat((Long)response.rows()[0][0], is(2L));
+        assertThat((Integer)response.rows()[0][1], is(2));
+
+
+        // without primary key optimization:
+        execute("update test set c = 4 where _version = 2"); // this one works
+        assertThat(response.rowCount(), is(1L));
+        execute("update test set c = 5 where _version = 2"); // this doesn't
+        assertThat(response.rowCount(), is(0L));
+
+
+        execute("refresh table test");
+        execute("select _version, c from test");
+        assertThat((Long)response.rows()[0][0], is(3L));
+        assertThat((Integer)response.rows()[0][1], is(4));
+    }
+
 }
