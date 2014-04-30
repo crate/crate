@@ -60,6 +60,14 @@ Unreleased
 
  - fix: updated crate-theme to 0.0.15 to fix documentation link in the admin-ui
 
+2014/04/30 0.35.8
+=================
+
+ - fix: upgrade crate-admin to hotfix release 0.5.3
+
+ - fix: the version check for update statements that contain a ``_version``
+   column in the where clause is now atomic.
+
 2014/04/24 0.35.7
 =================
 

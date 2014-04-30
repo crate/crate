@@ -3237,7 +3237,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(0L, response.rowCount());
     }
 
-
+    @Test
     public void testGlobalAggregatePartitionedColumns() throws Exception {
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
