@@ -77,29 +77,30 @@ A simple where clause example using an equality operator::
 Usual comparison operators to be used in filters are available for
 all simple data types:
 
-    ==============  ===========================================================
-    Operator        Description
-    ==============  ===========================================================
-    <               less than
-    >               greater than
-    <=              less than or equal to
-    >=              greater than or equal to
-    =               equal
-    <>              not equal
-    !=              not equal - same as <>
-    is not null     field is not null and not missing
-    is null         field is null or missing
-    like            matches a part of the given value (see :ref:`sql_dml_like`)
-    <operator> ANY  applies the ``<operator>`` on an array and returns ``true``
-                    if any comparison matches; ``false`` otherwise. The result
-                    of ANY is ``NULL`` if either the left-hand side or the
-                    right-hand side is null. The result is also null, if no
-                    ``true`` comparison is obtained and any element of the
-                    array is null. All operators are supported except 'is not
-                    null', 'is null', or 'like'. Comparing objects, or arrays
-                    of type object is not supported (see
-                    :ref:`sql_dml_any_array`).
-    ==============  ===========================================================
+    ==================  ===========================================================
+    Operator            Description
+    ==================  ===========================================================
+    <                   less than
+    >                   greater than
+    <=                  less than or equal to
+    >=                  greater than or equal to
+    =                   equal
+    <>                  not equal
+    !=                  not equal - same as <>
+    is not null         field is not null and not missing
+    is null             field is null or missing
+    like                matches a part of the given value (see :ref:`sql_dml_like`)
+    <operator> ANY_OF   applies the ``<operator>`` on an array and returns ``true``
+                        if any comparison matches; ``false`` otherwise. The result
+                        of ANY is ``NULL`` if either the left-hand side or the
+                        right-hand side is null. The result is also null, if no
+                        ``true`` comparison is obtained and any element of the
+                        array is null. All operators are supported except 'is not
+                        null', 'is null', or 'like'. Comparing objects, or arrays
+                        of type object is not supported (see
+                        :ref:`sql_dml_any_array`).
+    <operator> SOME_OF  synonym for ``<operator> ANY_OF``
+    ==================  ===========================================================
 
 .. note::
 
@@ -205,10 +206,10 @@ escape them using a backslash::
 
 .. _sql_dml_any_array:
 
-Any (array)
------------
+ANY_OF (array)
+--------------
 
-The ANY operator allows to search for elements within arrays. This allows to
+The ANY_OF (or SOME_OF) operator allows to search for elements within arrays. This allows to
 query for rows where an element of an array is, for example, equal to or
 greater than some ``expression``.
 
@@ -216,7 +217,7 @@ The following example returns any row where the array ``race['interests']``
 contains an element 'netball'::
 
     cr> select race['name'], race['interests'] from locations
-    ... where 'netball' = ANY(race['interests']);
+    ... where 'netball' = ANY_OF(race['interests']);
     +----------------+-------------------------------------------+
     | race['name']   | race['interests']                         |
     +----------------+-------------------------------------------+
@@ -224,23 +225,23 @@ contains an element 'netball'::
     +----------------+-------------------------------------------+
     SELECT 1 row in set (... sec)
 
-Syntax of the ANY Operator:
+Syntax of the ANY_OF Operator:
 
 .. code-block:: sql
 
-    expression operator ANY (array)
+    expression operator ANY_OF | SOME_OF (array)
 
 The ANY operator allows to apply an ``operator`` on the elements  of an
 ``array``. The ``expression`` is evaluated and compared to each element  of
 the array using the ``operator``. The comparison must yield a boolean
 result.
 
-- The result of ANY is ``true`` if any comparison returns ``true``.
+- The result of ANY_OF is ``true`` if any comparison returns ``true``.
 
-- The result of ANY is ``false`` if no comparison returns ``true``, or an
+- The result of ANY_OF is ``false`` if no comparison returns ``true``, or an
   array contains no elements.
 
-- The result of ANY is ``NULL`` if either the expression or the array is
+- The result of ANY_OF is ``NULL`` if either the expression or the array is
   null. The result is also null, if no ``true`` comparison is obtained and
   any element of the array is null.
 

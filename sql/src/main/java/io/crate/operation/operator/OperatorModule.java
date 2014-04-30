@@ -36,6 +36,7 @@ public class OperatorModule extends AbstractModule {
         InOperator.register(this);
 
         AnyEqOperator.register(this);
+        AnyNeqOperator.register(this);
         AnyGteOperator.register(this);
         AnyGtOperator.register(this);
         AnyLteOperator.register(this);

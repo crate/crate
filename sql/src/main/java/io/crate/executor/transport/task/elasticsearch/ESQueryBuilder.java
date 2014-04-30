@@ -263,6 +263,7 @@ public class ESQueryBuilder {
                     .put(MatchFunction.NAME, new MatchConverter())
                     .put(InOperator.NAME, new InConverter())
                     .put(AnyEqOperator.NAME, eqConverter)
+                    .put(AnyNeqOperator.NAME, new AnyNeqConverter())
                     .put(AnyLtOperator.NAME, ltConverter)
                     .put(AnyLteOperator.NAME, lteConverter)
                     .put(AnyGtOperator.NAME, gtConverter)
@@ -337,6 +338,35 @@ public class ESQueryBuilder {
             public void convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = super.prepare(function);
                 context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+            }
+        }
+
+        class AnyNeqConverter extends CmpConverter {
+            // 1 != ANY (col) --> gt 1 or lt 1
+            @Override
+            public void convert(Function function, Context context) throws IOException {
+                Tuple<String, Object> tuple = super.prepare(function);
+                context.builder.startObject("bool")
+                                .field("minimum_should_match", 1)
+                                .startArray("should")
+                                    .startObject()
+                                        .startObject("range")
+                                            .startObject(tuple.v1())
+                                                .field("lt", tuple.v2())
+                                            .endObject()
+                                        .endObject()
+                                    .endObject()
+                                    .startObject()
+                                        .startObject("range")
+                                            .startObject(tuple.v1())
+                                            .field("gt", tuple.v2())
+                                            .endObject()
+                                        .endObject()
+                                    .endObject()
+                                .endArray()
+                            .endObject();
+
+
             }
         }
 

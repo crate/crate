@@ -58,6 +58,10 @@ public class ComparisonExpression
         {
             return value;
         }
+
+        public Type inverse() {
+            return INVERSE_MAP.get(this);
+        }
     }
 
     private final Type type;

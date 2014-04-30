@@ -300,21 +300,21 @@ public class TestStatementBuilder
 
     @Test
     public void testArrayComparison() throws Exception {
-        Expression anyExpression = SqlParser.createExpression("1 = ANY (arrayColumnRef)");
+        Expression anyExpression = SqlParser.createExpression("1 = ANY_OF (arrayColumnRef)");
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression)anyExpression;
         assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
         assertThat(arrayComparisonExpression.getLeft(), instanceOf(LongLiteral.class));
         assertThat(arrayComparisonExpression.getRight(), instanceOf(QualifiedNameReference.class));
 
-        Expression someExpression = SqlParser.createExpression("1 = SOME (arrayColumnRef)");
+        Expression someExpression = SqlParser.createExpression("1 = SOME_OF (arrayColumnRef)");
         assertThat(someExpression, instanceOf(ArrayComparisonExpression.class));
         ArrayComparisonExpression someArrayComparison = (ArrayComparisonExpression)someExpression;
         assertThat(someArrayComparison.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
         assertThat(someArrayComparison.getLeft(), instanceOf(LongLiteral.class));
         assertThat(someArrayComparison.getRight(), instanceOf(QualifiedNameReference.class));
 
-        Expression allExpression = SqlParser.createExpression("'StringValue' = ALL (arrayColumnRef)");
+        Expression allExpression = SqlParser.createExpression("'StringValue' = ALL_OF (arrayColumnRef)");
         assertThat(allExpression, instanceOf(ArrayComparisonExpression.class));
         ArrayComparisonExpression allArrayComparison = (ArrayComparisonExpression)allExpression;
         assertThat(allArrayComparison.quantifier(), is(ArrayComparisonExpression.Quantifier.ALL));
