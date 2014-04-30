@@ -386,7 +386,7 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testAnyGreater() throws Exception {
-        // 0.0 < ANY (d_array)
+        // 0.0 < ANY_OF (d_array)
         Reference doubleArrayRef = TestingHelpers.createReference("d_array", DataType.DOUBLE_ARRAY);
         FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent("any_>", Arrays.asList(DataType.DOUBLE_ARRAY, DataType.DOUBLE)));
 
@@ -397,7 +397,7 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testAnyGreaterEquals() throws Exception {
-        // 0.0 <= ANY (d_array)
+        // 0.0 <= ANY_OF (d_array)
         Reference doubleArrayRef = TestingHelpers.createReference("d_array", DataType.DOUBLE_ARRAY);
         FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent("any_>=", Arrays.asList(DataType.DOUBLE_ARRAY, DataType.DOUBLE)));
 

@@ -38,7 +38,7 @@ public class AnyEqOperatorTest {
 
     private Boolean anyEq(Object value, Object arrayExpr) {
 
-        SomeEqOperator anyEqOperator = new SomeEqOperator(
+        AnyEqOperator anyEqOperator = new AnyEqOperator(
                 new FunctionInfo(
                         new FunctionIdent("any_=", Arrays.asList(DataType.INTEGER_ARRAY, DataType.INTEGER)),
                         DataType.BOOLEAN,

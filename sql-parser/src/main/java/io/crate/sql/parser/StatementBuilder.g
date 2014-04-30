@@ -484,9 +484,9 @@ comparisonType returns [ComparisonExpression.Type value]
     ;
 
 setCompareQuantifier returns [ArrayComparisonExpression.Quantifier value]
-    : ANY                   { $value = ArrayComparisonExpression.Quantifier.ANY; }
-    | SOME                  { $value = ArrayComparisonExpression.Quantifier.ANY; }
-    | ALL                   { $value = ArrayComparisonExpression.Quantifier.ALL; }
+    : ANY_OF                { $value = ArrayComparisonExpression.Quantifier.ANY; }
+    | SOME_OF               { $value = ArrayComparisonExpression.Quantifier.ANY; }
+    | ALL_OF                { $value = ArrayComparisonExpression.Quantifier.ALL; }
     ;
 
 intervalValue returns [IntervalLiteral value]

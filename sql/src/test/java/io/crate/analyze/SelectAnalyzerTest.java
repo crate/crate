@@ -1049,46 +1049,49 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testArrayCompareInvalidArray() throws Exception {
-        analyze("select * from users where 'George' = ANY (name)");
+        analyze("select * from users where 'George' = ANY_OF (name)");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testArrayCompareObjectArray() throws Exception {
         // TODO: remove this artificial limitation in general
-        analyze("select * from users where ? = ANY (friends)", new Object[]{
+        analyze("select * from users where ? = ANY_OF (friends)", new Object[]{
                 new MapBuilder<String, Object>().put("id", 1L).map()
         });
     }
 
     @Test
     public void testArrayCompareAny() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where 0 = ANY (counters)");
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where 0 = ANY_OF (counters)");
         assertThat(analysis.whereClause().hasQuery(), is(true));
 
         FunctionInfo anyInfo = ((Function)analysis.whereClause().query()).info();
+        assertThat(anyInfo.ident().name(), is("any_="));
+        assertThat(anyInfo.ident().argumentTypes(), contains(DataType.LONG_ARRAY, DataType.LONG));
+
+        analysis = (SelectAnalysis) analyze("select * from users where 0 = ANY_OF (counters)");
+        assertThat(analysis.whereClause().hasQuery(), is(true));
+
+        anyInfo = ((Function)analysis.whereClause().query()).info();
         assertThat(anyInfo.ident().name(), is("any_="));
         assertThat(anyInfo.ident().argumentTypes(), contains(DataType.LONG_ARRAY, DataType.LONG));
     }
 
     @Test
     public void testArrayCompareAnyNeq() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where ? != ANY (counters)",
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where ? != ANY_OF (counters)",
                 new Object[]{ 4.3F });
         assertThat(analysis.whereClause().hasQuery(), is(true));
 
-        Function notFunction = ((Function)analysis.whereClause().query());
-        assertThat(notFunction.info().ident().name(), is("op_not"));
-
-        FunctionInfo anyInfo = ((Function)notFunction.arguments().get(0)).info();
-        assertThat(anyInfo.ident().name(), is("any_="));
+        FunctionInfo anyInfo = ((Function)analysis.whereClause().query()).info();
+        assertThat(anyInfo.ident().name(), is("any_<>"));
         assertThat(anyInfo.ident().argumentTypes(), contains(DataType.LONG_ARRAY, DataType.LONG));
 
-        SelectAnalysis notAnalysis = (SelectAnalysis) analyze("select * from users where NOT ? = ANY (counters)", new Object[]{4.1F});
-        assertThat(notAnalysis.whereClause().query(), is(analysis.whereClause().query()));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testArrayCompareAll() throws Exception {
-        analyze("select * from users where 0 = ALL (counters)");
+        analyze("select * from users where 0 = ALL_OF (counters)");
+
     }
 }

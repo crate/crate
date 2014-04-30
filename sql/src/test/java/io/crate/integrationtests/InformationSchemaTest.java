@@ -808,4 +808,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertArrayEquals(row5, response.rows()[4]);
     }
 
+    @Test
+    public void testAnyInformationSchema() throws Exception {
+        execute("create table any1 (id integer, date timestamp, names array(string)) partitioned by (date)");
+        execute("create table any2 (id integer, num long, names array(string)) partitioned by (num)");
+        ensureGreen();
+        execute("select table_name from information_schema.tables where 'date' = ANY_OF (partitioned_by)");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String)response.rows()[0][0], is("any1"));
+    }
+
 }

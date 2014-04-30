@@ -96,7 +96,7 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
                 rightIter = Arrays.asList(((ArrayLiteral)collLiteral).value());
             } else {
                 // only arrays or sets supported
-                return BooleanLiteral.FALSE;
+                throw new IllegalArgumentException("invalid array expression");
             }
 
             if (doEvaluate(leftValue, rightIter)) {

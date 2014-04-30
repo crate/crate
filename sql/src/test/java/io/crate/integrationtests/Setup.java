@@ -25,6 +25,7 @@ import io.crate.Constants;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -256,5 +257,21 @@ public class Setup {
                 .setSource("{\"name\":\"Dornbirn\",\"location\":\"47.3904,9.7562\", \"population\":46080}")
                 .execute().actionGet();;
         transportExecutor.refresh("ut");
+    }
+
+    public void setUpArrayTables() {
+        transportExecutor.exec("create table any_table (" +
+                "  id int primary key," +
+                "  temps array(double)," +
+                "  names array(string)" +
+                ") with (number_of_replicas=0)");
+        transportExecutor.ensureGreen();
+        transportExecutor.exec("insert into any_table (id, temps, names) values (?,?,?), (?,?,?), (?,?,?), (?,?,?)",
+                        1, Arrays.asList(0L, 0L, 0L), Arrays.asList("Dornbirn", "Berlin", "St. Margrethen"),
+                        2, Arrays.asList(0, 1, -1), Arrays.asList("Dornbirn", "Dornbirn", "Dornbirn"),
+                        3, Arrays.asList(42, -42), Arrays.asList("Hangelsberg", "Berlin"),
+                        4, null, null
+                );
+        transportExecutor.refresh("any_table");
     }
 }
