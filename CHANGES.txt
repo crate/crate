@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - documentation is no longer included in the distribution but available online only
+
  - refactored exceptions, ``SQLActionException`` is now the only one thrown
    via transport + REST
 
