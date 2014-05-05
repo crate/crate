@@ -27,6 +27,7 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -494,5 +495,11 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             assertThat(line, startsWith("{"));
             assertThat(line, endsWith("}"));
         }
+    }
+
+    @Test
+    public void testDateRange() throws Exception {
+        SQLResponse response = executor.exec("select * from characters where birthdate > '1970-01-01'");
+        assertThat(response.rowCount(), Matchers.is(2L));
     }
 }
