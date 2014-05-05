@@ -77,30 +77,30 @@ A simple where clause example using an equality operator::
 Usual comparison operators to be used in filters are available for
 all simple data types:
 
-    ==================  ===========================================================
-    Operator            Description
-    ==================  ===========================================================
-    <                   less than
-    >                   greater than
-    <=                  less than or equal to
-    >=                  greater than or equal to
-    =                   equal
-    <>                  not equal
-    !=                  not equal - same as <>
-    is not null         field is not null and not missing
-    is null             field is null or missing
-    like                matches a part of the given value (see :ref:`sql_dml_like`)
-    <operator> ANY   applies the ``<operator>`` on an array and returns ``true``
-                        if any comparison matches; ``false`` otherwise. The result
-                        of ANY is ``NULL`` if either the left-hand side or the
-                        right-hand side is null. The result is also null, if no
-                        ``true`` comparison is obtained and any element of the
-                        array is null. All operators are supported except 'is not
-                        null', 'is null', or 'like'. Comparing objects, or arrays
-                        of type object is not supported (see
-                        :ref:`sql_dml_any_array`).
-    <operator> SOME  synonym for ``<operator> ANY``
-    ==================  ===========================================================
+    ================  ===========================================================
+    Operator          Description
+    ================  ===========================================================
+    <                 less than
+    >                 greater than
+    <=                less than or equal to
+    >=                greater than or equal to
+    =                 equal
+    <>                not equal
+    !=                not equal - same as <>
+    is not null       field is not null and not missing
+    is null           field is null or missing
+    like              matches a part of the given value (see :ref:`sql_dml_like`)
+    <operator> ANY    applies the ``<operator>`` on an array and returns ``true``
+                      if any comparison matches; ``false`` otherwise. The result
+                      of ANY is ``NULL`` if either the left-hand side or the
+                      right-hand side is null. The result is also null, if no
+                      ``true`` comparison is obtained and any element of the
+                      array is null. All operators are supported except 'is not
+                      null', 'is null', or 'like'. Comparing objects, or arrays
+                      of type object is not supported (see
+                      :ref:`sql_dml_any_array`).
+    <operator> SOME   synonym for ``<operator> ANY``
+    ================  ===========================================================
 
 .. note::
 
