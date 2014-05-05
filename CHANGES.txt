@@ -2,8 +2,10 @@
 Changes for Crate Data
 ======================
 
-Unreleased
-==========
+2014/05/05 0.36.3
+=================
+
+ - fix: date range queries (``WHERE ts > '1970-02-01'``) were misinterpreted
 
 2014/04/29 0.36.2
 =================
