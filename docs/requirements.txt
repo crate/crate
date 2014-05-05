@@ -1,0 +1,2 @@
+sphinxcontrib-plantuml==0.4
+https://download.crate.io/eggs/crate-docs-theme-0.0.1.tar.gz
