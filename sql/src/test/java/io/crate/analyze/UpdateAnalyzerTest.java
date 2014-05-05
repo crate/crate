@@ -292,4 +292,21 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                         new PartitionName("parted", Arrays.asList("1395874800000")).stringValue()),
                     analysis.whereClause().partitions());
     }
+
+    @Test
+    public void testUpdateTableAlias() throws Exception {
+        UpdateAnalysis expectedAnalysis = (UpdateAnalysis) analyze("update users set awesome=true where awesome=false");
+        UpdateAnalysis actualAnalysis = (UpdateAnalysis) analyze("update users as u set u.awesome=true where u.awesome=false");
+
+        assertEquals(actualAnalysis.tableAlias(), "u");
+        assertEquals(
+                expectedAnalysis.assignments(),
+                actualAnalysis.assignments()
+        );
+        assertEquals(
+                ((Function) expectedAnalysis.whereClause().query()).arguments().get(0),
+                ((Function) actualAnalysis.whereClause().query()).arguments().get(0)
+        );
+        System.out.println();
+    }
 }

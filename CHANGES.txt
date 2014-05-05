@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - aliases for tables in SELECT, UPDATE, and DELETE clauses are now supported.
+
  - renamed ``ANY`` aggregation function to ``ARBITRARY``
 
  - implemented ``ANY`` / ``SOME`` operator for array containment checks

@@ -639,16 +639,16 @@ valuesList returns [ValuesList value]
     ;
 
 delete returns [Statement value]
-    : ^(DELETE namedTable where=whereClause?)
+    : ^(DELETE relation where=whereClause?)
         {
-            $value = new Delete($namedTable.value, $where.value);
+            $value = new Delete($relation.value, $where.value);
         }
     ;
 
 update returns [Statement value]
-    : ^(UPDATE namedTable assignments=assignmentList where=whereClause?)
+    : ^(UPDATE relation assignments=assignmentList where=whereClause?)
         {
-            $value = new Update($namedTable.value,
+            $value = new Update($relation.value,
                                 $assignments.value,
                                 $where.value);
         }

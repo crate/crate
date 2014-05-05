@@ -148,6 +148,13 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     }
 
     @Override
+    protected Symbol visitAliasedRelation(AliasedRelation node, T context) {
+        process(node.getRelation(), context);
+        context.tableAlias(node.getAlias());
+        return null;
+    }
+
+    @Override
     protected Symbol visitIsNotNullPredicate(IsNotNullPredicate node, T context) {
         Symbol argument = process(node.getValue(), context);
         DataType argumentType = symbolDataTypeVisitor.process(argument, null);

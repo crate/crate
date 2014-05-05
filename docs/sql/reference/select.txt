@@ -10,7 +10,7 @@ Synopsis
 .. code-block:: sql
 
    SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
-     FROM table_ident
+     FROM table_ident [ [AS] table_alias ]
      [ WHERE condition ]
      [ GROUP BY expression [, ...] ]
      [ ORDER BY expression [ ASC | DESC ] [, ...] ]
@@ -91,9 +91,14 @@ The FROM clause specifies the source table for the SELECT:
 
 .. code-block:: sql
 
-    FROM table_ident
+    FROM table_ident [ [AS] table_alias ]
 
 :table_ident: The name (optionally schema-qualified) of an existing table.
+
+:table_alias: A substitute name for the FROM item containing the alias.
+  An alias is used for brevity. When an alias is provided, it completely hides
+  the actual name of the table. For example given ``FROM foo AS f``, the
+  remainder of the SELECT must refer to this 'FROM' item as 'f' not 'foo'.
 
 
 WHERE Clause

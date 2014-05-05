@@ -33,7 +33,7 @@ public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysi
 
     @Override
     public Symbol visitUpdate(Update node, UpdateAnalysis context) {
-        process(node.table(), context);
+        process(node.relation(), context);
 
         for (Assignment assignment : node.assignements()) {
             process(assignment, context);

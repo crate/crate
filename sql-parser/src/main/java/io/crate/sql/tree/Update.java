@@ -28,22 +28,23 @@ import com.google.common.base.Preconditions;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class Update extends Statement {
+public class
+        Update extends Statement {
 
-    private final Table table;
+    private final Relation relation;
     private final List<Assignment> assignments;
     private final Optional<Expression> where;
 
-    public Update(Table table, List<Assignment> assignments, @Nullable Expression where) {
-        Preconditions.checkNotNull(table, "table is null");
+    public Update(Relation relation, List<Assignment> assignments, @Nullable Expression where) {
+        Preconditions.checkNotNull(relation, "relation is null");
         Preconditions.checkNotNull(assignments, "assignments are null");
-        this.table = table;
+        this.relation = relation;
         this.assignments = assignments;
         this.where = Optional.fromNullable(where);
     }
 
-    public Table table() {
-        return table;
+    public Relation relation() {
+        return relation;
     }
 
     public List<Assignment> assignements() {
@@ -56,13 +57,13 @@ public class Update extends Statement {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, assignments, where);
+        return Objects.hashCode(relation, assignments, where);
     }
 
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-                .add("table", table)
+                .add("relation", relation)
                 .add("assignments", assignments)
                 .add("where", where.orNull())
                 .toString();
@@ -76,7 +77,7 @@ public class Update extends Statement {
         Update update = (Update) o;
 
         if (!assignments.equals(update.assignments)) return false;
-        if (!table.equals(update.table)) return false;
+        if (!relation.equals(update.relation)) return false;
         if (where != null ? !where.equals(update.where) : update.where != null) return false;
 
         return true;

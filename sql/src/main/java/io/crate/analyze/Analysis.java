@@ -34,6 +34,16 @@ public abstract class Analysis {
     private List<String> outputNames = ImmutableList.of();
     private final Object[] parameters;
 
+    protected String tableAlias;
+
+    public void tableAlias(String tableAlias) {
+        this.tableAlias = tableAlias;
+    }
+
+    public String tableAlias() {
+        return tableAlias;
+    }
+
     protected Analysis(Object[] parameters) {
         this.parameters = parameters;
     }
@@ -47,10 +57,6 @@ public abstract class Analysis {
     public abstract boolean hasNoResult();
 
     public abstract void normalize();
-
-    public void addOutputName(String s) {
-        this.outputNames.add(s);
-    }
 
     public void outputNames(List<String> outputNames) {
         this.outputNames = outputNames;

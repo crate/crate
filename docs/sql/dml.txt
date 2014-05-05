@@ -35,9 +35,12 @@ for each object::
     +--------------+--------------...---+--------+-------------------+----------+------+
     SELECT 1 row in set (... sec)
 
-Aliases can be used to change the output name of the columns::
+Aliases can be used to change the output name of the columns. The table name
+can also be aliased for brevity::
 
-    cr> select name as n from locations order by id limit 1;
+    cr> select name as n
+    ... from locations as l
+    ... where l.name = 'North West Ripple';
     +-------------------+
     | n                 |
     +-------------------+
