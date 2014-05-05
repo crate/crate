@@ -5,6 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated the configuration of the documentation so `read the docs`
+   is able to build it
+
+ - added new documentation theme
+
  - increase debug output to show SQLRequests and errors in server log
 
  - aliases for tables in SELECT, UPDATE, and DELETE clauses are now supported.

@@ -27,14 +27,12 @@ task buildout (type:Exec, dependsOn: bootstrap) {
     commandLine "$projectDir/bin/buildout", '-N'
 }
 
-task sphinx (type: Exec, dependsOn: buildout) {
-    commandLine "$projectDir/bin/sphinx"
-}
-
-task itest (type:Exec, dependsOn: unpackDistTar){
+task itest (type:Exec){
 
     executable = "$projectDir/bin/test"
 }
+
+itest.dependsOn(unpackDistTar, buildout)
 
 task clean << {
     delete textOut
