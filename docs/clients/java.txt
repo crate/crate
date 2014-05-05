@@ -4,8 +4,9 @@ Crate Java Client
 
 .. highlight:: java
 
-To access a Crate Cluster a Java client library is available. The library
-exposes a very simply interface to query Crate using SQL.
+To access a Crate Cluster one can use the the installed crate package
+directly just by adding the ``lib`` dir to the classpath. The client
+module exposes a very simple interface to query Crate using SQL.
 
 Usage
 -----
@@ -34,15 +35,3 @@ will be skipped.
 Queries are executed asynchronous. `client.sql("")` will return a
 `Future<SQLResponse>` and code execution is only blocked if `.actionGet()` is
 called on it.
-
-Maven
------
-
-The easiest way to use the crateclient is to include it as a dependency using
-maven::
-
-    <dependency>
-        <groupId>io.crate<groupId>
-        <artifactId>crateClient</artifactId>
-        <version>0.1.0</version>
-    </dependency>
