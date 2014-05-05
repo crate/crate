@@ -507,7 +507,7 @@ cmpOp
     ;
 
 setCmpQuantifier
-    : ANY_OF | SOME_OF | ALL_OF
+    : ANY | SOME | ALL
     ;
 
 subquery
@@ -948,9 +948,8 @@ FROM: 'FROM';
 TO: 'TO';
 AS: 'AS';
 ALL: 'ALL';
-ANY_OF: 'ANY_OF';
-SOME_OF: 'SOME_OF';
-ALL_OF: 'ALL_OF';
+ANY: 'ANY';
+SOME: 'SOME';
 DIRECTORY: 'DIRECTORY';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';

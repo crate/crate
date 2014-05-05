@@ -34,22 +34,22 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class AnyAggregation<T extends Comparable<T>> extends AggregationFunction<AnyAggregation.AnyAggState<T>> {
+public class ArbitraryAggregation<T extends Comparable<T>> extends AggregationFunction<ArbitraryAggregation.ArbitraryAggState<T>> {
 
-    public static final String NAME = "any";
+    public static final String NAME = "arbitrary";
 
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
         for (DataType t : DataType.PRIMITIVE_TYPES) {
             mod.registerAggregateFunction(
-                    new AnyAggregation(
+                    new ArbitraryAggregation(
                             new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t, true))
             );
         }
     }
 
-    AnyAggregation(FunctionInfo info) {
+    ArbitraryAggregation(FunctionInfo info) {
         this.info = info;
     }
 
@@ -59,24 +59,24 @@ public class AnyAggregation<T extends Comparable<T>> extends AggregationFunction
     }
 
     @Override
-    public boolean iterate(AnyAggState<T> state, Input... args) {
+    public boolean iterate(ArbitraryAggState<T> state, Input... args) {
         state.add((T) args[0].value());
         return false;
     }
 
     @Override
-    public AnyAggState newState() {
-        return new AnyAggState(info.ident().argumentTypes().get(0).streamer());
+    public ArbitraryAggState newState() {
+        return new ArbitraryAggState(info.ident().argumentTypes().get(0).streamer());
     }
 
 
-    public static class AnyAggState<T extends Comparable<T>> extends AggregationState<AnyAggState<T>> {
+    public static class ArbitraryAggState<T extends Comparable<T>> extends AggregationState<ArbitraryAggState<T>> {
 
 
         Streamer<T> streamer;
         private T value = null;
 
-        AnyAggState(Streamer<T> streamer) {
+        ArbitraryAggState(Streamer<T> streamer) {
             this.streamer = streamer;
         }
 
@@ -86,14 +86,14 @@ public class AnyAggregation<T extends Comparable<T>> extends AggregationFunction
         }
 
         @Override
-        public void reduce(AnyAggState<T> other) {
+        public void reduce(ArbitraryAggState<T> other) {
             if (this.value == null){
                 this.value = other.value;
             }
         }
 
         @Override
-        public int compareTo(AnyAggState<T> o) {
+        public int compareTo(ArbitraryAggState<T> o) {
             if (o == null) return 1;
             if (value == null) return (o.value == null ? 0 : -1);
             if (o.value == null) return 1;

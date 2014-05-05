@@ -224,36 +224,36 @@ Example::
     SELECT 3 rows in set (... sec)
 
 
-any
-===
+arbitrary
+=========
 
-The ``any`` aggregation function returns a single value of a column.
+The ``arbitrary`` aggregation function returns a single value of a column.
 Which value it returns is not defined.
 It accepts references to columns of all primitive types.
-Using ``any`` on ``Object`` columns is not supported.
+Using ``arbitrary`` on ``Object`` columns is not supported.
 Its return type is the type of its parameter column and can be ``NULL``
 if the column contains ``NULL`` values.
 
 Example::
 
-    cr> select any(position) from locations;
-    +---------------+
-    | any(position) |
-    +---------------+
-    | ...           |
-    +---------------+
+    cr> select arbitrary(position) from locations;
+    +---------------------+
+    | arbitrary(position) |
+    +---------------------+
+    | ...                 |
+    +---------------------+
     SELECT 1 row in set (... sec)
 
-    cr> select any(name), kind from locations
+    cr> select arbitrary(name), kind from locations
     ... where name != ''
     ... group by kind order by kind desc;
-    +-...------------+-------------+
-    | any(name)      | kind        |
-    +-...------------+-------------+
-    | ...            | Star System |
-    | ...            | Planet      |
-    | ...            | Galaxy      |
-    +-...------------+-------------+
+    +-...-------------+-------------+
+    | arbitrary(name) | kind        |
+    +-...-------------+-------------+
+    | ...             | Star System |
+    | ...             | Planet      |
+    | ...             | Galaxy      |
+    +-...-------------+-------------+
     SELECT 3 rows in set (... sec)
 
 An example use case is to group a table with many rows per user by
@@ -261,6 +261,6 @@ An example use case is to group a table with many rows per user by
 user. This works as rows with same ``user_id`` have the same
 ``username``.  This method performs better than grouping on
 ``username`` as grouping on number types is generally faster than on
-strings.  The advantage is that the ``any`` function does very little
+strings.  The advantage is that the ``arbitrary`` function does very little
 to no computation as for example ``max`` aggregation function would
 do.
