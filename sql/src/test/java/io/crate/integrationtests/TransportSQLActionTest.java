@@ -3243,7 +3243,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "partitioned by (date)");
         ensureGreen();
         execute("select count(distinct date), count(*), min(date), max(date), " +
-                "any(date) as any_date, avg(date) from parted");
+                "arbitrary(date) as any_date, avg(date) from parted");
         assertThat(response.rowCount(), is(1L));
         assertThat((Long)response.rows()[0][0], is(0L));
         assertThat((Long)response.rows()[0][1], is(0L));
@@ -3258,7 +3258,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
-                "any(date) as any_date, avg(date) from parted");
+                "arbitrary(date) as any_date, avg(date) from parted");
         assertThat(response.rowCount(), is(1L));
         assertThat((Long)response.rows()[0][0], is(1L));
         assertThat((Long)response.rows()[0][1], is(1L));
@@ -3278,7 +3278,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
-                "any(date) as any_date, avg(date) from parted");
+                "arbitrary(date) as any_date, avg(date) from parted");
         assertThat(response.rowCount(), is(1L));
         assertThat((Long)response.rows()[0][0], is(2L));
         assertThat((Long)response.rows()[0][1], is(3L));
@@ -3359,7 +3359,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "partitioned by (date)");
         ensureGreen();
         execute("select count(distinct date), count(*), min(date), max(date), " +
-                "any(date) as any_date, avg(date) from parted where date > 0");
+                "arbitrary(date) as any_date, avg(date) from parted where date > 0");
         assertThat(response.rowCount(), is(1L));
         assertThat((Long)response.rows()[0][0], is(0L));
         assertThat((Long)response.rows()[0][1], is(0L));
@@ -3381,7 +3381,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
-                "any(date) as any_date, avg(date) from parted where date > 0");
+                "arbitrary(date) as any_date, avg(date) from parted where date > 0");
         assertThat(response.rowCount(), is(1L));
         assertThat((Long)response.rows()[0][0], is(2L));
         assertThat((Long)response.rows()[0][1], is(2L));
@@ -3780,7 +3780,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("refresh table test");
         execute("select _version, c from test");
 
-        long version = (Long)response.rows()[0][0];
+        long version = (Long) response.rows()[0][0];
         assertThat(version, is(1L));
 
         // with primary key optimization:
@@ -3792,8 +3792,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("refresh table test");
         execute("select _version, c from test");
-        assertThat((Long)response.rows()[0][0], is(2L));
-        assertThat((Integer)response.rows()[0][1], is(2));
+        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat((Integer) response.rows()[0][1], is(2));
 
 
         // without primary key optimization:
@@ -3805,8 +3805,61 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("refresh table test");
         execute("select _version, c from test");
-        assertThat((Long)response.rows()[0][0], is(3L));
-        assertThat((Integer)response.rows()[0][1], is(4));
+        assertThat((Long) response.rows()[0][0], is(3L));
+        assertThat((Integer) response.rows()[0][1], is(4));
+    }
+
+    @Test
+    public void testAnyArray() throws Exception {
+        this.setup.setUpArrayTables();
+
+        execute("select count(*) from any_table where 'Berlin' = ANY (names)");
+        assertThat((Long) response.rows()[0][0], is(2L));
+
+        execute("select id, names from any_table where 'Berlin' = ANY (names) order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((Integer) response.rows()[1][0], is(3));
+
+        execute("select id from any_table where 'Berlin' != ANY (names) order by id");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((Integer) response.rows()[1][0], is(2));
+        assertThat((Integer) response.rows()[2][0], is(3));
+
+        execute("select count(id) from any_table where 0.0 < ANY (temps)");
+        assertThat((Long) response.rows()[0][0], is(2L));
+
+        execute("select id, names from any_table where 0.0 < ANY (temps) order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer) response.rows()[0][0], is(2));
+        assertThat((Integer) response.rows()[1][0], is(3));
+
+        execute("select count(*) from any_table where 0.0 > ANY (temps)");
+        assertThat((Long) response.rows()[0][0], is(2L));
+
+        execute("select id, names from any_table where 0.0 > ANY (temps) order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer) response.rows()[0][0], is(2));
+        assertThat((Integer) response.rows()[1][0], is(3));
+
+    }
+
+    @Test
+    public void testNotAnyArray() throws Exception {
+        this.setup.setUpArrayTables();
+
+        execute("select id from any_table where NOT 'Hangelsberg' = ANY (names) order by id");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((Integer)response.rows()[1][0], is(2));
+        assertThat((Integer)response.rows()[2][0], is(4)); // null values matched because of negation
+
+        execute("select id from any_table where 'Hangelsberg' != ANY (names) order by id");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((Integer)response.rows()[1][0], is(2));
+        assertThat((Integer)response.rows()[2][0], is(3));
     }
 
 }

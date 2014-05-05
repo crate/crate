@@ -2,6 +2,13 @@
 Changes for Crate Data
 ======================
 
+Unreleased
+==========
+
+ - renamed ``ANY`` aggregation function to ``ARBITRARY``
+
+ - implemented ``ANY`` / ``SOME`` operator for array containment checks
+
 2014/05/05 0.36.3
 =================
 

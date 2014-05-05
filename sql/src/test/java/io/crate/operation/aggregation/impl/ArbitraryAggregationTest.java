@@ -31,15 +31,15 @@ import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-public class AnyAggregationTest extends AggregationTest {
+public class ArbitraryAggregationTest extends AggregationTest {
 
     private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
-        return executeAggregation("any", dataType, data);
+        return executeAggregation("arbitrary", dataType, data);
     }
 
     @Test
     public void testReturnType() throws Exception {
-        FunctionIdent fi = new FunctionIdent("any", ImmutableList.of(DataType.INTEGER));
+        FunctionIdent fi = new FunctionIdent("arbitrary", ImmutableList.of(DataType.INTEGER));
         assertEquals(DataType.INTEGER, functions.get(fi).info().returnType());
     }
 

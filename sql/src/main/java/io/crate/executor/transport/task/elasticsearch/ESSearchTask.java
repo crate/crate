@@ -34,6 +34,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
@@ -41,6 +43,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ESSearchTask implements Task<Object[][]> {
+
+    private final ESLogger logger = Loggers.getLogger(this.getClass());
 
     private final ESSearchNode searchNode;
     private final TransportSearchAction transportSearchAction;
@@ -69,6 +73,10 @@ public class ESSearchTask implements Task<Object[][]> {
             request.source(queryBuilder.convert(searchNode), false);
             request.indices(searchNode.indices());
             request.routing(searchNode.whereClause().clusteredBy().orNull());
+
+            if (logger.isDebugEnabled()) {
+                logger.debug(request.source().toUtf8());
+            }
 
             transportSearchAction.execute(request, new ActionListener<SearchResponse>() {
                 @Override

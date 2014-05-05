@@ -61,7 +61,7 @@ public class GroupByBenchmark extends BenchmarkBase {
     public static SQLRequest countStarRequest = new SQLRequest(String.format("select count(*) from %s group by continent", INDEX_NAME));
     public static SQLRequest countColumnRequest = new SQLRequest(String.format("select count(\"countryName\") from %s group by continent", INDEX_NAME));
     public static SQLRequest countDistinctRequest = new SQLRequest(String.format("select count(distinct \"countryName\") from %s group by continent", INDEX_NAME));
-    public static SQLRequest anyRequest = new SQLRequest(String.format("select any(\"countryName\") from %s group by continent", INDEX_NAME));
+    public static SQLRequest arbitraryRequest = new SQLRequest(String.format("select arbitrary(\"countryName\") from %s group by continent", INDEX_NAME));
 
     public static boolean dataGenerated = false;
 
@@ -176,6 +176,6 @@ public class GroupByBenchmark extends BenchmarkBase {
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 10)
     @Test
     public void testGroupByAnyPerformance() {
-        getClient(false).execute(SQLAction.INSTANCE, anyRequest).actionGet();
+        getClient(false).execute(SQLAction.INSTANCE, arbitraryRequest).actionGet();
     }
 }

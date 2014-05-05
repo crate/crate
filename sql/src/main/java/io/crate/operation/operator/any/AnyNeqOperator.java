@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,44 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.operator;
+package io.crate.operation.operator.any;
 
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
-import io.crate.DataType;
+import io.crate.operation.operator.OperatorModule;
+import io.crate.sql.tree.ComparisonExpression;
 
+public class AnyNeqOperator extends AnyOperator<AnyNeqOperator> {
 
-public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {
-
-    public static final String NAME = "op_=";
+    public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
 
     public static void register(OperatorModule module) {
-        for (DataType type : DataType.ALL_TYPES) {
-            module.registerOperatorFunction(new EqOperator(generateInfo(NAME, type)));
-        }
+        module.registerDynamicOperatorFunction(NAME, new AnyNeqOperator());
     }
 
-    @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult == 0;
+    protected AnyNeqOperator() {
+
     }
 
-    protected EqOperator(FunctionInfo info) {
+    protected AnyNeqOperator(FunctionInfo info) {
         super(info);
     }
 
     @Override
-    public Boolean evaluate(Input<Object>... args) {
-        assert args.length == 2;
-        Object left = args[0].value();
-        if (left == null){
-            return null;
-        }
-        Object right = args[1].value();
-        if (right == null){
-            return null;
-        }
-        return left.equals(right);
+    protected boolean compare(int comparisonResult) {
+        return comparisonResult != 0;
+    }
+
+    @Override
+    protected String name() {
+        return NAME;
+    }
+
+    @Override
+    protected AnyNeqOperator newInstance(FunctionInfo info) {
+        return new AnyNeqOperator(info);
     }
 }

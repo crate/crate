@@ -420,10 +420,10 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testUnknownTypesSelectGlobalAggregate() throws Exception {
         expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("unknown function: any(null)");
+        expectedException.expectMessage("unknown function: arbitrary(null)");
 
         this.setup.setUpObjectMappingWithUnknownTypes();
-        execute("select any(location) from ut");
+        execute("select arbitrary(location) from ut");
     }
 
     @Test

@@ -383,4 +383,26 @@ public class ESQueryBuilderTest {
                 "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}},\"from\":0,\"size\":10000}"));
     }
 
+
+    @Test
+    public void testAnyGreater() throws Exception {
+        // 0.0 < ANY_OF (d_array)
+        Reference doubleArrayRef = TestingHelpers.createReference("d_array", DataType.DOUBLE_ARRAY);
+        FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent("any_>", Arrays.asList(DataType.DOUBLE_ARRAY, DataType.DOUBLE)));
+
+        Function whereClause = new Function(anyGreaterImpl.info(), Arrays.<Symbol>asList(doubleArrayRef, new DoubleLiteral(0.0)));
+
+        xcontentAssert(whereClause, "{\"query\":{\"range\":{\"d_array\":{\"gt\":0.0}}}}");
+    }
+
+    @Test
+    public void testAnyGreaterEquals() throws Exception {
+        // 0.0 <= ANY_OF (d_array)
+        Reference doubleArrayRef = TestingHelpers.createReference("d_array", DataType.DOUBLE_ARRAY);
+        FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent("any_>=", Arrays.asList(DataType.DOUBLE_ARRAY, DataType.DOUBLE)));
+
+        Function whereClause = new Function(anyGreaterImpl.info(), Arrays.<Symbol>asList(doubleArrayRef, new DoubleLiteral(0.0)));
+
+        xcontentAssert(whereClause, "{\"query\":{\"range\":{\"d_array\":{\"gte\":0.0}}}}");
+    }
 }

@@ -30,12 +30,16 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
-import io.crate.operation.operator.*;
+import io.crate.operation.operator.AndOperator;
+import io.crate.operation.operator.InOperator;
+import io.crate.operation.operator.LikeOperator;
+import io.crate.operation.operator.OrOperator;
+import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
-import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.StringLiteral;
@@ -46,11 +50,11 @@ import java.util.*;
 
 abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends AbstractStatementAnalyzer<Symbol, T> {
 
-    private final Map<String, String> swapOperatorTable = ImmutableMap.<String, String>builder()
-            .put(GtOperator.NAME, LtOperator.NAME)
-            .put(GteOperator.NAME, LteOperator.NAME)
-            .put(LtOperator.NAME, GtOperator.NAME)
-            .put(LteOperator.NAME, GteOperator.NAME)
+    private final Map<ComparisonExpression.Type, ComparisonExpression.Type> swapOperatorTable = ImmutableMap.<ComparisonExpression.Type, ComparisonExpression.Type>builder()
+            .put(ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN)
+            .put(ComparisonExpression.Type.LESS_THAN, ComparisonExpression.Type.GREATER_THAN)
+            .put(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ComparisonExpression.Type.LESS_THAN_OR_EQUAL)
+            .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
             .build();
 
 
@@ -217,8 +221,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         if (arguments.get(0).symbolType().isLiteral() || arguments.get(0).symbolType() == SymbolType.PARAMETER &&
                 (arguments.get(1).symbolType() == SymbolType.REFERENCE ||
                         arguments.get(1).symbolType() == SymbolType.DYNAMIC_REFERENCE)) {
-            if (swapOperatorTable.containsKey(operatorName)) {
-                operatorName = swapOperatorTable.get(operatorName);
+            if (swapOperatorTable.containsKey(node.getType())) {
+                operatorName = "op_" + swapOperatorTable.get(node.getType()).getValue();
             }
             Collections.reverse(arguments);
             Collections.reverse(argumentTypes);
@@ -266,6 +270,84 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             argumentTypes = Arrays.asList(DataType.BOOLEAN);
             arguments = Arrays.<Symbol>asList(eqFunction);
             operatorName = NotPredicate.NAME;
+        }
+
+        FunctionIdent functionIdent = new FunctionIdent(operatorName, argumentTypes);
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+        return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
+    public Symbol visitArrayComparisonExpression(ArrayComparisonExpression node, T context) {
+
+        if (node.quantifier().equals(ArrayComparisonExpression.Quantifier.ALL)) {
+            throw new IllegalArgumentException("ALL_OF is not supported");
+        }
+
+        // resolve arguments
+        // implicitly swapping arguments so we got 1. reference, 2. literal
+        List<Symbol> arguments = new ArrayList<>(2);
+        arguments.add(process(node.getRight(), context));
+        arguments.add(process(node.getLeft(), context));
+
+        // resolve argument types
+        List<DataType> argumentTypes = new ArrayList<>(arguments.size());
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), null));
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), null));
+
+        // check that right type is array or set type
+        if (!argumentTypes.get(0).isCollectionType()) {
+            throw new IllegalArgumentException(
+                    SymbolFormatter.format("invalid array expression: '%s'",
+                            arguments.get(0))
+            );
+        } else if (argumentTypes.get(0).elementType().equals(DataType.OBJECT)) {
+            // TODO: remove this artificial limitation in general
+            throw new IllegalArgumentException("ANY_OF on object arrays is not supported");
+        }
+
+        // check that left type is element type of right array expression
+        // if not try implicit type cast
+        if (!argumentTypes.get(0).elementType().equals(argumentTypes.get(1))) {
+
+            // try implicit type cast (conversion)
+            if (arguments.get(1).symbolType() == SymbolType.PARAMETER) {
+                switch (arguments.get(0).symbolType()) {
+                    case PARAMETER:
+                        // ? = ? - can only guess types
+                        for (int i = 0; i < arguments.size(); i++) {
+                            Literal l = ((Parameter) arguments.get(i)).toLiteral();
+                            arguments.set(i, l);
+                            argumentTypes.set(i, l.valueType());
+                        }
+                        break;
+                    case REFERENCE:
+                        Literal normalizedRef = context.normalizeInputForType(arguments.get(1),
+                                ((Reference)arguments.get(0)).valueType().elementType());
+                        arguments.set(1, normalizedRef);
+                        argumentTypes.set(1, normalizedRef.valueType());
+                        break;
+                    case DYNAMIC_REFERENCE:
+                        // Reference = ?
+                        Literal normalizedDynRef = context.normalizeInputForReference(arguments.get(1),
+                                (Reference) arguments.get(0));
+                        arguments.set(1, normalizedDynRef);
+                        argumentTypes.set(1, normalizedDynRef.valueType());
+                        break;
+                }
+            } else {
+                Symbol convertedSymbol = context.normalizeInputForType(arguments.get(1), argumentTypes.get(0).elementType());
+                arguments.set(1, convertedSymbol);
+                argumentTypes.set(1, argumentTypes.get(0).elementType());
+            }
+        }
+
+        ComparisonExpression.Type operationType = node.getType();
+        String operatorName;
+        if (swapOperatorTable.containsKey(operationType)) {
+            operatorName = AnyOperator.OPERATOR_PREFIX + swapOperatorTable.get(operationType).getValue();
+        } else {
+            operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
         }
 
         FunctionIdent functionIdent = new FunctionIdent(operatorName, argumentTypes);

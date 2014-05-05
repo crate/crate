@@ -30,6 +30,7 @@ import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.operator.*;
+import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.MatchFunction;
@@ -242,6 +243,34 @@ public class ESQueryBuilder {
 
     static class Visitor extends SymbolVisitor<Context, Void> {
 
+        Visitor() {
+            EqConverter eqConverter = new EqConverter();
+            RangeConverter ltConverter = new RangeConverter("lt");
+            RangeConverter lteConverter = new RangeConverter("lte");
+            RangeConverter gtConverter = new RangeConverter("gt");
+            RangeConverter gteConverter = new RangeConverter("gte");
+            functions = ImmutableMap.<String, Converter>builder()
+                    .put(AndOperator.NAME, new AndConverter())
+                    .put(OrOperator.NAME, new OrConverter())
+                    .put(EqOperator.NAME, eqConverter)
+                    .put(LtOperator.NAME, ltConverter)
+                    .put(LteOperator.NAME, lteConverter)
+                    .put(GtOperator.NAME, gtConverter)
+                    .put(GteOperator.NAME, gteConverter)
+                    .put(LikeOperator.NAME, new LikeConverter())
+                    .put(IsNullPredicate.NAME, new IsNullConverter())
+                    .put(NotPredicate.NAME, new NotConverter())
+                    .put(MatchFunction.NAME, new MatchConverter())
+                    .put(InOperator.NAME, new InConverter())
+                    .put(AnyEqOperator.NAME, eqConverter)
+                    .put(AnyNeqOperator.NAME, new AnyNeqConverter())
+                    .put(AnyLtOperator.NAME, ltConverter)
+                    .put(AnyLteOperator.NAME, lteConverter)
+                    .put(AnyGtOperator.NAME, gtConverter)
+                    .put(AnyGteOperator.NAME, gteConverter)
+                    .build();
+        }
+
         static abstract class Converter<T extends Symbol> {
             public abstract void convert(T function, Context context) throws IOException;
         }
@@ -309,6 +338,35 @@ public class ESQueryBuilder {
             public void convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = super.prepare(function);
                 context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+            }
+        }
+
+        class AnyNeqConverter extends CmpConverter {
+            // 1 != ANY (col) --> gt 1 or lt 1
+            @Override
+            public void convert(Function function, Context context) throws IOException {
+                Tuple<String, Object> tuple = super.prepare(function);
+                context.builder.startObject("bool")
+                                .field("minimum_should_match", 1)
+                                .startArray("should")
+                                    .startObject()
+                                        .startObject("range")
+                                            .startObject(tuple.v1())
+                                                .field("lt", tuple.v2())
+                                            .endObject()
+                                        .endObject()
+                                    .endObject()
+                                    .startObject()
+                                        .startObject("range")
+                                            .startObject(tuple.v1())
+                                            .field("gt", tuple.v2())
+                                            .endObject()
+                                        .endObject()
+                                    .endObject()
+                                .endArray()
+                            .endObject();
+
+
             }
         }
 
@@ -446,21 +504,7 @@ public class ESQueryBuilder {
             }
         }
 
-        private ImmutableMap<String, Converter> functions =
-                ImmutableMap.<String, Converter>builder()
-                        .put(AndOperator.NAME, new AndConverter())
-                        .put(OrOperator.NAME, new OrConverter())
-                        .put(EqOperator.NAME, new EqConverter())
-                        .put(LtOperator.NAME, new RangeConverter("lt"))
-                        .put(LteOperator.NAME, new RangeConverter("lte"))
-                        .put(GtOperator.NAME, new RangeConverter("gt"))
-                        .put(GteOperator.NAME, new RangeConverter("gte"))
-                        .put(LikeOperator.NAME, new LikeConverter())
-                        .put(IsNullPredicate.NAME, new IsNullConverter())
-                        .put(NotPredicate.NAME, new NotConverter())
-                        .put(MatchFunction.NAME, new MatchConverter())
-                        .put(InOperator.NAME, new InConverter())
-                        .build();
+        private ImmutableMap<String, Converter> functions;
 
         @Override
         public Void visitFunction(Function function, Context context) {
