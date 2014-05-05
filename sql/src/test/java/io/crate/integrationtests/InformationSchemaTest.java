@@ -813,7 +813,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table any1 (id integer, date timestamp, names array(string)) partitioned by (date)");
         execute("create table any2 (id integer, num long, names array(string)) partitioned by (num)");
         ensureGreen();
-        execute("select table_name from information_schema.tables where 'date' = ANY_OF (partitioned_by)");
+        execute("select table_name from information_schema.tables where 'date' = ANY (partitioned_by)");
         assertThat(response.rowCount(), is(1L));
         assertThat((String)response.rows()[0][0], is("any1"));
     }

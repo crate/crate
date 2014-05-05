@@ -428,39 +428,39 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGroupByAny() throws Exception {
+    public void testGroupByArbitrary() throws Exception {
         this.setup.groupBySetup();
 
-        execute("select any(name), race from characters group by race order by race asc");
-        SQLResponse any_response = response;
-        assertEquals(3, any_response.rowCount());
+        execute("select arbitrary(name), race from characters group by race order by race asc");
+        SQLResponse arbitrary_response = response;
+        assertEquals(3, arbitrary_response.rowCount());
 
-        assertEquals("Android", any_response.rows()[0][1]);
+        assertEquals("Android", arbitrary_response.rows()[0][1]);
         assertEquals(1,
                 execute("select name from characters where race=? AND name=? ",
-                        new Object[]{"Android", any_response.rows()[0][0]})
+                        new Object[]{"Android", arbitrary_response.rows()[0][0]})
                         .rowCount()
         );
-        assertEquals("Human", any_response.rows()[1][1]);
+        assertEquals("Human", arbitrary_response.rows()[1][1]);
         assertEquals(1,
                 execute("select name from characters where race=? AND name=? ",
-                        new Object[]{"Human", any_response.rows()[1][0]})
+                        new Object[]{"Human", arbitrary_response.rows()[1][0]})
                         .rowCount()
         );
-        assertEquals("Vogon", any_response.rows()[2][1]);
+        assertEquals("Vogon", arbitrary_response.rows()[2][1]);
         assertEquals(1,
                 execute("select name from characters where race=? AND name=? ",
-                        new Object[]{"Vogon", any_response.rows()[2][0]})
+                        new Object[]{"Vogon", arbitrary_response.rows()[2][0]})
                         .rowCount()
         );
 
     }
 
     @Test
-    public void testGlobalAggregateAny() throws Exception {
+    public void testGlobalAggregateArbitrary() throws Exception {
         this.setup.groupBySetup();
 
-        execute("select any(age) from characters where age is not null");
+        execute("select arbitrary(age) from characters where age is not null");
         assertEquals(1, response.rowCount());
         assertEquals(1,
                 execute("select count(*) from characters where age=?",
@@ -470,16 +470,16 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAggregateAnyOnBoolean() throws Exception {
-        execute("select any(good) from employees");
+    public void testAggregateArbitraryOnBoolean() throws Exception {
+        execute("select arbitrary(good) from employees");
         assertEquals(1, response.rowCount());
         assertThat(response.rows()[0][0], isIn(new Object[]{true, false, null}));
 
-        execute("select any(good) from employees where name='dilbert'");
+        execute("select arbitrary(good) from employees where name='dilbert'");
         assertEquals(1, response.rowCount());
         assertEquals(true, response.rows()[0][0]);
 
-        execute("select any(good), department from employees group by department order by department asc");
+        execute("select arbitrary(good), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());
         assertEquals("HR", response.rows()[0][1]);
         assertThat(response.rows()[0][0], isIn(new Object[]{false, null}));

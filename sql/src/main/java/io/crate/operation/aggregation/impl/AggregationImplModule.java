@@ -46,7 +46,7 @@ public class AggregationImplModule extends AbstractModule {
         AverageAggregation.register(this);
         MinimumAggregation.register(this);
         MaximumAggregation.register(this);
-        AnyAggregation.register(this);
+        ArbitraryAggregation.register(this);
         SumAggregation.register(this);
         CountAggregation.register(this);
         CollectSetAggregation.register(this);
