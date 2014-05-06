@@ -31,7 +31,7 @@ public class DeleteStatementAnalyzer extends DataStatementAnalyzer<DeleteAnalysi
 
     @Override
     public Symbol visitDelete(Delete node, DeleteAnalysis context) {
-        process(node.getTable(), context);
+        process(node.getRelation(), context);
 
         if (node.getWhere().isPresent()) {
             processWhereClause(node.getWhere().get(), context);

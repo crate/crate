@@ -418,7 +418,7 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     public R visitUpdate(Update node, C context) {
-        process(node.table(), context);
+        process(node.relation(), context);
         for (Assignment assignment : node.assignements()) {
             process(assignment, context);
         }

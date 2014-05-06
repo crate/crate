@@ -59,13 +59,11 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     protected List<Symbol> outputSymbols = ImmutableList.of();
 
-
     protected WhereClause whereClause = WhereClause.MATCH_ALL;
     protected RowGranularity rowGranularity;
     protected boolean hasAggregates = false;
     protected boolean hasSysExpressions = false;
     protected boolean sysExpressionsAllowed = false;
-
 
     public AbstractDataAnalysis(ReferenceInfos referenceInfos, Functions functions,
                                 Object[] parameters,
@@ -438,15 +436,23 @@ public abstract class AbstractDataAnalysis extends Analysis {
                 ident = new ReferenceIdent(table.ident(), parts.get(0));
                 break;
             case 2:
-                // make sure tableName matches the tableInfo
-                if (!table.ident().name().equals(parts.get(0))) {
-                    throw new UnsupportedOperationException("unsupported name reference: " + name);
+                if (tableAlias() != null) {
+                    if (!tableAlias().equals(parts.get(0))) {
+                        throw new UnsupportedOperationException("table for reference not found in FROM: " + name);
+                    }
+                } else {
+                    if (!table().ident().name().equals(parts.get(0))) {
+                        throw new UnsupportedOperationException("table for reference not found in FROM: " + name);
+                    }
                 }
                 ident = new ReferenceIdent(table.ident(), parts.get(1));
                 break;
             case 3:
+                if (tableAlias() != null && !"sys".equals(parts.get(0).toLowerCase())) {
+                    throw new UnsupportedOperationException("table for reference not found in FROM: " + name);
+                }
                 TableInfo otherTable = referenceInfos.getTableInfo(new TableIdent(parts.get(0), parts.get(1)));
-                if (otherTable==null){
+                if (otherTable == null){
                     throw new TableUnknownException(parts.get(0) + "." + parts.get(1));
                 }
                 ident = new ReferenceIdent(new TableIdent(parts.get(0), parts.get(1)), parts.get(2));

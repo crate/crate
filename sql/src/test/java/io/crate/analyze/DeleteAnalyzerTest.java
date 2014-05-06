@@ -113,4 +113,17 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.whereClause().noMatch(), Matchers.is(false));
         assertEquals(ImmutableList.<String>of(), analysis.whereClause().partitions());
     }
+
+    @Test
+    public void testDeleteTableAlias() throws Exception {
+        DeleteAnalysis expectedAnalysis = (DeleteAnalysis) analyze("delete from users where name='Trillian'");
+        DeleteAnalysis actualAnalysis = (DeleteAnalysis) analyze("delete from users as u where u.name='Trillian'");
+
+        assertEquals(actualAnalysis.tableAlias(), "u");
+        assertEquals(
+                ((Function)expectedAnalysis.whereClause().query()).arguments().get(0),
+                ((Function)actualAnalysis.whereClause().query()).arguments().get(0)
+        );
+    }
+
 }

@@ -29,17 +29,17 @@ import javax.annotation.Nullable;
 
 public class Delete extends Statement {
 
-    private final Table table;
+    private final Relation relation;
     private final Optional<Expression> where;
 
-    public Delete(Table table, @Nullable Expression where) {
-        Preconditions.checkNotNull(table, "table is null");
-        this.table = table;
+    public Delete(Relation relation, @Nullable Expression where) {
+        Preconditions.checkNotNull(relation, "relation is null");
+        this.relation = relation;
         this.where = Optional.fromNullable(where);
     }
 
-    public Table getTable() {
-        return table;
+    public Relation getRelation() {
+        return relation;
     }
 
     public Optional<Expression> getWhere() {
@@ -55,14 +55,14 @@ public class Delete extends Statement {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, where);
+        return Objects.hashCode(relation, where);
     }
 
 
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-                .add("table", table)
+                .add("relation", relation)
                 .add("where", where.orNull())
                 .toString();
     }
@@ -74,7 +74,7 @@ public class Delete extends Statement {
 
         Delete delete = (Delete) o;
 
-        if (table != null ? !table.equals(delete.table) : delete.table != null) return false;
+        if (relation != null ? !relation.equals(delete.relation) : delete.relation != null) return false;
         if (where != null ? !where.equals(delete.where) : delete.where != null) return false;
 
         return true;

@@ -1092,6 +1092,45 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = IllegalArgumentException.class)
     public void testArrayCompareAll() throws Exception {
         analyze("select * from users where 0 = ALL (counters)");
-
     }
+
+    @Test
+    public void testTableAlias() throws Exception {
+        SelectAnalysis expectedAnalysis = (SelectAnalysis) analyze("select * " +
+                "from users where awesome = true");
+
+        SelectAnalysis actualAnalysis = (SelectAnalysis) analyze("select * " +
+                "from users as u where u.awesome = true");
+        SelectAnalysis actualAnalysisColAliased = (SelectAnalysis) analyze("select awesome as a " +
+                "from users as u where u.awesome = true");
+        SelectAnalysis actualAnalysisOptionalAs = (SelectAnalysis) analyze("select awesome a " +
+                "from users u where u.awesome = true");
+
+        assertEquals("u", actualAnalysis.tableAlias());
+        assertEquals("u", actualAnalysisColAliased.tableAlias());
+        assertEquals("u", actualAnalysisOptionalAs.tableAlias());
+        assertEquals(
+                ((Function)expectedAnalysis.whereClause().query()).arguments().get(0),
+                ((Function)actualAnalysis.whereClause().query()).arguments().get(0)
+        );
+        assertEquals(
+                ((Function)expectedAnalysis.whereClause().query()).arguments().get(0),
+                ((Function)actualAnalysisColAliased.whereClause().query()).arguments().get(0)
+        );
+        assertEquals(
+                ((Function)expectedAnalysis.whereClause().query()).arguments().get(0),
+                ((Function)actualAnalysisOptionalAs.whereClause().query()).arguments().get(0)
+        );
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testTableAliasWrongUse() throws Exception {
+        analyze("select * from users as u where users.awesome = true");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testTableAliasFullQualifiedName() throws Exception {
+        analyze("select * from users as u where doc.users.awesome = true");
+    }
+
 }

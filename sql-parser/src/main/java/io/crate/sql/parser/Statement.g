@@ -729,12 +729,12 @@ valuesList
 
 
 deleteStmt
-    : DELETE FROM table whereClause? -> ^(DELETE table whereClause?)
+    : DELETE FROM tablePrimary whereClause? -> ^(DELETE tablePrimary whereClause?)
     ;
 
 
 updateStmt
-    : UPDATE table SET assignmentList whereClause? -> ^(UPDATE table assignmentList whereClause?)
+    : UPDATE tablePrimary SET assignmentList whereClause? -> ^(UPDATE tablePrimary assignmentList whereClause?)
     ;
 
 assignmentList

@@ -97,7 +97,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         return context.allocateReference(ident);
     }
 
-
     protected Symbol visitQuerySpecification(QuerySpecification node, SelectAnalysis context) {
         // visit the from first, since this qualifies the select
         int numTables = node.getFrom() == null ? 0 : node.getFrom().size();
