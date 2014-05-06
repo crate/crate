@@ -23,6 +23,8 @@ package io.crate.rest.action;
 
 import io.crate.action.sql.SQLRequestBuilder;
 import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.parser.SQLXContentSourceContext;
+import io.crate.action.sql.parser.SQLXContentSourceParser;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
@@ -38,6 +40,8 @@ import static org.elasticsearch.rest.action.support.RestXContentBuilder.restCont
 
 public class RestSQLAction extends BaseRestHandler {
 
+    private SQLXContentSourceParser parser;
+
     @Inject
     public RestSQLAction(Settings settings, Client client, RestController controller) {
         super(settings, client);
@@ -51,7 +55,11 @@ public class RestSQLAction extends BaseRestHandler {
         final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
         try {
             if (request.hasContent()) {
-                requestBuilder.source(request.content());
+                SQLXContentSourceContext context = new SQLXContentSourceContext();
+                parser = new SQLXContentSourceParser(context);
+                parser.parseSource(request.content());
+                requestBuilder.stmt(context.stmt());
+                requestBuilder.args(context.args());
             } else {
                 throw new ElasticsearchException("missing request body");
             }
@@ -92,4 +100,5 @@ public class RestSQLAction extends BaseRestHandler {
             }
         });
     }
+
 }
