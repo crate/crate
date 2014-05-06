@@ -23,7 +23,8 @@ package io.crate.planner.node;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
@@ -31,8 +32,9 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.DataType;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
@@ -51,14 +53,14 @@ public class MergeNodeTest {
         MergeNode node = new MergeNode("merge", 2);
         node.contextId(UUID.randomUUID());
         node.executionNodes(Sets.newHashSet("node1", "node2"));
-        node.inputTypes(Arrays.asList(DataType.NULL, DataType.STRING));
+        node.inputTypes(Arrays.<DataType>asList(DataTypes.NULL, DataTypes.STRING));
 
-        Reference nameRef = TestingHelpers.createReference("name", DataType.STRING);
+        Reference nameRef = TestingHelpers.createReference("name", DataTypes.STRING);
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(nameRef));
         groupProjection.values(Arrays.asList(
                 new Aggregation(
-                        new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataType.LONG),
+                        new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
                         ImmutableList.<Symbol>of(),
                         Aggregation.Step.PARTIAL,
                         Aggregation.Step.FINAL

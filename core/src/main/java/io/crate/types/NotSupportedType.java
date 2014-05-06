@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,38 +19,48 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.types;
 
-import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.TimestampFormat;
+import io.crate.Streamer;
 
-public class TimestampLiteral extends LongLiteral {
+public class NotSupportedType extends DataType<Void> implements DataTypeFactory {
 
-    public TimestampLiteral(String value) {
-        super(TimestampFormat.parseTimestampString(value));
-    }
+    public final static NotSupportedType INSTANCE = new NotSupportedType();
+    public final static int ID = 1;
+    private NotSupportedType() {}
 
-    public TimestampLiteral(BytesRef value) {
-        this(value.utf8ToString());
-    }
-
-    public TimestampLiteral(Long value) {
-        super(value);
+    @Override
+    public int id() {
+        return ID;
     }
 
     @Override
-    public DataType valueType() {
-        return DataType.TIMESTAMP;
+    public String getName() {
+        return "NOT SUPPORTED";
     }
 
     @Override
-    public SymbolType symbolType() {
-        return SymbolType.TIMESTAMP_LITERAL;
+    public Streamer<?> streamer() {
+        return null;
     }
 
     @Override
-    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
-        return visitor.visitTimestampLiteral(this, context);
+    public Void value(Object value) {
+        return null;
+    }
+
+    @Override
+    public int compareValueTo(Void val1, Void val2) {
+        return 0;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        return 0;
+    }
+
+    @Override
+    public DataType<?> create() {
+        return INSTANCE;
     }
 }

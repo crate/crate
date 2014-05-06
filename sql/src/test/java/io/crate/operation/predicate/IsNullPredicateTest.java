@@ -23,38 +23,39 @@ package io.crate.operation.predicate;
 
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
-import io.crate.DataType;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class IsNullPredicateTest {
 
     IsNullPredicate predicate = new IsNullPredicate(new FunctionInfo(
-            new FunctionIdent(IsNullPredicate.NAME, Arrays.asList(DataType.STRING)),
-            DataType.BOOLEAN
+            new FunctionIdent(IsNullPredicate.NAME, Arrays.<DataType>asList(DataTypes.STRING)),
+            DataTypes.BOOLEAN
     ));
 
     @Test
     public void testNormalizeSymbolFalse() throws Exception {
-        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(new StringLiteral("a")));
+        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.newLiteral("a")));
         Symbol symbol = predicate.normalizeSymbol(isNull);
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(false));
+        assertLiteralSymbol(symbol, false);
     }
 
     @Test
     public void testNormalizeSymbolTrue() throws Exception {
-        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Null.INSTANCE));
+        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.NULL));
         Symbol symbol = predicate.normalizeSymbol(isNull);
-
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(true));
+        assertLiteralSymbol(symbol, true);
     }
 
     @Test
@@ -62,7 +63,7 @@ public class IsNullPredicateTest {
         Reference name_ref = new Reference(new ReferenceInfo(
                         new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
                         RowGranularity.DOC,
-                        DataType.STRING));
+                        DataTypes.STRING));
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
         Symbol symbol = predicate.normalizeSymbol(isNull);
         assertThat(symbol, instanceOf(Function.class));

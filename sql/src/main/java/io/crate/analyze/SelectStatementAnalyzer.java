@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.DataType;
 import io.crate.exceptions.SQLParseException;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -30,6 +29,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
+import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +57,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         Symbol symbol = process(node.getExpression(), context);
         if (symbol.symbolType() == SymbolType.PARAMETER) {
             //convert to Literal
-            symbol = ((Parameter)symbol).toLiteral();
+            symbol = Literal.fromParameter((Parameter)symbol);
         }
         context.outputSymbols().add(symbol);
 
@@ -75,7 +75,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         Symbol symbol;
         for (ReferenceInfo referenceInfo : context.table().columns()) {
             // ignore NOT_SUPPORTED columns
-            if (referenceInfo.type() != DataType.NOT_SUPPORTED) {
+            if (referenceInfo.type() != DataTypes.NOT_SUPPORTED) {
                 symbol = context.allocateReference(referenceInfo.ident());
                 context.outputSymbols().add(symbol);
                 context.addAlias(referenceInfo.ident().columnIdent().name(), symbol);
@@ -165,12 +165,12 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     private Integer extractIntegerFromNode(Expression expression, String clauseName, SelectAnalysis context) {
         Symbol symbol = process(expression, context);
-        if (symbol.symbolType() == SymbolType.PARAMETER) {
-            symbol = ((Parameter)symbol).toLiteral(DataType.INTEGER);
-        }
-        assert symbol.symbolType().isLiteral(); // due to parser this must be a parameterNode or integer
+        assert symbol.symbolType().isValueSymbol(); // due to parser this must be a parameterNode or integer
         try {
-            return ((Number)((Literal)symbol).convertValueTo(DataType.INTEGER)).intValue();
+            if (symbol.symbolType() == SymbolType.PARAMETER) {
+                return DataTypes.INTEGER.value(((Parameter) symbol).value());
+            }
+            return DataTypes.INTEGER.value(((Literal) symbol).value());
         } catch (Exception e) {
             throw new IllegalArgumentException(String.format(
                     "The parameter %s that was passed to %s has an invalid type", SymbolFormatter.format(symbol), clauseName), e);
@@ -182,17 +182,11 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         for (Expression expression : groupByExpressions) {
             Symbol s = process(expression, context);
             int idx;
-
-            // handle parameters
             if (s.symbolType() == SymbolType.PARAMETER) {
-                try {
-                    s = ((Parameter)s).toLiteral(DataType.LONG);
-                } catch (Exception e) {
-                    throw new IllegalArgumentException(SymbolFormatter.format("invalid GROUP BY parameter '%s'", s));
-                }
+                s = toLiteral(s, DataTypes.LONG);
             }
-            if (s.symbolType() == SymbolType.LONG_LITERAL) {
-                idx = ((io.crate.planner.symbol.LongLiteral) s).value().intValue() - 1;
+            if (s.symbolType() == SymbolType.LITERAL && ((Literal)s).valueType().equals(DataTypes.LONG)) {
+                idx = ((Number)((Literal)s).value()).intValue() - 1;
                 if (idx < 1) {
                     throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx));
@@ -248,7 +242,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     protected Symbol visitSortItem(SortItem node, SelectAnalysis context) {
         Symbol sortSymbol = super.visitSortItem(node, context);
         if (sortSymbol.symbolType() == SymbolType.PARAMETER) {
-            sortSymbol = ((Parameter)sortSymbol).toLiteral();
+            sortSymbol = Literal.fromParameter((Parameter)sortSymbol);
         }
         // validate sortSymbol
         sortSymbolValidator.process(sortSymbol, context.table);
@@ -308,7 +302,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                                 "cannot use partitioned column %s in ORDER BY clause",
                                 symbol));
             }
-            if (symbol.info().type().isCompoundType()) {
+            if (!DataTypes.PRIMITIVE_TYPES.contains(symbol.info().type())) {
                 throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH,
                                 "cannot sort on columns of type '%s'",

@@ -24,7 +24,8 @@ package io.crate.operation.aggregation.impl;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.isOneOf;
@@ -39,14 +40,14 @@ public class ArbitraryAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        FunctionIdent fi = new FunctionIdent("arbitrary", ImmutableList.of(DataType.INTEGER));
-        assertEquals(DataType.INTEGER, functions.get(fi).info().returnType());
+        FunctionIdent fi = new FunctionIdent("arbitrary", ImmutableList.<DataType>of(DataTypes.INTEGER));
+        assertEquals(DataTypes.INTEGER, functions.get(fi).info().returnType());
     }
 
     @Test
     public void testDouble() throws Exception {
         Object[][] data = new Object[][]{{0.8d}, {0.3d}};
-        Object[][] result = executeAggregation(DataType.DOUBLE, data);
+        Object[][] result = executeAggregation(DataTypes.DOUBLE, data);
 
         assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
     }
@@ -54,7 +55,7 @@ public class ArbitraryAggregationTest extends AggregationTest {
     @Test
     public void testFloat() throws Exception {
         Object[][] data = new Object[][]{{0.8f}, {0.3f}};
-        Object[][] result = executeAggregation(DataType.FLOAT, data);
+        Object[][] result = executeAggregation(DataTypes.FLOAT, data);
 
         assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
     }
@@ -62,7 +63,7 @@ public class ArbitraryAggregationTest extends AggregationTest {
     @Test
     public void testInteger() throws Exception {
         Object[][] data = new Object[][]{{8}, {3}};
-        Object[][] result = executeAggregation(DataType.INTEGER, data);
+        Object[][] result = executeAggregation(DataTypes.INTEGER, data);
 
         assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
     }
@@ -70,7 +71,7 @@ public class ArbitraryAggregationTest extends AggregationTest {
     @Test
     public void testLong() throws Exception {
         Object[][] data = new Object[][]{{8L}, {3L}};
-        Object[][] result = executeAggregation(DataType.LONG, data);
+        Object[][] result = executeAggregation(DataTypes.LONG, data);
 
         assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
     }
@@ -78,7 +79,7 @@ public class ArbitraryAggregationTest extends AggregationTest {
     @Test
     public void testShort() throws Exception {
         Object[][] data = new Object[][]{{(short) 8}, {(short) 3}};
-        Object[][] result = executeAggregation(DataType.SHORT, data);
+        Object[][] result = executeAggregation(DataTypes.SHORT, data);
 
         assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
     }
@@ -86,7 +87,7 @@ public class ArbitraryAggregationTest extends AggregationTest {
     @Test
     public void testString() throws Exception {
         Object[][] data = new Object[][]{{"Youri"}, {"Ruben"}};
-        Object[][] result = executeAggregation(DataType.STRING, data);
+        Object[][] result = executeAggregation(DataTypes.STRING, data);
 
         assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
     }
@@ -94,13 +95,13 @@ public class ArbitraryAggregationTest extends AggregationTest {
     @Test
     public void testBoolean() throws Exception {
         Object[][] data = new Object[][]{{true}, {false}};
-        Object[][] result = executeAggregation(DataType.BOOLEAN, data);
+        Object[][] result = executeAggregation(DataTypes.BOOLEAN, data);
 
         assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
     }
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        Object[][] result = executeAggregation(DataType.OBJECT, new Object[][]{{new Object()}});
+        Object[][] result = executeAggregation(DataTypes.OBJECT, new Object[][]{{new Object()}});
     }
 }

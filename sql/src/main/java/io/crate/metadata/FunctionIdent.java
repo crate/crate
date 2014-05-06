@@ -24,7 +24,8 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -98,7 +99,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         argumentTypes = new ArrayList<>(numTypes);
 
         for (int i = 0; i < numTypes; i++) {
-            argumentTypes.add(DataType.fromStream(in));
+            argumentTypes.add(DataTypes.fromStream(in));
         }
     }
 
@@ -108,7 +109,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         out.writeVInt(argumentTypes.size());
 
         for (DataType argumentType : argumentTypes) {
-            DataType.toStream(argumentType, out);
+            DataTypes.toStream(argumentType, out);
         }
     }
 }

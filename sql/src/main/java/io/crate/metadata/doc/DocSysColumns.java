@@ -6,7 +6,8 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.Tuple;
 
 import java.util.ArrayList;
@@ -24,12 +25,12 @@ public class DocSysColumns {
     public static final ColumnIdent RAW = new ColumnIdent("_raw");
 
     public static ImmutableMap<ColumnIdent, DataType> columnIdents = ImmutableMap.<ColumnIdent, DataType>builder()
-            .put(ID, DataType.STRING)
-            .put(VERSION, DataType.LONG)
-            .put(SCORE, DataType.DOUBLE)
-            .put(UID, DataType.STRING)
-            .put(DOC, DataType.OBJECT)
-            .put(RAW, DataType.STRING)
+            .put(ID, DataTypes.STRING)
+            .put(VERSION, DataTypes.LONG)
+            .put(SCORE, DataTypes.DOUBLE)
+            .put(UID, DataTypes.STRING)
+            .put(DOC, DataTypes.OBJECT)
+            .put(RAW, DataTypes.STRING)
             .build();
 
     private static ReferenceInfo newInfo(TableIdent table, ColumnIdent column, DataType dataType) {

@@ -21,7 +21,9 @@
 
 package io.crate.operation.reference.doc;
 
-import io.crate.DataType;
+
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.Map;
 
@@ -40,7 +42,6 @@ public class ObjectColumnReference<ReturnType> extends ColumnReferenceCollectorE
 
     @Override
     public DataType returnType() {
-        return DataType.OBJECT;
+        return DataTypes.OBJECT;
     }
-
 }

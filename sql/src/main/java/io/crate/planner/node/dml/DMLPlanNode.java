@@ -25,7 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.projection.Projection;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.LongType;
 
 import java.util.List;
 import java.util.Set;
@@ -33,7 +34,7 @@ import java.util.Set;
 public abstract class DMLPlanNode implements DQLPlanNode {
 
     // output just contains the affectedRows in most cases (at least until the RETURNING clause is supported)
-    private static final List<DataType> OUTPUT_TYPES = ImmutableList.of(DataType.LONG);
+    private static final List<DataType> OUTPUT_TYPES = ImmutableList.<DataType>of(LongType.INSTANCE);
 
     protected List<DataType> inputTypes = ImmutableList.of();
 

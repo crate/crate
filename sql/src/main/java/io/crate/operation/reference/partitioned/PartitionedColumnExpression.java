@@ -25,7 +25,6 @@ import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.StringLiteral;
 
 public class PartitionedColumnExpression implements Input, ShardReferenceImplementation {
 
@@ -37,9 +36,7 @@ public class PartitionedColumnExpression implements Input, ShardReferenceImpleme
         if (stringValue == null) {
             this.value = null;
         } else {
-            // TODO: avoid creating StringLiteral for conversion only,
-            // refactor type conversion for simple values
-            this.value = new StringLiteral(stringValue).convertValueTo(info.type());
+            this.value = info.type().value(stringValue);
         }
     }
 

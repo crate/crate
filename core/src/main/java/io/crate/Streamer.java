@@ -21,7 +21,6 @@
 
 package io.crate;
 
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -29,38 +28,6 @@ import java.io.IOException;
 
 public interface Streamer<T> {
 
-    public T readFrom(StreamInput in) throws IOException;
-
-    public void writeTo(StreamOutput out, Object v) throws IOException;
-
-    public static final Streamer<BytesRef> BYTES_REF = new Streamer<BytesRef>() {
-
-        @Override
-        public BytesRef readFrom(StreamInput in) throws IOException {
-            int length = in.readVInt() -1 ;
-            if (length == -1) {
-                return null;
-            }
-            return in.readBytesRef(length);
-        }
-
-        @Override
-        public void writeTo(StreamOutput out, Object v) throws IOException {
-            // .writeBytesRef isn't used here because it will convert null values to empty bytesRefs
-
-            // to distinguish between null and an empty bytesRef
-            // 1 is always added to the length so that
-            // 0 is null
-            // 1 is 0
-            // ...
-            if (v == null) {
-                out.writeVInt(0);
-            } else {
-                BytesRef bytesRef = (BytesRef) v;
-                out.writeVInt(bytesRef.length + 1);
-                out.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
-            }
-        }
-    };
-
+    public T readValueFrom(StreamInput in) throws IOException;
+    public void writeValueTo(StreamOutput out, Object v) throws IOException;
 }

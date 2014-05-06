@@ -22,12 +22,17 @@
 package io.crate.operation.operator.any;
 
 import com.google.common.base.Preconditions;
-import io.crate.DataType;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.operator.Operator;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.BooleanType;
+import io.crate.types.CollectionType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.*;
 
@@ -82,28 +87,15 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
         Symbol right = symbol.arguments().get(1);
 
         if (containsNull(left, right)) {
-            return Null.INSTANCE;
+            return Literal.NULL;
         }
-
-        if (left.symbolType().isLiteral() && right.symbolType().isLiteral()) {
+        if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
             Literal collLiteral = (Literal)right;
-
             Object leftValue = ((Literal)left).value();
-            Iterable<?> rightIter;
-            if (collLiteral.valueType().isSetType()) {
-                rightIter = ((SetLiteral)collLiteral).value();
-            } else if (collLiteral.valueType().isArrayType()) {
-                rightIter = Arrays.asList(((ArrayLiteral)collLiteral).value());
-            } else {
-                // only arrays or sets supported
+            if (!DataTypes.isCollectionType(collLiteral.valueType())) {
                 throw new IllegalArgumentException("invalid array expression");
             }
-
-            if (doEvaluate(leftValue, rightIter)) {
-                return BooleanLiteral.TRUE;
-            } else {
-                return BooleanLiteral.FALSE;
-            }
+            return Literal.newLiteral(doEvaluate(leftValue, (Iterable<?>)collLiteral.value()));
         }
         return symbol;
     }
@@ -159,9 +151,9 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(
                 dataTypes.size() == 2 &&
-                        dataTypes.get(0).isCollectionType() &&
-                        dataTypes.get(0).elementType().equals(dataTypes.get(1))
+                        DataTypes.isCollectionType(dataTypes.get(0)) &&
+                        ((CollectionType)dataTypes.get(0)).innerType().equals(dataTypes.get(1))
         );
-        return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), DataType.BOOLEAN));
+        return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
     }
 }

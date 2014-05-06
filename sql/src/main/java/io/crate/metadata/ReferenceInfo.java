@@ -24,8 +24,9 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
-import io.crate.DataType;
 import io.crate.planner.RowGranularity;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -184,7 +185,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
                 .add("granularity", granularity)
                 .add("ident", ident)
                 .add("type", type);
-        if (type == DataType.OBJECT) {
+        if (type.equals(DataTypes.OBJECT)) {
             helper.add("object type", objectType.name());
         }
         return helper.toString();
@@ -204,7 +205,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
     public void readFrom(StreamInput in) throws IOException {
         ident = new ReferenceIdent();
         ident.readFrom(in);
-        type = DataType.fromStream(in);
+        type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
 
         objectType = ObjectType.values()[in.readVInt()];
@@ -213,7 +214,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         ident.writeTo(out);
-        DataType.toStream(type, out);
+        DataTypes.toStream(type, out);
         RowGranularity.toStream(granularity, out);
 
         out.writeVInt(objectType.ordinal());

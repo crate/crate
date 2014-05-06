@@ -25,6 +25,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import io.crate.core.StringUtils;
+import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
@@ -80,7 +82,7 @@ public class PartitionName implements Streamable {
         tableName = in.readString();
         int size = in.readVInt();
         for (int i=0; i < size; i++) {
-            BytesRef value = (BytesRef)DataType.STRING.streamer().readFrom(in);
+            BytesRef value = DataTypes.STRING.streamer().readValueFrom(in);
             if (value == null) {
                 values.add(null);
             } else {
@@ -94,8 +96,8 @@ public class PartitionName implements Streamable {
         out.writeString(tableName);
         out.writeVInt(values.size());
         for (String value : values) {
-            DataType.STRING.streamer().writeTo(out,
-                    value == null ? value : new BytesRef(value));
+            StringType.INSTANCE.streamer().writeValueTo(out,
+                    value == null ? null : new BytesRef(value));
         }
     }
 
@@ -108,7 +110,7 @@ public class PartitionName implements Streamable {
         BytesStreamInput in = new BytesStreamInput(inputBytes, true);
         int size = in.readVInt();
         for (int i=0; i < size; i++) {
-            BytesRef value = (BytesRef)DataType.STRING.streamer().readFrom(in);
+            BytesRef value = StringType.INSTANCE.streamer().readValueFrom(in);
             if (value == null) {
                 values.add(null);
             } else {
@@ -127,8 +129,8 @@ public class PartitionName implements Streamable {
         try {
             out.writeVInt(values.size());
             for (String value : values) {
-                DataType.STRING.streamer().writeTo(out,
-                        value == null ? value : new BytesRef(value));
+                StringType.INSTANCE.streamer().writeValueTo(out,
+                        value == null ? null : new BytesRef(value));
             }
             out.close();
         } catch (IOException e) {

@@ -25,7 +25,8 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.projection.Projection;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -99,7 +100,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
         if (numCols > 0) {
             outputTypes = new ArrayList<>(numCols);
             for (int i = 0; i < numCols; i++) {
-                outputTypes.add(DataType.values()[in.readVInt()]);
+                outputTypes.add(DataTypes.fromStream(in));
             }
         }
 
@@ -120,7 +121,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
         int numCols = outputTypes.size();
         out.writeVInt(numCols);
         for (int i = 0; i < numCols; i++) {
-            out.writeVInt(outputTypes.get(i).ordinal());
+            DataTypes.toStream(outputTypes.get(i), out);
         }
 
         if (hasProjections()) {

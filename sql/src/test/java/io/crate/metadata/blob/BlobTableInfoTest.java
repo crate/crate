@@ -21,17 +21,16 @@
 
 package io.crate.metadata.blob;
 
-import io.crate.DataType;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.DynamicReference;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 public class BlobTableInfoTest {
@@ -47,7 +46,7 @@ public class BlobTableInfoTest {
     public void testGetColumnInfo() throws Exception {
         ReferenceInfo foobar = info.getColumnInfo(new ColumnIdent("digest"));
         assertNotNull(foobar);
-        assertThat(foobar.type(), is(DataType.STRING));
+        assertEquals(DataTypes.STRING, foobar.type());
 
         DynamicReference reference = info.getDynamic(new ColumnIdent("foobar"));
         assertNull(reference);

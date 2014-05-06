@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.DataType;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -33,8 +32,10 @@ import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -79,14 +80,14 @@ public class ProjectionToProjectorVisitorTest {
                 new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
         visitor = new ProjectionToProjectorVisitor(clientProvider, symbolvisitor);
 
-        countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.STRING)), DataType.LONG);
-        avgInfo = new FunctionInfo(new FunctionIdent(AverageAggregation.NAME, Arrays.asList(DataType.INTEGER)), DataType.DOUBLE);
+        countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING)), DataTypes.LONG);
+        avgInfo = new FunctionInfo(new FunctionIdent(AverageAggregation.NAME, Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.DOUBLE);
     }
 
     @Test
     public void testSimpleTopNProjection() throws ExecutionException, InterruptedException {
         TopNProjection projection = new TopNProjection(10, 2);
-        projection.outputs(Arrays.<Symbol>asList(new StringLiteral("foo"), new InputColumn(0)));
+        projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0)));
 
         CollectingProjector collectingProjector = new CollectingProjector();
         Projector projector = visitor.process(projection);
@@ -113,7 +114,7 @@ public class ProjectionToProjectorVisitorTest {
     public void testSortingTopNProjection() throws ExecutionException, InterruptedException {
         TopNProjection projection = new TopNProjection(10, 0,
                 Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)), new boolean[]{false, false});
-        projection.outputs(Arrays.<Symbol>asList(new StringLiteral("foo"), new InputColumn(0), new InputColumn(1)));
+        projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
         Projector projector = visitor.process(projection);
         projector.registerUpstream(null);
         assertThat(projector, instanceOf(SortingTopNProjector.class));

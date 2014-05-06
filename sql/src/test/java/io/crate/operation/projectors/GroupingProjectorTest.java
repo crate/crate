@@ -4,15 +4,16 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
+import io.crate.operation.AggregationContext;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.operation.AggregationContext;
+import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
 
@@ -37,7 +38,7 @@ public class GroupingProjectorTest {
                 new DummyInput("one", "one", "three"));
 
 
-        FunctionInfo countInfo = new FunctionInfo(new FunctionIdent("count", ImmutableList.<DataType>of()), DataType.LONG);
+        FunctionInfo countInfo = new FunctionInfo(new FunctionIdent("count", ImmutableList.<DataType>of()), DataTypes.LONG);
         Aggregation countAggregation =
                 new Aggregation(countInfo, ImmutableList.<Symbol>of(), Aggregation.Step.ITER, Aggregation.Step.PARTIAL);
 

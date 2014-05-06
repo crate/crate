@@ -116,7 +116,7 @@ public class TopNProjection extends Projection {
         limit = in.readVInt();
 
         int numOutputs = in.readVInt();
-        outputs = new ArrayList(numOutputs);
+        outputs = new ArrayList<>(numOutputs);
         for (int i = 0; i < numOutputs; i++) {
             outputs.add(Symbol.fromStream(in));
         }
@@ -130,7 +130,7 @@ public class TopNProjection extends Projection {
                 reverseFlags[i] = in.readBoolean();
             }
 
-            orderBy = new ArrayList(numOrderBy);
+            orderBy = new ArrayList<>(numOrderBy);
             for (int i = 0; i < reverseFlags.length; i++) {
                 orderBy.add(Symbol.fromStream(in));
             }

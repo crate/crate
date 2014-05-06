@@ -33,7 +33,7 @@ import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.symbol.BooleanLiteral;
+import io.crate.planner.symbol.Literal;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -126,7 +126,7 @@ public class UnassignedShardsCollectService implements CollectService {
         if (node.whereClause().hasQuery()) {
             condition = (Input<Boolean>) inputSymbolVisitor.process(node.whereClause().query(), context);
         } else {
-            condition = BooleanLiteral.TRUE;
+            condition = Literal.newLiteral(true);
         }
 
         return new UnassignedShardsCollector(

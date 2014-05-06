@@ -23,7 +23,6 @@ package io.crate.executor.task;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.DataType;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -38,6 +37,8 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -58,7 +59,7 @@ import static org.mockito.Mockito.mock;
 public class LocalMergeTaskTest {
 
     private ImplementationSymbolVisitor symbolVisitor;
-    private AggregationFunction<MinimumAggregation.MinimumAggState<Double>> minAggFunction;
+    private AggregationFunction<MinimumAggregation.MinimumAggState> minAggFunction;
     private GroupProjection groupProjection;
     private Injector injector;
 
@@ -78,8 +79,8 @@ public class LocalMergeTaskTest {
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
         symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
 
-        FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.asList(DataType.DOUBLE));
-        minAggFunction = (AggregationFunction<MinimumAggregation.MinimumAggState<Double>>) functions.get(minAggIdent);
+        FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE));
+        minAggFunction = (AggregationFunction<MinimumAggregation.MinimumAggState>) functions.get(minAggIdent);
 
         groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(0)));
@@ -92,7 +93,7 @@ public class LocalMergeTaskTest {
         Object[][] resultRows = new Object[numRows][];
         for (int i=0; i<numRows; i++) {
             double d = (double)numRows*i;
-            MinimumAggregation.MinimumAggState<Double> aggState = minAggFunction.newState();
+            MinimumAggregation.MinimumAggState aggState = minAggFunction.newState();
             aggState.setValue(d);
             resultRows[i] = new Object[]{
                     d % 4,

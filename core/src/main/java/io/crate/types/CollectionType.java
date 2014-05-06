@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,25 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.types;
 
-import io.crate.planner.symbol.*;
-import io.crate.Streamer;
+public interface CollectionType {
 
-public class StreamerVisitor extends SymbolVisitor<Void, Streamer> {
-
-    @Override
-    public Streamer visitValue(Value symbol, Void context) {
-        return symbol.valueType().streamer();
-    }
-
-    @Override
-    public Streamer visitReference(Reference symbol, Void context) {
-        return symbol.valueType().streamer();
-    }
-
-    @Override
-    protected Streamer visitSymbol(Symbol symbol, Void context) {
-        throw new UnsupportedOperationException(SymbolFormatter.format("Can't get a streamer for symbol %s", symbol));
-    }
+    public DataType<?> innerType();
 }

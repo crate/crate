@@ -26,6 +26,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
+import io.crate.types.*;
 
 public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolver<LuceneCollectorExpression<?>> {
 
@@ -53,26 +54,26 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
 
         String colName = referenceInfo.ident().columnIdent().fqn();
 
-        switch (referenceInfo.type()) {
-            case BYTE:
+        switch (referenceInfo.type().id()) {
+            case ByteType.ID:
                 return new ByteColumnReference(colName);
-            case SHORT:
+            case ShortType.ID:
                 return new ShortColumnReference(colName);
-            case IP:
-            case STRING:
+            case IpType.ID:
+            case StringType.ID:
                 return new BytesRefColumnReference(colName);
-            case DOUBLE:
+            case DoubleType.ID:
                 return new DoubleColumnReference(colName);
-            case BOOLEAN:
+            case BooleanType.ID:
                 return new BooleanColumnReference(colName);
-            case OBJECT:
+            case ObjectType.ID:
                 return new ObjectColumnReference(colName);
-            case FLOAT:
+            case FloatType.ID:
                 return new FloatColumnReference(colName);
-            case LONG:
-            case TIMESTAMP:
+            case LongType.ID:
+            case TimestampType.ID:
                 return new LongColumnReference(colName);
-            case INTEGER:
+            case IntegerType.ID:
                 return new IntegerColumnReference(colName);
             default:
                 throw new UnhandledServerException(String.format("unsupported type '%s'", referenceInfo.type().getName()));

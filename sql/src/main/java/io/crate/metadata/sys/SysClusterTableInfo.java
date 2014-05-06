@@ -25,7 +25,8 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.*;
 
@@ -39,8 +40,8 @@ public class SysClusterTableInfo extends SysTableInfo {
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     static {
-        register("id", DataType.STRING, null);
-        register("name", DataType.STRING, null);
+        register("id", DataTypes.STRING, null);
+        register("name", DataTypes.STRING, null);
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {

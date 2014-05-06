@@ -23,17 +23,19 @@ package io.crate.analyze;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.Id;
 import io.crate.exceptions.*;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.Input;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
-import org.apache.lucene.util.BytesRef;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -47,7 +49,9 @@ public abstract class AbstractDataAnalysis extends Analysis {
     protected static final Predicate<ReferenceInfo> HAS_OBJECT_ARRAY_PARENT = new Predicate<ReferenceInfo>() {
         @Override
         public boolean apply(@Nullable ReferenceInfo input) {
-            return input != null && input.type().equals(DataType.OBJECT_ARRAY);
+            return input != null
+                    && input.type().id() == ArrayType.ID
+                    && ((ArrayType)input.type()).innerType().equals(DataTypes.OBJECT);
         }
     };
 
@@ -180,7 +184,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         if (info != null &&
                 !info.ident().isColumn() &&
                 hasMatchingParent(info, HAS_OBJECT_ARRAY_PARENT)) {
-            if (info.type().isCollectionType()) {
+            if (DataTypes.isCollectionType(info.type())) {
                 // TODO: remove this limitation with next type refactoring
                 throw new UnsupportedOperationException(
                         "cannot query for arrays inside object arrays explicitly");
@@ -192,7 +196,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
                     .ident(info.ident())
                     .objectType(info.objectType())
                     .granularity(info.granularity())
-                    .type(info.type().arrayType())
+                    .type(new ArrayType(info.type()))
                     .build();
         }
 
@@ -328,56 +332,56 @@ public abstract class AbstractDataAnalysis extends Analysis {
         // 1. evaluate
         // guess type for dynamic column
         if (reference instanceof DynamicReference) {
-            Object value;
-            if (parameterOrLiteral.symbolType() == SymbolType.PARAMETER) {
-                value = ((Parameter) parameterOrLiteral).value();
-            } else {
-                value = ((Literal)parameterOrLiteral).value();
-            }
-            DataType guessed = DataType.forValue(value, reference.info().objectType() == ReferenceInfo.ObjectType.IGNORED);
+            assert parameterOrLiteral instanceof Input;
+            Object value = ((Input<?>)parameterOrLiteral).value();
+            DataType guessed = DataTypes.guessType(value,
+                    reference.info().objectType() == ReferenceInfo.ObjectType.IGNORED);
             ((DynamicReference) reference).valueType(guessed);
         }
 
-        // resolve parameter to literal
-        if (parameterOrLiteral.symbolType() == SymbolType.PARAMETER) {
-            normalized = ((Parameter)parameterOrLiteral).toLiteral(reference.info().type());
-
-        } else {
-            try {
-                normalized = (Literal)parameterOrLiteral;
-            } catch (ClassCastException e) {
-                throw new ColumnValidationException(
-                        reference.info().ident().columnIdent().name(),
-                        String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
-            }
-        }
-
-        // 2. convert if necessary (detect wrong types)
         try {
-            normalized = normalized.convertTo(reference.info().type());
-        } catch (Exception e) {  // UnsupportedOperationException, NumberFormatException ...
+            // resolve parameter to literal
+            if (parameterOrLiteral.symbolType() == SymbolType.PARAMETER) {
+                normalized = Literal.newLiteral(
+                        reference.info().type(),
+                        reference.info().type().value(((Parameter) parameterOrLiteral).value())
+                );
+            } else {
+                try {
+                    normalized = (Literal) parameterOrLiteral;
+                    if (!normalized.valueType().equals(reference.info().type())) {
+                        normalized = Literal.newLiteral(
+                                reference.info().type(),
+                                reference.info().type().value(normalized.value()));
+                    }
+                } catch (ClassCastException e) {
+                    throw new ColumnValidationException(
+                            reference.info().ident().columnIdent().name(),
+                            String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
+                }
+            }
+
+            // 3. if reference is of type object - do special validation
+            if (reference.info().type() == DataTypes.OBJECT) {
+                Map<String, Object> value = (Map<String, Object>) (normalized).value();
+                if (value == null) {
+                    return Literal.NULL;
+                }
+                normalized = Literal.newLiteral(normalizeObjectValue(value, reference.info()));
+            }
+        } catch (ClassCastException | NumberFormatException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
-                    String.format("wrong type '%s'. expected: '%s'",
-                            normalized.valueType().getName(),
-                            reference.info().type().getName()));
+                    SymbolFormatter.format("\"%s\" has a type that can't be implicitly cast to that of \"%s\"",
+                            inputValue,
+                            reference
+                    ));
         }
-
-        // 3. if reference is of type object - do special validation
-        if (reference.info().type() == DataType.OBJECT
-                && normalized instanceof ObjectLiteral) {
-            Map<String, Object> value = ((ObjectLiteral) normalized).value();
-            if (value == null) {
-                return Null.INSTANCE;
-            }
-            normalized = new ObjectLiteral(normalizeObjectValue(value, reference.info()));
-        }
-
         return normalized;
     }
 
     /**
-     * normalize and validate the given value according to the given {@link io.crate.DataType}
+     * normalize and validate the given value according to the given {@link io.crate.types.DataType}
      *
      * @param inputValue any {@link io.crate.planner.symbol.Symbol} that evaluates to a Literal or Parameter
      * @param dataType the type to convert this input to
@@ -387,24 +391,17 @@ public abstract class AbstractDataAnalysis extends Analysis {
         Literal normalized;
         Symbol processed = normalizer.process(inputValue, null);
         if (processed instanceof Parameter) {
-            normalized = ((Parameter) processed).toLiteral(dataType);
+            normalized = Literal.newLiteral(dataType, dataType.value(((Parameter) processed).value()));
         } else {
             try {
                 normalized = (Literal)processed;
-            } catch (ClassCastException e) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid value of type '%s'", inputValue.symbolType().name()));
-            }
-        }
-
-        try {
-            normalized = normalized.convertTo(dataType);
-        } catch (IllegalArgumentException e) {
-            throw e;
-        } catch (Exception e) {  // UnsupportedOperationException, NumberFormatException ...
+                if (!normalized.valueType().equals(dataType)) {
+                    normalized = Literal.newLiteral(dataType, dataType.value(normalized.value()));
+                }
+            } catch (ClassCastException | NumberFormatException e) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "wrong type '%s'. expected: '%s'",
-                                normalized.valueType().getName(),
-                                dataType.getName()));
+                        String.format(Locale.ENGLISH, "Invalid value of type '%s'", inputValue.symbolType().name()));
+            }
         }
         return normalized;
     }
@@ -420,7 +417,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
                     continue;
                 }
                 DynamicReference dynamicReference = table.getDynamic(nestedIdent);
-                DataType type = DataType.forValue(entry.getValue(), false);
+                DataType type = DataTypes.guessType(entry.getValue(), false);
                 if (type == null) {
                     throw new ColumnValidationException(info.ident().columnIdent().fqn(), "Invalid value");
                 }
@@ -431,7 +428,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
                     continue;
                 }
             }
-            if (info.type() == DataType.OBJECT && entry.getValue() instanceof Map) {
+            if (info.type() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
                 value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo));
             } else {
                 value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), nestedInfo));
@@ -442,14 +439,10 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     private Object normalizePrimitiveValue(Object primitiveValue, ReferenceInfo info) {
         try {
-            // try to convert to correctly typed literal
-            Literal l = Literal.forValue(primitiveValue);
-            Object primitiveNormalized = l.convertTo(info.type()).value();
-            if (primitiveNormalized instanceof BytesRef) {
-                // no BytesRefs in maps
-                primitiveNormalized = ((BytesRef) primitiveNormalized).utf8ToString();
+            if (info.type().equals(DataTypes.STRING) && primitiveValue instanceof String) {
+                return primitiveValue;
             }
-            return primitiveNormalized;
+            return info.type().value(primitiveValue);
         } catch (Exception e) {
             throw new ColumnValidationException(info.ident().columnIdent().fqn(),
                     String.format("Invalid %s",

@@ -21,13 +21,14 @@
 
 package io.crate.planner.symbol;
 
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class Value extends ValueSymbol {
+public class Value extends DataTypeSymbol {
 
     public static final SymbolFactory<Value> FACTORY = new SymbolFactory<Value>() {
         @Override
@@ -62,12 +63,12 @@ public class Value extends ValueSymbol {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        type = DataType.fromStream(in);
+        type = DataTypes.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        DataType.toStream(type, out);
+        DataTypes.toStream(type, out);
     }
 
     @Override

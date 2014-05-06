@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
-import io.crate.DataType;
+import io.crate.types.DataType;
 import io.crate.PartitionName;
 import io.crate.executor.Task;
 import io.crate.metadata.ReferenceInfo;
@@ -66,12 +66,9 @@ public class ESGetTask implements Task<Object[][]> {
             this.partitionValues = new HashMap<>(numPartitionColumns);
             for (int i = 0; i<this.node.partitionBy().size(); i++) {
                 ReferenceInfo info = this.node.partitionBy().get(i);
-                // TODO: avoid creating StringLiteral for conversion only,
-                // refactor type conversion for simple values
-                StringLiteral literal = new StringLiteral(partitionName.values().get(i));
                 this.partitionValues.put(
                         info.ident().columnIdent().fqn(),
-                        literal.convertValueTo(info.type())
+                        info.type().value(partitionName.values().get(i))
                 );
             }
         }

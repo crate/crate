@@ -41,14 +41,14 @@ public class AggregationStateStreamer implements Streamer<AggregationState> {
     }
 
     @Override
-    public AggregationState<?> readFrom(StreamInput in) throws IOException {
+    public AggregationState<?> readValueFrom(StreamInput in) throws IOException {
         AggregationState<?> aggState = this.aggregationFunction.newState();
         aggState.readFrom(in);
         return aggState;
     }
 
     @Override
-    public void writeTo(StreamOutput out, Object v) throws IOException {
+    public void writeValueTo(StreamOutput out, Object v) throws IOException {
         ((AggregationState<?>)v).writeTo(out);
     }
 }

@@ -25,11 +25,11 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 
@@ -37,7 +37,7 @@ public class NotPredicate implements Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
     public static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, Arrays.asList(DataType.BOOLEAN)), DataType.BOOLEAN);
+            new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN)), DataTypes.BOOLEAN);
 
     public static void register(PredicateModule module) {
         module.registerPredicateFunction(new NotPredicate());
@@ -54,13 +54,9 @@ public class NotPredicate implements Scalar<Boolean, Boolean> {
         assert (symbol.arguments().size() == 1);
 
         Symbol arg = symbol.arguments().get(0);
-        if (arg.symbolType() == SymbolType.BOOLEAN_LITERAL) {
-            if (((BooleanLiteral)arg).value()) {
-                return BooleanLiteral.FALSE;
-            }
-            return BooleanLiteral.TRUE;
+        if (Symbol.isLiteral(arg, DataTypes.BOOLEAN)) {
+            return Literal.newLiteral(!(Boolean)((Literal)arg).value());
         }
-
         return symbol;
     }
 

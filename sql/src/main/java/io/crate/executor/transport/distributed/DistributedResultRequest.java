@@ -92,7 +92,7 @@ public class DistributedResultRequest extends TransportRequest {
             for (int r = 0; r < rows.length; r++) {
                 rows[r] = new Object[numColumns];
                 for (int c = 0; c < numColumns; c++) {
-                    rows[r][c] = streamers[c].readFrom(in);
+                    rows[r][c] = streamers[c].readValueFrom(in);
                 }
             }
         } else {
@@ -107,7 +107,7 @@ public class DistributedResultRequest extends TransportRequest {
         for (int r = 0; r < rows.length; r++) {
             rows[r] = new Object[numColumns];
             for (int c = 0; c < numColumns; c++) {
-                rows[r][c] = streamers[c].readFrom(input);
+                rows[r][c] = streamers[c].readValueFrom(input);
             }
         }
 
@@ -132,7 +132,7 @@ public class DistributedResultRequest extends TransportRequest {
         out.writeVInt(rows.length);
         for (Object[] row : rows) {
             for (int i = 0; i < numColumns; i++) {
-                streamers[i].writeTo(out, row[i]);
+                streamers[i].writeValueTo(out, row[i]);
             }
         }
     }

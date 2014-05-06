@@ -4,10 +4,10 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.DataType;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
+import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -213,14 +213,14 @@ public class DocIndexMetaDataTest {
         ImmutableList<ReferenceInfo> columns = ImmutableList.copyOf(md.columns());
 
         assertThat(columns.get(0).ident().columnIdent().name(), is("content"));
-        assertThat(columns.get(0).type(), is(DataType.STRING));
+        assertEquals(DataTypes.STRING, columns.get(0).type());
         assertThat(columns.get(0).ident().tableIdent().name(), is("test1"));
 
         ImmutableList<ReferenceInfo> references = ImmutableList.<ReferenceInfo>copyOf(md.references().values());
 
 
         ReferenceInfo birthday = md.references().get(new ColumnIdent("person", "birthday"));
-        assertThat(birthday.type(), is(DataType.TIMESTAMP));
+        assertEquals(DataTypes.TIMESTAMP, birthday.type());
 
         List<String> fqns = Lists.transform(references, new Function<ReferenceInfo, String>() {
             @Nullable
@@ -291,7 +291,7 @@ public class DocIndexMetaDataTest {
         assertEquals(6, md.columns().size());
         assertEquals(15, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
-        assertThat(md.partitionedByColumns().get(0).type(), is(DataType.TIMESTAMP));
+        assertEquals(DataTypes.TIMESTAMP, md.partitionedByColumns().get(0).type());
         assertThat(md.partitionedByColumns().get(0).ident().columnIdent().fqn(), is("datum"));
     }
 

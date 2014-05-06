@@ -32,7 +32,6 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.StringLiteral;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
@@ -41,6 +40,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -86,7 +86,8 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         assertFalse(whereClause.info().isAggregate());
 
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+
+        assertLiteralSymbol(whereClause.arguments().get(1), "Trillian");
     }
 
     @Test( expected = UnsupportedOperationException.class)

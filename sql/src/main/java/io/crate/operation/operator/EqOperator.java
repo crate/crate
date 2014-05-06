@@ -21,20 +21,24 @@
 
 package io.crate.operation.operator;
 
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
+import com.google.common.base.Preconditions;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
-import io.crate.DataType;
+import io.crate.planner.symbol.Function;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+
+import java.util.List;
 
 
 public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {
 
     public static final String NAME = "op_=";
 
+    private static final EqOperatorResolver dynamicResolver = new EqOperatorResolver();
+
     public static void register(OperatorModule module) {
-        for (DataType type : DataType.ALL_TYPES) {
-            module.registerOperatorFunction(new EqOperator(generateInfo(NAME, type)));
-        }
+        module.registerDynamicOperatorFunction(NAME, dynamicResolver);
     }
 
     @Override
@@ -58,5 +62,14 @@ public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {
             return null;
         }
         return left.equals(right);
+    }
+
+    static class EqOperatorResolver implements DynamicFunctionResolver {
+
+        @Override
+        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            Preconditions.checkArgument(dataTypes.size() == 2);
+            return new EqOperator(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.BOOLEAN));
+        }
     }
 }

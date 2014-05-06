@@ -24,8 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
-import io.crate.planner.symbol.BooleanLiteral;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Literal;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
@@ -37,7 +36,7 @@ import static org.mockito.Mockito.*;
 public class SimpleOneRowCollectorTest {
 
     private final List<Input<?>> inputs = ImmutableList.<Input<?>>of(
-            new BooleanLiteral(true), new StringLiteral("foo"));
+            Literal.newLiteral(true), Literal.newLiteral("foo"));
 
     @Test
     public void testCollectOneRow() throws Exception {
@@ -51,6 +50,5 @@ public class SimpleOneRowCollectorTest {
         verify(downStream, never()).startProjection();
         verify(downStream, times(1)).setNextRow(true, new BytesRef("foo"));
         verify(downStream, times(1)).upstreamFinished();
-
     }
 }

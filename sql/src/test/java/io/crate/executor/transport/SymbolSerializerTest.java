@@ -23,7 +23,7 @@ package io.crate.executor.transport;
 
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
-import io.crate.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
@@ -35,16 +35,13 @@ public class SymbolSerializerTest {
 
     @Test
     public void testValueSymbol() throws Exception {
-
-        Value v = new Value(DataType.STRING);
+        Value v = new Value(DataTypes.STRING);
 
         BytesStreamOutput out = new BytesStreamOutput();
         Symbol.toStream(v, out);
 
-
         BytesStreamInput in = new BytesStreamInput(out.bytes());
         Value v2 = (Value) Symbol.fromStream(in);
-        assertEquals(v2.valueType(), DataType.STRING);
-
+        assertEquals(v2.valueType(), DataTypes.STRING);
     }
 }

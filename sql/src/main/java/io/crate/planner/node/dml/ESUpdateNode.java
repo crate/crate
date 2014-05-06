@@ -25,9 +25,14 @@ import com.google.common.base.Optional;
 import io.crate.analyze.WhereClause;
 import io.crate.operation.Input;
 import io.crate.planner.node.PlanVisitor;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.StringValueSymbolVisitor;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataTypes;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ESUpdateNode extends DMLPlanNode {
 
@@ -50,10 +55,11 @@ public class ESUpdateNode extends DMLPlanNode {
         this.routingValues = routingValues;
         version = whereClause.version();
         updateDoc = new HashMap<>(assignments.size());
+
         for (Map.Entry<Reference, Symbol> entry: assignments.entrySet()) {
             Object value;
-            if (entry.getValue().symbolType() == SymbolType.STRING_LITERAL) {
-                value = ((StringLiteral)entry.getValue()).valueAsString();
+            if (Symbol.isLiteral(entry.getValue(), DataTypes.STRING)) {
+               value = StringValueSymbolVisitor.INSTANCE.process(entry.getValue());
             } else {
                 value = ((Input)entry.getValue()).value();
             }

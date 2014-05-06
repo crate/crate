@@ -21,9 +21,10 @@
 
 package io.crate.operation.reference.doc;
 
-import org.apache.lucene.index.AtomicReaderContext;
-import io.crate.DataType;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.LongValues;
 
@@ -37,7 +38,7 @@ public class ByteColumnReference extends FieldCacheExpression<IndexNumericFieldD
 
     @Override
     public DataType returnType() {
-        return DataType.BYTE;
+        return DataTypes.BYTE;
     }
 
     @Override

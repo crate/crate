@@ -24,11 +24,12 @@ package io.crate.planner.projection;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
-import io.crate.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.createReference;
 import static org.junit.Assert.assertEquals;
 
 public class TopNProjectionTest {
@@ -37,9 +38,9 @@ public class TopNProjectionTest {
     public void testStreaming() throws Exception {
 
         TopNProjection p = new TopNProjection(5, 10,
-                ImmutableList.<Symbol>of(new Value(DataType.BOOLEAN)), new boolean[]{true});
+                ImmutableList.<Symbol>of(createReference("foo", DataTypes.BOOLEAN)), new boolean[]{true});
 
-        p.outputs(ImmutableList.<Symbol>of(new Value(DataType.BOOLEAN), new Value(DataType.INTEGER)));
+        p.outputs(ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.INTEGER)));
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
