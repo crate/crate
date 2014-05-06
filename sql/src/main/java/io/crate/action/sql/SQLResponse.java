@@ -21,7 +21,6 @@
 
 package io.crate.action.sql;
 
-import io.crate.action.SQLResult;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
