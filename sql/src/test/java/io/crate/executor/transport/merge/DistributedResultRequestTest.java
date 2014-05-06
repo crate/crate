@@ -23,23 +23,24 @@ package io.crate.executor.transport.merge;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.Streamer;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.operation.DownstreamOperationFactory;
 import io.crate.operation.DownstreamOperation;
+import io.crate.operation.DownstreamOperationFactory;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.Streamer;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -86,15 +87,15 @@ public class DistributedResultRequestTest {
         contextId = UUID.randomUUID();
         dummyMergeNode = new MergeNode("dummy", 1);
         dummyMergeNode.contextId(contextId);
-        dummyMergeNode.inputTypes(Arrays.asList(DataType.INTEGER, DataType.STRING));
+        dummyMergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
     }
 
     @Test
     public void testSerializationWithLateContext() throws Exception {
         // sender
         Streamer<?>[] streamers = new Streamer[2];
-        streamers[0] = DataType.INTEGER.streamer();
-        streamers[1] = DataType.STRING.streamer();
+        streamers[0] = DataTypes.INTEGER.streamer();
+        streamers[1] = DataTypes.STRING.streamer();
 
         Object[][] rows = new Object[3][];
         rows[0] = new Object[] {1, new BytesRef("Arthur")};
@@ -147,7 +148,7 @@ public class DistributedResultRequestTest {
         UUID contextId = UUID.randomUUID();
         MergeNode dummyMergeNode = new MergeNode();
         dummyMergeNode.contextId(contextId);
-        dummyMergeNode.inputTypes(Arrays.asList(DataType.INTEGER, DataType.STRING));
+        dummyMergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
         TopNProjection topNProjection = new TopNProjection(10, 0);
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
         dummyMergeNode.projections(Arrays.<Projection>asList(topNProjection));
@@ -158,8 +159,8 @@ public class DistributedResultRequestTest {
         contextManager.createContext(dummyMergeNode, new NoopActionListener());
 
         Streamer<?>[] streamers = new Streamer[2];
-        streamers[0] = DataType.INTEGER.streamer();
-        streamers[1] = DataType.STRING.streamer();
+        streamers[0] = DataTypes.INTEGER.streamer();
+        streamers[1] = DataTypes.STRING.streamer();
 
         DistributedResultRequest requestSender = new DistributedResultRequest(contextId, streamers);
         requestSender.rows(rows);

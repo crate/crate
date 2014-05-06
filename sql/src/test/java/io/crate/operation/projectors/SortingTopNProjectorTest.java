@@ -22,9 +22,9 @@
 package io.crate.operation.projectors;
 
 import io.crate.operation.Input;
-import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.planner.symbol.BooleanLiteral;
+import io.crate.operation.collect.InputCollectExpression;
+import io.crate.planner.symbol.Literal;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,7 +34,7 @@ import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 public class SortingTopNProjectorTest {
 
     private static final Input<Integer> INPUT = new InputCollectExpression<>(0);
-    private static final BooleanLiteral TRUE_LITERAL = new BooleanLiteral(true);
+    private static final Literal<Boolean> TRUE_LITERAL = Literal.newLiteral(true);
 
     @Test
     public void testOrderByWithoutLimitAndOffset() throws Exception {

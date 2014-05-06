@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.SymbolFormatter;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -62,13 +62,11 @@ public abstract class BaseDateTruncFunction implements Scalar<Long, Object> {
 
     /**
      * Check if <code>interval</code> is valid
-     * @param interval
      * @param symbol required for generating an error message if <code>interval</code> is invalid
      * @throws java.lang.IllegalArgumentException in case of invalid <code>interval</code>
-     * @return
      */
-    protected boolean isValidInterval(StringLiteral interval, Function symbol) {
-        if (!DATE_FIELD_PARSERS.containsKey(interval.value())) {
+    protected boolean isValidInterval(Literal interval, Function symbol) {
+        if (!DATE_FIELD_PARSERS.containsKey((BytesRef)interval.value())) {
             throw new IllegalArgumentException(
                     SymbolFormatter.format("unknown interval %s for '%s'", interval, symbol));
         }

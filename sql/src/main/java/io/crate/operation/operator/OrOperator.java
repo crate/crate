@@ -2,16 +2,16 @@ package io.crate.operation.operator;
 
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
-import io.crate.DataType;
+import io.crate.types.DataTypes;
 
 public class OrOperator extends Operator<Boolean> {
 
     public static final String NAME = "op_or";
-    public static final FunctionInfo INFO = generateInfo(NAME, DataType.BOOLEAN);
+    public static final FunctionInfo INFO = generateInfo(NAME, DataTypes.BOOLEAN);
 
     public static void register(OperatorModule module) {
         module.registerOperatorFunction(new OrOperator());
@@ -27,13 +27,13 @@ public class OrOperator extends Operator<Boolean> {
         assert (function != null);
 
         for (Symbol symbol : function.arguments()) {
-            if (symbol.symbolType() == SymbolType.BOOLEAN_LITERAL) {
-                if (((BooleanLiteral)symbol).value()) {
-                    return BooleanLiteral.TRUE;
+            if (symbol.symbolType() == SymbolType.LITERAL
+                    && ((Literal)symbol).valueType() == DataTypes.BOOLEAN) {
+                if ((Boolean)((Literal)symbol).value()) {
+                    return Literal.newLiteral(true);
                 }
             }
         }
-
         return function;
     }
 

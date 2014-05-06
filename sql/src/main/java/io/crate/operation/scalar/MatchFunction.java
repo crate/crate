@@ -27,7 +27,8 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 
 /**
@@ -38,9 +39,9 @@ public class MatchFunction implements FunctionImplementation<Function> {
     public static final String NAME = "match";
 
     public static void register(ScalarFunctionModule module) {
-        for (DataType dataType : ImmutableList.of(DataType.NULL, DataType.STRING)) {
-            FunctionIdent functionIdent = new FunctionIdent(MatchFunction.NAME, ImmutableList.of(dataType, DataType.STRING));
-            module.register(new MatchFunction(new FunctionInfo(functionIdent, DataType.BOOLEAN)));
+        for (DataType dataType : ImmutableList.<DataType>of(DataTypes.NULL, DataTypes.STRING)) {
+            FunctionIdent functionIdent = new FunctionIdent(MatchFunction.NAME, ImmutableList.of(dataType, DataTypes.STRING));
+            module.register(new MatchFunction(new FunctionInfo(functionIdent, DataTypes.BOOLEAN)));
         }
     }
 

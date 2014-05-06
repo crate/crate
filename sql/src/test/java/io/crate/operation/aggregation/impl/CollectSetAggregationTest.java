@@ -22,11 +22,12 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.AggregationState;
 import io.crate.operation.aggregation.AggregationTest;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
@@ -44,13 +45,13 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        FunctionIdent fi = new FunctionIdent("collect_set", ImmutableList.of(DataType.INTEGER));
-        assertEquals(DataType.INTEGER, functions.get(fi).info().returnType());
+        FunctionIdent fi = new FunctionIdent("collect_set", ImmutableList.<DataType>of(DataTypes.INTEGER));
+        assertEquals(DataTypes.INTEGER, functions.get(fi).info().returnType());
     }
 
     @Test
     public void testDouble() throws Exception {
-        Object[][] result = executeAggregation(DataType.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}});
+        Object[][] result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}});
 
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());
@@ -59,7 +60,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testLongSerialization() throws Exception {
-        FunctionIdent fi = new FunctionIdent("collect_set", ImmutableList.of(DataType.LONG));
+        FunctionIdent fi = new FunctionIdent("collect_set", ImmutableList.<DataType>of(DataTypes.LONG));
         AggregationFunction impl = (AggregationFunction) functions.get(fi);
         AggregationState state = impl.newState();
 
@@ -73,7 +74,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testFloat() throws Exception {
-        Object[][] result = executeAggregation(DataType.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}});
+        Object[][] result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}});
 
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());
@@ -82,7 +83,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testInteger() throws Exception {
-        Object[][] result = executeAggregation(DataType.INTEGER, new Object[][]{{7}, {3}, {3}});
+        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}});
 
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());
@@ -91,7 +92,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testLong() throws Exception {
-        Object[][] result = executeAggregation(DataType.LONG, new Object[][]{{7L}, {3L}, {3L}});
+        Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}});
 
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());
@@ -100,7 +101,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testShort() throws Exception {
-        Object[][] result = executeAggregation(DataType.SHORT, new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}});
+        Object[][] result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}});
 
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());
@@ -109,7 +110,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testString() throws Exception {
-        Object[][] result = executeAggregation(DataType.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}});
+        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}});
 
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());
@@ -118,7 +119,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testBoolean() throws Exception {
-        Object[][] result = executeAggregation(DataType.BOOLEAN, new Object[][]{{true}, {false}, {false}});
+        Object[][] result = executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}});
 
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());
@@ -127,7 +128,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testNullValue() throws Exception {
-        Object[][] result = executeAggregation(DataType.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}});
+        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}});
         // null values currently ignored
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());

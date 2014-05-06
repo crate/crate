@@ -23,7 +23,9 @@ package io.crate.analyze;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import io.crate.operation.Input;
 import io.crate.planner.symbol.*;
+import io.crate.types.BooleanType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -64,12 +66,14 @@ public class WhereClause implements Streamable {
     }
 
     public WhereClause(Symbol normalizedQuery) {
-        if (normalizedQuery.symbolType() == SymbolType.BOOLEAN_LITERAL) {
-            if (!((BooleanLiteral) normalizedQuery).value()) {
-                this.noMatch = true;
+        if (normalizedQuery.symbolType().isValueSymbol()) {
+            if (((DataTypeSymbol)normalizedQuery).valueType().id() == BooleanType.ID) {
+                noMatch = !((Boolean)((Input<?>)normalizedQuery).value());
+            } else if (((Input<?>)normalizedQuery).value() == null) {
+                noMatch = true;
+            } else {
+                throw new RuntimeException("Symbol normalized to an invalid value");
             }
-        } else if (normalizedQuery.symbolType() == SymbolType.NULL_LITERAL) {
-            this.noMatch = true;
         } else {
             this.query = normalizedQuery;
         }
@@ -97,7 +101,7 @@ public class WhereClause implements Streamable {
 
     public void clusteredByLiteral(@Nullable Literal clusteredByLiteral) {
         if (clusteredByLiteral != null) {
-            clusteredBy = clusteredByLiteral.valueAsString();
+            clusteredBy = StringValueSymbolVisitor.INSTANCE.process(clusteredByLiteral);
         }
     }
 
@@ -109,9 +113,9 @@ public class WhereClause implements Streamable {
         return Optional.fromNullable(this.version);
     }
 
-    public void partitions(List<StringLiteral> partitions) {
-        for (StringLiteral partition : partitions) {
-            this.partitions.add(partition.valueAsString());
+    public void partitions(List<Literal> partitions) {
+        for (Literal partition : partitions) {
+            this.partitions.add(StringValueSymbolVisitor.INSTANCE.process(partition));
         }
     }
 

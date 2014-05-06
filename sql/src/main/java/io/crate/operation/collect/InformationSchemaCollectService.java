@@ -25,7 +25,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
@@ -37,7 +36,8 @@ import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.operation.reference.information.InformationDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.symbol.BooleanLiteral;
+import io.crate.planner.symbol.Literal;
+import io.crate.types.DataTypes;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.common.inject.Inject;
 
@@ -125,7 +125,7 @@ public class InformationSchemaCollectService implements CollectService {
                     public boolean apply(@Nullable ReferenceInfo input) {
                         return input != null
                                 && !DocSysColumns.columnIdents.containsKey(input.ident().columnIdent())
-                                && input.type() != DataType.NOT_SUPPORTED;
+                                && input.type() != DataTypes.NOT_SUPPORTED;
                     }
                 }).iterator();
         }
@@ -228,7 +228,7 @@ public class InformationSchemaCollectService implements CollectService {
             // TODO: single arg method
             condition = (Input<Boolean>) docInputSymbolVisitor.process(collectNode.whereClause().query(), ctx);
         } else {
-            condition = BooleanLiteral.TRUE;
+            condition = Literal.newLiteral(true);
         }
 
         return new InformationSchemaCollector(

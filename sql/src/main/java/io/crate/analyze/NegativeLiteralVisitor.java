@@ -20,43 +20,33 @@
  */
 package io.crate.analyze;
 
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolFormatter;
+import io.crate.planner.symbol.SymbolVisitor;
+import io.crate.types.*;
 
 public class NegativeLiteralVisitor extends SymbolVisitor<Void, Literal> {
 
     @Override
-    public Literal visitBooleanLiteral(BooleanLiteral symbol, Void context) {
-        return new BooleanLiteral(!symbol.value());
-    }
-
-    @Override
-    public Literal visitByteLiteral(ByteLiteral symbol, Void context) {
-        return new ByteLiteral(symbol.value()* -1);
-    }
-
-    @Override
-    public Literal visitShortLiteral(ShortLiteral symbol, Void context) {
-        return new ShortLiteral(symbol.value() * -1);
-    }
-
-    @Override
-    public Literal visitIntegerLiteral(IntegerLiteral symbol, Void context) {
-        return new IntegerLiteral(symbol.value() * -1);
-    }
-
-    @Override
-    public Literal visitLongLiteral(LongLiteral symbol, Void context) {
-        return new LongLiteral(symbol.value() * -1);
-    }
-
-    @Override
-    public Literal visitFloatLiteral(FloatLiteral symbol, Void context) {
-        return new FloatLiteral(symbol.value() * -1);
-    }
-
-    @Override
-    public Literal visitDoubleLiteral(DoubleLiteral symbol, Void context) {
-        return new DoubleLiteral(symbol.value() * -1);
+    public Literal visitLiteral(Literal symbol, Void context) {
+        if (symbol.value() == null) {
+            return symbol;
+        }
+        switch (symbol.valueType().id()) {
+            case DoubleType.ID:
+                return Literal.newLiteral(symbol.valueType(), (Double)symbol.value() * -1);
+            case FloatType.ID:
+                return Literal.newLiteral(symbol.valueType(), (Double)symbol.value() * -1);
+            case ShortType.ID:
+                return Literal.newLiteral(symbol.valueType(), (Short)symbol.value() * -1);
+            case IntegerType.ID:
+                return Literal.newLiteral(symbol.valueType(), (Integer)symbol.value() * -1);
+            case LongType.ID:
+                return Literal.newLiteral(symbol.valueType(), (Long)symbol.value() * -1);
+            default:
+                return symbol;
+        }
     }
 
     @Override

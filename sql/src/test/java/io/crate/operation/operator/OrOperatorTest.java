@@ -1,18 +1,18 @@
 package io.crate.operation.operator;
 
 import io.crate.operation.operator.input.BooleanInput;
-import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
@@ -23,10 +23,9 @@ public class OrOperatorTest {
         OrOperator operator = new OrOperator();
 
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(new Reference(), new BooleanLiteral(true)));
+                operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.newLiteral(true)));
         Symbol normalizedSymbol = operator.normalizeSymbol(function);
-        assertThat(normalizedSymbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral)normalizedSymbol).value(), is(true));
+        assertLiteralSymbol(normalizedSymbol, true);
     }
 
     @Test
@@ -34,7 +33,7 @@ public class OrOperatorTest {
         OrOperator operator = new OrOperator();
 
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(new Reference(), new BooleanLiteral(false)));
+                operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.newLiteral(false)));
         Symbol normalizedSymbol = operator.normalizeSymbol(function);
         assertThat(normalizedSymbol, instanceOf(Function.class));
     }

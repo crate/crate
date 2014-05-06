@@ -28,7 +28,9 @@ import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 
 import java.util.Set;
 
@@ -38,10 +40,11 @@ public class CollectionAverageFunction implements Scalar<Double, Set<Number>> {
     private final FunctionInfo info;
 
     public static void register(ScalarFunctionModule mod) {
-        for (DataType t : DataType.SET_NUMERIC_TYPES) {
+        for (DataType t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(
                     new CollectionAverageFunction(
-                            new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataType.DOUBLE))
+                            new FunctionInfo(new FunctionIdent(
+                                    NAME, ImmutableList.<DataType>of(new SetType(t))), DataTypes.DOUBLE))
             );
         }
     }

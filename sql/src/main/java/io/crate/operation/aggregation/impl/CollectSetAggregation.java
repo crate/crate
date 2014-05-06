@@ -22,13 +22,15 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Streamer;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.AggregationState;
-import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -36,172 +38,41 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-public abstract class CollectSetAggregation<T extends Comparable<T>> extends AggregationFunction<CollectSetAggregation.CollectSetAggState<T>> {
+public abstract class CollectSetAggregation<T extends Comparable<T>>
+        extends AggregationFunction<CollectSetAggregation.CollectSetAggState> {
 
     public static final String NAME = "collect_set";
 
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
-        for (final DataType dataType : new DataType[]{DataType.STRING, DataType.IP}) {
+        for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
+            final Streamer<?> setStreamer = new SetType(dataType).streamer();
 
-            mod.registerAggregateFunction(
-                    new CollectSetAggregation<BytesRef>(
+            mod.register(
+                    new CollectSetAggregation(
                             new FunctionInfo(new FunctionIdent(NAME,
                                     ImmutableList.of(dataType)),
-                                    dataType, true)
+                                    dataType, true
+                            )
                     ) {
                         @Override
-                        public CollectSetAggState<BytesRef> newState() {
-                            return new CollectSetAggState<BytesRef>() {
+                        public CollectSetAggState newState() {
+                            return new CollectSetAggState() {
                                 @Override
                                 public void readFrom(StreamInput in) throws IOException {
-                                    setValue(DataType.STRING_SET.streamer().readFrom(in));
+                                    setValue(setStreamer.readValueFrom(in));
                                 }
 
                                 @Override
                                 public void writeTo(StreamOutput out) throws IOException {
-                                    DataType.STRING_SET.streamer().writeTo(out, value());
+                                    setStreamer.writeValueTo(out, value());
                                 }
                             };
                         }
                     }
             );
         }
-        mod.registerAggregateFunction(
-                new CollectSetAggregation<Double>(
-                        new FunctionInfo(new FunctionIdent(NAME,
-                                ImmutableList.of(DataType.DOUBLE)),
-                                DataType.DOUBLE, true)
-                ) {
-                    @Override
-                    public CollectSetAggState<Double> newState() {
-                        return new CollectSetAggState<Double>() {
-                            @Override
-                            public void readFrom(StreamInput in) throws IOException {
-                                setValue(DataType.DOUBLE_SET.streamer().readFrom(in));
-                            }
-
-                            @Override
-                            public void writeTo(StreamOutput out) throws IOException {
-                                DataType.DOUBLE_SET.streamer().writeTo(out, value());
-                            }
-                        };
-                    }
-                }
-        );
-        mod.registerAggregateFunction(
-                new CollectSetAggregation<Float>(
-                        new FunctionInfo(new FunctionIdent(NAME,
-                                ImmutableList.of(DataType.FLOAT)),
-                                DataType.FLOAT, true)
-                ) {
-                    @Override
-                    public CollectSetAggState<Float> newState() {
-                        return new CollectSetAggState<Float>() {
-                            @Override
-                            public void readFrom(StreamInput in) throws IOException {
-                                setValue(DataType.FLOAT_SET.streamer().readFrom(in));
-                            }
-
-                            @Override
-                            public void writeTo(StreamOutput out) throws IOException {
-                                DataType.FLOAT_SET.streamer().writeTo(out, value());
-                            }
-                        };
-                    }
-                }
-        );
-        for (final DataType dataType : new DataType[]{DataType.LONG, DataType.TIMESTAMP}) {
-            mod.registerAggregateFunction(
-                    new CollectSetAggregation<Long>(
-                            new FunctionInfo(new FunctionIdent(NAME,
-                                    ImmutableList.of(dataType)),
-                                    dataType, true)
-                    ) {
-                        @Override
-                        public CollectSetAggState<Long> newState() {
-                            return new CollectSetAggState<Long>() {
-                                @Override
-                                public void readFrom(StreamInput in) throws IOException {
-                                    setValue(DataType.LONG_SET.streamer().readFrom(in));
-                                }
-
-                                @Override
-                                public void writeTo(StreamOutput out) throws IOException {
-                                    DataType.LONG_SET.streamer().writeTo(out, value());
-                                }
-                            };
-                        }
-                    }
-            );
-        }
-        mod.registerAggregateFunction(
-                new CollectSetAggregation<Short>(
-                        new FunctionInfo(new FunctionIdent(NAME,
-                                ImmutableList.of(DataType.SHORT)),
-                                DataType.SHORT, true)
-                ) {
-                    @Override
-                    public CollectSetAggState<Short> newState() {
-                        return new CollectSetAggState<Short>() {
-                            @Override
-                            public void readFrom(StreamInput in) throws IOException {
-                                setValue(DataType.SHORT_SET.streamer().readFrom(in));
-                            }
-
-                            @Override
-                            public void writeTo(StreamOutput out) throws IOException {
-                                DataType.SHORT_SET.streamer().writeTo(out, value());
-                            }
-                        };
-                    }
-                }
-        );
-        mod.registerAggregateFunction(
-                new CollectSetAggregation<Integer>(
-                        new FunctionInfo(new FunctionIdent(NAME,
-                                ImmutableList.of(DataType.INTEGER)),
-                                DataType.INTEGER, true)
-                ) {
-                    @Override
-                    public CollectSetAggState<Integer> newState() {
-                        return new CollectSetAggState<Integer>() {
-                            @Override
-                            public void readFrom(StreamInput in) throws IOException {
-                                setValue(DataType.INTEGER_SET.streamer().readFrom(in));
-                            }
-
-                            @Override
-                            public void writeTo(StreamOutput out) throws IOException {
-                                DataType.INTEGER_SET.streamer().writeTo(out, value());
-                            }
-                        };
-                    }
-                }
-        );
-        mod.registerAggregateFunction(
-                new CollectSetAggregation<Boolean>(
-                        new FunctionInfo(new FunctionIdent(NAME,
-                                ImmutableList.of(DataType.BOOLEAN)),
-                                DataType.BOOLEAN, true)
-                ) {
-                    @Override
-                    public CollectSetAggState<Boolean> newState() {
-                        return new CollectSetAggState<Boolean>() {
-                            @Override
-                            public void readFrom(StreamInput in) throws IOException {
-                                setValue(DataType.BOOLEAN_SET.streamer().readFrom(in));
-                            }
-
-                            @Override
-                            public void writeTo(StreamOutput out) throws IOException {
-                                DataType.BOOLEAN_SET.streamer().writeTo(out, value());
-                            }
-                        };
-                    }
-                }
-        );
     }
 
 
@@ -215,26 +86,26 @@ public abstract class CollectSetAggregation<T extends Comparable<T>> extends Agg
     }
 
     @Override
-    public boolean iterate(CollectSetAggState<T> state, Input... args) {
-        state.add((T) args[0].value());
+    public boolean iterate(CollectSetAggState state, Input... args) {
+        state.add(args[0].value());
         return true;
     }
 
-    public static abstract class CollectSetAggState<T> extends AggregationState<CollectSetAggState<T>> {
+    public static abstract class CollectSetAggState extends AggregationState<CollectSetAggState> {
 
-        private Set<T> value = new HashSet<>();
+        private Set<Object> value = new HashSet<>();
 
         @Override
-        public Set<T> value() {
+        public Set value() {
             return value;
         }
 
         @Override
-        public void reduce(CollectSetAggState<T> other) {
+        public void reduce(CollectSetAggState other) {
             value.addAll(other.value());
         }
 
-        void add(T otherValue) {
+        void add(Object otherValue) {
             // ignore null values? yes
             if (otherValue != null) {
                 value.add(otherValue);
@@ -242,16 +113,16 @@ public abstract class CollectSetAggregation<T extends Comparable<T>> extends Agg
         }
 
         public void setValue(Object value) {
-            this.value = (Set<T>)value;
+            this.value = (Set)value;
         }
 
         @Override
-        public int compareTo(CollectSetAggState<T> o) {
+        public int compareTo(CollectSetAggState o) {
             if (o == null) return -1;
             return compareValue(o.value);
         }
 
-        public int compareValue(Set<T> otherValue) {
+        public int compareValue(Set otherValue) {
             return value.size() < otherValue.size() ? -1 : value.size() == otherValue.size() ? 0 : 1;
         }
 
@@ -260,6 +131,4 @@ public abstract class CollectSetAggregation<T extends Comparable<T>> extends Agg
             return "<CollectSetAggState \"" + value + "\"";
         }
     }
-
-
 }

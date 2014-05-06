@@ -21,10 +21,8 @@
 
 package io.crate.planner.symbol;
 
-// PRESTOBORROW
+import javax.annotation.Nullable;
 
-
-import org.elasticsearch.common.Nullable;
 
 public class SymbolVisitor<C, R> {
 
@@ -37,10 +35,6 @@ public class SymbolVisitor<C, R> {
     }
 
     public R visitAggregation(Aggregation symbol, C context) {
-        return visitSymbol(symbol, context);
-    }
-
-    public R visitValue(Value symbol, C context) {
         return visitSymbol(symbol, context);
     }
 
@@ -60,63 +54,15 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
-    public R visitStringLiteral(StringLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitDoubleLiteral(DoubleLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitBooleanLiteral(BooleanLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitIntegerLiteral(IntegerLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
     public R visitInputColumn(InputColumn inputColumn, C context) {
         return visitSymbol(inputColumn, context);
     }
 
-    public R visitNullLiteral(Null symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitLongLiteral(LongLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitFloatLiteral(FloatLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitSetLiteral(SetLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitArrayLiteral(ArrayLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitObjectLiteral(ObjectLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitTimestampLiteral(TimestampLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitByteLiteral(ByteLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
-    public R visitShortLiteral(ShortLiteral symbol, C context) {
-        return visitLiteral(symbol, context);
-    }
-
     public R visitParameter(Parameter symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
+
+    public R visitValue(Value symbol, C context) {
         return visitSymbol(symbol, context);
     }
 }

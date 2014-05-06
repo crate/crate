@@ -19,39 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate;
+package io.crate.planner.symbol;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.types.DataType;
 
-import java.io.IOException;
+public abstract class DataTypeSymbol extends Symbol {
 
-public class ArrayStreamer<T> implements Streamer {
-
-    private final Streamer<T> streamer;
-
-    @SuppressWarnings("unchecked")
-    public ArrayStreamer(Streamer streamer) {
-        this.streamer = streamer;
-    }
-
-    @Override
-    public Object readFrom(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        Object[] array = new Object[size];
-        for (int i = 0; i < size; i++) {
-            array[i] = streamer.readFrom(in);
-        }
-        return array;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void writeTo(StreamOutput out, Object v) throws IOException {
-        Object[] array = (Object[]) v;
-        out.writeVInt(array.length);
-        for (Object t : array) {
-            streamer.writeTo(out, t);
-        }
-    }
+    public abstract DataType valueType();
 }

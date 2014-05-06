@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.SQLParseException;
@@ -47,6 +46,10 @@ import io.crate.operation.scalar.CollectionCountFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
@@ -56,8 +59,8 @@ import org.junit.Test;
 
 import java.util.*;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -193,7 +196,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analyze = (SelectAnalysis)analyze("select * from sys.nodes where port['http'] = -400");
         Function whereClause = (Function)analyze.whereClause().query();
         Symbol symbol = whereClause.arguments().get(1);
-        assertThat(((IntegerLiteral) symbol).value(), is(-400));
+        assertThat((Integer)((Literal) symbol).value(), is(-400));
     }
 
     @Test
@@ -278,12 +281,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Function left = (Function) whereClause.arguments().get(0);
         assertEquals(EqOperator.NAME, left.info().ident().name());
         assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+        assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
+        assertSame(((Literal)left.arguments().get(1)).valueType(), DataTypes.DOUBLE);
 
         Function right = (Function) whereClause.arguments().get(1);
         assertEquals(LteOperator.NAME, right.info().ident().name());
         assertThat(right.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(right.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+        assertThat(right.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
+        assertSame(((Literal)left.arguments().get(1)).valueType(), DataTypes.DOUBLE);
     }
 
     @Test
@@ -307,12 +312,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         function = (Function) function.arguments().get(1);
         assertEquals(EqOperator.NAME, function.info().ident().name());
         assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
+        assertEquals(DataTypes.DOUBLE, ((Literal)function.arguments().get(1)).valueType());
 
         function = (Function) whereClause.arguments().get(1);
         assertEquals(EqOperator.NAME, function.info().ident().name());
         assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
+        assertEquals(DataTypes.STRING, ((Literal)function.arguments().get(1)).valueType());
     }
 
     @Test
@@ -410,7 +417,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
             List<Symbol> eqArguments = eqFunction.arguments();
             assertThat(eqArguments.get(0), instanceOf(Reference.class));
-            assertThat(eqArguments.get(1), instanceOf(StringLiteral.class));
+            assertLiteralSymbol(eqArguments.get(1), "something");
         }
     }
 
@@ -616,8 +623,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select count(null) from sys.nodes");
         List<Symbol> outputSymbols = analysis.outputSymbols;
         assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(LongLiteral.class));
-        assertThat(((LongLiteral) outputSymbols.get(0)).value(), is(0L));
+        assertThat(outputSymbols.get(0), instanceOf(Literal.class));
+        assertThat((Long)((Literal) outputSymbols.get(0)).value(), is(0L));
     }
 
     @Test
@@ -627,10 +634,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(InOperator.NAME, whereClause.info().ident().name());
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
-        SetLiteral setLiteral = (SetLiteral) whereClause.arguments().get(1);
-        assertEquals(setLiteral.symbolType(), SymbolType.SET_LITERAL);
-        assertEquals(setLiteral.valueType(), DataType.DOUBLE_SET);
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
+
+        Literal setLiteral = (Literal)whereClause.arguments().get(1);
+        assertEquals(new SetType(DataTypes.DOUBLE), setLiteral.valueType());
     }
 
     @Test
@@ -733,8 +740,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis) analyze("select id from sys.nodes where load=?",
                 new Object[]{map});
         Function whereClause = (Function)analysis.whereClause().query();
-        assertThat(whereClause.arguments().get(1), instanceOf(ObjectLiteral.class));
-        assertTrue(((ObjectLiteral) whereClause.arguments().get(1)).value().equals(map));
+        assertThat(whereClause.arguments().get(1), instanceOf(Literal.class));
+        assertTrue(((Object)((Literal) whereClause.arguments().get(1)).value()).equals(map));
     }
 
     @Test
@@ -744,13 +751,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertNotNull(analysis.whereClause());
         Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(LikeOperator.NAME, whereClause.info().ident().name());
-        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING);
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
 
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
-        StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
-        assertThat(stringLiteral.value(), is(new BytesRef(("foo"))));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
+        Literal stringLiteral = (Literal) whereClause.arguments().get(1);
+        assertThat((BytesRef)stringLiteral.value(), is(new BytesRef(("foo"))));
     }
 
     @Test(expected = UnsupportedOperationException.class) // ESCAPE is not supported yet.
@@ -763,12 +770,12 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from sys.nodes where name like 1");
 
         // check if the implicit cast of the pattern worked
-        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING);
         Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
-        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
-        StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
-        assertThat(stringLiteral.value(), is(new BytesRef("1")));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
+        Literal stringLiteral = (Literal) whereClause.arguments().get(1);
+        assertThat((BytesRef)stringLiteral.value(), is(new BytesRef("1")));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -783,15 +790,15 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         // check if implicit cast worked of both, expression and pattern.
         Function function = (Function) analysis.functions().toArray()[0];
         assertEquals(LikeOperator.NAME, function.info().ident().name());
-        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING);
         assertEquals(argumentTypes, function.info().ident().argumentTypes());
 
-        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(StringLiteral.class));
-        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
-        StringLiteral expressionLiteral = (StringLiteral) function.arguments().get(0);
-        StringLiteral patternLiteral = (StringLiteral) function.arguments().get(1);
-        assertThat(expressionLiteral.value(), is(new BytesRef("1")));
-        assertThat(patternLiteral.value(), is(new BytesRef("2")));
+        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Literal.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
+        Literal expressionLiteral = (Literal) function.arguments().get(0);
+        Literal patternLiteral = (Literal) function.arguments().get(1);
+        assertThat((BytesRef)expressionLiteral.value(), is(new BytesRef("1")));
+        assertThat((BytesRef)patternLiteral.value(), is(new BytesRef("2")));
     }
 
     @Test
@@ -809,7 +816,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testNullIsNullInWhereQuery() {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from sys.nodes where null is null");
         Function isNullFunction = (Function) analysis.functions().toArray()[0];
-        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Null.class));
+        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Literal.class));
         assertFalse(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
     }
@@ -818,7 +825,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testLongIsNullInWhereQuery() {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from sys.nodes where 1 is null");
         Function isNullFunction = (Function) analysis.functions().toArray()[0];
-        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(LongLiteral.class));
+        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Literal.class));
         assertTrue(analysis.noMatch());
     }
 
@@ -837,7 +844,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testFilterByLiteralBoolean() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from users where awesome=TRUE");
-        assertThat(((Function) analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.BOOLEAN_LITERAL));
+        assertThat(((Function) analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.LITERAL));
     }
 
     @Test(expected = SQLParseException.class)
@@ -1068,14 +1075,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         FunctionInfo anyInfo = ((Function)analysis.whereClause().query()).info();
         assertThat(anyInfo.ident().name(), is("any_="));
-        assertThat(anyInfo.ident().argumentTypes(), contains(DataType.LONG_ARRAY, DataType.LONG));
+        //assertThat(anyInfo.ident().argumentTypes(), contains(DataTypes.LONG_ARRAY, DataType.LONG));
 
         analysis = (SelectAnalysis) analyze("select * from users where 0 = ANY (counters)");
         assertThat(analysis.whereClause().hasQuery(), is(true));
 
         anyInfo = ((Function)analysis.whereClause().query()).info();
         assertThat(anyInfo.ident().name(), is("any_="));
-        assertThat(anyInfo.ident().argumentTypes(), contains(DataType.LONG_ARRAY, DataType.LONG));
+        //assertThat(anyInfo.ident().argumentTypes(), contains(DataTypes.LONG_ARRAY, DataType.LONG));
     }
 
     @Test
@@ -1086,11 +1093,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         FunctionInfo anyInfo = ((Function)analysis.whereClause().query()).info();
         assertThat(anyInfo.ident().name(), is("any_<>"));
-        assertThat(anyInfo.ident().argumentTypes(), contains(DataType.LONG_ARRAY, DataType.LONG));
+        //assertThat(anyInfo.ident().argumentTypes(), contains(DataTypes.LONG_ARRAY, DataType.LONG));
 
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = UnsupportedFeatureException.class)
     public void testArrayCompareAll() throws Exception {
         analyze("select * from users where 0 = ALL (counters)");
     }
@@ -1111,9 +1118,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Function anyFunction = (Function)analysis.whereClause().query();
         assertThat(anyFunction.info().ident().name(), is(AnyEqOperator.NAME));
 
-
-        assertThat(((Reference)anyFunction.arguments().get(0)).info().type(), is(DataType.LONG_ARRAY));
-        assertThat(anyFunction.arguments().get(1), instanceOf(LongLiteral.class));
+        Reference ref = (Reference) anyFunction.arguments().get(0);
+        assertThat(ref.info().type().id(), is(ArrayType.ID));
+        assertEquals(DataTypes.LONG, ((ArrayType)ref.info().type()).innerType());
+        assertLiteralSymbol(anyFunction.arguments().get(1), 5L);
     }
 
     @Test(expected = UnsupportedOperationException.class)

@@ -2,7 +2,6 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
@@ -11,12 +10,12 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 public class DocTableInfoTest {
@@ -44,7 +43,7 @@ public class DocTableInfoTest {
         assertNull(foobar);
         DynamicReference reference = info.getDynamic(new ColumnIdent("foobar"));
         assertNotNull(reference);
-        assertThat(reference.valueType(), is(DataType.NULL));
+        assertSame(reference.valueType(), DataTypes.NULL);
     }
 
     @Test
@@ -55,7 +54,7 @@ public class DocTableInfoTest {
         ReferenceInfo strictParent = new ReferenceInfo(
                 foobarIdent,
                 RowGranularity.DOC,
-                DataType.OBJECT,
+                DataTypes.OBJECT,
                 ReferenceInfo.ObjectType.STRICT
         );
 

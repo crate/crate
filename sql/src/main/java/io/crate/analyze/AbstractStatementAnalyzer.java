@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.planner.DataTypeVisitor;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
 
@@ -38,7 +37,6 @@ public abstract class AbstractStatementAnalyzer<R extends Object, T extends Anal
     protected static PrimaryKeyVisitor primaryKeyVisitor = new PrimaryKeyVisitor();
 
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
-    protected static DataTypeVisitor symbolDataTypeVisitor = new DataTypeVisitor();
     protected static NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
 
     static class OutputNameFormatter extends ExpressionFormatter.Formatter {

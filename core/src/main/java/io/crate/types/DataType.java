@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,53 +19,51 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate;
+package io.crate.types;
 
-import org.apache.lucene.util.BytesRef;
+import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 
-public class SetStreamer<T> implements Streamer {
+public abstract class DataType<T> implements Comparable, Streamable {
 
-    private final Streamer<T> streamer;
+    public abstract int id();
+    public abstract String getName();
+    public abstract Streamer<?> streamer();
+    public abstract T value(Object value);
+    public abstract int compareValueTo(T val1, T val2);
 
-    public SetStreamer(Streamer streamer) {
-        this.streamer = streamer;
+    public int hashCode() {
+        return id();
     }
 
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DataType)) return false;
 
-    @Override
-    public Set<T> readFrom(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        Set<T> s = new HashSet<>(size);
-        for (int i = 0; i < size; i++) {
-            s.add(streamer.readFrom(in));
-        }
-        if (in.readBoolean()) {
-            s.add(null);
-        }
-        return s;
+        DataType that = (DataType) o;
+        return (id() == that.id());
     }
 
     @Override
-    public void writeTo(StreamOutput out, Object v) throws IOException {
-        Set<T> s = (Set<T>) v;
-        boolean containsNull = s.contains(null);
-        out.writeVInt(containsNull ? s.size() - 1 : s.size());
-        for (T e : s) {
-            if (e == null) {
-                continue;
-            }
-            streamer.writeTo(out, e);
-        }
-        out.writeBoolean(containsNull);
+    public int compareTo(Object o) {
+        if (!(o instanceof DataType)) return -1;
+        return Integer.compare(id(), ((DataType)o).id());
     }
 
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+    }
 
-    public static final Streamer<Set<BytesRef>> BYTES_REF_SET = new SetStreamer<BytesRef>(BYTES_REF);
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+    }
 
+    @Override
+    public String toString() {
+        return getName();
+    }
 }

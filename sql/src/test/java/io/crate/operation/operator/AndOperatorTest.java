@@ -1,18 +1,18 @@
 package io.crate.operation.operator;
 
 import io.crate.operation.operator.input.BooleanInput;
-import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
@@ -21,7 +21,7 @@ public class AndOperatorTest {
     public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(new BooleanLiteral(true), new Reference()));
+                operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(true), new Reference()));
         Symbol symbol = operator.normalizeSymbol(function);
         assertThat(symbol, instanceOf(Reference.class));
     }
@@ -30,30 +30,28 @@ public class AndOperatorTest {
     public void testNormalizeBooleanFalseAndNonLiteral() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(new BooleanLiteral(false), new Reference()));
+                operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(false), new Reference()));
         Symbol symbol = operator.normalizeSymbol(function);
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat((BooleanLiteral)symbol, is(BooleanLiteral.FALSE));
+
+        assertLiteralSymbol(symbol, false);
     }
 
     @Test
     public void testNormalizeLiteralAndLiteral() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(new BooleanLiteral(true), new BooleanLiteral(true)));
+                operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(true)));
         Symbol symbol = operator.normalizeSymbol(function);
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(true));
+        assertLiteralSymbol(symbol, true);
     }
 
     @Test
     public void testNormalizeLiteralAndLiteralFalse() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(new BooleanLiteral(true), new BooleanLiteral(false)));
+                operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(false)));
         Symbol symbol = operator.normalizeSymbol(function);
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(false));
+        assertLiteralSymbol(symbol, false);
     }
 
     private Boolean and(Boolean left, Boolean right) {
@@ -73,5 +71,4 @@ public class AndOperatorTest {
         assertFalse(and(null, false));
         assertNull(and(null, null));
     }
-
 }

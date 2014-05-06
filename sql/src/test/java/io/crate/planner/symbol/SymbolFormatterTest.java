@@ -24,11 +24,14 @@ package io.crate.planner.symbol;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -43,15 +46,15 @@ public class SymbolFormatterTest {
     @Test
     public void testFormatFunction() throws Exception {
         Function f = new Function(new FunctionInfo(
-                new FunctionIdent("foo", Arrays.asList(DataType.STRING, DataType.DOUBLE)), DataType.DOUBLE, false),
-                Arrays.<Symbol>asList(new StringLiteral("bar"), new DoubleLiteral(3.4)));
+                new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.DOUBLE)), DataTypes.DOUBLE, false),
+                Arrays.<Symbol>asList(Literal.newLiteral("bar"), Literal.newLiteral(3.4)));
         assertFormat(f, "foo(string, double)");
     }
 
     @Test
     public void testFormatFunctionWithoutArgs() throws Exception {
         Function f = new Function(new FunctionInfo(
-                new FunctionIdent("baz", ImmutableList.<DataType>of()), DataType.DOUBLE, false),
+                new FunctionIdent("baz", ImmutableList.<DataType>of()), DataTypes.DOUBLE, false),
                 ImmutableList.<Symbol>of());
         assertFormat(f, "baz()");
     }
@@ -59,8 +62,8 @@ public class SymbolFormatterTest {
     @Test
     public void testFormatAggregation() throws Exception {
         Aggregation a = new Aggregation(new FunctionInfo(
-                new FunctionIdent("agg", Arrays.asList(DataType.INTEGER)), DataType.LONG, true
-        ), Arrays.<Symbol>asList(new IntegerLiteral(-127)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL);
+                new FunctionIdent("agg", Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.LONG, true
+        ), Arrays.<Symbol>asList(Literal.newLiteral(-127)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL);
 
         assertFormat(a, "agg(integer)");
     }
@@ -70,7 +73,7 @@ public class SymbolFormatterTest {
         Reference r = new Reference(new ReferenceInfo(new ReferenceIdent(
                 new TableIdent("sys", "table"),
                 new ColumnIdent("column", Arrays.asList("path", "nested"))),
-                RowGranularity.DOC, DataType.STRING));
+                RowGranularity.DOC, DataTypes.STRING));
         assertFormat(r, "sys.table.column['path']['nested']");
     }
 
@@ -79,7 +82,7 @@ public class SymbolFormatterTest {
         Reference r = new Reference(new ReferenceInfo(new ReferenceIdent(
                 new TableIdent("doc", "table"),
                 new ColumnIdent("column", Arrays.asList("path", "nested"))),
-                RowGranularity.DOC, DataType.STRING));
+                RowGranularity.DOC, DataTypes.STRING));
         assertFormat(r, "table.column['path']['nested']");
     }
 
@@ -88,13 +91,13 @@ public class SymbolFormatterTest {
         Reference r = new DynamicReference(new ReferenceInfo(new ReferenceIdent(
                 new TableIdent("schema", "table"),
                 new ColumnIdent("column", Arrays.asList("path", "nested"))),
-                RowGranularity.DOC, DataType.STRING));
+                RowGranularity.DOC, DataTypes.STRING));
         assertFormat(r, "schema.table.column['path']['nested']");
     }
 
     @Test
     public void testObjectLiteral() throws Exception {
-        ObjectLiteral l = new ObjectLiteral(new HashMap<String, Object>(){{
+        Literal<Map<String, Object>> l = Literal.newLiteral(new HashMap<String, Object>(){{
             put("field", "value");
             put("array", new Integer[]{1,2,3});
             put("nestedMap", new HashMap<String, Object>(){{
@@ -106,45 +109,45 @@ public class SymbolFormatterTest {
 
     @Test
     public void testBooleanLiteral() throws Exception {
-        BooleanLiteral f = BooleanLiteral.FALSE;
+        Literal<Boolean> f = Literal.newLiteral(false);
         assertFormat(f, "false");
-        BooleanLiteral t = BooleanLiteral.TRUE;
+        Literal<Boolean> t = Literal.newLiteral(true);
         assertFormat(t, "true");
     }
 
     @Test
     public void visitStringLiteral() throws Exception {
-        StringLiteral l = new StringLiteral("fooBar");
+        Literal<BytesRef> l = Literal.newLiteral("fooBar");
         assertFormat(l, "'fooBar'");
     }
 
     @Test
     public void visitDoubleLiteral() throws Exception {
-        DoubleLiteral d = new DoubleLiteral(-500.88765d);
+        Literal<Double> d = Literal.newLiteral(-500.88765d);
         assertFormat(d, "-500.88765");
     }
 
     @Test
     public void visitFloatLiteral() throws Exception {
-        FloatLiteral f = new FloatLiteral(500.887f);
+        Literal<Float> f = Literal.newLiteral(500.887f);
         assertFormat(f, "500.887");
     }
 
     @Test
     public void testProcess() throws Exception {
         Function f = new Function(new FunctionInfo(
-                new FunctionIdent("foo", Arrays.asList(DataType.STRING, DataType.NULL)), DataType.DOUBLE, false),
-                Arrays.<Symbol>asList(new StringLiteral("bar"), new DoubleLiteral(3.4)));
+                new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.NULL)), DataTypes.DOUBLE, false),
+                Arrays.<Symbol>asList(Literal.newLiteral("bar"), Literal.newLiteral(3.4)));
         assertThat(SymbolFormatter.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo(string, null)"));
     }
 
     @Test
     public void testNull() throws Exception {
-        assertFormat(new ObjectLiteral(null), "NULL");
+        assertFormat(Literal.newLiteral(DataTypes.NULL, null) , "NULL");
     }
 
     @Test
     public void testNullKey() throws Exception {
-        assertFormat(new ObjectLiteral(new HashMap<String, Object>(){{ put("null", null);}}), "{'null': NULL}");
+        assertFormat(Literal.newLiteral(new HashMap<String, Object>(){{ put("null", null);}}), "{'null': NULL}");
     }
 }

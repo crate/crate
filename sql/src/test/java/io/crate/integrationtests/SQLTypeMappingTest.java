@@ -202,7 +202,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInvalidWhereClause() throws Exception {
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("invalid byte literal 129");
+        expectedException.expectMessage("invalid byte value 129");
 
         setUpSimple();
         execute("delete from t1 where byte_field=129");

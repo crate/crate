@@ -23,12 +23,12 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.DataType;
 import io.crate.metadata.*;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataTypes;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -97,10 +97,10 @@ public class MapSideDataCollectOperationTest {
         FileUriCollectNode collectNode = new FileUriCollectNode(
                 "test",
                 routing,
-                new StringLiteral(tmpFile.getAbsolutePath()),
+                Literal.newLiteral(tmpFile.getAbsolutePath()),
                 Arrays.<Symbol>asList(
-                        createReference("name", DataType.STRING),
-                        createReference(new ColumnIdent("details", "age"), DataType.INTEGER)
+                        createReference("name", DataTypes.STRING),
+                        createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)
                 ),
                 Arrays.<Projection>asList(),
                 null,

@@ -20,17 +20,28 @@
  */
 package io.crate.operation.operator;
 
+import com.google.common.collect.Sets;
 import io.crate.operation.operator.input.ObjectInput;
-import io.crate.planner.symbol.*;
-import io.crate.DataType;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
@@ -40,110 +51,68 @@ public class InOperatorTest {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
+    private static final DataType INTEGER_SET_TYPE = new SetType(DataTypes.INTEGER);
+    private static final DataType STRING_SET_TYPE = new SetType(DataTypes.STRING);
+
     @Test
     public void testNormalizeSymbolSetLiteralIntegerIncluded() {
-        IntegerLiteral inValue = new IntegerLiteral(1);
-        SetLiteral inListValues = SetLiteral.fromLiterals(
-                DataType.INTEGER,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new IntegerLiteral(1),
-                                new IntegerLiteral(2),
-                                new IntegerLiteral(4),
-                                new IntegerLiteral(8)
-                        )
-                )
-        );
+        Literal<Integer> inValue = Literal.newLiteral(1);
+        Literal inListValues = Literal.newLiteral(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
 
         List<Symbol> arguments = new ArrayList<>();
         arguments.add(inValue);
         arguments.add(inListValues);
 
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) result).value(), is(true));
+        assertLiteralSymbol(result, true);
     }
 
     @Test
     public void testNormalizeSymbolSetLiteralIntegerNotIncluded() {
-        IntegerLiteral inValue = new IntegerLiteral(128);
+        Literal<Integer> inValue = Literal.newLiteral(128);
 
-        SetLiteral inListValues = SetLiteral.fromLiterals(
-                DataType.INTEGER,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new IntegerLiteral(1),
-                                new IntegerLiteral(2),
-                                new IntegerLiteral(4),
-                                new IntegerLiteral(8)
-                        )
-                )
-        );
+        Literal inListValues = Literal.newLiteral(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
 
         List<Symbol> arguments = new ArrayList<>();
         arguments.add(inValue);
         arguments.add(inListValues);
 
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) result).value(), is(false));
+        assertLiteralSymbol(result, false);
     }
 
     @Test
     public void testNormalizeSymbolSetLiteralDifferentDataTypeValue() {
-        DoubleLiteral value = new DoubleLiteral(2.0);
-
-        SetLiteral inListValues = SetLiteral.fromLiterals(
-                DataType.INTEGER,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new IntegerLiteral(1),
-                                new IntegerLiteral(2),
-                                new IntegerLiteral(4),
-                                new IntegerLiteral(8)
-                        )
-                )
-        );
+        Literal<Double> value = Literal.newLiteral(2.0);
+        Literal inListValues = Literal.newLiteral(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
 
         List<Symbol> arguments = new ArrayList<>();
         arguments.add(value);
         arguments.add(inListValues);
 
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) result).value(), is(false));
+        assertLiteralSymbol(result, false);
     }
 
     @Test
     public void testNormalizeSymbolSetLiteralReference() {
         Reference reference = new Reference();
-
-        SetLiteral inListValues = SetLiteral.fromLiterals(
-                DataType.INTEGER,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new IntegerLiteral(1),
-                                new IntegerLiteral(2),
-                                new IntegerLiteral(4),
-                                new IntegerLiteral(8)
-                        )
-                )
-        );
+        Literal inListValues = Literal.newLiteral(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
 
         List<Symbol> arguments = new ArrayList<>();
         arguments.add(reference);
         arguments.add(inListValues);
 
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
@@ -153,16 +122,14 @@ public class InOperatorTest {
 
     @Test
     public void testNormalizeSymbolSetLiteralStringIncluded() {
-        StringLiteral inValue = new StringLiteral("charlie");
-        SetLiteral inListValues = SetLiteral.fromLiterals(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("alpha"),
-                                new StringLiteral("bravo"),
-                                new StringLiteral("charlie"),
-                                new StringLiteral("delta")
-                        )
+        Literal inValue = Literal.newLiteral("charlie");
+        Literal inListValues = Literal.newLiteral(
+                STRING_SET_TYPE,
+                Sets.newHashSet(
+                        new BytesRef("alpha"),
+                        new BytesRef("bravo"),
+                        new BytesRef("charlie"),
+                        new BytesRef("delta")
                 )
         );
 
@@ -170,26 +137,23 @@ public class InOperatorTest {
         arguments.add(inValue);
         arguments.add(inListValues);
 
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) result).value(), is(true));
+        assertLiteralSymbol(result, true);
     }
 
     @Test
     public void testNormalizeSymbolSetLiteralStringNotIncluded() {
-        StringLiteral inValue = new StringLiteral("not included");
-        SetLiteral inListValues = SetLiteral.fromLiterals(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("alpha"),
-                                new StringLiteral("bravo"),
-                                new StringLiteral("charlie"),
-                                new StringLiteral("delta")
-                        )
+        Literal inValue = Literal.newLiteral("not included");
+        Literal inListValues = Literal.newLiteral(
+                STRING_SET_TYPE,
+                Sets.newHashSet(
+                        new BytesRef("alpha"),
+                        new BytesRef("bravo"),
+                        new BytesRef("charlie"),
+                        new BytesRef("delta")
                 )
         );
 
@@ -197,12 +161,11 @@ public class InOperatorTest {
         arguments.add(inValue);
         arguments.add(inListValues);
 
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
         Symbol result = op.normalizeSymbol(function);
 
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) result).value(), is(false));
+        assertLiteralSymbol(result, false);
     }
 
 
@@ -211,7 +174,7 @@ public class InOperatorTest {
         for (Object o : inList) {
             inListValues.add(o);
         }
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         return op.evaluate(new ObjectInput(inValue), new ObjectInput(inListValues));
     }
 
@@ -227,7 +190,7 @@ public class InOperatorTest {
         assertNull(in("something", new Object[]{null}));
 
         // "where 'something' in null"
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.STRING));
         assertNull(op.evaluate(new ObjectInput("something"), new ObjectInput(null)));
     }
 

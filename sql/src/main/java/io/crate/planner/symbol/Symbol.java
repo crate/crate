@@ -21,6 +21,7 @@
 
 package io.crate.planner.symbol;
 
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -28,6 +29,11 @@ import org.elasticsearch.common.io.stream.Streamable;
 import java.io.IOException;
 
 public abstract class Symbol implements Streamable {
+
+    public static boolean isLiteral(Symbol symbol, DataType expectedType) {
+        return symbol.symbolType() == SymbolType.LITERAL
+                && ((Literal)symbol).valueType().equals(expectedType);
+    }
 
     public interface SymbolFactory<T extends Symbol> {
         public T newInstance();

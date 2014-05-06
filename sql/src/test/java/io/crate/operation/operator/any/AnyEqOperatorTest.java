@@ -22,17 +22,17 @@
 package io.crate.operation.operator.any;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.input.ObjectInput;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class AnyEqOperatorTest {
 
@@ -40,8 +40,8 @@ public class AnyEqOperatorTest {
 
         AnyEqOperator anyEqOperator = new AnyEqOperator(
                 new FunctionInfo(
-                        new FunctionIdent("any_=", Arrays.asList(DataType.INTEGER_ARRAY, DataType.INTEGER)),
-                        DataType.BOOLEAN,
+                        new FunctionIdent("any_=", Arrays.<DataType>asList(new ArrayType(DataTypes.INTEGER), DataTypes.INTEGER)),
+                        DataTypes.BOOLEAN,
                         false)
         );
         return anyEqOperator.evaluate(new ObjectInput(value), new ObjectInput(arrayExpr));

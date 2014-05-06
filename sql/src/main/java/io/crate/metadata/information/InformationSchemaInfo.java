@@ -24,7 +24,9 @@ package io.crate.metadata.information;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.DataType;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -34,44 +36,44 @@ public class InformationSchemaInfo implements SchemaInfo {
     public static final String NAME = "information_schema";
 
     public static final InformationTableInfo TABLE_INFO_TABLES = new InformationTableInfo.Builder("tables")
-            .add("schema_name", DataType.STRING, null)
-            .add("table_name", DataType.STRING, null)
-            .add("number_of_shards", DataType.INTEGER, null)
-            .add("number_of_replicas", DataType.STRING, null)
-            .add("clustered_by", DataType.STRING, null)
-            .add("partitioned_by", DataType.STRING_ARRAY, null)
+            .add("schema_name", DataTypes.STRING, null)
+            .add("table_name", DataTypes.STRING, null)
+            .add("number_of_shards", DataTypes.INTEGER, null)
+            .add("number_of_replicas", DataTypes.STRING, null)
+            .add("clustered_by", DataTypes.STRING, null)
+            .add("partitioned_by", new ArrayType(DataTypes.STRING), null)
             .addPrimaryKey("schema_name")
             .addPrimaryKey("table_name")
             .build();
 
     public static final InformationTableInfo TABLE_INFO_TABLE_PARTITIONS = new InformationTableInfo.Builder("table_partitions")
-            .add("table_name", DataType.STRING, null)
-            .add("schema_name", DataType.STRING, null)
-            .add("partition_ident", DataType.STRING, null)
-            .add("values", DataType.OBJECT, null)
+            .add("table_name", DataTypes.STRING, null)
+            .add("schema_name", DataTypes.STRING, null)
+            .add("partition_ident", DataTypes.STRING, null)
+            .add("values", DataTypes.OBJECT, null)
             .build();
 
     public static final InformationTableInfo TABLE_INFO_COLUMNS = new InformationTableInfo.Builder("columns")
-            .add("schema_name", DataType.STRING, null)
-            .add("table_name", DataType.STRING, null)
-            .add("column_name", DataType.STRING, null)
-            .add("ordinal_position", DataType.SHORT, null)
-            .add("data_type", DataType.STRING, null)
+            .add("schema_name", DataTypes.STRING, null)
+            .add("table_name", DataTypes.STRING, null)
+            .add("column_name", DataTypes.STRING, null)
+            .add("ordinal_position", DataTypes.SHORT, null)
+            .add("data_type", DataTypes.STRING, null)
             .addPrimaryKey("schema_name")
             .addPrimaryKey("table_name")
             .addPrimaryKey("column_name")
             .build();
 
     public static final InformationTableInfo TABLE_INFO_TABLE_CONSTRAINTS = new InformationTableInfo.Builder("table_constraints")
-            .add("schema_name", DataType.STRING, null)
-            .add("table_name", DataType.STRING, null)
-            .add("constraint_name", DataType.STRING_SET, null)
-            .add("constraint_type", DataType.STRING, null)
+            .add("schema_name", DataTypes.STRING, null)
+            .add("table_name", DataTypes.STRING, null)
+            .add("constraint_name", new SetType(DataTypes.STRING), null)
+            .add("constraint_type", DataTypes.STRING, null)
             .build();
 
     public static final InformationTableInfo TABLE_INFO_ROUTINES = new InformationTableInfo.Builder("routines")
-            .add("routine_name", DataType.STRING, null)
-            .add("routine_type", DataType.STRING, null)
+            .add("routine_name", DataTypes.STRING, null)
+            .add("routine_type", DataTypes.STRING, null)
             .build();
 
     public static final ImmutableMap<String, TableInfo> TABLE_INFOS =

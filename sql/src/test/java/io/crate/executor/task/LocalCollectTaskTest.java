@@ -28,7 +28,7 @@ import io.crate.metadata.Routing;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.symbol.IntegerLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import org.junit.Test;
 
@@ -50,7 +50,7 @@ public class LocalCollectTaskTest {
         final CollectNode collectNode = new CollectNode("ei-die", CLUSTER_ROUTING);
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
         collectNode.jobId(testJobId);
-        collectNode.toCollect(ImmutableList.<Symbol>of(new IntegerLiteral(4)));
+        collectNode.toCollect(ImmutableList.<Symbol>of(Literal.newLiteral(4)));
 
 
         CollectOperation collectOperation = new CollectOperation() {

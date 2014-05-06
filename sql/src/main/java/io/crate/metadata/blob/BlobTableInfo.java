@@ -22,13 +22,14 @@
 package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
@@ -55,7 +56,7 @@ public class BlobTableInfo implements TableInfo {
     private static final ImmutableList<String> primaryKey = ImmutableList.of("digest");
 
     private static List<Tuple<String, DataType>> staticColumns = ImmutableList.<Tuple<String,DataType>>builder()
-                .add(new Tuple<>("digest", DataType.STRING))
+                .add(new Tuple<String, DataType>("digest", DataTypes.STRING))
                 .build();
 
     public BlobTableInfo(TableIdent ident,

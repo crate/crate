@@ -24,14 +24,18 @@ package io.crate.operation.predicate;
 import io.crate.metadata.*;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
-import io.crate.DataType;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class NotPredicateTest {
@@ -39,10 +43,9 @@ public class NotPredicateTest {
     @Test
     public void testNormalizeSymbolBoolean() throws Exception {
         NotPredicate predicate = new NotPredicate();
-        Function not = new Function(predicate.info(), Arrays.<Symbol>asList(new BooleanLiteral(true)));
-        BooleanLiteral normalized = (BooleanLiteral)predicate.normalizeSymbol(not);
+        Function not = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.newLiteral(true)));
 
-        assertThat(normalized.value(), is(false));
+        assertLiteralSymbol(predicate.normalizeSymbol(not), false);
     }
 
     @Test
@@ -51,11 +54,15 @@ public class NotPredicateTest {
 
         Reference name_ref = new Reference(new ReferenceInfo(
                 new ReferenceIdent(new TableIdent(null, "dummy"), "foo"),
-                RowGranularity.DOC, DataType.STRING)
+                RowGranularity.DOC, DataTypes.STRING)
         );
         Function eqName = new Function(
-                new FunctionInfo(new FunctionIdent(EqOperator.NAME, Arrays.asList(DataType.STRING, DataType.STRING)), DataType.BOOLEAN),
-                Arrays.<Symbol>asList(name_ref, new StringLiteral("foo"))
+                new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME,
+                                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
+                        DataTypes.BOOLEAN
+                ),
+                Arrays.<Symbol>asList(name_ref, Literal.newLiteral("foo"))
         );
 
         Function not = new Function(notPredicate.info(), Arrays.<Symbol>asList(eqName));

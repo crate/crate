@@ -37,8 +37,8 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.reference.sys.shard.ShardIdExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.client.Client;
@@ -252,7 +252,7 @@ public class DistributingCollectTest {
         collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.NODE);
-        collectNode.toCollect(Arrays.<Symbol>asList(new BooleanLiteral(true)));
+        collectNode.toCollect(Arrays.<Symbol>asList(Literal.newLiteral(true)));
         operation.collect(collectNode).get();
     }
 
@@ -266,7 +266,7 @@ public class DistributingCollectTest {
 
         collectNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
-                Arrays.<Symbol>asList(new BooleanLiteral(false), new BooleanLiteral(false))
+                Arrays.<Symbol>asList(Literal.newLiteral(false), Literal.newLiteral(false))
         )));
 
         Object[][] pseudoResult = operation.collect(collectNode).get();

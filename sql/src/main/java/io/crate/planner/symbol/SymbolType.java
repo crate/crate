@@ -25,24 +25,12 @@ public enum SymbolType {
 
     AGGREGATION(Aggregation.FACTORY),
     REFERENCE(Reference.FACTORY),
-    VALUE(Value.FACTORY),
     FUNCTION(Function.FACTORY),
-    STRING_LITERAL(StringLiteral.FACTORY),
-    DOUBLE_LITERAL(DoubleLiteral.FACTORY),
-    FLOAT_LITERAL(FloatLiteral.FACTORY),
-    BOOLEAN_LITERAL(BooleanLiteral.FACTORY),
-    BYTE_LITERAL(ByteLiteral.FACTORY),
-    SHORT_LITERAL(ShortLiteral.FACTORY),
-    INTEGER_LITERAL(IntegerLiteral.FACTORY),
-    LONG_LITERAL(LongLiteral.FACTORY),
-    NULL_LITERAL(Null.FACTORY),
-    OBJECT_LITERAL(ObjectLiteral.FACTORY),
-    SET_LITERAL(SetLiteral.FACTORY),
-    TIMESTAMP_LITERAL(TimestampLiteral.FACTORY),
-    ARRAY_LITERAL(ArrayLiteral.FACTORY),
+    LITERAL(Literal.FACTORY),
     INPUT_COLUMN(InputColumn.FACTORY),
     PARAMETER(Parameter.FACTORY),
-    DYNAMIC_REFERENCE(DynamicReference.FACTORY);
+    DYNAMIC_REFERENCE(DynamicReference.FACTORY),
+    VALUE(Value.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 
@@ -54,8 +42,7 @@ public enum SymbolType {
         return factory.newInstance();
     }
 
-    public boolean isLiteral() {
-        return ordinal() > FUNCTION.ordinal() && ordinal() < INPUT_COLUMN.ordinal();
+    public boolean isValueSymbol() {
+        return ordinal() == LITERAL.ordinal() || ordinal() == PARAMETER.ordinal();
     }
-
 }

@@ -24,8 +24,12 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.*;
-import io.crate.DataType;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 
 import java.util.Set;
 
@@ -40,9 +44,9 @@ public class InOperator extends Operator<Object> {
     }
 
     public static void register(OperatorModule module) {
-        for (DataType type : DataType.ALL_TYPES) {
-            DataType setType = type.setType();
-            FunctionInfo functionInfo = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type, setType)), DataType.BOOLEAN);
+        for (DataType type : DataTypes.PRIMITIVE_TYPES) {
+            FunctionInfo functionInfo = new FunctionInfo(
+                    new FunctionIdent(NAME, ImmutableList.<DataType>of(type, new SetType(type))), DataTypes.BOOLEAN);
             module.registerOperatorFunction(new InOperator(functionInfo));
         }
     }
@@ -58,18 +62,19 @@ public class InOperator extends Operator<Object> {
         // arguments.get(0) ... id
         // arguments.get(1) ... SetLiteral<Literal> (1,2,3,4,...)
         Symbol left = function.arguments().get(0);
-        if (!left.symbolType().isLiteral()) {
+        if (!left.symbolType().isValueSymbol()) {
             return function;
         }
-        Literal inValue = (Literal) left;
-        SetLiteral inList = (SetLiteral) function.arguments().get(1);
+        Object inValue = ((Literal) left).value();
+        Literal inList = (Literal) function.arguments().get(1);
+        assert inList.valueType().id() == SetType.ID;
+        Set values = (Set)inList.value();
 
-        // not in list if data types do not match.
-        if (!inList.contains(inValue)) {
-            return BooleanLiteral.FALSE;
+        if (!values.contains(inValue)) {
+            return Literal.newLiteral(false);
         }
 
-        return BooleanLiteral.TRUE;
+        return Literal.newLiteral(true);
     }
 
     @Override
