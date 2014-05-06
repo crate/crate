@@ -80,7 +80,7 @@ public class ESDeleteTemplateTask implements Task<Object[][]> {
             try {
                 Futures.allAsList(upstreamResult).get();
             } catch (ExecutionException | InterruptedException e) {
-                throw new TaskExecutionException(this, e);
+                throw new TaskExecutionException(this.toString(), e);
             }
         }
         transport.execute(request, listener);
