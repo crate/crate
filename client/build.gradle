@@ -20,8 +20,20 @@ configurations {
 
 
 jar {
+    dependsOn ':sql:compileSharedJava'
     baseName 'crate-client'
-    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    duplicatesStrategy 'exclude'
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
+        exclude 'META-INF/**'
+    }}
+
+    manifest {
+        attributes("Implementation-Title": "Crate Data Java Client")
+    }
+}
+
+processResources {
+    dependsOn ':sql:compileSharedJava'
 }
 
 compileJava {
