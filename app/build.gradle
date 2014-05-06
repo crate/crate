@@ -39,7 +39,7 @@ task dist {
 }
 
 distTar {
-    dependsOn ":docs:sphinx", getVersion
+    dependsOn getVersion
     compression = Compression.GZIP
     baseName = 'crate'
     extension = 'tar.gz'
@@ -49,7 +49,7 @@ distTar {
 }
 
 distZip {
-    dependsOn ":docs:sphinx", getVersion
+    dependsOn getVersion
     baseName = 'crate'
     doFirst {
         version = getVersion.version
@@ -81,9 +81,6 @@ dependencies {
     testCompile 'junit:junit:4.11'
 }
 
-installDist.dependsOn(jar, ":docs:sphinx")
-
-def docsDir = project(":docs").projectDir
 def rootDir = project.parent.projectDir
 
 distributions {
@@ -97,11 +94,6 @@ distributions {
                 include 'README.rst'
                 include 'CHANGES.txt'
             }
-            into("docs") {
-                from "${docsDir}/out/text"
-                include '**/*.txt'
-                exclude '.doctrees'
-            }
             into("lib") {
                 from project.configurations.runtime
                 // sigar gets included from the checked in runtime dependency in :es:
@@ -109,9 +101,6 @@ distributions {
             }
             into("lib") {
                 from jar
-            }
-            into("plugins/docs/_site") {
-                from "${docsDir}/out/html"
             }
             into('plugins') {
                 from 'plugins'
