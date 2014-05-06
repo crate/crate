@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.analyze.WhereClause;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
@@ -34,10 +33,12 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.IntegerLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.junit.Before;
@@ -56,7 +57,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             new ReferenceInfo(
                     new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "doc"),
                     RowGranularity.DOC,
-                    DataType.INTEGER
+                    DataTypes.INTEGER
             )
     );
 
@@ -131,13 +132,14 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectDocLevelWhereClause() throws Exception {
-        EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
+        EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME,
+                ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
         CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.whereClause(new WhereClause(new Function(
                 op.info(),
-                Arrays.<Symbol>asList(testDocLevelReference, new IntegerLiteral(2)))
+                Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         ));
 
         Object[][] result = operation.collect(collectNode).get();
@@ -185,10 +187,10 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.toCollect(Arrays.<Symbol>asList(
                 new Reference(new ReferenceInfo(
                         new ReferenceIdent(tableIdent, "id"),
-                        RowGranularity.DOC, DataType.INTEGER)),
+                        RowGranularity.DOC, DataTypes.INTEGER)),
                 new Reference(new ReferenceInfo(
                         new ReferenceIdent(tableIdent, "date"),
-                        RowGranularity.SHARD, DataType.TIMESTAMP))
+                        RowGranularity.SHARD, DataTypes.TIMESTAMP))
         ));
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.isPartitioned(true);

@@ -4,12 +4,16 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.input.ObjectInput;
-import io.crate.planner.symbol.*;
-import io.crate.DataType;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -22,63 +26,63 @@ public class EqOperatorTest {
 
     @Test
     public void testNormalizeSymbol() {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
 
         Function function = new Function(
-                op.info(), Arrays.<Symbol>asList(new IntegerLiteral(2), new IntegerLiteral(2)));
+                op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.newLiteral(2)));
         Symbol result = op.normalizeSymbol(function);
 
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) result).value(), is(true));
+        assertLiteralSymbol(result, true);
     }
 
     @Test
     public void testNormalizeSymbolWithNullLiteral() {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(
-                op.info(), Arrays.<Symbol>asList(Null.INSTANCE, Null.INSTANCE));
-        Symbol result = op.normalizeSymbol(function);
-        assertThat(result, instanceOf(Null.class));
+                op.info(), Arrays.<Symbol>asList(Literal.NULL, Literal.NULL));
+        Literal result = (Literal)op.normalizeSymbol(function);
+        assertNull(result.value());
+        assertEquals(DataTypes.NULL, result.valueType());
     }
 
     @Test
     public void testNormalizeSymbolWithOneNullLiteral() {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(
-                op.info(), Arrays.<Symbol>asList(new IntegerLiteral(2), Null.INSTANCE));
-        Symbol result = op.normalizeSymbol(function);
-        assertThat(result, instanceOf(Null.class));
+                op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.NULL));
+        Literal result = (Literal)op.normalizeSymbol(function);
+        assertNull(result.value());
+        assertEquals(DataTypes.NULL, result.valueType());
     }
 
     @Test
     public void testNormalizeSymbolNeq() {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
 
         Function function = new Function(
-                op.info(), Arrays.<Symbol>asList(new IntegerLiteral(2), new IntegerLiteral(4)));
+                op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.newLiteral(4)));
         Symbol result = op.normalizeSymbol(function);
 
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) result).value(), is(false));
+        assertLiteralSymbol(result, false);
     }
 
     @Test
     public void testNormalizeSymbolNonLiteral() {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
         Function f1 = new Function(
                 new FunctionInfo(
-                        new FunctionIdent("dummy_function", Arrays.asList(DataType.INTEGER)),
-                        DataType.INTEGER
+                        new FunctionIdent("dummy_function", Arrays.<DataType>asList(DataTypes.INTEGER)),
+                        DataTypes.INTEGER
                 ),
-                Arrays.<Symbol>asList(new IntegerLiteral(2))
+                Arrays.<Symbol>asList(Literal.newLiteral(2))
         );
 
         Function f2 = new Function(
                 new FunctionInfo(
-                        new FunctionIdent("dummy_function", Arrays.asList(DataType.INTEGER)),
-                        DataType.INTEGER
+                        new FunctionIdent("dummy_function", Arrays.<DataType>asList(DataTypes.INTEGER)),
+                        DataTypes.INTEGER
                 ),
-                Arrays.<Symbol>asList(new IntegerLiteral(2))
+                Arrays.<Symbol>asList(Literal.newLiteral(2))
         );
 
         assertThat(f1.equals(f2), is(true)); // symbols are equal
@@ -91,7 +95,7 @@ public class EqOperatorTest {
     }
 
     private Boolean eq(Object left, Object right) {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
         return op.evaluate(new ObjectInput(left),new ObjectInput(right));
     }
 
@@ -123,5 +127,4 @@ public class EqOperatorTest {
         assertNull(eq("boing", null));
         assertNull(eq(null, null));
     }
-
 }

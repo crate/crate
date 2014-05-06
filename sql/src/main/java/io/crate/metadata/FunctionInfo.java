@@ -21,13 +21,11 @@
 
 package io.crate.metadata;
 
-
-// PRESTOBORROW
-
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ComparisonChain;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -126,7 +124,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
         ident = new FunctionIdent();
         ident.readFrom(in);
 
-        returnType = DataType.fromStream(in);
+        returnType = DataTypes.fromStream(in);
         isAggregate = in.readBoolean();
         deterministic = in.readBoolean();
     }
@@ -134,7 +132,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         ident.writeTo(out);
-        DataType.toStream(returnType, out);
+        DataTypes.toStream(returnType, out);
         out.writeBoolean(isAggregate);
         out.writeBoolean(deterministic);
     }

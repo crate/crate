@@ -21,9 +21,10 @@
 
 package io.crate.operation.reference.doc;
 
-import io.crate.DataType;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
 public class RawCollectorExpression extends
@@ -41,7 +42,7 @@ public class RawCollectorExpression extends
 
     @Override
     public DataType returnType() {
-        return DataType.STRING;
+        return DataTypes.STRING;
     }
 
     @Override

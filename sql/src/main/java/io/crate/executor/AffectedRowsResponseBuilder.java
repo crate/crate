@@ -22,7 +22,7 @@
 package io.crate.executor;
 
 import io.crate.Constants;
-import io.crate.DataType;
+import io.crate.types.DataType;
 import io.crate.action.sql.SQLResponse;
 
 public class AffectedRowsResponseBuilder implements ResponseBuilder {

@@ -22,8 +22,8 @@
 package io.crate.operation.reference.doc;
 
 import io.crate.operation.Input;
+import io.crate.types.DataType;
 import org.apache.lucene.index.AtomicReaderContext;
-import io.crate.DataType;
 
 /**
  * An expression which gets evaluated in the collect phase

@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
+import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -75,11 +76,10 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
                 throw new IllegalArgumentException("Invalid argument(s) passed to parameter");
             }
             Symbol v = process(entry.getValue().get(0), context);
-            if (!v.symbolType().isLiteral()) {
+            if (!v.symbolType().isValueSymbol()) {
                 throw new UnsupportedFeatureException("Only literals are allowed as parameter values");
             }
-            builder.put(entry.getKey(),
-                    ((io.crate.planner.symbol.Literal) v).valueAsString());
+            builder.put(entry.getKey(), StringValueSymbolVisitor.INSTANCE.process(v));
         }
         return builder.build();
     }

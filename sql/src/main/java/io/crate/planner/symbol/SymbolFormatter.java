@@ -90,31 +90,10 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
     }
 
     @Override
-    public String visitNullLiteral(Null symbol, Void context) {
-        return "NULL";
-    }
-
-    @Override
-    public String visitFloatLiteral(FloatLiteral symbol, Void context) {
-        return formatValue(symbol.value());
-    }
-
-    @Override
-    public String visitDoubleLiteral(DoubleLiteral symbol, Void context) {
-        return formatValue(symbol.value());
-    }
-
-    @Override
     public String visitLiteral(Literal symbol, Void context) {
         return formatValue(symbol.value());
     }
 
-    @Override
-    public String visitObjectLiteral(ObjectLiteral symbol, Void context) {
-        StringBuilder builder = new StringBuilder();
-        formatValue(symbol.value(), builder);
-        return builder.toString();
-    }
 
     private String formatValue(Object value) {
         return formatValue(value, new StringBuilder()).toString();

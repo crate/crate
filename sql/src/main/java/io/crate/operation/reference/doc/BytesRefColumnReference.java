@@ -21,9 +21,15 @@
 
 package io.crate.operation.reference.doc;
 
-import io.crate.DataType;
+import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.util.BytesRef;
+import io.crate.exceptions.CrateException;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.exceptions.ValidationException;
+import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.util.BytesRef;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.BytesValues;
@@ -58,7 +64,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
 
     @Override
     public DataType returnType() {
-        return DataType.STRING;
+        return DataTypes.STRING;
     }
 
     @Override

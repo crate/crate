@@ -1,14 +1,19 @@
 package io.crate.operation.operator;
 
-import io.crate.planner.symbol.*;
-import io.crate.DataType;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Value;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
 public class CmpOperatorTest {
@@ -20,10 +25,10 @@ public class CmpOperatorTest {
 
     @Before
     public void setUp() {
-        op_gt_string = new GtOperator(Operator.generateInfo(GtOperator.NAME, DataType.STRING));
-        op_gte_double = new GteOperator(Operator.generateInfo(GteOperator.NAME, DataType.DOUBLE));
-        op_lt_int = new LtOperator(Operator.generateInfo(LtOperator.NAME, DataType.INTEGER));
-        op_lte_long = new LteOperator(Operator.generateInfo(LteOperator.NAME, DataType.LONG));
+        op_gt_string = new GtOperator(Operator.generateInfo(GtOperator.NAME, DataTypes.STRING));
+        op_gte_double = new GteOperator(Operator.generateInfo(GteOperator.NAME, DataTypes.DOUBLE));
+        op_lt_int = new LtOperator(Operator.generateInfo(LtOperator.NAME, DataTypes.INTEGER));
+        op_lte_long = new LteOperator(Operator.generateInfo(LteOperator.NAME, DataTypes.LONG));
     }
 
     private Function getFunction(Operator operator, Symbol... symbols) {
@@ -36,68 +41,62 @@ public class CmpOperatorTest {
 
     @Test
     public void testLteNormalizeSymbolTwoLiteral() throws Exception {
-        Symbol symbol = normalize(op_lte_long, new LongLiteral(8L), new LongLiteral(200L));
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(true));
+        Symbol symbol = normalize(op_lte_long, Literal.newLiteral(8L), Literal.newLiteral(200L));
+        assertLiteralSymbol(symbol, true);
 
-        symbol = normalize(op_lte_long, new LongLiteral(8L), new LongLiteral(8L));
-        assertThat(((BooleanLiteral) symbol).value(), is(true));
+        symbol = normalize(op_lte_long, Literal.newLiteral(8L), Literal.newLiteral(8L));
+        assertLiteralSymbol(symbol, true);
 
-        symbol = normalize(op_lte_long, new LongLiteral(16L), new LongLiteral(8L));
-        assertThat(((BooleanLiteral) symbol).value(), is(false));
+        symbol = normalize(op_lte_long, Literal.newLiteral(16L), Literal.newLiteral(8L));
+        assertLiteralSymbol(symbol, false);
     }
 
     @Test
     public void testGteNormalizeSymbolTwoLiteral() throws Exception {
-        Symbol symbol = normalize(op_gte_double, new DoubleLiteral(0.03), new DoubleLiteral(0.4));
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(false));
+        Symbol symbol = normalize(op_gte_double, Literal.newLiteral(0.03), Literal.newLiteral(0.4));
+        assertLiteralSymbol(symbol, false);
 
-        symbol = normalize(op_gte_double, new DoubleLiteral(0.4), new DoubleLiteral(0.4));
-        assertThat(((BooleanLiteral) symbol).value(), is(true));
+        symbol = normalize(op_gte_double, Literal.newLiteral(0.4), Literal.newLiteral(0.4));
+        assertLiteralSymbol(symbol, true);
 
-        symbol = normalize(op_gte_double, new DoubleLiteral(0.6), new DoubleLiteral(0.4));
-        assertThat(((BooleanLiteral) symbol).value(), is(true));
+        symbol = normalize(op_gte_double, Literal.newLiteral(0.6), Literal.newLiteral(0.4));
+        assertLiteralSymbol(symbol, true);
     }
 
     @Test
     public void testLtNormalizeSymbolTwoLiteralTrue() throws Exception {
-        Symbol symbol = normalize(op_lt_int, new IntegerLiteral(2), new IntegerLiteral(4));
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(true));
+        Symbol symbol = normalize(op_lt_int, Literal.newLiteral(2), Literal.newLiteral(4));
+        assertLiteralSymbol(symbol, true);
     }
 
     @Test
     public void testLtNormalizeSymbolTwoLiteralFalse() throws Exception {
-        Symbol symbol = normalize(op_lt_int, new IntegerLiteral(4), new IntegerLiteral(2));
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(false));
+        Symbol symbol = normalize(op_lt_int, Literal.newLiteral(4), Literal.newLiteral(2));
+        assertLiteralSymbol(symbol, false);
     }
 
     @Test
     public void testLtNormalizeSymbolTwoLiteralFalseEq() throws Exception {
-        Symbol symbol = normalize(op_lt_int, new IntegerLiteral(4), new IntegerLiteral(4));
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(false));
+        Symbol symbol = normalize(op_lt_int, Literal.newLiteral(4), Literal.newLiteral(4));
+        assertLiteralSymbol(symbol, false);
     }
 
     @Test
     public void testGtNormalizeSymbolTwoLiteralFalse() throws Exception {
-        Symbol symbol = normalize(op_gt_string, new StringLiteral("aa"), new StringLiteral("bbb"));
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(false));
+        Symbol symbol = normalize(op_gt_string, Literal.newLiteral("aa"), Literal.newLiteral("bbb"));
+        assertLiteralSymbol(symbol, false);
     }
 
     @Test
     public void testNormalizeSymbolWithNull() throws Exception {
-        Symbol symbol = normalize(op_gt_string, Null.INSTANCE, new StringLiteral("aa"));
-        assertThat(symbol, instanceOf(Null.class));
+        Literal literal = (Literal)normalize(op_gt_string, Literal.NULL, Literal.newLiteral("aa"));
+        assertNull(literal.value());
+        assertEquals(DataTypes.NULL, literal.valueType());
     }
 
     @Test
     public void testNormalizeSymbolNonLiteral() throws Exception {
-        Symbol symbol = normalize(op_gt_string, new StringLiteral("a"), new Value(DataType.STRING));
+        Symbol symbol = normalize(op_gt_string, Literal.newLiteral("a"), new Value(DataTypes.STRING));
         assertThat(symbol, instanceOf(Function.class));
     }
-
 }

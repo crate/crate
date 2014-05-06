@@ -21,10 +21,11 @@
 
 package io.crate.operation.reference.doc;
 
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.elasticsearch.index.fielddata.BytesValues;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 
@@ -39,7 +40,7 @@ public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData,
 
     @Override
     public DataType returnType(){
-        return DataType.BOOLEAN;
+        return DataTypes.BOOLEAN;
     }
 
     @Override

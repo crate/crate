@@ -21,11 +21,15 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolFormatter;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.joda.time.DateTimeZone;
@@ -34,9 +38,9 @@ public class DateTruncTimeZoneAwareFunction extends BaseDateTruncFunction {
 
     public static void register(ScalarFunctionModule module) {
         FunctionIdent timestampFunctionIdent = new FunctionIdent(NAME,
-                ImmutableList.of(DataType.STRING, DataType.STRING, DataType.TIMESTAMP));
+                ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING, DataTypes.TIMESTAMP));
         module.register(new DateTruncTimeZoneAwareFunction(
-                new FunctionInfo(timestampFunctionIdent, DataType.TIMESTAMP)));
+                new FunctionInfo(timestampFunctionIdent, DataTypes.TIMESTAMP)));
     }
 
     public DateTruncTimeZoneAwareFunction(FunctionInfo info) {
@@ -47,21 +51,24 @@ public class DateTruncTimeZoneAwareFunction extends BaseDateTruncFunction {
     public Symbol normalizeSymbol(Function symbol) {
         assert (symbol.arguments().size() == 3);
 
-        StringLiteral interval = (StringLiteral) symbol.arguments().get(0);
+        Literal interval = (Literal) symbol.arguments().get(0);
         isValidInterval(interval, symbol);
 
-        StringLiteral timezone = (StringLiteral) symbol.arguments().get(1);
+        Literal timezone = (Literal) symbol.arguments().get(1);
         try {
             // will throw an IllegalArgumentException if time zone is invalid.
-            parseZone(timezone.value());
+            parseZone((BytesRef)timezone.value());
         } catch (IllegalArgumentException e) {
             // catch and throw our own exception
             throw new IllegalArgumentException(SymbolFormatter.format("invalid time zone format %s for '%s'", timezone, symbol));
         }
 
-        if (symbol.arguments().get(2).symbolType().isLiteral()) {
+        if (symbol.arguments().get(2).symbolType().isValueSymbol()) {
             Literal timestamp = (Literal) symbol.arguments().get(2);
-            return new TimestampLiteral(evaluate((Input)interval, (Input)timezone, timestamp));
+            return Literal.newLiteral(
+                    DataTypes.TIMESTAMP,
+                    evaluate(interval, timezone, timestamp)
+            );
         }
 
         return symbol;

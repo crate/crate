@@ -21,15 +21,14 @@
 
 package io.crate.operation.scalar;
 
-import io.crate.DataType;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.TimestampLiteral;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
@@ -38,9 +37,9 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static io.crate.testing.TestingHelpers.createFunction;
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -57,27 +56,28 @@ public class FormatFunctionTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        List<Symbol> args = Arrays.<Symbol>asList(new StringLiteral("%tY"), new TimestampLiteral("2014-03-02"));
-        Function function = createFunction(FormatFunction.NAME, DataType.STRING, args);
+        List<Symbol> args = Arrays.<Symbol>asList(
+                Literal.newLiteral("%tY"),
+                Literal.newLiteral(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-03-02")));
+        Function function = createFunction(FormatFunction.NAME, DataTypes.STRING, args);
 
         FunctionImplementation format = functions.get(function.info().ident());
         Symbol result = format.normalizeSymbol(function);
 
-        assertThat(result, instanceOf(StringLiteral.class));
-        assertThat(((StringLiteral)result).valueAsString(), is("2014"));
+        assertLiteralSymbol(result, "2014");
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testEvaluate() throws Exception {
-        final StringLiteral formatString = new StringLiteral("%s bla %s");
+        final Literal<BytesRef> formatString = Literal.newLiteral("%s bla %s");
 
         List<Symbol> args = Arrays.<Symbol>asList(
             formatString,
-            createReference("name", DataType.STRING),
-            createReference("age", DataType.LONG)
+            createReference("name", DataTypes.STRING),
+            createReference("age", DataTypes.LONG)
         );
-        Function function = createFunction(FormatFunction.NAME, DataType.STRING, args);
+        Function function = createFunction(FormatFunction.NAME, DataTypes.STRING, args);
         Scalar<BytesRef, Object> format = (Scalar<BytesRef, Object>) functions.get(function.info().ident());
 
         Input<Object> arg1 = new Input<Object>() {

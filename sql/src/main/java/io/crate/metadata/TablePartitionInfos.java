@@ -23,12 +23,11 @@ package io.crate.metadata;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -87,8 +86,12 @@ public class TablePartitionInfos implements Iterable<TablePartitionInfo> {
 
                     // value
                     String strValue = pn.values().get(i);
-                    DataType dt = referenceInfo.type();
-                    Object value = new StringLiteral(strValue).convertValueTo(dt, strValue);
+                    Object value;
+                    if (referenceInfo.type().equals(DataTypes.STRING)) {
+                        value = strValue;
+                    } else {
+                        value = referenceInfo.type().value(strValue);
+                    }
 
                     // column -> value
                     values.put(partitionCol, value);

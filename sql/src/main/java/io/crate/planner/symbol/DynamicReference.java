@@ -24,7 +24,8 @@ package io.crate.planner.symbol;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.NullType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -48,7 +49,7 @@ public class DynamicReference extends Reference {
     }
 
     public DynamicReference(ReferenceIdent ident, RowGranularity rowGranularity) {
-        this.info = new ReferenceInfo(ident, rowGranularity, DataType.NULL);
+        this.info = new ReferenceInfo(ident, rowGranularity, NullType.INSTANCE);
     }
 
     @Override

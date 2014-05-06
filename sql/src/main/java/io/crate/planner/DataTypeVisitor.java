@@ -22,71 +22,30 @@
 package io.crate.planner;
 
 import io.crate.planner.symbol.*;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.NullType;
 
 public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
+
+    private static final DataTypeVisitor INSTANCE = new DataTypeVisitor();
+    private DataTypeVisitor() {}
+
+    public static DataType fromSymbol(Symbol symbol) {
+        return INSTANCE.process(symbol, null);
+    }
 
     @Override
     public DataType visitAggregation(Aggregation symbol, Void context) {
         if (symbol.toStep() == Aggregation.Step.PARTIAL) {
-            return DataType.NULL; // TODO: change once we have aggregationState types
+            return NullType.INSTANCE; // TODO: change once we have aggregationState types
         }
         return symbol.functionInfo().returnType();
     }
 
     @Override
-    public DataType visitValue(Value symbol, Void context) {
-        return symbol.valueType();
-    }
-
-    @Override
-    public DataType visitStringLiteral(StringLiteral symbol, Void context) {
-        return symbol.valueType();
-    }
-
-    @Override
-    public DataType visitDoubleLiteral(DoubleLiteral symbol, Void context) {
-        return symbol.valueType();
-    }
-
-    @Override
-    public DataType visitBooleanLiteral(BooleanLiteral symbol, Void context) {
-        return symbol.valueType();
-    }
-
-    @Override
-    public DataType visitByteLiteral(ByteLiteral symbol, Void context) {
-        return symbol.valueType();
-    }
-
-    @Override
-    public DataType visitShortLiteral(ShortLiteral symbol, Void context) {
-        return symbol.valueType();
-    }
-
-    @Override
-    public DataType visitIntegerLiteral(IntegerLiteral symbol, Void context) {
-        return symbol.valueType();
-    }
-
-    @Override
     public DataType visitInputColumn(InputColumn inputColumn, Void context) {
         return null;
-    }
-
-    @Override
-    public DataType visitNullLiteral(Null symbol, Void context) {
-        return symbol.valueType();
-    }
-
-    @Override
-    public DataType visitLongLiteral(LongLiteral symbol, Void context) {
-        return symbol.valueType();
-    }
-
-    @Override
-    public DataType visitFloatLiteral(FloatLiteral symbol, Void context) {
-        return symbol.valueType();
     }
 
     @Override
@@ -105,13 +64,18 @@ public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
     }
 
     @Override
-    public DataType visitObjectLiteral(ObjectLiteral symbol, Void context) {
+    public DataType visitParameter(Parameter symbol, Void context) {
+        return DataTypes.guessType(symbol.value(), false);
+    }
+
+    @Override
+    public DataType visitLiteral(Literal symbol, Void context) {
         return symbol.valueType();
     }
 
     @Override
-    public DataType visitParameter(Parameter symbol, Void context) {
-        return DataType.NULL;
+    public DataType visitValue(Value symbol, Void context) {
+        return symbol.valueType();
     }
 
     @Override

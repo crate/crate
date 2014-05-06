@@ -24,7 +24,6 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import io.crate.DataType;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.metadata.ColumnIdent;
@@ -38,6 +37,8 @@ import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.*;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -323,10 +324,14 @@ public class ESQueryBuilder {
 
 
                 Object value;
-                if (right.symbolType() == SymbolType.STRING_LITERAL) {
-                    value = ((StringLiteral) right).value().utf8ToString();
+                if (Symbol.isLiteral(right, DataTypes.STRING)) {
+                    Literal l = (Literal)right;
+                    value = l.value();
+                    if (value instanceof BytesRef) {
+                        value = ((BytesRef)value).utf8ToString();
+                    }
                 } else {
-                    assert right.symbolType().isLiteral();
+                    assert right.symbolType().isValueSymbol();
                     value = ((Literal) right).value();
                 }
                 return new Tuple<>(((Reference) left).info().ident().columnIdent().fqn(), value);
@@ -464,14 +469,15 @@ public class ESQueryBuilder {
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
                 String refName = ((Reference) left).info().ident().columnIdent().fqn();
-                SetLiteral setLiteral = (SetLiteral) right;
+                Literal setLiteral = (Literal) right;
                 boolean convertBytesRef = false;
-                if (setLiteral.valueType() == DataType.STRING_SET) {
+                if (setLiteral.valueType().id() == SetType.ID
+                        && ((SetType)setLiteral.valueType()).innerType().equals(DataTypes.STRING)) {
                     convertBytesRef = true;
                 }
                 context.builder.startObject("terms").field(refName);
                 context.builder.startArray();
-                for (Object o : setLiteral.value()) {
+                for (Object o : (Set)setLiteral.value()) {
                     if (convertBytesRef) {
                         context.builder.value(((BytesRef) o).utf8ToString());
                     } else {
@@ -498,7 +504,7 @@ public class ESQueryBuilder {
             @Override
             public void convert(Reference reference, Context context) throws IOException {
                 assert (reference != null);
-                assert (reference.valueType() == DataType.BOOLEAN);
+                assert (reference.valueType() == DataTypes.BOOLEAN);
                 Tuple<String, Boolean> tuple = prepare(reference);
                 context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
             }
@@ -531,7 +537,7 @@ public class ESQueryBuilder {
         @Override
         public Void visitReference(Reference reference, Context context) {
             try {
-                if (reference.valueType() == DataType.BOOLEAN) {
+                if (reference.valueType() == DataTypes.BOOLEAN) {
                     ReferenceConverter.INSTANCE.convert(reference, context);
                 }
             } catch (IOException ex) {
@@ -546,7 +552,7 @@ public class ESQueryBuilder {
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
 
-                if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isLiteral()) {
+                if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     String columnName = ((Reference) left).info().ident().columnIdent().name();
                     if (context.filteredFields.contains(columnName)) {
                         context.ignoredFields.put(columnName, ((Literal) right).value());

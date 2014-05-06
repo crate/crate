@@ -170,7 +170,6 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
                 throw new ColumnValidationException(column.info().ident().columnIdent().fqn(), e);
             }
 
-
             try {
                 Object value = ((io.crate.operation.Input)valuesSymbol).value();
                 if (value instanceof BytesRef) {

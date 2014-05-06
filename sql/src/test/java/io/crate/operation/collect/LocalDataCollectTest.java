@@ -24,7 +24,6 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import io.crate.DataType;
 import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnhandledServerException;
@@ -40,7 +39,12 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.client.Client;
@@ -90,7 +94,7 @@ public class LocalDataCollectTest {
 
     static class TestExpression implements ReferenceImplementation, Input<Integer> {
         public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("default", "collect"), "truth");
-        public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.NODE, DataType.INTEGER);
+        public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.NODE, DataTypes.INTEGER);
 
         @Override
         public Integer value() {
@@ -109,8 +113,8 @@ public class LocalDataCollectTest {
     }
 
     static class TestFunction implements Scalar<Integer, Object> {
-        public static final FunctionIdent ident = new FunctionIdent("twoTimes", Arrays.asList(DataType.INTEGER));
-        public static final FunctionInfo info = new FunctionInfo(ident, DataType.INTEGER, false);
+        public static final FunctionIdent ident = new FunctionIdent("twoTimes", Arrays.<DataType>asList(DataTypes.INTEGER));
+        public static final FunctionInfo info = new FunctionInfo(ident, DataTypes.INTEGER, false);
 
         @Override
         public Integer evaluate(Input<Object>... args) {
@@ -316,7 +320,7 @@ public class LocalDataCollectTest {
                                 ""
                         ),
                         RowGranularity.NODE,
-                        DataType.BOOLEAN
+                        DataTypes.BOOLEAN
                 )
         );
         collectNode.toCollect(Arrays.<Symbol>asList(unknownReference));
@@ -355,7 +359,7 @@ public class LocalDataCollectTest {
         Function unknownFunction = new Function(
                 new FunctionInfo(
                         new FunctionIdent("unknown", ImmutableList.<DataType>of()),
-                        DataType.BOOLEAN,
+                        DataTypes.BOOLEAN,
                         false
                 ),
                 ImmutableList.<Symbol>of()
@@ -372,10 +376,10 @@ public class LocalDataCollectTest {
     public void testCollectLiterals() throws Exception {
         CollectNode collectNode = new CollectNode("literals", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(
-                new StringLiteral("foobar"),
-                new BooleanLiteral(true),
-                new IntegerLiteral(1),
-                new DoubleLiteral(4.2)
+                Literal.newLiteral("foobar"),
+                Literal.newLiteral(true),
+                Literal.newLiteral(1),
+                Literal.newLiteral(4.2)
         ));
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
@@ -392,7 +396,7 @@ public class LocalDataCollectTest {
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
         collectNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
-                Arrays.<Symbol>asList(new BooleanLiteral(false), new BooleanLiteral(false))
+                Arrays.<Symbol>asList(Literal.newLiteral(false), Literal.newLiteral(false))
         )));
         Object[][] result = operation.collect(collectNode).get();
         assertArrayEquals(new Object[0][], result);
@@ -404,7 +408,7 @@ public class LocalDataCollectTest {
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
         collectNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
-                Arrays.<Symbol>asList(new BooleanLiteral(true), new BooleanLiteral(true))
+                Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(true))
         )));
         collectNode.maxRowGranularity(RowGranularity.NODE);
         Object[][] result = operation.collect(collectNode).get();
@@ -415,12 +419,13 @@ public class LocalDataCollectTest {
 
     @Test
     public void testCollectWithNullWhereClause() throws Exception {
-        EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
+        EqOperator op = (EqOperator) functions.get(new FunctionIdent(
+                EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
         CollectNode collectNode = new CollectNode("whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
         collectNode.whereClause(new WhereClause(new Function(
                 op.info(),
-                Arrays.<Symbol>asList(Null.INSTANCE, Null.INSTANCE)
+                Arrays.<Symbol>asList(Literal.NULL, Literal.NULL)
         )));
         Object[][] result = operation.collect(collectNode).get();
         assertArrayEquals(new Object[0][], result);
@@ -441,12 +446,12 @@ public class LocalDataCollectTest {
     @Test
     public void testCollectShardExpressionsWhereShardIdIs0() throws Exception {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(
-                EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
+                EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
 
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
         collectNode.whereClause(new WhereClause(
-                new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, new IntegerLiteral(0)))));
+                new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, Literal.newLiteral(0)))));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(1)));
@@ -456,7 +461,7 @@ public class LocalDataCollectTest {
     @Test
     public void testCollectShardExpressionsLiteralsAndNodeExpressions() throws Exception {
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
-        collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference, new BooleanLiteral(true), testNodeReference));
+        collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference, Literal.newLiteral(true), testNodeReference));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(2)));

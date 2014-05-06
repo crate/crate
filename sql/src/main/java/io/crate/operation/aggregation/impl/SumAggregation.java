@@ -27,7 +27,8 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.AggregationState;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -39,10 +40,10 @@ public class SumAggregation extends AggregationFunction<SumAggregation.SumAggSta
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
-        for (DataType t : DataType.NUMERIC_TYPES) {
-            mod.registerAggregateFunction(
+        for (DataType t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            mod.register(
                     new SumAggregation(
-                            new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataType.DOUBLE, true))
+                            new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataTypes.DOUBLE, true))
             );
         }
 

@@ -24,7 +24,7 @@ package io.crate.operation.aggregation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.DataType;
+import io.crate.types.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.impl.AggregationImplModule;

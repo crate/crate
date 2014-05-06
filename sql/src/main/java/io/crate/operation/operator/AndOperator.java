@@ -23,15 +23,15 @@ package io.crate.operation.operator;
 
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
-import io.crate.DataType;
+import io.crate.types.DataTypes;
 
 public class AndOperator extends Operator<Boolean> {
 
     public static final String NAME = "op_and";
-    public static final FunctionInfo INFO = generateInfo(NAME, DataType.BOOLEAN);
+    public static final FunctionInfo INFO = generateInfo(NAME, DataTypes.BOOLEAN);
 
     @Override
     public FunctionInfo info() {
@@ -52,9 +52,10 @@ public class AndOperator extends Operator<Boolean> {
         int stripSymbolIdx = -1;
         for (int i=0; i < function.arguments().size(); i++) {
             Symbol symbol = function.arguments().get(i);
-            if (symbol instanceof BooleanLiteral) {
+
+            if (Symbol.isLiteral(symbol, DataTypes.BOOLEAN)) {
                 booleanCount++;
-                boolean value = ((BooleanLiteral) symbol).value();
+                boolean value = (Boolean)((Literal) symbol).value();
                 if (stripSymbolIdx == -1 && value) {
                     stripSymbolIdx = i;
                 }
@@ -65,12 +66,11 @@ public class AndOperator extends Operator<Boolean> {
         if (stripSymbolIdx == -1 && booleanCount < 2 && result) {
             return function; // can't optimize -> return unmodified symbol
         } else if (!result) {
-            return BooleanLiteral.FALSE;
+            return Literal.newLiteral(false);
         } else if (booleanCount == 2) {
-            return (result) ? BooleanLiteral.TRUE : BooleanLiteral.FALSE;
+            return Literal.newLiteral(true);
         }
         int returnSymbolIdx = stripSymbolIdx == 0 ? 1 : 0;
-
         return function.arguments().get(returnSymbolIdx);
     }
 

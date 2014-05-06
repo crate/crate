@@ -22,13 +22,11 @@
 package io.crate.testing;
 
 import com.google.common.collect.Lists;
-import io.crate.DataType;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.ValueSymbol;
+import io.crate.planner.symbol.*;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
@@ -38,6 +36,12 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class TestingHelpers {
 
@@ -77,8 +81,8 @@ public class TestingHelpers {
             @Nullable
             @Override
             public DataType apply(@Nullable Symbol input) {
-                assert input instanceof ValueSymbol;
-                return ((ValueSymbol) input).valueType();
+                assert input instanceof DataTypeSymbol;
+                return ((DataTypeSymbol) input).valueType();
             }
         });
         return new Function(
@@ -106,4 +110,45 @@ public class TestingHelpers {
         return new BytesRef(encoded).utf8ToString();
     }
 
+    public static void assertLiteralSymbol(Symbol symbol, Map<String, Object> expectedValue) {
+        assertLiteral(symbol, expectedValue, DataTypes.OBJECT);
+    }
+
+    public static void assertLiteralSymbol(Symbol symbol, Boolean expectedValue) {
+        assertLiteral(symbol, expectedValue, DataTypes.BOOLEAN);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void assertLiteralSymbol(Symbol symbol, String expectedValue) {
+        assertThat(symbol, instanceOf(Literal.class));
+        Object value = ((Literal)symbol).value();
+
+        if (value instanceof String) {
+            assertThat((String)value, is(expectedValue));
+        } else {
+            assertThat(((BytesRef) value).utf8ToString(), is(expectedValue));
+        }
+        assertEquals(DataTypes.STRING, ((Literal)symbol).valueType());
+    }
+
+    public static void assertLiteralSymbol(Symbol symbol, Long expectedValue) {
+        assertLiteral(symbol, expectedValue, DataTypes.LONG);
+    }
+
+    public static void assertLiteralSymbol(Symbol symbol, Double expectedValue) {
+        assertLiteral(symbol, expectedValue, DataTypes.DOUBLE);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> void assertLiteral(Symbol symbol, T expectedValue, DataType type) {
+        assertThat(symbol, instanceOf(Literal.class));
+        assertEquals(type, ((Literal)symbol).valueType());
+        assertThat((T)((Literal) symbol).value(), is(expectedValue));
+    }
+
+    public static void assertLiteralSymbol(Symbol symbol, Object expectedValue, DataType type) {
+        assertThat(symbol, instanceOf(Literal.class));
+        assertEquals(type, ((Literal)symbol).valueType());
+        assertThat(((Literal) symbol).value(), is(expectedValue));
+    }
 }
