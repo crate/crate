@@ -3,9 +3,13 @@ apply plugin: 'distribution'
 
 archivesBaseName = 'crate-client'
 
+evaluationDependsOn(':sql')
+
 dependencies {
-    compile project(path: ':sql')
+    compile project(':es')
+    compile files(project(':sql').sourceSets.shared.output.classesDir)
     testCompile project(':testing')
+    testCompile project(':sql')
 }
 
 configurations {
@@ -20,3 +24,6 @@ jar {
     from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
 }
 
+compileJava {
+    dependsOn ':sql:compileSharedJava'
+}

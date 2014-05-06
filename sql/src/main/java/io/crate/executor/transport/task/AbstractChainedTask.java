@@ -55,7 +55,7 @@ public abstract class AbstractChainedTask<ResultType> implements Task<ResultType
 
                 @Override
                 public void onFailure(Throwable t) {
-                    throw new TaskExecutionException(AbstractChainedTask.this, t);
+                    throw new TaskExecutionException(AbstractChainedTask.this.toString(), t);
                 }
             });
         } else {
