@@ -33,7 +33,6 @@ import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.search.SearchAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -99,8 +98,9 @@ public class SelectBenchmark extends BenchmarkBase {
     @Before
     public void loadRandomIds() {
         if (someIds.isEmpty()) {
-            SQLRequestBuilder builder = new SQLRequestBuilder(client()).source(
-                    new BytesArray("{\"stmt\":\"select \\\"_id\\\" from countries limit 10\"}")
+            SQLRequestBuilder builder = new SQLRequestBuilder(client());
+            builder.request().stmt(
+                    "select \"_id\" from countries limit 10"
             );
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, builder.request()).actionGet();
             for (int i=0; i<response.rows().length; i++) {
