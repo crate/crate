@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.DataType;
-import io.crate.index.IndexMetaDataExtractor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -431,97 +430,6 @@ public class DocIndexMetaDataTest {
     }
 
     @Test
-    public void testGetIndices() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .startObject("_meta")
-                .field("primary_keys", "id")
-                .endObject()
-                .startObject("properties")
-                .startObject("id")
-                .field("type", "integer")
-                .field("index", "not_analyzed")
-                .endObject()
-                .startObject("title")
-                .field("type", "string")
-                .field("index", "not_analyzed")
-                .field("path", "just_name")
-                .startObject("fields")
-                .startObject("ft")
-                .field("type", "string")
-                .field("index", "analyzed")
-                .field("analyzer", "english")
-                .endObject()
-                .endObject()
-                .endObject()
-                .startObject("datum")
-                .field("type", "date")
-                .endObject()
-                .startObject("content")
-                .field("type", "string")
-                .field("index", "no")
-                .field("path", "just_name")
-                .startObject("fields")
-                .startObject("ft")
-                .field("type", "string")
-                .field("index", "analyzed")
-                .field("analyzer", "english")
-                .endObject()
-                .endObject()
-                .endObject()
-                .endObject()
-                .endObject();
-
-        IndexMetaData metaData = getIndexMetaData("test6", builder);
-        IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
-        List<IndexMetaDataExtractor.Index> indices = extractor.getIndices();
-
-        assertEquals(5, indices.size());
-
-        assertThat(indices.get(0).indexName, is("ft"));
-        assertThat(indices.get(0).tableName, is("test6"));
-        assertThat(indices.get(0).method, is("fulltext"));
-        assertThat(indices.get(0).getColumnsString(), is("content, title"));
-        assertThat(indices.get(0).getPropertiesString(), is("analyzer=english"));
-        assertThat(indices.get(0).getUid(), is("test6.ft"));
-
-        assertThat(indices.get(1).indexName, is("datum"));
-        assertThat(indices.get(1).tableName, is("test6"));
-        assertThat(indices.get(1).method, is("plain"));
-        assertThat(indices.get(1).getColumnsString(), is("datum"));
-        assertThat(indices.get(1).getUid(), is("test6.datum"));
-
-        assertThat(indices.get(2).indexName, is("id"));
-        assertThat(indices.get(2).tableName, is("test6"));
-        assertThat(indices.get(2).getColumnsString(), is("id"));
-        assertThat(indices.get(2).method, is("plain"));
-
-        assertThat(indices.get(3).indexName, is("title"));
-        assertThat(indices.get(3).tableName, is("test6"));
-        assertThat(indices.get(3).getColumnsString(), is("title"));
-        assertThat(indices.get(3).method, is("plain"));
-
-        // compound indices will be listed once for every column they index,
-        // will be merged by indicesTable
-        assertThat(indices.get(4).indexName, is("ft"));
-    }
-
-    @Test
-    public void extractIndicesFromEmptyIndex() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .endObject()
-                .endObject();
-        IndexMetaData metaData = getIndexMetaData("test7", builder);
-        IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
-        List<IndexMetaDataExtractor.Index> indices = extractor.getIndices();
-        assertEquals(0, indices.size());
-
-    }
-
-    @Test
     public void extractRoutingColumn() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
                 .startObject()
@@ -624,87 +532,6 @@ public class DocIndexMetaDataTest {
                 .endObject();
         DocIndexMetaData md = newMeta(getIndexMetaData("test11", builder), "test11");
         assertThat(md.routingCol(), is("_id"));
-    }
-
-
-    @Test
-    public void testIsDynamic() throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .startObject("properties")
-                .startObject("field")
-                .field("type", "string")
-                .endObject()
-                .endObject()
-                .endObject()
-                .endObject();
-        IndexMetaData metaData = getIndexMetaData("test13", builder,
-                ImmutableSettings.builder().put("index.mapper.dynamic", false).build());
-        IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
-        assertFalse(extractor.isDynamic());
-
-        builder = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .field("dynamic", true)
-                .startObject("properties")
-                .startObject("field")
-                .field("type", "string")
-                .endObject()
-                .endObject()
-                .endObject()
-                .endObject();
-
-        metaData = getIndexMetaData("test13", builder,
-                ImmutableSettings.builder().put("index.mapper.dynamic", false).build());
-        extractor = new IndexMetaDataExtractor(metaData);
-        assertFalse(extractor.isDynamic());
-
-        builder = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .field("dynamic", false)
-                .startObject("properties")
-                .startObject("field")
-                .field("type", "string")
-                .endObject()
-                .endObject()
-                .endObject()
-                .endObject();
-        metaData = getIndexMetaData("test15", builder);
-        extractor = new IndexMetaDataExtractor(metaData);
-        assertFalse(extractor.isDynamic());
-
-        builder = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .field("dynamic", "strict")
-                .startObject("properties")
-                .startObject("field")
-                .field("type", "string")
-                .endObject()
-                .endObject()
-                .endObject()
-                .endObject();
-        metaData = getIndexMetaData("test16", builder);
-        extractor = new IndexMetaDataExtractor(metaData);
-        assertFalse(extractor.isDynamic());
-
-        builder = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .startObject("properties")
-                .startObject("field")
-                .field("type", "string")
-                .endObject()
-                .endObject()
-                .endObject()
-                .endObject();
-        metaData = getIndexMetaData("test17", builder);
-        extractor = new IndexMetaDataExtractor(metaData);
-        assertTrue(extractor.isDynamic());
-
     }
 
     @Test
