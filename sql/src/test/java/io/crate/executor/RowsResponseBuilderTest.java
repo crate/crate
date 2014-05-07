@@ -28,7 +28,6 @@ import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -52,7 +51,7 @@ public class RowsResponseBuilderTest {
 
         rows[0][0] = refs;
         SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L);
-        assertThat(commaJoiner.join((Collection<?>)response.rows()[0][0]), is("foo, bar"));
+        assertThat(commaJoiner.join((String[])response.rows()[0][0]), is("foo, bar"));
     }
 
     @Test

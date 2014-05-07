@@ -292,6 +292,14 @@ public enum DataType {
         return streamer;
     }
 
+    public boolean isPrimitiveType() {
+        return PRIMITIVE_TYPES.contains(this);
+    }
+
+    public boolean isCompoundType() {
+        return !isPrimitiveType();
+    }
+
     @Override
     public String toString() {
         return name;

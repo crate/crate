@@ -2,6 +2,13 @@
 Changes for Crate Data
 ======================
 
+2014/05/07 0.36.4
+=================
+
+ - fix: forbid order by on compound types (array, set, object)
+
+ - fix: transport serialization of set columns did not work correctly
+
 2014/05/05 0.36.3
 =================
 

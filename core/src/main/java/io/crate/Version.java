@@ -33,11 +33,11 @@ public class Version {
     // AA values below 50 are beta builds, and below 99 are RC builds, with 99 indicating a release
     // the (internal) format of the id is there so we can easily do after/before checks on the id
 
-    public static final int V_0_36_03_ID = /*00*/360399;
-    public static final Version V_0_36_03 = new Version(V_0_36_03_ID, false,
+    public static final int V_0_36_04_ID = /*00*/360499;
+    public static final Version V_0_36_04 = new Version(V_0_36_04_ID, false,
             org.elasticsearch.Version.V_1_1_1);
 
-    public static final Version CURRENT = V_0_36_03;
+    public static final Version CURRENT = V_0_36_04;
 
     static {
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +
