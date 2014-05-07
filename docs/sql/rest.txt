@@ -84,7 +84,7 @@ appropriate exception::
     ... }'
     {
       "error" : {
-        "message" : "SQLParseException[Only exactly one table is allowed in the from clause, got: 0]",
+        "message" : "SQLActionException[Only exactly one table is allowed in the from clause, got: 0]",
         "code" : 4000
       }
     }
@@ -97,18 +97,11 @@ GET parameter can be specified to return the stack trace::
     ... }'
     {
       "error" : {
-        "message" : "SQLParseException[Only exactly one table is allowed in the from clause, got: 0]",
+        "message" : "SQLActionException[Only exactly one table is allowed in the from clause, got: 0]",
         "code" : 4000
       },
-      "error_trace" : {
-        "message" : "Only exactly one table is allowed in the from clause, got: 0",
-        "at" : {
-          "class" : "...",
-          "method" : "...",
-          "file" : "....java",
-          "line" : ...
-        },
-    ...
+      "error_trace" : "..."
+    }
 
 .. note::
 
@@ -121,17 +114,19 @@ Currently the defined error codes are:
     ===== =====================================================================
     Code  Error
     ===== =====================================================================
-    1000  Generic undefined error
-    ----- ---------------------------------------------------------------------
     4000  The statement contains an invalid syntax or unsupported SQL statement
     ----- ---------------------------------------------------------------------
     4001  The statement contains an invalid analyzer definition.
     ----- ---------------------------------------------------------------------
     4002  The name of the table is invalid.
     ----- ---------------------------------------------------------------------
-    4003  Field type validation Failed
+    4003  Field type validation failed
     ----- ---------------------------------------------------------------------
     4004  Possible feature not supported (yet)
+    ----- ---------------------------------------------------------------------
+    4005  Alter table using a table alias is not supported.
+    ----- ---------------------------------------------------------------------
+    4006  The used column alias is ambiguous.
     ----- ---------------------------------------------------------------------
     4041  Unknown table.
     ----- ---------------------------------------------------------------------
@@ -154,7 +149,7 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4094  The used table alias contains tables with different schema.
     ----- ---------------------------------------------------------------------
-    4095  Alter table using a table alias is not supported.
+    5000  Unhandled server error.
     ----- ---------------------------------------------------------------------
     5001  The execution of one or more tasks failed.
     ===== =====================================================================

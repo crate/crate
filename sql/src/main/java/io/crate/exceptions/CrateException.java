@@ -21,27 +21,10 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.ElasticsearchException;
+public interface CrateException {
 
-public class CrateException extends ElasticsearchException {
+    public int errorCode();
 
-    public CrateException(String msg) {
-        super(msg);
-    }
+    public Object[] args();
 
-    public CrateException(String msg, Throwable e) {
-        super(msg, e);
-    }
-
-    public CrateException(Throwable e) {
-         super(e.getMessage(), e);
-    }
-
-    public int errorCode() {
-        return 1000;
-    }
-
-    public Object[] args() {
-        return new Object[0];
-    }
 }

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,24 +21,34 @@
 
 package io.crate.exceptions;
 
-public class SchemaUnknownException extends ResourceUnknownException {
+public class ConflictException extends RuntimeException implements CrateException {
 
-    private static final String MESSAGE_TMPL = "unknown schema '%s'";
+    public ConflictException() {
+    }
 
-    private final String schema;
+    public ConflictException(String message) {
+        super(message);
+    }
 
-    public SchemaUnknownException(String schema) {
-        super(String.format(MESSAGE_TMPL, schema));
-        this.schema = schema;
+    public ConflictException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public ConflictException(Throwable cause) {
+        super(cause);
+    }
+
+    public ConflictException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
     }
 
     @Override
     public int errorCode() {
-        return 5;
+        return 0;
     }
 
     @Override
     public Object[] args() {
-        return new Object[]{schema};
+        return new Object[0];
     }
 }

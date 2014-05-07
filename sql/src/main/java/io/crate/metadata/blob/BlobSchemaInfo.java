@@ -27,7 +27,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.FluentIterable;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.exceptions.CrateException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -87,7 +87,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
         try {
             return cache.get(name);
         } catch (ExecutionException e) {
-            throw new CrateException("Failed to get TableInfo", e.getCause());
+            throw new UnhandledServerException("Failed to get TableInfo", e.getCause());
         }
     }
 

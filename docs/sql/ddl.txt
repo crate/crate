@@ -139,7 +139,7 @@ fractions. Example::
     INSERT OK, 1 row affected (... sec)
 
     cr> insert into my_table4 (id, first_column) values (3, 'wrong');
-    ValidationException[Validation failed for first_column: wrong type 'string'. expected: 'timestamp']
+    SQLActionException[Validation failed for first_column: wrong type 'string'. expected: 'timestamp']
 
 object
 ------

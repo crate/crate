@@ -21,11 +21,11 @@
 
 package io.crate.operation.reference.doc;
 
+import io.crate.DataType;
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.ValidationException;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.exceptions.CrateException;
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.elasticsearch.index.fielddata.BytesValues;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 
@@ -38,7 +38,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
     }
 
     @Override
-    public BytesRef value() throws CrateException {
+    public BytesRef value() throws ValidationException {
         switch (values.setDocument(docId)) {
             case 0:
                 return null;

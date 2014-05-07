@@ -24,7 +24,7 @@ package io.crate.operation.collect;
 import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.exceptions.CrateException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.task.elasticsearch.ESQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -42,8 +42,8 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
@@ -138,7 +138,7 @@ public class ShardCollectService {
                 ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(normalizedCollectNode);
                 return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), downstream);
             }
-            throw new CrateException(String.format("Granularity %s not supported", granularity.name()));
+            throw new UnhandledServerException(String.format("Granularity %s not supported", granularity.name()));
         }
     }
 }

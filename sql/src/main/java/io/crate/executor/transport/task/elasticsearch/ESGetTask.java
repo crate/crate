@@ -27,7 +27,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.PartitionName;
-import io.crate.exceptions.CrateException;
 import io.crate.executor.Task;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.node.dql.ESGetNode;
@@ -62,23 +61,18 @@ public class ESGetTask implements Task<Object[][]> {
         if (this.node.partitionBy().isEmpty()) {
             this.partitionValues = ImmutableMap.of();
         } else {
-            try {
-                PartitionName partitionName = PartitionName.fromStringSafe(node.index());
-                int numPartitionColumns = this.node.partitionBy().size();
-                this.partitionValues = new HashMap<>(numPartitionColumns);
-                for (int i = 0; i<this.node.partitionBy().size(); i++) {
-                    ReferenceInfo info = this.node.partitionBy().get(i);
-                    // TODO: avoid creating StringLiteral for conversion only,
-                    // refactor type conversion for simple values
-                    StringLiteral literal = new StringLiteral(partitionName.values().get(i));
-                    this.partitionValues.put(
-                            info.ident().columnIdent().fqn(),
-                            literal.convertValueTo(info.type())
-                    );
-                }
-
-            } catch (IllegalArgumentException e) {
-                throw new CrateException("Error creating ESGetTask", e);
+            PartitionName partitionName = PartitionName.fromStringSafe(node.index());
+            int numPartitionColumns = this.node.partitionBy().size();
+            this.partitionValues = new HashMap<>(numPartitionColumns);
+            for (int i = 0; i<this.node.partitionBy().size(); i++) {
+                ReferenceInfo info = this.node.partitionBy().get(i);
+                // TODO: avoid creating StringLiteral for conversion only,
+                // refactor type conversion for simple values
+                StringLiteral literal = new StringLiteral(partitionName.values().get(i));
+                this.partitionValues.put(
+                        info.ident().columnIdent().fqn(),
+                        literal.convertValueTo(info.type())
+                );
             }
         }
 

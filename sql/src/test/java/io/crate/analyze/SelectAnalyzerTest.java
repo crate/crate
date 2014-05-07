@@ -24,7 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.DataType;
 import io.crate.PartitionName;
-import io.crate.exceptions.AmbiguousAliasException;
+import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionInfo;
@@ -343,7 +343,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analyze.sortSymbols().get(0), is(analyze.outputSymbols().get(0)));
     }
 
-    @Test(expected = AmbiguousAliasException.class)
+    @Test(expected = AmbiguousColumnAliasException.class)
     public void testAmbiguousOrderByOnAlias() throws Exception {
         analyze("select id as load, load from sys.nodes order by load");
     }

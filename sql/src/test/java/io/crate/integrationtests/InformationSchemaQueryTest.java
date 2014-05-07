@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.junit.Before;
@@ -205,7 +205,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
     }
 
-    @Test( expected = TableUnknownException.class )
+    @Test( expected = SQLActionException.class )
     public void testSelectUnkownTableFromInformationSchema() throws Exception {
         exec("select * from information_schema.non_existent");
     }

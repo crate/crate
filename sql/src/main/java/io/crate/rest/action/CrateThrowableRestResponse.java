@@ -21,7 +21,7 @@
 
 package io.crate.rest.action;
 
-import io.crate.exceptions.CrateException;
+import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.RestRequest;
@@ -41,41 +41,27 @@ public class CrateThrowableRestResponse extends XContentRestResponse {
     }
 
     public CrateThrowableRestResponse(RestRequest request, RestStatus status, Throwable t) throws IOException {
-        super(request, status, convert(request, status, t));
+        super(request, status, convert(request, t));
     }
 
-    private static XContentBuilder convert(RestRequest request, RestStatus status, Throwable t) throws IOException {
+    private static XContentBuilder convert(RestRequest request, Throwable t) throws IOException {
         XContentBuilder builder = restContentBuilder(request).startObject()
             .startObject("error");
 
+        SQLActionException sqlActionException = null;
         builder.field("message", detailedMessage(t));
-        if (t instanceof CrateException) {
-            CrateException cex = (CrateException)t;
-            builder.field("code", cex.errorCode());
-            if (cex.args().length > 0) {
-                builder.field("args", cex.args());
-            }
+        if (t instanceof SQLActionException) {
+            sqlActionException = (SQLActionException)t;
+            builder.field("code", sqlActionException.errorCode());
         } else {
-            builder.field("code", 1000);
+            builder.field("code", 5000);
         }
 
         builder.endObject();
 
-        if (t != null && request.paramAsBoolean("error_trace", false)) {
-            builder.startObject("error_trace");
-            boolean first = true;
-            while (t != null) {
-                if (!first) {
-                    builder.startObject("cause");
-                }
-                buildThrowable(t, builder);
-                if (!first) {
-                    builder.endObject();
-                }
-                t = t.getCause();
-                first = false;
-            }
-            builder.endObject();
+        if (t != null && request.paramAsBoolean("error_trace", false)
+                && sqlActionException != null) {
+            builder.field("error_trace", sqlActionException.stackTrace());
         }
         builder.endObject();
         return builder;

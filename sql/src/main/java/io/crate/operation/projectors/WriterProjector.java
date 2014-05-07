@@ -21,8 +21,9 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.exceptions.CrateException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.ValidationException;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
@@ -78,7 +79,7 @@ public class WriterProjector implements Projector {
         try {
             this.uri = new URI(uri);
         } catch (URISyntaxException e) {
-            throw new CrateException(String.format("Invalid uri '%s'", uri), e);
+            throw new ValidationException(String.format("Invalid uri '%s'", uri), e);
         }
         if (this.uri.getScheme() == null || this.uri.getScheme().equals("file")) {
             this.output = new OutputFile(this.uri, settings);
@@ -100,7 +101,7 @@ public class WriterProjector implements Projector {
                 rowWriter = new RawRowWriter(output.getOutputStream(), failure);
             }
         } catch (IOException e) {
-            failure.set(new CrateException("Failed to open output", e));
+            failure.set(new UnhandledServerException("Failed to open output", e));
         }
     }
 
@@ -111,7 +112,7 @@ public class WriterProjector implements Projector {
             }
             output.close();
         } catch (IOException e) {
-            failure.set(new CrateException("Failed to close output", e));
+            failure.set(new UnhandledServerException("Failed to close output", e));
         }
         if (downstream != null) {
             if (failure.get() == null){
@@ -185,7 +186,7 @@ public class WriterProjector implements Projector {
                 outputStream.write(value.bytes, value.offset, value.length);
                 outputStream.write(NEW_LINE);
             } catch (IOException e) {
-                failure.set(new CrateException("Failed to write row to output", e));
+                failure.set(new UnhandledServerException("Failed to write row to output", e));
             }
         }
 
@@ -226,7 +227,7 @@ public class WriterProjector implements Projector {
                 builder.flush();
                 outputStream.write(NEW_LINE);
             } catch (IOException e) {
-                failure.set(new CrateException("Failed to write row to output", e));
+                failure.set(new UnhandledServerException("Failed to write row to output", e));
             }
         }
 

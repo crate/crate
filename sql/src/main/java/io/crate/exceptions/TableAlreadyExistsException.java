@@ -21,11 +21,9 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
 import java.util.Locale;
 
-public class TableAlreadyExistsException extends CrateException {
+public class TableAlreadyExistsException extends ConflictException {
 
     private static final String MESSAGE_TMPL = "The table '%s' already exists.";
 
@@ -43,12 +41,7 @@ public class TableAlreadyExistsException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4093;
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.CONFLICT;
+        return 3;
     }
 
     @Override

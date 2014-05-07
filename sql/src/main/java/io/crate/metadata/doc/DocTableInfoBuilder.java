@@ -23,8 +23,8 @@ package io.crate.metadata.doc;
 
 import io.crate.Constants;
 import io.crate.PartitionName;
-import io.crate.exceptions.CrateException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -98,7 +98,7 @@ public class DocTableInfoBuilder {
                         transportPutIndexTemplateAction,
                         createdFromTemplate);
             } catch (IOException e) {
-                throw new CrateException("Unable to merge/build new DocIndexMetaData", e);
+                throw new UnhandledServerException("Unable to merge/build new DocIndexMetaData", e);
             }
         }
         return docIndexMetaData;
@@ -109,7 +109,7 @@ public class DocTableInfoBuilder {
         try {
             docIndexMetaData = new DocIndexMetaData(metaData.index(index), ident);
         } catch (IOException e) {
-            throw new CrateException("Unable to build DocIndexMetaData", e);
+            throw new UnhandledServerException("Unable to build DocIndexMetaData", e);
         }
         return docIndexMetaData.build();
     }
@@ -128,7 +128,7 @@ public class DocTableInfoBuilder {
             builder.numberOfReplicas(settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
             docIndexMetaData = new DocIndexMetaData(builder.build(), ident);
         } catch (IOException e) {
-            throw new CrateException("Unable to build DocIndexMetaData from template", e);
+            throw new UnhandledServerException("Unable to build DocIndexMetaData from template", e);
         }
         return docIndexMetaData.build();
     }

@@ -22,9 +22,9 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.exceptions.SQLParseException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -403,7 +403,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                     "  TOKENIZER a9tok" +
                     ")");
             fail("Reusing existing tokenizer worked");
-        } catch (SQLParseException e) {
+        } catch (SQLActionException e) {
             assertThat(e.getMessage(), is("Non-existing tokenizer 'a9tok'"));
         }
         /*

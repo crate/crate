@@ -21,12 +21,29 @@
 
 package io.crate.exceptions;
 
-public class AmbiguousAliasException extends CrateException {
+import java.util.Locale;
 
-    private final String alias;
+public class ColumnValidationException extends ValidationException {
 
-    public AmbiguousAliasException(String alias) {
-        super(String.format("alias \"%s\" is ambiguous", alias));
-        this.alias = alias;
+    private final String column;
+
+    public ColumnValidationException(String column, String message) {
+        super(String.format(Locale.ENGLISH, "Validation failed for %s: %s", column, message));
+        this.column = column;
+    }
+
+    public ColumnValidationException(String column, Throwable e) {
+        super(String.format(Locale.ENGLISH, "Validation failed for %s: %s", column, e.getMessage()));
+        this.column = column;
+    }
+
+    @Override
+    public int errorCode() {
+        return 3;
+    }
+
+    @Override
+    public Object[] args() {
+        return new Object[]{column};
     }
 }

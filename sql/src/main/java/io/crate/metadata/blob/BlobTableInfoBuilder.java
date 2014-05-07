@@ -22,8 +22,8 @@
 package io.crate.metadata.blob;
 
 import io.crate.blob.v2.BlobIndices;
-import io.crate.exceptions.CrateException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocIndexMetaData;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -63,7 +63,7 @@ public class BlobTableInfoBuilder {
         try {
             docIndexMetaData = new DocIndexMetaData(metaData.index(index), ident);
         } catch (IOException e) {
-            throw new CrateException("Unable to build DocIndexMetaData", e);
+            throw new UnhandledServerException("Unable to build DocIndexMetaData", e);
         }
         return docIndexMetaData.build();
     }

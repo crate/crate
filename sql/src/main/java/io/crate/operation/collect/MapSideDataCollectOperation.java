@@ -27,8 +27,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.exceptions.CrateException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -42,8 +42,6 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.SymbolFormatter;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -144,7 +142,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                 return handleShardCollect(collectNode);
             }
         }
-        throw new CrateException("unsupported routing");
+        throw new UnhandledServerException("unsupported routing");
     }
 
     /**
@@ -253,12 +251,12 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                             projectorChain);
                     shardCollectors.add(crateCollector);
                 } catch (IndexShardMissingException e) {
-                    throw new CrateException(
+                    throw new UnhandledServerException(
                             String.format("unknown shard id %d on index '%s'",
                                     shardId, entry.getKey()));
                 } catch (Exception e) {
                     logger.error("Error while getting collector", e);
-                    throw new CrateException(e);
+                    throw new UnhandledServerException(e);
                 }
             }
         }

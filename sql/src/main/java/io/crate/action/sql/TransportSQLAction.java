@@ -24,27 +24,38 @@ package io.crate.action.sql;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
-import io.crate.exceptions.ExceptionHelper;
+import io.crate.exceptions.*;
 import io.crate.executor.*;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
+import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
+import org.elasticsearch.indices.IndexAlreadyExistsException;
+import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.indices.InvalidIndexNameException;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.RemoteTransportException;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 
 
@@ -85,7 +96,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             }
         } catch (Exception e) {
             logger.debug("Error executing SQLRequest", e);
-            listener.onFailure(ExceptionHelper.transformToCrateException(e));
+            listener.onFailure(buildSQLActionException(e));
         }
     }
 
@@ -101,13 +112,14 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                                 analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
                                 Constants.EMPTY_RESULT,
                                 rowCount == null ? SQLResponse.NO_ROW_COUNT : rowCount,
-                                request.creationTime()));
+                                request.creationTime())
+                );
             }
 
             @Override
             public void onFailure(Throwable t) {
                 logger.debug("Error processing non data SQLRequest", t);
-                listener.onFailure(ExceptionHelper.transformToCrateException(t));
+                listener.onFailure(buildSQLActionException(t));
             }
         });
     }
@@ -178,9 +190,98 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             @Override
             public void onFailure(Throwable t) {
                 logger.debug("Error processing SQLRequest", t);
-                listener.onFailure(ExceptionHelper.transformToCrateException(t));
+                listener.onFailure(buildSQLActionException(t));
             }
         });
+    }
+
+    /**
+     * Returns the cause throwable of a {@link org.elasticsearch.transport.RemoteTransportException}
+     * and {@link org.elasticsearch.action.search.ReduceSearchPhaseException}.
+     * Also transform throwable to {@link io.crate.exceptions.CrateException}.
+     *
+     * @param e
+     * @return
+     */
+    public Throwable esToCrateException(Throwable e) {
+        if (e instanceof RemoteTransportException || e instanceof UncheckedExecutionException) {
+            // if its a transport exception get the real cause throwable
+            e = e.getCause();
+        }
+        if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
+            return new SQLParseException(e.getMessage(), (Exception)e);
+        } else if (e instanceof UnsupportedOperationException) {
+            return new UnsupportedFeatureException(e.getMessage());
+        } else if (e instanceof DocumentAlreadyExistsException) {
+            return new DuplicateKeyException(
+                    "A document with the same primary key exists already", e);
+        } else if (e instanceof IndexAlreadyExistsException) {
+            return new TableAlreadyExistsException(((IndexAlreadyExistsException)e).index().name(), e);
+        } else if ((e instanceof InvalidIndexNameException)) {
+            if (e.getMessage().contains("already exists as alias")) {
+                // treat an alias like a table as aliases are not officially supported
+                return new TableAlreadyExistsException(((InvalidIndexNameException)e).index().getName(),
+                        e);
+            }
+            return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
+        } else if (e instanceof IndexMissingException) {
+            return new TableUnknownException(((IndexMissingException)e).index().name(), e);
+        } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {
+            /**
+             * For update or search requests we use upstream ES SearchRequests
+             * These requests are executed using the transportSearchAction.
+             *
+             * The transportSearchAction (or the more specific QueryThenFetch/../ Action inside it
+             * executes the TransportSQLAction.SearchResponseListener onResponse/onFailure
+             * but adds its own error handling around it.
+             * By doing so it wraps every exception raised inside our onResponse in its own ReduceSearchPhaseException
+             * Here we unwrap it to get the original exception.
+             */
+            return e.getCause();
+        }
+        return e;
+    }
+
+    /**
+     * Create a {@link io.crate.action.sql.SQLActionException} out of a {@link java.lang.Throwable}.
+     * If concrete {@link org.elasticsearch.ElasticsearchException} is found, first transform it
+     * to a {@link io.crate.exceptions.CrateException}
+     *
+     * @param e
+     * @return
+     */
+    public SQLActionException buildSQLActionException(Throwable e) {
+        if (e instanceof SQLActionException) {
+            return (SQLActionException) e;
+        }
+        e = esToCrateException(e);
+
+        int errorCode = 5000;
+        RestStatus restStatus = RestStatus.INTERNAL_SERVER_ERROR;
+        String message = e.getMessage();
+        StringWriter stackTrace = new StringWriter();
+        e.printStackTrace(new PrintWriter(stackTrace));
+
+        if (e instanceof CrateException) {
+            CrateException crateException = (CrateException)e;
+            if (e instanceof ValidationException) {
+                errorCode = 4000 + crateException.errorCode();
+                restStatus = RestStatus.BAD_REQUEST;
+            } else if (e instanceof ResourceUnknownException) {
+                errorCode = 4040 + crateException.errorCode();
+                restStatus = RestStatus.NOT_FOUND;
+            } else if (e instanceof ConflictException) {
+                errorCode = 4090 + crateException.errorCode();
+                restStatus = RestStatus.CONFLICT;
+            } else if (e instanceof UnhandledServerException) {
+                errorCode = 5000 + crateException.errorCode();
+            }
+        } else if (e instanceof ParsingException) {
+            errorCode = 4000;
+            restStatus = RestStatus.BAD_REQUEST;
+        }
+
+        return new SQLActionException(message, errorCode, restStatus, stackTrace.toString());
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {

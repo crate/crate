@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.doc;
 
-import io.crate.exceptions.CrateException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
@@ -75,7 +75,7 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
             case INTEGER:
                 return new IntegerColumnReference(colName);
             default:
-                throw new CrateException(String.format("unsupported type '%s'", referenceInfo.type().getName()));
+                throw new UnhandledServerException(String.format("unsupported type '%s'", referenceInfo.type().getName()));
         }
     }
 }

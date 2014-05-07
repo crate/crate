@@ -24,8 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
-import io.crate.exceptions.CrateException;
-import io.crate.exceptions.ValidationException;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -168,7 +167,7 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
             try {
                 valuesSymbol = context.normalizeInputForReference(valuesSymbol, column);
             } catch (IllegalArgumentException|UnsupportedOperationException e) {
-                throw new ValidationException(column.info().ident().columnIdent().fqn(), e);
+                throw new ColumnValidationException(column.info().ident().columnIdent().fqn(), e);
             }
 
 
@@ -220,7 +219,7 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
                 }
             } catch (ClassCastException e) {
                 // symbol is no input
-                throw new CrateException(String.format("invalid value '%s' in insert statement", valuesSymbol.toString()));
+                throw new ColumnValidationException(columnName, String.format("invalid value '%s' in insert statement", valuesSymbol.toString()));
             }
 
             i++;

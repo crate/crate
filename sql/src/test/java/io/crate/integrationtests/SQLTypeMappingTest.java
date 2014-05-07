@@ -22,12 +22,9 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.SQLParseException;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.ValidationException;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.client.Client;
 import org.junit.Rule;
@@ -174,7 +171,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @SuppressWarnings("unchecked")
     public void testInsertObjectField() throws Exception {
 
-        expectedException.expect(SQLParseException.class);
+        expectedException.expect(SQLActionException.class);
 
         setUpObjectTable();
         execute("insert into test12 (object_field['size']) values (127)");
@@ -184,7 +181,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidInsertIntoObject() throws Exception {
 
-        expectedException.expect(ValidationException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Validation failed for object_field.created: Invalid timestamp");
 
         setUpObjectTable();
@@ -204,7 +201,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidWhereClause() throws Exception {
 
-        expectedException.expect(SQLParseException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("invalid byte literal 129");
 
         setUpSimple();
@@ -213,7 +210,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
-        expectedException.expect(SQLParseException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("invalid IN LIST value 'a'. expected type 'byte'");
 
         setUpSimple();
@@ -339,7 +336,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertNewColumnToStrictObject() throws Exception {
 
-        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column 'strict_field.another_new_col' unknown");
 
         setUpObjectTable();
@@ -419,7 +416,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUnknownTypesSelectGlobalAggregate() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("unknown function: arbitrary(null)");
 
         this.setup.setUpObjectMappingWithUnknownTypes();
@@ -428,7 +425,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUnknownTypesSelectGroupBy() throws Exception {
-        expectedException.expect(SQLParseException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("unknown column 'ut.location' not allowed in GROUP BY");
 
         this.setup.setUpObjectMappingWithUnknownTypes();

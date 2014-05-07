@@ -22,12 +22,10 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.core.NumberOfReplicas;
-import io.crate.exceptions.CrateException;
-import io.crate.exceptions.SQLParseException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import org.junit.Before;
@@ -145,7 +143,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         assertEquals(9, response.cols().length);
     }
 
-    @Test(expected = UnsupportedFeatureException.class)
+    @Test(expected = SQLActionException.class)
     public void testSelectStarMatch() throws Exception {
         transportExecutor.exec("select * from sys.shards where match(table_name, 'characters')");
     }
@@ -220,18 +218,18 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testGroupByUnknownResultColumn() throws Exception {
-        expectedException.expect(SQLParseException.class);
+        expectedException.expect(SQLActionException.class);
         transportExecutor.exec("select lol from sys.shards group by table_name");
     }
 
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
-        expectedException.expect(CrateException.class);
+        expectedException.expect(SQLActionException.class);
         transportExecutor.exec("select max(num_docs) from sys.shards group by lol");
     }
 
     public void testGroupByUnknownOrderBy() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expect(SQLActionException.class);
         transportExecutor.exec(
             "select sum(num_docs), table_name from sys.shards group by table_name order by lol");
     }

@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
-public class VersionConflictException extends CrateException {
+public class VersionConflictException extends ConflictException {
 
     public VersionConflictException(Throwable e) {
         super(e);
@@ -31,11 +29,11 @@ public class VersionConflictException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4092;
+        return 2;
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.CONFLICT;
+    public Object[] args() {
+        return new Object[0];
     }
 }

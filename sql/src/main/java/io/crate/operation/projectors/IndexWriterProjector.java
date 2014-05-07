@@ -26,7 +26,7 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.Id;
 import io.crate.PartitionName;
-import io.crate.exceptions.CrateException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
@@ -243,7 +243,7 @@ public class IndexWriterProjector implements Projector {
                     if (!item.isFailed()) {
                         rowsImported.incrementAndGet();
                     } else {
-                        failure.set(new CrateException(item.getFailureMessage()));
+                        failure.set(new UnhandledServerException(item.getFailureMessage()));
                     }
                 }
             } else {

@@ -27,7 +27,7 @@ import com.google.common.collect.Sets;
 import io.crate.DataType;
 import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.WhereClause;
-import io.crate.exceptions.CrateException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -290,7 +290,7 @@ public class LocalDataCollectTest {
     @Test
     public void testWrongRouting() throws Exception {
 
-        expectedException.expect(CrateException.class);
+        expectedException.expect(UnhandledServerException.class);
         expectedException.expectMessage("unsupported routing");
 
         CollectNode collectNode = new CollectNode("wrong", new Routing(new HashMap<String, Map<String, Set<Integer>>>() {{
@@ -305,7 +305,7 @@ public class LocalDataCollectTest {
 
     @Test
     public void testCollectUnknownReference() throws Throwable {
-        expectedException.expect(CrateException.class);
+        expectedException.expect(UnhandledServerException.class);
         expectedException.expectMessage("Unknown Reference");
 
         CollectNode collectNode = new CollectNode("unknown", testRouting);

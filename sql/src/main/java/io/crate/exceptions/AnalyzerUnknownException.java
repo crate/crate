@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
-public class AnalyzerUnknownException extends CrateException {
+public class AnalyzerUnknownException extends ResourceUnknownException {
 
     private String analyzerName;
 
@@ -39,12 +37,7 @@ public class AnalyzerUnknownException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4042;
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.NOT_FOUND;
+        return 2;
     }
 
     @Override

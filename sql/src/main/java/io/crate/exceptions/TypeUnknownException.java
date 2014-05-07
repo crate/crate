@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
-public class TypeUnknownException extends CrateException {
+public class TypeUnknownException extends ResourceUnknownException implements CrateException {
     private final String type;
 
     public TypeUnknownException(String type, Throwable e) {
@@ -38,12 +36,7 @@ public class TypeUnknownException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4044;
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+        return 4;
     }
 
     @Override

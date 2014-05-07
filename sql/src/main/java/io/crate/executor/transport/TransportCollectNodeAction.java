@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
-import io.crate.exceptions.CrateException;
 import io.crate.operation.collect.DistributingCollectOperation;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
@@ -87,7 +86,7 @@ public class TransportCollectNodeAction {
         return ThreadPool.Names.SEARCH;
     }
 
-    private ListenableActionFuture<NodeCollectResponse> nodeOperation(final NodeCollectRequest request) throws CrateException {
+    private ListenableActionFuture<NodeCollectResponse> nodeOperation(final NodeCollectRequest request) {
         final CollectNode node = request.collectNode();
         final ListenableFuture<Object[][]> collectResult;
         final PlainListenableActionFuture<NodeCollectResponse> collectResponse = new PlainListenableActionFuture<>(false, threadPool);
@@ -229,7 +228,7 @@ public class TransportCollectNodeAction {
                         }
                     }
                 });
-            } catch (CrateException e) {
+            } catch (Exception e) {
                 channel.sendResponse(e);
             }
         }

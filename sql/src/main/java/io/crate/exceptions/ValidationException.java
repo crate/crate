@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,36 +21,31 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
+public class ValidationException extends RuntimeException implements CrateException {
 
-import java.util.Locale;
-
-public class ValidationException extends CrateException {
-
-    private final String column;
-
-    public ValidationException(String column, String message) {
-        super(String.format(Locale.ENGLISH, "Validation failed for %s: %s", column, message));
-        this.column = column;
+    public ValidationException() {
     }
 
-    public ValidationException(String column, Throwable e) {
-        super(String.format(Locale.ENGLISH, "Validation failed for %s: %s", column, e.getMessage()));
-        this.column = column;
+    public ValidationException(String s) {
+        super(s);
+    }
+
+    public ValidationException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public ValidationException(Throwable cause) {
+        super(cause);
     }
 
     @Override
     public int errorCode() {
-        return 4003;
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+        return 0;
     }
 
     @Override
     public Object[] args() {
-        return new Object[]{column};
+        return new Object[0];
     }
+
 }

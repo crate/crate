@@ -24,8 +24,8 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.DataType;
 import io.crate.PartitionName;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
-import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
@@ -104,7 +104,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         analyze("update unknown set name='Prosser'");
     }
 
-    @Test( expected = ValidationException.class)
+    @Test( expected = ColumnValidationException.class)
     public void testUpdateSetColumnToColumnValue() throws Exception {
         analyze("update users set name=name");
     }
@@ -154,7 +154,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertThat(ref.info().ident().columnIdent().fqn(), is("details.arms"));
     }
 
-    @Test( expected = ValidationException.class)
+    @Test( expected = ColumnValidationException.class)
     public void testUpdateAssignmentWrongType() throws Exception {
         analyze("update users set other_id='String'");
     }

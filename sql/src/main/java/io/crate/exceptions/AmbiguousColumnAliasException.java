@@ -21,24 +21,22 @@
 
 package io.crate.exceptions;
 
-public class SchemaUnknownException extends ResourceUnknownException {
+public class AmbiguousColumnAliasException extends ValidationException {
 
-    private static final String MESSAGE_TMPL = "unknown schema '%s'";
+    private final String alias;
 
-    private final String schema;
-
-    public SchemaUnknownException(String schema) {
-        super(String.format(MESSAGE_TMPL, schema));
-        this.schema = schema;
+    public AmbiguousColumnAliasException(String alias) {
+        super(String.format("Column alias \"%s\" is ambiguous", alias));
+        this.alias = alias;
     }
 
     @Override
     public int errorCode() {
-        return 5;
+        return 6;
     }
 
     @Override
     public Object[] args() {
-        return new Object[]{schema};
+        return new Object[]{alias};
     }
 }
