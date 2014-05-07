@@ -1,4 +1,4 @@
-
+.. highlight:: psql
 .. _aggregation:
 
 ===========
@@ -87,6 +87,8 @@ of distinct values in this column that are not ``NULL``::
     +----------------------+----------+---------------+
      SELECT 3 rows in set (... sec)
 
+::
+
     cr> select count(distinct kind) from locations;
     +----------------------+
     | count(DISTINCT kind) |
@@ -112,6 +114,7 @@ Example::
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 
+::
 
     cr> select min(date) from locations;
     +--------------+
@@ -153,6 +156,7 @@ Some Examples::
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 
+::
 
     cr> select max(position) from locations;
     +---------------+
@@ -162,6 +166,7 @@ Some Examples::
     +---------------+
     SELECT 1 row in set (... sec)
 
+::
 
     cr> select max(name), kind from locations group by kind order by max(name) desc;
     +-------------------+-------------+
@@ -193,6 +198,8 @@ as a double value. Its single argument is the column name of a numeric column or
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 
+::
+
     cr> select sum(position) as position_sum from locations;
     +--------------+
     | position_sum |
@@ -200,6 +207,8 @@ as a double value. Its single argument is the column name of a numeric column or
     | 38.0         |
     +--------------+
     SELECT 1 row in set (... sec)
+
+::
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
     SQLActionException[unknown function: sum(string)]
@@ -243,6 +252,8 @@ Example::
     | ...                 |
     +---------------------+
     SELECT 1 row in set (... sec)
+
+::
 
     cr> select arbitrary(name), kind from locations
     ... where name != ''

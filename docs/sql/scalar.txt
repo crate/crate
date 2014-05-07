@@ -1,5 +1,5 @@
-
 .. _scalar:
+.. highlight:: psql
 
 ================
 Scalar Functions
@@ -99,6 +99,8 @@ arguments and returns a formatted string::
     | doc.locations                            |
     +------------------------------------------+
     SELECT 1 row in set (... sec)
+
+::
 
     cr> select format('%tY', date) from locations group by format('%tY', date);
     +---------------------+

@@ -1,3 +1,5 @@
+.. highlight:: psql
+
 ===============
 CREATE ANALYZER
 ===============
@@ -7,12 +9,12 @@ Define a new fulltext analyzer.
 Synopsis
 ========
 
-.. code-block:: sql
+::
 
     CREATE ANALYZER analyzer_name EXTENDS parent_analyzer_name
         WITH ( override_parameter [= value] [, ... ] )
 
-.. code-block:: sql
+::
 
     CREATE ANALYZER analyzer_name (
         [ TOKENIZER tokenizer_name
