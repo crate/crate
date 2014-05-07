@@ -1,2 +1,1 @@
-sphinxcontrib-plantuml==0.4
 crate-docs-theme
