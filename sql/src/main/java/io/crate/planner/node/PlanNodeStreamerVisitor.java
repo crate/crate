@@ -210,9 +210,6 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
             case GROUP:
                 aggregations = ((GroupProjection)projection).values();
                 break;
-            case COLUMN:
-                aggregations = ImmutableList.of();
-                break;
             case AGGREGATION:
                 aggregations = ((AggregationProjection)projection).aggregations();
                 break;

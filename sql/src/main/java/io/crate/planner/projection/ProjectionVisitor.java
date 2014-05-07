@@ -50,11 +50,6 @@ public class ProjectionVisitor<C, R> {
         return visitProjection(projection, context);
     }
 
-    public R visitColumnProjection(ColumnProjection projection, C context) {
-        return visitProjection(projection, context);
-    }
-
-
     public R visitAggregationProjection(AggregationProjection projection, C context) {
         return visitProjection(projection, context);
     }

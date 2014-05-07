@@ -60,11 +60,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
     }
 
     @Override
-    public Projector visitColumnProjection(ColumnProjection projection, Void context) {
-        return super.visitColumnProjection(projection, context);
-    }
-
-    @Override
     public Projector visitTopNProjection(TopNProjection projection, Void context) {
         Projector projector;
         List<Input<?>> inputs = new ArrayList<>();
