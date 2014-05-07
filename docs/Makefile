@@ -19,6 +19,9 @@ bin/buildout:
 sphinx: buildout
 	./bin/sphinx
 
+test: buildout
+	./bin/test
+
 clean:
 	rm -rf out/
 
