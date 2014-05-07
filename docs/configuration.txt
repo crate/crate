@@ -1,3 +1,6 @@
+.. highlight:: sh
+
+=============
 Configuration
 =============
 
@@ -22,6 +25,8 @@ For example, configuring the cluster name by using system properties
 will work this way::
 
  sh$ ./bin/crate -Des.cluster.name=cluster
+
+.. highlight:: yaml
 
 This is exactly the same as setting the cluster name in the config
 file::

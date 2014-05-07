@@ -1,3 +1,5 @@
+.. highlight:: psql
+
 ==============
 Querying Crate
 ==============
@@ -368,6 +370,8 @@ Some Examples::
     +----------+
     SELECT 1 row in set (... sec)
 
+::
+
     cr> select count(*) from locations where kind='Planet';
     +----------+
     | count(*) |
@@ -375,6 +379,8 @@ Some Examples::
     | 5        |
     +----------+
     SELECT 1 row in set (... sec)
+
+::
 
     cr> select count(name), count(*) from locations;
     +-------------+----------+
@@ -384,6 +390,8 @@ Some Examples::
     +-------------+----------+
     SELECT 1 row in set (... sec)
 
+::
+
     cr> select max(name) from locations;
     +-------------------+
     | max(name)         |
@@ -392,6 +400,8 @@ Some Examples::
     +-------------------+
     SELECT 1 row in set (... sec)
 
+::
+
     cr> select min(date) from locations;
     +--------------+
     | min(date)    |
@@ -399,6 +409,8 @@ Some Examples::
     | 308534400000 |
     +--------------+
     SELECT 1 row in set (... sec)
+
+::
 
     cr> select count(*), kind from locations group by kind order by kind asc;
     +----------+-------------+
@@ -410,6 +422,8 @@ Some Examples::
     +----------+-------------+
     SELECT 3 rows in set (... sec)
 
+::
+
     cr> select max(position), kind from locations group by kind order by max(position) desc;
     +---------------+-------------+
     | max(position) | kind        |
@@ -419,6 +433,8 @@ Some Examples::
     | 4             | Star System |
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
+
+::
 
     cr> select min(name), kind from locations group by kind order by min(name) asc;
     +------------------------------------+-------------+
@@ -430,6 +446,8 @@ Some Examples::
     +------------------------------------+-------------+
     SELECT 3 rows in set (... sec)
 
+::
+
     cr> select count(*), min(name), kind from locations group by kind order by kind;
     +----------+------------------------------------+-------------+
     | count(*) | min(name)                          | kind        |
@@ -439,6 +457,8 @@ Some Examples::
     | 4        | Aldebaran                          | Star System |
     +----------+------------------------------------+-------------+
     SELECT 3 rows in set (... sec)
+
+::
 
     cr> select sum(position) as sum_positions, kind from locations group by kind order by sum_positions;
     +---------------+-------------+
@@ -667,6 +687,8 @@ Importing data
 Using the ``COPY FROM`` SQL statement, data can be imported into Crate.
 Currently the only supported data format is JSON, one line is representing one entry.
 
+.. highlight:: json
+
 Example JSON data::
 
     {"id": 1, "quote": "Don't panic"}
@@ -683,6 +705,8 @@ Example JSON data::
 
 Import from File URI
 --------------------
+
+.. highlight:: psql
 
 An example import from a file URI::
 
@@ -721,6 +745,9 @@ the table and shard id with gzip compression::
 
     cr> refresh table quotes;
     REFRESH OK...
+
+::
+
     cr> copy quotes to DIRECTORY '/tmp/' with (compression='gzip');
     COPY OK, 3 rows affected ...
 

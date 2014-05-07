@@ -1,4 +1,5 @@
 .. _partitioned-tables:
+.. highlight:: psql
 
 ==================
 Partitioned Tables
@@ -56,6 +57,8 @@ recognizable as partitioned table by a non null ``partitioned_by`` column::
     +-------------+--------------+------------------+--------------------+--------------+----------------+
     SELECT 1 row in set (... sec)
 
+::
+
     cr> SELECT * FROM information_schema.columns
     ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
     ... ORDER BY schema_name, table_name, column_name;
@@ -96,6 +99,8 @@ Insert
     ... values (1, 'Don''t Panic', 19.5, '2014-04-08');
     INSERT OK, 1 row affected (... sec)
 
+::
+
     cr> SELECT partition_ident, "values" FROM information_schema.table_partitions
     ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
     ... ORDER BY partition_ident;
@@ -113,8 +118,12 @@ no additional partition is created::
     ... values (2, 'Time is an illusion, lunchtime doubly so', 0.7, '2014-04-08');
     INSERT OK, 1 row affected (... sec)
 
+::
+
     cr> REFRESH TABLE parted_table;
     REFRESH OK (... sec)
+
+::
 
     cr> SELECT partition_ident, "values" FROM information_schema.table_partitions
     ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
@@ -139,12 +148,18 @@ atomic operation and could lead to inconsistent state::
     ... WHERE id=1;
     SQLParseException[Updating a partitioned-by column is currently not supported]; ...
 
+::
+
     cr> UPDATE parted_table set content='now panic!'
     ... WHERE id=2;
     UPDATE OK, 1 row affected (... sec)
 
+::
+
     cr> REFRESH TABLE parted_table;
     REFRESH OK (... sec)
+
+::
 
     cr> SELECT * from parted_table WHERE id=2;
     +------------+---------------+----+------------------------------------------+-------+
@@ -163,6 +178,8 @@ matching document, which is a lot faster::
 
     cr> delete from parted_table where day=1396915200000;
     DELETE OK, 0 rows affected (... sec)
+
+::
 
     cr> SELECT count(*) as partition_count FROM information_schema.table_partitions
     ... WHERE schema_name = 'doc' AND table_name = 'parted_table'

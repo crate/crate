@@ -1,3 +1,4 @@
+.. highlight:: psql
 .. _sql_ref_refresh:
 
 =======
@@ -9,7 +10,7 @@ Refresh a table explicitly.
 Synopsis
 ========
 
-.. code-block:: sql
+::
 
     REFRESH TABLE table_ident [PARTITION partition_ident]
 

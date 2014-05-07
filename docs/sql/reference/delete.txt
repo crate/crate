@@ -1,3 +1,5 @@
+.. highlight:: psql
+
 ======
 DELETE
 ======
@@ -7,7 +9,7 @@ Delete rows of a table
 Synopsis
 ========
 
-.. code-block:: sql
+::
 
     DELETE FROM table_ident [ [AS] table_alias ] [ WHERE condition ]
 

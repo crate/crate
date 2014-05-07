@@ -1,3 +1,4 @@
+.. highlight:: psql
 .. _sql_ddl:
 
 ========================
@@ -75,6 +76,8 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
     ... );
     CREATE OK (... sec)
 
+::
+
     cr> drop table my_bool_table;
     DROP OK (... sec)
 
@@ -126,17 +129,27 @@ fractions. Example::
     ... );
     CREATE OK (... sec)
 
+::
+
     cr> insert into my_table4 (id, first_column) values (0, '1970-01-01T00:00:00');
     INSERT OK, 1 row affected (... sec)
+
+::
 
     cr> insert into my_table4 (id, first_column) values (1, '1970-01-01T00:00:00+0100');
     INSERT OK, 1 row affected (... sec)
 
+::
+
     cr> insert into my_table4 (id, first_column) values (2, 0);
     INSERT OK, 1 row affected (... sec)
 
+::
+
     cr> insert into my_table4 (id, first_column) values (3, 1.0);
     INSERT OK, 1 row affected (... sec)
+
+::
 
     cr> insert into my_table4 (id, first_column) values (3, 'wrong');
     ValidationException[Validation failed for first_column: wrong type 'string'. expected: 'timestamp']
@@ -241,6 +254,8 @@ same name. The first value added does not determine what you can add further,
 like with ``dynamic`` objects.
 An object configured like this will simply accept and return the columns inserted into it,
 but otherwise ignore them.
+
+::
 
     cr> create table my_table15 (
     ...   title string,

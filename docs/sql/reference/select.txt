@@ -1,3 +1,5 @@
+.. highlight:: psql
+
 ======
 SELECT
 ======
@@ -7,15 +9,15 @@ Retrieve rows from a table.
 Synopsis
 ========
 
-.. code-block:: sql
+::
 
-   SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
-     FROM table_ident [ [AS] table_alias ]
-     [ WHERE condition ]
-     [ GROUP BY expression [, ...] ]
-     [ ORDER BY expression [ ASC | DESC ] [, ...] ]
-     [ LIMIT num_results ]
-     [ OFFSET start ]
+    SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
+      FROM table_ident [ [AS] table_alias ]
+      [ WHERE condition ]
+      [ GROUP BY expression [, ...] ]
+      [ ORDER BY expression [ ASC | DESC ] [, ...] ]
+      [ LIMIT num_results ]
+      [ OFFSET start ]
 
 
 Description
@@ -56,7 +58,7 @@ The SELECT list specifies expressions that form the output rows of the
 SELECT statement. The expressions can (and usually do) refer to
 columns computed in the FROM clause.
 
-.. code-block:: sql
+::
 
     SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
 
@@ -87,9 +89,7 @@ columns' names.
 FROM Clause
 -----------
 
-The FROM clause specifies the source table for the SELECT:
-
-.. code-block:: sql
+The FROM clause specifies the source table for the SELECT::
 
     FROM table_ident [ [AS] table_alias ]
 
@@ -105,9 +105,7 @@ WHERE Clause
 ------------
 
 The optional WHERE clause defines the condition to be met for a row to
-be returned:
-
-.. code-block:: sql
+be returned::
 
     WHERE condition
 
@@ -127,7 +125,7 @@ selected rows that share the same values for the grouped expressions.
 Aggregate expressions, if any are used, are computed across all rows
 making up each group, producing a separate value for each group.
 
-.. code-block:: sql
+::
 
     GROUP BY expression [, ...]
 
@@ -148,9 +146,9 @@ ORDER BY Clause
 ---------------
 
 The ORDER BY clause causes the result rows to be sorted according to
-the specified expression(s). :
+the specified expression(s).
 
-.. code-block:: sql
+::
 
     ORDER BY expression [ ASC | DESC ] [, ...]
 
@@ -174,9 +172,7 @@ Character-string data is sorted by its UTF-8 representation.
 LIMIT Clause
 ------------
 
-The optional LIMIT Clause allows to limit the number or retured result rows:
-
-.. code-block:: sql
+The optional LIMIT Clause allows to limit the number or retured result rows::
 
     LIMIT num_results
 
@@ -193,9 +189,7 @@ The optional LIMIT Clause allows to limit the number or retured result rows:
 OFFSET Clause
 -------------
 
-The optional OFFSET Clause allows to skip result rows at the beginning:
-
-.. code-block:: sql
+The optional OFFSET Clause allows to skip result rows at the beginning::
 
     OFFSET start
 

@@ -1,5 +1,5 @@
-
 .. _information_schema:
+.. highlight:: psql
 
 ==================
 Information Schema
@@ -144,8 +144,14 @@ For further information see :ref:`sql_ddl_partitioned_by`.
 
     cr> create table a_partitioned_table (id int, content string) partitioned by (content)
     CREATE OK (... sec)
+
+::
+
     cr> insert into a_partitioned_table (id, content) values (1, 'content_a')
     INSERT OK, 1 row affected (... sec)
+
+::
+
     cr> insert into a_partitioned_table (id, content) values (2, 'content_b')
     INSERT OK, 1 row affected (... sec)
 

@@ -1,3 +1,4 @@
+.. highlight:: psql
 .. _copy_from:
 
 =========
@@ -9,7 +10,7 @@ Copy data from files into a table.
 Synopsis
 ========
 
-.. code-block:: sql
+::
 
     COPY table_ident FROM uri [ WITH ( option = value [, ...] ) ]
 
@@ -53,7 +54,9 @@ avoid duplicate imports.
 s3
 --
 
-Can be used to access buckets on the Amazon AWS S3 Service::
+Can be used to access buckets on the Amazon AWS S3 Service:
+
+.. code-block:: text
 
     s3://[<accesskey>:<secretkey>]@<bucketname>/<path>
 
@@ -81,7 +84,7 @@ WITH Clause
 
 The optional ``WITH`` clause can specify options for the COPY FROM statement.
 
-.. code-block:: sql
+::
 
     [ WITH ( option = value [, ...] ) ]
 
