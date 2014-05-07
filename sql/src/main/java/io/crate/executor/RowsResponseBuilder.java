@@ -23,14 +23,12 @@ package io.crate.executor;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
-import org.apache.lucene.util.BytesRef;
 import io.crate.DataType;
 import io.crate.action.sql.SQLResponse;
-import org.elasticsearch.common.collect.HppcMaps;
+import org.apache.lucene.util.BytesRef;
 
-import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Set;
 
 public class RowsResponseBuilder implements ResponseBuilder {
@@ -84,22 +82,26 @@ public class RowsResponseBuilder implements ResponseBuilder {
             for (IntCursor stringCollectionColumn : stringCollectionColumns) {
                 Object value = rows[r][stringCollectionColumn.value];
                 if (value != null) {
+                    Iterator<BytesRef> iter = null;
+                    int size;
                     if (value instanceof Set) {
-                        rows[r][stringCollectionColumn.value] = Collections2.transform((Set<BytesRef>) value, new Function<BytesRef, String>() {
-                            @Nullable
-                            @Override
-                            public String apply(@Nullable BytesRef input) {
-                                return input == null ? null : input.utf8ToString();
-                            }
-                        });
+                        Set<BytesRef> bytesRefSet = ((Set<BytesRef>) value);
+                        iter = bytesRefSet.iterator();
+                        size = bytesRefSet.size();
                     } else if (value instanceof BytesRef[]) {
-                        BytesRef[] values = (BytesRef[]) value;
-                        String[] valuesString = new String[values.length];
-                        for (int i = 0; i < values.length; i++) {
-                            valuesString[i] = values[i] == null ? null : values[i].utf8ToString();
-                        }
-                        rows[r][stringCollectionColumn.value] = valuesString;
+                        BytesRef[] bytesRefArray = (BytesRef[])value;
+                        iter = Arrays.asList(bytesRefArray).iterator();
+                        size = bytesRefArray.length;
+                    } else {
+                        return;
                     }
+
+                    String[] valuesString = new String[size];
+                    for (int i = 0; i < size; i++) {
+                        BytesRef bytesRef = iter.next();
+                        valuesString[i] = bytesRef == null ? null : bytesRef.utf8ToString();
+                    }
+                    rows[r][stringCollectionColumn.value] = valuesString;
                 }
             }
         }

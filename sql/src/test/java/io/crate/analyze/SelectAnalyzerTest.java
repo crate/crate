@@ -333,9 +333,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testOrderByOnAlias() throws Exception {
-        SelectAnalysis analyze = (SelectAnalysis) analyze("select load as l from sys.nodes order by l");
+        SelectAnalysis analyze = (SelectAnalysis) analyze("select cluster_name as name from sys.cluster order by name");
         assertThat(analyze.outputNames().size(), is(1));
-        assertThat(analyze.outputNames().get(0), is("l"));
+        assertThat(analyze.outputNames().get(0), is("name"));
 
         assertTrue(analyze.isSorted());
         assertThat(analyze.sortSymbols().size(), is(1));
@@ -1133,4 +1133,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select * from users as u where doc.users.awesome = true");
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void testOrderByOnArray() throws Exception {
+        analyze("select * from users order by friends");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testOrderByOnObject() throws Exception {
+        analyze("select * from sys.nodes order by load");
+    }
 }

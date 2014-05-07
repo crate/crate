@@ -25,33 +25,38 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.transport.TransportService;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0)
+import static org.hamcrest.CoreMatchers.instanceOf;
+
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class CrateClientTest extends CrateIntegrationTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
+    private CrateClient client;
+
+    @Before
+    public void prepare() {
+        int port = ((InetSocketTransportAddress) cluster()
+                .getInstance(TransportService.class)
+                .boundAddress().boundAddress()).address().getPort();
+        client = new CrateClient("localhost:" + port);
+    }
+
     @Test
     public void testCreateClient() throws Exception {
-
-        String nodeName = cluster().startNode();
-
-        int port = ((InetSocketTransportAddress) cluster()
-            .getInstance(TransportService.class)
-            .boundAddress().boundAddress()).address().getPort();
-
-        client(nodeName).prepareIndex("test", "default", "1")
+        client().prepareIndex("test", "default", "1")
             .setRefresh(true)
             .setSource("{}")
             .execute()
             .actionGet();
 
-        CrateClient client = new CrateClient("localhost:" +  port);
         SQLResponse r = client.sql("select \"_id\" from test").actionGet();
 
         assertEquals(1, r.rows().length);
@@ -64,4 +69,13 @@ public class CrateClientTest extends CrateIntegrationTest {
         }
 
     }
+
+    @Test
+    public void testSetSerialization() throws Exception {
+        SQLResponse r = client.sql("select constraint_name " +
+                "from information_schema.table_constraints").actionGet();
+        assertTrue(r.rows()[0][0] instanceof Object[]);
+        assertThat(((Object[]) r.rows()[0][0])[0], instanceOf(String.class));
+    }
+
 }

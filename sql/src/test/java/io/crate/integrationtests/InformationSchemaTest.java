@@ -32,7 +32,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.Collection;
 import java.util.HashMap;
 
 import static org.hamcrest.Matchers.arrayContaining;
@@ -245,13 +244,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), arrayContaining("schema_name", "table_name", "constraint_name",
                 "constraint_type"));
         assertThat(dotJoiner.join(response.rows()[0][0], response.rows()[0][1]), is("information_schema.columns"));
-        assertThat(commaJoiner.join((Collection<?>)response.rows()[0][2]), is("schema_name, table_name, column_name"));
+        assertThat(commaJoiner.join((String[])response.rows()[0][2]), is("schema_name, table_name, column_name"));
         assertThat(dotJoiner.join(response.rows()[1][0], response.rows()[1][1]), is("information_schema.tables"));
-        assertThat(commaJoiner.join((Collection<?>)response.rows()[1][2]), is("schema_name, table_name"));
+        assertThat(commaJoiner.join((String[])response.rows()[1][2]), is("schema_name, table_name"));
         assertThat(dotJoiner.join(response.rows()[2][0], response.rows()[2][1]), is("sys.nodes"));
-        assertThat(commaJoiner.join((Collection<?>)response.rows()[2][2]), is("id"));
+        assertThat(commaJoiner.join((String[])response.rows()[2][2]), is("id"));
         assertThat(dotJoiner.join(response.rows()[3][0], response.rows()[3][1]), is("sys.shards"));
-        assertThat(commaJoiner.join((Collection<?>)response.rows()[3][2]), is("schema_name, table_name, id, partition_ident"));
+        assertThat(commaJoiner.join((String[])response.rows()[3][2]), is("schema_name, table_name, id, partition_ident"));
 
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
@@ -259,7 +258,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "table_name from information_schema.table_constraints where schema_name='doc'");
         assertEquals(1L, response.rowCount());
         assertEquals("PRIMARY_KEY", response.rows()[0][0]);
-        assertThat(commaJoiner.join((Collection<?>) response.rows()[0][1]), is("col1"));
+        assertThat(commaJoiner.join((String[]) response.rows()[0][1]), is("col1"));
         assertEquals("test", response.rows()[0][2]);
     }
 
@@ -271,7 +270,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 ".table_constraints where schema_name='doc'");
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
-        assertThat(commaJoiner.join((Collection<?>) response.rows()[0][1]), is("col1"));
+        assertThat(commaJoiner.join((String[]) response.rows()[0][1]), is("col1"));
 
         execute("create table test2 (col1a string primary key, col2a timestamp)");
         ensureGreen();
@@ -279,7 +278,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         assertEquals(2L, response.rowCount());
         assertEquals("test2", response.rows()[1][0]);
-        assertThat(commaJoiner.join((Collection<?>) response.rows()[1][1]), is("col1a"));
+        assertThat(commaJoiner.join((String[]) response.rows()[1][1]), is("col1a"));
     }
 
     @Test
