@@ -309,6 +309,13 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                                 "cannot use partitioned column %s in ORDER BY clause",
                                 symbol));
             }
+            if (symbol.info().type().isCompoundType()) {
+                throw new UnsupportedOperationException(
+                        String.format(Locale.ENGLISH,
+                                "cannot sort on columns of type '%s'",
+                                symbol.info().type().getName())
+                );
+            }
             return null;
         }
 
