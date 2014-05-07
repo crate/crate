@@ -92,7 +92,7 @@ Where to go from here?
 
 That is certainly not all Crate Data offers to you. To take a look at the
 documentation visit
-`https://crate.io/docs/stable/ <https://docs.crate.io/docs/stable/>`_.
+`https://crate.io/docs/stable/ <https://crate.io/docs/stable/>`_.
 
 Managing data
 -------------
