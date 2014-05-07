@@ -196,8 +196,8 @@ Writing Documentation
 The documentation is maintained under the ``docs`` directory and
 written in ReStructuredText_ and processed with Sphinx_.
 
-Normally the documentation is built upon the ``dist`` task. However if
-you work on the documentation it might be faster to run sphinx
+Normally the documentation is built by `Read the Docs`_.
+However if you work on the documentation you can run sphinx
 directly, which can be done by just running ``make`` in the ``docs``
 directory. The output can then be found in the ``out/html`` and
 ``out/text`` directories.
@@ -220,3 +220,5 @@ task is run as a dependency of the ``dist`` task.
 .. _`Oracle's Java`: http://www.java.com/en/download/help/mac_install.xml
 
 .. _OpenJDK: http://openjdk.java.net/projects/jdk7/
+
+.. _`Read the Docs`: http://readthedocs.org

@@ -90,11 +90,9 @@ frequently updated. If you want to enable the Testing repo on your server, set `
 Where to go from here?
 ======================
 
-That is certainly not all Crate Data offers to you. Take a look at the
-documentation found under the ``docs`` directory or visit
-`https://docs.crate.io/current/ <https://docs.crate.io/current/>`_. If you already installed
-Crate Data you can also use the documentation that was shipped with it and is available via
-`http://localhost:4200/_plugin/docs/ <http://localhost:4200/_plugin/docs/>`_.
+That is certainly not all Crate Data offers to you. To take a look at the
+documentation visit
+`https://crate.io/docs/stable/ <https://docs.crate.io/docs/stable/>`_.
 
 Managing data
 -------------
@@ -110,7 +108,7 @@ There are several different ways to manage data in Crate.
 
 - `Java client`_
 
-.. _Python client: https://crate.io/docs/clients/python/
+.. _Python client: https://crate.io/docs/projects/crate-python/stable/
 .. _GitHub: https://github.com/crate/crate-python/
 .. _pypi: https://pypi.python.org/pypi/crate/
 .. _Java client: https://crate.io/docs/clients/java/
