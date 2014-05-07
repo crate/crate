@@ -2,6 +2,11 @@
 Changes for Crate Data
 ======================
 
+Unreleased
+==========
+
+ - fix: transport serialization of set columns did not work correctly
+
 2014/05/05 0.36.3
 =================
 
