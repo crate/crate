@@ -21,12 +21,14 @@
 
 package io.crate.action.sql;
 
+import com.google.common.base.Objects;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 public class SQLRequest extends ActionRequest<SQLRequest> {
 
@@ -104,4 +106,11 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         out.writeVLong(creationTime);
     }
 
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("stmt", stmt)
+                .add("args", Arrays.asList(args))
+                .add("creationTime", creationTime).toString();
+    }
 }

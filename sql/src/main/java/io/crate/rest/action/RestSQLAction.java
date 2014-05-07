@@ -56,9 +56,8 @@ public class RestSQLAction extends BaseRestHandler {
                 throw new ElasticsearchException("missing request body");
             }
         } catch (Exception e) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("failed to parse sql request", e);
-            }
+            logger.debug("failed to parse sql request", e);
+
             try {
                 XContentBuilder builder = restContentBuilder(request);
                 channel.sendResponse(new XContentRestResponse(request, BAD_REQUEST, builder.startObject().field("error",
@@ -78,9 +77,7 @@ public class RestSQLAction extends BaseRestHandler {
                     // TODO: implement shard counts on response to set status properly
                     channel.sendResponse(new XContentRestResponse(request, RestStatus.OK, builder));
                 } catch (Exception e) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("failed to execute search (building response)", e);
-                    }
+                    logger.debug("failed to execute SQL (building response)", e);
                     onFailure(e);
                 }
             }

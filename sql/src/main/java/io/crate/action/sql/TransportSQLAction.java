@@ -72,7 +72,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
     @Override
     protected void doExecute(final SQLRequest request, final ActionListener<SQLResponse> listener) {
-        logger.trace("doExecute: " + request);
+        logger.debug("{}", request);
 
         try {
             Statement statement = SqlParser.createStatement(request.stmt());
@@ -84,6 +84,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 processNonData(analysis, request, listener);
             }
         } catch (Exception e) {
+            logger.debug("Error executing SQLRequest", e);
             listener.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
@@ -105,7 +106,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
             @Override
             public void onFailure(Throwable t) {
-                listener.onFailure(t);
+                logger.debug("Error processing non data SQLRequest", t);
+                listener.onFailure(ExceptionHelper.transformToCrateException(t));
             }
         });
     }
@@ -148,7 +150,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
-    private static void addResultCallback(final SQLRequest request,
+    private void addResultCallback(final SQLRequest request,
                                           final ActionListener<SQLResponse> listener,
                                           final String[] outputNames,
                                           final Plan plan,
@@ -175,6 +177,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
             @Override
             public void onFailure(Throwable t) {
+                logger.debug("Error processing SQLRequest", t);
                 listener.onFailure(ExceptionHelper.transformToCrateException(t));
             }
         });
