@@ -92,7 +92,6 @@ sourceSets {
         java {
             srcDir "src/main/java/io/crate/"
             include "action/sql/SQL*"
-            include "exceptions/**"
         }
     }
 }
