@@ -292,7 +292,6 @@ Array types are defined as follows::
     E.g. in the python client a python list can be used as an argument to the
     cursors execute method.
 
-
 .. _sql_ddl_sharding:
 
 Sharding

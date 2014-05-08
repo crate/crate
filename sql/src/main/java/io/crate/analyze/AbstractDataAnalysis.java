@@ -21,6 +21,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import io.crate.DataType;
 import io.crate.Id;
@@ -42,6 +43,13 @@ import java.util.*;
  * Holds information the analyzer has gathered about a statement.
  */
 public abstract class AbstractDataAnalysis extends Analysis {
+
+    protected static final Predicate<ReferenceInfo> HAS_OBJECT_ARRAY_PARENT = new Predicate<ReferenceInfo>() {
+        @Override
+        public boolean apply(@Nullable ReferenceInfo input) {
+            return input != null && input.type().equals(DataType.OBJECT_ARRAY);
+        }
+    };
 
     protected final EvaluatingNormalizer normalizer;
     private boolean onlyScalarsAllowed;
@@ -168,7 +176,48 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     @Nullable
     public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
-        return referenceInfos.getReferenceInfo(ident);
+        ReferenceInfo info = referenceInfos.getReferenceInfo(ident);
+        if (info != null &&
+                !info.ident().isColumn() &&
+                hasMatchingParent(info, HAS_OBJECT_ARRAY_PARENT)) {
+            if (info.type().isCollectionType()) {
+                // TODO: remove this limitation with next type refactoring
+                throw new UnsupportedOperationException(
+                        "cannot query for arrays inside object arrays explicitly");
+            }
+
+            // for child fields of object arrays
+            // return references of primitive types as arrays
+            info = ReferenceInfo.builder()
+                    .ident(info.ident())
+                    .objectType(info.objectType())
+                    .granularity(info.granularity())
+                    .type(info.type().arrayType())
+                    .build();
+        }
+
+        return info;
+    }
+
+    /**
+     * return true if the given {@linkplain com.google.common.base.Predicate}
+     * returns true for a parent column of this one.
+     * returns false if info has no parent column.
+     * @param info
+     * @param parentMatchPredicate
+     * @return
+     */
+    protected boolean hasMatchingParent(ReferenceInfo info,
+                              Predicate<ReferenceInfo> parentMatchPredicate) {
+        ColumnIdent parent = info.ident().columnIdent().getParent();
+        while (parent != null) {
+            ReferenceInfo parentInfo = table.getColumnInfo(parent);
+            if (parentMatchPredicate.apply(parentInfo)) {
+                return true;
+            }
+            parent = parent.getParent();
+        }
+        return false;
     }
 
     public FunctionInfo getFunctionInfo(FunctionIdent ident) {

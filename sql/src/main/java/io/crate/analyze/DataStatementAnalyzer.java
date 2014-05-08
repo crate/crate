@@ -309,8 +309,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                             arguments.get(0))
             );
         } else if (argumentTypes.get(0).elementType().equals(DataType.OBJECT)) {
-            // TODO: remove this artificial limitation in general
-            throw new IllegalArgumentException("ANY_OF on object arrays is not supported");
+            throw new IllegalArgumentException("ANY on object arrays is not supported");
         }
 
         // check that left type is element type of right array expression

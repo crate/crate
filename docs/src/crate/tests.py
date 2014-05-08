@@ -79,6 +79,11 @@ def setUpLocations(test):
           race object(dynamic) as (
             interests array(string)
           ),
+          informations array(object as (
+              population long,
+              evolution_level short
+            )
+          ),
           index name_description_ft using fulltext(name, description) with (analyzer='english')
         ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
     cmd.onecmd("delete from locations")

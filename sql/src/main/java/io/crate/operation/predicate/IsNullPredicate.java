@@ -21,6 +21,9 @@
 
 package io.crate.operation.predicate;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -29,20 +32,31 @@ import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
-import io.crate.DataType;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 
 public class IsNullPredicate<T> implements Scalar<Boolean, T> {
+
+    private static final Predicate<DataType> IS_OBJECT_TYPE = new Predicate<DataType>() {
+        @Override
+        public boolean apply(@Nullable DataType input) {
+            return input != null && input.elementType() != DataType.OBJECT;
+        }
+    };
 
     public static final String NAME = "op_isnull";
     private final FunctionInfo info;
 
     public static void register(PredicateModule module) {
-        for (DataType type : DataType.PRIMITIVE_TYPES) {
+        for (DataType type : Iterables.filter(
+                Iterables.concat(DataType.ARRAY_TYPES, DataType.SET_TYPES, DataType.PRIMITIVE_TYPES),
+                IS_OBJECT_TYPE)
+        ) {
             module.registerPredicateFunction(new IsNullPredicate(generateInfo(type)));
         }
         module.registerPredicateFunction(new IsNullPredicate(generateInfo(DataType.NULL)));
+
     }
 
     private static FunctionInfo generateInfo(DataType type) {

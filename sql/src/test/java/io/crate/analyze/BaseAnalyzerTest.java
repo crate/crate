@@ -77,6 +77,7 @@ public class BaseAnalyzerTest {
             .add("counters", DataType.LONG_ARRAY, null)
             .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
             .add("friends", DataType.LONG, Arrays.asList("id"))
+            .add("friends", DataType.STRING_ARRAY, Arrays.asList("groups"))
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();

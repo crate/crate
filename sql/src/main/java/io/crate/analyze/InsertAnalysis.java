@@ -27,6 +27,7 @@ import io.crate.PartitionName;
 import io.crate.metadata.*;
 import io.crate.planner.symbol.Reference;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -156,6 +157,13 @@ public class InsertAnalysis extends AbstractDataAnalysis {
     @Override
     public void addIdAndRouting(List<String> primaryKeyValues, String clusteredByValue) {
         addIdAndRouting(true, primaryKeyValues, clusteredByValue);
+    }
+
+    @Nullable
+    @Override
+    public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
+        // fields of object arrays interpreted as they were created
+        return referenceInfos.getReferenceInfo(ident);
     }
 
     @Override

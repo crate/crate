@@ -74,6 +74,9 @@ public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysi
             throw new IllegalArgumentException("Updating a clustered-by column is currently not supported");
         } else if (context.table().partitionedBy().contains(columnName)) {
             throw new IllegalArgumentException("Updating a partitioned-by column is currently not supported");
+        } else if (context.hasMatchingParent(reference.info(), context.HAS_OBJECT_ARRAY_PARENT)) {
+            // cannot update fields of object arrays
+            throw new IllegalArgumentException("Updating fields of object arrays is not supported");
         }
 
         Symbol value = process(node.expression(), context);

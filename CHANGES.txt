@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - forbid querying arrays inside object arrays in where clause or as select column
+
  - increase debug output to show SQLRequests and errors in server log
 
  - aliases for tables in SELECT, UPDATE, and DELETE clauses are now supported.

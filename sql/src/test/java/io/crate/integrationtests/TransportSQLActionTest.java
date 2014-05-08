@@ -670,8 +670,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(((List<String>) response.rows()[0][0]).get(1), is("Trillian"));
     }
 
-    @Test
-    @SuppressWarnings("unchecked")
+    @Test(expected = UnsupportedFeatureException.class)
     public void testArrayInsideObjectArray() throws Exception {
         execute("create table t1 (id int primary key, details array(object as (names array(string)))) with (number_of_replicas=0)");
         ensureGreen();
@@ -688,9 +687,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select details['names'] from t1");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(((List<List<String>>) response.rows()[0][0]).get(0), is(Arrays.asList("Arthur", "Trillian")));
-        assertThat(((List<List<String>>) response.rows()[0][0]).get(1), is(Arrays.asList("Ford", "Slarti")));
+
     }
 
     @Test
@@ -737,7 +734,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testObjectArrayInsertAndSelect() throws Exception {
-        execute("create table t1 (id int primary key, objects array(object as (name string, age int))) with (number_of_replicas=0)");
+        execute("create table t1 (" +
+                "  id int primary key, " +
+                "  objects array(" +
+                "   object as (" +
+                "     name string, " +
+                "     age int" +
+                "   )" +
+                "  )" +
+                ") with (number_of_replicas=0)");
         ensureGreen();
 
         ImmutableMap<String, ? extends Serializable> obj1 = ImmutableMap.of("name", "foo", "age", 1);
@@ -766,7 +771,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(names.get(0), is("foo"));
         assertThat(names.get(1), is("bar"));
 
-        execute("select objects['name'] from t1 where objects['name'] = ?", new Object[]{"foo"});
+        execute("select objects['name'] from t1 where ? = ANY (objects['name'])", new Object[]{"foo"});
         assertThat(response.rowCount(), is(1L));
     }
 

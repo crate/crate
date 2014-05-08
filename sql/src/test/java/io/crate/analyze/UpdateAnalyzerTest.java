@@ -309,4 +309,17 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         );
         System.out.println();
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUpdateObjectArrayField() throws Exception {
+        analyze("update users set friends['id'] = ?", new Object[]{
+                new Long[]{1L, 2L, 3L}
+        });
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testWhereClauseObjectArrayField() throws Exception {
+        analyze("update users set awesome=true where friends['id'] = 5");
+    }
+
 }
