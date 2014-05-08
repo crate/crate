@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action;
+package io.crate.action.sql;
 
 public interface SQLResult {
 

@@ -6,6 +6,7 @@ archivesBaseName = 'crate-sql'
 // we do not want to have elasticsearch here, since we provide it in :es
 configurations {
     all*.exclude group: 'org.elasticsearch'
+    sharedCompile.extendsFrom compile
 }
 
 //evaluationDependsOn(':app')
@@ -85,6 +86,12 @@ sourceSets {
             include '**/*.sql'
             include '**/*.html'
             include '**/*.jsonp'
+        }
+    }
+    shared {
+        java {
+            srcDir "src/main/java/io/crate/"
+            include "action/sql/SQL*"
         }
     }
 }
