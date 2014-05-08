@@ -22,7 +22,7 @@
 package io.crate.planner;
 
 import com.google.common.collect.Lists;
-import io.crate.exceptions.CrateException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
@@ -101,7 +101,7 @@ public class PlannerContextBuilder {
                 } else if(symbol.symbolType().isLiteral()){
                     resolvedSymbol = symbol;
                 } else {
-                    throw new CrateException(
+                    throw new UnhandledServerException(
                             "Unexpected result column symbol: " + symbol);
                 }
 

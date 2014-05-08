@@ -28,8 +28,8 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.TimestampFormat;
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.exceptions.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
@@ -670,7 +670,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(((List<String>) response.rows()[0][0]).get(1), is("Trillian"));
     }
 
-    @Test(expected = UnsupportedFeatureException.class)
+    @Test(expected = SQLActionException.class)
     public void testArrayInsideObjectArray() throws Exception {
         execute("create table t1 (id int primary key, details array(object as (names array(string)))) with (number_of_replicas=0)");
         ensureGreen();
@@ -1161,7 +1161,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rows()[0][1]);
     }
 
-    @Test(expected = SQLParseException.class)
+    @Test(expected = SQLActionException.class)
     public void testUpdateWithNestedObjectArrayIdxAccess() throws Exception {
         execute("create table test (coolness array(float)) with (number_of_replicas=0)");
         ensureGreen();
@@ -1381,7 +1381,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertTrue(response.getSourceAsMap().containsKey("message"));
     }
 
-    @Test(expected = DuplicateKeyException.class)
+    @Test(expected = SQLActionException.class)
     public void testInsertWithUniqueConstraintViolation() throws Exception {
         createTestIndexWithPkMapping();
 
@@ -1416,7 +1416,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
     }
 
-    @Test(expected = CrateException.class)
+    @Test(expected = SQLActionException.class)
     public void testInsertWithPKMissingOnInsert() throws Exception {
         createTestIndexWithPkMapping();
 
@@ -1780,7 +1780,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(2L, response.rows()[0][0]);
     }
 
-    @Test(expected = TableAlreadyExistsException.class)
+    @Test(expected = SQLActionException.class)
     public void testCreateTableAlreadyExistsException() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         execute("create table test (col1 integer primary key, col2 string)");
@@ -1833,7 +1833,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGroupByMultiValueField() throws Exception {
-        expectedException.expect(GroupByOnArrayUnsupportedException.class);
+        expectedException.expect(SQLActionException.class);
         this.setup.groupBySetup();
         // inserting multiple values not supported anymore
         client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
@@ -2228,7 +2228,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 //        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
-    @Test(expected = CrateException.class)
+    @Test(expected = SQLActionException.class)
     public void testSelectSysColumnsFromInformationSchema() throws Exception {
         execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables");
     }
@@ -2432,7 +2432,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
     }
 
-    @Test(expected = TableAliasSchemaException.class)
+    @Test(expected = SQLActionException.class)
     public void testSelectTableAliasSchemaExceptionColumnDefinition() throws Exception {
         execute("create table quotes_en (id int primary key, quote string, author string)");
         execute("create table quotes_de (id int primary key, quote2 string)");
@@ -2442,7 +2442,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote from quotes where id = ?", new Object[]{1});
     }
 
-    @Test(expected = TableAliasSchemaException.class)
+    @Test(expected = SQLActionException.class)
     public void testSelectTableAliasSchemaExceptionColumnDataType() throws Exception {
         execute("create table quotes_en (id int primary key, quote int) with (number_of_replicas=0)");
         execute("create table quotes_de (id int primary key, quote string) with (number_of_replicas=0)");
@@ -2452,7 +2452,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote from quotes where id = ?", new Object[]{1});
     }
 
-    @Test(expected = TableAliasSchemaException.class)
+    @Test(expected = SQLActionException.class)
     public void testSelectTableAliasSchemaExceptionPrimaryKeyRoutingColumn() throws Exception {
         execute("create table quotes_en (id int primary key, quote string)");
         execute("create table quotes_de (id int, quote string)");
@@ -2462,7 +2462,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote from quotes where id = ?", new Object[]{1});
     }
 
-    @Test(expected = TableAliasSchemaException.class)
+    @Test(expected = SQLActionException.class)
     public void testSelectTableAliasSchemaExceptionIndices() throws Exception {
         execute("create table quotes_en (id int primary key, quote string)");
         execute("create table quotes_de (id int primary key, quote2 string index using fulltext)");
@@ -2520,7 +2520,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithExistingTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
 
-        expectedException.expect(TableAlreadyExistsException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("The table 'mytablealias' already exists.");
 
         execute(String.format("create table %s (content string index off)", tableAlias));
@@ -2529,7 +2529,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTableWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
-        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Table alias not allowed in DROP TABLE statement.");
         execute(String.format("drop table %s", tableAlias));
     }
@@ -2537,7 +2537,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testCopyFromWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
-        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("aliases are read only");
 
         execute(String.format("copy %s from '/tmp/file.json'", tableAlias));
@@ -2547,7 +2547,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
-        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("aliases are read only");
 
         execute(
@@ -2559,7 +2559,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
-        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("aliases are read only");
 
         execute(
@@ -2571,7 +2571,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testDeleteWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
-        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("aliases are read only");
 
         execute(
@@ -2640,13 +2640,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("drop blob table screenshots");
     }
 
-    @Test(expected = UnsupportedFeatureException.class)
+    @Test(expected = SQLActionException.class)
     public void testSelectFromBlobTable() throws Exception {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("select * from blob.screenshots");
     }
 
-    @Test(expected = SQLParseException.class)
+    @Test(expected = SQLActionException.class)
     public void testInsertWithClusteredByNull() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
@@ -2654,7 +2654,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 new Object[]{null, "I'd far rather be happy than right any day."});
     }
 
-    @Test(expected = SQLParseException.class)
+    @Test(expected = SQLActionException.class)
     public void testInsertWithClusteredByWithoutValue() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
@@ -3046,7 +3046,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Long)response.rows()[1][1], is(13959981214861L));
     }
 
-    @Test(expected = DuplicateKeyException.class)
+    @Test(expected = SQLActionException.class)
     public void testInsertPartitionedTablePrimaryKeysDuplicate() throws Exception {
         execute("create table parted (" +
                 "  id int, " +
@@ -3729,7 +3729,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Long)response.rows()[0][0], is(2L));
     }
 
-    @Test(expected = PartitionUnknownException.class)
+    @Test(expected = SQLActionException.class)
     public void testRefreshEmptyPartitionedTable() throws Exception {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
         ensureGreen();

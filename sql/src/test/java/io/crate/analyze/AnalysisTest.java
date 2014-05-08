@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -32,7 +33,6 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.DataType;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.ValidationException;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.hamcrest.Matchers;
@@ -172,7 +172,7 @@ public class AnalysisTest {
         assertThat((Boolean)normalized.value().get("false"), is(true));
     }
 
-    @Test( expected = ValidationException.class)
+    @Test( expected = ColumnValidationException.class)
     public void testNormalizeObjectLiteralInvalidNested() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));

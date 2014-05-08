@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
-public class SQLParseException extends CrateException {
+public class SQLParseException extends ValidationException {
 
     public SQLParseException(String msg) {
         super(msg);
@@ -33,12 +31,13 @@ public class SQLParseException extends CrateException {
         super(msg, e);
     }
 
+    @Override
     public int errorCode() {
-        return 4000;
+        return 0;
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+    public Object[] args() {
+        return new Object[0];
     }
 }

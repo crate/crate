@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
-public class InvalidTableNameException extends CrateException {
+public class InvalidTableNameException extends ValidationException {
 
     private String tableName;
 
@@ -39,12 +37,7 @@ public class InvalidTableNameException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4002;
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+        return 2;
     }
 
     @Override

@@ -21,14 +21,14 @@
 
 package io.crate.operation.collect;
 
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
-import io.crate.operation.Input;
 import io.crate.operation.AbstractImplementationSymbolVisitor;
+import io.crate.operation.Input;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.SymbolFormatter;
-import io.crate.exceptions.CrateException;
 
 import java.util.ArrayList;
 
@@ -66,7 +66,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         // should have been resolved by other visitors already
         E docLevelExpression = referenceResolver.getImplementation(symbol.info());
         if (docLevelExpression == null) {
-            throw new CrateException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
+            throw new UnhandledServerException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
         }
         context.docLevelExpressions.add(docLevelExpression);
         return docLevelExpression;

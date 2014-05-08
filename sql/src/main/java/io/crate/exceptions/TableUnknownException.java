@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
-public class TableUnknownException extends CrateException {
+public class TableUnknownException extends ResourceUnknownException {
 
     private String tableName;
 
@@ -39,12 +37,7 @@ public class TableUnknownException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4041;
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.NOT_FOUND;
+        return 1;
     }
 
     @Override

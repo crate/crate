@@ -23,19 +23,24 @@ package io.crate.planner.node;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import io.crate.DataType;
+import io.crate.Streamer;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.ProjectionType;
 import io.crate.planner.symbol.*;
-import io.crate.DataType;
-import io.crate.Streamer;
-import io.crate.exceptions.CrateException;
 import org.elasticsearch.common.inject.Inject;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * get input and output {@link io.crate.Streamer}s for {@link io.crate.planner.node.PlanNode}s
@@ -70,7 +75,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         Streamer<?> streamer;
         AggregationFunction<?> aggFunction = (AggregationFunction<?>)functions.get(aggregation.functionIdent());
         if (aggFunction == null) {
-            throw new CrateException("unknown aggregation function");
+            throw new ResourceUnknownException("unknown aggregation function");
         }
         switch (step) {
             case ITER:

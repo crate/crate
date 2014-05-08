@@ -21,11 +21,10 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
 import java.util.Locale;
 
-public class PartitionUnknownException extends CrateException {
+public class PartitionUnknownException extends ResourceUnknownException{
+
     public PartitionUnknownException(String tableName, String partitionIdent) {
         super(String.format(Locale.ENGLISH,
                 "No partition for table '%s' with ident '%s' exists",
@@ -35,11 +34,11 @@ public class PartitionUnknownException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4046;
+        return 6;
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.NOT_FOUND;
+    public Object[] args() {
+        return new Object[0];
     }
 }

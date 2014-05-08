@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
-public class GroupByOnArrayUnsupportedException extends CrateException {
+public class GroupByOnArrayUnsupportedException extends ValidationException {
 
     private final String columnName;
 
@@ -34,11 +32,11 @@ public class GroupByOnArrayUnsupportedException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4000;
+        return 0;
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+    public Object[] args() {
+        return new Object[]{columnName};
     }
 }

@@ -24,8 +24,8 @@ package io.crate.analyze;
 import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
-import io.crate.exceptions.AmbiguousAliasException;
 import io.crate.metadata.*;
+import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Query;
 
@@ -135,7 +135,7 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     public Symbol symbolFromAlias(String alias) {
         Collection<Symbol> symbols = aliasMap.get(alias);
         if (symbols.size() > 1) {
-            throw new AmbiguousAliasException(alias);
+            throw new AmbiguousColumnAliasException(alias);
         }
         if (symbols.isEmpty()) {
             return null;

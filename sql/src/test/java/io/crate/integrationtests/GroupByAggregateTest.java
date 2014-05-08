@@ -21,9 +21,8 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.exceptions.SQLParseException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.junit.Before;
@@ -595,7 +594,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByUnknownResultColumn() throws Exception {
         this.setup.groupBySetup();
-        expectedException.expect(SQLParseException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("column 'characters.lol' must appear in the GROUP BY clause or be used in an aggregation function");
         execute("select lol from characters group by race");
     }
@@ -603,7 +602,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
         this.setup.groupBySetup();
-        expectedException.expect(SQLParseException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("unknown column 'characters.lol' not allowed in GROUP BY");
         execute("select max(birthdate) from characters group by lol");
     }
@@ -626,7 +625,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testAggregateNonExistingColumn() throws Exception {
         this.setup.groupBySetup();
-        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("unknown function: max(null)"); // TODO: better exception
         execute("select max(lol), race from characters group by race");
     }

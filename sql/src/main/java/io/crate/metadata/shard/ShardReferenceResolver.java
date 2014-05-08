@@ -23,7 +23,7 @@ package io.crate.metadata.shard;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
-import io.crate.exceptions.CrateException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -67,7 +67,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                         index.name(),
                         tableName);
             } catch (IllegalArgumentException e) {
-                throw new CrateException(
+                throw new UnhandledServerException(
                         String.format(Locale.ENGLISH,
                                 "Unable to load PARTITIONED BY columns from partition %s",
                                 index.name())

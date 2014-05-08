@@ -21,11 +21,10 @@
 
 package io.crate.analyze;
 
-import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.Id;
 import io.crate.PartitionName;
-import io.crate.exceptions.CrateException;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
@@ -135,12 +134,12 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         analyze("insert into users (name, id) values ('Trillian')");
     }
 
-    @Test(expected = CrateException.class)
+    @Test(expected = ValidationException.class)
     public void testInsertWithWrongType() throws Exception {
         analyze("insert into users (name, id) values (1, 'Trillian')");
     }
 
-    @Test(expected = CrateException.class)
+    @Test(expected = ValidationException.class)
     public void testInsertWithWrongParameterType() throws Exception {
         analyze("insert into users (name, id) values (?, ?)", new Object[]{1, true});
     }
@@ -257,7 +256,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(values.get("details"), instanceOf(Map.class));
     }
 
-    @Test(expected = ValidationException.class)
+    @Test(expected = ColumnValidationException.class)
     public void testInsertArrays() throws Exception {
         // error because in the schema are non-array types:
         analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",

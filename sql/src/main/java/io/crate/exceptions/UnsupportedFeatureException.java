@@ -21,7 +21,7 @@
 
 package io.crate.exceptions;
 
-public class UnsupportedFeatureException extends CrateException {
+public class UnsupportedFeatureException extends ValidationException {
 
     public UnsupportedFeatureException(Throwable e) {
         super(e);
@@ -37,6 +37,11 @@ public class UnsupportedFeatureException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4004;
+        return 4;
+    }
+
+    @Override
+    public Object[] args() {
+        return new Object[0];
     }
 }

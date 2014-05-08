@@ -22,8 +22,8 @@
 package io.crate.integrationtests;
 
 import io.crate.Constants;
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
@@ -84,7 +84,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     @Test
     public void testSelectNonExistentGlobalExpression() throws Exception {
-        expectedException.expect(TableUnknownException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("suess.cluster");
         executor.exec("select count(race), suess.cluster.name from characters");
     }
@@ -297,12 +297,12 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertEquals(55.25d, response.rows()[0][3]);
     }
 
-    @Test (expected = TableUnknownException.class)
+    @Test (expected = SQLActionException.class)
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
         executor.exec("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
     }
 
-    @Test (expected = TableUnknownException.class)
+    @Test (expected = SQLActionException.class)
     public void testDropUnknownTable() throws Exception {
         executor.exec("drop table test");
     }

@@ -22,27 +22,31 @@
 package io.crate.exceptions;
 
 import io.crate.executor.Task;
-import org.elasticsearch.rest.RestStatus;
 
 import java.util.Locale;
 
-public class TaskExecutionException extends CrateException {
+public class TaskExecutionException extends UnhandledServerException {
+
     private static final String MSG = "Error executing task '%s'";
+    private Task task;
+
     public TaskExecutionException(Task task) {
         super(String.format(Locale.ENGLISH, MSG, task.toString()));
+        this.task = task;
     }
 
     public TaskExecutionException(Task task, Throwable e) {
         super(String.format(Locale.ENGLISH, MSG, task.toString()), e);
+        this.task = task;
     }
 
     @Override
     public int errorCode() {
-        return 5001;
+        return 1;
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.INTERNAL_SERVER_ERROR;
+    public Object[] args() {
+        return new Object[]{task};
     }
 }

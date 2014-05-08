@@ -202,7 +202,7 @@ as a double value. Its single argument is the column name of a numeric column or
     SELECT 1 row in set (... sec)
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
-    UnsupportedFeatureException[unknown function: sum(string)]...
+    SQLActionException[unknown function: sum(string)]
 
 avg
 ===

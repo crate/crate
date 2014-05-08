@@ -137,7 +137,7 @@ atomic operation and could lead to inconsistent state::
 
     cr> UPDATE parted_table set content='now panic!', day = '2014-04-07'
     ... WHERE id=1;
-    SQLParseException[Updating a partitioned-by column is currently not supported]; ...
+    SQLActionException[Updating a partitioned-by column is currently not supported]
 
     cr> UPDATE parted_table set content='now panic!'
     ... WHERE id=2;

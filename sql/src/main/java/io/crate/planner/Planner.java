@@ -34,7 +34,7 @@ import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.analyze.*;
-import io.crate.exceptions.CrateException;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
@@ -336,7 +336,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         try {
             analyzerSettings = analysis.buildSettings();
         } catch (IOException ioe) {
-            throw new CrateException("Could not build analyzer Settings", ioe);
+            throw new UnhandledServerException("Could not build analyzer Settings", ioe);
         }
 
         ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(analyzerSettings);

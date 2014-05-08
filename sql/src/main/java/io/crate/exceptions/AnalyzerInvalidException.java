@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
-public class AnalyzerInvalidException extends CrateException {
+public class AnalyzerInvalidException extends ValidationException {
 
     public AnalyzerInvalidException(String reason, Throwable e) {
         super(reason, e);
@@ -35,12 +33,12 @@ public class AnalyzerInvalidException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4001;
+        return 1;
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+    public Object[] args() {
+        return new Object[0];
     }
 
 }

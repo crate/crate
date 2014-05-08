@@ -21,16 +21,16 @@
 
 package io.crate.operation;
 
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import io.crate.exceptions.CrateException;
 
 import java.util.*;
 
@@ -119,11 +119,11 @@ public class ImplementationSymbolVisitor extends
                 result = (Input<?>) impl;
             } else {
                 // same or lower granularity and not found means unknown
-                throw new CrateException("Unknown Reference");
+                throw new UnhandledServerException("Unknown Reference");
             }
             context.setMaxGranularity(symbol.info().granularity());
         } else {
-            throw new CrateException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
+            throw new UnhandledServerException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
         }
         return result;
     }

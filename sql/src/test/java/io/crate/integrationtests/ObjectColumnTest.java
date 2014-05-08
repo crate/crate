@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Before;
 import org.junit.Rule;
@@ -115,7 +115,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAddColumnToStrictObject() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column 'author.name.middle_name' unknown");
 
         Map<String, Object> authorMap = new HashMap<String, Object>(){{
@@ -174,7 +174,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void updateToStrictObject() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column 'author.name.middle_name' unknown");
 
         execute("update ot set author['name']['middle_name']='Noel' " +

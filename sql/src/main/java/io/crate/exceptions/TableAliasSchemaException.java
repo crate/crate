@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
-public class TableAliasSchemaException extends CrateException {
+public class TableAliasSchemaException extends ConflictException {
 
     private String tableName;
 
@@ -39,12 +37,7 @@ public class TableAliasSchemaException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4094;
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+        return 4;
     }
 
     @Override

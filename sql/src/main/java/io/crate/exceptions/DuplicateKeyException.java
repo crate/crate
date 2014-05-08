@@ -21,9 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.rest.RestStatus;
-
-public class DuplicateKeyException extends CrateException {
+public class DuplicateKeyException extends ConflictException {
 
     public DuplicateKeyException(String msg) {
         super(msg);
@@ -35,11 +33,11 @@ public class DuplicateKeyException extends CrateException {
 
     @Override
     public int errorCode() {
-        return 4091;
+        return 1;
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.CONFLICT;
+    public Object[] args() {
+        return new Object[0];
     }
 }

@@ -319,7 +319,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * @param inputValue the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.planner.symbol.Literal}
      * @param reference  the reference to which the value has to comply in terms of type-compatibility
      * @return the normalized Symbol, should be a literal
-     * @throws io.crate.exceptions.ValidationException
+     * @throws io.crate.exceptions.ColumnValidationException
      */
     public Literal normalizeInputForReference(Symbol inputValue, Reference reference) {
         Literal normalized;
@@ -346,7 +346,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
             try {
                 normalized = (Literal)parameterOrLiteral;
             } catch (ClassCastException e) {
-                throw new ValidationException(
+                throw new ColumnValidationException(
                         reference.info().ident().columnIdent().name(),
                         String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
             }
@@ -356,7 +356,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         try {
             normalized = normalized.convertTo(reference.info().type());
         } catch (Exception e) {  // UnsupportedOperationException, NumberFormatException ...
-            throw new ValidationException(
+            throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
                     String.format("wrong type '%s'. expected: '%s'",
                             normalized.valueType().getName(),
@@ -422,7 +422,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
                 DynamicReference dynamicReference = table.getDynamic(nestedIdent);
                 DataType type = DataType.forValue(entry.getValue(), false);
                 if (type == null) {
-                    throw new ValidationException(info.ident().columnIdent().fqn(), "Invalid value");
+                    throw new ColumnValidationException(info.ident().columnIdent().fqn(), "Invalid value");
                 }
                 dynamicReference.valueType(type);
                 nestedInfo = dynamicReference.info();
@@ -451,7 +451,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
             }
             return primitiveNormalized;
         } catch (Exception e) {
-            throw new ValidationException(info.ident().columnIdent().fqn(),
+            throw new ColumnValidationException(info.ident().columnIdent().fqn(),
                     String.format("Invalid %s",
                             info.type().getName()
                     )
