@@ -1,3 +1,5 @@
+.. highlight:: sh
+
 =======================
 Crate SQL HTTP Endpoint
 =======================

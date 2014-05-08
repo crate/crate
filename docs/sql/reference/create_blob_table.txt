@@ -1,3 +1,5 @@
+.. highlight:: psql
+
 =================
 CREATE BLOB TABLE
 =================
@@ -7,7 +9,7 @@ Define a new table for storing binary large objects.
 Synopsis
 ========
 
-.. code-block:: sql
+::
 
     CREATE BLOB TABLE table_name
     [CUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]

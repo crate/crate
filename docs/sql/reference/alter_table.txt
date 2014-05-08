@@ -1,3 +1,4 @@
+.. highlight:: psql
 .. _ref-alter-table:
 
 ===========
@@ -9,12 +10,12 @@ Alter an existing table
 Synopsis
 ========
 
-.. code-block:: sql
+::
 
     ALTER [BLOB] TABLE table_name
-    { SET ( parameter = value [ , ... ] ) |
+      { SET ( parameter = value [ , ... ] ) |
       RESET ( parameter [ , ... ] )
-    }
+      }
 
 Description
 ===========

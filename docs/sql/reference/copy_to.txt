@@ -1,3 +1,4 @@
+.. highlight:: psql
 .. _copy_to:
 
 =======
@@ -9,10 +10,10 @@ Export Table Contents to files on crate node machines.
 Synopsis
 ========
 
-.. code-block:: sql
+::
 
-  COPY table_ident [ column (, ...) ] TO [DIRECTORY] { output_uri }
-  [ WITH ( copy_parameter [= value] [, ... ] ) ]
+    COPY table_ident [ column (, ...) ] TO [DIRECTORY] { output_uri }
+    [ WITH ( copy_parameter [= value] [, ... ] ) ]
 
 Description
 ===========
@@ -69,7 +70,7 @@ WITH Clause
 
 The optional WITH clause can specify parameters for the copy statement.
 
-.. code-block:: sql
+::
 
     [ WITH ( copy_parameter [= value] [, ... ] ) ]
 

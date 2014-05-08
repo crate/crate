@@ -39,7 +39,7 @@ task dist {
 }
 
 distTar {
-    dependsOn ":docs:sphinx", getVersion
+    dependsOn getVersion
     compression = Compression.GZIP
     baseName = 'crate'
     extension = 'tar.gz'
@@ -49,7 +49,7 @@ distTar {
 }
 
 distZip {
-    dependsOn ":docs:sphinx", getVersion
+    dependsOn getVersion
     baseName = 'crate'
     doFirst {
         version = getVersion.version
@@ -58,10 +58,7 @@ distZip {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    plugin_head_version = '2cd68c235f8b0fdf667090e8d2653d80e4183473'
-    plugin_bigdesk_version = '2.2.2c'
-    plugin_segmentspy_version = '0.2.0'
-    plugin_crateadmin_version = '0.6.3'
+    plugin_crateadmin_version = '0.7.0'
     crash_version = '0.9.0'
 }
 
@@ -81,9 +78,6 @@ dependencies {
     testCompile 'junit:junit:4.11'
 }
 
-installDist.dependsOn(jar, ":docs:sphinx")
-
-def docsDir = project(":docs").projectDir
 def rootDir = project.parent.projectDir
 
 distributions {
@@ -97,11 +91,6 @@ distributions {
                 include 'README.rst'
                 include 'CHANGES.txt'
             }
-            into("docs") {
-                from "${docsDir}/out/text"
-                include '**/*.txt'
-                exclude '.doctrees'
-            }
             into("lib") {
                 from project.configurations.runtime
                 // sigar gets included from the checked in runtime dependency in :es:
@@ -109,9 +98,6 @@ distributions {
             }
             into("lib") {
                 from jar
-            }
-            into("plugins/docs/_site") {
-                from "${docsDir}/out/html"
             }
             into('plugins') {
                 from 'plugins'
@@ -160,20 +146,6 @@ def extractTopfolder(File src, String trg){
 }
 
 task downloadPlugins << {
-    def dest = download(
-            "https://github.com/mobz/elasticsearch-head/archive/${plugin_head_version}.zip",
-            "head_${plugin_head_version}.zip")
-    extractTopfolder(dest, 'plugins/head/_site')
-    dest = download(
-            "https://github.com/crate/bigdesk/archive/v${plugin_bigdesk_version}.zip",
-            "bigdesk_${plugin_bigdesk_version}.zip"
-            )
-    extractTopfolder(dest, 'plugins/bigdesk/_site')
-    dest = download(
-            "https://github.com/polyfractal/elasticsearch-segmentspy/archive/v${plugin_segmentspy_version}.zip",
-            "segmentspy_${plugin_segmentspy_version}.zip"
-    )
-    extractTopfolder(dest, 'plugins/segmentspy')
     dest = download(
             "https://cdn.crate.io/downloads/releases/crate-admin-${plugin_crateadmin_version}.tar.gz",
             "crate-admin-${plugin_crateadmin_version}.tar.gz"

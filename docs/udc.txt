@@ -58,6 +58,8 @@ How to disable UDC
 ==================
 Below are two ways you can disable UDC. However we hope you support us offering the open source edition, and leave UDC on, so we learn how many people use Crate.
 
+.. highlight:: yaml
+
 By configuration
 ----------------
 Just add following to your ``crate.yml`` configuration file::

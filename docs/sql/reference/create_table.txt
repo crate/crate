@@ -1,3 +1,4 @@
+.. highlight:: psql
 .. _ref-create-table:
 
 ============
@@ -9,7 +10,7 @@ Define a new table.
 Synopsis
 ========
 
-.. code-block:: sql
+::
 
     CREATE TABLE table_name ( [
     { column_name data_type [ column_constraint [ ... ] ] | table_constraint }
@@ -19,24 +20,20 @@ Synopsis
     [ WITH ( table_parameter [= value] [, ... ] ) ]
 
 
-where ``column_constraint`` is:
+where ``column_constraint`` is::
 
-.. code-block:: sql
-
-  { PRIMARY KEY |
-    INDEX { OFF | USING { PLAIN |
-                          FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
-  }
+    { PRIMARY KEY |
+      INDEX { OFF | USING { PLAIN |
+                            FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
+    }
 
 
-and table_constraint is:
+and table_constraint is::
 
-.. code-block:: sql
-
-  { PRIMARY KEY ( column_name [, ... ] ) |
-    INDEX index_name USING FULLTEXT ( column_name [, ... ] )
-         [ WITH ( analyzer = analyzer_name ) ]
-  }
+    { PRIMARY KEY ( column_name [, ... ] ) |
+      INDEX index_name USING FULLTEXT ( column_name [, ... ] )
+           [ WITH ( analyzer = analyzer_name ) ]
+    }
 
 Description
 ===========
@@ -118,7 +115,7 @@ The PARTITIONED clause splits the created table
 into separate partitions for every distinct combination of values
 in the listed columns.
 
-.. code-block:: sql
+::
 
     [ PARTITIONED BY ( column_name [ , ... ] ) ]
 
@@ -144,7 +141,7 @@ WITH Clause
 
 The optional WITH clause can specify parameters for tables.
 
-.. code-block:: sql
+::
 
     [ WITH ( table_parameter [= value] [, ... ] ) ]
 
@@ -162,9 +159,7 @@ number_of_replicas
 Specifies the number or range of replicas each shard of a table should
 have for normal operation, the default is to have 1 replica.
 
-The number of replicas is defined like this:
-
-.. code-block:: sql
+The number of replicas is defined like this::
 
     min_replicas [ - [ max_replicas ] ]
 

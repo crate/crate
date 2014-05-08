@@ -1,3 +1,5 @@
+.. highlight:: psql
+
 ======
 UPDATE
 ======
@@ -7,13 +9,13 @@ Update rows of a table.
 Synopsis
 ========
 
-.. code-block:: sql
+::
 
-   UPDATE table_ident [ [AS] table_alias ] SET
-       { column_ident = expression |
-         ( column_ident [, ...] ) = ( expression [, ...] )
-       } [, ...]
-     [ WHERE condition ]
+    UPDATE table_ident [ [AS] table_alias ] SET
+        { column_ident = expression |
+          ( column_ident [, ...] ) = ( expression [, ...] )
+        } [, ...]
+      [ WHERE condition ]
 
 Description
 ===========
