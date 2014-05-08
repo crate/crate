@@ -126,4 +126,9 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         );
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testWhereClauseObjectArrayField() throws Exception {
+        analyze("delete from users where friends['id'] = 5");
+    }
+
 }

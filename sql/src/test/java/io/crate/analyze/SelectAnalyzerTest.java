@@ -38,6 +38,7 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
+import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
@@ -1094,6 +1095,32 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select * from users where 0 = ALL (counters)");
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testImplicitContainmentOnObjectArrayFields() throws Exception {
+        // users.friends is an object array,
+        // so its fields are selected as arrays,
+        // ergo simple comparison does not work here
+        analyze("select * from users where 5 = friends['id']");
+    }
+
+    @Test
+    public void testAnyOnObjectArrayField() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze(
+                "select * from users where 5 = ANY (friends['id'])");
+        assertThat(analysis.whereClause().hasQuery(), is(true));
+        Function anyFunction = (Function)analysis.whereClause().query();
+        assertThat(anyFunction.info().ident().name(), is(AnyEqOperator.NAME));
+
+
+        assertThat(((Reference)anyFunction.arguments().get(0)).info().type(), is(DataType.LONG_ARRAY));
+        assertThat(anyFunction.arguments().get(1), instanceOf(LongLiteral.class));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testAnyOnArrayInObjectArray() throws Exception {
+        analyze("select * from users where 'vogon lyric lovers' = ANY (friends['groups'])");
+    }
+
     @Test
     public void testTableAlias() throws Exception {
         SelectAnalysis expectedAnalysis = (SelectAnalysis) analyze("select * " +
@@ -1118,8 +1145,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 ((Function)actualAnalysisColAliased.whereClause().query()).arguments().get(0)
         );
         assertEquals(
-                ((Function)expectedAnalysis.whereClause().query()).arguments().get(0),
-                ((Function)actualAnalysisOptionalAs.whereClause().query()).arguments().get(0)
+                ((Function) expectedAnalysis.whereClause().query()).arguments().get(0),
+                ((Function) actualAnalysisOptionalAs.whereClause().query()).arguments().get(0)
         );
     }
 

@@ -210,7 +210,7 @@ escape them using a backslash::
 .. _sql_dml_any_array:
 
 ANY (array)
---------------
+-----------
 
 The ANY (or SOME) operator allows to search for elements within arrays. This allows to
 query for rows where an element of an array is, for example, equal to or
@@ -268,6 +268,7 @@ You can expand this limit by using an explicit LIMIT-clause.
 But you are encouraged to make use of a windowing using LIMIT and OFFSET to iterate through all the results
 of a potentially large resultset instead of expanding the default limit.
 
+.. _sql_dml_objects:
 
 Inner/Nested Objects
 --------------------
@@ -302,6 +303,39 @@ Query for a property of an inner object::
     It is currently not possible to insert objects using crash. In order to do
     that it is necessary to use one of the client libraries like
     `crate-python`_ or use the :doc:`rest`.
+
+
+.. _sql_dml_object_arrays:
+
+Object Arrays
+-------------
+
+Arrays in crate can only be queried for containment using the :ref:`sql_dml_any_array`
+operator. One exception are object arrays. As you can access fields of :ref:`sql_dml_objects`
+using subscript expressions, you can access fields of object arrays.
+As an object array is no object, you won't get the value for a single field, but
+an array of all the values of that field for all objects in that object array.
+
+Example::
+
+    cr> select name, informations, informations['population'] from locations
+    ... where informations['population'] is not null
+    ... order by name;
+    +-------------------+-------------------------------------------------------------------------------------------+----------------------------+
+    | name              | informations                                                                              | informations['population'] |
+    +-------------------+-------------------------------------------------------------------------------------------+----------------------------+
+    | North West Ripple | [{u'evolution_level': 4, u'population': 12}, {u'evolution_level': 42, u'population': 42}] | [12, 42]                   |
+    | Outer Eastern Rim | [{u'evolution_level': 2, u'population': 5673745846}]                                      | [5673745846]               |
+    +-------------------+-------------------------------------------------------------------------------------------+----------------------------+
+    SELECT 2 rows in set (... sec)
+
+    cr> select name from locations where 4 < ANY (informations['evolution_level']);
+    +-------------------+
+    | name              |
+    +-------------------+
+    | North West Ripple |
+    +-------------------+
+    SELECT 1 row in set (... sec)
 
 .. _sql_dml_aggregation:
 
@@ -596,15 +630,16 @@ Inserting data to ``Crate`` is done by using the SQL ``INSERT`` statement.
 
 Inserting a row::
 
-    cr> insert into locations values ('14', '2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7);
+    cr> insert into locations (id, date, description, kind, name, position)
+    ... values ('14', '2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7);
     INSERT OK, 1 row affected (... sec)
 
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
 
     cr> insert into locations (id, date, description, kind, name, position) values
-    ... ('14', '2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
-    ... ('15', '2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10);
+    ... ('16', '2013-09-14T21:43:59.000Z', 'Blagulon Kappa II is the planet to which the police are native.', 'Planet', 'Blagulon Kappa II', 19),
+    ... ('17', '2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10);
     INSERT OK, 2 rows affected (... sec)
 
 
