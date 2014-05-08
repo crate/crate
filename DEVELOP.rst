@@ -213,9 +213,8 @@ And afterwards run buildout::
 
     ./bin/buildout -N
 
-The documentation is also tested when running the ``itest`` task or
-running ``make test`` in the ``docs`` directory. Also the ``itest``
-task is run as a dependency of the ``dist`` task.
+The documentation is tested when running the ``itest`` task.
+Also the ``itest`` task is run as a dependency of the ``dist`` task.
 
 
 .. _Python: http://www.python.org/

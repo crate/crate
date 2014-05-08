@@ -92,7 +92,7 @@ Where to go from here?
 
 That is certainly not all Crate Data offers to you. To take a look at the
 documentation visit
-`https://crate.io/docs/stable/ <https://crate.io/docs/stable/>`_.
+`https://crate.io/docs/ <https://crate.io/docs/>`_.
 
 Managing data
 -------------
@@ -101,17 +101,9 @@ There are several different ways to manage data in Crate.
 
 - The `admin interface <http://localhost:4200/admin>`_
 
-- `Python client`_ (see: GitHub_, pypi_, get it: ``pip install crate``)
+- For for further clients in different languages see `Crate Documentation`_.
 
-  - The python client also comes with the Crate Shell (`crash`).
-    crash is a command-line util to perform SQL queries,...
-
-- `Java client`_
-
-.. _Python client: https://crate.io/docs/projects/crate-python/stable/
-.. _GitHub: https://github.com/crate/crate-python/
-.. _pypi: https://pypi.python.org/pypi/crate/
-.. _Java client: https://crate.io/docs/clients/java/
+.. _Crate Documentation: https://crate.io/docs/
 
 Are you a Developer?
 ====================
