@@ -2,8 +2,8 @@
 Changes for Crate Data
 ======================
 
-Unreleased
-==========
+2014/05/09 0.36.5
+=================
 
  - S3 authentication using ENV variables now also defaults to HTTP in order to
    avoid certificate issues.
