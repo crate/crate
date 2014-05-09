@@ -2,10 +2,8 @@
 Changes for Crate Data
 ======================
 
-Unreleased
-==========
-
 2014/05/09 0.37.1
+2014/05/09 0.36.5
 =================
 
  - fix: raise an error if same column is defined more than once on
