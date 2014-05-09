@@ -311,6 +311,13 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     public ColumnSchema pushColumn(String ident) {
         ColumnSchema columnSchema = schemaStack.peek();
+
+        if (columnSchema.crateMeta.containsKey(ident)
+                || columnSchema.esMapping.containsKey(ident)) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "column '%s' specified more than once", ident));
+        }
+
         Map<String, Object> esMapping = new HashMap<>();
         Map<String, Object> crateMeta = new HashMap<>();
         columnSchema.crateMeta.put(ident, crateMeta);
