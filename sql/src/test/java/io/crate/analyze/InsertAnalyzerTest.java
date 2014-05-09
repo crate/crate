@@ -144,6 +144,11 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         analyze("insert into users (name, id) values (?, ?)", new Object[]{1, true});
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testInsertSameReferenceRepeated() throws Exception {
+        analyze("insert into users (name, name) values ('Trillian', 'Ford')");
+    }
+
     @Test
     public void testInsertWithConvertedTypes() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome) values ($1, 'Trillian', $2)", new Object[]{1.0f, "true"});

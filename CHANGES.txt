@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: raise an error if same column is defined more than once on
+   table creation
+
 2014/05/08 0.37.0
 =================
 
