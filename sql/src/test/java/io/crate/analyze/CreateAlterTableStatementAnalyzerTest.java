@@ -134,7 +134,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = IllegalArgumentException.class)
     public void testCreateTableWithRefreshIntervalWrongNumberFormat() throws Exception {
         analyze("CREATE TABLE foo (id int primary key, content string) " +
-                        "with (refresh_interval='1asdf')");
+                "with (refresh_interval='1asdf')");
     }
 
     @Test
@@ -160,7 +160,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         Map<String, Object> meta = (Map)analysis.mapping().get("_meta");
         assertNotNull(meta);
-        assertThat((String)meta.get("routing"), is("id"));
+        assertThat((String) meta.get("routing"), is("id"));
     }
 
     @Test (expected = IllegalArgumentException.class)
@@ -458,7 +458,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         // partitioned columns should not appear as regular columns
         assertThat(analysis.mappingProperties(), not(hasKey("name")));
-        assertThat((Map<String, Object>)analysis.metaMapping().get("columns"), not(hasKey("name")));
+        assertThat((Map<String, Object>) analysis.metaMapping().get("columns"), not(hasKey("name")));
         List<List<String>> partitionedByMeta = (List<List<String>>)analysis.metaMapping().get("partitioned_by");
         assertTrue(analysis.isPartitioned());
         assertThat(partitionedByMeta.size(), is(1));
@@ -540,7 +540,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
         assertThat(analysis.mappingProperties(), not(hasKey("id1")));
-        assertThat((Map<String, Object>)analysis.metaMapping().get("columns"),
+        assertThat((Map<String, Object>) analysis.metaMapping().get("columns"),
                 not(hasKey("id1")));
     }
 
@@ -648,4 +648,10 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "create table t (id int, name string) with (number_of_replicas=-1)");
         assertThat(analysis.indexSettings().getAsInt(TablePropertiesAnalysis.NUMBER_OF_REPLICAS, 0), is(-1));
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateTableSameColumn() throws Exception {
+        analyze("create table my_table (title string, title integer)");
+    }
+
 }
