@@ -25,7 +25,9 @@ task getVersion ( dependsOn: 'classes') << {
     if (gradle.taskGraph.hasTask(release)) {
         assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
     } else {
-        ext.version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
+        if (!gradle.taskGraph.hasTask(':client:uploadArchives')) {
+            ext.version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
+        }
     }
 
     logger.quiet("gitTag: " + gitTag)
