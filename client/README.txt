@@ -10,11 +10,22 @@ SQL.
 Installation
 ============
 
-Right now the client must be built from source, as of now, no pre-built
-JAR packages are available via Maven.
+Maven
+------
+
+The easiest way to use the crate client is to include it as a dependency using
+maven::
+
+    <dependency>
+        <groupId>io.crate<groupId>
+        <artifactId>crate-client</artifactId>
+        <version>0.38.0</version>
+    </dependency>
+
+From source
+-----------
 
 See :ref:`Development <client_develop>` for further details.
-
 
 Usage
 =====
