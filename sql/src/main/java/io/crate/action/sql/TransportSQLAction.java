@@ -42,6 +42,7 @@ import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
@@ -204,7 +205,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
      * @return
      */
     public Throwable esToCrateException(Throwable e) {
-        if (e instanceof RemoteTransportException || e instanceof UncheckedExecutionException) {
+        if (e instanceof RemoteTransportException || e instanceof UncheckedExecutionException || e instanceof UncategorizedExecutionException) {
             // if its a transport exception get the real cause throwable
             e = e.getCause();
         }
