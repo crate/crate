@@ -21,10 +21,14 @@ A simple `SELECT` statement can be submitted like this::
     ... }'
     {
       "cols" : [ "name", "position" ],
+      "column_types" : [ 4, 9 ],
       "rows" : [ [ "North West Ripple", 1 ], [ "Arkintoofle Minor", 3 ] ],
       "rowcount" : 2,
       "duration" : ...
     }
+
+Parameter Substitution
+======================
 
 In addition to the `stmt` key the request body may also contain an `args` key
 which can be used for SQL parameter substitution.
@@ -45,6 +49,7 @@ expected under the `args` key::
     ... EOF
     {
       "cols" : [ "date", "position" ],
+      "column_types" : [ 11, 9 ],
       "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
       "rowcount" : 2,
       "duration" : ...
@@ -66,10 +71,64 @@ The same query using question marks as placeholders looks like this::
     ... EOF
     {
       "cols" : [ "date", "position" ],
+      "column_types" : [ 11, 9 ],
       "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
       "rowcount" : 2,
       "duration" : ...
     }
+
+Column Types
+============
+
+Crate responds a list `column_types` with the data type id of every
+responded column. This way one can know what exact data type a column
+is holding.
+
+Collection data types like `Set` or `Array` are displayed as
+a list where the first value is the collection type and the second is
+the inner type. Of course the inner type could also be a collection.
+
+Example of JSON representation of a column list of (String, Set<Integer[]>)::
+
+  "column_types": [ 4, [ 101, [ 100, 9 ] ] ]
+
+
+Id's of all currently available data types:
+
+    ===== =============
+    Id    Data Type
+    ===== =============
+    0     Null
+    ----- -------------
+    1     Not Supported
+    ----- -------------
+    2     Byte
+    ----- -------------
+    3     Boolean
+    ----- -------------
+    4     String
+    ----- -------------
+    5     Ip
+    ----- -------------
+    6     Double
+    ----- -------------
+    7     Float
+    ----- -------------
+    8     Short
+    ----- -------------
+    9     Integer
+    ----- -------------
+    10    Long
+    ----- -------------
+    11    Timestamp
+    ----- -------------
+    12    Object
+    ----- -------------
+    100   Array
+    ----- -------------
+    101   Set
+    ===== =============
+
 
 Error Handling
 ==============

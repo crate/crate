@@ -36,6 +36,6 @@ public class AffectedRowsResponseBuilder implements ResponseBuilder {
         if (rows.length >= 1 && rows[0].length >= 1) {
             affectedRows = ((Number)rows[0][0]).longValue();
         }
-        return new SQLResponse(outputNames, Constants.EMPTY_RESULT, affectedRows, requestStartedTime);
+        return new SQLResponse(outputNames, Constants.EMPTY_RESULT, dataTypes, affectedRows, requestStartedTime);
     }
 }

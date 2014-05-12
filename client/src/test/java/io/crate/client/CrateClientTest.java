@@ -23,6 +23,7 @@ package io.crate.client;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.types.StringType;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
@@ -31,6 +32,9 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class CrateClientTest extends CrateIntegrationTest {
@@ -62,6 +66,8 @@ public class CrateClientTest extends CrateIntegrationTest {
         assertEquals(1, r.rows().length);
         assertEquals("_id", r.cols()[0]);
         assertEquals("1", r.rows()[0][0]);
+
+        assertThat(r.columnTypes()[0], instanceOf(StringType.class));
 
         System.out.println(Arrays.toString(r.cols()));
         for (Object[] row: r.rows()){

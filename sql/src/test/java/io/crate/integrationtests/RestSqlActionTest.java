@@ -45,6 +45,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 "{\n" +
                         "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
                         "\"position\", \"race\" ],\n" +
+                        "  \"column_types\" : [ 11, 4, 4, 4, 4, 9, 12 ],\n" +
                         "  \"rows\" : [ [ 308534400000, " +
                         "\"Relative to life on NowWhat, living on an affluent world in the North" +
                         " West ripple of the Galaxy is said to be easier by a factor of about " +
@@ -53,7 +54,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                         " \"rowcount\": 1," +
                         " \"duration\": " + responseDuration +
                         "}"
-                , json, false);
+                , json, true);
     }
 
 
@@ -68,6 +69,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
             "{\n" +
                 "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
                 "\"position\", \"race\" ],\n" +
+                "  \"column_types\" : [ 11, 4, 4, 4, 4, 9, 12 ],\n" +
                 "  \"rows\" : [ [ 308534400000, " +
                 "\"Relative to life on NowWhat, living on an affluent world in the North" +
                 " West ripple of the Galaxy is said to be easier by a factor of about " +
@@ -75,7 +77,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 " \"rowcount\": 1," +
                 " \"duration\": " + responseDuration +
                 "}"
-            , json, false);
+            , json, true);
     }
 
     @Test
@@ -89,10 +91,11 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
         JSONAssert.assertEquals(
             "{\n" +
                 "  \"cols\" : [ ],\n" +
+                "  \"column_types\" : [ ],\n" +
                 "  \"rows\" : [ ],\n" +
                 "  \"rowcount\" : 1,\n" +
                 "  \"duration\" : \n" + responseDuration +
-                "}", json, false);
+                "}", json, true);
     }
 
     @Test

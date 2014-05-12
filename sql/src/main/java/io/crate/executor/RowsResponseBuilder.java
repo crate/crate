@@ -47,7 +47,7 @@ public class RowsResponseBuilder implements ResponseBuilder {
         if (convertBytesRefs) {
             convertBytesRef(dataTypes, rows);
         }
-        return new SQLResponse(outputNames, rows, rows.length, requestStartedTime);
+        return new SQLResponse(outputNames, rows, dataTypes, rows.length, requestStartedTime);
     }
 
     private void convertBytesRef(DataType[] dataTypes, Object[][] rows) {

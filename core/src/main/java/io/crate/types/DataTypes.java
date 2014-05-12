@@ -72,7 +72,7 @@ public class DataTypes {
             LONG
     );
 
-    private static final ImmutableMap<Integer, DataTypeFactory> typeRegistry = ImmutableMap.<Integer, DataTypeFactory>builder()
+    public static final ImmutableMap<Integer, DataTypeFactory> typeRegistry = ImmutableMap.<Integer, DataTypeFactory>builder()
         .put(NullType.ID, NULL)
         .put(NotSupportedType.ID, NOT_SUPPORTED)
         .put(ByteType.ID, BYTE)

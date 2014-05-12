@@ -2,6 +2,11 @@
 Changes for Crate Data
 ======================
 
+Unreleased
+==========
+
+ - the data type of every responded column is now returned via transport & REST
+
 2014/05/12 0.36.6
 =================
 
