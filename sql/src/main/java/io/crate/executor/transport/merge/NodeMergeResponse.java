@@ -55,7 +55,7 @@ public class NodeMergeResponse extends TransportResponse {
         for (int r = 0; r < rows.length; r++) {
             rows[r] = new Object[numColumns];
             for (int c = 0; c < numColumns; c++) {
-                rows[r][c] = streamers[c].readFrom(in);
+                rows[r][c] = streamers[c].readValueFrom(in);
             }
         }
     }
@@ -69,7 +69,7 @@ public class NodeMergeResponse extends TransportResponse {
         out.writeVInt(rows.length);
         for (Object[] row : rows) {
             for (int c = 0; c < numColumns; c++) {
-                streamers[c].writeTo(out, row[c]);
+                streamers[c].writeValueTo(out, row[c]);
             }
         }
     }

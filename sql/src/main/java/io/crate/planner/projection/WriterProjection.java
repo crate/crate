@@ -22,7 +22,6 @@
 package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
@@ -31,6 +30,9 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.scalar.FormatFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -45,16 +47,16 @@ import java.util.List;
 public class WriterProjection extends Projection {
 
     private static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-            new Value(DataType.LONG) // number of lines written
+            new Value(DataTypes.LONG) // number of lines written
     );
 
     private final static Reference SHARD_ID_REF = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
     private final static Reference TABLE_NAME_REF = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("table_name")));
 
     public static final Symbol DIRECTORY_TO_FILENAME = new Function(new FunctionInfo(
-            new FunctionIdent(FormatFunction.NAME, Arrays.asList(DataType.STRING, DataType.STRING, DataType.STRING)),
-            DataType.STRING),
-            Arrays.<Symbol>asList(new StringLiteral("%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF)
+            new FunctionIdent(FormatFunction.NAME, Arrays.<DataType>asList(StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)),
+            StringType.INSTANCE),
+            Arrays.<Symbol>asList(Literal.newLiteral("%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF)
     );
 
     private Symbol uri;

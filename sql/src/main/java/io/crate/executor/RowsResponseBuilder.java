@@ -23,8 +23,8 @@ package io.crate.executor;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import io.crate.DataType;
 import io.crate.action.sql.SQLResponse;
+import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Arrays;
@@ -62,10 +62,10 @@ public class RowsResponseBuilder implements ResponseBuilder {
         final IntArrayList stringCollectionColumns = new IntArrayList();
         int idx = 0;
         for (DataType dataType : dataTypes) {
-            if (dataType == DataType.STRING) {
+            if (dataType.equals(DataTypes.STRING)) {
                 stringColumns.add(idx);
-            } else if (dataType == DataType.STRING_SET ||
-                    dataType == DataType.STRING_ARRAY) {
+            } else if ((DataTypes.isCollectionType(dataType)
+                    && ((CollectionType)dataType).innerType().equals(StringType.INSTANCE))) {
                 stringCollectionColumns.add(idx);
             }
             idx++;
@@ -106,6 +106,4 @@ public class RowsResponseBuilder implements ResponseBuilder {
             }
         }
     }
-
-
 }

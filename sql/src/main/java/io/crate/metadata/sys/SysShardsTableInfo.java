@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.DataType;
+import io.crate.types.*;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -45,15 +45,15 @@ public class SysShardsTableInfo extends SysTableInfo {
     private static final ImmutableList<String> primaryKey = ImmutableList.of("schema_name", "table_name", "id", "partition_ident");
 
     static {
-        register(primaryKey.get(0), DataType.STRING, null);
-        register(primaryKey.get(1), DataType.STRING, null);
-        register(primaryKey.get(2), DataType.INTEGER, null);
-        register(primaryKey.get(3), DataType.STRING, null);
-        register("num_docs", DataType.LONG, null);
-        register("primary", DataType.BOOLEAN, null);
-        register("relocating_node", DataType.STRING, null);
-        register("size", DataType.LONG, null);
-        register("state", DataType.STRING, null);
+        register(primaryKey.get(0), StringType.INSTANCE, null);
+        register(primaryKey.get(1), StringType.INSTANCE, null);
+        register(primaryKey.get(2), IntegerType.INSTANCE, null);
+        register(primaryKey.get(3), StringType.INSTANCE, null);
+        register("num_docs", LongType.INSTANCE, null);
+        register("primary", BooleanType.INSTANCE, null);
+        register("relocating_node", StringType.INSTANCE, null);
+        register("size", LongType.INSTANCE, null);
+        register("state", StringType.INSTANCE, null);
     }
 
     private final ClusterService clusterService;

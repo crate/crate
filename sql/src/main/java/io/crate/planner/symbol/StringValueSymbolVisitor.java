@@ -21,6 +21,8 @@
 
 package io.crate.planner.symbol;
 
+import org.apache.lucene.util.BytesRef;
+
 public class StringValueSymbolVisitor extends SymbolVisitor<Void, String> {
 
     public static final StringValueSymbolVisitor INSTANCE = new StringValueSymbolVisitor();
@@ -45,6 +47,13 @@ public class StringValueSymbolVisitor extends SymbolVisitor<Void, String> {
 
     @Override
     public String visitLiteral(Literal symbol, Void context) {
-        return symbol.valueAsString();
+        Object o = symbol.value();
+        if (o == null) {
+            return null;
+        }
+        if (o instanceof BytesRef) {
+            return ((BytesRef)o).utf8ToString();
+        }
+        return o.toString();
     }
 }

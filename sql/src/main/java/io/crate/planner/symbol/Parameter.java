@@ -21,14 +21,13 @@
 
 package io.crate.planner.symbol;
 
-import io.crate.DataType;
+import io.crate.operation.Input;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 
-public class Parameter extends Symbol {
+public class Parameter extends Symbol implements Input<Object> {
 
     public static final SymbolFactory FACTORY = new SymbolFactory() {
         @Override
@@ -49,27 +48,9 @@ public class Parameter extends Symbol {
         return value;
     }
 
-
     @Override
     public SymbolType symbolType() {
         return SymbolType.PARAMETER;
-    }
-
-    /**
-     * returns the guessed {@link DataType} of the <code>Parameter</code> value.
-     * e.g. for to determine if the parameter fits a given type
-     */
-    @Nullable
-    public DataType guessedValueType() {
-        return DataType.forValue(value);
-    }
-
-    public Literal toLiteral() {
-        return Literal.forValue(value);
-    }
-
-    public Literal toLiteral(DataType dataType) {
-        return Literal.forValue(value).convertTo(dataType);
     }
 
     @Override

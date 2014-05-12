@@ -26,7 +26,9 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
@@ -38,7 +40,8 @@ import static org.junit.Assert.assertEquals;
 
 public class CollectionAverageFunctionTest {
 
-    final FunctionIdent ident = new FunctionIdent(CollectionAverageFunction.NAME, ImmutableList.of(DataType.LONG_SET));
+    final FunctionIdent ident = new FunctionIdent(CollectionAverageFunction.NAME,
+            ImmutableList.<DataType>of(new SetType(DataTypes.LONG)));
 
     @Test
     public void testLookup() throws Exception {
@@ -56,7 +59,7 @@ public class CollectionAverageFunctionTest {
         CollectionAverageFunction function = new CollectionAverageFunction(
                 new FunctionInfo(
                     ident,
-                    DataType.DOUBLE)
+                    DataTypes.DOUBLE)
         );
 
         Input inputSet = new Input<Set<Long>>() {

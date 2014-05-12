@@ -21,16 +21,17 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.DataType;
 import io.crate.analyze.WhereClause;
 import io.crate.planner.node.PlanVisitor;
+import io.crate.types.DataType;
+import io.crate.types.LongType;
 
 import java.util.Arrays;
 import java.util.List;
 
 public class ESCountNode extends ESDQLPlanNode {
 
-    private final List<DataType> outputTypes = Arrays.asList(DataType.LONG);
+    private final List<DataType> outputTypes = Arrays.<DataType>asList(LongType.INSTANCE);
     private final String indexName;
     private final WhereClause whereClause;
 

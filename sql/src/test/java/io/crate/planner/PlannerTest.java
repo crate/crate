@@ -2,7 +2,6 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
@@ -35,6 +34,8 @@ import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -147,24 +148,24 @@ public class PlannerTest {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             TableIdent userTableIdent = new TableIdent(null, "users");
             TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
-                    .add("name", DataType.STRING, null)
-                    .add("id", DataType.LONG, null)
-                    .add(DocSysColumns.RAW.name(), DataType.STRING, null)
+                    .add("name", DataTypes.STRING, null)
+                    .add("id", DataTypes.LONG, null)
+                    .add(DocSysColumns.RAW.name(), DataTypes.STRING, null)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
             TableIdent charactersTableIdent = new TableIdent(null, "characters");
             TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, RowGranularity.DOC, shardRouting)
-                    .add("name", DataType.STRING, null)
-                    .add("id", DataType.STRING, null)
+                    .add("name", DataTypes.STRING, null)
+                    .add("id", DataTypes.STRING, null)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
             TableIdent partedTableIdent = new TableIdent(null, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
-                    .add("name", DataType.STRING, null)
-                    .add("id", DataType.STRING, null)
-                    .add("date", DataType.TIMESTAMP, null, true)
+                    .add("name", DataTypes.STRING, null)
+                    .add("id", DataTypes.STRING, null)
+                    .add("date", DataTypes.TIMESTAMP, null, true)
                     .addPartitions(
                             new PartitionName("parted", new ArrayList<String>(){{add(null);}}).stringValue(),
                             new PartitionName("parted", Arrays.asList("0")).stringValue(),
@@ -176,9 +177,9 @@ public class PlannerTest {
                     .build();
             TableIdent emptyPartedTableIdent = new TableIdent(null, "empty_parted");
             TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
-                    .add("name", DataType.STRING, null)
-                    .add("id", DataType.STRING, null)
-                    .add("date", DataType.TIMESTAMP, null, true)
+                    .add("name", DataTypes.STRING, null)
+                    .add("id", DataTypes.STRING, null)
+                    .add("date", DataTypes.TIMESTAMP, null, true)
                     .addPrimaryKey("id")
                     .addPrimaryKey("date")
                     .clusteredBy("id")
@@ -217,7 +218,7 @@ public class PlannerTest {
         //assertThat(collectNode.toCollect().size(), is(1));
         GroupProjection groupProjection = (GroupProjection) collectNode.projections().get(0);
         Aggregation aggregation = groupProjection.values().get(0);
-        //assertTrue(aggregation.inputs().get(0).symbolType().isLiteral());
+        //assertTrue(aggregation.inputs().get(0).symbolType().isValueSymbol());
     }
 
     @Test
@@ -239,8 +240,8 @@ public class PlannerTest {
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.outputTypes().size(), is(2));
-        assertThat(collectNode.outputTypes().get(0), is(DataType.STRING));
-        assertThat(collectNode.outputTypes().get(1), is(DataType.NULL));
+        assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
+        assertEquals(DataTypes.NULL, collectNode.outputTypes().get(1));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -258,8 +259,8 @@ public class PlannerTest {
         assertThat(inputColumn.index(), is(1));
 
         assertThat(mergeNode.outputTypes().size(), is(2));
-        assertThat(mergeNode.outputTypes().get(0), is(DataType.STRING));
-        assertThat(mergeNode.outputTypes().get(1), is(DataType.LONG));
+        assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(0));
+        assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(1));
 
 
         planNode = iterator.next();
@@ -316,8 +317,8 @@ public class PlannerTest {
         ESGetNode getNode = (ESGetNode) node;
         assertThat(getNode.index(),
                 is(new PartitionName("parted", Arrays.asList("0")).stringValue()));
-        assertThat(getNode.outputTypes().get(0), is(DataType.STRING));
-        assertThat(getNode.outputTypes().get(1), is(DataType.TIMESTAMP));
+        assertEquals(DataTypes.STRING, getNode.outputTypes().get(0));
+        assertEquals(DataTypes.TIMESTAMP, getNode.outputTypes().get(1));
     }
 
     @Test
@@ -399,7 +400,7 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(CollectNode.class));
         CollectNode collectNode = (CollectNode) planNode;
 
-        assertThat(collectNode.outputTypes().get(0), is(DataType.NULL));
+        assertEquals(DataTypes.NULL, collectNode.outputTypes().get(0));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(AggregationProjection.class));
@@ -408,8 +409,8 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(MergeNode.class));
         MergeNode mergeNode = (MergeNode) planNode;
 
-        assertThat(mergeNode.inputTypes().get(0), is(DataType.NULL));
-        assertThat(mergeNode.outputTypes().get(0), is(DataType.LONG));
+        assertEquals(DataTypes.NULL, mergeNode.inputTypes().get(0));
+        assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
 
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
@@ -425,15 +426,15 @@ public class PlannerTest {
 
         CollectNode collectNode = (CollectNode) iterator.next();
         assertFalse(collectNode.hasDownstreams());
-        assertThat(collectNode.outputTypes().get(0), is(DataType.STRING));
-        assertThat(collectNode.outputTypes().get(1), is(DataType.NULL));
+        assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
+        assertEquals(DataTypes.NULL, collectNode.outputTypes().get(1));
 
         MergeNode mergeNode = (MergeNode) iterator.next();
         assertThat(mergeNode.numUpstreams(), is(2));
         assertThat(mergeNode.projections().size(), is(2));
 
-        assertThat(mergeNode.outputTypes().get(0), is(DataType.LONG));
-        assertThat(mergeNode.outputTypes().get(1), is(DataType.STRING));
+        assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
+        assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(1));
 
         GroupProjection groupProjection = (GroupProjection) mergeNode.projections().get(0);
         assertThat(groupProjection.keys().size(), is(1));
@@ -462,7 +463,7 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(CollectNode.class));
         CollectNode collectNode = (CollectNode) planNode;
 
-        assertThat(collectNode.outputTypes().get(0), is(DataType.INTEGER));
+        assertEquals(DataTypes.INTEGER, collectNode.outputTypes().get(0));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
 
         planNode = iterator.next();
@@ -470,9 +471,9 @@ public class PlannerTest {
         MergeNode mergeNode = (MergeNode) planNode;
 
         assertThat(mergeNode.inputTypes().size(), is(1));
-        assertThat(mergeNode.inputTypes().get(0), is(DataType.INTEGER));
+        assertEquals(DataTypes.INTEGER, mergeNode.inputTypes().get(0));
         assertThat(mergeNode.outputTypes().size(), is(1));
-        assertThat(mergeNode.outputTypes().get(0), is(DataType.INTEGER));
+        assertEquals(DataTypes.INTEGER, mergeNode.outputTypes().get(0));
 
         assertThat(mergeNode.numUpstreams(), is(2));
 
@@ -491,7 +492,7 @@ public class PlannerTest {
         ESSearchNode searchNode = (ESSearchNode) planNode;
 
         assertThat(searchNode.outputTypes().size(), is(1));
-        assertThat(searchNode.outputTypes().get(0), is(DataType.STRING));
+        assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
         assertTrue(searchNode.whereClause().hasQuery());
         assertThat(searchNode.partitionBy().size(), is(0));
 
@@ -530,7 +531,7 @@ public class PlannerTest {
         assertThat(searchNode.outputs().get(0).info().ident().columnIdent().fqn(), is("name"));
 
         assertThat(searchNode.outputTypes().size(), is(1));
-        assertThat(searchNode.outputTypes().get(0), is(DataType.STRING));
+        assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
         assertTrue(searchNode.whereClause().hasQuery());
         assertThat(searchNode.partitionBy().size(), is(0));
 
@@ -540,9 +541,9 @@ public class PlannerTest {
         assertTrue(mergeNode.hasProjections());
         assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
         assertThat(mergeNode.outputTypes().size(), is(2));
-        assertThat(mergeNode.outputTypes().get(0), is(DataType.STRING));
+        assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(0));
         assertThat(mergeNode.projections().get(0).outputs().get(0), instanceOf(Function.class));
-        assertThat(mergeNode.outputTypes().get(1), is(DataType.STRING));
+        assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(1));
         assertThat(mergeNode.projections().get(0).outputs().get(1), instanceOf(InputColumn.class));
 
         assertFalse(iterator.hasNext());
@@ -566,7 +567,7 @@ public class PlannerTest {
         assertThat((String)indexNode.sourceMaps().get(0).get("name"), is("Deep Thought"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
-        assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));
+        assertEquals(DataTypes.LONG, indexNode.outputTypes().get(0));
 
         assertTrue(plan.expectsAffectedRows());
     }
@@ -591,7 +592,7 @@ public class PlannerTest {
         assertThat((String)indexNode.sourceMaps().get(1).get("name"), is("Marvin"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
-        assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));
+        assertEquals(DataTypes.LONG, indexNode.outputTypes().get(0));
 
         assertTrue(plan.expectsAffectedRows());
     }
@@ -732,7 +733,7 @@ public class PlannerTest {
         assertThat(updateNode.ids().get(0), is("1"));
 
         assertThat(updateNode.outputTypes().size(), is(1));
-        assertThat(updateNode.outputTypes().get(0), is(DataType.LONG));
+        assertEquals(DataTypes.LONG, updateNode.outputTypes().get(0));
 
         Map.Entry<String, Object> entry = updateNode.updateDoc().entrySet().iterator().next();
         assertThat(entry.getKey(), is("name"));
@@ -761,7 +762,8 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(FileUriCollectNode.class));
 
         FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
-        assertThat(((Literal)collectNode.targetUri()).valueAsString(), is("/path/to/file.extension"));
+        assertThat((BytesRef)((Literal)collectNode.targetUri()).value(),
+                is(new BytesRef("/path/to/file.extension")));
     }
 
     @Test

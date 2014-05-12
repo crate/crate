@@ -23,10 +23,10 @@ package io.crate.planner.projection;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -39,7 +39,7 @@ import java.util.List;
 public class IndexWriterProjection extends Projection {
 
     private final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-            new Value(DataType.LONG)  // number of rows imported
+             new Value(DataTypes.LONG)  // number of rows imported
     );
 
     private final static String CONCURRENCY = "concurrency";

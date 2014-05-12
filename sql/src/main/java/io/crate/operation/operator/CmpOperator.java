@@ -42,17 +42,16 @@ public abstract class CmpOperator extends Operator<Object> {
         Symbol right = symbol.arguments().get(1);
 
         if (containsNull(left, right)) {
-            return Null.INSTANCE;
+            return Literal.NULL;
         }
 
-        // TODO: implicit cast numeric literals
-
-        if (left.symbolType().isLiteral() && right.symbolType().isLiteral()) {
+        if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
             // must be true due to the function registration (argument DataType signature)
-            if (compare(((Literal) left).compareTo(right))) {
-                return BooleanLiteral.TRUE;
+
+            if (compare(((Literal) left).compareTo((Literal)right))) {
+                return Literal.newLiteral(true);
             } else {
-                return BooleanLiteral.FALSE;
+                return Literal.newLiteral(false);
             }
         }
 

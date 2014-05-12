@@ -24,13 +24,13 @@ package io.crate.planner.symbol;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.DataType;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class Reference extends ValueSymbol {
+public class Reference extends DataTypeSymbol {
 
     public static final SymbolFactory<Reference> FACTORY = new SymbolFactory<Reference>() {
         @Override

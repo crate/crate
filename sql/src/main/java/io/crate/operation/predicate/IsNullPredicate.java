@@ -21,46 +21,39 @@
 
 package io.crate.operation.predicate;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 
 public class IsNullPredicate<T> implements Scalar<Boolean, T> {
-
-    private static final Predicate<DataType> IS_OBJECT_TYPE = new Predicate<DataType>() {
-        @Override
-        public boolean apply(@Nullable DataType input) {
-            return input != null && input.elementType() != DataType.OBJECT;
-        }
-    };
 
     public static final String NAME = "op_isnull";
     private final FunctionInfo info;
 
     public static void register(PredicateModule module) {
-        for (DataType type : Iterables.filter(
-                Iterables.concat(DataType.ARRAY_TYPES, DataType.SET_TYPES, DataType.PRIMITIVE_TYPES),
-                IS_OBJECT_TYPE)
-        ) {
+        for (DataType type : DataTypes.PRIMITIVE_TYPES) {
+            if (type.equals(DataTypes.OBJECT)) {
+                continue;
+            }
             module.registerPredicateFunction(new IsNullPredicate(generateInfo(type)));
+            module.registerPredicateFunction(new IsNullPredicate(generateInfo(new SetType(type))));
+            module.registerPredicateFunction(new IsNullPredicate(generateInfo(new ArrayType(type))));
         }
-        module.registerPredicateFunction(new IsNullPredicate(generateInfo(DataType.NULL)));
-
+        module.registerPredicateFunction(new IsNullPredicate(generateInfo(DataTypes.NULL)));
     }
 
     private static FunctionInfo generateInfo(DataType type) {
-        return new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(type)), DataType.BOOLEAN);
+        return new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(type)), DataTypes.BOOLEAN);
     }
 
     IsNullPredicate(FunctionInfo info) {
@@ -79,12 +72,11 @@ public class IsNullPredicate<T> implements Scalar<Boolean, T> {
         assert (symbol.arguments().size() == 1);
 
         Symbol arg = symbol.arguments().get(0);
-        if (arg.symbolType() == SymbolType.NULL_LITERAL) {
-            return BooleanLiteral.TRUE;
-        } else if (arg.symbolType().isLiteral()) {
-            return BooleanLiteral.FALSE;
+        if (arg.equals(Literal.NULL)) {
+            return Literal.newLiteral(true);
+        } else if (arg.symbolType().isValueSymbol()) {
+            return Literal.newLiteral(false);
         }
-
         return symbol;
     }
 

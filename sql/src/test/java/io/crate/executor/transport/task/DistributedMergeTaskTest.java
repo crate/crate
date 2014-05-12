@@ -1,9 +1,11 @@
 package io.crate.executor.transport.task;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Streamer;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -15,11 +17,10 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
-import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.Streamer;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -50,7 +51,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         MergeNode mergeNode = new MergeNode("merge1", 2);
         mergeNode.contextId(UUID.randomUUID());
         mergeNode.executionNodes(nodes);
-        mergeNode.inputTypes(Arrays.asList(DataType.NULL, DataType.STRING));
+        mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.NULL, DataTypes.STRING));
 
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(1)));
@@ -66,11 +67,11 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         mergeNode.projections(Arrays.asList(groupProjection, topNProjection));
-        mergeNode.outputTypes(Arrays.asList(DataType.STRING, DataType.NULL));
+        mergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.NULL));
 
         Streamer<?>[] mapperOutputStreamer = new Streamer[] {
                 new AggregationStateStreamer(countAggregation),
-                DataType.STRING.streamer()
+                DataTypes.STRING.streamer()
         };
 
         NoopListener noopListener = new NoopListener();

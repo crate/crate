@@ -22,10 +22,14 @@
 package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
-import io.crate.DataType;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.ArrayList;
@@ -41,7 +45,7 @@ public class FormatFunction implements Scalar<BytesRef, Object>, DynamicFunction
     }
 
     private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataType.STRING);
+        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
     }
 
     FormatFunction() {}
@@ -75,35 +79,40 @@ public class FormatFunction implements Scalar<BytesRef, Object>, DynamicFunction
         assert (function.arguments().size() > 1);
 
         Symbol formatString = function.arguments().get(0);
-        if (formatString.symbolType() != SymbolType.STRING_LITERAL) {
+        if (formatString.symbolType() != SymbolType.LITERAL
+                && !((Literal)formatString).valueType().equals(DataTypes.STRING)) {
             // probably something like   format(column_with_format_string, arg1) ?
             return function;
         }
 
-        assert formatString instanceof StringLiteral;
+        assert formatString instanceof Literal;
+        assert ((Literal)formatString).valueType().equals(DataTypes.STRING);
         List<Object> objects = new ArrayList<>();
         List<Symbol> arguments = function.arguments().subList(1, function.arguments().size());
 
         for (Symbol argument : arguments) {
-            if (!argument.symbolType().isLiteral()) {
+            if (!argument.symbolType().isValueSymbol()) {
                 return function; // can't normalize if arguments still contain non-literals
             }
 
-            if (argument.symbolType() == SymbolType.STRING_LITERAL) {
-                objects.add(((StringLiteral)argument).valueAsString());
+            assert argument instanceof Input; // valueSymbol must implement Input
+            Object value = ((Input)argument).value();
+
+            if (value instanceof BytesRef) {
+                objects.add(((BytesRef)value).utf8ToString());
             } else {
-                objects.add(((Literal) argument).value());
+                objects.add(value);
             }
         }
 
-        return new StringLiteral(String.format(
-                ((StringLiteral) formatString).valueAsString(),
+        return Literal.newLiteral(String.format(
+                ((BytesRef)((Literal) formatString).value()).utf8ToString(),
                 objects.toArray(new Object[objects.size()])));
     }
 
     @Override
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.get(0) == DataType.STRING);
+        Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.get(0) == DataTypes.STRING);
         return new FormatFunction(createInfo(dataTypes));
     }
 }

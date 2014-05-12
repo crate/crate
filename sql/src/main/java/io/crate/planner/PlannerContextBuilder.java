@@ -98,7 +98,7 @@ public class PlannerContextBuilder {
                     resolvedSymbol = new InputColumn(context.originalGroupBy.indexOf(splitSymbol));
                 } else if (splitSymbol.symbolType() == SymbolType.INPUT_COLUMN) {
                     resolvedSymbol = splitSymbol;
-                } else if(symbol.symbolType().isLiteral()){
+                } else if(symbol.symbolType().isValueSymbol()){
                     resolvedSymbol = symbol;
                 } else {
                     throw new UnhandledServerException(

@@ -23,12 +23,11 @@ package io.crate.operation.operator;
 
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
 
 import java.util.regex.Pattern;
 
@@ -41,7 +40,7 @@ public class LikeOperator extends Operator<BytesRef> {
     public static final char DEFAULT_ESCAPE = '\\';
 
     public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataType.STRING)));
+        module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataTypes.STRING)));
     }
 
     public LikeOperator(FunctionInfo info) {
@@ -58,17 +57,13 @@ public class LikeOperator extends Operator<BytesRef> {
         assert (symbol != null);
         assert (symbol.arguments().size() == 2);
 
-        if (!symbol.arguments().get(0).symbolType().isLiteral()) {
+        if (!symbol.arguments().get(0).symbolType().isValueSymbol()) {
             return symbol;
         }
 
-        StringLiteral expression = (StringLiteral) symbol.arguments().get(0);
-        StringLiteral pattern = (StringLiteral) symbol.arguments().get(1);
-
-        if (evaluate(expression, pattern)) {
-            return BooleanLiteral.TRUE;
-        }
-        return BooleanLiteral.FALSE;
+        Literal expression = (Literal) symbol.arguments().get(0);
+        Literal pattern = (Literal) symbol.arguments().get(1);
+        return Literal.newLiteral(evaluate(expression, pattern));
     }
 
     @Override

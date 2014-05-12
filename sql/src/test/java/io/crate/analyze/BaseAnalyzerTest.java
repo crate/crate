@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -34,10 +33,12 @@ import io.crate.operation.Input;
 import io.crate.operation.reference.sys.cluster.SysClusterExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.LongLiteral;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -68,52 +69,52 @@ public class BaseAnalyzerTest {
             .build());
     static final TableIdent TEST_DOC_TABLE_IDENT = new TableIdent(null, "users");
     static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT, RowGranularity.DOC, shardRouting)
-            .add("id", DataType.LONG, null)
-            .add("other_id", DataType.LONG, null)
-            .add("name", DataType.STRING, null)
-            .add("details", DataType.OBJECT, null)
-            .add("awesome", DataType.BOOLEAN, null)
-            .add("_version", DataType.INTEGER, null)
-            .add("counters", DataType.LONG_ARRAY, null)
-            .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
-            .add("friends", DataType.LONG, Arrays.asList("id"))
-            .add("friends", DataType.STRING_ARRAY, Arrays.asList("groups"))
+            .add("id", DataTypes.LONG, null)
+            .add("other_id", DataTypes.LONG, null)
+            .add("name", DataTypes.STRING, null)
+            .add("details", DataTypes.OBJECT, null)
+            .add("awesome", DataTypes.BOOLEAN, null)
+            .add("_version", DataTypes.INTEGER, null)
+            .add("counters", new ArrayType(DataTypes.LONG), null)
+            .add("friends", new ArrayType(DataTypes.OBJECT), null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("friends", DataTypes.LONG, Arrays.asList("id"))
+            .add("friends", new ArrayType(DataTypes.STRING), Arrays.asList("groups"))
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();
     static final TableIdent TEST_DOC_TABLE_IDENT_MULTI_PK = new TableIdent(null, "users_multi_pk");
     static final TableInfo userTableInfoMultiPk = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_MULTI_PK, RowGranularity.DOC, shardRouting)
-            .add("id", DataType.LONG, null)
-            .add("name", DataType.STRING, null)
-            .add("details", DataType.OBJECT, null)
-            .add("awesome", DataType.BOOLEAN, null)
-            .add("_version", DataType.INTEGER, null)
-            .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("id", DataTypes.LONG, null)
+            .add("name", DataTypes.STRING, null)
+            .add("details", DataTypes.OBJECT, null)
+            .add("awesome", DataTypes.BOOLEAN, null)
+            .add("_version", DataTypes.INTEGER, null)
+            .add("friends", new ArrayType(DataTypes.OBJECT), null, ReferenceInfo.ObjectType.DYNAMIC)
             .addPrimaryKey("id")
             .addPrimaryKey("name")
             .clusteredBy("id")
             .build();
     static final TableIdent TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY = new TableIdent(null, "users_clustered_by_only");
     static final TableInfo userTableInfoClusteredByOnly = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY, RowGranularity.DOC, shardRouting)
-            .add("id", DataType.LONG, null)
-            .add("name", DataType.STRING, null)
-            .add("details", DataType.OBJECT, null)
-            .add("awesome", DataType.BOOLEAN, null)
-            .add("_version", DataType.INTEGER, null)
-            .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("id", DataTypes.LONG, null)
+            .add("name", DataTypes.STRING, null)
+            .add("details", DataTypes.OBJECT, null)
+            .add("awesome", DataTypes.BOOLEAN, null)
+            .add("_version", DataTypes.INTEGER, null)
+            .add("friends", new ArrayType(DataTypes.OBJECT), null, ReferenceInfo.ObjectType.DYNAMIC)
             .clusteredBy("id")
             .build();
     static final TableIdent TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY = new TableIdent(null, "user_refresh_interval");
     static final TableInfo userTableInfoRefreshIntervalByOnly = TestingTableInfo.builder(TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY, RowGranularity.DOC, shardRouting)
-            .add("id", DataType.LONG, null)
-            .add("content", DataType.STRING, null)
+            .add("id", DataTypes.LONG, null)
+            .add("content", DataTypes.STRING, null)
             .clusteredBy("id")
             .build();
     static final TableIdent NESTED_PK_TABLE_IDENT = new TableIdent(null, "nested_pk");
     static final TableInfo nestedPkTableInfo = TestingTableInfo.builder(NESTED_PK_TABLE_IDENT, RowGranularity.DOC, shardRouting)
-            .add("id", DataType.LONG, null)
-            .add("o", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
-            .add("o", DataType.BYTE, Arrays.asList("b"))
+            .add("id", DataTypes.LONG, null)
+            .add("o", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("o", DataTypes.BYTE, Arrays.asList("b"))
             .addPrimaryKey("id")
             .addPrimaryKey("o.b")
             .clusteredBy("o.b")
@@ -121,10 +122,10 @@ public class BaseAnalyzerTest {
     static final TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(null, "parted");
     static final TableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
-            .add("id", DataType.INTEGER, null)
-            .add("name", DataType.STRING, null)
-            .add("date", DataType.TIMESTAMP, null, true)
-            .add("obj", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("id", DataTypes.INTEGER, null)
+            .add("name", DataTypes.STRING, null)
+            .add("date", DataTypes.TIMESTAMP, null, true)
+            .add("obj", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
             // add 2 partitions/simulate already done inserts
             .addPartitions(
                     new PartitionName("parted", Arrays.asList("1395874800000")).stringValue(),
@@ -134,11 +135,11 @@ public class BaseAnalyzerTest {
     static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(null, "multi_parted");
     static final TableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
-            .add("id", DataType.INTEGER, null)
-            .add("date", DataType.TIMESTAMP, null, true)
-            .add("num", DataType.LONG, null)
-            .add("obj", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
-            .add("obj", DataType.STRING, Arrays.asList("name"), true)
+            .add("id", DataTypes.INTEGER, null)
+            .add("date", DataTypes.TIMESTAMP, null, true)
+            .add("num", DataTypes.LONG, null)
+            .add("obj", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
                     // add 2 partitions/simulate already done inserts
             .addPartitions(
                     new PartitionName("multi_parted", Arrays.asList("1395874800000", "0")).stringValue(),
@@ -147,11 +148,11 @@ public class BaseAnalyzerTest {
             .build();
 
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
-            new FunctionIdent("abs", Arrays.asList(DataType.LONG)),
-            DataType.LONG);
+            new FunctionIdent("abs", Arrays.<DataType>asList(DataTypes.LONG)),
+            DataTypes.LONG);
     static final FunctionInfo YEAR_FUNCTION_INFO = new FunctionInfo(
-            new FunctionIdent("year", Arrays.asList(DataType.TIMESTAMP)),
-            DataType.STRING);
+            new FunctionIdent("year", Arrays.<DataType>asList(DataTypes.TIMESTAMP)),
+            DataTypes.STRING);
 
     Injector injector;
     Analyzer analyzer;
@@ -193,7 +194,7 @@ public class BaseAnalyzerTest {
         @Override
         public Symbol normalizeSymbol(Function symbol) {
             if (symbol.arguments().get(0) instanceof Input) {
-                return new LongLiteral(evaluate((Input<Number>)symbol.arguments().get(0)));
+                return Literal.newLiteral(evaluate((Input<Number>) symbol.arguments().get(0)));
             }
             return symbol;
         }
@@ -217,7 +218,7 @@ public class BaseAnalyzerTest {
         @Override
         public Symbol normalizeSymbol(Function symbol) {
             if (symbol.arguments().get(0) instanceof Input) {
-                return new StringLiteral(evaluate((Input<Long>)symbol.arguments().get(0)));
+                return Literal.newLiteral(evaluate((Input<Long>) symbol.arguments().get(0)));
             }
             return symbol;
         }

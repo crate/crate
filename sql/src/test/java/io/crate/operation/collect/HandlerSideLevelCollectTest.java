@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.analyze.WhereClause;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
@@ -32,11 +31,13 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
@@ -89,9 +90,9 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Symbol tableNameRef = toCollect.get(1);
 
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME,
-                ImmutableList.of(DataType.STRING, DataType.STRING)));
+                ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING)));
         Function whereClause = new Function(eqImpl.info(),
-                ImmutableList.of(tableNameRef, new StringLiteral("shards")));
+                ImmutableList.of(tableNameRef, Literal.newLiteral("shards")));
 
         collectNode.whereClause(new WhereClause(whereClause));
         collectNode.toCollect(toCollect);

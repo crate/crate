@@ -31,17 +31,20 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 public class AggregationImplModule extends AbstractModule {
 
     private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
+    private MapBinder<String, DynamicFunctionResolver> resolverBinder;
 
-    public void registerAggregateFunction(AggregationFunction impl) {
+    public void register(AggregationFunction impl) {
         functionBinder.addBinding(impl.info().ident()).toInstance(impl);
+    }
+
+    public void register(String name, DynamicFunctionResolver dynamicFunctionResolver) {
+        resolverBinder.addBinding(name).toInstance(dynamicFunctionResolver);
     }
 
     @Override
     protected void configure() {
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-        // currently there are no dynamic aggregation functions, but the binder need to exist
-        // so that guice can create the Functions class
-        MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
+        resolverBinder = MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
 
         AverageAggregation.register(this);
         MinimumAggregation.register(this);

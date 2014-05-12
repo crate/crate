@@ -22,8 +22,11 @@
 package io.crate.executor;
 
 import com.google.common.base.Joiner;
-import io.crate.DataType;
 import io.crate.action.sql.SQLResponse;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
@@ -44,7 +47,7 @@ public class RowsResponseBuilderTest {
         RowsResponseBuilder rrb = new RowsResponseBuilder(convertBytesRef);
 
         String[] outputNames = new String[] { "col" };
-        DataType[] dataTypes = new DataType[] { DataType.STRING_SET };
+        DataType[] dataTypes = new DataType[] { new SetType(DataTypes.STRING) };
         Object[][] rows = new Object[1][1];
         Set<BytesRef> refs = new HashSet<>(
                 Arrays.asList(new BytesRef("foo"), new BytesRef("bar")));
@@ -60,7 +63,7 @@ public class RowsResponseBuilderTest {
         RowsResponseBuilder rrb = new RowsResponseBuilder(convertBytesRef);
 
         String[] outputNames = new String[] { "col" };
-        DataType[] dataTypes = new DataType[] { DataType.STRING_ARRAY };
+        DataType[] dataTypes = new DataType[] { new ArrayType(DataTypes.STRING) };
         Object[][] rows = new Object[1][1];
         BytesRef[] refs = new BytesRef[] { new BytesRef("foo"), new BytesRef("bar") };
 
