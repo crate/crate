@@ -1,15 +1,23 @@
-=================
-Crate Java Client
-=================
+========================
+Crate Data Java Client
+========================
 
 .. highlight:: java
 
-To access a Crate Cluster one can use the the installed crate package
-directly just by adding the ``lib`` dir to the classpath. The client
-module exposes a very simple interface to query Crate using SQL.
+The client module exposes a very simple interface to query Crate using
+SQL.
+
+Installation
+============
+
+Right now the client must be built from source, as of now, no pre-built
+JAR packages are available via Maven.
+
+See :ref:`Development <client_develop>` for further details.
+
 
 Usage
------
+=====
 
 A minimal example is just a few lines of code::
 
@@ -32,6 +40,8 @@ The `CrateClient` takes multiple servers as arguments. They are used in a
 round-robin fashion to distribute the load. In case a server is unavailable it
 will be skipped.
 
-Queries are executed asynchronous. `client.sql("")` will return a
-`Future<SQLResponse>` and code execution is only blocked if `.actionGet()` is
-called on it.
+.. note::
+
+   Queries are executed asynchronous. `client.sql("")` will return a
+   `Future<SQLResponse>` and code execution is only blocked if
+   `.actionGet()` is called on it.

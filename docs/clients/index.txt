@@ -1,23 +1,10 @@
-========================
-Crate Data Java Client
-========================
+.. include:: README.txt
 
-Contents:
----------
+
+Development
+===========
 
 .. toctree::
    :maxdepth: 2
-   :titlesonly:
 
-   java.txt
-
-Getting the Source Code from Github
------------------------------------
-
-Right now the client is part of the main distribution. So you need to clone
-the `crate` repository.
-
-Cloning the source code installs a copy of the repository on your computer.
-You must have git installed to do this::
-
-    git clone git@github.com:crate/crate.git
+   DEVELOP
