@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,22 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.types;
 
-import com.google.common.base.Function;
-import io.crate.DataType;
+public interface CollectionType {
 
-import javax.annotation.Nullable;
-
-public abstract class ValueSymbol extends Symbol {
-
-    public abstract DataType valueType();
-
-    public static Function<ValueSymbol, DataType> valueTypeGetter = new Function<ValueSymbol, DataType>() {
-        @Nullable
-        @Override
-        public DataType apply(@Nullable ValueSymbol input) {
-            return input.valueType();
-        }
-    };
+    public DataType<?> innerType();
 }

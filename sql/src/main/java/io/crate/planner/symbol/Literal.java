@@ -1,142 +1,172 @@
 package io.crate.planner.symbol;
 
-import io.crate.DataType;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import io.crate.operation.Input;
+import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.io.IOException;
+import java.util.*;
 
 
-@SuppressWarnings("unchecked")
-public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
-        implements Input<ValueType>, Comparable<LiteralType> {
+public class Literal<ReturnType>
+        extends DataTypeSymbol
+        implements Input<ReturnType>, Comparable<Literal> {
 
-    public static Literal forType(DataType type, Object value) {
-        /**
-         * NOTE: {@link io.crate.DataType} should be changed into a class
-         * and then creating an literal for a type can be done using polymorphism.
-         */
+    protected Object value;
+    protected DataType type;
 
-        if (value == null) {
-            return Null.INSTANCE;
+    public final static Literal<Void> NULL = new Literal<Void>(DataTypes.NULL, null);
+    private final static Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
+    private final static Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
+
+    public static final SymbolFactory<Literal> FACTORY = new SymbolFactory<Literal>() {
+        @Override
+        public Literal newInstance() {
+            return new Literal();
         }
-
-        switch (type) {
-            case BYTE:
-                return new ByteLiteral(((Number) value).longValue());
-            case SHORT:
-                return new ShortLiteral(((Number) value).longValue());
-            case INTEGER:
-                return new IntegerLiteral(((Number) value).longValue());
-            case TIMESTAMP:
-                if (value instanceof BytesRef) {
-                    return new TimestampLiteral((BytesRef) value);
-                } else if (value instanceof String) {
-                    return new TimestampLiteral((String)value);
-                } else {
-                    return new TimestampLiteral(((Number)value).longValue());
-                }
-            case LONG:
-                return new LongLiteral(((Number) value).longValue());
-            case FLOAT:
-                return new FloatLiteral(((Number) value).floatValue());
-            case DOUBLE:
-                return new DoubleLiteral(((Number) value).doubleValue());
-            case BOOLEAN:
-                return new BooleanLiteral((Boolean) value);
-            case IP:
-            case STRING:
-                if (value instanceof BytesRef) {
-                    return new StringLiteral((BytesRef) value);
-                } else {
-                    return new StringLiteral(value.toString());
-                }
-            case OBJECT:
-                return new ObjectLiteral((Map<String, Object>) value);
-            case NOT_SUPPORTED:
-                throw new UnsupportedOperationException();
-        }
-
-        if (DataType.ARRAY_TYPES.contains(type)) {
-            return createArrayLiteral(type, value);
-        }
-
-        return null;
-    }
-
-    private static Literal createArrayLiteral(DataType type, Object value) {
-        DataType itemType = DataType.REVERSE_ARRAY_TYPE_MAP.get(type);
-        if (value.getClass().isArray()) {
-            return new ArrayLiteral(itemType, (Object[])value);
-        }
-        return new ArrayLiteral(itemType, ((List)value).toArray(new Object[((List)value).size()]));
-    }
-
-    public String valueAsString() {
-        return value().toString();
-    }
-
-    public static Literal forValue(Object value) {
-        return forValue(value, true);
-    }
+    };
 
     /**
-     * create a literal for a given Java object
-     * @param value the value to wrap/transform into a literal
-     * @return a literal of a guessed type, holding the value object
-     * @throws java.lang.IllegalArgumentException if value cannot be wrapped into a <code>Literal</code>
+     * guesses the type from the parameters value and creates a new Literal
      */
-    public static Literal forValue(Object value, boolean strict) {
-        DataType type = DataType.forValue(value, strict);
-        if (type == null) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "value of unsupported class '%s'", value.getClass().getSimpleName()));
+    public static Literal<?> fromParameter(Parameter parameter) {
+        DataType<?> dataType = DataTypes.guessType(parameter.value(), true);
+        if (dataType.equals(DataTypes.STRING)) {
+            // force conversion to bytesRef
+            return new Literal<>(dataType, dataType.value(parameter.value()));
         }
-        return forType(type, value);
+        // all other types are okay as is.
+        return new Literal<>(dataType, parameter.value());
     }
 
-    public Object convertValueTo(DataType type, ValueType value) {
-        if (valueType() == type) {
-            return value;
-        } else if (type == DataType.NOT_SUPPORTED) {
-            return Null.INSTANCE;
+    public static Literal implodeCollection(DataType itemType, Set<Literal> literals) {
+        ImmutableSet.Builder<Object> builder = ImmutableSet.builder();
+        for (Literal literal : literals) {
+            assert literal.valueType() == itemType :
+                    String.format("Literal type: %s does not match item type: %s", literal.valueType(), itemType);
+            builder.add(literal.value());
         }
-
-        throw new UnsupportedOperationException(
-                "Invalid input for type " + type.getName() + ": " + value().toString());
+        return new Literal<>(new SetType(itemType), builder.build());
     }
 
-    public final Object convertValueTo(DataType type) {
-        return convertValueTo(type, value());
+    public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
+        Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));
+        Collection values = (Collection) collectionLiteral.value();
+
+        List<Literal> literals = new ArrayList<>(values.size());
+        for (Object value : values) {
+            literals.add(new Literal<>(
+                    ((CollectionType)collectionLiteral.valueType()).innerType(),
+                    value
+            ));
+        }
+        return literals;
     }
 
-    public Literal convertTo(DataType type) {
-        if (valueType() == type) {
-            return this;
-        } else if (type == DataType.NOT_SUPPORTED) {
-            return Null.INSTANCE;
-        }
-        throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Invalid input for type %s: %s",
-                        type.getName(), value().toString()));
+    protected Literal() {
+    }
+
+    protected Literal(DataType type, ReturnType value) {
+        assert value == null ||
+                (type.equals(DataTypes.STRING) && value instanceof String) ||
+                (type.id() == ArrayType.ID && Arrays.equals((Object[])value, (Object[])type.value(value))) ||
+                type.value(value).equals(value);
+        this.type = type;
+        this.value = value;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Literal literal = (Literal) o;
-        if (valueType() == literal.valueType()) {
+    @SuppressWarnings("unchecked")
+    public int compareTo(Literal o) {
+        return type.compareValueTo(value, o.value);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ReturnType value() {
+        return (ReturnType)value;
+    }
+
+    @Override
+    public DataType valueType() {
+        return type;
+    }
+
+    @Override
+    public SymbolType symbolType() {
+        return SymbolType.LITERAL;
+    }
+
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitLiteral(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(value());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Literal literal = (Literal) obj;
+        if (valueType().equals(literal.valueType())) {
             return Objects.equals(value(), literal.value());
         }
         return false;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(value());
+    @SuppressWarnings("unchecked")
+    public void readFrom(StreamInput in) throws IOException {
+        type = DataTypes.fromStream(in);
+        value = type.streamer().readValueFrom(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        DataTypes.toStream(type, out);
+        type.streamer().writeValueTo(out, value);
+    }
+
+    public static Literal<Map<String, Object>> newLiteral(Map<String, Object> value) {
+        return new Literal<>(DataTypes.OBJECT, value);
+    }
+
+    public static Literal<Long> newLiteral(Long value) {
+        return new Literal<>(DataTypes.LONG, value);
+    }
+
+    public static Literal<Object> newLiteral(DataType type, Object value) {
+        return new Literal<>(type, value);
+    }
+
+    public static Literal<Integer> newLiteral(Integer value) {
+        return new Literal<>(DataTypes.INTEGER, value);
+    }
+
+    public static Literal<BytesRef> newLiteral(String value) {
+        if (value == null) {
+            return new Literal<>(DataTypes.STRING, null);
+        }
+        return new Literal<>(DataTypes.STRING, new BytesRef(value));
+    }
+
+    public static Literal<Boolean> newLiteral(Boolean value) {
+        return value ? BOOLEAN_TRUE : BOOLEAN_FALSE;
+    }
+
+    public static Literal<Double> newLiteral(Double value) {
+        return new Literal<>(DataTypes.DOUBLE, value);
+    }
+
+    public static Literal<Float> newLiteral(Float value) {
+        return new Literal<>(DataTypes.FLOAT, value);
     }
 }

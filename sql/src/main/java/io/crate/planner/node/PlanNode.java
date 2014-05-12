@@ -1,6 +1,7 @@
 package io.crate.planner.node;
 
-import io.crate.DataType;
+
+import io.crate.types.DataType;
 
 import java.util.List;
 

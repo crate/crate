@@ -1,0 +1,10 @@
+.. include:: README.txt
+
+
+Development
+===========
+
+.. toctree::
+   :maxdepth: 2
+
+   DEVELOP

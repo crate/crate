@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.exceptions.UnhandledServerException;
@@ -49,6 +48,8 @@ import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
+import io.crate.types.DataType;
+import io.crate.types.LongType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
@@ -65,7 +66,6 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
     static final PlannerReferenceExtractor referenceExtractor = new PlannerReferenceExtractor();
-    private static final DataTypeVisitor dataTypeVisitor = new DataTypeVisitor();
     private final ClusterService clusterService;
 
     @Inject
@@ -177,7 +177,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             AggregationProjection aggregationProjection = new AggregationProjection(
                     Arrays.asList(new Aggregation(
                                     analysis.getFunctionInfo(
-                                            new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataType.LONG))
+                                            new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
                                     ),
                                     Arrays.<Symbol>asList(new InputColumn(0)),
                                     Aggregation.Step.ITER,
@@ -254,7 +254,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         AggregationProjection aggregationProjection = new AggregationProjection(
                 Arrays.asList(new Aggregation(
                         analysis.getFunctionInfo(
-                            new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataType.LONG))
+                            new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
                         ),
                         Arrays.<Symbol>asList(new InputColumn(0)),
                         Aggregation.Step.ITER,
@@ -705,7 +705,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     static List<DataType> extractDataTypes(List<Symbol> symbols) {
         List<DataType> types = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
-            types.add(symbol.accept(dataTypeVisitor, null));
+            types.add(DataTypeVisitor.fromSymbol(symbol));
         }
         return types;
     }
@@ -730,7 +730,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     private static DataType resolveType(List<Projection> projections, int projectionIdx, int columnIdx, List<DataType> inputTypes) {
         Projection projection = projections.get(projectionIdx);
         Symbol symbol = projection.outputs().get(columnIdx);
-        DataType type = symbol.accept(dataTypeVisitor, null);
+        DataType type = DataTypeVisitor.fromSymbol(symbol);
         if (type == null) {
             if (symbol.symbolType() == SymbolType.INPUT_COLUMN) {
                 columnIdx = ((InputColumn)symbol).index();

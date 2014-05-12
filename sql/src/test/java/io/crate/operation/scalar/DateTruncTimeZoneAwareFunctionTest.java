@@ -21,17 +21,21 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static junit.framework.Assert.assertSame;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -43,8 +47,8 @@ public class DateTruncTimeZoneAwareFunctionTest {
     private final FunctionInfo functionInfoTZ = new FunctionInfo(
             new FunctionIdent(
                     DateTruncTimeZoneAwareFunction.NAME,
-                    ImmutableList.of(DataType.STRING, DataType.STRING, DataType.TIMESTAMP)),
-            DataType.TIMESTAMP);
+                    ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING, DataTypes.TIMESTAMP)),
+            DataTypes.TIMESTAMP);
     private final DateTruncTimeZoneAwareFunction funcTZ = new DateTruncTimeZoneAwareFunction(functionInfoTZ);
 
     static {
@@ -88,21 +92,28 @@ public class DateTruncTimeZoneAwareFunctionTest {
     @Test
     public void testNormalizeSymbolTzAwareReferenceTimestamp() throws Exception {
         Function function = new Function(funcTZ.info(),
-                ImmutableList.<Symbol>of(new StringLiteral("day"), new StringLiteral("+01:00"), new Reference(new ReferenceInfo(null,null,DataType.TIMESTAMP))));
+                ImmutableList.<Symbol>of(Literal.newLiteral("day"), Literal.newLiteral("+01:00"),
+                        new Reference(new ReferenceInfo(null,null,DataTypes.TIMESTAMP))));
         Symbol result = funcTZ.normalizeSymbol(function);
         assertSame(function, result);
     }
 
     @Test
     public void testNormalizeSymbolTzAwareTimestampLiteral() throws Exception {
-        Symbol result = normalizeTzAware(new StringLiteral("day"), new StringLiteral("UTC"), new TimestampLiteral("2014-02-25T13:38:01.123"));
-        assertThat(result, instanceOf(TimestampLiteral.class));
-        assertThat(((TimestampLiteral) result).value(), is(1393286400000L));
+        Symbol result = normalizeTzAware(
+                Literal.newLiteral("day"),
+                Literal.newLiteral("UTC"),
+                Literal.newLiteral(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-02-25T13:38:01.123")));
+        assertLiteralSymbol(result, 1393286400000L, DataTypes.TIMESTAMP);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNormalizeSymbolTzAwareInvalidTZ() throws Exception {
-        normalizeTzAware(new StringLiteral("day"), new StringLiteral("no time zone"), new TimestampLiteral("2014-02-25T13:38:01.123"));
+        normalizeTzAware(
+                Literal.newLiteral("day"),
+                Literal.newLiteral("no time zone"),
+                Literal.newLiteral(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-02-25T13:38:01.123"))
+        );
     }
 
     @Test(expected = AssertionError.class)

@@ -22,12 +22,11 @@ package io.crate.operation.operator;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.operator.input.BytesRefInput;
-import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
 import org.junit.Test;
 
 import static io.crate.operation.operator.LikeOperator.DEFAULT_ESCAPE;
@@ -37,17 +36,17 @@ public class LikeOperatorTest {
 
     private static Symbol normalizeSymbol(String expression, String pattern) {
         LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
+                LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
         Function function = new Function(
                 op.info(), 
-                ImmutableList.<Symbol>of(new StringLiteral(expression), new StringLiteral(pattern))
+                ImmutableList.<Symbol>of(Literal.newLiteral(expression), Literal.newLiteral(pattern))
         );
         return op.normalizeSymbol(function);
     }
 
     private Boolean likeNormalize(String expression, String pattern) {
-        return ((BooleanLiteral) normalizeSymbol(expression, pattern)).value();
+        return (Boolean)((Literal)normalizeSymbol(expression, pattern)).value();
     }
 
     @Test
@@ -139,7 +138,7 @@ public class LikeOperatorTest {
 
     private Boolean like(String expression, String pattern) {
         LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
+                LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
         return op.evaluate(new BytesRefInput(expression),new BytesRefInput(pattern));
     }
@@ -152,7 +151,7 @@ public class LikeOperatorTest {
 
         // set the Input.value() to null.
         LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
+                LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
         BytesRef nullValue = null;
         BytesRefInput brNullValue = new BytesRefInput(nullValue);

@@ -87,7 +87,7 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
 
         Input input = (Input) referenceResolver.getImplementation(symbol.info().ident());
         if (input != null) {
-            return Literal.forType(symbol.info().type(), input.value());
+            return Literal.newLiteral(symbol.info().type(), symbol.info().type().value(input.value()));
         }
 
         logger.warn(SymbolFormatter.format("Can't resolve reference %s", symbol));

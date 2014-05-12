@@ -21,7 +21,6 @@
 
 package io.crate.operation;
 
-import io.crate.DataType;
 import io.crate.metadata.*;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
@@ -32,6 +31,8 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -54,8 +55,8 @@ public class ImplementationSymbolVisitorTest {
 
         public final static String NAME = "dummy_multiply";
         public static FunctionInfo INFO = new FunctionInfo(
-                new FunctionIdent(NAME, Arrays.asList(DataType.LONG)),
-                DataType.LONG
+                new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.LONG)),
+                DataTypes.LONG
         );
 
         @Override
@@ -100,9 +101,9 @@ public class ImplementationSymbolVisitorTest {
     @Test
     public void testAggregationSymbolsInputReuse() throws Exception {
         FunctionInfo countInfo = new FunctionInfo(
-                new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.STRING)), DataType.LONG);
+                new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING)), DataTypes.LONG);
         FunctionInfo avgInfo = new FunctionInfo(
-                new FunctionIdent(AverageAggregation.NAME, Arrays.asList(DataType.INTEGER)), DataType.DOUBLE);
+                new FunctionIdent(AverageAggregation.NAME, Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.DOUBLE);
 
         List<Symbol> aggregations = Arrays.<Symbol>asList(
                 new Aggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(0)),
@@ -159,7 +160,7 @@ public class ImplementationSymbolVisitorTest {
 
         // values: [ count(in(0)) ]
         List<Aggregation> values = Arrays.asList(new Aggregation(
-                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.LONG)), DataType.LONG),
+                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.LONG)), DataTypes.LONG),
                 Arrays.<Symbol>asList(new InputColumn(0)),
                 Aggregation.Step.ITER,
                 Aggregation.Step.PARTIAL

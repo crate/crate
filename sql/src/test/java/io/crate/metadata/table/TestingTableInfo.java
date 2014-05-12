@@ -23,7 +23,7 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.DataType;
+import io.crate.types.DataType;
 import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;

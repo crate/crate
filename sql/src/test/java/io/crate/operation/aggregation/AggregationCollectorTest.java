@@ -29,7 +29,8 @@ import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
@@ -49,7 +50,7 @@ public class AggregationCollectorTest {
     public void setUpFunctions() {
         Injector injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
         Functions functions = injector.getInstance(Functions.class);
-        countAggIdent = new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.STRING));
+        countAggIdent = new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING));
         countImpl = (AggregationFunction) functions.get(countAggIdent);
     }
 

@@ -22,13 +22,14 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Streamer;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.AggregationState;
-import io.crate.DataType;
-import io.crate.Streamer;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -41,10 +42,9 @@ public class ArbitraryAggregation<T extends Comparable<T>> extends AggregationFu
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
-        for (DataType t : DataType.PRIMITIVE_TYPES) {
-            mod.registerAggregateFunction(
-                    new ArbitraryAggregation(
-                            new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t, true))
+        for (DataType t : DataTypes.PRIMITIVE_TYPES) {
+            mod.register(new ArbitraryAggregation(
+                    new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t, true))
             );
         }
     }
@@ -117,14 +117,12 @@ public class ArbitraryAggregation<T extends Comparable<T>> extends AggregationFu
 
         @Override
         public void readFrom(StreamInput in) throws IOException {
-            setValue(streamer.readFrom(in));
+            setValue(streamer.readValueFrom(in));
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            streamer.writeTo(out, value);
+            streamer.writeValueTo(out, value);
         }
     }
-
-
 }

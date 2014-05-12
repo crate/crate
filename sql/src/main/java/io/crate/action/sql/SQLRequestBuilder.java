@@ -21,17 +21,12 @@
 
 package io.crate.action.sql;
 
-import io.crate.action.sql.parser.SQLXContentSourceContext;
-import io.crate.action.sql.parser.SQLXContentSourceParser;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.internal.InternalClient;
-import org.elasticsearch.common.bytes.BytesReference;
 
 public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLResponse, SQLRequestBuilder> {
-
-    private SQLXContentSourceParser parser;
 
     public SQLRequestBuilder(Client client) {
         super((InternalClient) client, new SQLRequest());
@@ -47,13 +42,12 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
         ((Client) client).execute(SQLAction.INSTANCE, request, listener);
     }
 
-    public SQLRequestBuilder source(BytesReference source) {
-        SQLXContentSourceContext context = new SQLXContentSourceContext();
-        parser = new SQLXContentSourceParser(context);
-        parser.parseSource(source);
-        request.stmt(context.stmt());
-        request.args(context.args());
-        return this;
+    public void stmt(String stmt) {
+        request.stmt(stmt);
+    }
+
+    public void args(Object[] args) {
+        request.args(args);
     }
 
 }

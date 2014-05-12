@@ -1,22 +1,138 @@
 apply plugin: 'java'
-apply plugin: 'distribution'
+apply plugin: 'maven'
 
-archivesBaseName = 'crate-client'
+archiveBaseName = "crate-client"
 
-dependencies {
-    compile project(path: ':sql')
-    testCompile project(':testing')
-}
+evaluationDependsOn(':core')
+evaluationDependsOn(':sql')
+evaluationDependsOn(':app')
 
 configurations {
     all*.exclude group: 'org.elasticsearch'
-    all*.exclude group: 'org.apache.lucene'
 }
 
+dependencies {
+    compile (project(':es')) {
+        exclude group: 'org.apache.lucene'
+    }
+    // needed by ES Version class
+    compile 'org.apache.lucene:lucene-core:4.7.1'
+    compile 'org.apache.lucene:lucene-analyzers-common:4.7.1'
 
+    compile files(project(':core').sourceSets.shared.output.classesDir)
+    compile files(project(':sql').sourceSets.shared.output.classesDir)
+
+    testCompile project(':testing')
+    testCompile project(':core')
+    testCompile project(':sql')
+}
+
+processResources.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava'])
+compileJava.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava'])
+
+test {
+    testLogging {
+        // show standard out and standard error of the test JVM(s) on the console
+        showStandardStreams = true
+        // Show that tests are run in the command-line output
+        events 'started', 'passed'
+    }
+    // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
+    outputs.upToDateWhen { false }
+
+    // allow to set the number of test forks from the CLI
+    if (project.hasProperty('testForks')) {
+        maxParallelForks = project.testForks as int
+    }
+}
 
 jar {
     baseName 'crate-client'
-    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    duplicatesStrategy 'exclude'
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
+        exclude 'META-INF/**'
+    }}
+
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate Data Java Client")
+            version project.version
+        }
+    }
 }
 
+artifacts {
+    archives jar
+}
+
+task buildJar(dependsOn: [':app:getVersion', ':core:compileSharedJava', ':sql:compileSharedJava', 'classes']) {
+    doLast {
+        ext.version = project(':app').getVersion.version
+        project.version = ext.version
+        tasks.jar.execute()
+    }
+}
+
+
+install.dependsOn buildJar
+install {
+    repositories {
+        mavenInstaller {
+            pom.whenConfigured {
+                it.dependencies.clear()
+            }
+        }
+    }
+}
+
+project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
+project.ext.sonatypePassword = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
+
+uploadArchives.dependsOn buildJar
+uploadArchives {
+    repositories{
+        mavenDeployer {
+            beforeDeployment {
+                if (project.ext.sonatypeUsername.length() == 0 || project.ext.sonatypePassword.length() == 0) {
+                    throw new StopExecutionException("uploadArchives cannot be called without sonatype username and password")
+                }
+            }
+            pom.whenConfigured {
+                it.dependencies.clear()
+            }
+            pom.project {
+                artifactId 'crate-client'
+                name 'crate-client'
+                description 'Crate Data Java Client'
+                url 'https://crate.io'
+                scm {
+                    url 'https://github.com/crate/crate'
+                    connection 'scm:git:git://github.com/crate/crate.git'
+                    developerConnection 'scm:git:ssh:git@github.com:crate/crate.git'
+                }
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/license/LICENSE-2.0.txt'
+                        distribution 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'crate'
+                        name 'Crate Developers'
+                        email 'office@crate.io'
+                    }
+                }
+            }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: project.ext.sonatypeUsername, password: project.ext.sonatypePassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                authentication(userName: project.ext.sonatypeUsername, password: project.ext.sonatypePassword)
+            }
+        }
+    }
+}

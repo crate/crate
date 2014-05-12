@@ -24,7 +24,8 @@ package io.crate.operation.aggregation.impl;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -37,49 +38,49 @@ public class CountAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        FunctionIdent fi = new FunctionIdent("count", ImmutableList.of(DataType.INTEGER));
+        FunctionIdent fi = new FunctionIdent("count", ImmutableList.<DataType>of(DataTypes.INTEGER));
         // Return type is fixed to Long
-        assertEquals(DataType.LONG, functions.get(fi).info().returnType());
+        assertEquals(DataTypes.LONG, functions.get(fi).info().returnType());
     }
 
     @Test
     public void testDouble() throws Exception {
-        Object[][] result = executeAggregation(DataType.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
+        Object[][] result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
 
         assertEquals(2L, result[0][0]);
     }
 
     @Test
     public void testFloat() throws Exception {
-        Object[][] result = executeAggregation(DataType.FLOAT, new Object[][]{{0.7f}, {0.3f}});
+        Object[][] result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
 
         assertEquals(2L, result[0][0]);
     }
 
     @Test
     public void testInteger() throws Exception {
-        Object[][] result = executeAggregation(DataType.INTEGER, new Object[][]{{7}, {3}});
+        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
 
         assertEquals(2L, result[0][0]);
     }
 
     @Test
     public void testLong() throws Exception {
-        Object[][] result = executeAggregation(DataType.LONG, new Object[][]{{7L}, {3L}});
+        Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
 
         assertEquals(2L, result[0][0]);
     }
 
     @Test
     public void testShort() throws Exception {
-        Object[][] result = executeAggregation(DataType.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
+        Object[][] result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
 
         assertEquals(2L, result[0][0]);
     }
 
     @Test
     public void testString() throws Exception {
-        Object[][] result = executeAggregation(DataType.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
+        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
 
         assertEquals(2L, result[0][0]);
     }

@@ -21,7 +21,7 @@
 
 package io.crate.executor;
 
-import io.crate.DataType;
+import io.crate.types.DataType;
 import io.crate.action.sql.SQLResponse;
 
 public interface ResponseBuilder {

@@ -3,7 +3,7 @@ package io.crate.planner.symbol;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
-import io.crate.DataType;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Function extends ValueSymbol implements Cloneable {
+public class Function extends DataTypeSymbol implements Cloneable {
 
     public static final SymbolFactory<Function> FACTORY = new SymbolFactory<Function>() {
         @Override

@@ -25,7 +25,6 @@ import io.crate.PartitionName;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.StringLiteral;
 import org.elasticsearch.search.SearchHit;
 
 import javax.annotation.Nullable;
@@ -128,7 +127,7 @@ public abstract class ESFieldExtractor {
                 if (value == null) {
                     return null;
                 }
-                return new StringLiteral(value).convertValueTo(reference.info().type());
+                return reference.info().type().value(value);
             } catch (IllegalArgumentException e) {
                 return null;
             }

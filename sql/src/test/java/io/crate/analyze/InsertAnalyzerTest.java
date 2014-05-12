@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.DataType;
 import io.crate.Id;
 import io.crate.PartitionName;
 import io.crate.exceptions.ColumnValidationException;
@@ -35,6 +34,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.RowGranularity;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -52,7 +52,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
     private static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
     private static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_ALIAS_TABLE_IDENT, RowGranularity.DOC, new Routing())
-            .add("bla", DataType.STRING, null)
+            .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
 
     static class TestMetaDataModule extends MetaDataModule {
@@ -93,10 +93,10 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
+        assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
 
         assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("name"));
-        assertThat(analysis.columns().get(1).valueType(), is(DataType.STRING));
+        assertEquals(DataTypes.STRING, analysis.columns().get(1).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
         Map<String, Object> values = analysis.sourceMaps().get(0);
@@ -112,10 +112,10 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("name"));
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.STRING));
+        assertEquals(DataTypes.STRING, analysis.columns().get(0).valueType());
 
         assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("id"));
-        assertThat(analysis.columns().get(1).valueType(), is(DataType.LONG));
+        assertEquals(DataTypes.LONG, analysis.columns().get(1).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
         Map<String, Object> values = analysis.sourceMaps().get(0);
@@ -153,8 +153,8 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
     public void testInsertWithConvertedTypes() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome) values ($1, 'Trillian', $2)", new Object[]{1.0f, "true"});
 
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
-        assertThat(analysis.columns().get(2).valueType(), is(DataType.BOOLEAN));
+        assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
+        assertEquals(DataTypes.BOOLEAN, analysis.columns().get(2).valueType());
 
         Map<String, Object> values = analysis.sourceMaps().get(0);
         assertThat((Long)values.get("id"), is(1L));
@@ -169,10 +169,10 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
+        assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
 
         assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("name"));
-        assertThat(analysis.columns().get(1).valueType(), is(DataType.STRING));
+        assertEquals(DataTypes.STRING, analysis.columns().get(1).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
         Map<String, Object> values = analysis.sourceMaps().get(0);
@@ -188,13 +188,13 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().size(), is(3));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
+        assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
 
         assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("other_id"));
-        assertThat(analysis.columns().get(1).valueType(), is(DataType.LONG));
+        assertEquals(DataTypes.LONG, analysis.columns().get(1).valueType());
 
         assertThat(analysis.columns().get(2).info().ident().columnIdent().name(), is("name"));
-        assertThat(analysis.columns().get(2).valueType(), is(DataType.STRING));
+        assertEquals(DataTypes.STRING, analysis.columns().get(2).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
         Map<String, Object> values = analysis.sourceMaps().get(0);
@@ -211,7 +211,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().size(), is(1));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
+        assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
         Map<String, Object> values = analysis.sourceMaps().get(0);
@@ -287,8 +287,8 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                 });
         assertThat((Long)analysis.sourceMaps().get(0).get("id"), is(0L));
         assertArrayEquals(
-                (Map[]) analysis.sourceMaps().get(0).get("friends"),
-                new Map[]{
+                (Object[]) analysis.sourceMaps().get(0).get("friends"),
+                new Object[]{
                         new MapBuilder<String, Object>().put("name", "Jeltz").map(),
                         new MapBuilder<String, Object>().put("name", "Prosser").map(),
                 }

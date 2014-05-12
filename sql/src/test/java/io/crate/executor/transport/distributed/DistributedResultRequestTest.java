@@ -22,9 +22,9 @@
 package io.crate.executor.transport.distributed;
 
 import com.google.common.base.Optional;
-import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
 import io.crate.Streamer;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
@@ -46,7 +46,7 @@ public class DistributedResultRequestTest {
 
         DistributedRequestContextManager cm = mock(DistributedRequestContextManager.class);
 
-        Streamer<?>[] streamers = new Streamer[]{DataType.STRING.streamer()};
+        Streamer<?>[] streamers = new Streamer[]{DataTypes.STRING.streamer()};
         when(cm.getStreamer((UUID) anyObject())).thenReturn(Optional.of(streamers));
 
         Object[][] rows = new Object[][]{

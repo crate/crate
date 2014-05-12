@@ -23,9 +23,9 @@ package io.crate.planner.node;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
-import io.crate.Streamer;
 import io.crate.exceptions.ResourceUnknownException;
+import io.crate.Streamer;
+import io.crate.exceptions.CrateException;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
@@ -36,6 +36,9 @@ import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.ProjectionType;
 import io.crate.planner.symbol.*;
+import io.crate.exceptions.CrateException;
+import io.crate.types.DataType;
+import io.crate.types.NullType;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.ArrayList;
@@ -116,7 +119,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         int aggIdx = 0;
         Aggregation aggregation;
         for (DataType outputType : node.outputTypes()) {
-            if (outputType == null || outputType == DataType.NULL) {
+            if (outputType == null || outputType == NullType.INSTANCE) {
                 // get streamer for aggregation result
                 try {
                     aggregation = aggregations.get(aggIdx);
@@ -125,7 +128,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
                     }
                 } catch (IndexOutOfBoundsException e) {
                     // assume this is an unknown column
-                    context.outputStreamers.add(DataType.NULL.streamer());
+                    context.outputStreamers.add(NullType.INSTANCE.streamer());
                 }
                 aggIdx++;
             } else {
@@ -140,7 +143,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
     public Void visitMergeNode(MergeNode node, Context context) {
         if (node.projections().isEmpty()) {
             for (DataType dataType : node.inputTypes()) {
-                if (dataType != null && dataType != DataType.NULL) {
+                if (dataType != null && dataType != NullType.INSTANCE) {
                     context.inputStreamers.add(dataType.streamer());
                 } else {
                     throw new IllegalStateException("Can't resolve Streamer from null dataType");
@@ -163,7 +166,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
 
         int idx = 0;
         for (DataType outputType : outputTypes) {
-            if (outputType == DataType.NULL) {
+            if (outputType == NullType.INSTANCE) {
                 resolveStreamer(streamers, projections, idx, projections.size() - 1, inputTypes);
             } else {
                 streamers[idx] = outputType.streamer();
@@ -190,8 +193,8 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         final Projection projection = projections.get(projectionIdx);
         final Symbol symbol = projection.outputs().get(columnIdx);
 
-        if (symbol instanceof ValueSymbol) {
-            streamers[columnIdx] = ((ValueSymbol) symbol).valueType().streamer();
+        if (symbol instanceof DataTypeSymbol) {
+            streamers[columnIdx] = ((DataTypeSymbol) symbol).valueType().streamer();
         } else if (symbol.symbolType() == SymbolType.AGGREGATION) {
             Aggregation aggregation = (Aggregation)symbol;
             streamers[columnIdx] = resolveStreamer(aggregation, aggregation.toStep());
@@ -224,7 +227,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
 
         int idx = 0;
         for (DataType inputType : inputTypes) {
-            if (inputType != null && inputType != DataType.NULL) {
+            if (inputType != null && inputType != NullType.INSTANCE) {
                 context.inputStreamers.add(inputType.streamer());
             } else {
                 Aggregation aggregation = aggregations.get(idx);

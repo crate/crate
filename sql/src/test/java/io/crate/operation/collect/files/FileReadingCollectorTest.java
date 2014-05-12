@@ -28,7 +28,6 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.ImmutableMap;
-import io.crate.DataType;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
@@ -36,6 +35,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -154,7 +154,7 @@ public class FileReadingCollectorTest {
     private CollectingProjector getObjects(String fileUri, String compression) throws Throwable {
         CollectingProjector projector = new CollectingProjector();
         FileCollectInputSymbolVisitor.Context context =
-                inputSymbolVisitor.process(createReference("_raw", DataType.STRING));
+                inputSymbolVisitor.process(createReference("_raw", DataTypes.STRING));
         FileReadingCollector collector = new FileReadingCollector(
                 fileUri,
                 context.topLevelInputs(),

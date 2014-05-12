@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
@@ -38,6 +37,9 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import junit.framework.Assert;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -46,6 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -58,7 +61,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     private static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
     private static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_ALIAS_TABLE_IDENT, RowGranularity.DOC, new Routing())
-            .add("bla", DataType.STRING, null)
+            .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
 
     static class TestMetaDataModule extends MetaDataModule {
@@ -138,8 +141,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertTrue(analysis.assignments().containsKey(ref));
 
         Symbol value = analysis.assignments().entrySet().iterator().next().getValue();
-        assertThat(value, instanceOf(StringLiteral.class));
-        assertThat(((StringLiteral) value).value().utf8ToString(), is("Trillian"));
+        assertLiteralSymbol(value, "Trillian");
     }
 
     @Test
@@ -149,7 +151,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
         Reference ref = analysis.assignments().keySet().iterator().next();
         assertThat(ref, instanceOf(DynamicReference.class));
-        assertThat(ref.info().type(), is(DataType.LONG));
+        Assert.assertEquals(DataTypes.LONG, ref.info().type());
         assertThat(ref.info().ident().columnIdent().isColumn(), is(false));
         assertThat(ref.info().ident().columnIdent().fqn(), is("details.arms"));
     }
@@ -164,11 +166,10 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set other_id=9.9");
         Reference ref = analysis.assignments().keySet().iterator().next();
         assertThat(ref, not(instanceOf(DynamicReference.class)));
-        assertThat(ref.info().type(), is(DataType.LONG));
+        assertEquals(DataTypes.LONG, ref.info().type());
 
         Symbol value = analysis.assignments().entrySet().iterator().next().getValue();
-        assertThat(value, instanceOf(LongLiteral.class));
-        assertThat(((LongLiteral) value).value(), is(9l));
+        assertLiteralSymbol(value, 9L);
     }
 
     @Test
@@ -225,19 +226,21 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         UpdateAnalysis analysis = (UpdateAnalysis)analyze("update users set name=?, other_id=?, friends=? where id=?",
                 new Object[]{"Jeltz", 0, friends, "9"});
         assertThat(analysis.assignments().size(), is(3));
-        assertThat(
-                (StringLiteral) analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("name")))),
-                is(new StringLiteral("Jeltz"))
+        assertLiteralSymbol(
+                analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("name")))),
+                "Jeltz"
         );
-        assertThat(
-                (ArrayLiteral) analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("friends")))),
-                is(new ArrayLiteral(DataType.OBJECT, friends))
+        assertLiteralSymbol(
+                analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("friends")))),
+                friends,
+                new ArrayType(DataTypes.OBJECT)
         );
-        assertThat(
-                (LongLiteral) analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("other_id")))),
-                is(new LongLiteral(0))
+        assertLiteralSymbol(
+                analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("other_id")))),
+                0L
         );
-        assertThat(((Function)analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.LONG_LITERAL));
+
+        assertLiteralSymbol(((Function)analysis.whereClause().query()).arguments().get(1), 9L);
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -246,16 +249,20 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{
                         new HashMap<String, Object>(),
                         new Map[0],
-                        new Long[]{1L, 2L, 3L}});
+                        new Long[]{1L, 2L, 3L}}
+        );
     }
 
     @Test
     public void testUpdateWithEmptyObjectArray() throws Exception {
         UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set friends=? where other_id=0",
                 new Object[]{ new Map[0], 0 });
-        ArrayLiteral friendsLiteral = (ArrayLiteral)analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("friends"))));
-        assertThat(friendsLiteral.itemType(), is(DataType.OBJECT));
-        assertThat(friendsLiteral.value().length, is(0));
+
+        Literal friendsLiteral = (Literal)analysis.assignments().get(
+                new Reference(userTableInfo.getColumnInfo(new ColumnIdent("friends"))));
+        assertThat(friendsLiteral.valueType().id(), is(ArrayType.ID));
+        assertEquals(DataTypes.OBJECT, ((ArrayType)friendsLiteral.valueType()).innerType());
+        assertThat(((Object[])friendsLiteral.value()).length, is(0));
     }
 
     @Test( expected = IllegalArgumentException.class )
@@ -290,7 +297,8 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.whereClause().noMatch(), is(false));
         assertEquals(ImmutableList.of(
                         new PartitionName("parted", Arrays.asList("1395874800000")).stringValue()),
-                    analysis.whereClause().partitions());
+                analysis.whereClause().partitions()
+        );
     }
 
     @Test

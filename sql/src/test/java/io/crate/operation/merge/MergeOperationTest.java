@@ -21,7 +21,6 @@
 
 package io.crate.operation.merge;
 
-import io.crate.DataType;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -36,6 +35,8 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -54,7 +55,7 @@ import static org.mockito.Mockito.mock;
 public class MergeOperationTest {
 
     private GroupProjection groupProjection;
-    private AggregationFunction<MinimumAggregation.MinimumAggState<Double>> minAggFunction;
+    private AggregationFunction<MinimumAggregation.MinimumAggState> minAggFunction;
     private ImplementationSymbolVisitor symbolVisitor;
     private Injector injector;
 
@@ -74,9 +75,9 @@ public class MergeOperationTest {
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
         symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
 
-        FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.asList(DataType.DOUBLE));
-        FunctionInfo minAggInfo = new FunctionInfo(minAggIdent, DataType.DOUBLE);
-        minAggFunction = (AggregationFunction<MinimumAggregation.MinimumAggState<Double>>) functions.get(minAggIdent);
+        FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE));
+        FunctionInfo minAggInfo = new FunctionInfo(minAggIdent, DataTypes.DOUBLE);
+        minAggFunction = (AggregationFunction<MinimumAggregation.MinimumAggState>) functions.get(minAggIdent);
 
         groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(0)));
@@ -101,7 +102,7 @@ public class MergeOperationTest {
 
         Object[][] rows = new Object[20][];
         for (int i=0; i<rows.length; i++) {
-            MinimumAggregation.MinimumAggState<Double> aggState = minAggFunction.newState();
+            MinimumAggregation.MinimumAggState aggState = minAggFunction.newState();
             aggState.setValue(i+0.5d);
             rows[i] = new Object[]{ i%4, aggState};
         }
@@ -129,13 +130,13 @@ public class MergeOperationTest {
         MergeOperation mergeOperation = new MergeOperation(
                 injector.getProvider(Client.class), symbolVisitor, mergeNode);
         Object[][] rows = new Object[1][];
-        MinimumAggregation.MinimumAggState<Double> aggState = minAggFunction.newState();
+        MinimumAggregation.MinimumAggState aggState = minAggFunction.newState();
         aggState.setValue(100.0d);
         rows[0] = new Object[]{0, aggState};
         assertTrue(mergeOperation.addRows(rows));
 
         Object[][] otherRows = new Object[1][];
-        MinimumAggregation.MinimumAggState<Double> otherAggState = minAggFunction.newState();
+        MinimumAggregation.MinimumAggState otherAggState = minAggFunction.newState();
         otherAggState.setValue(2.5d);
         otherRows[0] = new Object[]{0, otherAggState};
         assertTrue(mergeOperation.addRows(otherRows));

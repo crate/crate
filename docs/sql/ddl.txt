@@ -152,7 +152,7 @@ fractions. Example::
 ::
 
     cr> insert into my_table4 (id, first_column) values (3, 'wrong');
-    SQLActionException[Validation failed for first_column: wrong type 'string'. expected: 'timestamp']
+    SQLActionException[Validation failed for first_column: Invalid format: "wrong"]
 
 object
 ------

@@ -26,7 +26,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
-import io.crate.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
@@ -44,7 +44,7 @@ public class CollectNodeTest {
         cn.maxRowGranularity(RowGranularity.DOC);
 
         cn.downStreamNodes(ImmutableList.of("n1", "n2"));
-        cn.toCollect(ImmutableList.<Symbol>of(new Value(DataType.STRING)));
+        cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
 
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -68,7 +68,7 @@ public class CollectNodeTest {
         cn.maxRowGranularity(RowGranularity.DOC);
 
         cn.downStreamNodes(ImmutableList.of("n1", "n2"));
-        cn.toCollect(ImmutableList.<Symbol>of(new Value(DataType.STRING)));
+        cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
         cn.jobId(UUID.randomUUID());
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -82,6 +82,5 @@ public class CollectNodeTest {
         assertEquals(cn.toCollect(), cn2.toCollect());
         assertEquals(cn.downStreamNodes(), cn2.downStreamNodes());
         assertEquals(cn.maxRowGranularity(), cn.maxRowGranularity());
-
     }
 }

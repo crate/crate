@@ -22,7 +22,6 @@
 package io.crate.operation.projectors;
 
 import io.crate.Constants;
-import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -32,6 +31,8 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -49,7 +50,7 @@ public class SimpleTopNProjectorTest {
 
         public static final String NAME = "signum";
         public static final FunctionInfo INFO = new FunctionInfo(
-                new FunctionIdent(NAME, Arrays.asList(DataType.INTEGER)), DataType.INTEGER);
+                new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.INTEGER);
 
         @Override
         public Integer evaluate(Input<Integer>... args) {

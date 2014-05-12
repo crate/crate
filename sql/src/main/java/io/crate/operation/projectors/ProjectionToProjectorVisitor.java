@@ -28,9 +28,10 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.StringType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Provider;
 
@@ -146,7 +147,8 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         if (projection.isDirectoryUri()) {
             StringBuilder sb = new StringBuilder(uri);
             Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME);
-            assert resolvedFileName instanceof StringLiteral;
+            assert resolvedFileName instanceof Literal;
+            assert ((Literal)resolvedFileName).valueType() == StringType.INSTANCE;
             String fileName = StringValueSymbolVisitor.INSTANCE.process(resolvedFileName);
             if (!uri.endsWith("/")) {
                 sb.append("/");

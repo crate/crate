@@ -22,10 +22,11 @@
 package io.crate.operation.reference.doc;
 
 import com.google.common.base.Joiner;
-import io.crate.DataType;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.search.lookup.SourceLookup;
@@ -47,7 +48,7 @@ public class DocCollectorExpression extends
 
     @Override
     public DataType returnType() {
-        return DataType.OBJECT;
+        return DataTypes.OBJECT;
     }
 
     @Override

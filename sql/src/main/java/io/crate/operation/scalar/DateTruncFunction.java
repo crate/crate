@@ -21,11 +21,16 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.joda.time.DateTimeZone;
 
@@ -33,9 +38,9 @@ public class DateTruncFunction extends BaseDateTruncFunction {
 
     public static void register(ScalarFunctionModule module) {
         FunctionIdent timestampFunctionIdent = new FunctionIdent(NAME,
-                ImmutableList.of(DataType.STRING, DataType.TIMESTAMP));
+                ImmutableList.<DataType>of(StringType.INSTANCE, TimestampType.INSTANCE));
         module.register(new DateTruncFunction(
-                new FunctionInfo(timestampFunctionIdent, DataType.TIMESTAMP)));
+                new FunctionInfo(timestampFunctionIdent, TimestampType.INSTANCE)));
     }
 
     private static final DateTimeZone DEFAULT_TZ = DateTimeZone.UTC;
@@ -48,14 +53,16 @@ public class DateTruncFunction extends BaseDateTruncFunction {
     public Symbol normalizeSymbol(Function symbol) {
         assert (symbol.arguments().size() == 2);
 
-        StringLiteral interval = (StringLiteral) symbol.arguments().get(0);
+        Literal interval = (Literal) symbol.arguments().get(0);
         isValidInterval(interval, symbol);
 
-        if (symbol.arguments().get(1).symbolType().isLiteral()) {
+        if (symbol.arguments().get(1).symbolType().isValueSymbol()) {
             Literal timestamp = (Literal)symbol.arguments().get(1);
-            return new TimestampLiteral(evaluate((Input)interval, timestamp));
+            return Literal.newLiteral(
+                    DataTypes.TIMESTAMP,
+                    evaluate(interval, timestamp)
+            );
         }
-
         return symbol;
     }
 

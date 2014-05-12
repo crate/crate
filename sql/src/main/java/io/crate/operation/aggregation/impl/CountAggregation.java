@@ -22,6 +22,9 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.types.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
@@ -29,13 +32,13 @@ import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.AggregationState;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.LongLiteral;
 import io.crate.planner.symbol.Symbol;
-import io.crate.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.List;
 
 public class CountAggregation extends AggregationFunction<CountAggregation.CountAggState> {
 
@@ -43,24 +46,31 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
     private final FunctionInfo info;
     private final boolean hasArgs;
 
-    private static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.<DataType>of()), DataType.LONG, true);
+    private static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
+            ImmutableList.<DataType>of()), DataTypes.LONG, true);
 
     public static void register(AggregationImplModule mod) {
-        for (DataType t : DataType.ALL_TYPES_INC_NULL) {
-            mod.registerAggregateFunction(
-                    new CountAggregation(
-                            new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataType.LONG, true))
-            );
-        }
-        // Register function for 0 inputs (count(*))
-        // TODO: use different implementation without null checks
-        mod.registerAggregateFunction(new CountAggregation(COUNT_STAR_FUNCTION));
-
+        mod.register(NAME, new CountAggregationFunctionResolver());
     }
 
-    CountAggregation(FunctionInfo info) {
+    static class CountAggregationFunctionResolver implements DynamicFunctionResolver {
+
+        @Override
+        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            if (dataTypes.size() == 0) {
+                return new CountAggregation(COUNT_STAR_FUNCTION, false);
+            } else {
+                return new CountAggregation(
+                        new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.LONG, true),
+                        true
+                );
+            }
+        }
+    }
+
+    CountAggregation(FunctionInfo info, boolean hasArgs) {
         this.info = info;
-        this.hasArgs = info.ident().argumentTypes().size() > 0;
+        this.hasArgs = hasArgs;
     }
 
     public static class CountAggState extends AggregationState<CountAggState> {
@@ -121,9 +131,9 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
         assert (function.arguments().size() <= 1);
 
         if (function.arguments().size() == 1) {
-            if (function.arguments().get(0).symbolType().isLiteral()) {
-                if (((Literal)function.arguments().get(0)).valueType() == DataType.NULL) {
-                    return new LongLiteral(0);
+            if (function.arguments().get(0).symbolType().isValueSymbol()) {
+                if (((Literal)function.arguments().get(0)).valueType() == DataTypes.NULL) {
+                    return Literal.newLiteral(0L);
                 } else{
                     return new Function(COUNT_STAR_FUNCTION, ImmutableList.<Symbol>of());
                 }

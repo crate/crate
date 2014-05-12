@@ -29,16 +29,15 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Parameter;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.StringLiteral;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -73,14 +72,14 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyFromExistingTable() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy users from '/some/distant/file.ext'");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(((Literal)analysis.uri()).valueAsString(), is("/some/distant/file.ext"));
+        assertLiteralSymbol(analysis.uri(), "/some/distant/file.ext");
     }
 
     @Test
     public void testCopyFromExistingPartitionedTable() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy parted from '/some/distant/file.ext'");
         assertThat(analysis.table().ident(), is(TEST_PARTITIONED_TABLE_IDENT));
-        assertThat(((Literal)analysis.uri()).valueAsString(), is("/some/distant/file.ext"));
+        assertLiteralSymbol(analysis.uri(), "/some/distant/file.ext");
     }
 
     @Test( expected = TableUnknownException.class)
@@ -111,7 +110,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy users to '/blah.txt'");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.mode(), is(CopyAnalysis.Mode.TO));
-        assertThat(((StringLiteral)analysis.uri()).valueAsString(), is("/blah.txt"));
+        assertLiteralSymbol(analysis.uri(), "/blah.txt");
     }
 
     @Test
@@ -133,7 +132,8 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy users to '/blah.txt' with (compression='gzip')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.mode(), is(CopyAnalysis.Mode.TO));
-        assertThat(((StringLiteral)analysis.uri()).valueAsString(), is("/blah.txt"));
+
+        assertLiteralSymbol(analysis.uri(), "/blah.txt");
         assertThat(analysis.settings().get("compression"), is("gzip"));
     }
 

@@ -25,7 +25,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
-import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
@@ -51,6 +50,8 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
@@ -83,19 +84,19 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     TableIdent table = new TableIdent(null, "characters");
     Reference id_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(table, "id"), RowGranularity.DOC, DataType.INTEGER));
+            new ReferenceIdent(table, "id"), RowGranularity.DOC, DataTypes.INTEGER));
     Reference name_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(table, "name"), RowGranularity.DOC, DataType.STRING));
+            new ReferenceIdent(table, "name"), RowGranularity.DOC, DataTypes.STRING));
     Reference version_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(table, "_version"), RowGranularity.DOC, DataType.LONG));
+            new ReferenceIdent(table, "_version"), RowGranularity.DOC, DataTypes.LONG));
 
     TableIdent partedTable = new TableIdent(null, "parted");
     Reference parted_id_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "id"), RowGranularity.DOC, DataType.INTEGER));
+            new ReferenceIdent(partedTable, "id"), RowGranularity.DOC, DataTypes.INTEGER));
     Reference parted_name_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "name"), RowGranularity.DOC, DataType.STRING));
+            new ReferenceIdent(partedTable, "name"), RowGranularity.DOC, DataTypes.STRING));
     Reference parted_date_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(partedTable, "date"), RowGranularity.DOC, DataType.TIMESTAMP));
+            new ReferenceIdent(partedTable, "date"), RowGranularity.DOC, DataTypes.TIMESTAMP));
 
     @Before
     public void transportSetUp() {
@@ -163,7 +164,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Symbol reference = new Reference(clusterNameInfo);
 
         CollectNode collectNode = new CollectNode("lcollect", new Routing());
-        collectNode.toCollect(asList(reference, new FloatLiteral(2.3f)));
+        collectNode.toCollect(asList(reference, Literal.newLiteral(2.3f)));
         collectNode.outputTypes(asList(clusterNameInfo.type()));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
 
@@ -266,9 +267,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         Function whereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
-                DataType.BOOLEAN),
-                Arrays.<Symbol>asList(name_ref, new StringLiteral("Ford")));
+                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
+                DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Ford")));
 
         ESSearchNode node = new ESSearchNode(
                 new String[]{"characters"},
@@ -304,23 +305,23 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                         new TableIdent(DocSchemaInfo.NAME, "searchf"),
                         "id"),
                 RowGranularity.DOC,
-                DataType.INTEGER
+                DataTypes.INTEGER
         ));
         Reference date_ref = new Reference(new ReferenceInfo(
                 new ReferenceIdent(
                         new TableIdent(DocSchemaInfo.NAME, "searchf"),
                         "date"),
                 RowGranularity.DOC,
-                DataType.TIMESTAMP
+                DataTypes.TIMESTAMP
         ));
         Function function = new Function(new FunctionInfo(
-                new FunctionIdent(DateTruncFunction.NAME, asList(DataType.STRING, DataType.TIMESTAMP)),
-                DataType.TIMESTAMP, false
-        ), Arrays.<Symbol>asList(new StringLiteral("day"), new InputColumn(1)));
+                new FunctionIdent(DateTruncFunction.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.TIMESTAMP)),
+                DataTypes.TIMESTAMP, false
+        ), Arrays.<Symbol>asList(Literal.newLiteral("day"), new InputColumn(1)));
         Function whereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, asList(DataType.INTEGER, DataType.INTEGER)),
-                DataType.BOOLEAN),
-                Arrays.<Symbol>asList(id_ref, new IntegerLiteral(2))
+                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
+                DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(id_ref, Literal.newLiteral(2))
         );
 
         ESSearchNode node = new ESSearchNode(
@@ -333,8 +334,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 null
         );
         MergeNode mergeNode = new MergeNode("merge", 1);
-        mergeNode.inputTypes(Arrays.asList(DataType.INTEGER, DataType.TIMESTAMP));
-        mergeNode.outputTypes(Arrays.asList(DataType.INTEGER, DataType.TIMESTAMP));
+        mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.TIMESTAMP));
+        mergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.TIMESTAMP));
         TopNProjection topN = new TopNProjection(2, TopN.NO_OFFSET);
         topN.outputs(Arrays.asList(new InputColumn(0), function));
         mergeNode.projections(Arrays.<Projection>asList(topN));
@@ -357,7 +358,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void testESSearchTaskPartitioned() throws Exception {
         createPartitionedTable();
         // get partitions
-        ImmutableOpenMap<String, List<AliasMetaData>> aliases = client().admin().indices().prepareGetAliases().addAliases("parted").execute().actionGet().getAliases();
+        ImmutableOpenMap<String, List<AliasMetaData>> aliases =
+                client().admin().indices().prepareGetAliases().addAliases("parted")
+                        .execute().actionGet().getAliases();
         ESSearchNode node = new ESSearchNode(
                 aliases.keys().toArray(String.class),
                 Arrays.<Symbol>asList(parted_id_ref, parted_name_ref, parted_date_ref),
@@ -394,9 +397,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         Function whereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
-                DataType.BOOLEAN),
-                Arrays.<Symbol>asList(id_ref, new IntegerLiteral(2)));
+                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
+                DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(id_ref, Literal.newLiteral(2)));
 
         ESDeleteByQueryNode node = new ESDeleteByQueryNode(
                 new String[]{"characters"},
@@ -617,11 +620,11 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         // update characters set name='Vogon lyric fan' where id=1
         WhereClause whereClause = new WhereClause(null, false);
-        whereClause.clusteredByLiteral(new StringLiteral("1"));
+        whereClause.clusteredByLiteral(Literal.newLiteral("1"));
         ESUpdateNode updateNode = new ESUpdateNode(
                 new String[]{"characters"},
                 new HashMap<Reference, Symbol>(){{
-                    put(name_ref, new StringLiteral("Vogon lyric fan"));
+                    put(name_ref, Literal.newLiteral("Vogon lyric fan"));
                 }},
                 whereClause,
                 asList("1"),
@@ -660,13 +663,15 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         // do update
         Function whereClauseFunction = new Function(AndOperator.INFO, Arrays.<Symbol>asList(
                 new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME, asList(DataType.LONG, DataType.LONG)),
-                        DataType.BOOLEAN),
-                        Arrays.<Symbol>asList(version_ref, new LongLiteral(1L))
+                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.LONG, DataTypes.LONG)),
+                        DataTypes.BOOLEAN),
+                        Arrays.<Symbol>asList(version_ref, Literal.newLiteral(1L))
                 ),
                 new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)), DataType.BOOLEAN),
-                        Arrays.<Symbol>asList(name_ref, new StringLiteral("Arthur"))
+                        new FunctionIdent(EqOperator.NAME,
+                                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
+                        DataTypes.BOOLEAN),
+                        Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Arthur"))
                 )));
 
         // update characters set name='mostly harmless' where name='Arthur' and "_version"=?
@@ -675,7 +680,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESUpdateNode updateNode = new ESUpdateNode(
                 new String[]{"characters"},
                 new HashMap<Reference, Symbol>(){{
-                    put(name_ref, new StringLiteral("mostly harmless"));
+                    put(name_ref, Literal.newLiteral("mostly harmless"));
                 }},
                 whereClause,
                 ImmutableList.<String>of(),
@@ -713,20 +718,21 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         Function whereClause = new Function(OrOperator.INFO, Arrays.<Symbol>asList(
                 new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
-                        DataType.BOOLEAN),
-                        Arrays.<Symbol>asList(name_ref, new StringLiteral("Trillian"))
+                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
+                        DataTypes.BOOLEAN),
+                        Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Trillian"))
                 ),
                 new Function(new FunctionInfo(
-                        new FunctionIdent(EqOperator.NAME, asList(DataType.INTEGER, DataType.INTEGER)), DataType.BOOLEAN),
-                        Arrays.<Symbol>asList(id_ref, new IntegerLiteral(1))
+                        new FunctionIdent(EqOperator.NAME,
+                                Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)), DataTypes.BOOLEAN),
+                        Arrays.<Symbol>asList(id_ref, Literal.newLiteral(1))
                 )));
 
         // update characters set name='mostly harmless' where id=1 or name='Trillian'
         ESUpdateNode updateNode = new ESUpdateNode(
                 new String[]{"characters"},
                 new HashMap<Reference, Symbol>(){{
-                    put(name_ref, new StringLiteral("mostly harmless"));
+                    put(name_ref, Literal.newLiteral("mostly harmless"));
                 }},
                 new WhereClause(whereClause),
                 new ArrayList<String>(0),
@@ -746,9 +752,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         // verify update
         Function searchWhereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
-                DataType.BOOLEAN),
-                Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
+                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
+                DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(name_ref, Literal.newLiteral("mostly harmless")));
         ESSearchNode node = new ESSearchNode(
                 new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),

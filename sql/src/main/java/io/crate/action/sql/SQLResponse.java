@@ -21,7 +21,7 @@
 
 package io.crate.action.sql;
 
-import io.crate.action.SQLResult;
+import io.crate.types.*;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -36,6 +36,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
 
     static final class Fields {
         static final XContentBuilderString COLS = new XContentBuilderString("cols");
+        static final XContentBuilderString COLUMNTYPES = new XContentBuilderString("columnTypes");
         static final XContentBuilderString ROWS = new XContentBuilderString("rows");
         static final XContentBuilderString ROWCOUNT = new XContentBuilderString("rowcount");
         static final XContentBuilderString DURATION = new XContentBuilderString("duration");
@@ -46,21 +47,45 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     private String[] cols;
     private long rowCount = NO_ROW_COUNT;
     private long requestStartedTime = 0L;
+    private DataType[] columnTypes;
 
     public SQLResponse() {
     }
 
     public SQLResponse(String[] cols, Object[][] rows, long rowCount, long requestStartedTime) {
+        this(cols, rows, new DataType[0], rowCount, requestStartedTime);
+    }
+
+    public SQLResponse(String[] cols,
+                       Object[][] rows,
+                       DataType[] dataTypes,
+                       long rowCount,
+                       long requestStartedTime) {
         this.cols = cols;
         this.rows = rows;
         this.rowCount = rowCount;
         this.requestStartedTime = requestStartedTime;
+
+        // output types could list of one LongType, used internally for affectedRows of DML nodes
+        // remove it here, create empty array
+        if (cols.length == 0 && dataTypes.length == 1 && dataTypes[0].equals(LongType.INSTANCE)) {
+            this.columnTypes = new DataType[0];
+        } else {
+            this.columnTypes = dataTypes;
+        }
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.array(Fields.COLS, cols);
+        builder.startArray(Fields.COLUMNTYPES);
+        if (columnTypes != null) {
+            for (int i = 0; i < columnTypes.length; i++) {
+                toXContentNestedDataType(builder, columnTypes[i]);
+            }
+        }
+        builder.endArray();
         builder.startArray(Fields.ROWS);
         if (rows != null) {
             for (int i = 0; i < rows.length; i++) {
@@ -80,12 +105,31 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
         return builder;
     }
 
+    private void toXContentNestedDataType(XContentBuilder builder, DataType dataType) throws IOException {
+        if (dataType instanceof CollectionType) {
+            builder.startArray();
+            builder.value(dataType.id());
+            toXContentNestedDataType(builder, ((CollectionType) dataType).innerType());
+            builder.endArray();
+        } else {
+            builder.value(dataType.id());
+        }
+    }
+
     public String[] cols(){
         return cols;
     }
 
     public void cols(String[] cols){
         this.cols = cols;
+    }
+
+    public DataType[] columnTypes() {
+        return columnTypes;
+    }
+
+    public void columnTypes(DataType[] dataTypes) {
+        columnTypes = dataTypes;
     }
 
     public Object[][] rows(){
@@ -136,6 +180,11 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
             }
         }
         requestStartedTime = in.readVLong();
+        int numColumnTypes = in.readInt();
+        columnTypes = new DataType[numColumnTypes];
+        for (int i = 0; i < numColumnTypes; i++) {
+            columnTypes[i] = DataTypes.fromStream(in);
+        }
     }
 
     @Override
@@ -151,12 +200,17 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
             }
         }
         out.writeVLong(requestStartedTime);
+        out.writeInt(columnTypes.length);
+        for (int i = 0; i < columnTypes.length; i++) {
+            DataTypes.toStream(columnTypes[i], out);
+        }
     }
 
     @Override
     public String toString() {
         return "SQLResponse{" +
                 "cols=" + ((cols!=null) ? Arrays.toString(cols): null) +
+                "colTypes=" + ((columnTypes!=null) ? Arrays.toString(columnTypes): null) +
                 ", rows=" + ((rows!=null) ? rows.length: -1)  +
                 ", rowCount=" + rowCount  +
                 ", duration=" + duration()  +

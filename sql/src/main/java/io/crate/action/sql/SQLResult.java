@@ -19,25 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.action.sql;
 
-import io.crate.planner.symbol.*;
-import io.crate.Streamer;
+public interface SQLResult {
 
-public class StreamerVisitor extends SymbolVisitor<Void, Streamer> {
+    /**
+     * Returns the the rows of the result.
+     */
+    public Object[][] rows();
 
-    @Override
-    public Streamer visitValue(Value symbol, Void context) {
-        return symbol.valueType().streamer();
-    }
+    /**
+     * Returns the number of rows processed.
+     */
+    public long rowCount();
 
-    @Override
-    public Streamer visitReference(Reference symbol, Void context) {
-        return symbol.valueType().streamer();
-    }
-
-    @Override
-    protected Streamer visitSymbol(Symbol symbol, Void context) {
-        throw new UnsupportedOperationException(SymbolFormatter.format("Can't get a streamer for symbol %s", symbol));
-    }
+    /**
+     * Returns the result column names of the result
+     */
+    public String[] cols();
 }

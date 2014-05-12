@@ -24,19 +24,19 @@ package io.crate.planner.projection;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.testing.TestingHelpers;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.Value;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -46,12 +46,11 @@ public class GroupProjectionTest {
 
     @Test
     public void testStreaming() throws Exception {
-
         GroupProjection p = new GroupProjection();
         p.keys(
                 ImmutableList.<Symbol>of(
-                        new Value(DataType.STRING),
-                        new Value(DataType.SHORT)
+                        createReference("foo", DataTypes.STRING),
+                        createReference("bar", DataTypes.SHORT)
                 ));
 
         p.values(ImmutableList.<Aggregation>of());
@@ -63,17 +62,16 @@ public class GroupProjectionTest {
         GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
 
         assertEquals(p, p2);
-
     }
 
     @Test
     public void testStreaming2() throws Exception {
-        Reference nameRef = TestingHelpers.createReference("name", DataType.STRING);
+        Reference nameRef = createReference("name", DataTypes.STRING);
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(nameRef));
         groupProjection.values(Arrays.asList(
                 new Aggregation(
-                        new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataType.LONG),
+                        new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
                         ImmutableList.<Symbol>of(),
                         Aggregation.Step.PARTIAL,
                         Aggregation.Step.FINAL

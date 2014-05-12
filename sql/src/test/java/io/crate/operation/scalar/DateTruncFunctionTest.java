@@ -25,13 +25,17 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static junit.framework.Assert.assertSame;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -43,8 +47,8 @@ public class DateTruncFunctionTest {
     private final FunctionInfo functionInfo = new FunctionInfo(
             new FunctionIdent(
                     DateTruncFunction.NAME,
-                    ImmutableList.of(DataType.STRING, DataType.TIMESTAMP)),
-            DataType.TIMESTAMP);
+                    ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.TIMESTAMP)),
+            DataTypes.TIMESTAMP);
     private final DateTruncFunction func = new DateTruncFunction(functionInfo);
 
     static {
@@ -82,22 +86,23 @@ public class DateTruncFunctionTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testNormalizeSymbolUnknownInterval() throws Exception {
-        normalize(new StringLiteral("unknown interval"), new StringLiteral(""));
+        normalize(Literal.newLiteral("unknown interval"), Literal.newLiteral(""));
     }
 
     @Test
     public void testNormalizeSymbolReferenceTimestamp() throws Exception {
         Function function = new Function(func.info(),
-                ImmutableList.<Symbol>of(new StringLiteral("day"), new Reference(new ReferenceInfo(null,null,DataType.TIMESTAMP))));
+                ImmutableList.<Symbol>of(Literal.newLiteral("day"), new Reference(new ReferenceInfo(null,null, DataTypes.TIMESTAMP))));
         Symbol result = func.normalizeSymbol(function);
         assertSame(function, result);
     }
 
     @Test
     public void testNormalizeSymbolTimestampLiteral() throws Exception {
-        Symbol result = normalize(new StringLiteral("day"), new TimestampLiteral("2014-02-25T13:38:01.123"));
-        assertThat(result, instanceOf(TimestampLiteral.class));
-        assertThat(((TimestampLiteral)result).value(), is(1393286400000L));
+        Symbol result = normalize(
+                Literal.newLiteral("day"),
+                Literal.newLiteral(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-02-25T13:38:01.123")));
+        assertLiteralSymbol(result, 1393286400000L, DataTypes.TIMESTAMP);
     }
 
     @Test(expected = AssertionError.class)

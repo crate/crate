@@ -21,8 +21,9 @@
 
 package io.crate.operation.reference.doc;
 
+import io.crate.types.FloatType;
 import org.apache.lucene.index.AtomicReaderContext;
-import io.crate.DataType;
+import io.crate.types.DataType;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.elasticsearch.index.fielddata.DoubleValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
@@ -55,7 +56,7 @@ public class FloatColumnReference extends FieldCacheExpression<IndexNumericField
 
     @Override
     public DataType returnType(){
-        return DataType.FLOAT;
+        return FloatType.INSTANCE;
     }
 
     @Override

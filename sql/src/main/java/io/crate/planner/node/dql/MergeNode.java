@@ -24,7 +24,8 @@ package io.crate.planner.node.dql;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.node.PlanVisitor;
-import io.crate.DataType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -103,7 +104,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         if (numCols > 0) {
             inputTypes = new ArrayList<>(numCols);
             for (int i = 0; i < numCols; i++) {
-                inputTypes.add(DataType.fromStream(in));
+                inputTypes.add(DataTypes.fromStream(in));
             }
         }
         int numExecutionNodes = in.readVInt();
@@ -127,7 +128,7 @@ public class MergeNode extends AbstractDQLPlanNode {
         int numCols = inputTypes.size();
         out.writeVInt(numCols);
         for (DataType inputType : inputTypes) {
-            DataType.toStream(inputType, out);
+            DataTypes.toStream(inputType, out);
         }
 
         if (executionNodes == null) {
