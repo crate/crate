@@ -5,6 +5,7 @@ archivesBaseName = 'crate-core'
 
 configurations {
     all*.exclude group: 'org.elasticsearch'
+    sharedCompile.extendsFrom compile
 }
 
 dependencies {
@@ -23,6 +24,16 @@ sourceSets {
     test {
         resources {
             srcDir 'src/test/java'
+        }
+    }
+    shared {
+        java {
+            srcDir "src/main/java/io/crate/"
+            include "Streamer*"
+            include "TimestampFormat*"
+            include "core/collections/MapComparator*"
+            include "core/StringUtils*"
+            include "types/**"
         }
     }
 }

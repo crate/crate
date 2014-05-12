@@ -3,6 +3,7 @@ apply plugin: 'maven'
 
 archiveBaseName = "crate-client"
 
+evaluationDependsOn(':core')
 evaluationDependsOn(':sql')
 evaluationDependsOn(':app')
 
@@ -18,14 +19,32 @@ dependencies {
     compile 'org.apache.lucene:lucene-core:4.7.1'
     compile 'org.apache.lucene:lucene-analyzers-common:4.7.1'
 
+    compile files(project(':core').sourceSets.shared.output.classesDir)
     compile files(project(':sql').sourceSets.shared.output.classesDir)
 
     testCompile project(':testing')
+    testCompile project(':core')
     testCompile project(':sql')
 }
 
-processResources.dependsOn ':sql:compileSharedJava'
-compileJava.dependsOn ':sql:compileSharedJava'
+processResources.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava'])
+compileJava.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava'])
+
+test {
+    testLogging {
+        // show standard out and standard error of the test JVM(s) on the console
+        showStandardStreams = true
+        // Show that tests are run in the command-line output
+        events 'started', 'passed'
+    }
+    // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
+    outputs.upToDateWhen { false }
+
+    // allow to set the number of test forks from the CLI
+    if (project.hasProperty('testForks')) {
+        maxParallelForks = project.testForks as int
+    }
+}
 
 jar {
     baseName 'crate-client'
@@ -46,7 +65,7 @@ artifacts {
     archives jar
 }
 
-task buildJar(dependsOn: [':app:getVersion', ':sql:compileSharedJava', 'classes']) {
+task buildJar(dependsOn: [':app:getVersion', ':core:compileSharedJava', ':sql:compileSharedJava', 'classes']) {
     doLast {
         ext.version = project(':app').getVersion.version
         project.version = ext.version
