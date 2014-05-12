@@ -1,41 +1,119 @@
 apply plugin: 'java'
-apply plugin: 'distribution'
+apply plugin: 'maven'
 
-archivesBaseName = 'crate-client'
+archiveBaseName = "crate-client"
 
 evaluationDependsOn(':sql')
+evaluationDependsOn(':app')
+
+configurations {
+    all*.exclude group: 'org.elasticsearch'
+}
 
 dependencies {
-    compile project(':es')
+    compile (project(':es')) {
+        exclude group: 'org.apache.lucene'
+    }
+    // needed by ES Version class
+    compile 'org.apache.lucene:lucene-core:4.7.1'
+    compile 'org.apache.lucene:lucene-analyzers-common:4.7.1'
+
     compile files(project(':sql').sourceSets.shared.output.classesDir)
+
     testCompile project(':testing')
     testCompile project(':sql')
 }
 
-configurations {
-    all*.exclude group: 'org.elasticsearch'
-    all*.exclude group: 'org.apache.lucene'
-}
-
-
+processResources.dependsOn ':sql:compileSharedJava'
+compileJava.dependsOn ':sql:compileSharedJava'
 
 jar {
-    dependsOn ':sql:compileSharedJava'
     baseName 'crate-client'
     duplicatesStrategy 'exclude'
     from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
         exclude 'META-INF/**'
     }}
 
-    manifest {
-        attributes("Implementation-Title": "Crate Data Java Client")
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate Data Java Client")
+            version project.version
+        }
     }
 }
 
-processResources {
-    dependsOn ':sql:compileSharedJava'
+artifacts {
+    archives jar
 }
 
-compileJava {
-    dependsOn ':sql:compileSharedJava'
+task buildJar(dependsOn: [':app:getVersion', ':sql:compileSharedJava', 'classes']) {
+    doLast {
+        ext.version = project(':app').getVersion.version
+        project.version = ext.version
+        tasks.jar.execute()
+    }
+}
+
+
+install.dependsOn buildJar
+install {
+    repositories {
+        mavenInstaller {
+            pom.whenConfigured {
+                it.dependencies.clear()
+            }
+        }
+    }
+}
+
+project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
+project.ext.sonatypePassword = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
+
+uploadArchives.dependsOn buildJar
+uploadArchives {
+    repositories{
+        mavenDeployer {
+            beforeDeployment {
+                if (project.ext.sonatypeUsername.length() == 0 || project.ext.sonatypePassword.length() == 0) {
+                    throw new StopExecutionException("uploadArchives cannot be called without sonatype username and password")
+                }
+            }
+            pom.whenConfigured {
+                it.dependencies.clear()
+            }
+            pom.project {
+                artifactId 'crate-client'
+                name 'crate-client'
+                description 'Crate Data Java Client'
+                url 'https://crate.io'
+                scm {
+                    url 'https://github.com/crate/crate'
+                    connection 'scm:git:git://github.com/crate/crate.git'
+                    developerConnection 'scm:git:ssh:git@github.com:crate/crate.git'
+                }
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/license/LICENSE-2.0.txt'
+                        distribution 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'crate'
+                        name 'Crate Developers'
+                        email 'office@crate.io'
+                    }
+                }
+            }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: project.ext.sonatypeUsername, password: project.ext.sonatypePassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                authentication(userName: project.ext.sonatypeUsername, password: project.ext.sonatypePassword)
+            }
+        }
+    }
 }
