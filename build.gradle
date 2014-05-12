@@ -1,6 +1,6 @@
 allprojects {
     apply plugin: 'idea'
-    group = 'crate'
+    group = 'io.crate'
     repositories {
         mavenCentral()
     }
