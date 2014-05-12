@@ -65,6 +65,12 @@ will be used.
     AWS_SECRET_KEY environment variables. In addition to that the Java System
     properties aws.accessKeyId and aws.secretKey are also used as a fallback.
 
+.. note::
+
+   A ``secretkey`` provided by Amazon Web Service can contain characters such
+   as '/', '+' or '='. Such characters must be URI encoded. The same encoding
+   as in :ref:`copy_from_s3` applies.
+
 WITH Clause
 ===========
 
