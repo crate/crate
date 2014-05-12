@@ -40,6 +40,11 @@ A minimal example is just a few lines of code::
     System.out.println(Arrays.toString(r.cols()));
     // outputs ["firstName", "lastName"]
 
+    // Get the data type of the first column
+    DataType dataType = r.columnTypes()[0]
+    System.out.print(dataType.getName())
+    // outputs: "string"
+
     for (Object[] row: r.rows()){
         System.out.println(Arrays.toString(row));
     }
