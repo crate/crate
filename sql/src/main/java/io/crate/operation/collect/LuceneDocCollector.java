@@ -23,8 +23,8 @@ package io.crate.operation.collect;
 
 import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
-import io.crate.operation.reference.doc.CollectorContext;
-import io.crate.operation.reference.doc.LuceneCollectorExpression;
+import io.crate.operation.reference.doc.lucene.CollectorContext;
+import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.FieldInfo;

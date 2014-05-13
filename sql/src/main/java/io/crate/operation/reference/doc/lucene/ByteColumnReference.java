@@ -19,30 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
-import org.elasticsearch.index.fielddata.DoubleValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
+import org.elasticsearch.index.fielddata.LongValues;
 
-public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFieldData, Double> {
+public class ByteColumnReference extends FieldCacheExpression<IndexNumericFieldData, Byte> {
 
-    private DoubleValues values;
+    private LongValues values;
 
-    public DoubleColumnReference(String columnName) {
+    public ByteColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public Double value() {
+    public DataType returnType() {
+        return DataTypes.BYTE;
+    }
+
+    @Override
+    public Byte value() {
         switch (values.setDocument(docId)) {
             case 0:
                 return null;
             case 1:
-                return values.nextValue();
+                return ((Long)values.nextValue()).byteValue();
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -51,12 +56,7 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     @Override
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getDoubleValues();
-    }
-
-    @Override
-    public DataType returnType(){
-        return DataTypes.DOUBLE;
+        values = indexFieldData.load(context).getLongValues();
     }
 
     @Override
@@ -65,9 +65,9 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
             return false;
         if (obj == this)
             return true;
-        if (!(obj instanceof DoubleColumnReference))
+        if (!(obj instanceof ByteColumnReference))
             return false;
-        return columnName.equals(((DoubleColumnReference) obj).columnName);
+        return columnName.equals(((ByteColumnReference) obj).columnName);
     }
 
     @Override
@@ -75,4 +75,3 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
         return columnName.hashCode();
     }
 }
-

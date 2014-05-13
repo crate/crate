@@ -19,30 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.types.FloatType;
 import org.apache.lucene.index.AtomicReaderContext;
+import io.crate.types.DataType;
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import org.elasticsearch.index.fielddata.DoubleValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
-import org.elasticsearch.index.fielddata.LongValues;
 
-public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFieldData, Integer> {
+public class FloatColumnReference extends FieldCacheExpression<IndexNumericFieldData, Float> {
 
-    private LongValues values;
+    DoubleValues values;
 
-    public IntegerColumnReference(String columnName) {
+    public FloatColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public Integer value() {
+    public Float value() {
         switch (values.setDocument(docId)) {
             case 0:
                 return null;
             case 1:
-                return ((Long)values.nextValue()).intValue();
+                return ((Double)values.nextValue()).floatValue();
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -51,12 +51,12 @@ public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFie
     @Override
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getLongValues();
+        values = indexFieldData.load(context).getDoubleValues();
     }
 
     @Override
     public DataType returnType(){
-        return DataTypes.INTEGER;
+        return FloatType.INSTANCE;
     }
 
     @Override
@@ -65,9 +65,9 @@ public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFie
             return false;
         if (obj == this)
             return true;
-        if (!(obj instanceof IntegerColumnReference))
+        if (!(obj instanceof FloatColumnReference))
             return false;
-        return columnName.equals(((IntegerColumnReference) obj).columnName);
+        return columnName.equals(((FloatColumnReference) obj).columnName);
     }
 
     @Override
@@ -75,4 +75,3 @@ public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFie
         return columnName.hashCode();
     }
 }
-
