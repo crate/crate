@@ -57,6 +57,7 @@ public class BlobTableInfo implements TableInfo {
 
     private static List<Tuple<String, DataType>> staticColumns = ImmutableList.<Tuple<String,DataType>>builder()
                 .add(new Tuple<String, DataType>("digest", DataTypes.STRING))
+                .add(new Tuple<String, DataType>("ctime", DataTypes.TIMESTAMP))
                 .build();
 
     public BlobTableInfo(TableIdent ident,

@@ -27,6 +27,7 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.blobs.BlobCollectorExpression;
 import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.projectors.CollectingProjector;
+import io.crate.operation.reference.doc.blob.BlobCTimeExpression;
 import io.crate.operation.reference.doc.blob.BlobDigestExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.FileSystemUtils;
@@ -67,8 +68,10 @@ public class BlobDocCollectorTest {
 
         File blob = new File(container.getVarDirectory().getAbsolutePath() + "/01/" + digest);
         blob.createNewFile();
+        long ctime = blob.lastModified();
 
-        BlobDigestExpression expression = new BlobDigestExpression();
+        BlobDigestExpression digestExpression = new BlobDigestExpression();
+        BlobCTimeExpression ctimeExpression = new BlobCTimeExpression();
         Input<Boolean> condition = new Input<Boolean>() {
             @Override
             public Boolean value() {
@@ -78,13 +81,14 @@ public class BlobDocCollectorTest {
 
         CollectingProjector projector = getProjector(
                 container,
-                Arrays.<Input<?>>asList(expression),
-                Arrays.<BlobCollectorExpression<?>>asList(expression),
+                Arrays.<Input<?>>asList(digestExpression, ctimeExpression),
+                Arrays.<BlobCollectorExpression<?>>asList(digestExpression, ctimeExpression),
                 condition
         );
         Object[][] result = projector.result().get();
 
         assertEquals(digest, ((BytesRef)result[0][0]).utf8ToString());
+        assertEquals(ctime, result[0][1]);
     }
 
     private CollectingProjector getProjector(BlobContainer container,
