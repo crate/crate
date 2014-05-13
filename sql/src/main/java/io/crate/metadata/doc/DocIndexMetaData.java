@@ -98,6 +98,7 @@ public class DocIndexMetaData {
             .put("float", DataTypes.FLOAT)
             .put("double", DataTypes.DOUBLE)
             .put("ip", DataTypes.IP)
+            .put("geo_point", DataTypes.GEO_POINT)
             .put("object", DataTypes.OBJECT)
             .put("nested", DataTypes.OBJECT).build();
 

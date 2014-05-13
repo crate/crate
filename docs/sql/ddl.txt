@@ -154,6 +154,31 @@ fractions. Example::
     cr> insert into my_table4 (id, first_column) values (3, 'wrong');
     SQLActionException[Validation failed for first_column: Invalid format: "wrong"]
 
+
+geo_point
+---------
+
+The ``geo_point`` type can be used to store latitude and longitude geo
+coordinates.
+
+Columns with the ``geo_point`` are represented and inserted using a double
+array in the following format::
+
+    [<lat_value>, <lon_value>]
+
+.. note::
+
+    In order to insert arrays the REST endpoint or a client driver that
+    supports arrays has to be used.
+
+Create table example::
+
+    cr> create table my_table_geopoint (
+    ...   id integer primary key,
+    ...   pin geo_point
+    ... ) with (number_of_replicas=0)
+    CREATE OK (... sec)
+
 object
 ------
 

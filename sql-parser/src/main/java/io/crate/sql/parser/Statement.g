@@ -813,6 +813,7 @@ dataType
     | DOUBLE
     | TIMESTAMP
     | IP
+    | GEO_POINT
     | objectTypeDefinition
     | arrayTypeDefinition
     | setTypeDefinition
@@ -941,6 +942,7 @@ nonReserved
     | SHARDS | CLUSTERED | COPY | ANALYZER
     | EXTENDS | TOKENIZER | CHAR_FILTERS | TOKEN_FILTERS | BLOB
     | TO | PARTITIONED
+    | GEO_POINT
     ;
 
 SELECT: 'SELECT';
@@ -1037,6 +1039,7 @@ TIMESTAMP: 'TIMESTAMP';
 IP: 'IP';
 OBJECT: 'OBJECT';
 STRING_TYPE: 'STRING';
+GEO_POINT: 'GEO_POINT';
 
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';

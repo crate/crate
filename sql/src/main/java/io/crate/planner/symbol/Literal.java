@@ -73,7 +73,11 @@ public class Literal<ReturnType>
     protected Literal(DataType type, ReturnType value) {
         assert value == null ||
                 (type.equals(DataTypes.STRING) && value instanceof String) ||
+                 // Arrays equality check for array types
                 (type.id() == ArrayType.ID && Arrays.equals((Object[])value, (Object[])type.value(value))) ||
+                 // types like GeoPoint are represented as arrays
+                (value.getClass().isArray() && Arrays.equals((Object[])value, (Object[])type.value(value))) ||
+                // converted value must be equal to value otherwise the dataType/value doesn't match
                 type.value(value).equals(value);
         this.type = type;
         this.value = value;

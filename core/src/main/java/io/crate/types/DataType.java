@@ -33,7 +33,7 @@ public abstract class DataType<T> implements Comparable, Streamable {
     public abstract int id();
     public abstract String getName();
     public abstract Streamer<?> streamer();
-    public abstract T value(Object value);
+    public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
     public abstract int compareValueTo(T val1, T val2);
 
     public int hashCode() {

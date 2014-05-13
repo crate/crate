@@ -446,6 +446,18 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCreateTableWithGeoPoint() throws Exception {
+        CreateTableAnalysis analyze = (CreateTableAnalysis)analyze(
+                "create table geo_point_table (\n" +
+                "    id integer primary key,\n" +
+                "    my_point geo_point\n" +
+                ")\n");
+        Map my_point = (Map) analyze.mappingProperties().get("my_point");
+        assertEquals("geo_point", my_point.get("type"));
+    }
+
+
+    @Test
     public void testPartitionedBy() throws Exception {
         CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
                 "  id integer," +
