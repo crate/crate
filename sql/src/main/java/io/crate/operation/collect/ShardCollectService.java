@@ -30,12 +30,15 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.Input;
+import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
-import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.symbol.Literal;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.client.Client;
@@ -50,7 +53,7 @@ import org.elasticsearch.script.ScriptService;
 
 public class ShardCollectService {
 
-    private final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> docInputSymbolVisitor;
+    private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
     private final ClusterService clusterService;
     private final ShardId shardId;
     private final IndexService indexService;
@@ -63,6 +66,8 @@ public class ShardCollectService {
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorVisitor;
+    private final boolean isBlobShard;
+    private final BlobIndices blobIndices;
 
     @Inject
     public ShardCollectService(Provider<Client> clientProvider,
@@ -76,6 +81,7 @@ public class ShardCollectService {
                                SQLXContentQueryParser sqlxContentQueryParser,
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
+                               BlobIndices blobIndices,
                                BlobShardReferenceResolver blobShardReferenceResolver) {
         this.clusterService = clusterService;
         this.shardId = shardId;
@@ -87,11 +93,14 @@ public class ShardCollectService {
         this.bigArrays = bigArrays;
         this.sqlxContentQueryParser = sqlxContentQueryParser;
 
-        this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
-                functions, LuceneDocLevelReferenceResolver.INSTANCE);
         this.queryBuilder = new ESQueryBuilder();
 
-        boolean isBlobShard = BlobIndices.isBlobShard(this.shardId);
+        this.blobIndices = blobIndices;
+        isBlobShard = BlobIndices.isBlobShard(this.shardId);
+        this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
+                functions,
+                (isBlobShard ? BlobReferenceResolver.INSTANCE : LuceneDocLevelReferenceResolver.INSTANCE)
+        );
         this.shardImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 (isBlobShard ? blobShardReferenceResolver :referenceResolver),
                 functions,
@@ -114,8 +123,8 @@ public class ShardCollectService {
      * @return collector wrapping different collect implementations, call {@link CrateCollector#doCollect()} to start
      * collecting with this collector
      */
-    public CrateCollector getCollector(CollectNode collectNode, ShardProjectorChain projectorChain) throws Exception {
-
+    public CrateCollector getCollector(CollectNode collectNode,
+                                       ShardProjectorChain projectorChain) throws Exception {
         CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
         Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
@@ -124,21 +133,51 @@ public class ShardCollectService {
         } else {
             RowGranularity granularity = normalizedCollectNode.maxRowGranularity();
             if (granularity == RowGranularity.DOC) {
-                CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(normalizedCollectNode);
-                BytesReference querySource = queryBuilder.convert(normalizedCollectNode.whereClause());
-                return new LuceneDocCollector(clusterService, shardId, indexService,
-                        scriptService, cacheRecycler, pageCacheRecycler, bigArrays,
-                        sqlxContentQueryParser,
-                        docCtx.topLevelInputs(),
-                        docCtx.docLevelExpressions(),
-                        querySource,
-                        downstream);
-
+                if (isBlobShard) {
+                    return getBlobIndexCollector(normalizedCollectNode, downstream);
+                } else {
+                    return getLuceneIndexCollector(normalizedCollectNode, downstream);
+                }
             } else if (granularity == RowGranularity.SHARD) {
                 ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(normalizedCollectNode);
                 return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), downstream);
             }
             throw new UnhandledServerException(String.format("Granularity %s not supported", granularity.name()));
         }
+    }
+
+    private CrateCollector getBlobIndexCollector(CollectNode collectNode, Projector downstream) {
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
+        Input<Boolean> condition;
+        if (collectNode.whereClause().hasQuery()) {
+            condition = (Input)docInputSymbolVisitor.process(collectNode.whereClause().query(), ctx);
+        } else {
+            condition = Literal.newLiteral(true);
+        }
+        return new BlobDocCollector(
+                blobIndices.blobShardSafe(shardId),
+                ctx.topLevelInputs(),
+                ctx.docLevelExpressions(),
+                condition,
+                downstream
+        );
+    }
+
+    private CrateCollector getLuceneIndexCollector(CollectNode collectNode, Projector downstream) throws Exception {
+        CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
+        BytesReference querySource = queryBuilder.convert(collectNode.whereClause());
+        return new LuceneDocCollector(
+                clusterService,
+                shardId,
+                indexService,
+                scriptService,
+                cacheRecycler,
+                pageCacheRecycler,
+                bigArrays,
+                sqlxContentQueryParser,
+                docCtx.topLevelInputs(),
+                docCtx.docLevelExpressions(),
+                querySource,
+                downstream);
     }
 }

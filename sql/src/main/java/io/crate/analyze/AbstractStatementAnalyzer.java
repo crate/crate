@@ -23,9 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
 
@@ -60,9 +58,6 @@ public abstract class AbstractStatementAnalyzer<R extends Object, T extends Anal
     protected R visitTable(Table node, T context) {
         Preconditions.checkState(context.table() == null, "selecting from multiple tables is not supported");
         TableIdent tableIdent = TableIdent.of(node);
-        if (tableIdent.schema() != null && tableIdent.schema().equalsIgnoreCase(BlobSchemaInfo.NAME)) {
-            throw new UnsupportedFeatureException("Querying on BLOB tables is not supported yet");
-        }
         context.table(tableIdent);
         return null;
     }
