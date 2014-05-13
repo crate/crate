@@ -57,12 +57,12 @@ List
 
 To list all blobs inside a blob table a ``SELECT`` statement can be used::
 
-    sh$ crash -c "select digest from blob.myblobs"
-    +------------------------------------------+
-    | digest                                   |
-    +------------------------------------------+
-    | 4a756ca07e9487f482465a99e8286abc86ba4dc7 |
-    +------------------------------------------+
+    sh$ crash -c "select digest, last_modified from blob.myblobs"
+    +------------------------------------------+---------------+
+    | digest                                   | last_modified |
+    +------------------------------------------+---------------+
+    | 4a756ca07e9487f482465a99e8286abc86ba4dc7 | ...           |
+    +------------------------------------------+---------------+
     SELECT 1 row in set (... sec)
 
 
