@@ -654,6 +654,11 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 ")");
     }
 
+    @Test (expected = IllegalArgumentException.class)
+    public void testAnalyzerOnInvalidType() throws Exception {
+        analyze("create table my_table (x integer INDEX using fulltext with (analyzer='snowball'))");
+    }
+
     @Test
     public void createTableNegativeReplicas() throws Exception {
         CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(

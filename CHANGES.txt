@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - the ``CREATE TABLE`` statement now doesn't silently ignore analyzer
+   specifications on column types that don't support them.
+
  - added the ``geo_point`` type.
 
  - the data type of every responded column is now returned via transport & REST
