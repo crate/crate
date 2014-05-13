@@ -34,11 +34,17 @@ public class BlobReferenceResolver implements DocLevelReferenceResolver<BlobColl
     public static final BlobReferenceResolver INSTANCE = new BlobReferenceResolver();
 
     private static final Map<String, ExpressionBuilder> expressionBuilder =
-            ImmutableMap.<String, ExpressionBuilder>of(
+            ImmutableMap.of(
                     BlobDigestExpression.COLUMN_NAME, new ExpressionBuilder() {
                         @Override
                         public BlobCollectorExpression<?> create() {
                             return new BlobDigestExpression();
+                        }
+                    },
+                    BlobLastModifiedExpression.COLUMN_NAME, new ExpressionBuilder() {
+                        @Override
+                        public BlobCollectorExpression<?> create() {
+                            return new BlobLastModifiedExpression();
                         }
                     }
             );
