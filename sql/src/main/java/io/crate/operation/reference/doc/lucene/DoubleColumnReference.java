@@ -19,30 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
 
-import io.crate.types.FloatType;
-import org.apache.lucene.index.AtomicReaderContext;
-import io.crate.types.DataType;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.index.fielddata.DoubleValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 
-public class FloatColumnReference extends FieldCacheExpression<IndexNumericFieldData, Float> {
+public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFieldData, Double> {
 
-    DoubleValues values;
+    private DoubleValues values;
 
-    public FloatColumnReference(String columnName) {
+    public DoubleColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public Float value() {
+    public Double value() {
         switch (values.setDocument(docId)) {
             case 0:
                 return null;
             case 1:
-                return ((Double)values.nextValue()).floatValue();
+                return values.nextValue();
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -56,7 +56,7 @@ public class FloatColumnReference extends FieldCacheExpression<IndexNumericField
 
     @Override
     public DataType returnType(){
-        return FloatType.INSTANCE;
+        return DataTypes.DOUBLE;
     }
 
     @Override
@@ -65,9 +65,9 @@ public class FloatColumnReference extends FieldCacheExpression<IndexNumericField
             return false;
         if (obj == this)
             return true;
-        if (!(obj instanceof FloatColumnReference))
+        if (!(obj instanceof DoubleColumnReference))
             return false;
-        return columnName.equals(((FloatColumnReference) obj).columnName);
+        return columnName.equals(((DoubleColumnReference) obj).columnName);
     }
 
     @Override
@@ -75,3 +75,4 @@ public class FloatColumnReference extends FieldCacheExpression<IndexNumericField
         return columnName.hashCode();
     }
 }
+
