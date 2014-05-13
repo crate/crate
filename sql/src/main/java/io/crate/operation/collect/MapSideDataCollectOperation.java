@@ -234,9 +234,10 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         // get shardCollectors from single shards
         Map<String, Set<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);
         for (Map.Entry<String, Set<Integer>> entry : shardIdMap.entrySet()) {
+            String indexName = entry.getKey();
             IndexService indexService;
             try {
-                indexService = indicesService.indexServiceSafe(entry.getKey());
+                indexService = indicesService.indexServiceSafe(indexName);
             } catch (IndexMissingException e) {
                 throw new TableUnknownException(entry.getKey(), e);
             }
@@ -246,10 +247,11 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                 try {
                     shardInjector = indexService.shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
-                    CrateCollector crateCollector = shardCollectService.getCollector(
+                    CrateCollector collector = shardCollectService.getCollector(
                             collectNode,
-                            projectorChain);
-                    shardCollectors.add(crateCollector);
+                            projectorChain
+                    );
+                    shardCollectors.add(collector);
                 } catch (IndexShardMissingException e) {
                     throw new UnhandledServerException(
                             String.format("unknown shard id %d on index '%s'",
