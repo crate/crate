@@ -19,10 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
 
 
 import io.crate.core.StringUtils;
+import io.crate.operation.reference.doc.ColumnReferenceExpression;
 
 public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
         LuceneCollectorExpression<ReturnType> implements ColumnReferenceExpression {

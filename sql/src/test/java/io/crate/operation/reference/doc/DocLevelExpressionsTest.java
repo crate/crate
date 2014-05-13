@@ -22,6 +22,7 @@
 package io.crate.operation.reference.doc;
 
 import io.crate.Constants;
+import io.crate.operation.reference.doc.lucene.CollectorContext;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.RAMDirectory;

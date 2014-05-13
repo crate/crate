@@ -19,39 +19,29 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
 
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.LuceneDocCollector;
+
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
-public class RawCollectorExpression extends
-        LuceneCollectorExpression<BytesRef> implements ColumnReferenceExpression {
+import java.util.Map;
 
-    public static final String COLUMN_NAME = DocSysColumns.RAW.name();
+public class ObjectColumnReference<ReturnType> extends ColumnReferenceCollectorExpression<Map<String, Object>> {
 
-    private LuceneDocCollector.CollectorFieldsVisitor visitor;
+    public ObjectColumnReference(String columnName) {
+        super(columnName);
+    }
 
     @Override
-    public void startCollect(CollectorContext context) {
-        context.visitor().required(true);
-        this.visitor = context.visitor();
+    public Map<String, Object> value() {
+        //TODO: this returns null since we are called in aggregation collectors onnly vor now,
+        // once this gets called from result columns it should be implemented
+        return null;
     }
 
     @Override
     public DataType returnType() {
-        return DataTypes.STRING;
-    }
-
-    @Override
-    public BytesRef value() {
-        return visitor.source().toBytesRef();
-    }
-
-    @Override
-    public String columnName() {
-        return COLUMN_NAME;
+        return DataTypes.OBJECT;
     }
 }

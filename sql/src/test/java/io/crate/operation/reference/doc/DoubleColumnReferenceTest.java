@@ -21,6 +21,7 @@
 
 package io.crate.operation.reference.doc;
 
+import io.crate.operation.reference.doc.lucene.DoubleColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.Field;
