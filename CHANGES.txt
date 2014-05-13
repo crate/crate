@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - the ``CREATE TABLE`` statement now doesn't silently ignore analyzer
+   specifications on column types that don't support them.
+
 2014/05/16 0.37.2
 =================
 
