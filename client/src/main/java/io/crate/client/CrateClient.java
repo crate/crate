@@ -40,6 +40,8 @@ import org.elasticsearch.node.internal.InternalSettingsPreparer;
 import org.elasticsearch.transport.TransportModule;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.UUID;
+
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 
 public class CrateClient {
@@ -52,7 +54,6 @@ public class CrateClient {
 
     public CrateClient(Settings pSettings, boolean loadConfigSettings) throws
             ElasticsearchException {
-        ImmutableSettings.Builder settingsBuilder = settingsBuilder();
 
         Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(
             pSettings, loadConfigSettings);
@@ -60,6 +61,7 @@ public class CrateClient {
                 .put("network.server", false)
                 .put("node.client", true)
                 .put("client.transport.ignore_cluster_name", true)
+                .put("node.name", "crate-client-"+ UUID.randomUUID().toString())
                 .build();
         this.environment = tuple.v2();
 
