@@ -3867,4 +3867,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Integer)response.rows()[2][0], is(3));
     }
 
+    @Test
+    public void testInsertAndSelectGeoType() throws Exception {
+        execute("create table geo_point_table (id int primary key, p geo_point) with (number_of_replicas=0)");
+        execute("insert into geo_point_table (id, p) values (?, ?)", new Object[] {1, new Double[] {47.22, 12.09} });
+        execute("insert into geo_point_table (id, p) values (?, ?)", new Object[] {2, new Double[] {57.22, 7.12} });
+        refresh();
+
+        execute("select p from geo_point_table order by id desc");
+
+        assertThat(response.rowCount(), is(2L));
+        assertThat((List<Double>)response.rows()[0][0], is(Arrays.asList(57.22, 7.12)));
+        assertThat((List<Double>)response.rows()[1][0], is(Arrays.asList(47.22, 12.09)));
+    }
+
 }

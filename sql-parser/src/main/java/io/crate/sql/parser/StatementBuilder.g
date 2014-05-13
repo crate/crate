@@ -743,7 +743,8 @@ columnDefinition returns [ColumnDefinition value]
     ;
 
 dataType returns [ColumnType value]
-    : type=(BOOLEAN | BYTE | SHORT | INT | INTEGER | LONG | FLOAT | DOUBLE | TIMESTAMP | STRING_TYPE | IP )
+    : type=(BOOLEAN | BYTE | SHORT | INT | INTEGER | LONG | FLOAT | DOUBLE |
+            TIMESTAMP | STRING_TYPE | IP | GEO_POINT )
       {
         $value = new ColumnType($type.text.toLowerCase(Locale.ENGLISH));
       }

@@ -237,11 +237,7 @@ public class Setup {
                             put("index", "not_analyzed");
                         }});
                         put("location", new HashMap<String, Object>(){{
-                            put("type", "geo_point");
-                            put("fielddata", new HashMap<String, Object>(){{
-                                put("format", "compressed");
-                                put("precision", "3m");
-                            }});
+                            put("type", "geo_shape");
                         }});
                         put("population", new HashMap<String, Object>(){{
                             put("type", "long");
@@ -251,11 +247,11 @@ public class Setup {
                     }});
                 }}).execute().actionGet();
         transportExecutor.client().prepareIndex("ut", Constants.DEFAULT_MAPPING_TYPE, "id1")
-                .setSource("{\"name\":\"Berlin\",\"location\":\"52.5081,13.4416\", \"population\":3500000}")
+                .setSource("{\"name\":\"Berlin\",\"location\":{\"type\": \"point\", \"coordinates\": [52.5081, 13.4416]}, \"population\":3500000}")
                 .execute().actionGet();
         transportExecutor.client().prepareIndex("ut", Constants.DEFAULT_MAPPING_TYPE, "id2")
-                .setSource("{\"name\":\"Dornbirn\",\"location\":\"47.3904,9.7562\", \"population\":46080}")
-                .execute().actionGet();;
+                .setSource("{\"name\":\"Dornbirn\",\"location\":{\"type\": \"point\", \"coordinates\": [47.3904,9.7562]}, \"population\":46080}")
+                .execute().actionGet();
         transportExecutor.refresh("ut");
     }
 
