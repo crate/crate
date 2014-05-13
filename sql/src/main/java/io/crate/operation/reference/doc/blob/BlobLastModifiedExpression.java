@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,39 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.blob;
 
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.LuceneDocCollector;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
+import io.crate.operation.collect.blobs.BlobCollectorExpression;
 
-public class RawCollectorExpression extends
-        LuceneCollectorExpression<BytesRef> implements ColumnReferenceExpression {
+public class BlobLastModifiedExpression extends BlobCollectorExpression<Long> {
 
-    public static final String COLUMN_NAME = DocSysColumns.RAW.name();
-
-    private LuceneDocCollector.CollectorFieldsVisitor visitor;
+    public static final String COLUMN_NAME = "last_modified";
 
     @Override
-    public void startCollect(CollectorContext context) {
-        context.visitor().required(true);
-        this.visitor = context.visitor();
+    public Long value() {
+        return blob.lastModified();
     }
 
-    @Override
-    public DataType returnType() {
-        return DataTypes.STRING;
-    }
-
-    @Override
-    public BytesRef value() {
-        return visitor.source().toBytesRef();
-    }
-
-    @Override
-    public String columnName() {
-        return COLUMN_NAME;
-    }
 }

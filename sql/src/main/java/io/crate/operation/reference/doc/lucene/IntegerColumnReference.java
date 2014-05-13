@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.types.DataType;
@@ -28,21 +28,21 @@ import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.LongValues;
 
-public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldData, Long> {
+public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFieldData, Integer> {
 
     private LongValues values;
 
-    public LongColumnReference(String columnName) {
+    public IntegerColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public Long value() {
+    public Integer value() {
         switch (values.setDocument(docId)) {
             case 0:
                 return null;
             case 1:
-                return values.nextValue();
+                return ((Long)values.nextValue()).intValue();
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -56,7 +56,7 @@ public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldD
 
     @Override
     public DataType returnType(){
-        return DataTypes.LONG;
+        return DataTypes.INTEGER;
     }
 
     @Override
@@ -65,9 +65,9 @@ public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldD
             return false;
         if (obj == this)
             return true;
-        if (!(obj instanceof LongColumnReference))
+        if (!(obj instanceof IntegerColumnReference))
             return false;
-        return columnName.equals(((LongColumnReference) obj).columnName);
+        return columnName.equals(((IntegerColumnReference) obj).columnName);
     }
 
     @Override

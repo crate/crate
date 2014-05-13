@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,26 +19,18 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.collect.blobs;
 
 import io.crate.operation.Input;
-import io.crate.types.DataType;
-import org.apache.lucene.index.AtomicReaderContext;
 
-/**
- * An expression which gets evaluated in the collect phase
- */
-public abstract class LuceneCollectorExpression<ReturnType> implements Input<ReturnType> {
+import java.io.File;
 
-    public void startCollect(CollectorContext context){
+public abstract class BlobCollectorExpression<T> implements Input<T> {
 
-    }
+    protected File blob;
 
-    public void setNextDocId(int doc){
-    }
+    public void setNextBlob(File blob) {
+        this.blob = blob;
+    };
 
-    public void setNextReader(AtomicReaderContext context){
-    }
-
-    public abstract DataType returnType();
 }

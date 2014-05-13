@@ -51,6 +51,27 @@ If a blob already exists with the given hash a 409 Conflict is returned::
     HTTP/1.1 409 Conflict
     Content-Length: 0
 
+
+List
+----
+
+To list all blobs inside a blob table a ``SELECT`` statement can be used::
+
+    sh$ crash -c "select digest, last_modified from blob.myblobs"
+    +------------------------------------------+---------------+
+    | digest                                   | last_modified |
+    +------------------------------------------+---------------+
+    | 4a756ca07e9487f482465a99e8286abc86ba4dc7 | ...           |
+    +------------------------------------------+---------------+
+    SELECT 1 row in set (... sec)
+
+
+.. note::
+
+    To query blob tables it is necessary to always specify the schema name
+    ``blob``.
+
+
 Download
 --------
 

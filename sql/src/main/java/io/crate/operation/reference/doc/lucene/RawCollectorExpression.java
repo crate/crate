@@ -19,26 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
 
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.operation.reference.doc.ColumnReferenceExpression;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 
-import io.crate.core.StringUtils;
+public class RawCollectorExpression extends
+        LuceneCollectorExpression<BytesRef> implements ColumnReferenceExpression {
 
-public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
-        LuceneCollectorExpression<ReturnType> implements ColumnReferenceExpression {
+    public static final String COLUMN_NAME = DocSysColumns.RAW.name();
 
-    protected final String columnName;
+    private LuceneDocCollector.CollectorFieldsVisitor visitor;
 
-    public ColumnReferenceCollectorExpression(String columnName) {
-        this.columnName = columnName;
-    }
-
-    public String columnName() {
-        return columnName;
+    @Override
+    public void startCollect(CollectorContext context) {
+        context.visitor().required(true);
+        this.visitor = context.visitor();
     }
 
     @Override
-    public String toString() {
-        return columnName().contains(".") ? StringUtils.dottedToSqlPath(columnName()) : columnName();
+    public DataType returnType() {
+        return DataTypes.STRING;
+    }
+
+    @Override
+    public BytesRef value() {
+        return visitor.source().toBytesRef();
+    }
+
+    @Override
+    public String columnName() {
+        return COLUMN_NAME;
     }
 }

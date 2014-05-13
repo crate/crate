@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.WhereClause;
+import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.*;
@@ -41,6 +42,9 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.ClusterService;
@@ -60,6 +64,7 @@ import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.index.shard.service.InternalIndexShard;
+import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -138,6 +143,16 @@ public class DistributingCollectTest {
             when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+
+            BlobIndices blobIndices = new BlobIndices(
+                    ImmutableSettings.EMPTY,
+                    mock(TransportCreateIndexAction.class),
+                    mock(TransportDeleteIndexAction.class),
+                    mock(TransportUpdateSettingsAction.class),
+                    indicesService,
+                    mock(IndicesLifecycle.class)
+            );
+            bind(BlobIndices.class).toInstance(blobIndices);
 
             MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
             bind(ReferenceResolver.class).to(GlobalReferenceResolver.class);

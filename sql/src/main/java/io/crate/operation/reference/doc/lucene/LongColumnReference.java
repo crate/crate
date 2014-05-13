@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.types.DataType;
@@ -28,29 +28,24 @@ import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.LongValues;
 
-public class ShortColumnReference extends FieldCacheExpression<IndexNumericFieldData, Short> {
+public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldData, Long> {
 
-    LongValues values;
+    private LongValues values;
 
-    public ShortColumnReference(String columnName) {
+    public LongColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public Short value() {
+    public Long value() {
         switch (values.setDocument(docId)) {
             case 0:
                 return null;
             case 1:
-                return ((Long)values.nextValue()).shortValue();
+                return values.nextValue();
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
-    }
-
-    @Override
-    public DataType returnType() {
-        return DataTypes.SHORT;
     }
 
     @Override
@@ -60,14 +55,19 @@ public class ShortColumnReference extends FieldCacheExpression<IndexNumericField
     }
 
     @Override
+    public DataType returnType(){
+        return DataTypes.LONG;
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (obj == null)
             return false;
         if (obj == this)
             return true;
-        if (!(obj instanceof ShortColumnReference))
+        if (!(obj instanceof LongColumnReference))
             return false;
-        return columnName.equals(((ShortColumnReference) obj).columnName);
+        return columnName.equals(((LongColumnReference) obj).columnName);
     }
 
     @Override
@@ -75,3 +75,4 @@ public class ShortColumnReference extends FieldCacheExpression<IndexNumericField
         return columnName.hashCode();
     }
 }
+
