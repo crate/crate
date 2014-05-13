@@ -23,7 +23,7 @@ package io.crate.exceptions;
 
 public class SchemaUnknownException extends ResourceUnknownException {
 
-    private static final String MESSAGE_TMPL = "unknown schema '%s'";
+    private static final String MESSAGE_TMPL = "Schema '%s' unknown";
 
     private final String schema;
 
