@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added support for select statements on blob tables. This can be used to list
+   the blobs that are stored inside a blob table.
+
  - removed developer and installation instructions from documentation
 
  - the ``CREATE TABLE`` statement now doesn't silently ignore analyzer

@@ -2641,12 +2641,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test(expected = SQLActionException.class)
-    public void testSelectFromBlobTable() throws Exception {
-        execute("create blob table screenshots with (number_of_replicas=0)");
-        execute("select * from blob.screenshots");
-    }
-
-    @Test(expected = SQLActionException.class)
     public void testInsertWithClusteredByNull() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
@@ -3880,5 +3874,4 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((List<Double>)response.rows()[0][0], is(Arrays.asList(57.22, 7.12)));
         assertThat((List<Double>)response.rows()[1][0], is(Arrays.asList(47.22, 12.09)));
     }
-
 }

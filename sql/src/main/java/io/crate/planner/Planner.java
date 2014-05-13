@@ -94,8 +94,9 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             globalAggregates(analysis, plan);
         } else {
             WhereClause whereClause = analysis.whereClause();
-            if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()
-                    && analysis.table().getRouting(whereClause).hasLocations()) {
+            if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
+                    analysis.table().getRouting(whereClause).hasLocations() &&
+                    (analysis.table().ident().schema() == null || analysis.table().ident().schema().equals(DocSchemaInfo.NAME))) {
 
                     if (analysis.ids().size() > 0
                             && analysis.routingValues().size() > 0
