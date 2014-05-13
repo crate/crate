@@ -19,29 +19,41 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
+
+import org.apache.lucene.index.AtomicReaderContext;
+import io.crate.Constants;
+import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.mapper.FieldMapper;
 
 
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnType> extends
+        ColumnReferenceCollectorExpression<ReturnType> {
 
-import java.util.Map;
+    private final static String[] DEFAULT_MAPPING_TYPES = new String[]{
+            Constants.DEFAULT_MAPPING_TYPE};
 
-public class ObjectColumnReference<ReturnType> extends ColumnReferenceCollectorExpression<Map<String, Object>> {
+    protected IFD indexFieldData;
+    protected int docId;
 
-    public ObjectColumnReference(String columnName) {
+    public FieldCacheExpression(String columnName) {
         super(columnName);
     }
 
-    @Override
-    public Map<String, Object> value() {
-        //TODO: this returns null since we are called in aggregation collectors onnly vor now,
-        // once this gets called from result columns it should be implemented
-        return null;
+    public void startCollect(CollectorContext context){
+        FieldMapper mapper = context.searchContext().mapperService().smartNameFieldMapper
+                (columnName, DEFAULT_MAPPING_TYPES);
+        indexFieldData = (IFD) context.searchContext().fieldData().getForField(mapper);
     }
 
     @Override
-    public DataType returnType() {
-        return DataTypes.OBJECT;
+    public void setNextReader(AtomicReaderContext context) {
+        this.docId = -1;
     }
+
+    @Override
+    public void setNextDocId(int docId) {
+        this.docId = docId;
+    }
+
 }

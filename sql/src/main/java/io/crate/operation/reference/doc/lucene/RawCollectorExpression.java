@@ -19,26 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
 
-import io.crate.operation.Input;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.operation.collect.LuceneDocCollector;
+import io.crate.operation.reference.doc.ColumnReferenceExpression;
 import io.crate.types.DataType;
-import org.apache.lucene.index.AtomicReaderContext;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 
-/**
- * An expression which gets evaluated in the collect phase
- */
-public abstract class LuceneCollectorExpression<ReturnType> implements Input<ReturnType> {
+public class RawCollectorExpression extends
+        LuceneCollectorExpression<BytesRef> implements ColumnReferenceExpression {
 
-    public void startCollect(CollectorContext context){
+    public static final String COLUMN_NAME = DocSysColumns.RAW.name();
 
+    private LuceneDocCollector.CollectorFieldsVisitor visitor;
+
+    @Override
+    public void startCollect(CollectorContext context) {
+        context.visitor().required(true);
+        this.visitor = context.visitor();
     }
 
-    public void setNextDocId(int doc){
+    @Override
+    public DataType returnType() {
+        return DataTypes.STRING;
     }
 
-    public void setNextReader(AtomicReaderContext context){
+    @Override
+    public BytesRef value() {
+        return visitor.source().toBytesRef();
     }
 
-    public abstract DataType returnType();
+    @Override
+    public String columnName() {
+        return COLUMN_NAME;
+    }
 }

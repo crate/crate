@@ -19,52 +19,44 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.doc;
+package io.crate.operation.reference.doc.lucene;
 
-import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.util.BytesRef;
-import io.crate.exceptions.CrateException;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
-import io.crate.exceptions.ValidationException;
-import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.util.BytesRef;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.fielddata.BytesValues;
-import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.fielddata.IndexNumericFieldData;
+import org.elasticsearch.index.fielddata.LongValues;
 
-public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData, BytesRef> {
+public class ShortColumnReference extends FieldCacheExpression<IndexNumericFieldData, Short> {
 
-    private BytesValues values;
+    LongValues values;
 
-    public BytesRefColumnReference(String columnName) {
+    public ShortColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public BytesRef value() throws ValidationException {
+    public Short value() {
         switch (values.setDocument(docId)) {
             case 0:
                 return null;
             case 1:
-                values.nextValue();
-                return values.copyShared();
+                return ((Long)values.nextValue()).shortValue();
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
     }
 
     @Override
-    public void setNextReader(AtomicReaderContext context) {
-        super.setNextReader(context);
-        values = indexFieldData.load(context).getBytesValues(true);
+    public DataType returnType() {
+        return DataTypes.SHORT;
     }
 
     @Override
-    public DataType returnType() {
-        return DataTypes.STRING;
+    public void setNextReader(AtomicReaderContext context) {
+        super.setNextReader(context);
+        values = indexFieldData.load(context).getLongValues();
     }
 
     @Override
@@ -73,9 +65,9 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
             return false;
         if (obj == this)
             return true;
-        if (!(obj instanceof BytesRefColumnReference))
+        if (!(obj instanceof ShortColumnReference))
             return false;
-        return columnName.equals(((BytesRefColumnReference) obj).columnName);
+        return columnName.equals(((ShortColumnReference) obj).columnName);
     }
 
     @Override
@@ -83,4 +75,3 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
         return columnName.hashCode();
     }
 }
-
