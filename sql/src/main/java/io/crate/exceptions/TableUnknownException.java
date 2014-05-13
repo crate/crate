@@ -26,12 +26,12 @@ public class TableUnknownException extends ResourceUnknownException {
     private String tableName;
 
     public TableUnknownException(String tableName, Throwable e) {
-        super(tableName, e);
+        super(String.format("Table '%s' unknown", tableName), e);
         this.tableName = tableName;
     }
 
     public TableUnknownException(String tableName) {
-        super(tableName);
+        super(String.format("Table '%s' unknown", tableName));
         this.tableName = tableName;
     }
 
