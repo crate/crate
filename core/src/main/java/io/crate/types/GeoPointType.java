@@ -56,7 +56,8 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
             return null;
         }
         Object[] values = (Object[])value;
-        Preconditions.checkArgument(values.length == 2);
+        Preconditions.checkArgument(values.length == 2,
+                "The value of a GeoPoint must be a double array with 2 items, not %s", values.length);
         return Arrays.copyOf(values, 2, Double[].class);
     }
 
