@@ -5,6 +5,23 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin version to 0.7.2 including following changes:
+
+    - improved handling of error responses from server
+
+ - updated crash version to 0.9.3 including following changes:
+
+    - bugfix: if crash was started while one of the specified hosts was
+      not available crash exited immediately
+
+    - updated crate-python to 0.9.3 to fix import errors
+
+    - added sphinx scripts to generate documentation
+
+    - minor documentation improvements
+
+
+
 2014/05/09 0.37.1
 =================
 
