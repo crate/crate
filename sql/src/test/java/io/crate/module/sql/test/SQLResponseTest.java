@@ -52,12 +52,11 @@ public class SQLResponseTest extends TestCase {
     public void testXContentInt() throws Exception {
         SQLResponse r = new SQLResponse();
         r.cols(new String[]{"col1", "col2"});
-        r.columnTypes(new DataType[]{StringType.INSTANCE, StringType.INSTANCE});
         r.rows(new Object[][]{new Object[]{1, 2}});
         r.rowCount(1L);
         //System.out.println(json(r));
         JSONAssert.assertEquals(
-                "{\"cols\":[\"col1\",\"col2\"],\"column_types\":[4,4],\"rows\":[[1,2]],\"rowcount\":1,\"duration\":-1}",
+                "{\"cols\":[\"col1\",\"col2\"],\"rows\":[[1,2]],\"rowcount\":1,\"duration\":-1}",
                 json(r), true);
     }
 
@@ -65,14 +64,13 @@ public class SQLResponseTest extends TestCase {
     public void testXContentString() throws Exception {
         SQLResponse r = new SQLResponse();
         r.cols(new String[]{"some", "thing"});
-        r.columnTypes(new DataType[]{StringType.INSTANCE, StringType.INSTANCE});
         r.rows(new Object[][]{
                 new Object[]{"one", "two"},
                 new Object[]{"three", "four"},
         });
         //System.out.println(json(r));
         JSONAssert.assertEquals(
-                "{\"cols\":[\"some\",\"thing\"],\"column_types\":[4,4],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"duration\":-1}",
+                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"duration\":-1}",
                 json(r), true);
     }
 
@@ -80,18 +78,17 @@ public class SQLResponseTest extends TestCase {
     public void testXContentRowCount() throws Exception {
         SQLResponse r = new SQLResponse();
         r.cols(new String[]{"some", "thing"});
-        r.columnTypes(new DataType[]{StringType.INSTANCE, StringType.INSTANCE});
         r.rows(new Object[][]{
                 new Object[]{"one", "two"},
                 new Object[]{"three", "four"},
         });
         JSONAssert.assertEquals(
-                "{\"cols\":[\"some\",\"thing\"],\"column_types\":[4,4],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"duration\":-1}",
+                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"duration\":-1}",
                 json(r), true);
 
         r.rowCount(2L);
         JSONAssert.assertEquals(
-                "{\"cols\":[\"some\",\"thing\"],\"column_types\":[4,4],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":2,\"duration\":-1}",
+                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":2,\"duration\":-1}",
                 json(r), true);
     }
 
@@ -99,13 +96,14 @@ public class SQLResponseTest extends TestCase {
     public void testXContentColumnTypes() throws Exception {
         SQLResponse r = new SQLResponse();
         r.cols(new String[]{"col1", "col2", "col3"});
-        r.columnTypes(new DataType[]{StringType.INSTANCE, new ArrayType(IntegerType.INSTANCE),
+        r.colTypes(new DataType[]{StringType.INSTANCE, new ArrayType(IntegerType.INSTANCE),
                 new SetType(new ArrayType(LongType.INSTANCE))});
+        r.includeTypes(true);
         r.rows(new Object[][]{new Object[]{1, new Integer[]{42}, new HashSet<Long[]>(){{add(new Long[]{21L});}}}});
         r.rowCount(1L);
         System.out.println(json(r));
         JSONAssert.assertEquals(
-                "{\"cols\":[\"col1\",\"col2\",\"col3\"],\"column_types\":[4,[100,9],[101,[100,10]]],\"rows\":[[1,[42],[[21]]]],\"rowcount\":1,\"duration\":-1}",
+                "{\"cols\":[\"col1\",\"col2\",\"col3\"],\"col_types\":[4,[100,9],[101,[100,10]]],\"rows\":[[1,[42],[[21]]]],\"rowcount\":1,\"duration\":-1}",
                 json(r), true);
 
     }
@@ -118,7 +116,7 @@ public class SQLResponseTest extends TestCase {
 
         r1 = new SQLResponse();
         r1.cols(new String[]{});
-        r1.columnTypes(new DataType[]{});
+        r1.colTypes(new DataType[]{});
         r1.rows(new Object[][]{new String[]{}});
 
         r1.writeTo(o);
@@ -135,7 +133,8 @@ public class SQLResponseTest extends TestCase {
         o.reset();
         r1 = new SQLResponse();
         r1.cols(new String[]{"a", "b"});
-        r1.columnTypes(new DataType[]{StringType.INSTANCE, StringType.INSTANCE});
+        r1.colTypes(new DataType[]{StringType.INSTANCE, StringType.INSTANCE});
+        r1.includeTypes(true);
         r1.rows(new Object[][]{new String[]{"va", "vb"}});
 
         r1.writeTo(o);
@@ -152,7 +151,7 @@ public class SQLResponseTest extends TestCase {
 
         r1 = new SQLResponse();
         r1.cols(new String[]{"a", "b"});
-        r1.columnTypes(new DataType[]{StringType.INSTANCE, StringType.INSTANCE});
+        r1.colTypes(new DataType[0]);
         r1.rows(new Object[][]{new String[]{"ab","ba"}, new String[]{"ba", "ab"}});
         r1.rowCount(2L);
 

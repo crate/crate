@@ -163,10 +163,11 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
      * be executed by an HTTP REST Request
      *
      * @param source the body of the statement, a JSON String containing the "stmt" and the "args"
+     * @param includeTypes include data types in response
      * @return the Response as JSON String
      * @throws IOException
      */
-    protected String restSQLExecute(String source) throws IOException {
+    protected String restSQLExecute(String source, boolean includeTypes) throws IOException {
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.generator().usePrettyPrint();
         SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client());
@@ -175,9 +176,14 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
         parser.parseSource(new BytesArray(source));
         requestBuilder.stmt(context.stmt());
         requestBuilder.args(context.args());
+        requestBuilder.includeTypesOnResponse(includeTypes);
         SQLResponse response = requestBuilder.execute().actionGet();
         response.toXContent(builder, ToXContent.EMPTY_PARAMS);
         responseDuration = response.duration();
         return builder.string();
+    }
+
+    protected String restSQLExecute(String source) throws IOException {
+        return restSQLExecute(source, false);
     }
 }

@@ -184,7 +184,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                         plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
                         outputNames,
                         rows,
-                        request.creationTime());
+                        request.creationTime(),
+                        request.includeTypesOnResponse());
                 listener.onResponse(response);
             }
 

@@ -53,7 +53,7 @@ public class RowsResponseBuilderTest {
                 Arrays.asList(new BytesRef("foo"), new BytesRef("bar")));
 
         rows[0][0] = refs;
-        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L);
+        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L, false);
         assertThat(commaJoiner.join((String[])response.rows()[0][0]), is("foo, bar"));
     }
 
@@ -68,7 +68,7 @@ public class RowsResponseBuilderTest {
         BytesRef[] refs = new BytesRef[] { new BytesRef("foo"), new BytesRef("bar") };
 
         rows[0][0] = refs;
-        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L);
+        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L, false);
         assertThat(commaJoiner.join((String[])response.rows()[0][0]), is("foo, bar"));
     }
 

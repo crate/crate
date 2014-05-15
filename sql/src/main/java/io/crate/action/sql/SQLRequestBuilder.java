@@ -50,4 +50,8 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
         request.args(args);
     }
 
+    public void includeTypesOnResponse(boolean includeTypes) {
+        request.includeTypesOnResponse(includeTypes);
+    }
+
 }
