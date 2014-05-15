@@ -40,8 +40,6 @@ import static org.elasticsearch.rest.action.support.RestXContentBuilder.restCont
 
 public class RestSQLAction extends BaseRestHandler {
 
-    private SQLXContentSourceParser parser;
-
     @Inject
     public RestSQLAction(Settings settings, Client client, RestController controller) {
         super(settings, client);
@@ -56,7 +54,7 @@ public class RestSQLAction extends BaseRestHandler {
         try {
             if (request.hasContent()) {
                 SQLXContentSourceContext context = new SQLXContentSourceContext();
-                parser = new SQLXContentSourceParser(context);
+                SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
                 parser.parseSource(request.content());
                 requestBuilder.stmt(context.stmt());
                 requestBuilder.args(context.args());
