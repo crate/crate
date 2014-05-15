@@ -36,6 +36,7 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
     private String stmt;
     private Object[] args;
     private long creationTime;
+    private boolean includeTypesOnResponse = false;
 
     public SQLRequest(String stmt, Object[] args) {
         this.stmt = stmt;
@@ -44,13 +45,11 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
     }
 
     public SQLRequest(String stmt) {
-        this.stmt = stmt;
-        this.args = new Object[0];
-        this.creationTime = System.currentTimeMillis();
+        this(stmt, new Object[0]);
     }
 
     public SQLRequest() {
-        this.creationTime = System.currentTimeMillis();
+        this(null, new Object[0]);
     }
 
     public String stmt() {
@@ -74,12 +73,25 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         return this;
     }
 
+    public void includeTypesOnResponse(boolean includeTypesOnResponse) {
+        this.includeTypesOnResponse = includeTypesOnResponse;
+    }
+
+    public boolean includeTypesOnResponse() {
+        return includeTypesOnResponse;
+    }
+
     public long creationTime() {
         return creationTime;
     }
 
     @Override
     public ActionRequestValidationException validate() {
+        if (stmt == null) {
+            ActionRequestValidationException e =  new ActionRequestValidationException();
+            e.addValidationError("Attribute 'stmt' must not be null");
+            return e;
+        }
         return null;
     }
 
@@ -93,6 +105,7 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
             args[i] = in.readGenericValue();
         }
         creationTime = in.readVLong();
+        includeTypesOnResponse = in.readBoolean();
     }
 
     @Override
@@ -104,6 +117,7 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
             out.writeGenericValue(args[i]);
         }
         out.writeVLong(creationTime);
+        out.writeBoolean(includeTypesOnResponse);
     }
 
     @Override

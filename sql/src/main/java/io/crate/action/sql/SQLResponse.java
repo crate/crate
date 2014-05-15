@@ -36,7 +36,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
 
     static final class Fields {
         static final XContentBuilderString COLS = new XContentBuilderString("cols");
-        static final XContentBuilderString COLUMNTYPES = new XContentBuilderString("columnTypes");
+        static final XContentBuilderString COLUMNTYPES = new XContentBuilderString("colTypes");
         static final XContentBuilderString ROWS = new XContentBuilderString("rows");
         static final XContentBuilderString ROWCOUNT = new XContentBuilderString("rowcount");
         static final XContentBuilderString DURATION = new XContentBuilderString("duration");
@@ -47,31 +47,34 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     private String[] cols;
     private long rowCount = NO_ROW_COUNT;
     private long requestStartedTime = 0L;
-    private DataType[] columnTypes;
+    private DataType[] colTypes;
+    private boolean includeTypes = false;
 
     public SQLResponse() {
     }
 
     public SQLResponse(String[] cols, Object[][] rows, long rowCount, long requestStartedTime) {
-        this(cols, rows, new DataType[0], rowCount, requestStartedTime);
+        this(cols, rows, new DataType[0], rowCount, requestStartedTime, false);
     }
 
     public SQLResponse(String[] cols,
                        Object[][] rows,
                        DataType[] dataTypes,
                        long rowCount,
-                       long requestStartedTime) {
+                       long requestStartedTime,
+                       boolean includeTypes) {
         this.cols = cols;
         this.rows = rows;
         this.rowCount = rowCount;
         this.requestStartedTime = requestStartedTime;
+        this.includeTypes = includeTypes;
 
         // output types could list of one LongType, used internally for affectedRows of DML nodes
         // remove it here, create empty array
         if (cols.length == 0 && dataTypes.length == 1 && dataTypes[0].equals(LongType.INSTANCE)) {
-            this.columnTypes = new DataType[0];
+            this.colTypes = new DataType[0];
         } else {
-            this.columnTypes = dataTypes;
+            this.colTypes = dataTypes;
         }
     }
 
@@ -79,13 +82,15 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.array(Fields.COLS, cols);
-        builder.startArray(Fields.COLUMNTYPES);
-        if (columnTypes != null) {
-            for (int i = 0; i < columnTypes.length; i++) {
-                toXContentNestedDataType(builder, columnTypes[i]);
+        if (includeTypes) {
+            builder.startArray(Fields.COLUMNTYPES);
+            if (colTypes != null) {
+                for (int i = 0; i < colTypes.length; i++) {
+                    toXContentNestedDataType(builder, colTypes[i]);
+                }
             }
+            builder.endArray();
         }
-        builder.endArray();
         builder.startArray(Fields.ROWS);
         if (rows != null) {
             for (int i = 0; i < rows.length; i++) {
@@ -125,11 +130,15 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     }
 
     public DataType[] columnTypes() {
-        return columnTypes;
+        return colTypes;
     }
 
-    public void columnTypes(DataType[] dataTypes) {
-        columnTypes = dataTypes;
+    public void colTypes(DataType[] dataTypes) {
+        colTypes = dataTypes;
+    }
+
+    public void includeTypes(boolean includeTypes) {
+        this.includeTypes = includeTypes;
     }
 
     public Object[][] rows(){
@@ -180,10 +189,15 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
             }
         }
         requestStartedTime = in.readVLong();
-        int numColumnTypes = in.readInt();
-        columnTypes = new DataType[numColumnTypes];
-        for (int i = 0; i < numColumnTypes; i++) {
-            columnTypes[i] = DataTypes.fromStream(in);
+        includeTypes = in.readBoolean();
+        if (includeTypes) {
+            int numColumnTypes = in.readInt();
+            colTypes = new DataType[numColumnTypes];
+            for (int i = 0; i < numColumnTypes; i++) {
+                colTypes[i] = DataTypes.fromStream(in);
+            }
+        } else {
+            colTypes = new DataType[0];
         }
     }
 
@@ -200,9 +214,12 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
             }
         }
         out.writeVLong(requestStartedTime);
-        out.writeInt(columnTypes.length);
-        for (int i = 0; i < columnTypes.length; i++) {
-            DataTypes.toStream(columnTypes[i], out);
+        out.writeBoolean(includeTypes);
+        if (includeTypes) {
+            out.writeInt(colTypes.length);
+            for (int i = 0; i < colTypes.length; i++) {
+                DataTypes.toStream(colTypes[i], out);
+            }
         }
     }
 
@@ -210,7 +227,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     public String toString() {
         return "SQLResponse{" +
                 "cols=" + ((cols!=null) ? Arrays.toString(cols): null) +
-                "colTypes=" + ((columnTypes!=null) ? Arrays.toString(columnTypes): null) +
+                "colTypes=" + ((colTypes !=null) ? Arrays.toString(colTypes): null) +
                 ", rows=" + ((rows!=null) ? rows.length: -1)  +
                 ", rowCount=" + rowCount  +
                 ", duration=" + duration()  +

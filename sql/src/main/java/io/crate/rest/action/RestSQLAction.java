@@ -60,6 +60,7 @@ public class RestSQLAction extends BaseRestHandler {
                 parser.parseSource(request.content());
                 requestBuilder.stmt(context.stmt());
                 requestBuilder.args(context.args());
+                requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
             } else {
                 throw new ElasticsearchException("missing request body");
             }

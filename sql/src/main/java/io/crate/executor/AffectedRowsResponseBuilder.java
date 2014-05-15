@@ -28,14 +28,20 @@ import io.crate.action.sql.SQLResponse;
 public class AffectedRowsResponseBuilder implements ResponseBuilder {
 
     /**
-     * expect the first column in the first row of <code>rows</code> to contain the number of affected rows
+     * expect the first column in the first row of <code>rows</code> to contain the number
+     * of affected rows
      */
     @Override
-    public SQLResponse buildResponse(DataType[] dataTypes, String[] outputNames, Object[][] rows, long requestStartedTime) {
+    public SQLResponse buildResponse(DataType[] dataTypes,
+                                     String[] outputNames,
+                                     Object[][] rows,
+                                     long requestStartedTime,
+                                     boolean includeTypes) {
         long affectedRows = 0;
         if (rows.length >= 1 && rows[0].length >= 1) {
             affectedRows = ((Number)rows[0][0]).longValue();
         }
-        return new SQLResponse(outputNames, Constants.EMPTY_RESULT, dataTypes, affectedRows, requestStartedTime);
+        return new SQLResponse(outputNames, Constants.EMPTY_RESULT,
+                dataTypes, affectedRows, requestStartedTime, includeTypes);
     }
 }

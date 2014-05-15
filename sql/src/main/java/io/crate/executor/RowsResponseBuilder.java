@@ -43,11 +43,16 @@ public class RowsResponseBuilder implements ResponseBuilder {
     }
 
     @Override
-    public SQLResponse buildResponse(DataType[] dataTypes, String[] outputNames, Object[][] rows, long requestStartedTime) {
+    public SQLResponse buildResponse(DataType[] dataTypes,
+                                     String[] outputNames,
+                                     Object[][] rows,
+                                     long requestStartedTime,
+                                     boolean includeTypes) {
         if (convertBytesRefs) {
             convertBytesRef(dataTypes, rows);
         }
-        return new SQLResponse(outputNames, rows, dataTypes, rows.length, requestStartedTime);
+        return new SQLResponse(outputNames, rows, dataTypes, rows.length,
+                requestStartedTime, includeTypes);
     }
 
     private void convertBytesRef(DataType[] dataTypes, Object[][] rows) {

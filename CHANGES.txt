@@ -15,7 +15,9 @@ Unreleased
 
  - added the ``geo_point`` type.
 
- - the data type of every responded column is now returned via transport & REST
+ - the data type of every responded column can now be returned via
+   REST using the optional parameter ``types`` or via transport by
+   defining it at the ``SQLRequest`` object
 
  - improved building of client jar, also added maven upload task
 
