@@ -40,11 +40,6 @@ A minimal example is just a few lines of code::
     System.out.println(Arrays.toString(r.cols()));
     // outputs ["firstName", "lastName"]
 
-    // Get the data type of the first column
-    DataType dataType = r.columnTypes()[0]
-    System.out.print(dataType.getName())
-    // outputs: "string"
-
     for (Object[] row: r.rows()){
         System.out.println(Arrays.toString(row));
     }
@@ -55,6 +50,23 @@ A minimal example is just a few lines of code::
 The `CrateClient` takes multiple servers as arguments. They are used in a
 round-robin fashion to distribute the load. In case a server is unavailable it
 will be skipped.
+
+By default, the column data types are not serialized. In order to get
+these, one must defined it at the `SQLRequest` object::
+
+    import io.crate.client.CrateClient;
+
+    CrateClient client = new CrateClient("server1.crate.org:4300", "server2.crate.org:4300");
+
+    SQLRequest request = new SQLRequest("select firstName, lastName from users");
+    request.includeTypesOnResponse(true);
+
+    SQLResponse r = client.sql().actionGet();
+
+    // Get the data type of the first column
+    DataType dataType = r.columnTypes()[0]
+    System.out.print(dataType.getName())
+    // outputs: "string"
 
 .. note::
 
