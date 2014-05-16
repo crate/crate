@@ -3758,7 +3758,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testRefreshPartitionedTableSinglePartitions() throws Exception {
-        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=-1)");
+        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) " +
+                "with (number_of_replicas=0, refresh_interval=-1)");
         ensureGreen();
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01')," +
@@ -3779,17 +3780,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from parted");
         assertThat(response.rowCount(), is(2L));
 
-        PartitionName partitionName = new PartitionName("parted", Arrays.asList("0"));
-
-        execute("refresh table parted PARTITION '" + partitionName.ident() + "'");
+        execute("refresh table parted PARTITION (date='1970-01-01')");
         assertThat(response.rowCount(), is(-1L));
 
         execute("select * from parted");
         assertThat(response.rowCount(), is(3L));
 
-        partitionName = new PartitionName("parted", Arrays.asList("518400000"));
-
-        execute("refresh table parted PARTITION '" + partitionName.ident() + "'");
+        execute("refresh table parted PARTITION (date='1970-01-07')");
         assertThat(response.rowCount(), is(-1L));
 
         execute("select * from parted");

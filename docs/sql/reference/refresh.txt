@@ -12,7 +12,7 @@ Synopsis
 
 ::
 
-    REFRESH TABLE table_ident [PARTITION partition_ident]
+    REFRESH TABLE table_ident [ PARTITION (partition_column=value [ , ... ]) ]
 
 Description
 ===========
@@ -20,9 +20,15 @@ Description
 The REFRESH TABLE command refreshes a table and all its rows,
 making all changes made to that table available to all further commands.
 
-If the ``PARTITION`` clause is given a single partition of a partitioned
-table will be refreshed. If this clause is omitted, all partitions will be
-refreshed.
+The ``PARTITION`` keyword can be used to only refresh specific partitions of a
+partitioned table. All columns by which a table is partitioned are required.
+
+In case the ``PARTITION`` keyword is omitted all partitions will be refreshed.
+For performance reasons doing that should be avoided if possible.
+
+See :ref:`sql_ddl_partitioned_by` for more information on partitioned tables.
+
+
 
 Without issuing this statement there is no guarantee that a change
 (``UPDATE``, ``DELETE``, ``COPY`` or ``INSERT``) will be seen by an
@@ -41,7 +47,4 @@ Parameters
 :table_ident: The name (optionally schema-qualified) of an existing
     table that is to be refreshed.
 
-:partition_ident: This opaque string value identifies a partition of a partitioned table
-    as listed in :ref:`is_table_partitions`.
-
-
+:partition_column: Column name by which the table is partitioned.

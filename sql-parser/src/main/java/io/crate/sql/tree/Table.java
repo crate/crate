@@ -61,6 +61,7 @@ public class Table
     {
         return Objects.toStringHelper(this)
                 .addValue(name)
+                .add("partitionProperties", partitionProperties)
                 .toString();
     }
 

@@ -77,6 +77,11 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
 
     public List<PartitionName> partitions();
 
+    /**
+     * column idents of columns this table is partitioned by.
+     *
+     * guaranteed to be in the same order as defined in CREATE TABLE statement
+     */
     public List<ColumnIdent> partitionedBy();
 
     /**
