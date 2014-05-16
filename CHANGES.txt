@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - update crash_standalone to 0.9.4
+
  - added support for select statements on blob tables. This can be used to list
    the blobs that are stored inside a blob table.
 
