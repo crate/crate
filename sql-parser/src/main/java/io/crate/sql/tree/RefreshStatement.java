@@ -22,31 +22,22 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
-
-import javax.annotation.Nullable;
 
 public class RefreshStatement extends Statement {
 
     private final Table table;
-    private final Optional<Expression> partitionIdent;
 
-    public RefreshStatement(Table table, @Nullable Expression partitionIdent) {
+    public RefreshStatement(Table table) {
         this.table = table;
-        this.partitionIdent = Optional.fromNullable(partitionIdent);
     }
 
     public Table table() {
         return table;
     }
 
-    public Optional<Expression> partitionIdent() {
-        return partitionIdent;
-    }
-
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, partitionIdent);
+        return Objects.hashCode(table);
     }
 
     @Override
@@ -56,7 +47,6 @@ public class RefreshStatement extends Statement {
 
         RefreshStatement that = (RefreshStatement) o;
 
-        if (!partitionIdent.equals(that.partitionIdent)) return false;
         if (!table.equals(that.table)) return false;
 
         return true;
@@ -66,7 +56,6 @@ public class RefreshStatement extends Statement {
     public String toString() {
         return Objects.toStringHelper(this)
                 .add("table", table)
-                .add("partitionIdent", partitionIdent)
                 .toString();
     }
 
