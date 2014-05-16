@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - S3 authentication using ENV variables now also defaults to HTTP in order to
+   avoid certificate issues.
+
  - updated crash version to 0.9.4 including following changes:
 
     - bugfix: crash exited immediately with an exception if a query result
