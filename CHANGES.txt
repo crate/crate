@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/05/16 0.37.2
+=================
+
  - fix: allow aliased subscript expressions
 
  - fix: allow single character blob table names
@@ -16,17 +19,13 @@ Unreleased
 
  - updated crash version to 0.9.4 including following changes:
 
-    - bugfix: crash exited immediately with an exception if a query result
+    - updated crate-python to 0.10.0
+
+    - fix: crash exited immediately with an exception if a query result
       contained two or more equal field names
 
-    - bugfix: if crash was started while one of the specified hosts was
+    - fix: if crash was started while one of the specified hosts was
       not available crash exited immediately
-
-    - updated crate-python to 0.9.3 to fix import errors
-
-    - added sphinx scripts to generate documentation
-
-    - minor documentation improvements
 
  - updated crate-admin version to 0.7.2 including following changes:
 
