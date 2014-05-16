@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/05/16 0.36.7
+=================
+
  - fix: allow single character blob table names
 
  - fix: ``count(*)`` on empty partitioned tables threw a TableUnknownException.
