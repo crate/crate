@@ -32,8 +32,6 @@ import java.util.Map;
 
 public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateAnalyzerAnalysis> {
 
-    private final ExpressionToStringVisitor expressionVisitor = new ExpressionToStringVisitor();
-
     @Override
     public Void visitCreateAnalyzer(CreateAnalyzer node, CreateAnalyzerAnalysis context) {
         context.ident(node.ident());
@@ -211,7 +209,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
             throw new IllegalArgumentException("'type' property is invalid");
         }
 
-        return expressionVisitor.process(expressions.get(0), context.parameters());
+        return ExpressionToStringVisitor.convert(expressions.get(0), context.parameters());
     }
 
     /**
@@ -226,11 +224,11 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
                                           List<Expression> value,
                                           CreateAnalyzerAnalysis context) {
         if (value.size() == 1) {
-            builder.put(name, expressionVisitor.process(value.get(0), context.parameters()));
+            builder.put(name, ExpressionToStringVisitor.convert(value.get(0), context.parameters()));
         } else if (value.size() > 1) {
             List<String> values = new ArrayList<>(value.size());
             for (Expression expression : value) {
-                values.add(expressionVisitor.process(expression, context.parameters()));
+                values.add(ExpressionToStringVisitor.convert(expression, context.parameters()));
             }
             builder.putArray(name, values.toArray(new String[values.size()]));
         }

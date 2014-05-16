@@ -36,8 +36,6 @@ import java.util.Map;
 public abstract class BlobTableAnalyzer<TypeAnalysis extends Analysis>
         extends AbstractStatementAnalyzer<Void, TypeAnalysis> {
 
-    private static final ExpressionToObjectVisitor expressionVisitor = new ExpressionToObjectVisitor();
-
     protected static TableIdent tableToIdent(Table table) {
         List<String> tableNameParts = table.getName().getParts();
         Preconditions.checkArgument(tableNameParts.size() < 3, "Invalid tableName \"%s\"", table.getName());
@@ -65,7 +63,7 @@ public abstract class BlobTableAnalyzer<TypeAnalysis extends Analysis>
             Preconditions.checkArgument(number_of_replicas.size() == 1,
                     "Invalid number of arguments passed to \"number_of_replicas\"");
 
-            Object numReplicas = expressionVisitor.process(number_of_replicas.get(0), parameters);
+            Object numReplicas = ExpressionToObjectVisitor.convert(number_of_replicas.get(0), parameters);
             if (numReplicas != null) {
                 replicas = new NumberOfReplicas(numReplicas.toString());
             }
