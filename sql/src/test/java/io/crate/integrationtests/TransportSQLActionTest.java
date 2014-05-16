@@ -3867,4 +3867,26 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Integer)response.rows()[2][0], is(3));
     }
 
+    @Test
+    public void testCountPartitionedTable() throws Exception {
+        execute("create table parted (" +
+                "  id int, " +
+                "  name string, " +
+                "  date timestamp" +
+                ") partitioned by (date) with (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("select count(*) from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(0L));
+
+        execute("insert into parted (id, name, date) values (1, 'Trillian', '1970-01-01'), (2, 'Ford', '2010-01-01')");
+        ensureGreen();
+        refresh();
+
+        execute("select count(*) from parted");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(2L));
+    }
+
 }

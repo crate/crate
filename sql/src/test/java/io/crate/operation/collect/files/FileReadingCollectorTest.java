@@ -51,8 +51,7 @@ import java.util.zip.GZIPOutputStream;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -100,7 +99,7 @@ public class FileReadingCollectorTest {
     public void testCollectFromS3Uri() throws Throwable {
         // this test just verifies the s3 schema detection and bucketName / prefix extraction from the uri.
         // real s3 interaction is mocked completely.
-        CollectingProjector projector = getObjects("s3://fake_bucket/foo");
+        CollectingProjector projector = getObjects("s3://fakebucket/foo");
         projector.result().get();
     }
 
@@ -179,8 +178,9 @@ public class FileReadingCollectorTest {
                                 when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
                                 when(objectListing.getObjectSummaries()).thenReturn(Arrays.asList(summary));
                                 when(summary.getKey()).thenReturn("foo");
-                                when(client.getObject("fake_bucket", "foo")).thenReturn(s3Object);
+                                when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
                                 when(s3Object.getObjectContent()).thenReturn(inputStream);
+                                when(inputStream.read(new byte[anyInt()], anyInt(), anyByte())).thenReturn(-1);
                                 when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
                                 when(objectListing.isTruncated()).thenReturn(false);
                                 return client;

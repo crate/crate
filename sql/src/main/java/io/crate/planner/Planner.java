@@ -522,7 +522,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         String schema = analysis.table().ident().schema();
         if ((schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME))
                 && hasOnlyGlobalCount(analysis.outputSymbols())
-                && !analysis.hasSysExpressions()) {
+                && !analysis.hasSysExpressions()
+                && !analysis.table().isPartitioned()) {
             plan.add(new ESCountNode(analysis.table().ident().name(), analysis.whereClause()));
             return;
         }

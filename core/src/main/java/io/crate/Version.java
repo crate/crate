@@ -39,6 +39,7 @@ public class Version {
 
     public static final Version CURRENT = V_0_37_01;
 
+
     static {
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +
                 "upgraded to [" + org.elasticsearch.Version.CURRENT + "] is still set to [" +

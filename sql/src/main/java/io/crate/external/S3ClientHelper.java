@@ -43,6 +43,7 @@ public class S3ClientHelper {
 
     // TODO: use HTTPS and fix certificate issue
     private final static ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration().withProtocol(Protocol.HTTP);
+    private final static String INVALID_URI_MSG = "Invalid URI. Please make sure that given URI is encoded properly.";
 
     private final IntObjectMap<AmazonS3> clientMap = new IntObjectOpenHashMap<>(1);
 
@@ -59,6 +60,9 @@ public class S3ClientHelper {
     public AmazonS3 client(URI uri) throws IOException {
         String accessKey = null;
         String secretKey = null;
+        if (uri.getHost() == null) {
+            throw new IllegalArgumentException(INVALID_URI_MSG);
+        }
         if (uri.getUserInfo() != null) {
             String[] userInfoParts = uri.getUserInfo().split(":");
             try {
@@ -67,6 +71,10 @@ public class S3ClientHelper {
             } catch (ArrayIndexOutOfBoundsException e) {
                 // ignore
             }
+        // if the URI contains '@' and ':', a UserInfo is in fact given, but could not
+        // be parsed properly because the URI is not valid (e.g. not properly encoded).
+        } else if (uri.toString().contains("@") && uri.toString().contains(":")) {
+            throw new IllegalArgumentException(INVALID_URI_MSG);
         }
         return client(accessKey, secretKey);
     }
