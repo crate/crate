@@ -42,8 +42,6 @@ public class TablePropertiesAnalysis {
     public final static String AUTO_EXPAND_REPLICAS = IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS;
     public final static String REFRESH_INTERVAL = InternalIndexShard.INDEX_REFRESH_INTERVAL;
 
-    private static final ExpressionToObjectVisitor expressionVisitor = new ExpressionToObjectVisitor();
-
     private static final ImmutableMap<String, SettingsApplier> supportedProperties =
             ImmutableMap.<String, SettingsApplier>builder()
                     .put(NUMBER_OF_REPLICAS, new NumberOfReplicasSettingApplier())
@@ -107,7 +105,7 @@ public class TablePropertiesAnalysis {
             Preconditions.checkArgument(expressions.size() == 1,
                     String.format("Invalid number of arguments passed to \"%s\"", NUMBER_OF_REPLICAS));
 
-            Object numReplicas = expressionVisitor.process(expressions.get(0), parameters);
+            Object numReplicas = ExpressionToObjectVisitor.convert(expressions.get(0), parameters);
 
             NumberOfReplicas numberOfReplicas = new NumberOfReplicas(numReplicas.toString());
 
@@ -127,7 +125,7 @@ public class TablePropertiesAnalysis {
             Preconditions.checkArgument(expressions.size() == 1,
                     String.format("Invalid number of arguments passed to \"%s\"", REFRESH_INTERVAL));
 
-            Object refreshIntervalValue = expressionVisitor.process(expressions.get(0), parameters);
+            Object refreshIntervalValue = ExpressionToObjectVisitor.convert(expressions.get(0), parameters);
             try {
                 Long.parseLong(refreshIntervalValue.toString());
             } catch (NumberFormatException e) {

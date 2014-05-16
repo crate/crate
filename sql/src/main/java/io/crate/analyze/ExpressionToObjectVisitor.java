@@ -28,6 +28,13 @@ import java.util.Locale;
 
 class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
 
+    private final static ExpressionToObjectVisitor INSTANCE = new ExpressionToObjectVisitor();
+    private ExpressionToObjectVisitor() {}
+
+    public static Object convert(Node node, Object[] parameters) {
+        return INSTANCE.process(node, parameters);
+    }
+
     @Override
     protected String visitQualifiedNameReference(QualifiedNameReference node, Object[] parameters) {
         return node.getName().getSuffix();
@@ -55,7 +62,7 @@ class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
 
     @Override
     protected String visitSubscriptExpression(SubscriptExpression node, Object[] context) {
-        return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), null), process(node.index(), null));
+        return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), context), process(node.index(), context));
     }
 
     @Override
