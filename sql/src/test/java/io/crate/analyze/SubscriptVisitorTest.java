@@ -38,7 +38,7 @@ public class SubscriptVisitorTest {
         Expression expression = SqlParser.createExpression("a['x']['y']");
         expression.accept(visitor, context);
 
-        assertEquals("a", context.column());
+        assertEquals("a", context.qName().getSuffix());
         assertEquals("x", context.parts().get(0));
         assertEquals("y", context.parts().get(1));
     }

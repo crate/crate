@@ -5,14 +5,32 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: allow aliased subscript expressions
+
  - fix: allow single character blob table names
 
  - fix: ``count(*)`` on empty partitioned tables threw a TableUnknownException.
 
+ - S3 authentication using ENV variables now also defaults to HTTP in order to
+   avoid certificate issues.
+
+ - updated crash version to 0.9.4 including following changes:
+
+    - bugfix: crash exited immediately with an exception if a query result
+      contained two or more equal field names
+
+    - bugfix: if crash was started while one of the specified hosts was
+      not available crash exited immediately
+
+    - updated crate-python to 0.9.3 to fix import errors
+
+    - added sphinx scripts to generate documentation
+
+    - minor documentation improvements
+
  - updated crate-admin version to 0.7.2 including following changes:
 
     - improved handling of error responses from server
-
 
 2014/05/09 0.37.1
 =================
@@ -46,23 +64,8 @@ Unreleased
 2014/05/09 0.36.5
 =================
 
- - S3 authentication using ENV variables now also defaults to HTTP in order to
-   avoid certificate issues.
-
- - updated crash version to 0.9.4 including following changes:
-
-    - bugfix: crash exited immediately with an exception if a query result
-      contained two or more equal field names
-
-    - bugfix: if crash was started while one of the specified hosts was
-      not available crash exited immediately
-
-    - updated crate-python to 0.9.3 to fix import errors
-
-    - added sphinx scripts to generate documentation
-
-    - minor documentation improvements
-
+ - fix: raise an error if same column is defined more than once on
+   table creation
 
 2014/05/07 0.36.4
 =================
