@@ -38,9 +38,6 @@ import java.util.*;
 
 public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalysis> {
 
-    private final ExpressionToObjectVisitor expressionVisitor = new ExpressionToObjectVisitor();
-
-
     protected Void visitNode(Node node, CreateTableAnalysis context) {
         throw new RuntimeException(
                 String.format("Encountered node %s but expected a CreateTable node", node));
@@ -148,7 +145,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         setAnalyzer(columnSchema.esMapping, node.properties(), context);
 
         for (Expression expression : node.columns()) {
-            String expressionName = expressionVisitor.process(expression, null).toString();
+            String expressionName = ExpressionToStringVisitor.convert(expression, context.parameters());
             context.addCopyTo(expressionName, node.ident());
         }
         context.pop();
@@ -236,7 +233,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     @Override
     public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint node, CreateTableAnalysis context) {
         for (Expression expression : node.columns()) {
-            context.addPrimaryKey(expressionVisitor.process(expression, null).toString());
+            context.addPrimaryKey(ExpressionToStringVisitor.convert(expression, context.parameters()));
         }
         return null;
     }
@@ -269,7 +266,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             throw new IllegalArgumentException("Invalid argument(s) passed to the analyzer property");
         }
 
-        String analyzerName = expressionVisitor.process(analyzerExpressions.get(0), context.parameters()).toString();
+        String analyzerName = ExpressionToStringVisitor.convert(analyzerExpressions.get(0), context.parameters());
         if (context.analyzerService().hasCustomAnalyzer(analyzerName)) {
             Settings settings = context.analyzerService().resolveFullCustomAnalyzerSettings(analyzerName);
             context.indexSettingsBuilder().put(settings.getAsMap());
@@ -281,8 +278,8 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     @Override
     public Void visitClusteredBy(ClusteredBy node, CreateTableAnalysis context) {
         if (node.column().isPresent()) {
-            String routingColumn = expressionVisitor.process(
-                    node.column().get(), context.parameters()).toString();
+            String routingColumn = ExpressionToStringVisitor.convert(
+                    node.column().get(), context.parameters());
 
             if (!context.hasColumnDefinition(routingColumn)) {
                 throw new IllegalArgumentException(
@@ -318,7 +315,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     @Override
     public Void visitPartitionedBy(PartitionedBy node, CreateTableAnalysis context) {
         for (Expression partitionByColumn : node.columns()) {
-            String columnName = expressionVisitor.process(partitionByColumn, null).toString();
+            String columnName = ExpressionToStringVisitor.convert(partitionByColumn, context.parameters());
 
             Map<String, Object> columnDefinition = context.popColumnDefinition(columnName);
             String type;

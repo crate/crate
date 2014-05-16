@@ -23,9 +23,17 @@ package io.crate.analyze;
 
 import io.crate.sql.tree.*;
 
+import javax.annotation.Nullable;
 import java.util.Locale;
 
 public class ExpressionToStringVisitor extends AstVisitor<String, Object[]> {
+
+    private final static ExpressionToStringVisitor INSTANCE = new ExpressionToStringVisitor();
+    private ExpressionToStringVisitor() {}
+
+    public static String convert(Node node, @Nullable Object[] context) {
+        return INSTANCE.process(node, context);
+    }
 
     @Override
     protected String visitQualifiedNameReference(QualifiedNameReference node, Object[] parameters) {
@@ -60,6 +68,11 @@ public class ExpressionToStringVisitor extends AstVisitor<String, Object[]> {
     @Override
     protected String visitNegativeExpression(NegativeExpression node, Object[] context) {
         return "-" + process(node.getValue(), context);
+    }
+
+    @Override
+    protected String visitSubscriptExpression(SubscriptExpression node, Object[] context) {
+        return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), context), process(node.index(), context));
     }
 
     @Override

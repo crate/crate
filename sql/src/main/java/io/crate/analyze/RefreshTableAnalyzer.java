@@ -26,13 +26,11 @@ import io.crate.sql.tree.RefreshStatement;
 
 public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, RefreshTableAnalysis> {
 
-    private final ExpressionToStringVisitor expressionVisitor = new ExpressionToStringVisitor();
-
     @Override
     public Void visitRefreshStatement(RefreshStatement node, RefreshTableAnalysis context) {
         context.table(TableIdent.of(node.table()));
         if (node.partitionIdent().isPresent()) {
-            String ident = expressionVisitor.process(node.partitionIdent().get(), context.parameters());
+            String ident = ExpressionToStringVisitor.convert(node.partitionIdent().get(), context.parameters());
             context.partitionIdent(ident);
         }
         return null;
