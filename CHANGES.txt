@@ -5,11 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - updated crate-admin version to 0.7.2 including following changes:
+ - updated crash version to 0.9.4 including following changes:
 
-    - improved handling of error responses from server
-
- - updated crash version to 0.9.3 including following changes:
+    - bugfix: crash exited immediately with an exception if a query result
+      contained two or more equal field names
 
     - bugfix: if crash was started while one of the specified hosts was
       not available crash exited immediately
@@ -20,7 +19,9 @@ Unreleased
 
     - minor documentation improvements
 
+ - updated crate-admin version to 0.7.2 including following changes:
 
+    - improved handling of error responses from server
 
 2014/05/09 0.37.1
 =================
