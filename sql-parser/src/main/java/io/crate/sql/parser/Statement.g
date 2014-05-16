@@ -930,7 +930,7 @@ namedProperties
     ;
 
 refreshStmt
-    : REFRESH TABLE table ( PARTITION expr? )? -> ^(REFRESH table expr?)
+    : REFRESH TABLE tableWithPartition -> ^(REFRESH tableWithPartition)
     ;
 
 nonReserved

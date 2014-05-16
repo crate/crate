@@ -42,7 +42,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class RefreshAnalyzerTest extends BaseAnalyzerTest {
-    private static TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent("blob", "blobs");
+    private final static TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent("blob", "blobs");
 
     static class TestMetaDataModule extends MetaDataModule {
 
@@ -93,7 +93,7 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRefreshPartition() throws Exception {
         PartitionName partition = new PartitionName("parted", Arrays.asList("1395874800000"));
-        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table parted PARTITION '" + partition.ident() + "'");
+        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table parted PARTITION (date=1395874800000)");
         assertThat(analysis.table().ident().name(), is("parted"));
         assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
     }
@@ -102,29 +102,28 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     public void testRefreshPartitionsParameter() throws Exception {
         PartitionName partition = new PartitionName("parted", Arrays.asList("1395874800000"));
         RefreshTableAnalysis analysis = (RefreshTableAnalysis) analyze(
-                "refresh table parted PARTITION ?",
-                new Object[]{partition.ident()});
+                "refresh table parted PARTITION (date=?)", new Object[] {"1395874800000"});
         assertThat(analysis.table().ident().name(), is("parted"));
         assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testRefreshInvalidPartitioned() throws Exception {
-        analyze("refresh table parted partition 'hddsGNJHSGFEFZÜ'"); // invalid base32
+        analyze("refresh table parted partition (invalid_column='hddsGNJHSGFEFZÜ')");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testRefreshNonPartitioned() throws Exception {
-        analyze("refresh table users partition 'n'");
+        analyze("refresh table users partition (foo='n')");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testRefreshSysPartitioned() throws Exception {
-        analyze("refresh table sys.shards partition 'n'");
+        analyze("refresh table sys.shards partition (id='n')");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testRefreshBlobPartitioned() throws Exception {
-        analyze("refresh table blob.blobs partition 'n'");
+        analyze("refresh table blob.blobs partition (n='n')");
     }
 }

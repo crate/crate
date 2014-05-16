@@ -212,8 +212,10 @@ public class TestStatementBuilder
                 ")");
         printStatement("refresh table t");
         printStatement("refresh table schemah.tableh");
-        printStatement("refresh table tableh partition 'ident'");
-        printStatement("refresh table tableh partition ?");
+        printStatement("refresh table tableh partition (pcol='val')");
+        printStatement("refresh table tableh partition (pcol=?)");
+        // TODO: subscript expressions should also be possible on the left side.
+        //printStatement("refresh table tableh partition (pcol['nested'] = ?)");
 
         printStatement("alter table t set (number_of_replicas=4)");
         printStatement("alter table schema.t set (number_of_replicas=4)");
