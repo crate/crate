@@ -59,7 +59,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
     public static final String CACHE_CONTROL_VALUE = "max-age=315360000";
     public static final String EXPIRES_VALUE = "Thu, 31 Dec 2037 23:59:59 GMT";
-    private static final Pattern pattern = Pattern.compile("^/_blobs/([^_][^/]+)/([0-9a-f]{40})$");
+    public static final Pattern pattern = Pattern.compile("^/_blobs/([^_/][^/]*)/([0-9a-f]{40})$");
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     private static final ChannelBuffer CONTINUE = ChannelBuffers.copiedBuffer(
