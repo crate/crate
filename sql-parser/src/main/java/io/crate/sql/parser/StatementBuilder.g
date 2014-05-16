@@ -280,6 +280,10 @@ relationType returns [Relation value]
     | joinRelation     { $value = $joinRelation.value; }
     ;
 
+namedTablePartitioned returns [Table value]
+    : ^(TABLE qname genericProperties?) { $value = new Table($qname.value, $genericProperties.value ); }
+    ;
+
 namedTable returns [Table value]
     : ^(TABLE qname) { $value = new Table($qname.value); }
     ;
@@ -664,9 +668,9 @@ assignment returns [Assignment value]
     ;
 
 copyTo returns [Statement value]
-    : ^(COPY_TO namedTable columnList? d=copyToTargetSpec[false] expr genericProperties?)
+    : ^(COPY_TO namedTablePartitioned columnList? d=copyToTargetSpec[false] expr genericProperties?)
         {
-            $value = new CopyTo($namedTable.value,
+            $value = new CopyTo($namedTablePartitioned.value,
                                 $columnList.value,
                                 $d.value,
                                 $expr.value,
@@ -675,9 +679,9 @@ copyTo returns [Statement value]
     ;
 
 copyFrom returns [Statement value]
-    : ^(COPY_FROM namedTable path=expr genericProperties?)
+    : ^(COPY_FROM namedTablePartitioned path=expr genericProperties?)
         {
-            $value = new CopyFromStatement($namedTable.value,
+            $value = new CopyFromStatement($namedTablePartitioned.value,
                                            $path.value,
                                            $genericProperties.value);
         }

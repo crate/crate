@@ -120,6 +120,7 @@ public class TestStatementBuilder
         printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
         printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
 
+        printStatement("copy foo partition (a='x') from ?");
         printStatement("copy foo from '/folder/file.extension'");
         printStatement("copy foo from ?");
         printStatement("copy foo from ? with (some_property=1)");
@@ -131,6 +132,8 @@ public class TestStatementBuilder
         printStatement("copy foo to DIRECTORY '/folder'");
         printStatement("copy foo to DIRECTORY ?");
         printStatement("copy foo to DIRECTORY '/folder' with (some_param=4)");
+        printStatement("copy foo partition (a='x') to DIRECTORY '/folder' with (some_param=4)");
+        printStatement("copy foo partition (a=?) to DIRECTORY '/folder' with (some_param=4)");
 
 
         printStatement("create table t (id integer primary key, name string)");

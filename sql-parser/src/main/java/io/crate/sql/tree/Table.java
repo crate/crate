@@ -22,20 +22,32 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 
 public class Table
         extends QueryBody
 {
     private final QualifiedName name;
+    private final Optional<GenericProperties> partitionProperties;
 
     public Table(QualifiedName name)
     {
         this.name = name;
+        this.partitionProperties = Optional.absent();
+    }
+
+    public Table(QualifiedName name, GenericProperties partitionProperties) {
+        this.name = name;
+        this.partitionProperties = Optional.fromNullable(partitionProperties);
     }
 
     public QualifiedName getName()
     {
         return name;
+    }
+
+    public Optional<GenericProperties> partitionProperties() {
+        return partitionProperties;
     }
 
     @Override
@@ -53,27 +65,22 @@ public class Table
     }
 
     @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Table)) return false;
 
         Table table = (Table) o;
 
-        if (!name.equals(table.name)) {
-            return false;
-        }
+        if (!name.equals(table.name)) return false;
+        if (!partitionProperties.equals(table.partitionProperties)) return false;
 
         return true;
     }
 
     @Override
-    public int hashCode()
-    {
-        return name.hashCode();
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + partitionProperties.hashCode();
+        return result;
     }
 }

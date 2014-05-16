@@ -349,6 +349,10 @@ relation
     | tableSubquery
     ;
 
+tableWithPartition
+    : qname ( PARTITION '(' genericProperties ')' )? -> ^(TABLE qname genericProperties?)
+    ;
+
 table
     : qname -> ^(TABLE qname)
     ;
@@ -746,13 +750,13 @@ assignment
     ;
 
 copyToStmt
-    : COPY table columnList? TO DIRECTORY? expr
-      ( WITH '(' genericProperties ')' )? -> ^(COPY_TO table columnList? DIRECTORY? expr genericProperties?)
+    : COPY tableWithPartition columnList? TO DIRECTORY? expr
+      ( WITH '(' genericProperties ')' )? -> ^(COPY_TO tableWithPartition columnList? DIRECTORY? expr genericProperties?)
     ;
 
 copyFromStmt
-    : COPY table FROM expr
-      ( WITH '(' genericProperties ')' )? -> ^(COPY_FROM table expr genericProperties?)
+    : COPY tableWithPartition FROM expr
+      ( WITH '(' genericProperties ')' )? -> ^(COPY_FROM tableWithPartition expr genericProperties?)
     ;
 
 alterBlobTableStmt
