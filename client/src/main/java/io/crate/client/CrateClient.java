@@ -55,17 +55,17 @@ public class CrateClient {
     public CrateClient(Settings pSettings, boolean loadConfigSettings) throws
             ElasticsearchException {
 
-        Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(
-            pSettings, loadConfigSettings);
-        Settings settings = settingsBuilder().put(tuple.v1())
+        Settings settings = settingsBuilder().put(pSettings)
                 .put("network.server", false)
                 .put("node.client", true)
                 .put("client.transport.ignore_cluster_name", true)
                 .put("node.name", "crate-client-"+ UUID.randomUUID().toString())
                 .build();
-        this.environment = tuple.v2();
+        Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(
+            settings, loadConfigSettings);
 
-        this.settings = settings;
+        this.settings = tuple.v1();
+        this.environment = tuple.v2();
         Version version = Version.CURRENT;
 
         CompressorFactory.configure(this.settings);
@@ -109,5 +109,8 @@ public class CrateClient {
         return internalClient.sql(request);
     }
 
+    public Settings settings() {
+        return settings;
+    }
 
 }
