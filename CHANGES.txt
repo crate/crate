@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: allow single character blob table names
+
  - fix: ``count(*)`` on empty partitioned tables threw a TableUnknownException.
 
  - updated crate-admin version to 0.7.2 including following changes:
