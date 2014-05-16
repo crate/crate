@@ -5,6 +5,15 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - changed refresh table for partitioned tables.
+   Instead of:: 
+        
+        refresh table my_table PARTITION ident
+
+   it is now::
+
+        refresh table my_table PARITION (<columnName> = <value> [, ... ])
+
  - added support for select statements on blob tables. This can be used to list
    the blobs that are stored inside a blob table.
 

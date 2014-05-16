@@ -878,5 +878,5 @@ namedProperties returns [NamedProperties value]
     ;
 
 refresh returns [RefreshStatement value]
-    : ^(REFRESH namedTable expr?) { $value = new RefreshStatement($namedTable.value, $expr.value); }
+    : ^(REFRESH namedTablePartitioned) { $value = new RefreshStatement($namedTablePartitioned.value); }
     ;
