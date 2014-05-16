@@ -471,38 +471,43 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * get a reference from a given {@link io.crate.sql.tree.QualifiedName}
      */
     protected ReferenceIdent getReference(QualifiedName name) {
+        return getReference(name, ImmutableList.<String>of());
+    }
+
+    protected ReferenceIdent getReference(QualifiedName name, List<String> path) {
         ReferenceIdent ident;
-        List<String> parts = name.getParts();
-        switch (parts.size()) {
+        List<String> qNameParts = name.getParts();
+        switch (qNameParts.size()) {
             case 1:
-                ident = new ReferenceIdent(table.ident(), parts.get(0));
+                ident = new ReferenceIdent(table.ident(), qNameParts.get(0), path);
                 break;
             case 2:
                 if (tableAlias() != null) {
-                    if (!tableAlias().equals(parts.get(0))) {
+                    if (!tableAlias().equals(qNameParts.get(0))) {
                         throw new UnsupportedOperationException("table for reference not found in FROM: " + name);
                     }
                 } else {
-                    if (!table().ident().name().equals(parts.get(0))) {
+                    if (!table().ident().name().equals(qNameParts.get(0))) {
                         throw new UnsupportedOperationException("table for reference not found in FROM: " + name);
                     }
                 }
-                ident = new ReferenceIdent(table.ident(), parts.get(1));
+                ident = new ReferenceIdent(table.ident(), qNameParts.get(1), path);
                 break;
             case 3:
-                if (tableAlias() != null && !"sys".equals(parts.get(0).toLowerCase())) {
+                if (tableAlias() != null && !"sys".equals(qNameParts.get(0).toLowerCase())) {
                     throw new UnsupportedOperationException("table for reference not found in FROM: " + name);
                 }
-                TableInfo otherTable = referenceInfos.getTableInfo(new TableIdent(parts.get(0), parts.get(1)));
+                TableInfo otherTable = referenceInfos.getTableInfo(new TableIdent(qNameParts.get(0), qNameParts.get(1)));
                 if (otherTable == null){
-                    throw new TableUnknownException(parts.get(0) + "." + parts.get(1));
+                    throw new TableUnknownException(qNameParts.get(0) + "." + qNameParts.get(1));
                 }
-                ident = new ReferenceIdent(new TableIdent(parts.get(0), parts.get(1)), parts.get(2));
+                ident = new ReferenceIdent(new TableIdent(qNameParts.get(0), qNameParts.get(1)), qNameParts.get(2), path);
                 break;
             default:
                 throw new UnsupportedOperationException("unsupported name reference: " + name);
         }
         return ident;
+
     }
 
     /**

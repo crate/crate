@@ -21,6 +21,32 @@ Unreleased
 
  - improved building of client jar, also added maven upload task
 
+2014/05/16 0.37.2
+=================
+
+ - fix: allow aliased subscript expressions
+
+ - fix: allow single character blob table names
+
+ - fix: ``count(*)`` on empty partitioned tables threw a TableUnknownException.
+
+ - S3 authentication using ENV variables now also defaults to HTTP in order to
+   avoid certificate issues.
+
+ - updated crash version to 0.9.4 including following changes:
+
+    - updated crate-python to 0.10.0
+
+    - fix: crash exited immediately with an exception if a query result
+      contained two or more equal field names
+
+    - fix: if crash was started while one of the specified hosts was
+      not available crash exited immediately
+
+ - updated crate-admin version to 0.7.2 including following changes:
+
+    - improved handling of error responses from server
+
 2014/05/12 0.36.6
 =================
 
@@ -50,6 +76,17 @@ Unreleased
  - renamed ``ANY`` aggregation function to ``ARBITRARY``
 
  - implemented ``ANY`` / ``SOME`` operator for array containment checks
+
+2014/05/12 0.36.6
+=================
+
+ - improved error reporting for COPY operations using Amazon S3
+
+2014/05/09 0.36.5
+=================
+
+ - fix: raise an error if same column is defined more than once on
+   table creation
 
 2014/05/07 0.36.4
 =================

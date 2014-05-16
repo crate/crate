@@ -1168,6 +1168,18 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select * from users as u where doc.users.awesome = true");
     }
 
+    @Test
+    public void testAliasSubscript() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze(
+                "select u.details['foo'] from users as u");
+        assertThat(analysis.outputSymbols().size(), is(1));
+        Symbol s = analysis.outputSymbols().get(0);
+        assertThat(s, Matchers.instanceOf(Reference.class));
+        Reference r = (Reference)s;
+        assertThat(r.info().ident().tableIdent().name(), is("users"));
+        assertThat(r.info().ident().columnIdent().fqn(), is("details.foo"));
+    }
+
     @Test(expected = UnsupportedOperationException.class)
     public void testOrderByOnArray() throws Exception {
         analyze("select * from users order by friends");

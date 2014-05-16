@@ -22,12 +22,13 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Table;
+import io.crate.sql.tree.Update;
 
 public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysis> {
 
@@ -49,15 +50,6 @@ public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysi
         Preconditions.checkState(context.table() == null, "updating multiple tables is not supported");
         context.editableTable(TableIdent.of(node));
         return null;
-    }
-
-    @Override
-    protected Symbol visitSubscriptExpression(SubscriptExpression node, UpdateAnalysis context) {
-        SubscriptContext subscriptContext = new SubscriptContext();
-        node.accept(visitor, subscriptContext);
-        ReferenceIdent ident = new ReferenceIdent(
-                context.table().ident(), subscriptContext.column(), subscriptContext.parts());
-        return context.allocateReference(ident);
     }
 
     @Override

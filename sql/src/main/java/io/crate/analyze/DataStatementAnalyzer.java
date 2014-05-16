@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -157,9 +156,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     protected Symbol visitSubscriptExpression(SubscriptExpression node, T context) {
         SubscriptContext subscriptContext = new SubscriptContext();
         node.accept(visitor, subscriptContext);
-        ReferenceIdent ident = new ReferenceIdent(
-                Objects.firstNonNull(subscriptContext.tableIdent(), context.table().ident()),
-                subscriptContext.column(),
+        ReferenceIdent ident = context.getReference(
+                subscriptContext.qName(),
                 subscriptContext.parts()
         );
         return context.allocateReference(ident);

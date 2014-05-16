@@ -21,23 +21,22 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
+import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class SubscriptContext {
 
-    private String column;
+    private QualifiedName qName;
     private List<String> parts = new ArrayList<>();
-    private TableIdent tableIdent;
 
-    public String column() {
-        return column;
+    public QualifiedName qName() {
+        return qName;
     }
 
-    public void column(String column) {
-        this.column = column;
+    public void qName(QualifiedName qName) {
+        this.qName = qName;
     }
 
     public List<String> parts() {
@@ -46,13 +45,5 @@ public class SubscriptContext {
 
     public void add(String part) {
         parts.add(0, part);
-    }
-
-    public void tableIdent(TableIdent tableIdent) {
-        this.tableIdent = tableIdent;
-    }
-
-    public TableIdent tableIdent() {
-        return tableIdent;
     }
 }

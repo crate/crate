@@ -41,17 +41,19 @@ public class S3ClientHelper {
     private final static AWSCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER_CHAIN =
             new DefaultAWSCredentialsProviderChain();
 
+    // TODO: use HTTPS and fix certificate issue
+    private final static ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration().withProtocol(Protocol.HTTP);
     private final static String INVALID_URI_MSG = "Invalid URI. Please make sure that given URI is encoded properly.";
 
     private final IntObjectMap<AmazonS3> clientMap = new IntObjectOpenHashMap<>(1);
 
     protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
         if (accessKey == null || secretKey == null) {
-            return new AmazonS3Client(DEFAULT_CREDENTIALS_PROVIDER_CHAIN);
+            return new AmazonS3Client(DEFAULT_CREDENTIALS_PROVIDER_CHAIN, CLIENT_CONFIGURATION);
         }
         return new AmazonS3Client(
                 new BasicAWSCredentials(accessKey, secretKey),
-                new ClientConfiguration().withProtocol(Protocol.HTTP) // TODO: use https and fix certificate validation
+                CLIENT_CONFIGURATION
         );
     }
 

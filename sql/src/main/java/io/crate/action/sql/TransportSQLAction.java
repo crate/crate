@@ -210,6 +210,10 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             // if its a transport exception get the real cause throwable
             e = e.getCause();
         }
+        if (e instanceof ExecutionException) {
+            e = e.getCause();
+        }
+
         if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
             return new SQLParseException(e.getMessage(), (Exception)e);
         } else if (e instanceof UnsupportedOperationException) {
