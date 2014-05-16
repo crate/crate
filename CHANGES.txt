@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: default settings of crate client have been applied incorrect
+
  - added support for select statements on blob tables. This can be used to list
    the blobs that are stored inside a blob table.
 

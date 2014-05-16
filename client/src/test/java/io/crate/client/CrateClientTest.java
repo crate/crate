@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.types.DataType;
 import io.crate.types.StringType;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
@@ -34,6 +35,7 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -107,6 +109,16 @@ public class CrateClientTest extends CrateIntegrationTest {
                 "from information_schema.table_constraints").actionGet();
         assertTrue(r.rows()[0][0] instanceof Object[]);
         assertThat(((Object[]) r.rows()[0][0])[0], instanceOf(String.class));
+    }
+
+    @Test
+    public void testSettings() throws Exception {
+        Settings settings = client.settings();
+
+        assertEquals(false, settings.getAsBoolean("network.server", true));
+        assertEquals(true, settings.getAsBoolean("node.client", false));
+        assertEquals(true, settings.getAsBoolean("client.transport.ignore_cluster_name", false));
+        assertThat(settings.get("node.name"), startsWith("crate-client-"));
     }
 
 }
