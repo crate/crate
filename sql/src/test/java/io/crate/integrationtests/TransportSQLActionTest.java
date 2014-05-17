@@ -110,7 +110,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountStarWithWhereClause() throws Exception {
-        execute("create table test (\"type\" string) with (number_of_replicas=0)");
+        execute("create table test (name string) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into test (name) values (?)", new Object[]{"Arthur"});
         execute("insert into test (name) values (?)", new Object[]{"Trillian"});
