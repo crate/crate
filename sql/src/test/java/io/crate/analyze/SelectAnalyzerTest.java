@@ -248,11 +248,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAllColumnCluster() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from sys.cluster");
-        assertThat(analysis.outputNames().size(), is(2));
-        assertThat(analysis.outputNames().get(0), is("id"));
-        assertThat(analysis.outputNames().get(1), is("name"));
-
-        assertThat(analysis.outputSymbols().size(), is(2));
+        assertThat(analysis.outputNames().size(), is(3));
+        assertThat(analysis.outputNames(), containsInAnyOrder("id", "name", "settings"));
+        assertThat(analysis.outputSymbols().size(), is(3));
     }
 
     @Test
