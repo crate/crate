@@ -194,23 +194,25 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     private void copyFromPlan(CopyAnalysis analysis, Plan plan) {
         int clusteredByPrimaryKeyIdx = analysis.table().primaryKey().indexOf(analysis.table().clusteredBy());
-        List<String> partitionedBy = Lists.newArrayList(Iterables.transform(analysis.table().partitionedBy(),
-                new com.google.common.base.Function<ColumnIdent, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable ColumnIdent input) {
-                if (input != null) {
-                    return input.fqn();
-                } else {
-                    return null;
-                }
-            }
-        }));
-
+        List<ColumnIdent> partitionedBy;
+        String tableName = analysis.table().ident().name();
+        if (analysis.partitionIdent() == null) {
+            partitionedBy = new ArrayList<>(analysis.table().partitionedBy());
+        } else {
+            /*
+             * if there is a partitionIdent in the analysis this means that the file doesn't include
+             * the partition ident in the rows.
+             *
+             * Therefore there is no need to exclude the partition columns from the source and
+             * it is possible to import into the partitioned index directly.
+             */
+            partitionedBy = Arrays.asList();
+            tableName = PartitionName.fromPartitionIdent(tableName, analysis.partitionIdent()).stringValue();
+        }
         List<Projection> projections = Arrays.<Projection>asList(new IndexWriterProjection(
-                analysis.table().ident().name(),
+                tableName,
                 analysis.table().primaryKey(),
-                analysis.table().partitionedBy(),
+                partitionedBy,
                 clusteredByPrimaryKeyIdx,
                 analysis.settings(),
                 null,
@@ -239,9 +241,9 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         }
 
         // add partitioned columns (if not part of primaryKey)
-        for (String partitionedColumn : partitionedBy) {
+        for (ColumnIdent partitionedColumn : partitionedBy) {
             toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(new ColumnIdent(partitionedColumn)))
+                    new Reference(analysis.table().getColumnInfo(partitionedColumn))
             );
         }
 
@@ -253,7 +255,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         }
 
         // finally add _raw or _doc
-        if (analysis.table().isPartitioned()) {
+        if (analysis.table().isPartitioned() && analysis.partitionIdent() == null) {
             toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.DOC)));
         } else {
             toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW)));

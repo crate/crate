@@ -12,7 +12,8 @@ Synopsis
 
 ::
 
-    COPY table_ident FROM uri [ WITH ( option = value [, ...] ) ]
+    COPY table_ident [ PARTITION (partition_column = value [ , ... ]) ]
+    FROM uri [ WITH ( option = value [, ...] ) ]
 
 where `option` can be one of:
 
@@ -86,6 +87,32 @@ Parameters
 :uri: An expression which evaluates to a uri as defined in `RFC2396`_. The
       supported schemes are listed above. The last part of the path may also
       contain ``*`` wildcards to match multiple files.
+
+PARTITION Clause
+================
+
+If the table is partitioned this clause can be used to import data into a
+specific partition. This clause takes one or more partition columns and for
+each column a value.
+
+::
+
+    [ PARTITION ( partition_column = value [ , ... ] ) ]
+
+
+:partition_column: The name of the column by which the table is partitioned.
+                   All partition columns that were part of the
+                   :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
+                   statement must be specified.
+
+:value: The columns value.
+
+In a table that is partitioned the values for the columns by which the
+table is partitioned are not actually stored with each row.
+
+The files that are imported should *not* contain values for the partitioned
+columns as the ``COPY FROM ... PARTITION`` statement does not check that and
+will unnecessarily import them.
 
 WITH Clause
 ===========

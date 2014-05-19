@@ -20,10 +20,10 @@ Description
 The REFRESH TABLE command refreshes a table and all its rows,
 making all changes made to that table available to all further commands.
 
-The ``PARTITION`` keyword can be used to only refresh specific partitions of a
+The ``PARTITION`` clause can be used to only refresh specific partitions of a
 partitioned table. All columns by which a table is partitioned are required.
 
-In case the ``PARTITION`` keyword is omitted all partitions will be refreshed.
+In case the ``PARTITION`` clause is omitted all partitions will be refreshed.
 For performance reasons doing that should be avoided if possible.
 
 See :ref:`sql_ddl_partitioned_by` for more information on partitioned tables.
@@ -48,3 +48,19 @@ Parameters
     table that is to be refreshed.
 
 :partition_column: Column name by which the table is partitioned.
+
+
+PARTITION Clause
+================
+
+::
+
+    [ PARTITION ( partition_column = value [ , ... ] ) ]
+
+
+:partition_column: The name of the column by which the table is partitioned.
+                   All partition columns that were part of the
+                   :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
+                   statement must be specified.
+
+:value: The columns value.

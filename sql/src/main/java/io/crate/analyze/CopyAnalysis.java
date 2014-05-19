@@ -40,6 +40,7 @@ public class CopyAnalysis extends AbstractDataAnalysis {
     private Symbol uri;
     private Mode mode;
     private boolean directoryUri;
+    private String partitionIdent = null;
 
     public CopyAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameters, referenceResolver);
@@ -47,6 +48,14 @@ public class CopyAnalysis extends AbstractDataAnalysis {
 
     public Symbol uri() {
         return uri;
+    }
+
+    public String partitionIdent() {
+        return this.partitionIdent;
+    }
+
+    public void partitionIdent(String partitionIdent) {
+        this.partitionIdent = partitionIdent;
     }
 
     public void directoryUri(boolean directoryUri) {

@@ -106,10 +106,10 @@ distributed accross a cluster.
     the primary key if specified, otherwise the internal ``_id``
     column.
 
-.. _partitioned_clause:
+.. _partitioned_by_clause:
 
-PARTITIONED Clause
-==================
+PARTITIONED BY Clause
+=====================
 
 The PARTITIONED clause splits the created table
 into separate partitions for every distinct combination of values
