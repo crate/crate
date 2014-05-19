@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crash to 0.9.5 which includes the following change:
+
+   - SQL statements passed in via the --command switch take precedence over stdin
+
  - the ``CREATE TABLE`` statement now doesn't silently ignore analyzer
    specifications on column types that don't support them.
 
