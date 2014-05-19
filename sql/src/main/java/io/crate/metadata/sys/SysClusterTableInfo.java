@@ -42,6 +42,9 @@ public class SysClusterTableInfo extends SysTableInfo {
     static {
         register("id", DataTypes.STRING, null);
         register("name", DataTypes.STRING, null);
+        register("settings", DataTypes.OBJECT, null);
+        register("settings", DataTypes.STRING, ImmutableList.of("jobs_log_size"));
+        register("settings", DataTypes.STRING, ImmutableList.of("operations_log_size"));
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {

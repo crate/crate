@@ -139,7 +139,7 @@ def test_suite():
                'sql/information_schema.txt',
                'sql/partitioned_tables.txt',
                'sql/aggregation.txt',
-               'sql/scalar.txt', 'sql/stats.txt',
+               'sql/scalar.txt', 'sql/system.txt',
                'hello.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsAndQuotes,

@@ -20,5 +20,5 @@ see :doc:`sql`. For general information about SQL please refer to
    rest
    analyzer
    information_schema
-   stats
+   system
    sql
