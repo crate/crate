@@ -276,6 +276,14 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testSetGlobal() throws Exception {
+        printStatement("set global sys.cluster['some_settings'] = '1'");
+        printStatement("set global sys.cluster['some_settings'] = '1', other_setting = 2");
+        printStatement("set global transient sys.cluster['some_settings'] = '1'");
+        printStatement("set global persistent sys.cluster['some_settings'] = '1'");
+    }
+
+    @Test
     public void testParameterExpressionLimitOffset() throws Exception {
         // ORMs like SQLAlchemy generate these kind of queries.
         printStatement("select * from foo limit ? offset ?");
