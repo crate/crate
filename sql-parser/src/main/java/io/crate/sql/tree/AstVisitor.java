@@ -548,4 +548,8 @@ public abstract class AstVisitor<R, C>
     public R visitArrayLikePredicate(ArrayLikePredicate node, C context) {
         return visitExpression(node, context);
     }
+
+    public R visitSetStatement(SetStatement node, C context) {
+        return visitStatement(node, context);
+    }
 }
