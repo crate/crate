@@ -479,6 +479,11 @@ and is only available as a result column::
     ... );
     CREATE OK (... sec)
 
+.. note::
+
+    Operations such as data aggregations (:ref:`sql_dml_aggregation`), grouping
+    (:ref:`sql_dml_group_by`), and sorting (:ref:`sql_reference_order_by`)
+    only work on indexed fields.
 
 .. _sql_ddl_index_plain:
 

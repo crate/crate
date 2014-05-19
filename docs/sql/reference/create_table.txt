@@ -81,7 +81,7 @@ INDEX Constraint
 ================
 
 The INDEX constraint specifies a specific index method on one or more
-columnns.
+columns.
 
 It is possible to define more than one index per table, whether as a
 column constraint or a table constraint.
