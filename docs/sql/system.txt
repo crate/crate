@@ -1,8 +1,8 @@
 .. highlight:: psql
 
-=================
-System Statistics
-=================
+==================
+System Information
+==================
 
 Crate Data provides some useful schemas which contains virtual tables.
 Those tables are read-only and can be queried to get statistical
@@ -22,14 +22,40 @@ the ``sys.cluster`` table:
 +-----------------+---------------------------------+-------------------+
 | name            | The cluster name.               | String            |
 +-----------------+---------------------------------+-------------------+
+| settings        | The cluster settings.           | Object            |
++-----------------+---------------------------------+-------------------+
 
 The result has at most 1 row::
 
-  cr> select id, name from sys.cluster;
-  +--------------------------------------+--------------+
-  | ...                                  | Testing44200 |
-  +--------------------------------------+--------------+
+  cr> select id, name, settings from sys.cluster;
+  +----...-+--------------+------------------------------------------------------------+
+  | id     | name         | settings                                                   |
+  +----...-+--------------+------------------------------------------------------------+
+  | ...    | Testing44200 | {u'operations_log_size': u'100', u'jobs_log_size': u'100'} |
+  +----...-+--------------+------------------------------------------------------------+
   SELECT 1 row in set (... sec)
+
+
+Cluster Settings
+----------------
+
+The ``sys.cluster.settings`` expression returns information about the
+current applied cluster settings. All settings are in string format.
+
+Following settings are available:
+
++---------------------+----------------------------------+-------------------+
+| Name                | Description                      | Default value     |
++=====================+==================================+===================+
+| jobs_log_size       | Configures the size of the       | "100"             |
+|                     | ``sys.jobs_log`` table. Setting  |                   |
+|                     | it to "0" disables the log at    |                   |
+|                     | all.                             |                   |
++---------------------+----------------------------------+-------------------+
+| operations_log_size | Configures the size of the       | "100"             |
+|                     | Setting it to "0" disables the   |                   |
+|                     | log at all.                      |                   |
++---------------------+----------------------------------+-------------------+
 
 
 

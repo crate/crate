@@ -24,9 +24,11 @@ package io.crate.operation.reference.sys;
 
 import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.Input;
+import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -40,6 +42,8 @@ import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.node.service.NodeService;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -77,6 +81,9 @@ public class TestGlobalSysExpressions {
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
             b.addBinding(SysNodesTableInfo.INFOS.get(new ColumnIdent("load")).ident()).to(
                     NodeLoadExpression.class).asEagerSingleton();
+
+            b.addBinding(SysClusterTableInfo.INFOS.get(new ColumnIdent("settings")).ident()).to(
+                    ClusterSettingsExpression.class).asEagerSingleton();
         }
     }
 
@@ -124,6 +131,16 @@ public class TestGlobalSysExpressions {
         ident = LOAD1_INFO.ident();
         SysExpression<Double> l1 = (SysExpression<Double>) resolver.getImplementation(ident);
         assertEquals(LOAD1_INFO, l1.info());
+    }
+
+    @Test
+    public void testClusterSettings() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SysClusterTableInfo.IDENT, ClusterSettingsExpression.NAME);
+        SysObjectReference<Object> settingsExpression = (SysObjectReference<Object>) resolver.getImplementation(ident);
+
+        Map<String, Object> settings = settingsExpression.value();
+        assertEquals(String.valueOf(0), settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
+        assertEquals(String.valueOf(0), settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
     }
 
 }
