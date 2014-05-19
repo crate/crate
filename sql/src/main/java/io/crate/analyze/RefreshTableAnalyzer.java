@@ -21,17 +21,9 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
-import io.crate.PartitionName;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.RefreshStatement;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, RefreshTableAnalysis> {
 
@@ -39,31 +31,18 @@ public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, Refres
     public Void visitRefreshStatement(RefreshStatement node, RefreshTableAnalysis context) {
         context.table(TableIdent.of(node.table()));
         if (node.table().partitionProperties().isPresent()) {
-            setParitionIdent(node, context);
+            setParitionIdent(node.table().partitionProperties().get(), context);
         }
 
         return null;
     }
 
-    private void setParitionIdent(RefreshStatement node, RefreshTableAnalysis context) {
-        GenericProperties properties = node.table().partitionProperties().get();
-        Preconditions.checkArgument(properties.properties().size() == context.table().partitionedBy().size(),
-                "The Table \"%s\" is partitioned by %s columns but the refresh statement included %s partition columns",
-                context.table().ident().name(), context.table().partitionedBy().size(), properties.properties().size());
-
-        String[] values = new String[properties.properties().size()];
-        for (Map.Entry<String, List<Expression>> stringListEntry : properties.properties().entrySet()) {
-            Object value = ExpressionToObjectVisitor.convert(
-                    stringListEntry.getValue().get(0), context.parameters());
-            int idx = context.table().partitionedBy().indexOf(stringListEntry.getKey());
-            try {
-                ReferenceInfo referenceInfo = context.table().partitionedByColumns().get(idx);
-                values[idx] = referenceInfo.type().value(value).toString();
-            } catch (IndexOutOfBoundsException ex) {
-                throw new IllegalArgumentException(
-                        String.format("\"%s\" is no known partition column", stringListEntry.getKey()));
-            }
-        }
-        context.partitionIdent(new PartitionName(context.table().ident().name(), Arrays.asList(values)).ident());
+    private void setParitionIdent(GenericProperties partitionProperties, RefreshTableAnalysis context) {
+        String partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
+                context.table(),
+                partitionProperties,
+                context.parameters()
+        );
+        context.partitionIdent(partitionIdent);
     }
 }

@@ -43,6 +43,14 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         }
         context.mode(CopyAnalysis.Mode.FROM);
         process(node.table(), context);
+
+        if (node.table().partitionProperties().isPresent()) {
+            context.partitionIdent(PartitionPropertiesAnalyzer.toPartitionIdent(
+                            context.table(),
+                            node.table().partitionProperties().get(),
+                            context.parameters()));
+        }
+
         Symbol pathSymbol = process(node.path(), context);
         context.uri(pathSymbol);
         return null;

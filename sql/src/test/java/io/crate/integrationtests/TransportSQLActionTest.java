@@ -2337,6 +2337,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyFromIntoPartitionedTableWithPARTITIONKeyword() throws Exception {
+        execute("create table quotes (" +
+                        "id integer primary key," +
+                        "date timestamp primary key," +
+                        "quote string index using fulltext" +
+                ") partitioned by (date) with (number_of_replicas=0)");
+        ensureGreen();
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes partition (date=1400507539938) from ?", new Object[] {filePath});
+        refresh();
+        execute("select count(*) from quotes");
+        assertEquals(1L, response.rowCount());
+        assertThat((Long)response.rows()[0][0], is(3L));
+    }
+
+    @Test
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (id integer primary key, " +
                 "quote string index using fulltext) partitioned by (id)");
