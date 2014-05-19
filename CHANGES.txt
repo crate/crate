@@ -2,8 +2,8 @@
 Changes for Crate Data
 ======================
 
-Unreleased
-==========
+2014/05/19 0.38.0
+=================
 
  - fix: default settings of crate client have been applied incorrect
 
