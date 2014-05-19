@@ -119,8 +119,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
         String expected = "sys| cluster| id| 1| string\n" +
                 "sys| cluster| name| 2| string\n" +
-                "sys| nodes| id| 1| string\n" +
-                "sys| nodes| name| 2| string";
+                "sys| cluster| settings| 3| object";
 
 
         assertTrue(TestingHelpers.printedTable(result).startsWith(expected));
