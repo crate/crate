@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/05/19 0.37.3
+=================
+
  - updated crate-admin version to 0.7.3 including following changes:
 
     - fix: prevent selected node/table item from being out of viewport
