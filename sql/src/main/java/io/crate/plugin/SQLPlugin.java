@@ -35,6 +35,7 @@ import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.CollectShardModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
@@ -133,5 +134,8 @@ public class SQLPlugin extends AbstractPlugin {
     public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {
         // add our dynamic cluster settings
         clusterDynamicSettingsModule.addDynamicSettings(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
+
+        clusterDynamicSettingsModule.addDynamicSettings(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE);
+        clusterDynamicSettingsModule.addDynamicSettings(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE);
     }
 }
