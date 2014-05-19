@@ -71,9 +71,24 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             process(option, context);
         }
 
+        validateAnalyzer(context);
         setCopyTo(context);
 
         return null;
+    }
+
+    private void validateAnalyzer(CreateTableAnalysis context) {
+        for (Map.Entry<String, Object> entry : context.mappingProperties().entrySet()) {
+            assert entry.getValue() instanceof Map;
+            Map properties = (Map)entry.getValue();
+            Object analyzer = properties.get("analyzer");
+            if (analyzer != null && !analyzer.equals("not_analyzed") && !properties.get("type").equals("string")) {
+                throw new IllegalArgumentException(
+                        String.format("Can't use an Analyzer on column \"%s\" because analyzer are only allowed on columns with type \"string\".",
+                                entry.getKey()
+                        ));
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
