@@ -199,6 +199,7 @@ statement
     | copyToStmt
     | createAnalyzerStmt
     | refreshStmt
+    | setStmt
     ;
 
 query
@@ -929,6 +930,15 @@ refreshStmt
     : REFRESH TABLE table ( PARTITION expr? )? -> ^(REFRESH table expr?)
     ;
 
+setStmt
+    : SET GLOBAL settingsType? assignmentList -> ^(SET settingsType? assignmentList)
+    ;
+
+settingsType
+    : TRANSIENT
+    | PERSISTENT
+    ;
+
 nonReserved
     : SHOW | TABLES | COLUMNS | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS
     | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW
@@ -942,7 +952,7 @@ nonReserved
     | SHARDS | CLUSTERED | COPY | ANALYZER
     | EXTENDS | TOKENIZER | CHAR_FILTERS | TOKEN_FILTERS | BLOB
     | TO | PARTITIONED
-    | GEO_POINT
+    | GEO_POINT | GLOBAL
     ;
 
 SELECT: 'SELECT';
@@ -1040,6 +1050,7 @@ IP: 'IP';
 OBJECT: 'OBJECT';
 STRING_TYPE: 'STRING';
 GEO_POINT: 'GEO_POINT';
+GLOBAL : 'GLOBAL';
 
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';
@@ -1099,6 +1110,9 @@ TOKEN_FILTERS: 'TOKEN_FILTERS';
 CHAR_FILTERS: 'CHAR_FILTERS';
 
 PARTITIONED: 'PARTITIONED';
+
+TRANSIENT: 'TRANSIENT';
+PERSISTENT: 'PERSISTENT';
 
 
 EQ  : '=';

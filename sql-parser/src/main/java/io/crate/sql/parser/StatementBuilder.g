@@ -91,6 +91,7 @@ statement returns [Statement value]
     | copyTo                    { $value = $copyTo.value; }
     | createAnalyzer            { $value = $createAnalyzer.value; }
     | refresh                   { $value = $refresh.value; }
+    | set                       { $value = $set.value; }
     ;
 
 query returns [Query value]
@@ -875,4 +876,10 @@ namedProperties returns [NamedProperties value]
 
 refresh returns [RefreshStatement value]
     : ^(REFRESH namedTable expr?) { $value = new RefreshStatement($namedTable.value, $expr.value); }
+    ;
+
+set returns [SetStatement value]
+    : ^(SET assignments=assignmentList) { $value = new SetStatement($assignments.value); }
+    | ^(SET TRANSIENT assignments=assignmentList) { $value = new SetStatement(SetStatement.SettingType.TRANSIENT, $assignments.value); }
+    | ^(SET PERSISTENT assignments=assignmentList) { $value = new SetStatement(SetStatement.SettingType.PERSISTENT, $assignments.value); }
     ;
