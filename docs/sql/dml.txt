@@ -738,6 +738,9 @@ Example JSON data::
   The ``COPY FROM`` statement will not convert or validate your data.
   Please make sure that it fits your schema.
 
+In order to import data into :ref:`sql_ddl_partitioned_by` take a look at the
+:ref:`copy_from` reference.
+
 Import from File URI
 --------------------
 

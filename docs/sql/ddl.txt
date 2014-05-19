@@ -445,7 +445,7 @@ A partitioned table is a virtual table that is internally split up into several
 internal *tables*, called `partitions`, by the value of one or more columns. For every distinct combination
 of values in those configured columns one separate partition is created.
 
-Creating a partitioned table is done using the :ref:`partitioned_clause`::
+Creating a partitioned table is done using the :ref:`partitioned_by_clause`::
 
     cr> create table partitioned_table (
     ... id long,
@@ -454,7 +454,7 @@ Creating a partitioned table is done using the :ref:`partitioned_clause`::
     ... ) partitioned by (date);
     CREATE OK (... sec)
 
-For further details, please refer to :ref:`partitioned_clause`.
+For further details, please refer to :ref:`partitioned_by_clause`.
 
 .. _fulltext-indices:
 

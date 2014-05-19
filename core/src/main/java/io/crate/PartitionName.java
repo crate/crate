@@ -69,10 +69,6 @@ public class PartitionName implements Streamable {
         this(tableName, new ArrayList<String>());
     }
 
-    private PartitionName() {
-        values = new ArrayList<>();
-    }
-
     public boolean isValid() {
         return values.size() > 0;
     }
@@ -120,7 +116,7 @@ public class PartitionName implements Streamable {
     }
 
     @Nullable
-    private String encodeIdent() {
+    public static String encodeIdent(List<String> values) {
         if (values.size() == 0) {
             return null;
         }
@@ -139,6 +135,11 @@ public class PartitionName implements Streamable {
         String identBase32 = BASE32.encodeAsString(out.bytes().toBytes()).toLowerCase(Locale.ROOT);
         // decode doesn't need padding, remove it
         return PADDING_PATTERN.matcher(identBase32).replaceAll("");
+    }
+
+    @Nullable
+    private String encodeIdent() {
+        return PartitionName.encodeIdent(this.values);
     }
 
     public String stringValue() {
