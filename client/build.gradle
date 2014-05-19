@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'maven'
 
-archiveBaseName = "crate-client"
+archivesBaseName = "crate-client"
 
 evaluationDependsOn(':core')
 evaluationDependsOn(':sql')
