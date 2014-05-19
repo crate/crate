@@ -150,8 +150,6 @@ atomic operation and could lead to inconsistent state::
 
 ::
 
-::
-
     cr> UPDATE parted_table set content='now panic!'
     ... WHERE id=2;
     UPDATE OK, 1 row affected (... sec)

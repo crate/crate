@@ -394,6 +394,12 @@ always return one row, as they do an aggregation operation on the matching rows 
 |           | object)       |                                  |                       |
 +-----------+---------------+----------------------------------+-----------------------+
 
+.. note::
+
+    Aggregations can only be applied on indexed fields. For more information,
+    please refer to :ref:`sql_ddl_index_off`.
+
+
 Some Examples::
 
     cr> select count(*) from locations;
@@ -535,6 +541,11 @@ This is useful if used in conjunction with aggregation functions::
 
     Grouping on multi-value fields doesn't work. If such a field is encountered
     during a group by operation an error is thrown.
+
+.. note::
+
+    Grouping can only be applied on indexed fields. For more information,
+    please refer to :ref:`sql_ddl_index_off`.
 
 Fulltext search
 ---------------

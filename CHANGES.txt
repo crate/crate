@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - document data aggregation behaviour on fields in columns with disabled
+   indexing.
+
  - updated crash to 0.9.5 which includes the following change:
 
    - SQL statements passed in via the --command switch take precedence over stdin
