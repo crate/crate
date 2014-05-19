@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin version to 0.7.3 including following changes:
+
+    - fix: prevent selected node/table item from being out of viewport
+
  - document data aggregation behaviour on fields in columns with disabled
    indexing.
 
