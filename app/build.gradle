@@ -60,8 +60,8 @@ distZip {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    plugin_crateadmin_version = '0.7.2'
-    crash_version = '0.9.4'
+    plugin_crateadmin_version = '0.7.3'
+    crash_version = '0.9.5'
 }
 
 evaluationDependsOn(':es')

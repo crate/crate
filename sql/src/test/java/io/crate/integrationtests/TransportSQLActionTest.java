@@ -3875,7 +3875,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((List<Double>)response.rows()[1][0], is(Arrays.asList(47.22, 12.09)));
     }
 
-    @Test
     public void testCountPartitionedTable() throws Exception {
         execute("create table parted (" +
                 "  id int, " +

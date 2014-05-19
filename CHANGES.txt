@@ -12,9 +12,6 @@ Unreleased
 
  - removed developer and installation instructions from documentation
 
- - the ``CREATE TABLE`` statement now doesn't silently ignore analyzer
-   specifications on column types that don't support them.
-
  - added the ``geo_point`` type.
 
  - the data type of every responded column can now be returned via
@@ -22,6 +19,23 @@ Unreleased
    defining it at the ``SQLRequest`` object
 
  - improved building of client jar, also added maven upload task
+
+2014/05/19 0.37.3
+=================
+
+ - updated crate-admin version to 0.7.3 including following changes:
+
+    - fix: prevent selected node/table item from being out of viewport
+
+ - document data aggregation behaviour on fields in columns with disabled
+   indexing.
+
+ - updated crash to 0.9.5 which includes the following change:
+
+   - SQL statements passed in via the --command switch take precedence over stdin
+
+ - the ``CREATE TABLE`` statement now doesn't silently ignore analyzer
+   specifications on column types that don't support them.
 
 2014/05/16 0.37.2
 =================
@@ -48,11 +62,6 @@ Unreleased
  - updated crate-admin version to 0.7.2 including following changes:
 
     - improved handling of error responses from server
-
-2014/05/12 0.36.6
-=================
-
- - improved error reporting for COPY operations using Amazon S3
 
 2014/05/09 0.37.1
 2014/05/09 0.36.5
