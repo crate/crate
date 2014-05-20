@@ -40,6 +40,10 @@ task dist {
     dependsOn ':docs:itest', distTar, distZip
 }
 
+task install {
+    dependsOn installDist
+}
+
 distTar {
     dependsOn getVersion
     compression = Compression.GZIP
