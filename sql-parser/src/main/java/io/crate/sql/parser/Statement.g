@@ -198,6 +198,7 @@ statement
     | COPY copyStatement -> copyStatement
     | refreshStmt
     | setStmt
+    | resetStmt
     ;
 
 query
@@ -714,7 +715,7 @@ identList
     ;
 
 columnList
-    : '(' numericExpr ( ',' numericExpr )* ')' -> ^(COLUMN_LIST numericExpr+)
+    : numericExpr ( ',' numericExpr )* -> ^(COLUMN_LIST numericExpr+)
     ;
 
 insertValues
@@ -748,7 +749,7 @@ copyStatement
     : tableWithPartition (
         (FROM) => FROM expr ( WITH '(' genericProperties ')' )? -> ^(COPY_FROM tableWithPartition expr genericProperties?)
         |
-        columnList? TO DIRECTORY? expr ( WITH '(' genericProperties ')' )? -> ^(COPY_TO tableWithPartition columnList? DIRECTORY? expr genericProperties?)
+        ( '(' columnList ')' )? TO DIRECTORY? expr ( WITH '(' genericProperties ')' )? -> ^(COPY_TO tableWithPartition columnList? DIRECTORY? expr genericProperties?)
     )
     ;
 // END COPY STATEMENT
@@ -888,7 +889,7 @@ columnIndexConstraint
     ;
 
 indexDefinition
-    : INDEX ident USING indexMethod=ident columnList (WITH '(' genericProperties ')' )? -> ^(INDEX ident $indexMethod columnList genericProperties?)
+    : INDEX ident USING indexMethod=ident '(' columnList ')' (WITH '(' genericProperties ')' )? -> ^(INDEX ident $indexMethod columnList genericProperties?)
     ;
 
 genericProperties
@@ -900,7 +901,7 @@ genericProperty
     ;
 
 primaryKeyConstraint
-    : PRIMARY_KEY columnList -> ^(PRIMARY_KEY columnList)
+    : PRIMARY_KEY '(' columnList ')' -> ^(PRIMARY_KEY columnList)
     ;
 
 clusteredInto
@@ -912,7 +913,7 @@ clusteredBy
     ;
 
 partitionedBy
-    : PARTITIONED BY columnList -> ^(PARTITIONED columnList)
+    : PARTITIONED BY '(' columnList ')' -> ^(PARTITIONED columnList)
     ;
 
 extendsAnalyzer
@@ -952,6 +953,10 @@ refreshStmt
 
 setStmt
     : SET GLOBAL settingsType? assignmentList -> ^(SET settingsType? assignmentList)
+    ;
+
+resetStmt
+    : RESET GLOBAL settingsType? columnList -> ^(RESET settingsType? columnList)
     ;
 
 settingsType

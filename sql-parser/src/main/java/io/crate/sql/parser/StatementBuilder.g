@@ -94,6 +94,7 @@ statement returns [Statement value]
     | createAnalyzer            { $value = $createAnalyzer.value; }
     | refresh                   { $value = $refresh.value; }
     | set                       { $value = $set.value; }
+    | resetStatement            { $value = $resetStatement.value; }
     ;
 
 query returns [Query value]
@@ -898,4 +899,10 @@ set returns [SetStatement value]
     : ^(SET assignments=assignmentList) { $value = new SetStatement($assignments.value); }
     | ^(SET TRANSIENT assignments=assignmentList) { $value = new SetStatement(SetStatement.SettingType.TRANSIENT, $assignments.value); }
     | ^(SET PERSISTENT assignments=assignmentList) { $value = new SetStatement(SetStatement.SettingType.PERSISTENT, $assignments.value); }
+    ;
+
+resetStatement returns [ResetStatement value]
+    : ^(RESET columns=columnList) { $value = new ResetStatement($columns.value); }
+    | ^(RESET TRANSIENT columns=columnList) { $value = new ResetStatement(SetStatement.SettingType.TRANSIENT, $columns.value); }
+    | ^(RESET PERSISTENT columns=columnList) { $value = new ResetStatement(SetStatement.SettingType.PERSISTENT, $columns.value); }
     ;
