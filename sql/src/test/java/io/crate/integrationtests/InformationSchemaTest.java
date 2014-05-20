@@ -27,12 +27,14 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
@@ -815,6 +817,37 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select table_name from information_schema.tables where 'date' = ANY (partitioned_by)");
         assertThat(response.rowCount(), is(1L));
         assertThat((String)response.rows()[0][0], is("any1"));
+    }
+
+    @Test
+    public void testDynamicObjectPartitionedTableInformationSchemaColumns() throws Exception {
+        String stmtCreate = "create table data_points (" +
+                "day string primary key," +
+                "data object(dynamic) " +
+                ") partitioned by (day)";
+        execute(stmtCreate);
+        String stmtInsert = "insert into data_points (day, data) values (?, ?)";
+        Map<String, Object> obj = new HashMap<>();
+        obj.put("somestringroute", "stringvalue");
+        obj.put("somelongroute", 1338L);
+        Object[] argsInsert = new Object[] {
+                "20140520",
+                obj
+        };
+        execute(stmtInsert, argsInsert);
+        refresh();
+        String stmtIsColumns = "select table_name, column_name, data_type " +
+                "from information_schema.columns " +
+                "where table_name = 'data_points' " +
+                "order by column_name";
+        execute(stmtIsColumns);
+        assertThat(response.rowCount(), is(4L));
+
+        String expected = "data_points| data| object\n" +
+                "data_points| data.somelongroute| long\n" +
+                "data_points| data.somestringroute| string\n" +
+                "data_points| day| string\n";
+        assertEquals(expected, TestingHelpers.printedTable(response.rows()));
     }
 
 }
