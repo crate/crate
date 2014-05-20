@@ -256,17 +256,17 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
                              GenericProperties properties,
                              CreateTableAnalysis context) {
         columnDefinition.put("index", "analyzed");
-        List<Expression> analyzerExpressions = properties.get("analyzer");
-        if (analyzerExpressions == null) {
+        Expression analyzerExpression = properties.get("analyzer");
+        if (analyzerExpression == null) {
             columnDefinition.put("analyzer", "standard");
             return;
         }
 
-        if (analyzerExpressions.size() != 1) {
-            throw new IllegalArgumentException("Invalid argument(s) passed to the analyzer property");
+        if (analyzerExpression instanceof ArrayLiteral) {
+            throw new IllegalArgumentException("array literal not allowed for the analyzer property");
         }
 
-        String analyzerName = ExpressionToStringVisitor.convert(analyzerExpressions.get(0), context.parameters());
+        String analyzerName = ExpressionToStringVisitor.convert(analyzerExpression, context.parameters());
         if (context.analyzerService().hasCustomAnalyzer(analyzerName)) {
             Settings settings = context.analyzerService().resolveFullCustomAnalyzerSettings(analyzerName);
             context.indexSettingsBuilder().put(settings.getAsMap());

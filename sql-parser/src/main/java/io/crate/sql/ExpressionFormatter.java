@@ -189,7 +189,7 @@ public final class ExpressionFormatter
         public String visitObjectLiteral(ObjectLiteral node, Void context) {
             StringBuilder builder = new StringBuilder("{");
             boolean first = true;
-            for (Map.Entry<String, Expression> entry : node.values().entrySet()) {
+            for (Map.Entry<String, Expression> entry : node.values().entries()) {
                 if (!first) {
                     builder.append(", ");
                 } else {

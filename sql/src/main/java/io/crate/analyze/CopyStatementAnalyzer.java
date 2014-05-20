@@ -44,10 +44,10 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         context.mode(CopyAnalysis.Mode.FROM);
         process(node.table(), context);
 
-        if (node.table().partitionProperties().isPresent()) {
+        if (!node.table().partitionProperties().isEmpty()) {
             context.partitionIdent(PartitionPropertiesAnalyzer.toPartitionIdent(
                             context.table(),
-                            node.table().partitionProperties().get(),
+                            node.table().partitionProperties(),
                             context.parameters()));
         }
 
@@ -64,10 +64,10 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         }
         process(node.table(), context);
 
-        if (node.table().partitionProperties().isPresent()) {
+        if (!node.table().partitionProperties().isEmpty()) {
             context.partitionIdent(PartitionPropertiesAnalyzer.toPartitionIdent(
                     context.table(),
-                    node.table().partitionProperties().get(),
+                    node.table().partitionProperties(),
                     context.parameters()));
         }
         context.uri(process(node.targetUri(), context));
@@ -83,11 +83,11 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
 
     private Settings settingsFromProperties(GenericProperties properties, CopyAnalysis context) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
-        for (Map.Entry<String, List<Expression>> entry : properties.properties().entrySet()) {
-            if (entry.getValue().size() != 1) {
+        for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
+            if (entry.getValue() instanceof ArrayLiteral) {
                 throw new IllegalArgumentException("Invalid argument(s) passed to parameter");
             }
-            Symbol v = process(entry.getValue().get(0), context);
+            Symbol v = process(entry.getValue(), context);
             if (!v.symbolType().isValueSymbol()) {
                 throw new UnsupportedFeatureException("Only literals are allowed as parameter values");
             }

@@ -24,8 +24,6 @@ package io.crate.analyze;
 import io.crate.sql.tree.Expression;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
-import java.util.List;
-
 public interface SettingsApplier {
-    void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, List<Expression> expressions);
+    void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression);
 }

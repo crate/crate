@@ -25,6 +25,7 @@ import com.google.common.base.Preconditions;
 import io.crate.core.NumberOfReplicas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
@@ -54,16 +55,16 @@ public abstract class BlobTableAnalyzer<TypeAnalysis extends Analysis>
     protected static NumberOfReplicas extractNumberOfReplicas(
             GenericProperties genericProperties,
             Object[] parameters) {
-        Map<String,List<Expression>> properties = genericProperties.properties();
-        List<Expression> number_of_replicas = properties.remove("number_of_replicas");
+        Map<String,Expression> properties = genericProperties.properties();
+        Expression number_of_replicas = properties.remove("number_of_replicas");
 
         NumberOfReplicas replicas = null;
 
         if (number_of_replicas != null) {
-            Preconditions.checkArgument(number_of_replicas.size() == 1,
-                    "Invalid number of arguments passed to \"number_of_replicas\"");
+            Preconditions.checkArgument(!(number_of_replicas instanceof ArrayLiteral),
+                    "Invalid argument to \"number_of_replicas\"");
 
-            Object numReplicas = ExpressionToObjectVisitor.convert(number_of_replicas.get(0), parameters);
+            Object numReplicas = ExpressionToObjectVisitor.convert(number_of_replicas, parameters);
             if (numReplicas != null) {
                 replicas = new NumberOfReplicas(numReplicas.toString());
             }
