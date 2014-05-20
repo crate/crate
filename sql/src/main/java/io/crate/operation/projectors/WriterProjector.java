@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
@@ -34,14 +35,14 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentHelper;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -53,6 +54,7 @@ public class WriterProjector implements Projector {
     private final URI uri;
     private final Set<CollectExpression<?>> collectExpressions;
     private final List<Input<?>> inputs;
+    private final Map<String, Object> overwrites;
     private Output output;
 
     protected final AtomicInteger remainingUpstreams = new AtomicInteger();
@@ -73,9 +75,11 @@ public class WriterProjector implements Projector {
     public WriterProjector(String uri,
                            Settings settings,
                            @Nullable List<Input<?>> inputs,
-                           Set<CollectExpression<?>> collectExpressions) {
+                           Set<CollectExpression<?>> collectExpressions,
+                           Map<ColumnIdent, Object> overwrites) {
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
+        this.overwrites = toNestedStringObjectMap(overwrites);
         try {
             this.uri = new URI(uri);
         } catch (URISyntaxException e) {
@@ -90,12 +94,53 @@ public class WriterProjector implements Projector {
         }
     }
 
+    protected static Map<String,Object> toNestedStringObjectMap(Map<ColumnIdent, Object> columnIdentObjectMap) {
+        Map<String, Object> nestedMap = new HashMap<>();
+        Map<String, Object> parent = nestedMap;
+
+        for (Map.Entry<ColumnIdent, Object> entry : columnIdentObjectMap.entrySet()) {
+            ColumnIdent key = entry.getKey();
+            Object value = entry.getValue();
+
+            if (key.path().isEmpty()) {
+                nestedMap.put(key.name(), value);
+            } else {
+                LinkedList<String> path = new LinkedList<>(key.path());
+                path.add(0, key.name());
+
+                while (true) {
+                    String currentKey = path.pop();
+                    if (path.isEmpty()) {
+                        parent.put(currentKey, value);
+                        break;
+                    }
+
+                    Object o = parent.get(currentKey);
+                    if (o == null) {
+                        Map<String, Object> child = new HashMap<>();
+                        parent.put(currentKey, child);
+                        parent = child;
+                    } else {
+                        assert o instanceof Map;
+                        parent = (Map)o;
+                    }
+                }
+            }
+        }
+
+        return nestedMap;
+    }
+
     @Override
     public void startProjection() {
         counter.set(0);
         try {
             output.open();
-            if (inputs != null && !inputs.isEmpty()) {
+            if (!overwrites.isEmpty()) {
+                rowWriter = new DocWriter(
+                        output.getOutputStream(), collectExpressions, overwrites, failure);
+            }
+            else if (inputs != null && !inputs.isEmpty()) {
                 rowWriter = new ColumnRowWriter(output.getOutputStream(), collectExpressions, inputs, failure);
             } else {
                 rowWriter = new RawRowWriter(output.getOutputStream(), failure);
@@ -167,6 +212,47 @@ public class WriterProjector implements Projector {
     interface RowWriter {
         void write(Object[] row);
         void close();
+    }
+
+    class DocWriter implements RowWriter {
+
+        private final OutputStream outputStream;
+        private final Set<CollectExpression<?>> collectExpressions;
+        private final Map<String, Object> overwrites;
+        private final AtomicReference<Throwable> failure;
+        private final XContentBuilder builder;
+
+        public DocWriter(OutputStream outputStream,
+                         Set<CollectExpression<?>> collectExpressions,
+                         Map<String, Object> overwrites,
+                         AtomicReference<Throwable> failure) throws IOException {
+            this.outputStream = outputStream;
+            this.collectExpressions = collectExpressions;
+            this.overwrites = overwrites;
+            this.failure = failure;
+            builder = XContentFactory.jsonBuilder(outputStream);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void write(Object[] row) {
+            for (CollectExpression<?> collectExpression : collectExpressions) {
+                collectExpression.setNextRow(row);
+            }
+            Map doc = (Map)row[0];
+            XContentHelper.update(doc, overwrites);
+            try {
+                builder.map(doc);
+                builder.flush();
+                outputStream.write(NEW_LINE);
+            } catch (IOException e) {
+                failure.set(new UnhandledServerException("Failed to write row to output", e));
+            }
+        }
+
+        @Override
+        public void close() {
+        }
     }
 
     class RawRowWriter implements RowWriter {
