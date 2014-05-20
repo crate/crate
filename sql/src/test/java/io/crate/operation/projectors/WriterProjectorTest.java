@@ -22,6 +22,8 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.metadata.ColumnIdent;
+import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
@@ -31,7 +33,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import javax.annotation.Nullable;
+import java.util.*;
+
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class WriterProjectorTest {
 
@@ -47,7 +54,8 @@ public class WriterProjectorTest {
                 uri,
                 settings,
                 null,
-                ImmutableSet.<CollectExpression<?>>of()
+                ImmutableSet.<CollectExpression<?>>of(),
+                new HashMap<ColumnIdent, Object>()
         );
         Projector downstream = new CollectingProjector();
         projector.downstream(downstream);
@@ -70,5 +78,27 @@ public class WriterProjectorTest {
                 "input line 02\n" +
                 "input line 03\n" +
                 "input line 04\n", TestingHelpers.readFile(uri));
+    }
+
+    @Test
+    public void testToNestedStringObjectMap() throws Exception {
+
+        Map<ColumnIdent, Object> columnIdentMap = new HashMap<>();
+        columnIdentMap.put(new ColumnIdent("some", Arrays.asList("nested", "column")), "foo");
+        Map<String, Object> convertedMap = TestableWriterProjector.toNestedStringObjectMap(columnIdentMap);
+
+        Map someMap = (Map) convertedMap.get("some");
+        Map nestedMap = (Map) someMap.get("nested");
+        assertThat((String)nestedMap.get("column"), is("foo"));
+    }
+
+    static class TestableWriterProjector extends WriterProjector {
+        public TestableWriterProjector(String uri,
+                                       Settings settings,
+                                       @Nullable List<Input<?>> inputs,
+                                       Set<CollectExpression<?>> collectExpressions,
+                                       Map<ColumnIdent, Object> overwrites) {
+            super(uri, settings, inputs, collectExpressions, overwrites);
+        }
     }
 }

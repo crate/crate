@@ -461,7 +461,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         for (Path entry: stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1.json"));
+        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1_.json"));
         assertTrue(path.toFile().exists());
         assertThat(lines.size(), is(7));
 
@@ -488,7 +488,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         for (Path entry: stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1.json"));
+        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1_.json"));
         assertTrue(path.toFile().exists());
 
         assertThat(lines.size(), is(7));
@@ -505,7 +505,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     }
 
     @Test
-    public void testCopyToDirectoryOnPartitionedTable() throws Exception {
+    public void testCopyToDirectoryOnPartitionedTableWithPartitionClause() throws Exception {
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
         SQLResponse response = executor.exec("copy parted partition (date='2014-01-01') to DIRECTORY ?", uriTemplate);
         assertThat(response.rowCount(), is(2L));
@@ -519,6 +519,28 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         for (String line : lines) {
             assertTrue(line.contains("2") || line.contains("1"));
             assertFalse(line.contains("1388534400000"));  // date column not included in export
+            assertThat(line, startsWith("{"));
+            assertThat(line, endsWith("}"));
+        }
+    }
+
+    @Test
+    public void testCopyToDirectoryOnPartitionedTableWithoutPartitionClause() throws Exception {
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        SQLResponse response = executor.exec("copy parted to DIRECTORY ?", uriTemplate);
+        assertThat(response.rowCount(), is(5L));
+
+        List<String> lines = new ArrayList<>(5);
+        DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
+        for (Path entry: stream) {
+            lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
+        }
+        assertThat(lines.size(), is(5));
+        for (String line : lines) {
+            // date column included in output
+            if (!line.contains("1388534400000")) {
+                assertTrue(line.contains("1391212800000"));
+            }
             assertThat(line, startsWith("{"));
             assertThat(line, endsWith("}"));
         }

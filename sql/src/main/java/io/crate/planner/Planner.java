@@ -34,7 +34,6 @@ import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
@@ -174,12 +173,19 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             contextBuilder = contextBuilder.output(columns);
             projection.inputs(contextBuilder.outputs());
         } else {
+            Reference sourceRef;
             if (analysis.table().isPartitioned() && analysis.partitionIdent() == null) {
-                throw new UnsupportedFeatureException(
-                        "Can't use copy to without partition clause on a partitioned table");
+                // table is partitioned, insert partitioned columns into the output
+                sourceRef = new Reference(analysis.table().getColumnInfo(DocSysColumns.DOC));
+                Map<ColumnIdent, Symbol> overwrites = new HashMap<>();
+                for (ReferenceInfo referenceInfo : analysis.table().partitionedByColumns()) {
+                    overwrites.put(referenceInfo.ident().columnIdent(), new Reference(referenceInfo));
+                }
+                projection.overwrites(overwrites);
+            } else {
+                sourceRef = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
             }
-            Reference rawReference = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
-            contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(rawReference));
+            contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(sourceRef));
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
                 analysis,
