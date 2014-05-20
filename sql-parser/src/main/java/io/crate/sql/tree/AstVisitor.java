@@ -536,4 +536,12 @@ public abstract class AstVisitor<R, C>
     public R visitArrayComparisonExpression(ArrayComparisonExpression node, C context) {
         return visitExpression(node, context);
     }
+
+    public R visitArrayLiteral(ArrayLiteral node, C context) {
+        return visitLiteral(node, context);
+    }
+
+    public R visitObjectLiteral(ObjectLiteral node, C context) {
+        return visitLiteral(node, context);
+    }
 }

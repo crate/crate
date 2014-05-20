@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.SqlFormatter.orderByFormatterFunction;
@@ -166,6 +167,40 @@ public final class ExpressionFormatter
         {
             String sign = (node.getSign() == IntervalLiteral.Sign.NEGATIVE) ? "- " : "";
             return "INTERVAL " + sign + "'" + node.getValue() + "' " + node.getType();
+        }
+
+        @Override
+        public String visitArrayLiteral(ArrayLiteral node, Void context) {
+            StringBuilder builder = new StringBuilder("[");
+            boolean first = true;
+            for (Expression element : node.values()) {
+                if (!first) {
+                    builder.append(",");
+                } else {
+                    first = false;
+                }
+                builder.append(element.accept(this, context));
+
+            }
+            return builder.append("]").toString();
+        }
+
+        @Override
+        public String visitObjectLiteral(ObjectLiteral node, Void context) {
+            StringBuilder builder = new StringBuilder("{");
+            boolean first = true;
+            for (Map.Entry<String, Expression> entry : node.values().entrySet()) {
+                if (!first) {
+                    builder.append(", ");
+                } else {
+                    first = false;
+                }
+                builder.append(entry.getKey())
+                       .append(": ")
+                       .append(entry.getValue().accept(this, context));
+
+            }
+            return builder.append("}").toString();
         }
 
         @Override
