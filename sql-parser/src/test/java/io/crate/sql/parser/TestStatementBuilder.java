@@ -281,6 +281,10 @@ public class TestStatementBuilder
         printStatement("set global sys.cluster['some_settings'] = '1', other_setting = 2");
         printStatement("set global transient sys.cluster['some_settings'] = '1'");
         printStatement("set global persistent sys.cluster['some_settings'] = '1'");
+
+        printStatement("reset global some_setting['nested'], other_setting");
+        printStatement("reset global transient some_setting['nested'], other_setting");
+        printStatement("reset global persistent some_setting['nested'], other_setting");
     }
 
     @Test

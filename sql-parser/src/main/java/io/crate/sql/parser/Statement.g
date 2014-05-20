@@ -200,6 +200,7 @@ statement
     | createAnalyzerStmt
     | refreshStmt
     | setStmt
+    | resetStmt
     ;
 
 query
@@ -717,7 +718,7 @@ identList
     ;
 
 columnList
-    : '(' subscript ( ',' subscript )* ')' -> ^(COLUMN_LIST subscript+)
+    : subscript ( ',' subscript )* -> ^(COLUMN_LIST subscript+)
     ;
 
 insertValues
@@ -747,7 +748,7 @@ assignment
     ;
 
 copyToStmt
-    : COPY table columnList? TO DIRECTORY? expr
+    : COPY table ( '(' columnList ')' )? TO DIRECTORY? expr
       ( WITH '(' genericProperties ')' )? -> ^(COPY_TO table columnList? DIRECTORY? expr genericProperties?)
     ;
 
@@ -858,7 +859,7 @@ columnIndexConstraint
     ;
 
 indexDefinition
-    : INDEX ident USING indexMethod=ident columnList (WITH '(' genericProperties ')' )? -> ^(INDEX ident $indexMethod columnList genericProperties?)
+    : INDEX ident USING indexMethod=ident '(' columnList ')' (WITH '(' genericProperties ')' )? -> ^(INDEX ident $indexMethod columnList genericProperties?)
     ;
 
 genericProperties
@@ -875,7 +876,7 @@ literalList
     ;
 
 primaryKeyConstraint
-    : PRIMARY_KEY columnList -> ^(PRIMARY_KEY columnList)
+    : PRIMARY_KEY '(' columnList ')' -> ^(PRIMARY_KEY columnList)
     ;
 
 clusteredInto
@@ -887,7 +888,7 @@ clusteredBy
     ;
 
 partitionedBy
-    : PARTITIONED BY columnList -> ^(PARTITIONED columnList)
+    : PARTITIONED BY '(' columnList ')' -> ^(PARTITIONED columnList)
     ;
 
 
@@ -932,6 +933,10 @@ refreshStmt
 
 setStmt
     : SET GLOBAL settingsType? assignmentList -> ^(SET settingsType? assignmentList)
+    ;
+
+resetStmt
+    : RESET GLOBAL settingsType? columnList -> ^(RESET settingsType? columnList)
     ;
 
 settingsType
