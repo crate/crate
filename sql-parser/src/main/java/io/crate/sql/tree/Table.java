@@ -22,23 +22,26 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 public class Table
         extends QueryBody
 {
     private final QualifiedName name;
-    private final Optional<GenericProperties> partitionProperties;
+    private final List<Assignment> partitionProperties;
 
     public Table(QualifiedName name)
     {
         this.name = name;
-        this.partitionProperties = Optional.absent();
+        this.partitionProperties = ImmutableList.of();
     }
 
-    public Table(QualifiedName name, GenericProperties partitionProperties) {
+    public Table(QualifiedName name, @Nullable List<Assignment> partitionProperties) {
         this.name = name;
-        this.partitionProperties = Optional.fromNullable(partitionProperties);
+        this.partitionProperties = Objects.firstNonNull(partitionProperties, ImmutableList.<Assignment>of());
     }
 
     public QualifiedName getName()
@@ -46,7 +49,7 @@ public class Table
         return name;
     }
 
-    public Optional<GenericProperties> partitionProperties() {
+    public List<Assignment> partitionProperties() {
         return partitionProperties;
     }
 

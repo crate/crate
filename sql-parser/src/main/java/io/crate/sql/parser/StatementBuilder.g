@@ -281,7 +281,7 @@ relationType returns [Relation value]
     ;
 
 namedTablePartitioned returns [Table value]
-    : ^(TABLE qname genericProperties?) { $value = new Table($qname.value, $genericProperties.value ); }
+    : ^(TABLE qname assignmentList?) { $value = new Table($qname.value, $assignmentList.value ); }
     ;
 
 namedTable returns [Table value]
@@ -359,6 +359,8 @@ expr returns [Expression value]
     | extract               { $value = $extract.value; }
     | current_time          { $value = $current_time.value; }
     | cast                  { $value = $cast.value; }
+    | arrayLiteral          { $value = $arrayLiteral.value; }
+    | objectLiteral         { $value = $objectLiteral.value; }
     ;
 
 exprList returns [List<Expression> value = new ArrayList<>()]
@@ -790,12 +792,19 @@ genericProperties returns [GenericProperties value = new GenericProperties()]
     ;
 
 genericProperty returns [GenericProperty value]
-    : ^(GENERIC_PROPERTY key=ident expr) { $value = new GenericProperty($key.value, ImmutableList.of($expr.value)); }
-    | ^(GENERIC_PROPERTY key=ident literalList) { $value = new GenericProperty($key.value, $literalList.value); }
+    : ^(GENERIC_PROPERTY key=ident expr) { $value = new GenericProperty($key.value, $expr.value); }
     ;
 
-literalList returns [List<Expression> value]
-    : ^(LITERAL_LIST exprList) { $value=$exprList.value; }
+arrayLiteral returns [ArrayLiteral value]
+    : ^(ARRAY_LITERAL exprList) { $value=new ArrayLiteral($exprList.value); }
+    ;
+
+objectLiteral returns [ObjectLiteral value]
+    : ^(OBJECT_LITERAL objectAttributes) { $value = new ObjectLiteral($objectAttributes.value); }
+    ;
+
+objectAttributes returns [Map<String, Expression> value = new HashMap<String, Expression>()]
+    : ( ^(KEY_VALUE key=ident val=expr) { $value.put($key.value, $val.value); } )*
     ;
 
 indexDefinition returns [IndexDefinition value]
