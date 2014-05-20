@@ -6,6 +6,7 @@ import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.WhereClause;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
@@ -163,6 +164,7 @@ public class PlannerTest {
                     .build();
             TableIdent partedTableIdent = new TableIdent(null, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
+                    .addDocSysColumns()
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
@@ -805,6 +807,23 @@ public class PlannerTest {
 
         assertThat(nameRef.info().ident().columnIdent().name(), is(DocSysColumns.DOC.name()));
         assertThat(nameRef.info().ident().columnIdent().path().get(0), is("name"));
+    }
+
+    @Test
+    public void testCopyToWithPartitionClause() throws Exception {
+        Plan plan = plan("copy parted partition (date=0) to '/foo.txt' ");
+        CollectNode collectNode = (CollectNode) plan.iterator().next();
+
+        // locations are zero here because the mocked routing setup doesn't include the partitioned tables
+        // and the regular tables get filtered away
+        for (Map.Entry<String, Map<String, Set<Integer>>> entry : collectNode.routing().locations().entrySet()) {
+            assertThat(entry.getValue().size(), is(0));
+        }
+    }
+
+    @Test (expected = UnsupportedFeatureException.class)
+    public void testCopyToOnPartitionedTableWithoutPartitionClause() throws Exception {
+        plan("copy parted to '/foo.txt' ");
     }
 
     @Test (expected = IllegalArgumentException.class)

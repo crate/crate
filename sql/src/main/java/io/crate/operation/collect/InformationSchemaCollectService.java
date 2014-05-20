@@ -124,7 +124,7 @@ public class InformationSchemaCollectService implements CollectService {
                     @Override
                     public boolean apply(@Nullable ReferenceInfo input) {
                         return input != null
-                                && !DocSysColumns.columnIdents.containsKey(input.ident().columnIdent())
+                                && !DocSysColumns.COLUMN_IDENTS.containsKey(input.ident().columnIdent())
                                 && input.type() != DataTypes.NOT_SUPPORTED;
                     }
                 }).iterator();
