@@ -548,4 +548,8 @@ public abstract class AstVisitor<R, C>
     public R visitSetStatement(SetStatement node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitResetStatement(ResetStatement node, C context) {
+        return visitStatement(node, context);
+    }
 }
