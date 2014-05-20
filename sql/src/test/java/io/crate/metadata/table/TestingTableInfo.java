@@ -23,13 +23,14 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.types.DataType;
 import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
+import io.crate.types.DataType;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -65,6 +66,17 @@ public class TestingTableInfo extends AbstractTableInfo {
             this.granularity = granularity;
             this.routing = routing;
             this.ident = ident;
+        }
+
+        public Builder addDocSysColumns() {
+            for (Map.Entry<ColumnIdent, DataType> entry : DocSysColumns.COLUMN_IDENTS.entrySet()) {
+                add(entry.getKey(), entry.getValue());
+            }
+            return this;
+        }
+
+        public Builder add(ColumnIdent columnIdent, DataType type) {
+            return add(columnIdent.name(), type, columnIdent.path());
         }
 
         public Builder add(String column, DataType type, List<String> path) {
@@ -120,12 +132,19 @@ public class TestingTableInfo extends AbstractTableInfo {
         }
 
         public TableInfo build() {
-            return new TestingTableInfo(columns.build(), partitionedByColumns.build(),
-                    references.build(), ident,
-                    granularity, routing, primaryKey.build(), clusteredBy, isAlias,
-                    partitionedBy.build(), partitions.build());
+            return new TestingTableInfo(
+                    columns.build(),
+                    partitionedByColumns.build(),
+                    references.build(),
+                    ident,
+                    granularity,
+                    routing,
+                    primaryKey.build(),
+                    clusteredBy,
+                    isAlias,
+                    partitionedBy.build(),
+                    partitions.build());
         }
-
 
     }
 

@@ -24,7 +24,7 @@ public class DocSysColumns {
     public static final ColumnIdent DOC = new ColumnIdent("_doc");
     public static final ColumnIdent RAW = new ColumnIdent("_raw");
 
-    public static ImmutableMap<ColumnIdent, DataType> columnIdents = ImmutableMap.<ColumnIdent, DataType>builder()
+    public static final ImmutableMap<ColumnIdent, DataType> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType>builder()
             .put(ID, DataTypes.STRING)
             .put(VERSION, DataTypes.LONG)
             .put(SCORE, DataTypes.DOUBLE)
@@ -38,9 +38,9 @@ public class DocSysColumns {
     }
 
     public static List<Tuple<ColumnIdent, ReferenceInfo>> forTable(TableIdent tableIdent) {
-        List<Tuple<ColumnIdent, ReferenceInfo>> columns = new ArrayList<>(columnIdents.size());
+        List<Tuple<ColumnIdent, ReferenceInfo>> columns = new ArrayList<>(COLUMN_IDENTS.size());
 
-        for (Map.Entry<ColumnIdent, DataType> entry : columnIdents.entrySet()) {
+        for (Map.Entry<ColumnIdent, DataType> entry : COLUMN_IDENTS.entrySet()) {
             columns.add(new Tuple<>(entry.getKey(), newInfo(tableIdent, entry.getKey(), entry.getValue())));
         }
 

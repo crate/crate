@@ -23,14 +23,20 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.PartitionName;
 import io.crate.analyze.AbstractDataAnalysis;
+import io.crate.metadata.Routing;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 
+import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 class PlanNodeBuilder {
 
@@ -94,8 +100,14 @@ class PlanNodeBuilder {
 
     static CollectNode collect(AbstractDataAnalysis analysis,
                                List<Symbol> toCollect,
-                               ImmutableList<Projection> projections) {
-        CollectNode node = new CollectNode("collect", analysis.table().getRouting(analysis.whereClause()));
+                               ImmutableList<Projection> projections,
+                               @Nullable String partitionIdent) {
+        Routing routing = analysis.table().getRouting(analysis.whereClause());
+        if (partitionIdent != null && routing.hasLocations()) {
+            routing = filterRouting(routing, PartitionName.fromPartitionIdent(
+                            analysis.table().ident().name(), partitionIdent).stringValue());
+        }
+        CollectNode node = new CollectNode("collect", routing);
         node.whereClause(analysis.whereClause());
         node.toCollect(toCollect);
         node.maxRowGranularity(analysis.rowGranularity());
@@ -103,5 +115,28 @@ class PlanNodeBuilder {
         node.isPartitioned(analysis.table().isPartitioned());
         setOutputTypes(node);
         return node;
+    }
+
+    private static Routing filterRouting(Routing routing, String includeTableName) {
+        assert routing.hasLocations();
+        assert includeTableName != null;
+        Map<String, Map<String, Set<Integer>>> newLocations = new HashMap<>();
+
+        for (Map.Entry<String, Map<String, Set<Integer>>> entry : routing.locations().entrySet()) {
+            Map<String, Set<Integer>> tableMap = new HashMap<>();
+            newLocations.put(entry.getKey(), tableMap);
+            for (Map.Entry<String, Set<Integer>> tableEntry : entry.getValue().entrySet()) {
+                if (includeTableName.equals(tableEntry.getKey())) {
+                    tableMap.put(tableEntry.getKey(), tableEntry.getValue());
+                }
+            }
+        }
+        return new Routing(newLocations);
+    }
+
+    static CollectNode collect(AbstractDataAnalysis analysis,
+                               List<Symbol> toCollect,
+                               ImmutableList<Projection> projections) {
+        return collect(analysis, toCollect, projections, null);
     }
 }

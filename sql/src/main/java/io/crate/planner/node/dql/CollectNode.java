@@ -191,7 +191,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         if (in.readBoolean()) {
             jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
         }
-
     }
 
     @Override
@@ -253,5 +252,4 @@ public class CollectNode extends AbstractDQLPlanNode {
         }
         return result;
     }
-
 }

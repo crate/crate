@@ -69,6 +69,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             }
             executor = SQLTransportExecutor.create(ClassLifecycleIntegrationTest.GLOBAL_CLUSTER);
             Setup setup = new Setup(executor);
+            setup.partitionTableSetup();
             setup.groupBySetup();
             executor.ensureGreen();
             dataInitialized = true;
@@ -501,5 +502,25 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testDateRange() throws Exception {
         SQLResponse response = executor.exec("select * from characters where birthdate > '1970-01-01'");
         assertThat(response.rowCount(), Matchers.is(2L));
+    }
+
+    @Test
+    public void testCopyToDirectoryOnPartitionedTable() throws Exception {
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        SQLResponse response = executor.exec("copy parted partition (date='2014-01-01') to DIRECTORY ?", uriTemplate);
+        assertThat(response.rowCount(), is(2L));
+
+        List<String> lines = new ArrayList<>(2);
+        DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
+        for (Path entry: stream) {
+            lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
+        }
+        assertThat(lines.size(), is(2));
+        for (String line : lines) {
+            assertTrue(line.contains("2") || line.contains("1"));
+            assertFalse(line.contains("1388534400000"));  // date column not included in export
+            assertThat(line, startsWith("{"));
+            assertThat(line, endsWith("}"));
+        }
     }
 }

@@ -270,4 +270,18 @@ public class Setup {
                 );
         transportExecutor.refresh("any_table");
     }
+
+    public void partitionTableSetup() {
+        transportExecutor.exec("create table parted (" +
+                "id int primary key," +
+                "date timestamp primary key" +
+                ") partitioned by (date) with (number_of_replicas=0)");
+        transportExecutor.ensureGreen();
+        transportExecutor.exec("insert into parted (id, date) values (1, '2014-01-01')");
+        transportExecutor.exec("insert into parted (id, date) values (2, '2014-01-01')");
+        transportExecutor.exec("insert into parted (id, date) values (3, '2014-02-01')");
+        transportExecutor.exec("insert into parted (id, date) values (4, '2014-02-01')");
+        transportExecutor.exec("insert into parted (id, date) values (5, '2014-02-01')");
+        transportExecutor.refresh("parted");
+    }
 }

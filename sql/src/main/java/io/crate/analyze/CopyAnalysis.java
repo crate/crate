@@ -28,6 +28,8 @@ import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
+
 public class CopyAnalysis extends AbstractDataAnalysis {
 
     private Settings settings = ImmutableSettings.EMPTY;
@@ -50,6 +52,7 @@ public class CopyAnalysis extends AbstractDataAnalysis {
         return uri;
     }
 
+    @Nullable
     public String partitionIdent() {
         return this.partitionIdent;
     }
