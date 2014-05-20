@@ -25,30 +25,41 @@ import com.google.common.base.Preconditions;
 import io.crate.PartitionName;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.Assignment;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class PartitionPropertiesAnalyzer {
 
+    public static Map<String, Object> assignmentsToMap(List<Assignment> assignments,
+                                                       Object[] parameters) {
+        Map<String, Object> map = new HashMap<>(assignments.size());
+        for (Assignment assignment : assignments) {
+            map.put(
+                    ExpressionToStringVisitor.convert(assignment.columnName(), parameters),
+                    ExpressionToObjectVisitor.convert(assignment.expression(), parameters)
+                    );
+        }
+        return map;
+    }
+
     public static String toPartitionIdent(TableInfo tableInfo,
-                                          GenericProperties partitionProperties,
+                                          List<Assignment> partitionProperties,
                                           Object[] parameters) {
-        Map<String, List<Expression>> properties = partitionProperties.properties();
-        Preconditions.checkArgument(properties.size() == tableInfo.partitionedBy().size(),
+        Preconditions.checkArgument(partitionProperties.size() == tableInfo.partitionedBy().size(),
                 "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
                 tableInfo.ident().name(),
                 tableInfo.partitionedBy().size(),
-                properties.size()
+                partitionProperties.size()
         );
-
+        Map<String, Object> properties = assignmentsToMap(partitionProperties, parameters);
         String[] values = new String[properties.size()];
-        for (Map.Entry<String, List<Expression>> stringListEntry : properties.entrySet()) {
-            Object value = ExpressionToObjectVisitor.convert(
-                    stringListEntry.getValue().get(0), parameters);
+
+        for (Map.Entry<String, Object> stringListEntry : properties.entrySet()) {
+            Object value = stringListEntry.getValue();
 
             int idx = tableInfo.partitionedBy().indexOf(stringListEntry.getKey());
             try {
@@ -60,5 +71,6 @@ public class PartitionPropertiesAnalyzer {
             }
         }
         return PartitionName.encodeIdent(Arrays.asList(values));
+
     }
 }

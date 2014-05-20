@@ -435,6 +435,65 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     }
 
     @Override
+    public Symbol visitArrayLiteral(ArrayLiteral node, T context) {
+        // TODO: support everything that is immediately evaluable as values
+        switch (node.values().size()) {
+            case 0:
+                return Literal.newLiteral(new ArrayType(NullType.INSTANCE), new Object[0]);
+            default:
+                DataType innerType = null;
+                List<Literal> literals = new ArrayList<>(node.values().size());
+                for (Expression e : node.values()) {
+                    Symbol arrayElement = process(e, context);
+                    if (arrayElement instanceof Parameter) {
+                        arrayElement = Literal.fromParameter((Parameter) arrayElement);
+                    } else if (!(arrayElement instanceof DataTypeSymbol)) {
+                        throw new IllegalArgumentException(
+                                SymbolFormatter.format("invalid array literal element: %s", arrayElement)
+                        );
+                    }
+                    if (innerType == null) {
+                        innerType = ((DataTypeSymbol)arrayElement).valueType();
+                    } else if (!((DataTypeSymbol)arrayElement).valueType().equals(innerType)){
+                        throw new IllegalArgumentException(
+                                String.format(Locale.ENGLISH,
+                                        "array element %s not of array item type %s",
+                                        e, innerType));
+                    }
+                    literals.add(toLiteral(arrayElement, innerType));
+                }
+                return Literal.implodeCollection(innerType, literals);
+        }
+    }
+
+    @Override
+    public Symbol visitObjectLiteral(ObjectLiteral node, T context) {
+        // TODO: support everything that is immediately evaluable as values
+        Map<String, Object> values = new HashMap<>(node.values().size());
+        for (Map.Entry<String, Expression> entry : node.values().entries()) {
+            Object value;
+            try {
+                value = ExpressionToObjectVisitor.convert(
+                        entry.getValue(), context.parameters());
+            } catch (UnsupportedOperationException e) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH,
+                                "invalid object literal value '%s'",
+                                entry.getValue())
+                );
+            }
+
+            if (values.put(entry.getKey(), value) != null) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH,
+                                "key '%s' listed twice in object literal",
+                                entry.getKey()));
+            }
+        }
+        return Literal.newLiteral(values);
+    }
+
+    @Override
     public Symbol visitParameterExpression(ParameterExpression node, T context) {
         return new Parameter(context.parameterAt(node.index()));
     }

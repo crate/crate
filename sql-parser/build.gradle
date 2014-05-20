@@ -30,7 +30,7 @@ dependencies {
 }
 
 task generateWithANTLR3(type:Exec) { 
-    commandLine = ['java', '-cp',  configurations.antlr3.getAsPath(), 'org.antlr.Tool', '-report', '-o', '.', 'src/main/java/io/crate/sql/parser/Statement.g', 'src/main/java/io/crate/sql/parser/StatementBuilder.g']
+    commandLine = ['java', '-cp',  configurations.antlr3.getAsPath(), 'org.antlr.Tool', '-o', '.', 'src/main/java/io/crate/sql/parser/Statement.g', 'src/main/java/io/crate/sql/parser/StatementBuilder.g']
 }
 
 compileJava {

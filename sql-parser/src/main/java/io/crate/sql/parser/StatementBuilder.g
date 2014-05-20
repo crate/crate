@@ -38,6 +38,8 @@ options {
     import com.google.common.collect.ImmutableList;
     import com.google.common.base.Objects;
     import com.google.common.base.Optional;
+    import com.google.common.collect.Multimap;
+    import com.google.common.collect.LinkedListMultimap;
 }
 
 @members {
@@ -803,7 +805,8 @@ objectLiteral returns [ObjectLiteral value]
     : ^(OBJECT_LITERAL objectAttributes) { $value = new ObjectLiteral($objectAttributes.value); }
     ;
 
-objectAttributes returns [Map<String, Expression> value = new HashMap<String, Expression>()]
+// track down duplicated to throw correct errors
+objectAttributes returns [Multimap<String, Expression> value = LinkedListMultimap.<String, Expression>create()]
     : ( ^(KEY_VALUE key=ident val=expr) { $value.put($key.value, $val.value); } )*
     ;
 

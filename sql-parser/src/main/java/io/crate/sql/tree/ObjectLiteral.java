@@ -22,20 +22,20 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 
 public class ObjectLiteral extends Literal {
 
-    private final Map<String, Expression> values;
+    private final Multimap<String, Expression> values;
 
-    public ObjectLiteral(@Nullable Map<String, Expression> values) {
-        this.values = Objects.firstNonNull(values, ImmutableMap.<String, Expression>of());
+    public ObjectLiteral(@Nullable Multimap<String, Expression> values) {
+        this.values = Objects.firstNonNull(values, ImmutableMultimap.<String, Expression>of());
     }
 
-    public Map<String, Expression> values() {
+    public Multimap<String, Expression> values() {
         return values;
     }
 

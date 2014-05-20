@@ -25,6 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.NumberOfReplicas;
 import io.crate.core.StringUtils;
+import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -32,7 +33,6 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.service.InternalIndexShard;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -67,7 +67,7 @@ public class TablePropertiesAnalysis {
                 builder.put(defaultSetting);
             }
         }
-        for (Map.Entry<String, List<Expression>> entry : properties.properties().entrySet()) {
+        for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
             SettingsApplier settingsApplier = supportedProperties.get(normalizeKey(entry.getKey()));
             if (settingsApplier == null) {
                 throw new IllegalArgumentException(
@@ -101,11 +101,11 @@ public class TablePropertiesAnalysis {
         @Override
         public void apply(ImmutableSettings.Builder settingsBuilder,
                           Object[] parameters,
-                          List<Expression> expressions) {
-            Preconditions.checkArgument(expressions.size() == 1,
-                    String.format("Invalid number of arguments passed to \"%s\"", NUMBER_OF_REPLICAS));
+                          Expression expression) {
+            Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
+                    String.format("array literal not allowed for \"%s\"", NUMBER_OF_REPLICAS));
 
-            Object numReplicas = ExpressionToObjectVisitor.convert(expressions.get(0), parameters);
+            Object numReplicas = ExpressionToObjectVisitor.convert(expression, parameters);
 
             NumberOfReplicas numberOfReplicas = new NumberOfReplicas(numReplicas.toString());
 
@@ -121,11 +121,10 @@ public class TablePropertiesAnalysis {
         @Override
         public void apply(ImmutableSettings.Builder settingsBuilder,
                           Object[] parameters,
-                          List<Expression> expressions) {
-            Preconditions.checkArgument(expressions.size() == 1,
-                    String.format("Invalid number of arguments passed to \"%s\"", REFRESH_INTERVAL));
-
-            Object refreshIntervalValue = ExpressionToObjectVisitor.convert(expressions.get(0), parameters);
+                          Expression expression) {
+            Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
+                    String.format("array literal not allowed for \"%s\"", NUMBER_OF_REPLICAS));
+            Object refreshIntervalValue = ExpressionToObjectVisitor.convert(expression, parameters);
             try {
                 Long.parseLong(refreshIntervalValue.toString());
             } catch (NumberFormatException e) {
