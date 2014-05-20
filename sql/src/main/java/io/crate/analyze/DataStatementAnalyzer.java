@@ -437,10 +437,9 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     @Override
     public Symbol visitArrayLiteral(ArrayLiteral node, T context) {
         // TODO: support everything that is immediately evaluable as values
-        switch (node.values().size()) {
-            case 0:
-                return Literal.newLiteral(new ArrayType(NullType.INSTANCE), new Object[0]);
-            default:
+        if (node.values().isEmpty()) {
+            return Literal.newLiteral(new ArrayType(NullType.INSTANCE), new Object[0]);
+        } else {
                 DataType innerType = null;
                 List<Literal> literals = new ArrayList<>(node.values().size());
                 for (Expression e : node.values()) {
