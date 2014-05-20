@@ -1,5 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: 'signing'
 
 archivesBaseName = "crate-client"
 
@@ -50,19 +51,16 @@ jar {
     baseName 'crate-client'
     duplicatesStrategy 'exclude'
 
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
+        exclude 'META-INF/**'
+    }}
+
     doLast {
-        from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
-            exclude 'META-INF/**'
-        }}
         manifest {
             attributes("Implementation-Title": "Crate Data Java Client")
             version project.version
         }
     }
-}
-
-artifacts {
-    archives jar
 }
 
 task buildJar(dependsOn: [':app:getVersion', ':core:compileSharedJava', ':sql:compileSharedJava', 'classes']) {
@@ -73,8 +71,50 @@ task buildJar(dependsOn: [':app:getVersion', ':core:compileSharedJava', ':sql:co
     }
 }
 
+task myJavadocs(type: Javadoc, dependsOn: processResources) {
+    classpath = configurations.compile
+    source = sourceSets.main.allJava + project(':core').sourceSets.shared.allJava + project(':sql').sourceSets.shared.allJava
+}
+task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
+    classifier = 'javadoc'
+    from myJavadocs.destinationDir
+    manifest {
+        attributes("Implementation-Title": "Crate Data Java Client")
+    }
+}
 
-install.dependsOn buildJar
+task buildJavadocJar (dependsOn: [':app:getVersion', myJavadocs] ) << {
+    ext.version = project(':app').getVersion.version
+    project.version = ext.version
+    tasks.javadocJar.execute()
+}
+
+task sourceJar (type : Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource + project(':core').sourceSets.shared.allSource + project(':sql').sourceSets.shared.allSource
+    manifest {
+        attributes("Implementation-Title": "Crate Data Java Client")
+    }
+}
+
+task buildSourceJar (dependsOn: [':app:getVersion'] ) << {
+    ext.version = project(':app').getVersion.version
+    project.version = ext.version
+    tasks.sourceJar.execute()
+}
+
+artifacts {
+    archives jar
+    archives javadocJar
+    archives sourceJar
+}
+
+task signJars (type : Sign, dependsOn: [buildJar, buildJavadocJar, buildSourceJar]) {
+    sign configurations.archives
+}
+
+
+install.dependsOn([buildJar, buildJavadocJar, buildSourceJar, signJars])
 install {
     repositories {
         mavenInstaller {
@@ -88,11 +128,12 @@ install {
 project.ext.sonatypeUsername = project.hasProperty('sonatypeUsername') ? sonatypeUsername : ""
 project.ext.sonatypePassword = project.hasProperty('sonatypePassword') ? sonatypePassword : ""
 
-uploadArchives.dependsOn buildJar
+uploadArchives.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava', buildJar, buildJavadocJar, buildSourceJar, signJars])
 uploadArchives {
     repositories{
         mavenDeployer {
             beforeDeployment {
+                MavenDeployment deployment -> signing.signPom(deployment)
                 if (project.ext.sonatypeUsername.length() == 0 || project.ext.sonatypePassword.length() == 0) {
                     throw new StopExecutionException("uploadArchives cannot be called without sonatype username and password")
                 }

@@ -28,12 +28,12 @@ sourceSets {
     }
     shared {
         java {
-            srcDir "src/main/java/io/crate/"
-            include "Streamer*"
-            include "TimestampFormat*"
-            include "core/collections/MapComparator*"
-            include "core/StringUtils*"
-            include "types/**"
+            srcDir "src/main/java/"
+            include "io/crate/Streamer*"
+            include "io/crate/TimestampFormat*"
+            include "io/crate/core/collections/MapComparator*"
+            include "io/crate/core/StringUtils*"
+            include "io/crate/types/**"
         }
     }
 }

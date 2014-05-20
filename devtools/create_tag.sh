@@ -53,7 +53,7 @@ then
 fi
 
 # install locally so we can get the version
-./gradlew install
+./gradlew installDist
 # get the version
 VERSION=`./app/build/install/crate/bin/crate -v | cut -d " " -f 2 | tr -d ','`
 
