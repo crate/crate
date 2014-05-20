@@ -42,18 +42,10 @@ public class NumberOfReplicas {
 
     public NumberOfReplicas(String replicas) {
         assert replicas != null;
-        try {
-            int numReplicas = Integer.parseInt(replicas);
-        } catch (NumberFormatException e) {
-            Preconditions.checkArgument(EXPAND_REPLICA_PATTERN.matcher(replicas).matches(),
-                    "The \"number_of_replicas\" range \"%s\" isn't valid", replicas);
+        Preconditions.checkArgument(EXPAND_REPLICA_PATTERN.matcher(replicas).matches(),
+                "The \"number_of_replicas\" range \"%s\" isn't valid", replicas);
 
-            this.esSettingKey = AUTO_EXPAND_REPLICAS;
-            this.esSettingsValue = replicas;
-            return;
-        }
-
-        this.esSettingKey = NUMBER_OF_REPLICAS;
+        this.esSettingKey = AUTO_EXPAND_REPLICAS;
         this.esSettingsValue = replicas;
     }
 

@@ -105,9 +105,14 @@ public class TablePropertiesAnalysis {
             Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
                     String.format("array literal not allowed for \"%s\"", NUMBER_OF_REPLICAS));
 
-            Object numReplicas = ExpressionToObjectVisitor.convert(expression, parameters);
-
-            NumberOfReplicas numberOfReplicas = new NumberOfReplicas(numReplicas.toString());
+            NumberOfReplicas numberOfReplicas;
+            try {
+                Integer numReplicas = ExpressionToNumberVisitor.convert(expression, parameters).intValue();
+                numberOfReplicas = new NumberOfReplicas(numReplicas);
+            } catch (IllegalArgumentException e) {
+                String numReplicas = ExpressionToObjectVisitor.convert(expression, parameters).toString();
+                numberOfReplicas = new NumberOfReplicas(numReplicas);
+            }
 
             // in case the number_of_replicas is changing from auto_expand to a fixed number -> disable auto expand
             settingsBuilder.put(AUTO_EXPAND_REPLICAS, false);
@@ -124,12 +129,13 @@ public class TablePropertiesAnalysis {
                           Expression expression) {
             Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
                     String.format("array literal not allowed for \"%s\"", NUMBER_OF_REPLICAS));
+
             Object refreshIntervalValue = ExpressionToObjectVisitor.convert(expression, parameters);
             try {
-                Long.parseLong(refreshIntervalValue.toString());
-            } catch (NumberFormatException e) {
+                Long refreshInterval = ExpressionToNumberVisitor.convert(expression, parameters).longValue();
+            } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid value for argument '"
-                        + REFRESH_INTERVAL + "'");
+                        + REFRESH_INTERVAL + "'", e);
             }
             settingsBuilder.put(REFRESH_INTERVAL, refreshIntervalValue.toString());
         }

@@ -300,12 +300,12 @@ Query for a property of an inner object::
     SELECT 1 row in set (... sec)
 
 
-.. note::
+Inserting objects::
 
-    It is currently not possible to insert objects using crash. In order to do
-    that it is necessary to use one of the client libraries like
-    `crate-python`_ or use the :doc:`rest`.
-
+    cr> insert into locations (id, name, position, kind, race)
+    ... values ('DO', 'Dornbirn', 14, 'City', {name='Vorarlberger',
+    ... description='Very nice people with a strange accent', interests=['mountains', 'cheese', 'enzian']});
+    INSERT OK, 1 row affected (... sec)
 
 .. _sql_dml_object_arrays:
 
@@ -331,13 +331,24 @@ Example::
     +-------------------+-------------------------------------------------------------------------------------------+----------------------------+
     SELECT 2 rows in set (... sec)
 
+    cr> insert into locations (id, name, position, kind, informations)
+    ... values ('B', 'Berlin', 15, 'City', [{evolution_level=6, population=3600001}, {evolution_level=42, population=1}]);
+    INSERT OK, 1 row affected (... sec)
+
+    cr> refresh table locations;
+    REFRESH OK (... sec)
+
     cr> select name from locations where 4 < ANY (informations['evolution_level']);
     +-------------------+
     | name              |
     +-------------------+
+    | Berlin            |
     | North West Ripple |
     +-------------------+
-    SELECT 1 row in set (... sec)
+    SELECT 2 rows in set (... sec)
+
+
+
 
 .. _sql_dml_aggregation:
 
@@ -400,7 +411,7 @@ Some Examples::
     +----------+
     | count(*) |
     +----------+
-    | 13       |
+    | 15       |
     +----------+
     SELECT 1 row in set (... sec)
 
@@ -420,7 +431,7 @@ Some Examples::
     +-------------+----------+
     | count(name) | count(*) |
     +-------------+----------+
-    | 12          | 13       |
+    | 14          | 15       |
     +-------------+----------+
     SELECT 1 row in set (... sec)
 
@@ -450,11 +461,12 @@ Some Examples::
     +----------+-------------+
     | count(*) | kind        |
     +----------+-------------+
+    | 2        | City        |
     | 4        | Galaxy      |
     | 5        | Planet      |
     | 4        | Star System |
     +----------+-------------+
-    SELECT 3 rows in set (... sec)
+    SELECT 4 rows in set (... sec)
 
 ::
 
@@ -462,11 +474,12 @@ Some Examples::
     +---------------+-------------+
     | max(position) | kind        |
     +---------------+-------------+
+    | 15            | City        |
     | 6             | Galaxy      |
     | 5             | Planet      |
     | 4             | Star System |
     +---------------+-------------+
-    SELECT 3 rows in set (... sec)
+    SELECT 4 rows in set (... sec)
 
 ::
 
@@ -476,9 +489,10 @@ Some Examples::
     +------------------------------------+-------------+
     |                                    | Planet      |
     | Aldebaran                          | Star System |
+    | Berlin                             | City        |
     | Galactic Sector QQ7 Active J Gamma | Galaxy      |
     +------------------------------------+-------------+
-    SELECT 3 rows in set (... sec)
+    SELECT 4 rows in set (... sec)
 
 ::
 
@@ -486,11 +500,12 @@ Some Examples::
     +----------+------------------------------------+-------------+
     | count(*) | min(name)                          | kind        |
     +----------+------------------------------------+-------------+
+    | 2        | Berlin                             | City        |
     | 4        | Galactic Sector QQ7 Active J Gamma | Galaxy      |
     | 5        |                                    | Planet      |
     | 4        | Aldebaran                          | Star System |
     +----------+------------------------------------+-------------+
-    SELECT 3 rows in set (... sec)
+    SELECT 4 rows in set (... sec)
 
 ::
 
@@ -501,8 +516,9 @@ Some Examples::
     | 10.0          | Star System |
     | 13.0          | Galaxy      |
     | 15.0          | Planet      |
+    | 29.0          | City        |
     +---------------+-------------+
-    SELECT 3 rows in set (... sec)
+    SELECT 4 rows in set (... sec)
 
 .. _sql_dml_group_by:
 
@@ -522,8 +538,9 @@ This is useful if used in conjunction with aggregation functions::
     | 5        | Planet      |
     | 4        | Galaxy      |
     | 4        | Star System |
+    | 2        | City        |
     +----------+-------------+
-    SELECT 3 rows in set (... sec)
+    SELECT 4 rows in set (... sec)
 
 .. note::
 
@@ -561,8 +578,8 @@ In order to get the match score of the fulltext search, an internal system colum
     +-----------+------------+
     | name      | _score     |
     +-----------+------------+
-    | Altair    | 0.56319076 |
-    | Bartledan | 0.4590714  |
+    | Altair    | 0.5965736  |
+    | Bartledan | 0.49279192 |
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
@@ -575,8 +592,8 @@ Of course it is possible to change it to use an ascending order instead::
     +-----------+------------+
     | name      | _score     |
     +-----------+------------+
-    | Bartledan | 0.4590714  |
-    | Altair    | 0.56319076 |
+    | Bartledan | 0.49279192 |
+    | Altair    | 0.5965736  |
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
@@ -598,14 +615,16 @@ A negative fulltext search can be done using a ``NOT`` clause::
     | Alpha Centauri                     | 1.0    |
     | Allosimanius Syneca                | 1.0    |
     | NULL                               | 1.0    |
+    | Berlin                             | 1.0    |
     | North West Ripple                  | 1.0    |
     | Galactic Sector QQ7 Active J Gamma | 1.0    |
     | Algol                              | 1.0    |
     | Argabuthon                         | 1.0    |
     | Arkintoofle Minor                  | 1.0    |
     |                                    | 1.0    |
+    | Dornbirn                           | 1.0    |
     +------------------------------------+--------+
-    SELECT 11 rows in set (... sec)
+    SELECT 13 rows in set (... sec)
 
 
 Filter by :ref:`_score <sql_ddl_system_column_score>`
@@ -621,11 +640,11 @@ Anyway let's do it here for demonstration purpose::
 
     cr> select name, \"_score\" from locations where match(name_description_ft, 'time')
     ... and \"_score\" > 0.9;
-    +--------+-----------+
-    | name   | _score    |
-    +--------+-----------+
-    | Altair | 0.9204767 |
-    +--------+-----------+
+    +--------+------------+
+    | name   | _score     |
+    +--------+------------+
+    | Altair | 0.93670994 |
+    +--------+------------+
     SELECT 1 row in set (... sec)
 
 As you maybe noticed, the :ref:`_score <sql_ddl_system_column_score>` value has changed for the
