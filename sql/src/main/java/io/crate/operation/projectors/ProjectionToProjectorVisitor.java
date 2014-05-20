@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -35,8 +36,7 @@ import io.crate.types.StringType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Provider;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projector> {
 
@@ -141,6 +141,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 inputs.add(symbolVisitor.process(symbol, symbolContext));
             }
         }
+        Map<ColumnIdent, Object> overwrites = symbolMapToObject(projection.overwrites(), symbolContext);
 
         projection = projection.normalize(normalizer);
         String uri = StringValueSymbolVisitor.INSTANCE.process(projection.uri());
@@ -163,8 +164,21 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 uri,
                 projection.settings(),
                 inputs,
-                symbolContext.collectExpressions()
+                symbolContext.collectExpressions(),
+                overwrites
         );
+    }
+
+    protected Map<ColumnIdent, Object> symbolMapToObject(Map<ColumnIdent, Symbol> symbolMap,
+                                                         ImplementationSymbolVisitor.Context symbolContext) {
+        Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
+        for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
+            objectMap.put(
+                    entry.getKey(),
+                    symbolVisitor.process(normalizer.normalize(entry.getValue()), symbolContext).value()
+            );
+        }
+        return objectMap;
     }
 
     public Projector visitIndexWriterProjection(IndexWriterProjection projection, Void context) {
