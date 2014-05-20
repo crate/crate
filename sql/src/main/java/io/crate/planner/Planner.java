@@ -34,6 +34,7 @@ import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
@@ -152,45 +153,54 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         if (analysis.mode() == CopyAnalysis.Mode.FROM) {
             copyFromPlan(analysis, plan);
         } else if (analysis.mode() == CopyAnalysis.Mode.TO) {
-            WriterProjection projection = new WriterProjection();
-            projection.uri(analysis.uri());
-            projection.isDirectoryUri(analysis.directoryUri());
-            projection.settings(analysis.settings());
-
-            PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
-            if (analysis.outputSymbols() != null && !analysis.outputSymbols().isEmpty()) {
-                // TODO: rewrite to lookup from DocReference (to avoid fieldcache)
-                List<Symbol> columns = new ArrayList<>(analysis.outputSymbols().size());
-                for (Symbol symbol : analysis.outputSymbols()) {
-                    columns.add(DocReferenceBuildingVisitor.INSTANCE.process(symbol, null));
-                }
-                contextBuilder = contextBuilder.output(columns);
-                projection.inputs(contextBuilder.outputs());
-            } else {
-                Reference rawReference = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
-                contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(rawReference));
-            }
-            CollectNode collectNode = PlanNodeBuilder.collect(analysis,
-                    contextBuilder.toCollect(),
-                    ImmutableList.<Projection>of(projection));
-
-            plan.add(collectNode);
-            AggregationProjection aggregationProjection = new AggregationProjection(
-                    Arrays.asList(new Aggregation(
-                                    analysis.getFunctionInfo(
-                                            new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
-                                    ),
-                                    Arrays.<Symbol>asList(new InputColumn(0)),
-                                    Aggregation.Step.ITER,
-                                    Aggregation.Step.FINAL
-                            )
-                    ));
-            MergeNode mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(aggregationProjection), collectNode);
-            plan.add(mergeNode);
-            plan.expectsAffectedRows(true);
+            copyToPlan(analysis, plan);
         }
 
         return plan;
+    }
+
+    private void copyToPlan(CopyAnalysis analysis, Plan plan) {
+        WriterProjection projection = new WriterProjection();
+        projection.uri(analysis.uri());
+        projection.isDirectoryUri(analysis.directoryUri());
+        projection.settings(analysis.settings());
+
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
+        if (analysis.outputSymbols() != null && !analysis.outputSymbols().isEmpty()) {
+            List<Symbol> columns = new ArrayList<>(analysis.outputSymbols().size());
+            for (Symbol symbol : analysis.outputSymbols()) {
+                columns.add(DocReferenceBuildingVisitor.convert(symbol));
+            }
+            contextBuilder = contextBuilder.output(columns);
+            projection.inputs(contextBuilder.outputs());
+        } else {
+            if (analysis.table().isPartitioned() && analysis.partitionIdent() == null) {
+                throw new UnsupportedFeatureException(
+                        "Can't use copy to without partition clause on a partitioned table");
+            }
+            Reference rawReference = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
+            contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(rawReference));
+        }
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                analysis,
+                contextBuilder.toCollect(),
+                ImmutableList.<Projection>of(projection),
+                analysis.partitionIdent()
+        );
+        plan.add(collectNode);
+        AggregationProjection aggregationProjection = new AggregationProjection(
+                Arrays.asList(new Aggregation(
+                                analysis.getFunctionInfo(
+                                        new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
+                                ),
+                                Arrays.<Symbol>asList(new InputColumn(0)),
+                                Aggregation.Step.ITER,
+                                Aggregation.Step.FINAL
+                        )
+                ));
+        MergeNode mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(aggregationProjection), collectNode);
+        plan.add(mergeNode);
+        plan.expectsAffectedRows(true);
     }
 
     private void copyFromPlan(CopyAnalysis analysis, Plan plan) {

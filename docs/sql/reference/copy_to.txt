@@ -12,8 +12,10 @@ Synopsis
 
 ::
 
-    COPY table_ident [ column (, ...) ] TO [DIRECTORY] { output_uri }
-    [ WITH ( copy_parameter [= value] [, ... ] ) ]
+    COPY table_ident [ PARTITION ( partition_column = value [ , ... ] ) ]
+                     [ ( column [ , ...] ) ]
+                     TO [DIRECTORY] { output_uri }
+                     [ WITH ( copy_parameter [= value] [, ... ] ) ]
 
 Description
 ===========
@@ -70,6 +72,27 @@ will be used.
    A ``secretkey`` provided by Amazon Web Service can contain characters such
    as '/', '+' or '='. Such characters must be URI encoded. The same encoding
    as in :ref:`copy_from_s3` applies.
+
+PARTITION Clause
+================
+
+If the table is partitioned this clause can be used to only export data from a
+specific partition.
+
+The exported data doesn't contain the partition columns or values as they are
+not part of the partitioned tables.
+
+::
+
+    [ PARTITION ( partition_column = value [ , ... ] ) ]
+
+
+:partition_column: The name of the column by which the table is partitioned.
+                   All partition columns that were part of the
+                   :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
+                   statement must be specified.
+
+:value: The columns value.
 
 WITH Clause
 ===========

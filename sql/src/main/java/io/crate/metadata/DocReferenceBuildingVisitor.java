@@ -34,7 +34,11 @@ import java.util.List;
  */
 public class DocReferenceBuildingVisitor extends SymbolVisitor<Void, Symbol> {
 
-    public final static DocReferenceBuildingVisitor INSTANCE = new DocReferenceBuildingVisitor();
+    private final static DocReferenceBuildingVisitor INSTANCE = new DocReferenceBuildingVisitor();
+
+    public static Symbol convert(Symbol symbol) {
+        return INSTANCE.process(symbol, null);
+    }
 
     @Override
     public Symbol visitFunction(Function symbol, Void context) {
