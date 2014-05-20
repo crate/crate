@@ -49,11 +49,11 @@ test {
 jar {
     baseName 'crate-client'
     duplicatesStrategy 'exclude'
-    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
-        exclude 'META-INF/**'
-    }}
 
     doLast {
+        from configurations.compile.collect { it.isDirectory() ? it : zipTree(it).matching{
+            exclude 'META-INF/**'
+        }}
         manifest {
             attributes("Implementation-Title": "Crate Data Java Client")
             version project.version
