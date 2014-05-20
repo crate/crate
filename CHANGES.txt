@@ -2,6 +2,18 @@
 Changes for Crate Data
 ======================
 
+2014/05/20 0.37.4
+=================
+
+ - updated crash to 0.9.6 which includes the following changes:
+
+    - crash exited immediately with an exception if a query result
+      contained an object or array
+
+    - the size of the history file is now limited to 10000 lines
+
+    - stdin is no longer read completely into memory
+
 2014/05/19 0.38.0
 =================
 
