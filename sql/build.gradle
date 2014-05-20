@@ -90,8 +90,8 @@ sourceSets {
     }
     shared {
         java {
-            srcDir "src/main/java/io/crate/"
-            include "action/sql/SQL*"
+            srcDir "src/main/java/"
+            include "io/crate/action/sql/SQL*"
         }
     }
 }
