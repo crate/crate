@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/05/20 0.37.4
+=================
+
  - updated crash to 0.9.6 which includes the following changes:
 
     - crash exited immediately with an exception if a query result
