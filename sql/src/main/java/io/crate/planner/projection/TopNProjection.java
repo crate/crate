@@ -22,7 +22,6 @@
 package io.crate.planner.projection;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -50,6 +49,7 @@ public class TopNProjection extends Projection {
 
     List<Symbol> orderBy;
     boolean[] reverseFlags;
+    private Boolean[] nullsFirst;
 
     public TopNProjection() {
         super();
@@ -60,13 +60,16 @@ public class TopNProjection extends Projection {
         this.offset = offset;
     }
 
-    public TopNProjection(int limit, int offset, List<Symbol> orderBy, boolean[] reverseFlags) {
+    public TopNProjection(int limit, int offset, List<Symbol> orderBy, boolean[] reverseFlags, Boolean[] nullsFirst) {
         this(limit, offset);
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
         this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
+        this.nullsFirst = Objects.firstNonNull(nullsFirst, new Boolean[0]);
 
-        Preconditions.checkArgument(this.orderBy.size() == this.reverseFlags.length,
-                "reverse flags length does not match orderBy items count");
+
+
+        assert this.orderBy.size() == this.reverseFlags.length : "reverse flags length does not match orderBy items count";
+        assert this.nullsFirst.length == this.reverseFlags.length;
     }
 
     @Override
@@ -94,6 +97,9 @@ public class TopNProjection extends Projection {
         return reverseFlags;
     }
 
+    public Boolean[] nullsFirst() {
+        return nullsFirst;
+    }
 
     public boolean isOrdered() {
         return reverseFlags != null && reverseFlags.length > 0;
@@ -134,8 +140,12 @@ public class TopNProjection extends Projection {
             for (int i = 0; i < reverseFlags.length; i++) {
                 orderBy.add(Symbol.fromStream(in));
             }
-        }
 
+            nullsFirst = new Boolean[numOrderBy];
+            for (int i = 0; i < numOrderBy; i++) {
+                nullsFirst[i] = in.readOptionalBoolean();
+            }
+        }
     }
 
     @Override
@@ -154,6 +164,9 @@ public class TopNProjection extends Projection {
             for (Symbol symbol : orderBy) {
                 Symbol.toStream(symbol, out);
             }
+            for (Boolean nullFirst : nullsFirst) {
+                out.writeOptionalBoolean(nullFirst);
+            }
         } else {
             out.writeVInt(0);
         }
@@ -171,6 +184,7 @@ public class TopNProjection extends Projection {
         if (!orderBy.equals(that.orderBy)) return false;
         if (!outputs.equals(that.outputs)) return false;
         if (!Arrays.equals(reverseFlags, that.reverseFlags)) return false;
+        if (!Arrays.equals(nullsFirst, that.nullsFirst)) return false;
 
         return true;
     }
@@ -182,6 +196,7 @@ public class TopNProjection extends Projection {
         result = 31 * result + outputs.hashCode();
         result = 31 * result + orderBy.hashCode();
         result = 31 * result + Arrays.hashCode(reverseFlags);
+        result = 31 * result + Arrays.hashCode(nullsFirst);
         return result;
     }
 
@@ -193,6 +208,7 @@ public class TopNProjection extends Projection {
                 ", offset=" + offset +
                 ", orderBy=" + orderBy +
                 ", reverseFlags=" + Arrays.toString(reverseFlags) +
+                ", nullsFirst=" + Arrays.toString(nullsFirst) +
                 '}';
     }
 }

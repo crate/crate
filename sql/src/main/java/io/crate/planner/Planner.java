@@ -418,7 +418,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                     Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
                     contextBuilder.orderBy(),
-                    analysis.reverseFlags()
+                    analysis.reverseFlags(),
+                    analysis.nullsFirst()
             );
             tnp.outputs(contextBuilder.outputs());
             plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), getNode));
@@ -439,8 +440,13 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         if (analysis.limit() != null) {
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
-            TopNProjection tnp = new TopNProjection(analysis.offset() + analysis.limit(), 0,
-                    contextBuilder.orderBy(), analysis.reverseFlags());
+            TopNProjection tnp = new TopNProjection(
+                    analysis.offset() + analysis.limit(),
+                    0,
+                    contextBuilder.orderBy(),
+                    analysis.reverseFlags(),
+                    analysis.nullsFirst()
+            );
             tnp.outputs(contextBuilder.outputs());
             projections = ImmutableList.<Projection>of(tnp);
         } else {
@@ -455,7 +461,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
                 contextBuilder.orderBy(),
-                analysis.reverseFlags()
+                analysis.reverseFlags(),
+                analysis.nullsFirst()
         );
         tnp.outputs(contextBuilder.outputs());
         plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode));
@@ -501,6 +508,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 searchSymbols,
                 orderBy,
                 analysis.reverseFlags(),
+                analysis.nullsFirst(),
                 analysis.limit(),
                 analysis.offset(),
                 analysis.whereClause(),
@@ -607,7 +615,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
                 contextBuilder.orderBy(),
-                analysis.reverseFlags()
+                analysis.reverseFlags(),
+                analysis.nullsFirst()
         );
         topN.outputs(contextBuilder.outputs());
         plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(groupProjection, topN), collectNode));
@@ -654,7 +663,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                     Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
                     0,
                     contextBuilder.orderBy(),
-                    analysis.reverseFlags()
+                    analysis.reverseFlags(),
+                    analysis.nullsFirst()
             );
             topN.outputs(contextBuilder.outputs());
             projectionsBuilder.add(topN);
@@ -677,7 +687,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
                 orderBy,
-                analysis.reverseFlags()
+                analysis.reverseFlags(),
+                analysis.nullsFirst()
         );
         topN.outputs(outputs);
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);

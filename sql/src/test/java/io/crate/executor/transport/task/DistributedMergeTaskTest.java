@@ -63,7 +63,8 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
                         Aggregation.Step.FINAL
                 )
         ));
-        TopNProjection topNProjection = new TopNProjection(10, 0, Arrays.<Symbol>asList(new InputColumn(1)), new boolean[] { false });
+        TopNProjection topNProjection = new TopNProjection(
+                10, 0, Arrays.<Symbol>asList(new InputColumn(1)), new boolean[] { false }, new Boolean[] { null });
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         mergeNode.projections(Arrays.asList(groupProjection, topNProjection));

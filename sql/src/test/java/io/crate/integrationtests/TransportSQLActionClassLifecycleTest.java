@@ -414,7 +414,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndTooLargeOffset() throws Exception {
         SQLResponse response = executor.exec("select count(*), gender, race from characters " +
-            "group by race, gender order by count(*) desc, race asc limit 2 offset 20");
+                "group by race, gender order by count(*) desc, race asc limit 2 offset 20");
 
         assertEquals(0, response.rows().length);
         assertEquals(0, response.rowCount());
@@ -423,7 +423,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testCountWithGroupByOrderOnAggDescFuncAndLimit() throws Exception {
         SQLResponse response = executor.exec(
-            "select count(*), race from characters group by race order by count(*) desc limit 2");
+                "select count(*), race from characters group by race order by count(*) desc limit 2");
 
         assertEquals(2, response.rowCount());
         assertEquals(4L, response.rows()[0][0]);
@@ -501,5 +501,30 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testDateRange() throws Exception {
         SQLResponse response = executor.exec("select * from characters where birthdate > '1970-01-01'");
         assertThat(response.rowCount(), Matchers.is(2L));
+    }
+
+
+    @Test
+    public void testOrderByNullsFirstAndLast() throws Exception {
+        SQLResponse response = executor.exec(
+                "select details['job'] from characters order by details['job'] nulls first limit 1");
+        assertNull(response.rows()[0][0]);
+
+        response = executor.exec(
+                "select details['job'] from characters order by details['job'] desc nulls first limit 1");
+        assertNull(response.rows()[0][0]);
+
+        response = executor.exec(
+                "select details['job'] from characters order by details['job'] nulls last");
+        assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
+
+        response = executor.exec(
+                "select details['job'] from characters order by details['job'] desc nulls last");
+        assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
+
+
+        response = executor.exec(
+                "select distinct details['job'] from characters order by details['job'] desc nulls last");
+        assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
     }
 }
