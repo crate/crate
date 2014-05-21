@@ -771,6 +771,11 @@ Data can be exported using the ``COPY TO`` statement. Data gets
 exported distributed on each node holding data of the table to be
 exported.
 
+Replicated data is not exported. So every row of an exported table is
+stored only once.
+
+Every node exports the rows of a table that are currently stored on it.
+
 .. note::
 
  Data is written per shard, so if there is more than one shard of the
