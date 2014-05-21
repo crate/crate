@@ -45,7 +45,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -3448,7 +3447,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertDynamicToPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp," +
-                "author object as (name string)) " +
+                "author object(dynamic) as (name string)) " +
                 "partitioned by(date) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?), (?, ?, ?, ?)",
@@ -3558,9 +3557,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         refresh();
 
-        execute("select id, quote, created from quotes where created['user_id'] = 'Arthur'");
+        execute("select id, quote, created['date'] from quotes where created['user_id'] = 'Arthur'");
         assertEquals(1L, response.rowCount());
-        assertThat((Map<String, Object>)response.rows()[0][2], Matchers.<String, Object>hasEntry("date", 1395874800000L));
+        assertThat((Long)response.rows()[0][2], is(1395874800000L));
 
         execute("update quotes set quote = ? where created['date'] = ?",
                 new Object[]{"I'd far rather be happy than right any day", 1395874800000L});

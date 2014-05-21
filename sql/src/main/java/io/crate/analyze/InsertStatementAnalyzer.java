@@ -51,9 +51,6 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
         int numColumns = node.columns().size() == 0 ? maxValuesLength : node.columns().size();
         // allocate columnsLists
         context.columns(new ArrayList<Reference>(numColumns));
-        context.partitionedByColumns(
-                new ArrayList<Reference>(context.table().partitionedByColumns().size())
-        );
 
         if (node.columns().size() == 0) { // no columns given in statement
 
@@ -114,12 +111,11 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
 
         // ensure that every column is only listed once
         Reference columnReference = context.allocateUniqueReference(ident);
-        if (context.table().partitionedByColumns().contains(columnReference.info())) {
-            context.partitionedByColumns().add(columnReference);
+        if (StringUtils.pathListContainsPrefix(context.table().partitionedBy(), column)) {
             context.addPartitionedByIndex(i);
-        } else {
-            context.columns().add(columnReference);
         }
+        context.columns().add(columnReference);
+
         return columnReference;
     }
 
@@ -133,12 +129,12 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
     @Override
     public Symbol visitValuesList(ValuesList node, InsertAnalysis context) {
 
+        List<String> primaryKeyValues = new ArrayList<>(context.table().primaryKey().size());
         Map<String, Object> sourceMap = new HashMap<>(node.values().size());
         Map<String, String> partitionMap = null;
-        List<String> primaryKeyValues = new ArrayList<>();
         String routingValue = null;
 
-        if (node.values().size() != context.columns().size() + context.partitionedByColumns().size()) {
+        if (node.values().size() != context.columns().size()) {
             throw new IllegalArgumentException("incorrect number of values");
         }
 
@@ -147,21 +143,13 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
         }
 
         int i = 0;
-        int partitionedIdx = 0;
-        int columnIdx = 0;
         for (Expression expression : node.values()) {
             // TODO: instead of doing a type guessing and then a conversion this could
             // be improved by using the dataType from the column Reference as a hint
             Symbol valuesSymbol = process(expression, context);
-            boolean isPartitionColumn = context.partitionedByIndices().contains(i);
 
             // implicit type conversion
-            Reference column;
-            if (isPartitionColumn) {
-                column = context.partitionedByColumns().get(partitionedIdx++);
-            } else {
-                column = context.columns().get(columnIdx++);
-            }
+            Reference column = context.columns().get(i);
             String columnName = column.info().ident().columnIdent().name();
 
             try {
@@ -176,32 +164,20 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
                 if (value instanceof BytesRef) {
                     value = ((BytesRef) value).utf8ToString();
                 }
-                if (isPartitionColumn && partitionMap != null) {
-                    partitionMap.put(columnName, value != null ? value.toString() : null);
-                } else {
-                    sourceMap.put(
-                            columnName,
-                            value
-                    );
-                }
                 if (context.primaryKeyColumnIndices().contains(i)) {
                     int idx = context.table().primaryKey().indexOf(columnName);
-                    Object pkValue = value;
                     if (idx < 0) {
-                        // oh look, a nested primary key!
-                        String pkColumnName = StringUtils.getPathByPrefix(context.table.primaryKey(), columnName);
+                        // oh look, one or more nested primary keys!
                         assert value instanceof Map;
-                        pkValue = StringObjectMaps.getByPath((Map<String, Object>)value, pkColumnName);
-                        idx = context.table.primaryKey().indexOf(pkColumnName); // set index to correct column
-                    }
-                    if (pkValue == null) {
-                        throw new IllegalArgumentException("Primary key value must not be NULL");
-                    }
-
-                    if (primaryKeyValues.size() > idx) {
-                        primaryKeyValues.add(idx, pkValue.toString());
+                        Map<String, Object> mapValue = (Map<String, Object>) value;
+                        for (String primaryKeyColumn : StringUtils.getAllPathsByPrefix(
+                                context.table.primaryKey(), columnName, true)) {
+                            Object nestedPkValue = StringObjectMaps.getByPath(mapValue, primaryKeyColumn);
+                            int pkIdx = context.table().primaryKey().indexOf(primaryKeyColumn);
+                            addPrimaryKeyValue(pkIdx, nestedPkValue, primaryKeyValues);
+                        }
                     } else {
-                        primaryKeyValues.add(pkValue.toString());
+                        addPrimaryKeyValue(idx, value, primaryKeyValues);
                     }
                 }
                 if (i == context.routingColumnIndex()) {
@@ -217,6 +193,35 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
 
                     routingValue = clusteredByValue.toString();
                 }
+                if (context.partitionedByIndices().contains(i)) {
+                    int idx = context.table().partitionedBy().indexOf(columnName);
+                    if (idx < 0) {
+                        assert value instanceof Map;
+                        Map<String, Object> mapValue = (Map<String, Object>) value;
+                        // hmpf, one or more nested partitioned by columns
+                        for (String partitionedByColumn : StringUtils.getAllPathsByPrefix(
+                                context.table().partitionedBy(), columnName, true)) {
+                            Object nestedValue = mapValue.remove(partitionedByColumn.substring(partitionedByColumn.indexOf(".")+1));
+                            if (nestedValue instanceof BytesRef) {
+                                nestedValue = ((BytesRef) nestedValue).utf8ToString();
+                            }
+                            if (partitionMap != null) {
+                                partitionMap.put(partitionedByColumn, nestedValue != null ? nestedValue.toString() : null);
+                            }
+                        }
+                        if (!mapValue.isEmpty()) {
+                            // put the rest into source
+                            sourceMap.put(columnName, mapValue);
+                        }
+                    } else if (partitionMap != null) {
+                        partitionMap.put(columnName, value != null ? value.toString() : null);
+                    }
+                } else {
+                    sourceMap.put(
+                            columnName,
+                            value
+                    );
+                }
             } catch (ClassCastException e) {
                 // symbol is no input
                 throw new ColumnValidationException(columnName, String.format("invalid value '%s' in insert statement", valuesSymbol.toString()));
@@ -228,5 +233,16 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
         context.addIdAndRouting(primaryKeyValues, routingValue);
 
         return null;
+    }
+
+    private void addPrimaryKeyValue(int index, Object value, List<String> primaryKeyValues) {
+        if (value == null) {
+            throw new IllegalArgumentException("Primary key value must not be NULL");
+        }
+        if (primaryKeyValues.size() > index) {
+            primaryKeyValues.add(index, value.toString());
+        } else {
+            primaryKeyValues.add(value.toString());
+        }
     }
 }

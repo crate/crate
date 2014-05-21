@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -120,6 +121,19 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
                 "locations| 04134| UNASSIGNED\n";
 
        assertEquals(expected, TestingHelpers.printedTable(response.rows()));
+    }
+
+    @Test
+    public void testPartitionedTableNestedPk() throws Exception {
+        execute("create table t (o object as (i int primary key, name string)) partitioned by (o['i']) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (o) values (?)", new Object[]{new MapBuilder<String, Object>().put("i", 1).put("name", "Zaphod").map()});
+        ensureGreen();
+        refresh();
+        execute("select o['i'], o['name'] from t");
+        assertThat((Integer)response.rows()[0][0], is(1));
+        execute("select distinct table_name, partition_ident from sys.shards where table_name = 't'");
+        assertEquals("t| 04132\n", TestingHelpers.printedTable(response.rows()));
     }
 
 }

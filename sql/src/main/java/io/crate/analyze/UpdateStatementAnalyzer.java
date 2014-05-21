@@ -22,8 +22,12 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
+import io.crate.DataType;
+import io.crate.core.StringUtils;
+import io.crate.core.collections.StringObjectMaps;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.ObjectLiteral;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Assignment;
@@ -59,22 +63,40 @@ public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysi
         String columnName = reference.info().ident().columnIdent().name();
         if (columnName.startsWith("_")) {
             throw new IllegalArgumentException("Updating system columns is not allowed");
-        } else if (context.table().primaryKey().contains(columnName)) {
-            throw new IllegalArgumentException("Updating a primary key is currently not supported");
-        } else if (context.table().clusteredBy() != null
+        }
+        if (context.table().clusteredBy() != null
                 && context.table().clusteredBy().equals(columnName)) {
             throw new IllegalArgumentException("Updating a clustered-by column is currently not supported");
-        } else if (context.table().partitionedBy().contains(columnName)) {
-            throw new IllegalArgumentException("Updating a partitioned-by column is currently not supported");
-        } else if (context.hasMatchingParent(reference.info(), context.HAS_OBJECT_ARRAY_PARENT)) {
+        }
+        if (context.hasMatchingParent(reference.info(), UpdateAnalysis.HAS_OBJECT_ARRAY_PARENT)) {
             // cannot update fields of object arrays
             throw new IllegalArgumentException("Updating fields of object arrays is not supported");
         }
 
-        Symbol value = process(node.expression(), context);
-
         // it's something that we can normalize to a literal
+        Symbol value = process(node.expression(), context);
         Literal updateValue = context.normalizeInputForReference(value, reference);
+
+        for (String pkColumn : StringUtils.getAllPathsByPrefix(context.table().primaryKey(), columnName, false)) {
+            if (reference.info().type().equals(DataType.OBJECT) && updateValue instanceof ObjectLiteral) {
+                if (StringObjectMaps.getByPath(((ObjectLiteral)updateValue).value(), pkColumn) == null) {
+                    // no primary key column found
+                    continue;
+                }
+            }
+            throw new IllegalArgumentException("Updating a primary key is currently not supported");
+        }
+
+        for (String partitionedColumn : StringUtils.getAllPathsByPrefix(context.table().partitionedBy(), columnName, false)) {
+            if (reference.info().type().equals(DataType.OBJECT) && updateValue instanceof ObjectLiteral) {
+                if (StringObjectMaps.getByPath(((ObjectLiteral)updateValue).value(), partitionedColumn) == null) {
+                    // no partitioned column found
+                    continue;
+                }
+            }
+            throw new IllegalArgumentException("Updating a partitioned-by column is currently not supported");
+        }
+
         context.addAssignement(reference, updateValue);
         return null;
     }

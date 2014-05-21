@@ -36,7 +36,6 @@ import java.util.Map;
 public class InsertAnalysis extends AbstractDataAnalysis {
 
     private List<Reference> columns;
-    private List<Reference> partitionedByColumns;
     private IntSet primaryKeyColumnIndices = new IntOpenHashSet(); // optional
     private IntSet partitionedByColumnsIndices = new IntOpenHashSet();
     private int routingColumnIndex = -1;
@@ -69,10 +68,6 @@ public class InsertAnalysis extends AbstractDataAnalysis {
         return columns;
     }
 
-    public List<Reference> partitionedByColumns() {
-        return partitionedByColumns;
-    }
-
     public IntSet partitionedByIndices() {
         return partitionedByColumnsIndices;
     }
@@ -90,7 +85,7 @@ public class InsertAnalysis extends AbstractDataAnalysis {
         Map<String, String> map = new HashMap<>(table().partitionedByColumns().size());
         for (ReferenceInfo partInfo : table().partitionedByColumns()) {
             // initialize with null values for missing partitioned columns
-            map.put(partInfo.ident().columnIdent().name(), null);
+            map.put(partInfo.ident().columnIdent().fqn(), null);
         }
         partitionMaps.add(map);
         return map;
@@ -115,10 +110,6 @@ public class InsertAnalysis extends AbstractDataAnalysis {
 
     public void columns(List<Reference> columns) {
         this.columns = columns;
-    }
-
-    public void partitionedByColumns(List<Reference> columns) {
-        this.partitionedByColumns = columns;
     }
 
     public IntSet primaryKeyColumnIndices() {

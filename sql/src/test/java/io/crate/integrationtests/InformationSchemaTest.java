@@ -823,9 +823,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     public void testDynamicObjectPartitionedTableInformationSchemaColumns() throws Exception {
         String stmtCreate = "create table data_points (" +
                 "day string primary key," +
-                "data object(dynamic) " +
+                "data object(dynamic)" +
                 ") partitioned by (day)";
         execute(stmtCreate);
+
         String stmtInsert = "insert into data_points (day, data) values (?, ?)";
         Map<String, Object> obj = new HashMap<>();
         obj.put("somestringroute", "stringvalue");
@@ -835,7 +836,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 obj
         };
         execute(stmtInsert, argsInsert);
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
         refresh();
+
         String stmtIsColumns = "select table_name, column_name, data_type " +
                 "from information_schema.columns " +
                 "where table_name = 'data_points' " +

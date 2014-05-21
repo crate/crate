@@ -243,7 +243,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
     @Override
     public Void visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint node, CreateTableAnalysis context) {
-        context.addPrimaryKey(context.currentColumnName());
+        context.addPrimaryKey(context.currentFullQualifiedColumnName());
         return null;
     }
 

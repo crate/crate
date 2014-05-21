@@ -431,7 +431,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
                     continue;
                 }
             }
-            if (info.type() == DataType.OBJECT && entry.getValue() instanceof Map) {
+            if (nestedInfo.type() == DataType.OBJECT && entry.getValue() instanceof Map) {
                 value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo));
             } else {
                 value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), nestedInfo));

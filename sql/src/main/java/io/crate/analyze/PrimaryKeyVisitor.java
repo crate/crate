@@ -36,7 +36,6 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.InOperator;
 import io.crate.operation.operator.OrOperator;
-import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.planner.symbol.*;
 
 import javax.annotation.Nullable;
@@ -275,7 +274,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         }
 
         Reference reference = (Reference)left;
-        String columnName = reference.info().ident().columnIdent().name();
+        String columnName = reference.info().ident().columnIdent().fqn();
         if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
             invalidate(context);
             return function;

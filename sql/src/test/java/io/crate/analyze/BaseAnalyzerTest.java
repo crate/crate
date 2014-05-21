@@ -125,7 +125,7 @@ public class BaseAnalyzerTest {
             .add("name", DataType.STRING, null)
             .add("date", DataType.TIMESTAMP, null, true)
             .add("obj", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
-            // add 2 partitions/simulate already done inserts
+            // add 3 partitions/simulate already done inserts
             .addPartitions(
                     new PartitionName("parted", Arrays.asList("1395874800000")).stringValue(),
                     new PartitionName("parted", Arrays.asList("1395961200000")).stringValue(),
@@ -139,11 +139,24 @@ public class BaseAnalyzerTest {
             .add("num", DataType.LONG, null)
             .add("obj", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
             .add("obj", DataType.STRING, Arrays.asList("name"), true)
-                    // add 2 partitions/simulate already done inserts
+            // add 3 partitions/simulate already done inserts
             .addPartitions(
                     new PartitionName("multi_parted", Arrays.asList("1395874800000", "0")).stringValue(),
                     new PartitionName("multi_parted", Arrays.asList("1395961200000", "-100")).stringValue(),
                     new PartitionName("multi_parted", Arrays.asList(null, "-100")).stringValue())
+            .build();
+    static final TableIdent TEST_NESTED_PARTITIONED_TABLE_IDENT = new TableIdent(null, "nested_parted");
+    static final TableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
+            TEST_NESTED_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("id", DataType.INTEGER, null)
+            .add("date", DataType.TIMESTAMP, null, true)
+            .add("obj", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("obj", DataType.STRING, Arrays.asList("name"), true)
+                    // add 3 partitions/simulate already done inserts
+            .addPartitions(
+                    new PartitionName("nested_parted", Arrays.asList("1395874800000", "Trillian")).stringValue(),
+                    new PartitionName("nested_parted", Arrays.asList("1395961200000", "Ford")).stringValue(),
+                    new PartitionName("nested_parted", Arrays.asList(null, "Zaphod")).stringValue())
             .build();
 
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(

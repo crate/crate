@@ -14,6 +14,13 @@ Unreleased
  - fixed the glob pattern matching for S3 imports using the ``COPY FROM``
    statement.
 
+ - creating tables with nested primary keys that were also partitioned by column did not work
+
+ - fix: insert and update partitioned tables with nested partition column did not work
+
+ - fix: dynamic columns of partitioned tables did not show up information_schema.columns
+   when only one partition existed
+
 2014/05/20 0.37.4
 =================
 
