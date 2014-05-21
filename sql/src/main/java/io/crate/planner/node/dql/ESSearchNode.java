@@ -46,16 +46,10 @@ public class ESSearchNode extends ESDQLPlanNode {
     private final String[] indices;
 
     private final List<ReferenceInfo> partitionBy;
+    private final Boolean[] nullsFirst;
 
     /**
      *
-     * @param indices
-     * @param outputs
-     * @param orderBy
-     * @param reverseFlags
-     * @param limit
-     * @param offset
-     * @param whereClause
      * @param partitionBy list of columns
      *                    the queried is partitioned by
      */
@@ -63,6 +57,7 @@ public class ESSearchNode extends ESDQLPlanNode {
                         List<Symbol> outputs,
                         @Nullable List<Reference> orderBy,
                         @Nullable boolean[] reverseFlags,
+                        @Nullable Boolean[] nullsFirst,
                         @Nullable Integer limit,
                         @Nullable Integer offset,
                         WhereClause whereClause,
@@ -74,6 +69,7 @@ public class ESSearchNode extends ESDQLPlanNode {
         this.indices = indices;
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Reference>of());
         this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
+        this.nullsFirst = Objects.firstNonNull(nullsFirst, new Boolean[0]);
         Preconditions.checkArgument(this.orderBy.size() == this.reverseFlags.length,
                 "orderBy size doesn't match with reverseFlag length");
 
@@ -102,6 +98,10 @@ public class ESSearchNode extends ESDQLPlanNode {
 
     public int offset() {
         return offset;
+    }
+
+    public Boolean[] nullsFirst() {
+        return nullsFirst;
     }
 
     public boolean[] reverseFlags() {

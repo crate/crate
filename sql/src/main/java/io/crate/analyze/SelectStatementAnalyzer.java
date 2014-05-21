@@ -135,17 +135,34 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         Preconditions.checkArgument(node.getHaving().isPresent() == false, "having clause is not yet supported");
 
         if (node.getOrderBy().size() > 0) {
-            List<Symbol> sortSymbols = new ArrayList<>(node.getOrderBy().size());
-            context.reverseFlags(new boolean[node.getOrderBy().size()]);
-            int i = 0;
-            for (SortItem sortItem : node.getOrderBy()) {
-
-                sortSymbols.add(process(sortItem, context));
-                context.reverseFlags()[i++] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
-            }
-            context.sortSymbols(sortSymbols);
+            addSorting(node.getOrderBy(), context);
         }
         return null;
+    }
+
+    private void addSorting(List<SortItem> orderBy, SelectAnalysis context) {
+        List<Symbol> sortSymbols = new ArrayList<>(orderBy.size());
+        context.reverseFlags(new boolean[orderBy.size()]);
+        context.nullsFirst(new Boolean[orderBy.size()]);
+
+        int i = 0;
+        for (SortItem sortItem : orderBy) {
+            sortSymbols.add(process(sortItem, context));
+            switch (sortItem.getNullOrdering()) {
+                case FIRST:
+                    context.nullsFirst()[i] = true;
+                    break;
+                case LAST:
+                    context.nullsFirst()[i] = false;
+                    break;
+                case UNDEFINED:
+                    context.nullsFirst()[i] = null;
+                    break;
+            }
+            context.reverseFlags()[i] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
+            i++;
+        }
+        context.sortSymbols(sortSymbols);
     }
 
     private void rewriteGlobalDistinct(SelectAnalysis context) {

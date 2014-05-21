@@ -113,7 +113,10 @@ public class ProjectionToProjectorVisitorTest {
     @Test
     public void testSortingTopNProjection() throws ExecutionException, InterruptedException {
         TopNProjection projection = new TopNProjection(10, 0,
-                Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)), new boolean[]{false, false});
+                Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
+                new boolean[]{false, false},
+                new Boolean[] { null, null }
+        );
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
         Projector projector = visitor.process(projection);
         projector.registerUpstream(null);

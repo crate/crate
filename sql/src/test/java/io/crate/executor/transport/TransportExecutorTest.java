@@ -240,6 +240,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
+                new Boolean[] { null },
                 null, null, WhereClause.MATCH_ALL,
                 null
         );
@@ -276,6 +277,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
+                new Boolean[] { null },
                 null, null,
                 new WhereClause(whereClause),
                 null
@@ -329,6 +331,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(id_ref, date_ref),
                 Arrays.asList(id_ref),
                 new boolean[]{false},
+                new Boolean[] { null },
                 null, null,
                 new WhereClause(whereClause),
                 null
@@ -366,6 +369,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(parted_id_ref, parted_name_ref, parted_date_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
+                new Boolean[] { null },
                 null, null,
                 WhereClause.MATCH_ALL,
                 Arrays.asList(parted_date_ref.info())
@@ -420,6 +424,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
+                new Boolean[] { null },
                 null, null,
                 new WhereClause(whereClause),
                 null
@@ -760,6 +765,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 ImmutableList.of(id_ref),
                 new boolean[]{false},
+                new Boolean[] { null },
                 null, null, new WhereClause(searchWhereClause),
                 null
         );
