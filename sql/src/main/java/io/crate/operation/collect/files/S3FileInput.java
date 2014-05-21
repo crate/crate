@@ -50,15 +50,13 @@ public class S3FileInput implements FileInput {
     public List<URI> listUris(URI uri, Predicate<URI> uriPredicate) throws IOException {
         String bucketName = uri.getHost();
         AmazonS3 client = clientBuilder.client(uri);
-        String prefix;
-
-        prefix = uri.getPath().length() > 1 ? uri.getPath().substring(1) : "";
+        String prefix = uri.getPath().length() > 1 ? uri.getPath().substring(1) : "";
         ObjectListing list = client.listObjects(bucketName, prefix);
         List<URI> uris = new ArrayList<>();
         do {
             List<S3ObjectSummary> summaries = list.getObjectSummaries();
             for (S3ObjectSummary summary : summaries) {
-                URI keyUri = uri.resolve(summary.getKey());
+                URI keyUri = uri.resolve("/" + summary.getKey());
                 if (uriPredicate.apply(keyUri)) {
                     uris.add(keyUri);
                 }

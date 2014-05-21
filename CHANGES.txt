@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed the glob pattern matching for S3 imports using the ``COPY FROM``
+   statement.
+
 2014/05/20 0.37.4
 =================
 
