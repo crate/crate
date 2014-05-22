@@ -786,13 +786,13 @@ alterStatement
     ;
 
 alterBlobTableStmt
-    : (table SET) => table SET '(' genericProperties ')' -> ^(ALTER_BLOB_TABLE table genericProperties)
-    | table RESET identList -> ^(ALTER_BLOB_TABLE table identList)
+    : (table SET) => table SET '(' genericProperties ')' -> ^(ALTER_BLOB_TABLE genericProperties table)
+    | table RESET identList -> ^(ALTER_BLOB_TABLE identList table)
     ;
 
 alterTableStmt
-    : (table SET) => table SET '(' genericProperties ')' -> ^(ALTER_TABLE table genericProperties)
-    | table RESET identList -> ^(ALTER_TABLE table identList)
+    : (tableWithPartition SET) => tableWithPartition SET '(' genericProperties ')' -> ^(ALTER_TABLE genericProperties tableWithPartition)
+    | tableWithPartition RESET identList -> ^(ALTER_TABLE identList tableWithPartition)
     ;
 // END ALTER STATEMENTS
 

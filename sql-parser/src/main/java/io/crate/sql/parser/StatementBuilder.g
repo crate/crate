@@ -282,12 +282,8 @@ relationType returns [Relation value]
     | joinRelation     { $value = $joinRelation.value; }
     ;
 
-namedTablePartitioned returns [Table value]
-    : ^(TABLE qname assignmentList?) { $value = new Table($qname.value, $assignmentList.value ); }
-    ;
-
 namedTable returns [Table value]
-    : ^(TABLE qname) { $value = new Table($qname.value); }
+    : ^(TABLE qname assignmentList?) { $value = new Table($qname.value, $assignmentList.value); }
     ;
 
 joinedTable returns [Relation value]
@@ -672,9 +668,9 @@ assignment returns [Assignment value]
     ;
 
 copyTo returns [Statement value]
-    : ^(COPY_TO namedTablePartitioned columnList? d=copyToTargetSpec[false] expr genericProperties?)
+    : ^(COPY_TO namedTable columnList? d=copyToTargetSpec[false] expr genericProperties?)
         {
-            $value = new CopyTo($namedTablePartitioned.value,
+            $value = new CopyTo($namedTable.value,
                                 $columnList.value,
                                 $d.value,
                                 $expr.value,
@@ -683,9 +679,9 @@ copyTo returns [Statement value]
     ;
 
 copyFrom returns [Statement value]
-    : ^(COPY_FROM namedTablePartitioned path=expr genericProperties?)
+    : ^(COPY_FROM namedTable path=expr genericProperties?)
         {
-            $value = new CopyFromStatement($namedTablePartitioned.value,
+            $value = new CopyFromStatement($namedTable.value,
                                            $path.value,
                                            $genericProperties.value);
         }
@@ -701,22 +697,22 @@ createBlobTable returns [Statement value]
     ;
 
 alterBlobTable returns [Statement value]
-    : ^(ALTER_BLOB_TABLE namedTable genericProperties)
+    : ^(ALTER_BLOB_TABLE genericProperties namedTable)
         {
             $value = new AlterBlobTable($namedTable.value, $genericProperties.value);
         }
-    | ^(ALTER_BLOB_TABLE namedTable columnIdentList)
+    | ^(ALTER_BLOB_TABLE columnIdentList namedTable)
         {
             $value = new AlterBlobTable($namedTable.value, $columnIdentList.value);
         }
     ;
 
 alterTable returns [Statement value]
-    : ^(ALTER_TABLE namedTable genericProperties)
+    : ^(ALTER_TABLE genericProperties namedTable)
         {
             $value = new AlterTable($namedTable.value, $genericProperties.value);
         }
-    | ^(ALTER_TABLE namedTable columnIdentList)
+    | ^(ALTER_TABLE columnIdentList namedTable)
         {
             $value = new AlterTable($namedTable.value, $columnIdentList.value);
         }
@@ -890,5 +886,5 @@ namedProperties returns [NamedProperties value]
     ;
 
 refresh returns [RefreshStatement value]
-    : ^(REFRESH namedTablePartitioned) { $value = new RefreshStatement($namedTablePartitioned.value); }
+    : ^(REFRESH namedTable) { $value = new RefreshStatement($namedTable.value); }
     ;
