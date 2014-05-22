@@ -114,7 +114,7 @@ task signJars (type : Sign, dependsOn: [buildJar, buildJavadocJar, buildSourceJa
 }
 
 
-install.dependsOn([buildJar, buildJavadocJar, buildSourceJar, signJars])
+install.dependsOn([buildJar, buildJavadocJar, buildSourceJar])
 install {
     repositories {
         mavenInstaller {
