@@ -52,7 +52,8 @@ public class BlobTableInfo implements TableInfo {
     private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
-    private static final ImmutableList<String> primaryKey = ImmutableList.of("digest");
+    private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(
+            new ColumnIdent("digest"));
 
     private static List<Tuple<String, DataType>> staticColumns = ImmutableList.<Tuple<String,DataType>>builder()
                 .add(new Tuple<>("digest", DataType.STRING))
@@ -138,7 +139,7 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public List<String> primaryKey() {
+    public List<ColumnIdent> primaryKey() {
         return primaryKey;
     }
 
@@ -159,7 +160,7 @@ public class BlobTableInfo implements TableInfo {
 
     @Nullable
     @Override
-    public String clusteredBy() {
+    public ColumnIdent clusteredBy() {
         return primaryKey.get(0);
     }
 
@@ -184,7 +185,7 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public List<String> partitionedBy() {
+    public List<ColumnIdent> partitionedBy() {
         return ImmutableList.of();
     }
 

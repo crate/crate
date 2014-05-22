@@ -24,7 +24,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import io.crate.DataType;
-import io.crate.Id;
 import io.crate.exceptions.*;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -527,7 +526,9 @@ public abstract class AbstractDataAnalysis extends Analysis {
     }
 
     protected void addIdAndRouting(Boolean create, List<String> primaryKeyValues, String clusteredByValue) {
-        Id id = new Id(table().primaryKey(), primaryKeyValues, table().clusteredBy(), create);
+
+        ColumnIdent clusteredBy = table().clusteredBy();
+        Id id = new Id(table().primaryKey(), primaryKeyValues, clusteredBy == null ? null : clusteredBy, create);
         if (id.isValid()) {
             String idString = id.stringValue();
             ids.add(idString);

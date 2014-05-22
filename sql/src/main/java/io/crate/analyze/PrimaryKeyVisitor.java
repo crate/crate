@@ -28,6 +28,7 @@ import com.google.common.collect.Sets;
 import io.crate.DataType;
 import io.crate.PartitionName;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -181,7 +182,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                             if (keyLiterals == null) {
                                 keyLiterals = new ArrayList<List>();
                             }
-                            List keys = new ArrayList<Object>();
+                            List<Object> keys = new ArrayList<>();
                             keyLiterals.add(keys);
                             for (int i=0; i<bucket.keyParts.length; i++) {
                                 Literal keyPart = bucket.keyParts[i];
@@ -232,7 +233,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
     @Override
     public Symbol visitReference(Reference reference, Context context) {
-        String columnName = reference.info().ident().columnIdent().name();
+        ColumnIdent ident = reference.info().ident().columnIdent();
         if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
             invalidate(context);
             return reference;
@@ -240,10 +241,10 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
         // where booleanCol; can be handled like: where booleanCol = true;
         if (reference.valueType() == DataType.BOOLEAN) {
-            if (columnName.equals(context.table.clusteredBy())) {
+            if (ident.equals(context.table.clusteredBy())) {
                 setClusterBy(context, BooleanLiteral.TRUE);
             }
-            int idx = context.table.primaryKey().indexOf(columnName);
+            int idx = context.table.primaryKey().indexOf(ident);
             if (idx >= 0) {
                 setPrimaryKey(context, BooleanLiteral.TRUE, idx);
             }
@@ -274,7 +275,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         }
 
         Reference reference = (Reference)left;
-        String columnName = reference.info().ident().columnIdent().fqn();
+        ColumnIdent columnIdent = reference.info().ident().columnIdent();
         if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
             invalidate(context);
             return function;
@@ -282,18 +283,18 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
         boolean clusteredBySet = false;
         if (functionName.equals(EqOperator.NAME)) {
-            if (columnName.equals(context.table.clusteredBy())) {
+            if (columnIdent.equals(context.table.clusteredBy())) {
                 setClusterBy(context, (Literal)right);
                 clusteredBySet = true;
             }
-            if (columnName.equals("_version")) {
+            if (columnIdent.fqn().equals("_version")) {
                 setVersion(context, right);
                 return function;
             }
         }
 
-        int idx = context.table.primaryKey().indexOf(columnName);
-        int partitionIdx = context.table.partitionedBy().indexOf(columnName);
+        int idx = context.table.primaryKey().indexOf(columnIdent);
+        int partitionIdx = context.table.partitionedBy().indexOf(columnIdent);
 
         if (idx < 0 && !clusteredBySet && partitionIdx < 0 && !context.hasPartitionedColumn) {
             invalidate(context);
@@ -479,7 +480,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                 if (function.arguments().get(0).symbolType() == SymbolType.REFERENCE) {
                     Reference left = (Reference) function.arguments().get(0);
 
-                    int partitionByIdx = context.table.partitionedBy().indexOf(left.info().ident().columnIdent().fqn());
+                    int partitionByIdx = context.table.partitionedBy().indexOf(left.info().ident().columnIdent());
                     if ((context.hasPartitionedColumn && partitionByIdx == -1)
                             || (argumentsProcessed > 0 && !context.hasPartitionedColumn
                             && partitionByIdx >= 0)) {

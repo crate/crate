@@ -39,7 +39,8 @@ public class SysNodesTableInfo extends SysTableInfo {
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "nodes");
     private static final String[] PARTITIONS = new String[]{IDENT.name()};
 
-    private static final ImmutableList<String> primaryKey = ImmutableList.of("id");
+    private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(
+            new ColumnIdent("id"));
 
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
@@ -125,7 +126,7 @@ public class SysNodesTableInfo extends SysTableInfo {
     }
 
     @Override
-    public List<String> primaryKey() {
+    public List<ColumnIdent> primaryKey() {
         return primaryKey;
     }
 

@@ -22,10 +22,10 @@
 package io.crate.analyze;
 
 import io.crate.DataType;
-import io.crate.Id;
 import io.crate.PartitionName;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ValidationException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
@@ -302,7 +302,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, friends) values(?, ?)",
                 new Object[]{ 0, new Map[0] });
         assertThat((Long)analysis.sourceMaps().get(0).get("id"), is(0L));
-        assertThat(((Object[])analysis.sourceMaps().get(0).get("friends")).length, is(0));
+        assertThat(((Object[]) analysis.sourceMaps().get(0).get("friends")).length, is(0));
 
     }
 
@@ -319,7 +319,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0),
-                is(new Id(Arrays.asList("id", "o.b"), Arrays.asList("1", "4"), "o.b").stringValue()));
+                is(new Id(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList("1", "4"), new ColumnIdent("o.b")).stringValue()));
     }
 
     @Test
@@ -328,7 +328,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0),
-                is(new Id(Arrays.asList("id", "o.b"), Arrays.asList("1", "4"), "o.b").stringValue()));
+                is(new Id(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList("1", "4"), new ColumnIdent("o.b")).stringValue()));
     }
 
     @Test( expected = IllegalArgumentException.class)
@@ -346,7 +346,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         InsertAnalysis analysis = (InsertAnalysis) analyze("insert into nested_pk (o, id) values (?, ?)",
                 new Object[]{new MapBuilder<String, Object>().put("b", 4).map(), 1});
         assertThat(analysis.ids().get(0),
-                is(new Id(Arrays.asList("id", "o.b"), Arrays.asList("1", "4"), "o.b").stringValue()));
+                is(new Id(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList("1", "4"), new ColumnIdent("o.b")).stringValue()));
 
     }
 
@@ -400,15 +400,17 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.partitions(), contains(
                 new PartitionName("parted", Arrays.asList("13963670051500")).stringValue(),
                 new PartitionName("parted", Arrays.asList("0")).stringValue(),
-                new PartitionName("parted", new ArrayList<String>(){{add(null);}}).stringValue()
+                new PartitionName("parted", new ArrayList<String>() {{
+                    add(null);
+                }}).stringValue()
         ));
         assertThat(analysis.sourceMaps().size(), is(3));
         assertThat(analysis.sourceMaps().get(0),
-                allOf(hasEntry("name", (Object)"Trillian"), hasEntry("id", (Object)1)));
+                allOf(hasEntry("name", (Object) "Trillian"), hasEntry("id", (Object) 1)));
         assertThat(analysis.sourceMaps().get(1),
-                allOf(hasEntry("name", (Object)"Ford"), hasEntry("id", (Object)2)));
+                allOf(hasEntry("name", (Object) "Ford"), hasEntry("id", (Object) 2)));
         assertThat(analysis.sourceMaps().get(2),
-                allOf(hasEntry("name", (Object)"Zaphod"), hasEntry("id", (Object)3)));
+                allOf(hasEntry("name", (Object) "Zaphod"), hasEntry("id", (Object) 3)));
 
         assertThat(analysis.partitionMaps().size(), is(3));
         assertThat(analysis.partitionMaps().get(0),

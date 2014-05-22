@@ -55,12 +55,14 @@ public class BlobTableInfoTest {
 
     @Test
     public void testPrimaryKey() throws Exception {
-        assertEquals(Arrays.asList(new String[]{"digest"}), info.primaryKey());
+        assertEquals(Arrays.asList(new ColumnIdent[]{
+                new ColumnIdent("digest")
+        }), info.primaryKey());
     }
 
     @Test
     public void testClusteredBy() throws Exception {
-        assertEquals("digest", info.clusteredBy());
+        assertEquals(new ColumnIdent("digest"), info.clusteredBy());
     }
 
     @Test

@@ -53,7 +53,7 @@ public abstract class InformationTablesExpression<T>
                 @Override
                 public BytesRef value() {
                     if (row.clusteredBy() != null) {
-                        return new BytesRef(row.clusteredBy());
+                        return new BytesRef(row.clusteredBy().fqn());
                     } else {
                         return null;
                     }
@@ -66,7 +66,7 @@ public abstract class InformationTablesExpression<T>
                     if (row.partitionedBy() != null && numPartitionedByCols > 0) {
                         BytesRef[] partitions = new BytesRef[numPartitionedByCols];
                         for (int i = 0; i < numPartitionedByCols; i++) {
-                            partitions[i] = new BytesRef(row.partitionedBy().get(i));
+                            partitions[i] = new BytesRef(row.partitionedBy().get(i).fqn());
                         }
                         return partitions;
                     } else {

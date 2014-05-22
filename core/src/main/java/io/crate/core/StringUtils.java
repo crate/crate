@@ -22,9 +22,7 @@
 package io.crate.core;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Iterables;
 import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
@@ -105,19 +103,5 @@ public class StringUtils {
             }
         }
         return null;
-    }
-
-    public static Iterable<String> getAllPathsByPrefix(Collection<String> pathCollection,
-                                                       final String prefix,
-                                                       final boolean excludePrefix) {
-        return Iterables.filter(pathCollection, new Predicate<String>() {
-            @Override
-            public boolean apply(String elem) {
-                return elem != null &&
-                       elem.startsWith(prefix) &&
-                        ((elem.length() == prefix.length() && !excludePrefix) ||
-                                (elem.length() > prefix.length() && elem.charAt(prefix.length()) == '.'));
-            }
-        });
     }
 }

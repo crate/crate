@@ -29,7 +29,7 @@ public class DocTableInfoTest {
                 ImmutableList.<ReferenceInfo>of(),
                 ImmutableList.<ReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, ReferenceInfo>of(),
-                ImmutableList.<String>of(),
+                ImmutableList.<ColumnIdent>of(),
                 null,
                 false,
                 true,
@@ -37,7 +37,7 @@ public class DocTableInfoTest {
                 null,
                 5,
                 new BytesRef("0"),
-                ImmutableList.<String>of(),
+                ImmutableList.<ColumnIdent>of(),
                 ImmutableList.<PartitionName>of());
 
         ReferenceInfo foobar = info.getColumnInfo(new ColumnIdent("foobar"));
@@ -68,7 +68,7 @@ public class DocTableInfoTest {
                 ImmutableList.<ReferenceInfo>of(strictParent),
                 ImmutableList.<ReferenceInfo>of(),
                 references,
-                ImmutableList.<String>of(),
+                ImmutableList.<ColumnIdent>of(),
                 null,
                 false,
                 true,
@@ -76,7 +76,7 @@ public class DocTableInfoTest {
                 null,
                 5,
                 new BytesRef("0"),
-                ImmutableList.<String>of(),
+                ImmutableList.<ColumnIdent>of(),
                 ImmutableList.<PartitionName>of());
 
 

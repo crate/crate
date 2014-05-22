@@ -19,8 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate;
+package io.crate.analyze;
 
+import io.crate.metadata.ColumnIdent;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Base64;
 import org.elasticsearch.common.Nullable;
@@ -36,14 +37,14 @@ public class Id implements Streamable {
 
     private final List<String> values = new ArrayList<>();
 
-    public Id(List<String> primaryKeys, List<String> primaryKeyValues,
-              String clusteredBy) {
+    public Id(List<ColumnIdent> primaryKeys, List<String> primaryKeyValues,
+              ColumnIdent clusteredBy) {
         this(primaryKeys, primaryKeyValues, clusteredBy, true);
     }
 
-    public Id(List<String> primaryKeys, List<String> primaryKeyValues,
-              String clusteredBy, boolean create) {
-        if (primaryKeys.size() == 1 && primaryKeys.get(0).equals("_id") && create) {
+    public Id(List<ColumnIdent> primaryKeys, List<String> primaryKeyValues,
+              ColumnIdent clusteredBy, boolean create) {
+        if (primaryKeys.size() == 1 && primaryKeys.get(0).name().equals("_id") && create) {
             values.add(Strings.randomBase64UUID());
         } else {
             if (primaryKeys.size() != primaryKeyValues.size()) {

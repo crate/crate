@@ -91,6 +91,10 @@ public class InsertAnalysis extends AbstractDataAnalysis {
         return map;
     }
 
+    public @Nullable Map<String, String> currentPartitionMap() {
+        return partitionMaps.get(partitions().size()-1);
+    }
+
     public List<String> partitions() {
         List<String> partitionValues = new ArrayList<>(partitionMaps.size());
         for (Map<String, String> map : partitionMaps) {

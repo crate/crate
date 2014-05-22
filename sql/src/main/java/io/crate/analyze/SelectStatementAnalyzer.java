@@ -313,7 +313,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         @Override
         public Void visitReference(Reference symbol, TableInfo context) {
-            if (context.partitionedBy().contains(symbol.info().ident().columnIdent().fqn())) {
+            if (context.partitionedBy().contains(symbol.info().ident().columnIdent())) {
                 throw new UnsupportedOperationException(
                         SymbolFormatter.format(
                                 "cannot use partitioned column %s in ORDER BY clause",

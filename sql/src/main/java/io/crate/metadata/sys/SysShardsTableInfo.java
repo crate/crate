@@ -42,13 +42,17 @@ public class SysShardsTableInfo extends SysTableInfo {
     public static Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>(7);
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>(7);
 
-    private static final ImmutableList<String> primaryKey = ImmutableList.of("schema_name", "table_name", "id", "partition_ident");
+    private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(
+            new ColumnIdent("schema_name"),
+            new ColumnIdent("table_name"),
+            new ColumnIdent("id"),
+            new ColumnIdent("partition_ident"));
 
     static {
-        register(primaryKey.get(0), DataType.STRING, null);
-        register(primaryKey.get(1), DataType.STRING, null);
-        register(primaryKey.get(2), DataType.INTEGER, null);
-        register(primaryKey.get(3), DataType.STRING, null);
+        register(primaryKey.get(0).fqn(), DataType.STRING, null);
+        register(primaryKey.get(1).fqn(), DataType.STRING, null);
+        register(primaryKey.get(2).fqn(), DataType.INTEGER, null);
+        register(primaryKey.get(3).fqn(), DataType.STRING, null);
         register("num_docs", DataType.LONG, null);
         register("primary", DataType.BOOLEAN, null);
         register("relocating_node", DataType.STRING, null);
@@ -127,7 +131,7 @@ public class SysShardsTableInfo extends SysTableInfo {
     }
 
     @Override
-    public List<String> primaryKey() {
+    public List<ColumnIdent> primaryKey() {
         return primaryKey;
     }
 
