@@ -33,9 +33,9 @@ import java.util.TreeMap;
 
 public class SymbolFormatter extends SymbolVisitor<Void, String> {
 
-    private static SymbolFormatter INSTANCE = new SymbolFormatter();
+    private static final SymbolFormatter INSTANCE = new SymbolFormatter();
 
-    private static Joiner argJoiner = Joiner.on(", ");
+    private static final Joiner argJoiner = Joiner.on(", ");
 
     private SymbolFormatter() {}
 

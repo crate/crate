@@ -1178,11 +1178,17 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testOrderByWithOrdinal() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze(
+                "select name from users u order by 1");
+        assertEquals(analysis.outputSymbols().get(0), analysis.sortSymbols().get(0));
+    }
+
+    @Test
     public void testGroupWithIdx() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis) analyze(
                 "select name from users u group by 1");
         assertEquals(analysis.outputSymbols().get(0), analysis.groupBy().get(0));
-
     }
 
     @Test

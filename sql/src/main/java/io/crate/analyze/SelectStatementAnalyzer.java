@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import io.crate.DataType;
 import io.crate.exceptions.SQLParseException;
@@ -132,18 +133,54 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             rewriteGlobalDistinct(context);
         }
 
-        Preconditions.checkArgument(node.getHaving().isPresent() == false, "having clause is not yet supported");
+        Preconditions.checkArgument(!node.getHaving().isPresent(), "having clause is not yet supported");
 
         if (node.getOrderBy().size() > 0) {
             List<Symbol> sortSymbols = new ArrayList<>(node.getOrderBy().size());
             context.reverseFlags(new boolean[node.getOrderBy().size()]);
             int i = 0;
             for (SortItem sortItem : node.getOrderBy()) {
-
-                sortSymbols.add(process(sortItem, context));
+                Symbol s = process(sortItem, context);
+                Symbol refOutput = ordinalOutputReference(context.outputSymbols(), s, "ORDER BY");
+                if (refOutput != null) {
+                    sortSymbols.add(refOutput);
+                } else {
+                    sortSymbols.add(s);
+                }
                 context.reverseFlags()[i++] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
             }
             context.sortSymbols(sortSymbols);
+        }
+        return null;
+    }
+
+    private Symbol ordinalOutputReference(List<Symbol> outputSymbols, Symbol symbol, String clauseName) {
+        Symbol s = symbol;
+        if (s.symbolType() == SymbolType.PARAMETER) {
+            try {
+                s = ((Parameter)symbol).toLiteral(DataType.LONG);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(
+                        String.format("invalid %s parameter \"%s\"", clauseName, SymbolFormatter.format(s)));
+            }
+        }
+        int idx;
+        if (s.symbolType() == SymbolType.LONG_LITERAL) {
+            idx = ((io.crate.planner.symbol.LongLiteral) s).value().intValue() - 1;
+            if (idx < 0) {
+                throw new IllegalArgumentException(
+                        String.format("%s position %s is not in select list", clauseName, idx + 1));
+            }
+        } else {
+            idx = outputSymbols.indexOf(s);
+        }
+        if (idx >= 0) {
+            try {
+                return outputSymbols.get(idx);
+            } catch (IndexOutOfBoundsException e) {
+                throw new IllegalArgumentException(
+                        String.format("%s position %s is not in select list", clauseName, idx + 1));
+            }
         }
         return null;
     }
@@ -181,34 +218,8 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
         for (Expression expression : groupByExpressions) {
             Symbol s = process(expression, context);
-            int idx;
-
-            // handle parameters
-            if (s.symbolType() == SymbolType.PARAMETER) {
-                try {
-                    s = ((Parameter)s).toLiteral(DataType.LONG);
-                } catch (Exception e) {
-                    throw new IllegalArgumentException(SymbolFormatter.format("invalid GROUP BY parameter '%s'", s));
-                }
-            }
-            if (s.symbolType() == SymbolType.LONG_LITERAL) {
-                idx = ((io.crate.planner.symbol.LongLiteral) s).value().intValue() - 1;
-                if (idx < 0) {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx + 1));
-                }
-            } else {
-                idx = context.outputSymbols().indexOf(s);
-            }
-
-            if (idx >= 0) {
-                try {
-                    s = context.outputSymbols().get(idx);
-                } catch (IndexOutOfBoundsException e) {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx + 1));
-                }
-            }
+            Symbol refOutput = ordinalOutputReference(context.outputSymbols(), s, "GROUP BY");
+            s = Objects.firstNonNull(refOutput, s);
             if (s.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
                 throw new IllegalArgumentException(
                         SymbolFormatter.format("unknown column '%s' not allowed in GROUP BY", s));
