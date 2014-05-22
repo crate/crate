@@ -3508,6 +3508,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from quotes");
         assertEquals(1L, response.rowCount());
 
+        execute("delete from quotes"); // this will delete all partitions
+        execute("delete from quotes"); // this should still work even though only the template exists
+
         execute("drop table quotes");
         assertEquals(1L, response.rowCount());
     }

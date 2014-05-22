@@ -372,10 +372,10 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 }
             }
 
-            // drop indices/tables
-            for (int i=0; i < indices.length; i++) {
-                ESDeleteIndexNode dropNode = new ESDeleteIndexNode(indices[i], true);
-                plan.add(dropNode);
+            if (!analysis.table().partitions().isEmpty()) {
+                for (String index : indices) {
+                    plan.add(new ESDeleteIndexNode(index, true));
+                }
             }
         } else {
             // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently

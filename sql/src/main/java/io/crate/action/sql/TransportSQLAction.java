@@ -21,10 +21,7 @@
 
 package io.crate.action.sql;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.google.common.util.concurrent.*;
 import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.analyze.Analysis;
@@ -57,6 +54,7 @@ import org.elasticsearch.transport.TransportService;
 import javax.annotation.Nullable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -138,10 +136,16 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             logger.trace(printer.print(plan));
         }
         final ResponseBuilder responseBuilder = getResponseBuilder(plan);
-        final Job job = executor.newJob(plan);
-        final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(executor.execute(job));
-
-        addResultCallback(request, listener, outputNames, plan, responseBuilder, resultFuture);
+        if (plan.isEmpty()) {
+            assert plan.expectsAffectedRows();
+            ListenableFuture<List<Object[][]>> zeroAffectedRows =
+                    Futures.immediateFuture(Arrays.<Object[][]>asList(new Object[][] { new Object[] { 0 }}));
+            addResultCallback(request, listener, outputNames, plan, responseBuilder, zeroAffectedRows);
+        } else {
+            final Job job = executor.newJob(plan);
+            final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(executor.execute(job));
+            addResultCallback(request, listener, outputNames, plan, responseBuilder, resultFuture);
+        }
     }
 
     private static void emptyResponse(SQLRequest request,
