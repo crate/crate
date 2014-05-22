@@ -335,25 +335,25 @@ public class TestStatementBuilder
 
         ObjectLiteral singleObjectLiteral = (ObjectLiteral)SqlParser.createExpression("{a=1}");
         assertThat(singleObjectLiteral.values().size(), is(1));
-        assertThat(singleObjectLiteral.values().get("a"), instanceOf(LongLiteral.class));
+        assertThat(singleObjectLiteral.values().get("a").iterator().next(), instanceOf(LongLiteral.class));
 
         ObjectLiteral multipleObjectLiteral = (ObjectLiteral)SqlParser.createExpression(
                 "{b=func('abc'), c=identifier, d=1+4, e=-12.56, f=sub['script'], g={}}");
         assertThat(multipleObjectLiteral.values().size(), is(6));
-        assertThat(multipleObjectLiteral.values().get("b"), instanceOf(FunctionCall.class));
-        assertThat(multipleObjectLiteral.values().get("c"), instanceOf(QualifiedNameReference.class));
-        assertThat(multipleObjectLiteral.values().get("d"), instanceOf(ArithmeticExpression.class));
-        assertThat(multipleObjectLiteral.values().get("e"), instanceOf(NegativeExpression.class));
-        assertThat(multipleObjectLiteral.values().get("f"), instanceOf(SubscriptExpression.class));
-        assertThat(multipleObjectLiteral.values().get("g"), instanceOf(ObjectLiteral.class));
+        assertThat(multipleObjectLiteral.values().get("b").iterator().next(), instanceOf(FunctionCall.class));
+        assertThat(multipleObjectLiteral.values().get("c").iterator().next(), instanceOf(QualifiedNameReference.class));
+        assertThat(multipleObjectLiteral.values().get("d").iterator().next(), instanceOf(ArithmeticExpression.class));
+        assertThat(multipleObjectLiteral.values().get("e").iterator().next(), instanceOf(NegativeExpression.class));
+        assertThat(multipleObjectLiteral.values().get("f").iterator().next(), instanceOf(SubscriptExpression.class));
+        assertThat(multipleObjectLiteral.values().get("g").iterator().next(), instanceOf(ObjectLiteral.class));
 
         ObjectLiteral quotedObjectLiteral = (ObjectLiteral)SqlParser.createExpression(
                 "{\"AbC\"=123}"
         );
         assertThat(quotedObjectLiteral.values().size(), is(1));
-        assertThat(quotedObjectLiteral.values().get("AbC"), instanceOf(LongLiteral.class));
-        assertNull(quotedObjectLiteral.values().get("abc"));
-        assertNull(quotedObjectLiteral.values().get("ABC"));
+        assertThat(quotedObjectLiteral.values().get("AbC").iterator().next(), instanceOf(LongLiteral.class));
+        assertThat(quotedObjectLiteral.values().get("abc").isEmpty(), is(true));
+        assertThat(quotedObjectLiteral.values().get("ABC").isEmpty(), is(true));
     }
 
     @Test
