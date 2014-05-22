@@ -121,15 +121,7 @@ public class FileReadingCollector implements CrateCollector {
         if (!hasGlobMatcher.matches()) {
             globPredicate = null;
         } else {
-            String prefix = hasGlobMatcher.group(1);
-            int afterSlashIdx = fileUri.lastIndexOf("/") + 1;
-            if (afterSlashIdx <= fileUri.length() && fileUri.substring(afterSlashIdx, afterSlashIdx + 1).equals("*")) {
-                // pattern like /tmp/foo/*  --> can use the prefix directly
-                this.preGlobUri = URI.create(prefix);
-            } else {
-                // pattern like /tmp/foo/asdf*.json
-                this.preGlobUri = URI.create(hasGlobMatcher.group(1));
-            }
+            this.preGlobUri = URI.create(hasGlobMatcher.group(1));
             final Pattern globPattern = Pattern.compile(Globs.toUnixRegexPattern(this.fileUri.toString()));
             globPredicate = new Predicate<URI>() {
                 @Override
