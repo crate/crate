@@ -5,7 +5,7 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - GROUP BY clause with ordinal numbers now works correctly
+ - fix: ORDER BY/GROUP BY clauses with ordinal numbers now work correctly
 
  - fixed the glob pattern matching for S3 imports using the ``COPY FROM``
    statement.
