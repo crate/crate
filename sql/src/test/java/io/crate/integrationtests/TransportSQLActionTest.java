@@ -3516,6 +3516,29 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testPartitionedTableSchemaUpdateSameColumnNumber() throws Exception {
+        execute("create table foo (" +
+                "   id int primary key," +
+                "   date timestamp primary key" +
+                ") partitioned by (date) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into foo (id, date, foo) values (1, '2014-01-01', 'foo')");
+        execute("insert into foo (id, date, bar) values (2, '2014-02-01', 'bar')");
+
+        // schema updates are async and cannot reliably be forced
+        int retry = 0;
+        while (retry < 100) {
+            execute("select * from foo");
+            if (response.cols().length == 4) { // at some point both foo and bar columns must be present
+                break;
+            }
+            Thread.sleep(100);
+            retry++;
+        }
+        assertTrue(retry < 100);
+    }
+
+    @Test
     public void testPartitionedTableNestedAllConstraintsRoundTrip() throws Exception {
         execute("create table quotes (" +
                 "id integer, " +

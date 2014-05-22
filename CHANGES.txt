@@ -5,8 +5,7 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: after a schema update of a partitioned table, new partitions weren't
-   correcctly associated with the partitioned table.
+ - fix: fixed schema update issues with partitioned tables.
 
  - fix: DELETE on an empty partitioned table caused an error.
 
