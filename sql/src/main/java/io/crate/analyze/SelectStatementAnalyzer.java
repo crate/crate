@@ -193,9 +193,9 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             }
             if (s.symbolType() == SymbolType.LONG_LITERAL) {
                 idx = ((io.crate.planner.symbol.LongLiteral) s).value().intValue() - 1;
-                if (idx < 1) {
+                if (idx < 0) {
                     throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx));
+                            String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx + 1));
                 }
             } else {
                 idx = context.outputSymbols().indexOf(s);
@@ -204,9 +204,9 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             if (idx >= 0) {
                 try {
                     s = context.outputSymbols().get(idx);
-                } catch (ArrayIndexOutOfBoundsException e) {
+                } catch (IndexOutOfBoundsException e) {
                     throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx));
+                            String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx + 1));
                 }
             }
             if (s.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
