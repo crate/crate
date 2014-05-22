@@ -44,6 +44,7 @@ import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentHelper;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -447,29 +448,38 @@ public class DocIndexMetaData {
                                   TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                                   boolean thisIsCreatedFromTemplate)
             throws IOException {
-        // TODO: merge schemas if not equal, for now we just return this after making sure the schema is the same
         if (schemaEquals(other)) {
             return this;
         } else if (thisIsCreatedFromTemplate) {
             if (this.references.size() < other.references.size()) {
                 // this is older, update template and return other
-                String templateName = PartitionName.templateName(name());
-                PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
-                        .mapping(Constants.DEFAULT_MAPPING_TYPE, other.defaultMappingMap)
-                        .create(false)
-                        .settings(other.metaData.settings())
-                        .template(templateName + "*");
-                for (String alias : other.aliases()) {
-                    request = request.alias(new Alias(alias));
-                }
-                transportPutIndexTemplateAction.execute(request);
+                updateTemplate(other, transportPutIndexTemplateAction);
                 return other;
+            } else if (references().size() == other.references().size() &&
+                    !references().keySet().equals(other.references().keySet())) {
+                XContentHelper.update(defaultMappingMap, other.defaultMappingMap);
+                updateTemplate(this, transportPutIndexTemplateAction);
+                return this;
             }
             // other is older, just return this
             return this;
         } else {
             throw new TableAliasSchemaException(other.name());
         }
+    }
+
+    private void updateTemplate(DocIndexMetaData md,
+                                TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
+        String templateName = PartitionName.templateName(name());
+        PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
+                .mapping(Constants.DEFAULT_MAPPING_TYPE, md.defaultMappingMap)
+                .create(false)
+                .settings(md.metaData.settings())
+                .template(templateName + "*");
+        for (String alias : md.aliases()) {
+            request = request.alias(new Alias(alias));
+        }
+        transportPutIndexTemplateAction.execute(request);
     }
 
     private String name() {
