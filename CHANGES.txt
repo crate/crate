@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: after a schema update of a partitioned table, new partitions weren't
+   correcctly associated with the partitioned table.
+
  - fix: DELETE on an empty partitioned table caused an error.
 
  - fix: ORDER BY/GROUP BY clauses with ordinal numbers now work correctly

@@ -35,6 +35,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -437,7 +438,7 @@ public class DocIndexMetaData {
         if (columns != null ? !columns.equals(other.columns) : other.columns != null) return false;
         if (primaryKey != null ? !primaryKey.equals(other.primaryKey) : other.primaryKey != null) return false;
         if (references != null ? !references.equals(other.references) : other.references != null) return false;
-        if (!routingCol.equals(other.routingCol)) return false;
+        if (routingCol != null ? !routingCol.equals(other.routingCol) : other.routingCol != null) return false;
 
         return true;
     }
@@ -458,6 +459,9 @@ public class DocIndexMetaData {
                         .create(false)
                         .settings(other.metaData.settings())
                         .template(templateName + "*");
+                for (String alias : other.aliases()) {
+                    request = request.alias(new Alias(alias));
+                }
                 transportPutIndexTemplateAction.execute(request);
                 return other;
             }
