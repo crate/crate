@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
 
 import javax.annotation.Nullable;
@@ -58,6 +59,16 @@ public class ExpressionToStringVisitor extends AstVisitor<String, Object[]> {
     @Override
     protected String visitLongLiteral(LongLiteral node, Object[] parameters) {
         return Long.toString(node.getValue());
+    }
+
+    @Override
+    public String visitArrayLiteral(ArrayLiteral node, Object[] context) {
+        return ExpressionFormatter.formatExpression(node);
+    }
+
+    @Override
+    public String visitObjectLiteral(ObjectLiteral node, Object[] context) {
+        return ExpressionFormatter.formatExpression(node);
     }
 
     @Override

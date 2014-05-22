@@ -109,6 +109,9 @@ tokens {
     ANALYZER_ELEMENTS;
     NAMED_PROPERTIES;
     ARRAY_CMP;
+    ARRAY_LITERAL;
+    OBJECT_LITERAL;
+    KEY_VALUE;
 }
 
 @header {
@@ -176,28 +179,21 @@ singleExpression
 statement
     : query
     | explainStmt
-    | showTablesStmt
-    | showSchemasStmt
-    | showCatalogsStmt
-    | showColumnsStmt
-    | showPartitionsStmt
-    | showFunctionsStmt
-    | createTableStmt
-    | alterBlobTableStmt
-    | alterTableStmt
-    | createBlobTableStmt
-    | dropTableStmt
-    | dropBlobTableStmt
-    | createMaterializedViewStmt
-    | refreshMaterializedViewStmt
-    | createAliasStmt
-    | dropAliasStmt
+//    | showTablesStmt
+//    | showSchemasStmt
+//    | showCatalogsStmt
+//    | showColumnsStmt
+//    | showPartitionsStmt
+//    | showFunctionsStmt
+    | CREATE createStatement -> createStatement
+//    | createMaterializedViewStmt
+    | ALTER alterStatement -> alterStatement
+    | DROP dropStatement -> dropStatement
+//    | refreshMaterializedViewStmt
     | insertStmt
     | deleteStmt
     | updateStmt
-    | copyFromStmt
-    | copyToStmt
-    | createAnalyzerStmt
+    | COPY copyStatement -> copyStatement
     | refreshStmt
     ;
 
@@ -350,7 +346,7 @@ relation
     ;
 
 tableWithPartition
-    : qname ( PARTITION '(' genericProperties ')' )? -> ^(TABLE qname genericProperties?)
+    : qname ( PARTITION '(' assignmentList ')' )? -> ^(TABLE qname assignmentList?)
     ;
 
 table
@@ -446,18 +442,24 @@ numericFactor
     ;
 
 exprPrimary
+    : simpleExpr
+    | caseExpression
+    | ('(' expr ')') => ('(' expr ')' -> expr)
+    | subquery
+    ;
+
+simpleExpr
     : NULL
     | (dateValue) => dateValue
     | (intervalValue) => intervalValue
+    | ('[') => arrayLiteral
+    | ('{') => objectLiteral
     | qnameOrFunction
     | specialFunction
     | number
     | parameterExpr
     | bool
     | STRING
-    | caseExpression
-    | ('(' expr ')') => ('(' expr ')' -> expr)
-    | subquery
     ;
 
 qnameOrFunction
@@ -476,15 +478,6 @@ parameterExpr
     : '$' integer
     | '?'
     ;
-
-literalOrParameter
-    : NULL
-    | numericLiteral
-    | parameterExpr
-    | bool
-    | STRING
-    ;
-
 
 inList
     : ('(' expr) => ('(' expr (',' expr)* ')' -> ^(IN_LIST expr+))
@@ -650,14 +643,6 @@ showFunctionsStmt
     : SHOW FUNCTIONS -> SHOW_FUNCTIONS
     ;
 
-dropBlobTableStmt
-    : DROP BLOB TABLE table -> ^(DROP_BLOB_TABLE table)
-    ;
-
-dropTableStmt
-    : DROP TABLE table -> ^(DROP_TABLE table)
-    ;
-
 createMaterializedViewStmt
     : CREATE MATERIALIZED VIEW qname r=viewRefresh? AS s=restrictedSelectStmt -> ^(CREATE_MATERIALIZED_VIEW qname $r? $s)
     ;
@@ -668,14 +653,6 @@ refreshMaterializedViewStmt
 
 viewRefresh
     : REFRESH r=integer -> ^(REFRESH $r)
-    ;
-
-createAliasStmt
-    : CREATE ALIAS qname forRemote -> ^(CREATE_ALIAS qname forRemote)
-    ;
-
-dropAliasStmt
-    : DROP ALIAS qname -> ^(DROP_ALIAS qname)
     ;
 
 forRemote
@@ -710,6 +687,17 @@ integer
     : INTEGER_VALUE
     ;
 
+arrayLiteral
+    : '[' ( expr (',' expr)* )? ']' -> ^(ARRAY_LITERAL expr*)
+    ;
+
+objectLiteral
+    : '{' (objectKeyValue (',' objectKeyValue)* )? '}' -> ^(OBJECT_LITERAL objectKeyValue*)
+    ;
+
+objectKeyValue
+    : ident EQ expr -> ^(KEY_VALUE ident expr)
+    ;
 
 insertStmt
     : INSERT INTO table (columns=identList)? VALUES values=insertValues -> ^(INSERT table $values $columns?)
@@ -749,46 +737,79 @@ assignment
     : subscript EQ expr -> ^(ASSIGNMENT subscript expr)
     ;
 
-copyToStmt
-    : COPY tableWithPartition columnList? TO DIRECTORY? expr
-      ( WITH '(' genericProperties ')' )? -> ^(COPY_TO tableWithPartition columnList? DIRECTORY? expr genericProperties?)
+// COPY STATEMENTS
+copyStatement
+    : tableWithPartition (
+        (FROM) => FROM expr ( WITH '(' genericProperties ')' )? -> ^(COPY_FROM tableWithPartition expr genericProperties?)
+        |
+        columnList? TO DIRECTORY? expr ( WITH '(' genericProperties ')' )? -> ^(COPY_TO tableWithPartition columnList? DIRECTORY? expr genericProperties?)
+    )
     ;
+// END COPY STATEMENT
 
-copyFromStmt
-    : COPY tableWithPartition FROM expr
-      ( WITH '(' genericProperties ')' )? -> ^(COPY_FROM tableWithPartition expr genericProperties?)
+// CREATE STATEMENTS
+
+createStatement
+    : TABLE createTableStmt -> createTableStmt
+    | BLOB TABLE createBlobTableStmt -> createBlobTableStmt
+    | ALIAS createAliasStmt -> createAliasStmt
+    | ANALYZER createAnalyzerStmt -> createAnalyzerStmt
     ;
-
-alterBlobTableStmt
-    : ALTER BLOB TABLE table
-      SET '(' genericProperties ')' -> ^(ALTER_BLOB_TABLE table genericProperties)
-    | ALTER BLOB TABLE table
-      RESET identList -> ^(ALTER_BLOB_TABLE table identList)
-    ;
-
-alterTableStmt
-    : ALTER TABLE table
-      SET '(' genericProperties ')' -> ^(ALTER_TABLE table genericProperties)
-    | ALTER TABLE table
-      RESET identList -> ^(ALTER_TABLE table identList)
-    ;
-
-createBlobTableStmt
-    : CREATE BLOB TABLE table clusteredInto?
-      (WITH '(' genericProperties ')' )? -> ^(CREATE_BLOB_TABLE table clusteredInto? genericProperties?)
-    ;
-
+    
 createTableStmt
-    : CREATE TABLE table
+    : table
       tableElementList
       crateTableOption*
       (WITH '(' genericProperties ')' )? -> ^(CREATE_TABLE table tableElementList crateTableOption* genericProperties?)
     ;
 
+createBlobTableStmt
+    : table clusteredInto?
+      (WITH '(' genericProperties ')' )? -> ^(CREATE_BLOB_TABLE table clusteredInto? genericProperties?)
+    ;
+
+createAliasStmt
+    : qname forRemote -> ^(CREATE_ALIAS qname forRemote)
+    ;
+
+createAnalyzerStmt
+    : ident extendsAnalyzer? analyzerElementList -> ^(ANALYZER ident extendsAnalyzer? analyzerElementList)
+    ;
+
+// END CREATE STATEMENTS
+
+// ALTER STATEMENTS
+
+alterStatement
+    : TABLE alterTableStmt -> alterTableStmt
+    | BLOB TABLE alterBlobTableStmt -> alterBlobTableStmt
+    ;
+
+alterBlobTableStmt
+    : (table SET) => table SET '(' genericProperties ')' -> ^(ALTER_BLOB_TABLE table genericProperties)
+    | table RESET identList -> ^(ALTER_BLOB_TABLE table identList)
+    ;
+
+alterTableStmt
+    : (table SET) => table SET '(' genericProperties ')' -> ^(ALTER_TABLE table genericProperties)
+    | table RESET identList -> ^(ALTER_TABLE table identList)
+    ;
+// END ALTER STATEMENTS
+
+// DROP STATEMENTS
+
+dropStatement
+	: TABLE table -> ^(DROP_TABLE table)
+	| BLOB TABLE table -> ^(DROP_BLOB_TABLE table)
+	| ALIAS qname -> ^(DROP_ALIAS qname)
+	;
+// END DROP STATEMENTS
+
 crateTableOption
     : clusteredBy
     | partitionedBy
     ;
+
 
 tableElementList
     : '(' tableElement (',' tableElement)* ')' -> ^(TABLE_ELEMENT_LIST tableElement+)
@@ -869,12 +890,7 @@ genericProperties
     ;
 
 genericProperty
-    : ident EQ literalOrParameter -> ^(GENERIC_PROPERTY ident literalOrParameter)
-    | ident EQ literalList -> ^(GENERIC_PROPERTY ident literalList)
-    ;
-
-literalList
-    : '[' literalOrParameter (',' literalOrParameter)* ']' -> ^(LITERAL_LIST literalOrParameter+)
+    : ident EQ expr -> ^(GENERIC_PROPERTY ident expr)
     ;
 
 primaryKeyConstraint
@@ -891,11 +907,6 @@ clusteredBy
 
 partitionedBy
     : PARTITIONED BY columnList -> ^(PARTITIONED columnList)
-    ;
-
-
-createAnalyzerStmt
-    : CREATE ANALYZER ident extendsAnalyzer? analyzerElementList -> ^(ANALYZER ident extendsAnalyzer? analyzerElementList)
     ;
 
 extendsAnalyzer

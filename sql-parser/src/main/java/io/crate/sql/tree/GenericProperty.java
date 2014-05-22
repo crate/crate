@@ -22,9 +22,6 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  *
@@ -40,18 +37,19 @@ import java.util.List;
 public class GenericProperty extends AnalyzerElement {
 
     private final String key;
-    private final List<Expression> value;
+    private final Expression value;
 
-    public GenericProperty(String key, List<Expression> value) {
+    public GenericProperty(String key, Expression value) {
         this.key = key;
-        this.value = Objects.firstNonNull(value, ImmutableList.<Expression>of());
+        this.value = value;
     }
+
 
     public String key() {
         return key;
     }
 
-    public List<Expression> value() {
+    public Expression value() {
         return value;
     }
 

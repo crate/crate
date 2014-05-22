@@ -54,25 +54,25 @@ public abstract class BlobTableAnalyzer<TypeAnalysis extends Analysis>
     protected static NumberOfReplicas extractNumberOfReplicas(
             GenericProperties genericProperties,
             Object[] parameters) {
-        Map<String,List<Expression>> properties = genericProperties.properties();
-        List<Expression> number_of_replicas = properties.remove("number_of_replicas");
+        Map<String,Expression> properties = genericProperties.properties();
+        Expression number_of_replicas = properties.remove("number_of_replicas");
 
-        NumberOfReplicas replicas = null;
-
+        NumberOfReplicas numberOfReplicas = null;
         if (number_of_replicas != null) {
-            Preconditions.checkArgument(number_of_replicas.size() == 1,
-                    "Invalid number of arguments passed to \"number_of_replicas\"");
-
-            Object numReplicas = ExpressionToObjectVisitor.convert(number_of_replicas.get(0), parameters);
-            if (numReplicas != null) {
-                replicas = new NumberOfReplicas(numReplicas.toString());
+            try {
+                Integer numReplicas = ExpressionToNumberVisitor.convert(number_of_replicas, parameters).intValue();
+                numberOfReplicas = new NumberOfReplicas(numReplicas);
+            } catch (IllegalArgumentException e) {
+                String numReplicas = ExpressionToObjectVisitor.convert(number_of_replicas, parameters).toString();
+                numberOfReplicas = new NumberOfReplicas(numReplicas);
             }
         }
+
         if (properties.size() > 0) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid properties \"%s\" passed to [ALTER | CREATE] BLOB TABLE statement",
                             properties.keySet()));
         }
-        return replicas;
+        return numberOfReplicas;
     }
 }

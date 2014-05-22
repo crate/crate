@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,32 +19,45 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.sql.tree;
 
-import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.RefreshStatement;
+import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
-public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, RefreshTableAnalysis> {
+public class ArrayLiteral extends Literal {
 
-    @Override
-    public Void visitRefreshStatement(RefreshStatement node, RefreshTableAnalysis context) {
-        context.table(TableIdent.of(node.table()));
-        if (!node.table().partitionProperties().isEmpty()) {
-            setParitionIdent(node.table().partitionProperties(), context);
-        }
+    private final List<Expression> values;
 
-        return null;
+    public ArrayLiteral(@Nullable List<Expression> values) {
+        this.values = Objects.firstNonNull(values, ImmutableList.<Expression>of());
     }
 
-    private void setParitionIdent(List<Assignment> properties, RefreshTableAnalysis context) {
-        String partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
-                context.table(),
-                properties,
-                context.parameters()
-        );
-        context.partitionIdent(partitionIdent);
+    public List<Expression> values() {
+        return values;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitArrayLiteral(this, context);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ArrayLiteral that = (ArrayLiteral) o;
+
+        if (!values.equals(that.values)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return values.hashCode();
     }
 }
