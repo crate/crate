@@ -2,6 +2,30 @@
 Changes for Crate Data
 ======================
 
+Unreleased
+==========
+
+ - implemented partition support for ``copy`` statements
+
+    - added ``copy my_table PARTITION (<columnName> = <value> [, ...]) to ... ``
+      to export single partitions of partitioned tables
+
+    - added ``copy my_table PARTITION (<columnName> = <value> [, ...]) from ...``
+      to import all data into a single partition
+
+ - implemented alter table to operate on single partitions
+
+ - implemented object and array literals
+
+ - changed refresh table for partitioned tables.
+   Instead of::
+
+        refresh table my_table PARTITION ident
+
+   it is now::
+
+        refresh table my_table PARITION (<columnName> = <value> [, ... ])
+
  - the ordering of null values can now be influenced using the ``NULLS { FIRST
    | LAST }`` keywords.
 

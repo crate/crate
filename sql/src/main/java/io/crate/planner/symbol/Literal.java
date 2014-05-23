@@ -53,6 +53,17 @@ public class Literal<ReturnType>
         return new Literal<>(new SetType(itemType), builder.build());
     }
 
+    public static Literal implodeCollection(DataType itemType, List<Literal> literals) {
+       Object[] values = new Object[literals.size()];
+        for (int i = 0; i<literals.size(); i++) {
+            assert literals.get(i).valueType() == itemType :
+                    String.format("Literal type: %s does not match item type: %s",
+                            literals.get(i).valueType(), itemType);
+            values[i] = literals.get(i).value();
+        }
+        return new Literal<>(new ArrayType(itemType), values);
+    }
+
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
         Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));
         Collection values = (Collection) collectionLiteral.value();

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -22,22 +22,26 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
-public class RefreshStatement extends Statement {
+import javax.annotation.Nullable;
 
-    private final Table table;
+public class ObjectLiteral extends Literal {
 
-    public RefreshStatement(Table table) {
-        this.table = table;
+    private final Multimap<String, Expression> values;
+
+    public ObjectLiteral(@Nullable Multimap<String, Expression> values) {
+        this.values = Objects.firstNonNull(values, ImmutableMultimap.<String, Expression>of());
     }
 
-    public Table table() {
-        return table;
+    public Multimap<String, Expression> values() {
+        return values;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(table);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitObjectLiteral(this, context);
     }
 
     @Override
@@ -45,22 +49,15 @@ public class RefreshStatement extends Statement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        RefreshStatement that = (RefreshStatement) o;
+        ObjectLiteral that = (ObjectLiteral) o;
 
-        if (!table.equals(that.table)) return false;
+        if (!values.equals(that.values)) return false;
 
         return true;
     }
 
     @Override
-    public String toString() {
-        return Objects.toStringHelper(this)
-                .add("table", table)
-                .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitRefreshStatement(this, context);
+    public int hashCode() {
+        return values.hashCode();
     }
 }

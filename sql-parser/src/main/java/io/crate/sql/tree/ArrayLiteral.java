@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -22,22 +22,26 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 
-public class RefreshStatement extends Statement {
+import javax.annotation.Nullable;
+import java.util.List;
 
-    private final Table table;
+public class ArrayLiteral extends Literal {
 
-    public RefreshStatement(Table table) {
-        this.table = table;
+    private final List<Expression> values;
+
+    public ArrayLiteral(@Nullable List<Expression> values) {
+        this.values = Objects.firstNonNull(values, ImmutableList.<Expression>of());
     }
 
-    public Table table() {
-        return table;
+    public List<Expression> values() {
+        return values;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(table);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitArrayLiteral(this, context);
     }
 
     @Override
@@ -45,22 +49,15 @@ public class RefreshStatement extends Statement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        RefreshStatement that = (RefreshStatement) o;
+        ArrayLiteral that = (ArrayLiteral) o;
 
-        if (!table.equals(that.table)) return false;
+        if (!values.equals(that.values)) return false;
 
         return true;
     }
 
     @Override
-    public String toString() {
-        return Objects.toStringHelper(this)
-                .add("table", table)
-                .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitRefreshStatement(this, context);
+    public int hashCode() {
+        return values.hashCode();
     }
 }

@@ -38,6 +38,8 @@ options {
     import com.google.common.collect.ImmutableList;
     import com.google.common.base.Objects;
     import com.google.common.base.Optional;
+    import com.google.common.collect.Multimap;
+    import com.google.common.collect.LinkedListMultimap;
 }
 
 @members {
@@ -281,7 +283,7 @@ relationType returns [Relation value]
     ;
 
 namedTable returns [Table value]
-    : ^(TABLE qname) { $value = new Table($qname.value); }
+    : ^(TABLE qname assignmentList?) { $value = new Table($qname.value, $assignmentList.value); }
     ;
 
 joinedTable returns [Relation value]
@@ -355,6 +357,8 @@ expr returns [Expression value]
     | extract               { $value = $extract.value; }
     | current_time          { $value = $current_time.value; }
     | cast                  { $value = $cast.value; }
+    | arrayLiteral          { $value = $arrayLiteral.value; }
+    | objectLiteral         { $value = $objectLiteral.value; }
     ;
 
 exprList returns [List<Expression> value = new ArrayList<>()]
@@ -693,22 +697,22 @@ createBlobTable returns [Statement value]
     ;
 
 alterBlobTable returns [Statement value]
-    : ^(ALTER_BLOB_TABLE namedTable genericProperties)
+    : ^(ALTER_BLOB_TABLE genericProperties namedTable)
         {
             $value = new AlterBlobTable($namedTable.value, $genericProperties.value);
         }
-    | ^(ALTER_BLOB_TABLE namedTable columnIdentList)
+    | ^(ALTER_BLOB_TABLE columnIdentList namedTable)
         {
             $value = new AlterBlobTable($namedTable.value, $columnIdentList.value);
         }
     ;
 
 alterTable returns [Statement value]
-    : ^(ALTER_TABLE namedTable genericProperties)
+    : ^(ALTER_TABLE genericProperties namedTable)
         {
             $value = new AlterTable($namedTable.value, $genericProperties.value);
         }
-    | ^(ALTER_TABLE namedTable columnIdentList)
+    | ^(ALTER_TABLE columnIdentList namedTable)
         {
             $value = new AlterTable($namedTable.value, $columnIdentList.value);
         }
@@ -786,12 +790,20 @@ genericProperties returns [GenericProperties value = new GenericProperties()]
     ;
 
 genericProperty returns [GenericProperty value]
-    : ^(GENERIC_PROPERTY key=ident expr) { $value = new GenericProperty($key.value, ImmutableList.of($expr.value)); }
-    | ^(GENERIC_PROPERTY key=ident literalList) { $value = new GenericProperty($key.value, $literalList.value); }
+    : ^(GENERIC_PROPERTY key=ident expr) { $value = new GenericProperty($key.value, $expr.value); }
     ;
 
-literalList returns [List<Expression> value]
-    : ^(LITERAL_LIST exprList) { $value=$exprList.value; }
+arrayLiteral returns [ArrayLiteral value]
+    : ^(ARRAY_LITERAL exprList) { $value=new ArrayLiteral($exprList.value); }
+    ;
+
+objectLiteral returns [ObjectLiteral value]
+    : ^(OBJECT_LITERAL objectAttributes) { $value = new ObjectLiteral($objectAttributes.value); }
+    ;
+
+// track down duplicated to throw correct errors
+objectAttributes returns [Multimap<String, Expression> value = LinkedListMultimap.<String, Expression>create()]
+    : ( ^(KEY_VALUE key=ident val=expr) { $value.put($key.value, $val.value); } )*
     ;
 
 indexDefinition returns [IndexDefinition value]
@@ -874,5 +886,5 @@ namedProperties returns [NamedProperties value]
     ;
 
 refresh returns [RefreshStatement value]
-    : ^(REFRESH namedTable expr?) { $value = new RefreshStatement($namedTable.value, $expr.value); }
+    : ^(REFRESH namedTable) { $value = new RefreshStatement($namedTable.value); }
     ;

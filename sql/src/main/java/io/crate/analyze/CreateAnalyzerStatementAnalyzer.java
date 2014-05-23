@@ -32,8 +32,6 @@ import java.util.Map;
 
 public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateAnalyzerAnalysis> {
 
-    private final ExpressionToStringVisitor expressionVisitor = new ExpressionToStringVisitor();
-
     @Override
     public Void visitCreateAnalyzer(CreateAnalyzer node, CreateAnalyzerAnalysis context) {
         context.ident(node.ident());
@@ -82,7 +80,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
             name = String.format("%s_%s", context.ident(), name);
 
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
-            for (Map.Entry<String, List<Expression>> tokenizerProperty : properties.get().properties().entrySet()) {
+            for (Map.Entry<String, Expression> tokenizerProperty : properties.get().properties().entrySet()) {
                 genericPropertyToSetting(builder,
                         context.getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
                         tokenizerProperty.getValue(),
@@ -141,7 +139,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
                 // transform name as token-filter is not publicly available
                 name = String.format("%s_%s", context.ident(), name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
-                for (Map.Entry<String, List<Expression>> tokenFilterProperty : properties.get().properties().entrySet()) {
+                for (Map.Entry<String, Expression> tokenFilterProperty : properties.get().properties().entrySet()) {
                     genericPropertyToSetting(builder,
                             context.getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
                             tokenFilterProperty.getValue(),
@@ -182,7 +180,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
                 // transform name as char-filter is not publicly available
                 name = String.format("%s_%s", context.ident(), name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
-                for (Map.Entry<String, List<Expression>> charFilterProperty: properties.get().properties().entrySet()) {
+                for (Map.Entry<String, Expression> charFilterProperty: properties.get().properties().entrySet()) {
                     genericPropertyToSetting(builder,
                             context.getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
                             charFilterProperty.getValue(),
@@ -203,15 +201,15 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
      * @return
      */
     private String extractType(GenericProperties properties, CreateAnalyzerAnalysis context) {
-        List<Expression> expressions = properties.get("type");
-        if (expressions == null) {
+        Expression expression = properties.get("type");
+        if (expression == null) {
             throw new IllegalArgumentException("'type' property missing");
         }
-        if (expressions.size() != 1) {
+        if (expression instanceof ArrayLiteral) {
             throw new IllegalArgumentException("'type' property is invalid");
         }
 
-        return expressionVisitor.process(expressions.get(0), context.parameters());
+        return ExpressionToStringVisitor.convert(expression, context.parameters());
     }
 
     /**
@@ -223,16 +221,17 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
      */
     private void genericPropertyToSetting(ImmutableSettings.Builder builder,
                                           String name,
-                                          List<Expression> value,
+                                          Expression value,
                                           CreateAnalyzerAnalysis context) {
-        if (value.size() == 1) {
-            builder.put(name, expressionVisitor.process(value.get(0), context.parameters()));
-        } else if (value.size() > 1) {
-            List<String> values = new ArrayList<>(value.size());
-            for (Expression expression : value) {
-                values.add(expressionVisitor.process(expression, context.parameters()));
+        if (value instanceof ArrayLiteral) {
+            ArrayLiteral array = (ArrayLiteral)value;
+            List<String> values = new ArrayList<>(array.values().size());
+            for (Expression expression : array.values()) {
+                values.add(ExpressionToStringVisitor.convert(expression, context.parameters()));
             }
             builder.putArray(name, values.toArray(new String[values.size()]));
+        } else  {
+            builder.put(name, ExpressionToStringVisitor.convert(value, context.parameters()));
         }
     }
 }

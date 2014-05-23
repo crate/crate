@@ -22,6 +22,7 @@
 package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
@@ -40,9 +41,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class WriterProjection extends Projection {
 
@@ -52,18 +51,21 @@ public class WriterProjection extends Projection {
 
     private final static Reference SHARD_ID_REF = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
     private final static Reference TABLE_NAME_REF = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("table_name")));
+    private final static Reference PARTITION_IDENT_REF = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("partition_ident")));
 
     public static final Symbol DIRECTORY_TO_FILENAME = new Function(new FunctionInfo(
-            new FunctionIdent(FormatFunction.NAME, Arrays.<DataType>asList(StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)),
+            new FunctionIdent(FormatFunction.NAME, Arrays.<DataType>asList(StringType.INSTANCE,
+                    StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)),
             StringType.INSTANCE),
-            Arrays.<Symbol>asList(Literal.newLiteral("%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF)
+            Arrays.<Symbol>asList(Literal.newLiteral("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
     );
 
     private Symbol uri;
     private boolean isDirectoryUri = false;
     private List<Symbol> inputs = ImmutableList.of();
-
     private Settings settings = ImmutableSettings.EMPTY;
+
+    private Map<ColumnIdent, Symbol> overwrites = ImmutableMap.of();
 
     @Nullable
     private List<String> outputNames;
@@ -153,6 +155,14 @@ public class WriterProjection extends Projection {
             inputs.add(Symbol.fromStream(in));
         }
         settings = ImmutableSettings.readSettingsFromStream(in);
+
+        int numOverwrites = in.readVInt();
+        overwrites = new HashMap<>(numOverwrites);
+        for (int i = 0; i < numOverwrites; i++) {
+            ColumnIdent columnIdent = new ColumnIdent();
+            columnIdent.readFrom(in);
+            overwrites.put(columnIdent, Symbol.fromStream(in));
+        }
     }
 
     @Override
@@ -172,6 +182,12 @@ public class WriterProjection extends Projection {
             Symbol.toStream(symbol, out);
         }
         ImmutableSettings.writeSettingsToStream(settings, out);
+
+        out.writeVInt(overwrites.size());
+        for (Map.Entry<ColumnIdent, Symbol> entry : overwrites.entrySet()) {
+            entry.getKey().writeTo(out);
+            Symbol.toStream(entry.getValue(), out);
+        }
     }
 
     @Override
@@ -186,6 +202,7 @@ public class WriterProjection extends Projection {
             return false;
         if (!settings.equals(that.settings)) return false;
         if (!uri.equals(that.uri)) return false;
+        if (!overwrites.equals(that.overwrites)) return false;
 
         return true;
     }
@@ -197,6 +214,7 @@ public class WriterProjection extends Projection {
         result = 31 * result + (isDirectoryUri ? 1 : 0);
         result = 31 * result + settings.hashCode();
         result = 31 * result + (outputNames != null ? outputNames.hashCode() : 0);
+        result = 31 * result + overwrites.hashCode();
         return result;
     }
 
@@ -223,4 +241,15 @@ public class WriterProjection extends Projection {
         return this;
     }
 
+    /*
+     * add values that should be added or overwritten
+     * all symbols must normalize to literals on the shard level.
+     */
+    public void overwrites(Map<ColumnIdent, Symbol> overwrites) {
+        this.overwrites = overwrites;
+    }
+
+    public Map<ColumnIdent, Symbol> overwrites() {
+        return this.overwrites;
+    }
 }

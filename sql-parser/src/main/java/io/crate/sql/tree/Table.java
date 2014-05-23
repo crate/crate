@@ -22,20 +22,35 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 public class Table
         extends QueryBody
 {
     private final QualifiedName name;
+    private final List<Assignment> partitionProperties;
 
     public Table(QualifiedName name)
     {
         this.name = name;
+        this.partitionProperties = ImmutableList.of();
+    }
+
+    public Table(QualifiedName name, @Nullable List<Assignment> partitionProperties) {
+        this.name = name;
+        this.partitionProperties = Objects.firstNonNull(partitionProperties, ImmutableList.<Assignment>of());
     }
 
     public QualifiedName getName()
     {
         return name;
+    }
+
+    public List<Assignment> partitionProperties() {
+        return partitionProperties;
     }
 
     @Override
@@ -49,31 +64,27 @@ public class Table
     {
         return Objects.toStringHelper(this)
                 .addValue(name)
+                .add("partitionProperties", partitionProperties)
                 .toString();
     }
 
     @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Table)) return false;
 
         Table table = (Table) o;
 
-        if (!name.equals(table.name)) {
-            return false;
-        }
+        if (!name.equals(table.name)) return false;
+        if (!partitionProperties.equals(table.partitionProperties)) return false;
 
         return true;
     }
 
     @Override
-    public int hashCode()
-    {
-        return name.hashCode();
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + partitionProperties.hashCode();
+        return result;
     }
 }

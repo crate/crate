@@ -2336,6 +2336,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyFromIntoPartitionedTableWithPARTITIONKeyword() throws Exception {
+        execute("create table quotes (" +
+                        "id integer primary key," +
+                        "date timestamp primary key," +
+                        "quote string index using fulltext" +
+                ") partitioned by (date) with (number_of_replicas=0)");
+        ensureGreen();
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes partition (date=1400507539938) from ?", new Object[] {filePath});
+        refresh();
+        execute("select count(*) from quotes");
+        assertEquals(1L, response.rowCount());
+        assertThat((Long)response.rows()[0][0], is(3L));
+    }
+
+    @Test
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (id integer primary key, " +
                 "quote string index using fulltext) partitioned by (id)");
@@ -3709,6 +3725,43 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testAlterPartitionedTablePartition() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas=0)");
+        ensureGreen();
+        assertThat(response.rowCount(), is(1L));
+
+        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L,
+                        2, "Now panic", 1395961200000L}
+        );
+        assertThat(response.rowCount(), is(2L));
+        ensureGreen();
+        refresh();
+
+        execute("alter table quotes partition (date=1395874800000) set (number_of_replicas=1)");
+        ensureGreen();
+        List<String> partitions = ImmutableList.of(
+                new PartitionName("quotes", Arrays.asList("1395874800000")).stringValue(),
+                new PartitionName("quotes", Arrays.asList("1395961200000")).stringValue()
+        );
+
+        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
+                partitions.get(0), partitions.get(1)
+        ).execute().get();
+        assertThat(settingsResponse.getSetting(partitions.get(0), IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
+        assertThat(settingsResponse.getSetting(partitions.get(1), IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("0"));
+
+        String templateName = PartitionName.templateName("quotes");
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        Settings  templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+
+    }
+
+    @Test
     public void testSelectFormatFunction() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
@@ -3758,7 +3811,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testRefreshPartitionedTableSinglePartitions() throws Exception {
-        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=-1)");
+        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) " +
+                "with (number_of_replicas=0, refresh_interval=-1)");
         ensureGreen();
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01')," +
@@ -3779,17 +3833,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from parted");
         assertThat(response.rowCount(), is(2L));
 
-        PartitionName partitionName = new PartitionName("parted", Arrays.asList("0"));
-
-        execute("refresh table parted PARTITION '" + partitionName.ident() + "'");
+        execute("refresh table parted PARTITION (date='1970-01-01')");
         assertThat(response.rowCount(), is(-1L));
 
         execute("select * from parted");
         assertThat(response.rowCount(), is(3L));
 
-        partitionName = new PartitionName("parted", Arrays.asList("518400000"));
-
-        execute("refresh table parted PARTITION '" + partitionName.ident() + "'");
+        execute("refresh table parted PARTITION (date='1970-01-07')");
         assertThat(response.rowCount(), is(-1L));
 
         execute("select * from parted");

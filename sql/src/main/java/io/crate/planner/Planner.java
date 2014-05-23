@@ -151,84 +151,94 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         if (analysis.mode() == CopyAnalysis.Mode.FROM) {
             copyFromPlan(analysis, plan);
         } else if (analysis.mode() == CopyAnalysis.Mode.TO) {
-            WriterProjection projection = new WriterProjection();
-            projection.uri(analysis.uri());
-            projection.isDirectoryUri(analysis.directoryUri());
-            projection.settings(analysis.settings());
-
-            PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
-            if (analysis.outputSymbols() != null && !analysis.outputSymbols().isEmpty()) {
-                // TODO: rewrite to lookup from DocReference (to avoid fieldcache)
-                List<Symbol> columns = new ArrayList<>(analysis.outputSymbols().size());
-                for (Symbol symbol : analysis.outputSymbols()) {
-                    columns.add(DocReferenceBuildingVisitor.INSTANCE.process(symbol, null));
-                }
-                contextBuilder = contextBuilder.output(columns);
-                projection.inputs(contextBuilder.outputs());
-            } else {
-                Reference rawReference = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
-                contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(rawReference));
-            }
-            CollectNode collectNode = PlanNodeBuilder.collect(analysis,
-                    contextBuilder.toCollect(),
-                    ImmutableList.<Projection>of(projection));
-
-            plan.add(collectNode);
-            AggregationProjection aggregationProjection = new AggregationProjection(
-                    Arrays.asList(new Aggregation(
-                                    analysis.getFunctionInfo(
-                                            new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
-                                    ),
-                                    Arrays.<Symbol>asList(new InputColumn(0)),
-                                    Aggregation.Step.ITER,
-                                    Aggregation.Step.FINAL
-                            )
-                    ));
-            MergeNode mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(aggregationProjection), collectNode);
-            plan.add(mergeNode);
-            plan.expectsAffectedRows(true);
+            copyToPlan(analysis, plan);
         }
 
         return plan;
     }
 
+    private void copyToPlan(CopyAnalysis analysis, Plan plan) {
+        WriterProjection projection = new WriterProjection();
+        projection.uri(analysis.uri());
+        projection.isDirectoryUri(analysis.directoryUri());
+        projection.settings(analysis.settings());
+
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
+        if (analysis.outputSymbols() != null && !analysis.outputSymbols().isEmpty()) {
+            List<Symbol> columns = new ArrayList<>(analysis.outputSymbols().size());
+            for (Symbol symbol : analysis.outputSymbols()) {
+                columns.add(DocReferenceBuildingVisitor.convert(symbol));
+            }
+            contextBuilder = contextBuilder.output(columns);
+            projection.inputs(contextBuilder.outputs());
+        } else {
+            Reference sourceRef;
+            if (analysis.table().isPartitioned() && analysis.partitionIdent() == null) {
+                // table is partitioned, insert partitioned columns into the output
+                sourceRef = new Reference(analysis.table().getColumnInfo(DocSysColumns.DOC));
+                Map<ColumnIdent, Symbol> overwrites = new HashMap<>();
+                for (ReferenceInfo referenceInfo : analysis.table().partitionedByColumns()) {
+                    overwrites.put(referenceInfo.ident().columnIdent(), new Reference(referenceInfo));
+                }
+                projection.overwrites(overwrites);
+            } else {
+                sourceRef = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
+            }
+            contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(sourceRef));
+        }
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                analysis,
+                contextBuilder.toCollect(),
+                ImmutableList.<Projection>of(projection),
+                analysis.partitionIdent()
+        );
+        plan.add(collectNode);
+        AggregationProjection aggregationProjection = new AggregationProjection(
+                Arrays.asList(new Aggregation(
+                                analysis.getFunctionInfo(
+                                        new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
+                                ),
+                                Arrays.<Symbol>asList(new InputColumn(0)),
+                                Aggregation.Step.ITER,
+                                Aggregation.Step.FINAL
+                        )
+                ));
+        MergeNode mergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(aggregationProjection), collectNode);
+        plan.add(mergeNode);
+        plan.expectsAffectedRows(true);
+    }
+
     private void copyFromPlan(CopyAnalysis analysis, Plan plan) {
         int clusteredByPrimaryKeyIdx = analysis.table().primaryKey().indexOf(analysis.table().clusteredBy());
-        List<String> partitionedBy = Lists.newArrayList(Iterables.transform(analysis.table().partitionedBy(),
-                new com.google.common.base.Function<ColumnIdent, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable ColumnIdent input) {
-                if (input != null) {
-                    return input.fqn();
-                } else {
-                    return null;
-                }
-            }
-        }));
-
+        List<String> partitionedByNames;
+        String tableName = analysis.table().ident().name();
+        if (analysis.partitionIdent() == null) {
+            partitionedByNames = Lists.newArrayList(
+                    Lists.transform(analysis.table().partitionedBy(), ColumnIdent.GET_FQN_NAME_FUNCTION)
+            );
+        } else {
+            /*
+             * if there is a partitionIdent in the analysis this means that the file doesn't include
+             * the partition ident in the rows.
+             *
+             * Therefore there is no need to exclude the partition columns from the source and
+             * it is possible to import into the partitioned index directly.
+             */
+            partitionedByNames = Arrays.asList();
+        }
         List<Projection> projections = Arrays.<Projection>asList(new IndexWriterProjection(
-                analysis.table().ident().name(),
+                tableName,
                 analysis.table().primaryKey(),
                 analysis.table().partitionedBy(),
                 clusteredByPrimaryKeyIdx,
                 analysis.settings(),
                 null,
-                partitionedBy.size() > 0 ? partitionedBy.toArray(new String[partitionedBy.size()]) : null
+                partitionedByNames.size() > 0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null
         ));
 
-        partitionedBy.removeAll(Lists.transform(analysis.table().primaryKey(), new com.google.common.base.Function<ColumnIdent, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable ColumnIdent input) {
-                if (input != null) {
-                    return input.fqn();
-                }
-                return null;
-            }
-        }));
+        partitionedByNames.removeAll(Lists.transform(analysis.table().primaryKey(), ColumnIdent.GET_FQN_NAME_FUNCTION));
 
-        int referencesSize = analysis.table().primaryKey().size() + partitionedBy.size() + 1;
+        int referencesSize = analysis.table().primaryKey().size() + partitionedByNames.size() + 1;
         referencesSize = clusteredByPrimaryKeyIdx == -1 ? referencesSize + 1 : referencesSize;
         List<Symbol> toCollect = new ArrayList<>(referencesSize);
         // add primaryKey columns
@@ -239,9 +249,9 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         }
 
         // add partitioned columns (if not part of primaryKey)
-        for (String partitionedColumn : partitionedBy) {
+        for (String partitionedColumn : partitionedByNames) {
             toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(new ColumnIdent(partitionedColumn)))
+                    new Reference(analysis.table().getColumnInfo(ColumnIdent.fromPath(partitionedColumn)))
             );
         }
 
@@ -253,7 +263,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         }
 
         // finally add _raw or _doc
-        if (analysis.table().isPartitioned()) {
+        if (analysis.table().isPartitioned() && analysis.partitionIdent() == null) {
             toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.DOC)));
         } else {
             toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW)));

@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Joiner;
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
@@ -38,7 +38,16 @@ import java.util.List;
 
 public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
 
-    private static final Joiner pathJoiner = Joiner.on(".");
+    public static final Function<ColumnIdent, String> GET_FQN_NAME_FUNCTION = new com.google.common.base.Function<ColumnIdent, String>() {
+        @Nullable
+        @Override
+        public String apply(@Nullable ColumnIdent input) {
+            if (input != null) {
+                return input.fqn();
+            }
+            return null;
+        }
+    };
 
     private String name;
     private List<String> path;
@@ -135,7 +144,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         if (isColumn()) {
             return name;
         }
-        return pathJoiner.join(name, pathJoiner.join(path));
+        return StringUtils.PATH_JOINER.join(name, StringUtils.PATH_JOINER.join(path));
     }
 
     public String sqlFqn() {

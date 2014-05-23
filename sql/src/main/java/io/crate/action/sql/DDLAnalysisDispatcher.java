@@ -166,18 +166,27 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     @Override
     public ListenableFuture<Long> visitAlterTableAnalysis(final AlterTableAnalysis analysis, Void context) {
         final SettableFuture<Long> result = SettableFuture.create();
-        final String[] indices = analysis.table().isPartitioned()
-                ? analysis.table().concreteIndices()
-                : new String[]{ analysis.table().ident().name() };
+        final String[] indices;
+        boolean updateTemplate = false;
+        if (analysis.table().isPartitioned()) {
+            if (analysis.partitionName().isPresent()) {
+                indices = new String[]{ analysis.partitionName().get().stringValue() };
+            } else {
+                updateTemplate = true; // only update template when updating whole partitioned table
+                indices = analysis.table().concreteIndices();
+            }
+        } else {
+           indices = new String[]{ analysis.table().ident().name() };
+        }
 
         if (analysis.table().isAlias()) {
             throw new AlterTableAliasException(analysis.table().ident().name());
         }
 
         final List<ListenableFuture<?>> results = new ArrayList<>(
-                indices.length + (analysis.table().isPartitioned() ? 1 : 0)
+                indices.length + (updateTemplate ? 1 : 0)
         );
-        if (analysis.table().isPartitioned()) {
+        if (updateTemplate) {
             final SettableFuture<?> templateFuture = SettableFuture.create();
             results.add(templateFuture);
 

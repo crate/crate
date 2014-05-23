@@ -296,6 +296,37 @@ New columns added to ``ignored`` objects can be retrieved as result column in a 
 but one cannot order by them or use them in a where clause. They are simply there for fetching,
 nothing else.
 
+object literals
+...............
+
+To insert values into object columns one can use object literals or parameters.
+
+.. note:: Even though they look like `JSON` - object literals are not `JSON` compatible.
+
+Object literals are given in curly brackets. Key value pairs are connected via ``=``.
+
+Synopsis::
+
+    { [ ident = expr [ , ... ] ] }
+
+The *key* of a key-value pair is an SQL identifier. That means every unquoted identifier
+in an object literal key will be lowercased.
+
+The *value* of a key-value pair is another literal or a parameter.
+
+An object literal can contain zero or more key value pairs
+
+Some examples::
+
+    { "CamelCase"=123, key=['v', 'a', 'l', 'u', 'e'], param=?}
+
+    {}
+
+    {{},{}}
+
+    {"true"=false}
+
+
 array
 -----
 
@@ -323,14 +354,33 @@ Array types are defined as follows::
     Currently arrays cannot be nested. Something like array(array(string))
     won't work.
 
-.. note::
+array literals
+..............
 
-    Crash currently has no support to insert arrays. But it is possible to
-    insert arrays using the `_sql` REST Endpoint or any of the available crate
-    clients.
+Array literals are given in brackets and may contain zero or more elements.
 
-    E.g. in the python client a python list can be used as an argument to the
-    cursors execute method.
+Synopsis (literal brackets are given in single quotes)::
+
+    '[' [ element [ , ... ] ] ']'
+
+Valid ``element``s are literals and parameters.
+
+All array elements have to be of the type of the first element,
+which determines the element type. If an array contains no elements, its element
+type will be inferred by the context in which it occurs, if possible.
+
+Some Examples::
+
+    []
+
+    [[], []]
+
+    [1, 2, 3, 4, 5, 6, 7, 8]
+
+    [null]
+
+    ['Zaphod', 'Ford', 'Arthur']
+
 
 .. _sql_ddl_sharding:
 
@@ -445,7 +495,7 @@ A partitioned table is a virtual table that is internally split up into several
 internal *tables*, called `partitions`, by the value of one or more columns. For every distinct combination
 of values in those configured columns one separate partition is created.
 
-Creating a partitioned table is done using the :ref:`partitioned_clause`::
+Creating a partitioned table is done using the :ref:`partitioned_by_clause`::
 
     cr> create table partitioned_table (
     ... id long,
@@ -454,7 +504,7 @@ Creating a partitioned table is done using the :ref:`partitioned_clause`::
     ... ) partitioned by (date);
     CREATE OK (... sec)
 
-For further details, please refer to :ref:`partitioned_clause`.
+For further details, please refer to :ref:`partitioned_by_clause`.
 
 .. _fulltext-indices:
 
@@ -745,6 +795,27 @@ In order to set a property to its default value use `reset`::
 
     cr> alter table my_table1 reset (number_of_replicas);
     ALTER OK (... sec)
+
+Altering a property of a partitioned table affects all partitions, even new ones.
+If only a single partition should be altered, the partition clause can be used.
+
+.. Hidden:: creating a partition to alter.
+
+    cr> insert into partitioned_table (id, title, date) values (1, 'The Hitchhikers Guide', '1970-01-01');
+    INSERT OK, 1 row affected (... sec)
+
+    cr> refresh table partitioned_table;
+    REFRESH OK (... sec)
+
+::
+
+    cr> alter table partitioned_table reset (number_of_replicas);
+    ALTER OK (... sec)
+
+.. Hidden:: delete the partition
+
+    cr> delete from partitioned_table;
+    DELETE OK, 0 rows affected (... sec)
 
 .. note::
 

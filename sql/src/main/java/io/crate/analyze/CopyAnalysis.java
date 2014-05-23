@@ -28,6 +28,8 @@ import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
+
 public class CopyAnalysis extends AbstractDataAnalysis {
 
     private Settings settings = ImmutableSettings.EMPTY;
@@ -40,6 +42,7 @@ public class CopyAnalysis extends AbstractDataAnalysis {
     private Symbol uri;
     private Mode mode;
     private boolean directoryUri;
+    private String partitionIdent = null;
 
     public CopyAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameters, referenceResolver);
@@ -47,6 +50,15 @@ public class CopyAnalysis extends AbstractDataAnalysis {
 
     public Symbol uri() {
         return uri;
+    }
+
+    @Nullable
+    public String partitionIdent() {
+        return this.partitionIdent;
+    }
+
+    public void partitionIdent(String partitionIdent) {
+        this.partitionIdent = partitionIdent;
     }
 
     public void directoryUri(boolean directoryUri) {

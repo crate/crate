@@ -69,6 +69,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             }
             executor = SQLTransportExecutor.create(ClassLifecycleIntegrationTest.GLOBAL_CLUSTER);
             Setup setup = new Setup(executor);
+            setup.partitionTableSetup();
             setup.groupBySetup();
             executor.ensureGreen();
             dataInitialized = true;
@@ -460,7 +461,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         for (Path entry: stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1.json"));
+        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1_.json"));
         assertTrue(path.toFile().exists());
         assertThat(lines.size(), is(7));
 
@@ -487,7 +488,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         for (Path entry: stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1.json"));
+        Path path = Paths.get(folder.getRoot().toURI().resolve("characters_1_.json"));
         assertTrue(path.toFile().exists());
 
         assertThat(lines.size(), is(7));
@@ -502,7 +503,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response = executor.exec("select * from characters where birthdate > '1970-01-01'");
         assertThat(response.rowCount(), Matchers.is(2L));
     }
-
 
     @Test
     public void testOrderByNullsFirstAndLast() throws Exception {
@@ -526,5 +526,47 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         response = executor.exec(
                 "select distinct details['job'] from characters order by details['job'] desc nulls last");
         assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
+    }
+
+    @Test
+    public void testCopyToDirectoryOnPartitionedTableWithPartitionClause() throws Exception {
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        SQLResponse response = executor.exec("copy parted partition (date='2014-01-01') to DIRECTORY ?", uriTemplate);
+        assertThat(response.rowCount(), is(2L));
+
+        List<String> lines = new ArrayList<>(2);
+        DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
+        for (Path entry: stream) {
+            lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
+        }
+        assertThat(lines.size(), is(2));
+        for (String line : lines) {
+            assertTrue(line.contains("2") || line.contains("1"));
+            assertFalse(line.contains("1388534400000"));  // date column not included in export
+            assertThat(line, startsWith("{"));
+            assertThat(line, endsWith("}"));
+        }
+    }
+
+    @Test
+    public void testCopyToDirectoryOnPartitionedTableWithoutPartitionClause() throws Exception {
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toAbsolutePath().toString();
+        SQLResponse response = executor.exec("copy parted to DIRECTORY ?", uriTemplate);
+        assertThat(response.rowCount(), is(5L));
+
+        List<String> lines = new ArrayList<>(5);
+        DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
+        for (Path entry: stream) {
+            lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
+        }
+        assertThat(lines.size(), is(5));
+        for (String line : lines) {
+            // date column included in output
+            if (!line.contains("1388534400000")) {
+                assertTrue(line.contains("1391212800000"));
+            }
+            assertThat(line, startsWith("{"));
+            assertThat(line, endsWith("}"));
+        }
     }
 }

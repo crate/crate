@@ -25,7 +25,6 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
@@ -49,23 +48,23 @@ import java.util.Map;
  */
 public class GenericProperties extends Node {
 
-    public static final GenericProperties EMPTY = new GenericProperties(ImmutableMap.<String, List<Expression>>of());
+    public static final GenericProperties EMPTY = new GenericProperties(ImmutableMap.<String, Expression>of());
 
-    private final Map<String, List<Expression>> properties;
+    private final Map<String, Expression> properties;
 
     public GenericProperties() {
         properties = new HashMap<>();
     }
 
-    private GenericProperties(Map<String, List<Expression>> map) {
+    private GenericProperties(Map<String, Expression> map) {
         this.properties = map;
     }
 
-    public Map<String, List<Expression>> properties() {
+    public Map<String, Expression> properties() {
         return properties;
     }
 
-    public List<Expression> get(String key) {
+    public Expression get(String key) {
         return properties.get(key);
     }
 

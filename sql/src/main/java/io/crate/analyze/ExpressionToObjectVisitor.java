@@ -24,9 +24,16 @@ package io.crate.analyze;
 
 import io.crate.sql.tree.*;
 
-import java.util.Locale;
+import java.util.*;
 
 class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
+
+    private final static ExpressionToObjectVisitor INSTANCE = new ExpressionToObjectVisitor();
+    private ExpressionToObjectVisitor() {}
+
+    public static Object convert(Node node, Object[] parameters) {
+        return INSTANCE.process(node, parameters);
+    }
 
     @Override
     protected String visitQualifiedNameReference(QualifiedNameReference node, Object[] parameters) {
@@ -55,7 +62,31 @@ class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
 
     @Override
     protected String visitSubscriptExpression(SubscriptExpression node, Object[] context) {
-        return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), null), process(node.index(), null));
+        return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), context), process(node.index(), context));
+    }
+
+    @Override
+    public Object visitArrayLiteral(ArrayLiteral node, Object[] context) {
+        List<Object> array = new ArrayList<>();
+        for (Expression element : node.values()) {
+            array.add(element.accept(this, context));
+        }
+        return array;
+    }
+
+    @Override
+    public Object visitObjectLiteral(ObjectLiteral node, Object[] context) {
+        Map<String, Object> object = new HashMap<>();
+        for (Map.Entry<String, Expression> entry : node.values().entries()) {
+            if (object.put(entry.getKey(), entry.getValue().accept(this, context)) != null) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH,
+                                "key '%s' listed twice in object literal",
+                                entry.getKey())
+                );
+            }
+        }
+        return object;
     }
 
     @Override

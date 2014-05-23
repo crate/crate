@@ -22,19 +22,29 @@
 package io.crate.analyze;
 
 import io.crate.metadata.TableIdent;
+import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.RefreshStatement;
 
-public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, RefreshTableAnalysis> {
+import java.util.List;
 
-    private final ExpressionToStringVisitor expressionVisitor = new ExpressionToStringVisitor();
+public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, RefreshTableAnalysis> {
 
     @Override
     public Void visitRefreshStatement(RefreshStatement node, RefreshTableAnalysis context) {
         context.table(TableIdent.of(node.table()));
-        if (node.partitionIdent().isPresent()) {
-            String ident = expressionVisitor.process(node.partitionIdent().get(), context.parameters());
-            context.partitionIdent(ident);
+        if (!node.table().partitionProperties().isEmpty()) {
+            setParitionIdent(node.table().partitionProperties(), context);
         }
+
         return null;
+    }
+
+    private void setParitionIdent(List<Assignment> properties, RefreshTableAnalysis context) {
+        String partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
+                context.table(),
+                properties,
+                context.parameters()
+        );
+        context.partitionIdent(partitionIdent);
     }
 }

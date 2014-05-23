@@ -38,8 +38,7 @@ import static java.lang.String.format;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.*;
 
 public class TestStatementBuilder
 {
@@ -81,21 +80,6 @@ public class TestStatementBuilder
 
         printStatement("select * from information_schema.tables");
 
-        printStatement("show tables");
-        printStatement("show tables from information_schema");
-        printStatement("show tables like '%'");
-        printStatement("show tables from information_schema like '%'");
-
-        printStatement("show partitions from foo");
-        printStatement("show partitions from foo where name = 'foo'");
-        printStatement("show partitions from foo order by x");
-        printStatement("show partitions from foo limit 10");
-        printStatement("show partitions from foo limit 10 offset 20");
-        printStatement("show partitions from foo offset 20");
-        printStatement("show partitions from foo order by x desc limit 10");
-        printStatement("show partitions from foo order by x desc limit 10 offset 20");
-        printStatement("show partitions from foo order by x desc offset 20");
-
         printStatement("select * from a.b.c@d");
 
         printStatement("select \"TOTALPRICE\" \"my price\" from \"orders\"");
@@ -120,6 +104,8 @@ public class TestStatementBuilder
         printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
         printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
 
+        printStatement("copy foo partition (a='x') from ?");
+        printStatement("copy foo partition (a={key='value'}) from ?");
         printStatement("copy foo from '/folder/file.extension'");
         printStatement("copy foo from ?");
         printStatement("copy foo from ? with (some_property=1)");
@@ -131,6 +117,8 @@ public class TestStatementBuilder
         printStatement("copy foo to DIRECTORY '/folder'");
         printStatement("copy foo to DIRECTORY ?");
         printStatement("copy foo to DIRECTORY '/folder' with (some_param=4)");
+        printStatement("copy foo partition (a='x') to DIRECTORY '/folder' with (some_param=4)");
+        printStatement("copy foo partition (a=?) to DIRECTORY '/folder' with (some_param=4)");
 
 
         printStatement("create table t (id integer primary key, name string)");
@@ -209,8 +197,9 @@ public class TestStatementBuilder
                 ")");
         printStatement("refresh table t");
         printStatement("refresh table schemah.tableh");
-        printStatement("refresh table tableh partition 'ident'");
-        printStatement("refresh table tableh partition ?");
+        printStatement("refresh table tableh partition (pcol='val')");
+        printStatement("refresh table tableh partition (pcol=?)");
+        printStatement("refresh table tableh partition (pcol['nested'] = ?)");
 
         printStatement("alter table t set (number_of_replicas=4)");
         printStatement("alter table schema.t set (number_of_replicas=4)");
@@ -321,6 +310,57 @@ public class TestStatementBuilder
         assertThat(allArrayComparison.getLeft(), instanceOf(StringLiteral.class));
         assertThat(allArrayComparison.getRight(), instanceOf(QualifiedNameReference.class));
     }
+
+    @Test
+    public void testObjectLiteral() throws Exception {
+        Expression emptyObjectLiteral = SqlParser.createExpression("{}");
+        assertThat(emptyObjectLiteral, instanceOf(ObjectLiteral.class));
+        assertThat(((ObjectLiteral)emptyObjectLiteral).values().size(), is(0));
+
+        ObjectLiteral singleObjectLiteral = (ObjectLiteral)SqlParser.createExpression("{a=1}");
+        assertThat(singleObjectLiteral.values().size(), is(1));
+        assertThat(singleObjectLiteral.values().get("a").iterator().next(), instanceOf(LongLiteral.class));
+
+        ObjectLiteral multipleObjectLiteral = (ObjectLiteral)SqlParser.createExpression(
+                "{b=func('abc'), c=identifier, d=1+4, e=-12.56, f=sub['script'], g={}}");
+        assertThat(multipleObjectLiteral.values().size(), is(6));
+        assertThat(multipleObjectLiteral.values().get("b").iterator().next(), instanceOf(FunctionCall.class));
+        assertThat(multipleObjectLiteral.values().get("c").iterator().next(), instanceOf(QualifiedNameReference.class));
+        assertThat(multipleObjectLiteral.values().get("d").iterator().next(), instanceOf(ArithmeticExpression.class));
+        assertThat(multipleObjectLiteral.values().get("e").iterator().next(), instanceOf(NegativeExpression.class));
+        assertThat(multipleObjectLiteral.values().get("f").iterator().next(), instanceOf(SubscriptExpression.class));
+        assertThat(multipleObjectLiteral.values().get("g").iterator().next(), instanceOf(ObjectLiteral.class));
+
+        ObjectLiteral quotedObjectLiteral = (ObjectLiteral)SqlParser.createExpression(
+                "{\"AbC\"=123}"
+        );
+        assertThat(quotedObjectLiteral.values().size(), is(1));
+        assertThat(quotedObjectLiteral.values().get("AbC").iterator().next(), instanceOf(LongLiteral.class));
+        assertThat(quotedObjectLiteral.values().get("abc").isEmpty(), is(true));
+        assertThat(quotedObjectLiteral.values().get("ABC").isEmpty(), is(true));
+    }
+
+    @Test
+    public void testArrayLiteral() throws Exception {
+        ArrayLiteral emptyArrayLiteral = (ArrayLiteral)SqlParser.createExpression("[]");
+        assertThat(emptyArrayLiteral.values().size(), is(0));
+
+        ArrayLiteral singleArrayLiteral = (ArrayLiteral)SqlParser.createExpression("[1]");
+        assertThat(singleArrayLiteral.values().size(), is(1));
+        assertThat(singleArrayLiteral.values().get(0), instanceOf(LongLiteral.class));
+
+        ArrayLiteral multipleArrayLiteral = (ArrayLiteral)SqlParser.createExpression(
+                "[func('abc'), identifier, (1+4), -12.56, sub['script'], ['another', 'array']]");
+        assertThat(multipleArrayLiteral.values().size(), is(6));
+        assertThat(multipleArrayLiteral.values().get(0), instanceOf(FunctionCall.class));
+        assertThat(multipleArrayLiteral.values().get(1), instanceOf(QualifiedNameReference.class));
+        assertThat(multipleArrayLiteral.values().get(2), instanceOf(ArithmeticExpression.class));
+        assertThat(multipleArrayLiteral.values().get(3), instanceOf(NegativeExpression.class));
+        assertThat(multipleArrayLiteral.values().get(4), instanceOf(SubscriptExpression.class));
+        assertThat(multipleArrayLiteral.values().get(5), instanceOf(ArrayLiteral.class));
+    }
+
+
 
     @Test
     public void testParameterNode() throws Exception {

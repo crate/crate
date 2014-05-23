@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
+import io.crate.PartitionName;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -40,6 +40,7 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -80,6 +81,20 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy parted from '/some/distant/file.ext'");
         assertThat(analysis.table().ident(), is(TEST_PARTITIONED_TABLE_IDENT));
         assertLiteralSymbol(analysis.uri(), "/some/distant/file.ext");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testCopyFromPartitionedTablePARTITIONKeywordTooManyArgs() throws Exception {
+        analyze("copy parted partition (a=1, b=2, c=3) from '/some/distant/file.ext'");
+    }
+
+    @Test
+    public void testCopyFromPartitionedTablePARTITIONKeywordValidArgs() throws Exception {
+        CopyAnalysis analysis = (CopyAnalysis) analyze(
+                "copy parted partition (date=1395874800000) from '/some/distant/file.ext'");
+        assertThat(
+                analysis.partitionIdent(),
+                equalTo(PartitionName.encodeIdent(Arrays.<String>asList("1395874800000"))));
     }
 
     @Test( expected = TableUnknownException.class)
@@ -137,8 +152,16 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.settings().get("compression"), is("gzip"));
     }
 
-    @Test ( expected = UnsupportedFeatureException.class )
+    @Test
     public void testCopyToFileWithPartitionedTable() throws Exception {
-        analyze("copy parted to '/blah.txt'");
+        CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted to '/blah.txt'");
+        assertThat(analysis.table().ident(), is(TEST_PARTITIONED_TABLE_IDENT));
+        assertThat(analysis.mode(), is(CopyAnalysis.Mode.TO));
+    }
+
+    @Test
+    public void testCopyToFileWithPartitionClause() throws Exception {
+        CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted partition (date=0) to '/blah.txt'");
+        assertThat(analysis.partitionIdent(), is(PartitionName.encodeIdent(Arrays.asList("0"))));
     }
 }
