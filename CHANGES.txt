@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/05/23 0.37.5
+=================
+
  - fix: fixed schema update issues with partitioned tables.
 
  - fix: DELETE on an empty partitioned table caused an error.
