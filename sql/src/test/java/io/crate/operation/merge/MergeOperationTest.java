@@ -88,8 +88,7 @@ public class MergeOperationTest {
 
     @Test
     public void testMergeSingleResult() throws Exception {
-        TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET,
-                Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[] { null });
+        TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET, Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false});
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         MergeNode mergeNode = new MergeNode("merge", 2); // no need for inputTypes here

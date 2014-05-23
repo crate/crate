@@ -144,7 +144,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     private void addSorting(List<SortItem> orderBy, SelectAnalysis context) {
         List<Symbol> sortSymbols = new ArrayList<>(orderBy.size());
         context.reverseFlags(new boolean[orderBy.size()]);
-        context.nullsFirst(new Boolean[orderBy.size()]);
 
         int i = 0;
         for (SortItem sortItem : orderBy) {
@@ -154,17 +153,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                 sortSymbols.add(refOutput);
             } else {
                 sortSymbols.add(s);
-            }
-            switch (sortItem.getNullOrdering()) {
-                case FIRST:
-                    context.nullsFirst()[i] = true;
-                    break;
-                case LAST:
-                    context.nullsFirst()[i] = false;
-                    break;
-                case UNDEFINED:
-                    context.nullsFirst()[i] = null;
-                    break;
             }
             context.reverseFlags()[i] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
             i++;

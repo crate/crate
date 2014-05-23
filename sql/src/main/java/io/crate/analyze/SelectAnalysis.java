@@ -41,7 +41,6 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     private int offset = 0;
     private List<Symbol> groupBy;
     private boolean[] reverseFlags;
-    private Boolean[] nullsFirst;
     private List<Symbol> sortSymbols;
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
@@ -161,13 +160,5 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
         return analysisVisitor.visitSelectAnalysis(this, context);
-    }
-
-    public void nullsFirst(Boolean[] nullsFirst) {
-        this.nullsFirst = nullsFirst;
-    }
-
-    public Boolean[] nullsFirst() {
-        return this.nullsFirst;
     }
 }

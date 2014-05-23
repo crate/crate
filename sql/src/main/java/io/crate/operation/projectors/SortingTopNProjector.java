@@ -69,28 +69,15 @@ public class SortingTopNProjector implements Projector, ResultProvider {
         private final int col;
         private final Ordering<Comparable> ordering;
 
-        ColOrdering(int col, boolean reverse, Boolean nullFirst) {
+        ColOrdering(int col, boolean reverse) {
             this.col = col;
 
             // note, that we are reverse for the queue so this conditional is by intent
-            Ordering<Comparable> ordering;
-            nullFirst = nullFirst != null ? !nullFirst : null; // swap because queue is reverse
             if (reverse) {
-                ordering = Ordering.natural();
-                if (nullFirst == null || !nullFirst) {
-                    ordering = ordering.nullsLast();
-                } else {
-                    ordering = ordering.nullsFirst();
-                }
+                ordering = Ordering.natural().nullsLast();
             } else {
-                ordering = Ordering.natural().reverse();
-                if (nullFirst == null || nullFirst) {
-                    ordering = ordering.nullsFirst();
-                } else {
-                    ordering = ordering.nullsLast();
-                }
+                ordering = Ordering.natural().reverse().nullsFirst();
             }
-            this.ordering = ordering;
         }
 
         @Override
@@ -125,15 +112,10 @@ public class SortingTopNProjector implements Projector, ResultProvider {
     public SortingTopNProjector(Input<?>[] inputs,
                                 CollectExpression<?>[] collectExpressions,
                                 int numOutputs,
-                                int[] orderBy,
-                                boolean[] reverseFlags,
-                                Boolean[] nullsFirst,
-                                int limit,
-                                int offset) {
+                                int[] orderBy, boolean[] reverseFlags,
+                                int limit, int offset) {
         Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
         Preconditions.checkArgument(offset >= 0, "invalid offset");
-        assert nullsFirst.length == reverseFlags.length;
-
         this.inputs = inputs;
         this.numOutputs = numOutputs;
         this.collectExpressions = collectExpressions;
@@ -147,7 +129,7 @@ public class SortingTopNProjector implements Projector, ResultProvider {
         for (int i = 0; i < orderBy.length; i++) {
             int col = orderBy[i];
             boolean reverse = reverseFlags[i];
-            comparators[i] = new ColOrdering(col, reverse, nullsFirst[i]);
+            comparators[i] = new ColOrdering(col, reverse);
         }
     }
 

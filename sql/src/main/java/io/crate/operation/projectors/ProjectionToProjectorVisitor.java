@@ -90,7 +90,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                     numOutputs,
                     orderByIndices,
                     projection.reverseFlags(),
-                    projection.nullsFirst(),
                     projection.limit(),
                     projection.offset());
         } else {

@@ -109,8 +109,7 @@ public class LocalMergeTaskTest {
             TopNProjection topNProjection = new TopNProjection(3,
                     TopN.NO_OFFSET,
                     Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
-                    new boolean[]{true, true},
-                    new Boolean[] { null, null });
+                    new boolean[]{true, true});
             topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
             MergeNode mergeNode = new MergeNode("merge", 2);

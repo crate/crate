@@ -38,9 +38,7 @@ public class TopNProjectionTest {
     public void testStreaming() throws Exception {
 
         TopNProjection p = new TopNProjection(5, 10,
-                ImmutableList.<Symbol>of(createReference("foo", DataTypes.BOOLEAN)),
-                new boolean[]{true},
-                new Boolean[] { null });
+                ImmutableList.<Symbol>of(createReference("foo", DataTypes.BOOLEAN)), new boolean[]{true});
 
         p.outputs(ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.INTEGER)));
 

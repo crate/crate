@@ -30,7 +30,6 @@ import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
-import static org.junit.Assert.assertNull;
 
 public class SortingTopNProjectorTest {
 
@@ -45,7 +44,6 @@ public class SortingTopNProjectorTest {
                 2,
                 new int[]{0},
                 new boolean[]{false},
-                new Boolean[] { null },
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
         projector.registerUpstream(null);
@@ -81,7 +79,6 @@ public class SortingTopNProjectorTest {
                 2,
                 new int[] { 0 },
                 new boolean[] { false },
-                new Boolean[] { null },
                 2,
                 30
         );
@@ -105,7 +102,6 @@ public class SortingTopNProjectorTest {
                 2,
                 new int[]{0},
                 new boolean[]{false},
-                new Boolean[] { null },
                 TopN.NO_LIMIT,
                 5);
         projector.registerUpstream(null);
@@ -138,9 +134,7 @@ public class SortingTopNProjectorTest {
                 new Input<?>[]{INPUT, TRUE_LITERAL},
                 new CollectExpression[]{(CollectExpression<?>)INPUT},
                 1,
-                new int[]{0},
-                new boolean[]{false},
-                new Boolean[] { null },
+                new int[]{0}, new boolean[]{false},
                 3,
                 5);
         projector.registerUpstream(null);
@@ -167,90 +161,6 @@ public class SortingTopNProjectorTest {
     }
 
     @Test
-    public void testOrderByAscNullsFirst() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{ INPUT },
-                new CollectExpression[] {(CollectExpression<?>)INPUT},
-                1,
-                new int[]{0},
-                new boolean[] { false },
-                new Boolean[] { true },
-                100,
-                0);
-        projector.registerUpstream(null);
-        projector.startProjection();
-        projector.setNextRow(1);
-        projector.setNextRow(new Object[] { null });
-        projector.upstreamFinished();
-
-        Object[][] rows = projector.result().get();
-        assertNull(rows[0][0]);
-    }
-
-    @Test
-    public void testOrderByAscNullsLast() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{ INPUT },
-                new CollectExpression[] {(CollectExpression<?>)INPUT},
-                1,
-                new int[]{0},
-                new boolean[] { false },
-                new Boolean[] { false },
-                100,
-                0);
-        projector.registerUpstream(null);
-        projector.startProjection();
-        projector.setNextRow(1);
-        projector.setNextRow(new Object[] { null });
-        projector.upstreamFinished();
-
-        Object[][] rows = projector.result().get();
-        assertNull(rows[1][0]);
-    }
-
-    @Test
-    public void testOrderByDescNullsLast() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{ INPUT },
-                new CollectExpression[] {(CollectExpression<?>)INPUT},
-                1,
-                new int[]{0},
-                new boolean[] { true },
-                new Boolean[] { false },
-                100,
-                0);
-        projector.registerUpstream(null);
-        projector.startProjection();
-        projector.setNextRow(1);
-        projector.setNextRow(new Object[] { null });
-        projector.upstreamFinished();
-
-        Object[][] rows = projector.result().get();
-        assertNull(rows[1][0]);
-    }
-
-    @Test
-    public void testOrderByDescNullsFirst() throws Exception {
-        SortingTopNProjector projector = new SortingTopNProjector(
-                new Input<?>[]{ INPUT },
-                new CollectExpression[] {(CollectExpression<?>)INPUT},
-                1,
-                new int[]{0},
-                new boolean[] { true },
-                new Boolean[] { true },
-                100,
-                0);
-        projector.registerUpstream(null);
-        projector.startProjection();
-        projector.setNextRow(1);
-        projector.setNextRow(new Object[] { null });
-        projector.upstreamFinished();
-
-        Object[][] rows = projector.result().get();
-        assertNull(rows[0][0]);
-    }
-
-    @Test
     public void testOrderByAsc() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
@@ -258,7 +168,6 @@ public class SortingTopNProjectorTest {
                 2,
                 new int[]{0},
                 new boolean[]{true},
-                new Boolean[] { null },
                 3,
                 5);
         projector.registerUpstream(null);
@@ -288,21 +197,13 @@ public class SortingTopNProjectorTest {
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeOffset() {
         new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<?>)INPUT}, 2,
-                new int[]{0},
-                new boolean[]{true},
-                new Boolean[] { null },
-                TopN.NO_LIMIT,
-                -10);
+                new int[]{0}, new boolean[]{true}, TopN.NO_LIMIT, -10);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeLimit() {
         new SortingTopNProjector(new Input<?>[]{INPUT, TRUE_LITERAL}, new CollectExpression[]{(CollectExpression<?>)INPUT}, 2,
-                new int[] {0},
-                new boolean[]{true},
-                new Boolean[] { null },
-                -100,
-                TopN.NO_OFFSET);
+                new int[]{0}, new boolean[]{true}, -100, TopN.NO_OFFSET);
     }
 
     @Test
@@ -315,7 +216,6 @@ public class SortingTopNProjectorTest {
                 2,
                 new int[]{2, 3},
                 new boolean[]{false, false},
-                new Boolean[] { null, null },
                 TopN.NO_LIMIT,
                 TopN.NO_OFFSET);
         projector.registerUpstream(null);

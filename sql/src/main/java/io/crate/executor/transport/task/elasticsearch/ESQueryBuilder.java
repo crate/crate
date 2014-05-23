@@ -145,7 +145,7 @@ public class ESQueryBuilder {
             builder.field("min_score", ((Number) context.ignoredFields.get("_score")).doubleValue());
         }
 
-        addSorting(node.orderBy(), node.reverseFlags(), node.nullsFirst(), context.builder);
+        addSorting(node.orderBy(), node.reverseFlags(), context.builder);
 
         builder.field("from", node.offset());
         builder.field("size", node.limit());
@@ -194,10 +194,7 @@ public class ESQueryBuilder {
         return builder.bytes();
     }
 
-    private void addSorting(List<Reference> orderBy,
-                            boolean[] reverseFlags,
-                            Boolean[] nullsFirst,
-                            XContentBuilder builder) throws IOException {
+    private void addSorting(List<Reference> orderBy, boolean[] reverseFlags, XContentBuilder builder) throws IOException {
         if (orderBy.isEmpty()) {
             return;
         }
@@ -210,9 +207,6 @@ public class ESQueryBuilder {
             if (reverseFlags[i]) {
                 order = "desc";
                 missing = "_first";     // null > 'anyValue'; null values at the beginning.
-            }
-            if (nullsFirst[i] != null) {
-                missing = nullsFirst[i] ? "_first" : "_last";
             }
             builder.startObject()
                     .startObject(reference.info().ident().columnIdent().fqn())

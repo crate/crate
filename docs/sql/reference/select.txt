@@ -15,7 +15,7 @@ Synopsis
       FROM table_ident [ [AS] table_alias ]
       [ WHERE condition ]
       [ GROUP BY expression [, ...] ]
-      [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
+      [ ORDER BY expression [ ASC | DESC ] [, ...] ]
       [ LIMIT num_results ]
       [ OFFSET start ]
 
@@ -158,7 +158,7 @@ the specified expression(s).
 
 ::
 
-    ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...]
+    ORDER BY expression [ ASC | DESC ] [, ...]
 
 :expression: can be the name or ordinal number of an output column, or
   it can be an arbitrary expression formed from input-column values.
@@ -167,17 +167,13 @@ The optional keyword ASC (ascending) or DESC (descending) after any
 expression allows to define the direction in which values have are
 sorted. The default is ascending.
 
-If NULLS FIRST is specified, null values sort before non null values. If NULLS
-LAST is specified null values sort after non null values.  If neither is
-specified nulls are considered larger than any value. That means the default
-for ASC is NULLS LAST and the default for DESC is NULLS FIRST.
-
 .. note::
 
-  If two rows are equal according to the leftmost expression, they are compared
-  according to the next expression and so on. If they are equal according to
-  all specified expressions, they are returned in an implementation-dependent
-  order.
+  If two rows are equal according to the leftmost expression, they are
+  compared according to the next expression and so on. If they are
+  equal according to all specified expressions, they are returned in
+  an implementation-dependent order. Nulls are considered larger than
+  any value.
 
 .. note::
 

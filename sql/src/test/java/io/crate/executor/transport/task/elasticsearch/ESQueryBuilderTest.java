@@ -266,7 +266,7 @@ public class ESQueryBuilderTest {
                 Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(0.4))
         );
         ESSearchNode node = new ESSearchNode(new String[]{"something"},
-                ImmutableList.<Symbol>of(), null, null, null, null, null, new WhereClause(whereClause), null);
+                ImmutableList.<Symbol>of(), null, null, null, null, new WhereClause(whereClause), null);
         BytesReference bytesReference = generator.convert(node);
 
         assertThat(bytesReference.toUtf8(),
@@ -283,7 +283,6 @@ public class ESQueryBuilderTest {
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Reference>of(),
                 new boolean[0],
-                new Boolean[0],
                 null,
                 null,
                 new WhereClause(whereClause),
@@ -329,7 +328,6 @@ public class ESQueryBuilderTest {
                 null,
                 null,
                 null,
-                null,
                 WhereClause.MATCH_ALL,
                 null);
 
@@ -365,7 +363,6 @@ public class ESQueryBuilderTest {
                 null,
                 null,
                 null,
-                null,
                 WhereClause.MATCH_ALL,
                 null);
 
@@ -381,7 +378,6 @@ public class ESQueryBuilderTest {
         ESSearchNode searchNode = new ESSearchNode(
                 new String[]{partitionName.stringValue()},
                 ImmutableList.<Symbol>of(name_ref, weight_ref),
-                null,
                 null,
                 null,
                 null,
