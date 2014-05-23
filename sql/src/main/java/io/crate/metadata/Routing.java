@@ -15,6 +15,8 @@ import java.util.Set;
 
 public class Routing implements Streamable {
 
+    private TableIdent tableIdent;
+
     private Map<String, Map<String, Set<Integer>>> locations;
 
     public Routing() {
@@ -31,6 +33,14 @@ public class Routing implements Streamable {
 
     public boolean hasLocations() {
         return locations != null && locations().size() > 0;
+    }
+
+    public void tableIdent(TableIdent tableIdent) {
+        this.tableIdent = tableIdent;
+    }
+
+    public TableIdent tableIdent() {
+        return tableIdent;
     }
 
     public Set<String> nodes() {
@@ -115,6 +125,10 @@ public class Routing implements Streamable {
                 }
             }
         }
+        if (in.readBoolean()) {
+            tableIdent = new TableIdent();
+            tableIdent.readFrom(in);
+        }
     }
 
     @Override
@@ -146,6 +160,12 @@ public class Routing implements Streamable {
             }
         } else {
             out.writeVInt(0);
+        }
+        if (tableIdent != null) {
+            out.writeBoolean(true);
+            tableIdent.writeTo(out);
+        } else {
+            out.writeBoolean(false);
         }
     }
 }

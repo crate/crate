@@ -65,4 +65,9 @@ public abstract class AbstractTableInfo implements TableInfo {
     public List<ColumnIdent> partitionedBy() {
         return ImmutableList.of();
     }
+
+    @Override
+    public boolean isInMemory() {
+        return false;
+    }
 }
