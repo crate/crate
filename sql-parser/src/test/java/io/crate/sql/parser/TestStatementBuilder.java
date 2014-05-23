@@ -80,21 +80,6 @@ public class TestStatementBuilder
 
         printStatement("select * from information_schema.tables");
 
-        /*printStatement("show tables");
-        printStatement("show tables from information_schema");
-        printStatement("show tables like '%'");
-        printStatement("show tables from information_schema like '%'");
-
-        printStatement("show partitions from foo");
-        printStatement("show partitions from foo where name = 'foo'");
-        printStatement("show partitions from foo order by x");
-        printStatement("show partitions from foo limit 10");
-        printStatement("show partitions from foo limit 10 offset 20");
-        printStatement("show partitions from foo offset 20");
-        printStatement("show partitions from foo order by x desc limit 10");
-        printStatement("show partitions from foo order by x desc limit 10 offset 20");
-        printStatement("show partitions from foo order by x desc offset 20");
-        */
         printStatement("select * from a.b.c@d");
 
         printStatement("select \"TOTALPRICE\" \"my price\" from \"orders\"");
@@ -214,8 +199,7 @@ public class TestStatementBuilder
         printStatement("refresh table schemah.tableh");
         printStatement("refresh table tableh partition (pcol='val')");
         printStatement("refresh table tableh partition (pcol=?)");
-        // TODO: subscript expressions should also be possible on the left side.
-        //printStatement("refresh table tableh partition (pcol['nested'] = ?)");
+        printStatement("refresh table tableh partition (pcol['nested'] = ?)");
 
         printStatement("alter table t set (number_of_replicas=4)");
         printStatement("alter table schema.t set (number_of_replicas=4)");
