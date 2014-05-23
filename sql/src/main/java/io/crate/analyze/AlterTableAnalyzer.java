@@ -21,16 +21,18 @@
 
 package io.crate.analyze;
 
+import io.crate.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.Table;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTableAnalysis> {
 
     @Override
     public Void visitAlterTable(AlterTable node, AlterTableAnalysis context) {
-        context.table(TableIdent.of(node.table()));
+        setTableAndPartitionName(node.table(), context);
 
         if (node.genericProperties().isPresent()) {
             GenericProperties properties = node.genericProperties().get();
@@ -45,5 +47,19 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
         }
 
         return null;
+    }
+
+    private void setTableAndPartitionName(Table node, AlterTableAnalysis context) {
+        context.table(TableIdent.of(node));
+        if (!node.partitionProperties().isEmpty()) {
+            PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+                    context.table(),
+                    node.partitionProperties(),
+                    context.parameters());
+            if (!context.table().partitions().contains(partitionName)) {
+                throw new IllegalArgumentException("Referenced partition does not exist.");
+            }
+            context.partitionName(partitionName);
+        }
     }
 }

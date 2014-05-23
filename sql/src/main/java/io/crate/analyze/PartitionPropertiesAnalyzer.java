@@ -46,9 +46,10 @@ public class PartitionPropertiesAnalyzer {
         return map;
     }
 
-    public static String toPartitionIdent(TableInfo tableInfo,
-                                          List<Assignment> partitionProperties,
-                                          Object[] parameters) {
+    public static PartitionName toPartitionName(TableInfo tableInfo,
+                                                List<Assignment> partitionProperties,
+                                                Object[] parameters) {
+        Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().name());
         Preconditions.checkArgument(partitionProperties.size() == tableInfo.partitionedBy().size(),
                 "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
                 tableInfo.ident().name(),
@@ -70,7 +71,12 @@ public class PartitionPropertiesAnalyzer {
                         String.format("\"%s\" is no known partition column", stringListEntry.getKey()));
             }
         }
-        return PartitionName.encodeIdent(Arrays.asList(values));
+        return new PartitionName(tableInfo.ident().name(), Arrays.asList(values));
+    }
 
+    public static String toPartitionIdent(TableInfo tableInfo,
+                                          List<Assignment> partitionProperties,
+                                          Object[] parameters) {
+        return toPartitionName(tableInfo, partitionProperties, parameters).ident();
     }
 }

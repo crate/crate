@@ -12,7 +12,7 @@ Synopsis
 
 ::
 
-    ALTER [BLOB] TABLE table_name
+    ALTER [BLOB] TABLE table_name [ PARTITION (partition_column = value [ , ... ]) ]
       { SET ( parameter = value [ , ... ] ) |
       RESET ( parameter [ , ... ] )
       }
@@ -35,3 +35,25 @@ Parameters
 :parameter: The name of the parameter that is set to a new value or its default.
 
 See the CREATE TABLE :ref:`with_clause` for a list of available parameters.
+
+PARTITION Clause
+================
+
+If the table is partitioned this clause can be used to alter only a single partition.
+
+.. note:: blob tables cannot be partitioned and hence this clause cannot be used.
+
+This clause identifies a single partition. It takes one ore more partition
+columns with a value each to identify the partition to alter.
+
+::
+
+    [ PARTITION ( partition_column = value [ , ... ] ) ]
+
+
+:partition_column: The name of the column by which the table is partitioned.
+                   All partition columns that were part of the
+                   :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
+                   statement must be specified.
+
+:value: The columns value.

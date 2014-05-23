@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - implemented alter table to operate on single partitions
+
  - implemented object and array literals
 
  - changed refresh table for partitioned tables.
