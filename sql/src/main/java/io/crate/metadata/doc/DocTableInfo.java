@@ -289,6 +289,11 @@ public class DocTableInfo implements TableInfo {
     }
 
     @Override
+    public boolean isInMemory() {
+        return false;
+    }
+
+    @Override
     public Iterator<ReferenceInfo> iterator() {
         return references.values().iterator();
     }

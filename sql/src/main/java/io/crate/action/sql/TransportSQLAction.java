@@ -24,17 +24,19 @@ package io.crate.action.sql;
 import com.google.common.base.Objects;
 import com.google.common.util.concurrent.*;
 import io.crate.Constants;
-import io.crate.types.DataType;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.exceptions.*;
 import io.crate.executor.*;
+import io.crate.operation.collect.memory.HashMapTableProvider;
+import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.support.TransportAction;
@@ -57,6 +59,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
@@ -65,6 +68,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final Planner planner;
     private final Executor executor;
     private final DDLAnalysisDispatcher dispatcher;
+    private final ConcurrentHashMap<String, JobContext> jobsTable;
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
@@ -72,12 +76,14 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             Planner planner,
             Executor executor,
             DDLAnalysisDispatcher dispatcher,
-            TransportService transportService) {
+            TransportService transportService,
+            HashMapTableProvider hashMapTableProvider) {
         super(settings, threadPool);
         this.analyzer = analyzer;
         this.planner = planner;
         this.executor = executor;
         this.dispatcher = dispatcher;
+        jobsTable = hashMapTableProvider.get("jobs", true);
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
     }
 
@@ -141,12 +147,16 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             assert plan.expectsAffectedRows();
             ListenableFuture<List<Object[][]>> zeroAffectedRows =
                     Futures.immediateFuture(Arrays.<Object[][]>asList(new Object[][] { new Object[] { 0 }}));
-            addResultCallback(request, listener, outputNames, plan, responseBuilder, zeroAffectedRows);
+            addResultCallback(request, listener, outputNames, plan, responseBuilder, null, zeroAffectedRows);
         } else {
             final Job job = executor.newJob(plan);
+            jobsTable.put(
+                    job.id().toString(),
+                    new JobContext(job.id().toString(), request.stmt(), System.currentTimeMillis()));
             final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(executor.execute(job));
-            addResultCallback(request, listener, outputNames, plan, responseBuilder, resultFuture);
+            addResultCallback(request, listener, outputNames, plan, responseBuilder, job, resultFuture);
         }
+
     }
 
     private static void emptyResponse(SQLRequest request,
@@ -173,6 +183,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                                           final String[] outputNames,
                                           final Plan plan,
                                           final ResponseBuilder responseBuilder,
+                                          @Nullable final Job job,
                                           ListenableFuture<List<Object[][]>> resultFuture) {
         Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
             @Override
@@ -191,12 +202,19 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                         rows,
                         request.creationTime(),
                         request.includeTypesOnResponse());
+
+                if (job != null) {
+                    jobsTable.remove(job.id().toString());
+                }
                 listener.onResponse(response);
             }
 
             @Override
             public void onFailure(Throwable t) {
                 logger.debug("Error processing SQLRequest", t);
+                if (job != null) {
+                    jobsTable.remove(job.id().toString());
+                }
                 listener.onFailure(buildSQLActionException(t));
             }
         });
