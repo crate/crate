@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import io.crate.PartitionName;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
@@ -34,12 +35,12 @@ import java.util.Map;
 
 public class PartitionPropertiesAnalyzer {
 
-    public static Map<String, Object> assignmentsToMap(List<Assignment> assignments,
+    public static Map<ColumnIdent, Object> assignmentsToMap(List<Assignment> assignments,
                                                        Object[] parameters) {
-        Map<String, Object> map = new HashMap<>(assignments.size());
+        Map<ColumnIdent, Object> map = new HashMap<>(assignments.size());
         for (Assignment assignment : assignments) {
             map.put(
-                    ExpressionToStringVisitor.convert(assignment.columnName(), parameters),
+                    ColumnIdent.fromPath(ExpressionToStringVisitor.convert(assignment.columnName(), parameters)),
                     ExpressionToObjectVisitor.convert(assignment.expression(), parameters)
                     );
         }
@@ -56,19 +57,19 @@ public class PartitionPropertiesAnalyzer {
                 tableInfo.partitionedBy().size(),
                 partitionProperties.size()
         );
-        Map<String, Object> properties = assignmentsToMap(partitionProperties, parameters);
+        Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties, parameters);
         String[] values = new String[properties.size()];
 
-        for (Map.Entry<String, Object> stringListEntry : properties.entrySet()) {
-            Object value = stringListEntry.getValue();
+        for (Map.Entry<ColumnIdent, Object> entry : properties.entrySet()) {
+            Object value = entry.getValue();
 
-            int idx = tableInfo.partitionedBy().indexOf(stringListEntry.getKey());
+            int idx = tableInfo.partitionedBy().indexOf(entry.getKey());
             try {
                 ReferenceInfo referenceInfo = tableInfo.partitionedByColumns().get(idx);
                 values[idx] = referenceInfo.type().value(value).toString();
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(
-                        String.format("\"%s\" is no known partition column", stringListEntry.getKey()));
+                        String.format("\"%s\" is no known partition column", entry.getKey().fqn()));
             }
         }
         return new PartitionName(tableInfo.ident().name(), Arrays.asList(values));

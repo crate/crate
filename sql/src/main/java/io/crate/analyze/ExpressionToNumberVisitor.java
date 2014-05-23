@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.sql.tree.*;
-import sun.misc.FloatingDecimal;
 
 import java.util.Locale;
 
@@ -41,7 +40,7 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Object[]> {
             stringNum = Long.parseLong(value);
         } catch (NumberFormatException e) {
             try {
-                stringNum = FloatingDecimal.readJavaFormatString(value).doubleValue();
+                stringNum = Double.valueOf(value);
             } catch (NumberFormatException e1) {
                 throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "invalid number '%s'", value), e1);

@@ -210,10 +210,12 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     private void copyFromPlan(CopyAnalysis analysis, Plan plan) {
         int clusteredByPrimaryKeyIdx = analysis.table().primaryKey().indexOf(analysis.table().clusteredBy());
-        List<ColumnIdent> partitionedBy;
+        List<String> partitionedByNames;
         String tableName = analysis.table().ident().name();
         if (analysis.partitionIdent() == null) {
-            partitionedBy = new ArrayList<>(analysis.table().partitionedBy());
+            partitionedByNames = Lists.newArrayList(
+                    Lists.transform(analysis.table().partitionedBy(), ColumnIdent.GET_FQN_NAME_FUNCTION)
+            );
         } else {
             /*
              * if there is a partitionIdent in the analysis this means that the file doesn't include
@@ -222,31 +224,21 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
              * Therefore there is no need to exclude the partition columns from the source and
              * it is possible to import into the partitioned index directly.
              */
-            partitionedBy = Arrays.asList();
-            tableName = PartitionName.fromPartitionIdent(tableName, analysis.partitionIdent()).stringValue();
+            partitionedByNames = Arrays.asList();
         }
         List<Projection> projections = Arrays.<Projection>asList(new IndexWriterProjection(
                 tableName,
                 analysis.table().primaryKey(),
-                partitionedBy,
+                analysis.table().partitionedBy(),
                 clusteredByPrimaryKeyIdx,
                 analysis.settings(),
                 null,
-                partitionedBy.size() > 0 ? partitionedBy.toArray(new String[partitionedBy.size()]) : null
+                partitionedByNames.size() > 0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null
         ));
 
-        partitionedBy.removeAll(Lists.transform(analysis.table().primaryKey(), new com.google.common.base.Function<ColumnIdent, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable ColumnIdent input) {
-                if (input != null) {
-                    return input.fqn();
-                }
-                return null;
-            }
-        }));
+        partitionedByNames.removeAll(Lists.transform(analysis.table().primaryKey(), ColumnIdent.GET_FQN_NAME_FUNCTION));
 
-        int referencesSize = analysis.table().primaryKey().size() + partitionedBy.size() + 1;
+        int referencesSize = analysis.table().primaryKey().size() + partitionedByNames.size() + 1;
         referencesSize = clusteredByPrimaryKeyIdx == -1 ? referencesSize + 1 : referencesSize;
         List<Symbol> toCollect = new ArrayList<>(referencesSize);
         // add primaryKey columns
@@ -257,9 +249,9 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         }
 
         // add partitioned columns (if not part of primaryKey)
-        for (ColumnIdent partitionedColumn : partitionedBy) {
+        for (String partitionedColumn : partitionedByNames) {
             toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(partitionedColumn))
+                    new Reference(analysis.table().getColumnInfo(ColumnIdent.fromPath(partitionedColumn)))
             );
         }
 
