@@ -62,8 +62,8 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
         assertThat(ti.columns().size(), is(3));
         assertThat(ti.primaryKey().size(), is(1));
-        assertThat(ti.primaryKey().get(0), is("id"));
-        assertThat(ti.clusteredBy(), is("id"));
+        assertThat(ti.primaryKey().get(0), is(new ColumnIdent("id")));
+        assertThat(ti.clusteredBy(), is(new ColumnIdent("id")));
 
         Routing routing = ti.getRouting(WhereClause.MATCH_ALL);
 

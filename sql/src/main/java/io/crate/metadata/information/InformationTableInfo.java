@@ -40,7 +40,7 @@ public class InformationTableInfo extends AbstractTableInfo {
 
         private final ImmutableList.Builder<ReferenceInfo> columns = ImmutableList.builder();
         private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> references = ImmutableMap.builder();
-        private final ImmutableList.Builder<String> primaryKey = ImmutableList.builder();
+        private final ImmutableList.Builder<ColumnIdent> primaryKey = ImmutableList.builder();
 
         private final TableIdent ident;
 
@@ -62,7 +62,7 @@ public class InformationTableInfo extends AbstractTableInfo {
         }
 
         public Builder addPrimaryKey(String column) {
-            primaryKey.add(column);
+            primaryKey.add(ColumnIdent.fromPath(column));
             return this;
         }
 
@@ -75,7 +75,7 @@ public class InformationTableInfo extends AbstractTableInfo {
 
     private final HandlerSideRouting routing;
     private final TableIdent ident;
-    private final ImmutableList<String> primaryKey;
+    private final ImmutableList<ColumnIdent> primaryKey;
 
     private final ImmutableMap<ColumnIdent, ReferenceInfo> references;
     private final ImmutableList<ReferenceInfo> columns;
@@ -84,7 +84,7 @@ public class InformationTableInfo extends AbstractTableInfo {
     private InformationTableInfo(TableIdent ident,
                                  ImmutableList<ReferenceInfo> columns,
                                  ImmutableMap<ColumnIdent, ReferenceInfo> references,
-                                 ImmutableList<String> primaryKey) {
+                                 ImmutableList<ColumnIdent> primaryKey) {
         this.ident = ident;
         this.columns = columns;
         this.references = references;
@@ -119,7 +119,7 @@ public class InformationTableInfo extends AbstractTableInfo {
     }
 
     @Override
-    public List<String> primaryKey() {
+    public List<ColumnIdent> primaryKey() {
         return primaryKey;
     }
 

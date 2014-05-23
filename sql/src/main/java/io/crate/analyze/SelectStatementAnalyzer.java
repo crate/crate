@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.metadata.ReferenceIdent;
@@ -132,7 +133,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             rewriteGlobalDistinct(context);
         }
 
-        Preconditions.checkArgument(node.getHaving().isPresent() == false, "having clause is not yet supported");
+        Preconditions.checkArgument(!node.getHaving().isPresent(), "having clause is not yet supported");
 
         if (node.getOrderBy().size() > 0) {
             addSorting(node.getOrderBy(), context);
@@ -147,7 +148,13 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         int i = 0;
         for (SortItem sortItem : orderBy) {
-            sortSymbols.add(process(sortItem, context));
+            Symbol s = process(sortItem, context);
+            Symbol refOutput = ordinalOutputReference(context.outputSymbols(), s, "ORDER BY");
+            if (refOutput != null) {
+                sortSymbols.add(refOutput);
+            } else {
+                sortSymbols.add(s);
+            }
             switch (sortItem.getNullOrdering()) {
                 case FIRST:
                     context.nullsFirst()[i] = true;
@@ -163,6 +170,33 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             i++;
         }
         context.sortSymbols(sortSymbols);
+    }
+
+    private Symbol ordinalOutputReference(List<Symbol> outputSymbols, Symbol symbol, String clauseName) {
+        Symbol s = symbol;
+        if (s.symbolType() == SymbolType.PARAMETER) {
+            s = toLiteral(s, DataTypes.LONG);
+        }
+        int idx;
+        if (s.symbolType() == SymbolType.LITERAL && ((Literal)s).valueType().equals(DataTypes.LONG)) {
+            idx = ((Number)((Literal)s).value()).intValue() - 1;
+            if (idx < 0) {
+                throw new IllegalArgumentException(String.format(
+                        "%s position %s is not in select list", clauseName, idx + 1));
+            }
+        } else {
+            idx = outputSymbols.indexOf(s);
+        }
+
+        if (idx >= 0) {
+            try {
+                return outputSymbols.get(idx);
+            } catch (IndexOutOfBoundsException e) {
+                throw new IllegalArgumentException(String.format(
+                            "%s position %s is not in select list", clauseName, idx + 1));
+            }
+        }
+        return null;
     }
 
     private void rewriteGlobalDistinct(SelectAnalysis context) {
@@ -198,28 +232,8 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
         for (Expression expression : groupByExpressions) {
             Symbol s = process(expression, context);
-            int idx;
-            if (s.symbolType() == SymbolType.PARAMETER) {
-                s = toLiteral(s, DataTypes.LONG);
-            }
-            if (s.symbolType() == SymbolType.LITERAL && ((Literal)s).valueType().equals(DataTypes.LONG)) {
-                idx = ((Number)((Literal)s).value()).intValue() - 1;
-                if (idx < 1) {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx));
-                }
-            } else {
-                idx = context.outputSymbols().indexOf(s);
-            }
-
-            if (idx >= 0) {
-                try {
-                    s = context.outputSymbols().get(idx);
-                } catch (ArrayIndexOutOfBoundsException e) {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "GROUP BY position %s is not in select list", idx));
-                }
-            }
+            Symbol refOutput = ordinalOutputReference(context.outputSymbols(), s, "GROUP BY");
+            s = Objects.firstNonNull(refOutput, s);
             if (s.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
                 throw new IllegalArgumentException(
                         SymbolFormatter.format("unknown column '%s' not allowed in GROUP BY", s));
@@ -313,7 +327,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         @Override
         public Void visitReference(Reference symbol, TableInfo context) {
-            if (context.partitionedBy().contains(symbol.info().ident().columnIdent().fqn())) {
+            if (context.partitionedBy().contains(symbol.info().ident().columnIdent())) {
                 throw new UnsupportedOperationException(
                         SymbolFormatter.format(
                                 "cannot use partitioned column %s in ORDER BY clause",

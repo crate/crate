@@ -21,9 +21,13 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.crate.PartitionName;
+import io.crate.core.StringUtils;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -350,6 +354,26 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     public String currentColumnName() {
         return schemaStack.peek().name;
     }
+
+    public String currentFullQualifiedColumnName() {
+        return StringUtils.PATH_JOINER.join(Iterables.filter(Iterables.transform(schemaStack, new Function<ColumnSchema, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable ColumnSchema input) {
+                if (input == null) {
+                    return null;
+                } else {
+                    return input.name;
+                }
+            }
+        }), new Predicate<String>() {
+            @Override
+            public boolean apply(@Nullable String input) {
+                return input != null;
+            }
+        }));
+    }
+
 
     public ColumnSchema pop() {
         return schemaStack.pop();

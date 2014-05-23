@@ -69,7 +69,7 @@ public class SysClusterTableInfo extends SysTableInfo {
     }
 
     @Override
-    public List<String> primaryKey() {
+    public List<ColumnIdent> primaryKey() {
         return ImmutableList.of();
     }
 

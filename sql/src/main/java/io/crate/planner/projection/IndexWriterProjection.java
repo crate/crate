@@ -23,6 +23,7 @@ package io.crate.planner.projection;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
@@ -52,7 +53,7 @@ public class IndexWriterProjection extends Projection {
     private Integer bulkActions;
     private String tableName;
     private List<Symbol> idSymbols;
-    private List<String> primaryKeys;
+    private List<ColumnIdent> primaryKeys;
     private List<Symbol> partitionedBySymbols;
     private Symbol rawSourceSymbol;
     private Symbol clusteredBySymbol;
@@ -68,8 +69,8 @@ public class IndexWriterProjection extends Projection {
     };
 
     public IndexWriterProjection() {}
-    public IndexWriterProjection(String tableName, List<String> primaryKeys,
-                                 List<String> partitionedBy, int clusteredByIdx,
+    public IndexWriterProjection(String tableName, List<ColumnIdent> primaryKeys,
+                                 List<ColumnIdent> partitionedBy, int clusteredByIdx,
                                  Settings settings,
                                  @Nullable String[] includes,
                                  @Nullable String[] excludes) {
@@ -82,7 +83,7 @@ public class IndexWriterProjection extends Projection {
         int currentInputIndex = primaryKeys.size();
 
         this.partitionedBySymbols = new ArrayList<>(partitionedBy.size());
-        for (String partitionedColumn : partitionedBy) {
+        for (ColumnIdent partitionedColumn : partitionedBy) {
             int idx = primaryKeys.indexOf(partitionedColumn);
             if (idx == -1) {
                 idx = currentInputIndex;
@@ -130,7 +131,7 @@ public class IndexWriterProjection extends Projection {
         return concurrency;
     }
 
-    public List<String> primaryKeys() {
+    public List<ColumnIdent> primaryKeys() {
         return primaryKeys;
     }
 
@@ -181,7 +182,9 @@ public class IndexWriterProjection extends Projection {
         int numPks = in.readVInt();
         primaryKeys = new ArrayList<>(numPks);
         for (int i = 0; i < numPks; i++) {
-            primaryKeys.add(in.readString());
+            ColumnIdent ident = new ColumnIdent();
+            ident.readFrom(in);
+            primaryKeys.add(ident);
         }
 
         int numPartitionedSymbols = in.readVInt();
@@ -220,8 +223,8 @@ public class IndexWriterProjection extends Projection {
             Symbol.toStream(idSymbol, out);
         }
         out.writeVInt(primaryKeys.size());
-        for (String primaryKey : primaryKeys) {
-            out.writeString(primaryKey);
+        for (ColumnIdent primaryKey : primaryKeys) {
+            primaryKey.writeTo(out);
         }
         out.writeVInt(partitionedBySymbols.size());
         for (Symbol partitionedSymbol : partitionedBySymbols) {

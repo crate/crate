@@ -60,9 +60,36 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         this.path = Objects.firstNonNull(path, ImmutableList.<String>of());
     }
 
+    public static ColumnIdent fromPath(String path) {
+        List<String> parts = StringUtils.PATH_SPLITTER.splitToList(path);
+        if (parts.size() > 1) {
+            return new ColumnIdent(parts.get(0), parts.subList(1, parts.size()));
+        } else {
+            return new ColumnIdent(parts.get(0));
+        }
+    }
+
     public static ColumnIdent getChild(ColumnIdent parent, String name) {
         List<String> childPath = ImmutableList.<String>builder().addAll(parent.path).add(name).build();
         return new ColumnIdent(parent.name, childPath);
+    }
+
+    /**
+     * checks whether this ColumnIdent is a child of <code>parentIdent</code>
+     * @param parentIdent the ident to check for parenthood
+     * @return true if <code>parentIdent</code> is parentIdent of this, false otherwise.
+     */
+    public boolean isChildOf(ColumnIdent parentIdent) {
+        boolean result = false;
+        ColumnIdent parent = getParent();
+        while (parent != null) {
+            if (parent.equals(parentIdent)) {
+                result = true;
+                break;
+            }
+            parent = parent.getParent();
+        }
+        return result;
     }
 
     /**

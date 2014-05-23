@@ -55,7 +55,9 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
@@ -73,6 +75,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
 
@@ -1178,6 +1183,28 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Reference r = (Reference)s;
         assertThat(r.info().ident().tableIdent().name(), is("users"));
         assertThat(r.info().ident().columnIdent().fqn(), is("details.foo"));
+    }
+
+    @Test
+    public void testOrderByWithOrdinal() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze(
+                "select name from users u order by 1");
+        assertEquals(analysis.outputSymbols().get(0), analysis.sortSymbols().get(0));
+    }
+
+    @Test
+    public void testGroupWithIdx() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze(
+                "select name from users u group by 1");
+        assertEquals(analysis.outputSymbols().get(0), analysis.groupBy().get(0));
+    }
+
+
+    @Test
+    public void testGroupWithInvalidIdx() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("GROUP BY position 2 is not in select list");
+        analyze("select name from users u group by 2");
     }
 
     @Test(expected = UnsupportedOperationException.class)

@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -38,6 +39,8 @@ import static org.hamcrest.core.Is.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
+    private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
+
     @Test
     public void testIndexWriter() throws Throwable {
         execute("create table bulk_import (id int primary key, name string) with (number_of_replicas=0)");
@@ -51,7 +54,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 cluster().getInstance(Client.class),
                 "bulk_import",
-                Arrays.asList("id"),
+                Arrays.asList(ID_IDENT),
                 Arrays.<Input<?>>asList(idInput),
                 ImmutableList.<Input<?>>of(),
                 idInput,

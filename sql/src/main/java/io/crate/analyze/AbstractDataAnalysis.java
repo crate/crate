@@ -23,7 +23,6 @@ package io.crate.analyze;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import io.crate.Id;
 import io.crate.exceptions.*;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -428,7 +427,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
                     continue;
                 }
             }
-            if (info.type() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
+            if (nestedInfo.type() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
                 value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo));
             } else {
                 value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), nestedInfo));
@@ -520,7 +519,9 @@ public abstract class AbstractDataAnalysis extends Analysis {
     }
 
     protected void addIdAndRouting(Boolean create, List<String> primaryKeyValues, String clusteredByValue) {
-        Id id = new Id(table().primaryKey(), primaryKeyValues, table().clusteredBy(), create);
+
+        ColumnIdent clusteredBy = table().clusteredBy();
+        Id id = new Id(table().primaryKey(), primaryKeyValues, clusteredBy == null ? null : clusteredBy, create);
         if (id.isValid()) {
             String idString = id.stringValue();
             ids.add(idString);

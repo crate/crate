@@ -24,9 +24,10 @@ package io.crate.operation.projectors;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.Id;
 import io.crate.PartitionName;
+import io.crate.analyze.Id;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
@@ -58,7 +59,7 @@ public class IndexWriterProjector implements Projector {
     private final Input<?> routingInput;
     private final String tableName;
     private final Object lock = new Object();
-    private final List<String> primaryKeys;
+    private final List<ColumnIdent> primaryKeys;
     private final List<Input<?>> partitionedByInputs;
     private final String[] includes;
     private final String[] excludes;
@@ -66,7 +67,7 @@ public class IndexWriterProjector implements Projector {
 
     public IndexWriterProjector(Client client,
                                 String tableName,
-                                List<String> primaryKeys,
+                                List<ColumnIdent> primaryKeys,
                                 List<Input<?>> idInputs,
                                 List<Input<?>> partitionedByInputs,
                                 Input<?> routingInput,
@@ -195,12 +196,12 @@ public class IndexWriterProjector implements Projector {
         });
 
         Object routing = routingInput.value();
-        String clusteredBy = null;
+        String clusteredByValue = null;
         if (routing != null) {
-            clusteredBy = routing.toString();
-            indexRequest.routing(clusteredBy);
+            clusteredByValue = routing.toString();
+            indexRequest.routing(clusteredByValue);
         }
-        Id id = new Id(primaryKeys, primaryKeyValues, clusteredBy, true);
+        Id id = new Id(primaryKeys, primaryKeyValues, clusteredByValue != null ? ColumnIdent.fromPath(clusteredByValue) : null, true);
         indexRequest.id(id.stringValue());
         return indexRequest;
     }

@@ -13,8 +13,10 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -27,15 +29,18 @@ import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentCaptor;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class DocIndexMetaDataTest {
 
@@ -48,11 +53,13 @@ public class DocIndexMetaDataTest {
     }
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
-        return getIndexMetaData(indexName, builder, ImmutableSettings.Builder.EMPTY_SETTINGS);
+        return getIndexMetaData(indexName, builder, ImmutableSettings.Builder.EMPTY_SETTINGS, null);
     }
 
-    private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder, Settings settings)
-            throws IOException {
+    private IndexMetaData getIndexMetaData(String indexName,
+                                           XContentBuilder builder,
+                                           Settings settings,
+                                           @Nullable AliasMetaData aliasMetaData) throws IOException {
         byte[] data = builder.bytes().toBytes();
         Map<String, Object> mappingSource = XContentHelper.convertToMap(data, true).v2();
         mappingSource = sortProperties(mappingSource);
@@ -62,10 +69,13 @@ public class DocIndexMetaDataTest {
                 .put("index.number_of_replicas", 0)
                 .put(settings);
 
-        return IndexMetaData.builder(indexName)
+        IndexMetaData.Builder mdBuilder = IndexMetaData.builder(indexName)
                 .settings(settingsBuilder)
-                .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, mappingSource))
-                .build();
+                .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, mappingSource));
+        if (aliasMetaData != null) {
+            mdBuilder.putAlias(aliasMetaData);
+        }
+        return mdBuilder.build();
     }
 
     private DocIndexMetaData newMeta(IndexMetaData metaData, String name) throws IOException {
@@ -411,7 +421,7 @@ public class DocIndexMetaDataTest {
 
 
         assertThat(md.primaryKey().size(), is(1));
-        assertThat(md.primaryKey(), contains("id"));
+        assertThat(md.primaryKey(), contains(new ColumnIdent("id")));
 
         builder = XContentFactory.jsonBuilder()
                 .startObject()
@@ -488,7 +498,7 @@ public class DocIndexMetaDataTest {
                 .endObject();
 
         DocIndexMetaData md = newMeta(getIndexMetaData("test8", builder), "test8");
-        assertThat(md.routingCol(), is("id"));
+        assertThat(md.routingCol(), is(new ColumnIdent("id")));
 
         builder = XContentFactory.jsonBuilder()
                 .startObject()
@@ -503,7 +513,7 @@ public class DocIndexMetaDataTest {
                 .endObject();
 
         md = newMeta(getIndexMetaData("test9", builder), "test8");
-        assertThat(md.routingCol(), is("_id"));
+        assertThat(md.routingCol(), is(new ColumnIdent("_id")));
 
         builder = XContentFactory.jsonBuilder()
                 .startObject()
@@ -528,7 +538,7 @@ public class DocIndexMetaDataTest {
                 .endObject();
 
         md = newMeta(getIndexMetaData("test10", builder), "test10");
-        assertThat(md.routingCol(), is("id"));
+        assertThat(md.routingCol(), is(new ColumnIdent("id")));
     }
 
     @Test
@@ -539,7 +549,7 @@ public class DocIndexMetaDataTest {
                 .endObject()
                 .endObject();
         DocIndexMetaData md = newMeta(getIndexMetaData("test11", builder), "test11");
-        assertThat(md.routingCol(), is("_id"));
+        assertThat(md.routingCol(), is(new ColumnIdent("_id")));
     }
 
     @Test
@@ -551,7 +561,7 @@ public class DocIndexMetaDataTest {
                 .endObject();
         DocIndexMetaData md = newMeta(getIndexMetaData("test11", builder), "test11");
         assertThat(md.primaryKey().size(), is(1));
-        assertThat(md.primaryKey().get(0), is("_id"));
+        assertThat(md.primaryKey().get(0), is(new ColumnIdent("_id")));
         assertThat(md.hasAutoGeneratedPrimaryKey(), is(true));
     }
 
@@ -572,10 +582,9 @@ public class DocIndexMetaDataTest {
                 .endObject();
         DocIndexMetaData md = newMeta(getIndexMetaData("test11", builder), "test11");
         assertThat(md.primaryKey().size(), is(1));
-        assertThat(md.primaryKey().get(0), is("id"));
+        assertThat(md.primaryKey().get(0), is(new ColumnIdent("id")));
         assertThat(md.hasAutoGeneratedPrimaryKey(), is(false));
     }
-
 
     @Test
     public void testGeoPointType() throws Exception {
@@ -605,6 +614,44 @@ public class DocIndexMetaDataTest {
         assertThat(md.columns().size(), is(1));
         ReferenceInfo referenceInfo = md.columns().get(0);
         assertThat((GeoPointType) referenceInfo.type(), equalTo(DataTypes.GEO_POINT));
+    }
+
+    @Test
+    public void testTemplateUpdate() throws Exception {
+        // regression test: alias must be set in the updated template
+
+        Settings settings = ImmutableSettings.builder()
+                .put("index.number_of_shards", 1)
+                .put("index.number_of_replicas", 0)
+                .build();
+
+        IndexMetaData md1 = IndexMetaData.builder("t1")
+                .settings(settings)
+                .build();
+        DocIndexMetaData docIndexMd1 = new DocIndexMetaData(md1, new TableIdent("doc", "t1")).build();
+
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject("properties")
+                    .startObject("id")
+                        .field("type", "integer")
+                    .endObject()
+                .endObject()
+                .endObject();
+        DocIndexMetaData docIndexMd2 = newMeta(getIndexMetaData(
+                "t2",  builder, ImmutableSettings.EMPTY, AliasMetaData.builder("tables").build()), "t2");
+
+        TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
+        ArgumentCaptor<PutIndexTemplateRequest> argumentCaptor = ArgumentCaptor.forClass(PutIndexTemplateRequest.class);
+        docIndexMd1.merge(docIndexMd2, transportPutIndexTemplateAction, true);
+        verify(transportPutIndexTemplateAction).execute(argumentCaptor.capture());
+
+        PutIndexTemplateRequest request = argumentCaptor.getValue();
+        Field aliasesField = PutIndexTemplateRequest.class.getDeclaredField("aliases");
+        aliasesField.setAccessible(true);
+        Set aliases = (Set)aliasesField.get(request);
+
+        assertThat(aliases.size(), is(1));
     }
 }
 

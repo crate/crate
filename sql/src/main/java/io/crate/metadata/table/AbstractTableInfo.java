@@ -47,7 +47,7 @@ public abstract class AbstractTableInfo implements TableInfo {
 
     @Nullable
     @Override
-    public String clusteredBy() {
+    public ColumnIdent clusteredBy() {
         return null;
     }
 
@@ -62,7 +62,7 @@ public abstract class AbstractTableInfo implements TableInfo {
     }
 
     @Override
-    public List<String> partitionedBy() {
+    public List<ColumnIdent> partitionedBy() {
         return ImmutableList.of();
     }
 }

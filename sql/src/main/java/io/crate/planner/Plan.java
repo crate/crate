@@ -57,4 +57,8 @@ public class Plan implements Iterable<PlanNode> {
         }
         return nodes.get(nodes.size() -1).outputTypes();
     }
+
+    public boolean isEmpty() {
+        return nodes.isEmpty();
+    }
 }

@@ -51,8 +51,8 @@ public abstract class InformationTableConstraintsExpression<T> extends Informati
                         @Override
                         public Set<BytesRef> value() {
                             ImmutableSet.Builder<BytesRef> builder = ImmutableSet.builder();
-                            for (String primaryKeyColumn : row.primaryKey()) {
-                                builder.add(new BytesRef(primaryKeyColumn));
+                            for (ColumnIdent primaryKeyColumn : row.primaryKey()) {
+                                builder.add(new BytesRef(primaryKeyColumn.fqn()));
                             }
                             return builder.build();
                         }

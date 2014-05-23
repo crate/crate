@@ -5,6 +5,26 @@ Changes for Crate Data
  - the ordering of null values can now be influenced using the ``NULLS { FIRST
    | LAST }`` keywords.
 
+2014/05/23 0.37.5
+=================
+
+ - fix: fixed schema update issues with partitioned tables.
+
+ - fix: DELETE on an empty partitioned table caused an error.
+
+ - fix: ORDER BY/GROUP BY clauses with ordinal numbers now work correctly
+
+ - fixed the glob pattern matching for S3 imports using the ``COPY FROM``
+   statement.
+
+ - fix: creating tables with nested primary keys and nested partitioned by columns
+   did not work correctly
+
+ - fix: insert and update partitioned tables with nested partition columns did not work
+
+ - fix: dynamic columns of partitioned tables did not show up in ``information_schema.columns``
+   when only one partition existed
+
 2014/05/20 0.37.4
 =================
 

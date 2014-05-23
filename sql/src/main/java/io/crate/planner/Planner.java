@@ -22,10 +22,8 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
+import com.google.common.base.*;
 import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -50,6 +48,7 @@ import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
+import io.crate.planner.symbol.Function;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
@@ -195,7 +194,18 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     private void copyFromPlan(CopyAnalysis analysis, Plan plan) {
         int clusteredByPrimaryKeyIdx = analysis.table().primaryKey().indexOf(analysis.table().clusteredBy());
-        List<String> partitionedBy = new ArrayList<>(analysis.table().partitionedBy());
+        List<String> partitionedBy = Lists.newArrayList(Iterables.transform(analysis.table().partitionedBy(),
+                new com.google.common.base.Function<ColumnIdent, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable ColumnIdent input) {
+                if (input != null) {
+                    return input.fqn();
+                } else {
+                    return null;
+                }
+            }
+        }));
 
         List<Projection> projections = Arrays.<Projection>asList(new IndexWriterProjection(
                 analysis.table().ident().name(),
@@ -207,15 +217,24 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 partitionedBy.size() > 0 ? partitionedBy.toArray(new String[partitionedBy.size()]) : null
         ));
 
-        partitionedBy.removeAll(analysis.table().primaryKey());
+        partitionedBy.removeAll(Lists.transform(analysis.table().primaryKey(), new com.google.common.base.Function<ColumnIdent, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable ColumnIdent input) {
+                if (input != null) {
+                    return input.fqn();
+                }
+                return null;
+            }
+        }));
 
         int referencesSize = analysis.table().primaryKey().size() + partitionedBy.size() + 1;
         referencesSize = clusteredByPrimaryKeyIdx == -1 ? referencesSize + 1 : referencesSize;
         List<Symbol> toCollect = new ArrayList<>(referencesSize);
         // add primaryKey columns
-        for (String primaryKey : analysis.table().primaryKey()) {
+        for (ColumnIdent primaryKey : analysis.table().primaryKey()) {
             toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(new ColumnIdent(primaryKey)))
+                    new Reference(analysis.table().getColumnInfo(primaryKey))
             );
         }
 
@@ -229,7 +248,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         // add clusteredBy column (if not part of primaryKey)
         if (clusteredByPrimaryKeyIdx == -1) {
             toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(new ColumnIdent(analysis.table().clusteredBy())))
+                    new Reference(analysis.table().getColumnInfo(analysis.table().clusteredBy()))
             );
         }
 
@@ -373,10 +392,10 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 }
             }
 
-            // drop indices/tables
-            for (int i=0; i < indices.length; i++) {
-                ESDeleteIndexNode dropNode = new ESDeleteIndexNode(indices[i], true);
-                plan.add(dropNode);
+            if (!analysis.table().partitions().isEmpty()) {
+                for (String index : indices) {
+                    plan.add(new ESDeleteIndexNode(index, true));
+                }
             }
         } else {
             // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently

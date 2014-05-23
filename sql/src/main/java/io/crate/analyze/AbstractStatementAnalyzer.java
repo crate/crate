@@ -31,11 +31,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractStatementAnalyzer<R extends Object, T extends Analysis> extends DefaultTraversalVisitor<R, T> {
-    protected static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
-    protected static PrimaryKeyVisitor primaryKeyVisitor = new PrimaryKeyVisitor();
+    protected static final OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
+    protected static final PrimaryKeyVisitor primaryKeyVisitor = new PrimaryKeyVisitor();
 
-    protected static SubscriptVisitor visitor = new SubscriptVisitor();
-    protected static NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
+    protected static final SubscriptVisitor visitor = new SubscriptVisitor();
+    protected static final NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
 
     static class OutputNameFormatter extends ExpressionFormatter.Formatter {
         @Override

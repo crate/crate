@@ -45,7 +45,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -3442,7 +3441,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertDynamicToPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp," +
-                "author object as (name string)) " +
+                "author object(dynamic) as (name string)) " +
                 "partitioned by(date) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?), (?, ?, ?, ?)",
@@ -3502,8 +3501,34 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from quotes");
         assertEquals(1L, response.rowCount());
 
+        execute("delete from quotes"); // this will delete all partitions
+        execute("delete from quotes"); // this should still work even though only the template exists
+
         execute("drop table quotes");
         assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testPartitionedTableSchemaUpdateSameColumnNumber() throws Exception {
+        execute("create table foo (" +
+                "   id int primary key," +
+                "   date timestamp primary key" +
+                ") partitioned by (date) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into foo (id, date, foo) values (1, '2014-01-01', 'foo')");
+        execute("insert into foo (id, date, bar) values (2, '2014-02-01', 'bar')");
+
+        // schema updates are async and cannot reliably be forced
+        int retry = 0;
+        while (retry < 100) {
+            execute("select * from foo");
+            if (response.cols().length == 4) { // at some point both foo and bar columns must be present
+                break;
+            }
+            Thread.sleep(100);
+            retry++;
+        }
+        assertTrue(retry < 100);
     }
 
     @Test
@@ -3526,9 +3551,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         refresh();
 
-        execute("select id, quote, created from quotes where created['user_id'] = 'Arthur'");
+        execute("select id, quote, created['date'] from quotes where created['user_id'] = 'Arthur'");
         assertEquals(1L, response.rowCount());
-        assertThat((Map<String, Object>)response.rows()[0][2], Matchers.<String, Object>hasEntry("date", 1395874800000L));
+        assertThat((Long)response.rows()[0][2], is(1395874800000L));
 
         execute("update quotes set quote = ? where created['date'] = ?",
                 new Object[]{"I'd far rather be happy than right any day", 1395874800000L});
