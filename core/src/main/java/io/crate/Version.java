@@ -33,8 +33,9 @@ public class Version {
     // AA values below 50 are beta builds, and below 99 are RC builds, with 99 indicating a release
     // the (internal) format of the id is there so we can easily do after/before checks on the id
 
-    public static final boolean SNAPSHOT = false;
-    public static final Version CURRENT = new Version(380199, SNAPSHOT, org.elasticsearch.Version.V_1_1_1);
+
+    public static final boolean SNAPSHOT = true;
+    public static final Version CURRENT = new Version(390099, SNAPSHOT, org.elasticsearch.Version.V_1_1_1);
 
     static {
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +
