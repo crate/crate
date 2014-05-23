@@ -34,6 +34,8 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.Input;
+import io.crate.operation.collect.memory.HashMapTableProvider;
+import io.crate.operation.collect.memory.InMemoryCollectService;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
@@ -281,7 +283,8 @@ public class LocalDataCollectTest {
         operation = new MapSideDataCollectOperation(
                 clientProvider,
                 injector.getInstance(ClusterService.class),
-                functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool
+                functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool,
+                new InMemoryCollectService(functions, new HashMapTableProvider())
         );
     }
 

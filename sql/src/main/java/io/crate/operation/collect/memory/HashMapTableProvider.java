@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,21 +19,34 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.operation.collect.memory;
 
-import io.crate.operation.collect.memory.HashMapTableProvider;
-import io.crate.operation.collect.memory.InMemoryCollectService;
-import org.elasticsearch.common.inject.AbstractModule;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class CollectOperationModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(MapSideDataCollectOperation.class).asEagerSingleton();
-        bind(HandlerSideDataCollectOperation.class).asEagerSingleton();
-        bind(InformationSchemaCollectService.class).asEagerSingleton();
-        bind(UnassignedShardsCollectService.class).asEagerSingleton();
+public class HashMapTableProvider {
 
-        bind(HashMapTableProvider.class).asEagerSingleton();
-        bind(InMemoryCollectService.class).asEagerSingleton();
+    private final Map<String, ConcurrentHashMap> tables;
+
+    public HashMapTableProvider() {
+        tables = new HashMap<>();
     }
+
+    public <T> void create(String name) {
+        ConcurrentHashMap<String, T> table = new ConcurrentHashMap<>();
+        tables.put(name, table);
+    }
+
+    public <T> ConcurrentHashMap<String, T> get(String name) {
+        return get(name, false);
+    }
+
+    public <T> ConcurrentHashMap<String, T> get(String name, boolean create) {
+        if (create && !tables.containsKey(name)) {
+            create(name);
+        }
+        return tables.get(name);
+    }
+
 }

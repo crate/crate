@@ -35,6 +35,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.files.FileCollectInputSymbolVisitor;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
+import io.crate.operation.collect.memory.InMemoryCollectService;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
@@ -95,6 +96,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     private final ThreadPool threadPool;
     protected final ClusterService clusterService;
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
+    private final InMemoryCollectService inMemoryCollectService;
 
     @Inject
     public MapSideDataCollectOperation(Provider<Client> clientProvider,
@@ -102,11 +104,13 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                                        Functions functions,
                                        ReferenceResolver referenceResolver,
                                        IndicesService indicesService,
-                                       ThreadPool threadPool) {
+                                       ThreadPool threadPool,
+                                       InMemoryCollectService inMemoryCollectService) {
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.threadPool = threadPool;
+        this.inMemoryCollectService = inMemoryCollectService;
         this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver,
                 functions,
@@ -179,7 +183,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                                         FlatProjectorChain projectorChain) throws Exception {
         if (collectNode instanceof FileUriCollectNode) {
             FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.process(collectNode);
-            FileUriCollectNode fileUriCollectNode = (FileUriCollectNode)collectNode;
+            FileUriCollectNode fileUriCollectNode = (FileUriCollectNode) collectNode;
 
             String[] readers = fileUriCollectNode.executionNodes().toArray(
                     new String[fileUriCollectNode.executionNodes().size()]);
@@ -196,6 +200,8 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     readers.length,
                     Arrays.binarySearch(readers, clusterService.localNode().id())
             );
+        } else if(collectNode.isInMemory()) {
+            return inMemoryCollectService.getCollector(collectNode, projectorChain.firstProjector());
         } else {
             ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.process(collectNode);
             assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
