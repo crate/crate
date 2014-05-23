@@ -2,6 +2,9 @@
 Changes for Crate Data
 ======================
 
+2014/05/23 0.38.2
+=================
+
  - updated crash to 0.9.7 which includes following changes:
 
     - return exit code 1 if the execution of a single command fails
