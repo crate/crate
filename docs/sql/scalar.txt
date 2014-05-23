@@ -1,5 +1,5 @@
-.. _scalar:
 .. highlight:: psql
+.. _scalar:
 
 ================
 Scalar Functions
@@ -9,9 +9,12 @@ Scalar functions return a single data value (not a table).
 
 .. note::
 
-    Crate can currently only execute scalar functions if used together with the
-    GROUP BY clause or if querying tables inside a system schema (either "sys"
-    or "information_schema")
+    Scalar functions aren't available in all query clauses. For example if a
+    regular (non-system table) is queried the WHERE clause may not contain any
+    functions.
+
+    In addition, the ORDER BY clause also may not contain any scalar functions
+    unless GROUP BY is also present in the statement.
 
 See below for a list of available scalar functions.
 

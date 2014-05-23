@@ -15,6 +15,7 @@ see :doc:`sql`. For general information about SQL please refer to
    dml
    aggregation
    scalar
+   arithmetic
    occ
    partitioned_tables
    rest

@@ -420,13 +420,10 @@ predicate
     ;
 
 predicatePrimary
-    : (subscript -> subscript)
-      ( '||' e=subscript -> ^(FUNCTION_CALL ^(QNAME IDENT["concat"]) $predicatePrimary $e) )*
+    : (numericExpr -> numericExpr)
+      ( '||' e=numericExpr -> ^(FUNCTION_CALL ^(QNAME IDENT["concat"]) $predicatePrimary $e) )*
     ;
 
-subscript
-    : numericExpr ('['^ numericExpr ']'!)*
-    ;
 
 numericExpr
     : numericTerm (('+' | '-')^ numericTerm)*
@@ -437,8 +434,12 @@ numericTerm
     ;
 
 numericFactor
-    : '+'? exprPrimary -> exprPrimary
-    | '-' exprPrimary  -> ^(NEGATIVE exprPrimary)
+    : '+'? subscript -> subscript
+    | '-' subscript  -> ^(NEGATIVE subscript)
+    ;
+
+subscript
+    : exprPrimary ('['^ numericExpr ']'!)*
     ;
 
 exprPrimary
@@ -708,7 +709,7 @@ identList
     ;
 
 columnList
-    : '(' subscript ( ',' subscript )* ')' -> ^(COLUMN_LIST subscript+)
+    : '(' numericExpr ( ',' numericExpr )* ')' -> ^(COLUMN_LIST numericExpr+)
     ;
 
 insertValues
@@ -734,7 +735,7 @@ assignmentList
     ;
 
 assignment
-    : subscript EQ expr -> ^(ASSIGNMENT subscript expr)
+    : numericExpr EQ expr -> ^(ASSIGNMENT numericExpr expr)
     ;
 
 // COPY STATEMENTS
@@ -902,7 +903,7 @@ clusteredInto
     ;
 
 clusteredBy
-    : CLUSTERED (BY '(' subscript ')' )? (INTO integer SHARDS)? -> ^(CLUSTERED subscript? integer?)
+    : CLUSTERED (BY '(' numericExpr ')' )? (INTO integer SHARDS)? -> ^(CLUSTERED numericExpr? integer?)
     ;
 
 partitionedBy

@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added arithmetic operators
+
  - implemented partition support for ``copy`` statements
 
     - added ``copy my_table PARTITION (<columnName> = <value> [, ...]) to ... ``

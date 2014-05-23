@@ -1,0 +1,50 @@
+.. _arithmetic:
+.. highlight:: psql
+
+====================
+Arithmetic Operators
+====================
+
+Arithmetic operators perform mathematical operations on two expressions of
+numeric data types.
+
+.. note::
+
+    The same restrictions that apply to scalar functions also apply to
+    arithmetic operators. See :ref:`scalar`.
+
+supported operators
+-------------------
+
+    ========   =========================================================
+    operator   description
+    ========   =========================================================
+    \+          add one number to another
+    \-          subtract the second number from the first
+    \*          multiply the first number with the second
+    /          divide the first number by the second
+    %          finds the remainder of division of one number by another
+    ========   =========================================================
+
+::
+
+    cr> select ((2 * 4 - 2 + 1) / 2) % 3  from sys.cluster
+    +---------------------------------+
+    | (((((2 * 4) - 2) + 1) / 2) % 3) |
+    +---------------------------------+
+    | 0                               |
+    +---------------------------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select ((2 * 4.0 - 2 + 1) / 2) % 3  from sys.cluster
+    +-----------------------------------+
+    | (((((2 * 4.0) - 2) + 1) / 2) % 3) |
+    +-----------------------------------+
+    | 0.5                               |
+    +-----------------------------------+
+    SELECT 1 row in set (... sec)
+
+.. note::
+
+    As shown in the example if any number is of type double all other values
+    will be cast to double as well.

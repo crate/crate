@@ -24,6 +24,7 @@ package io.crate.operation.scalar;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.operation.scalar.arithmetic.*;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -51,5 +52,11 @@ public class ScalarFunctionModule extends AbstractModule {
         DateTruncFunction.register(this);
         DateTruncTimeZoneAwareFunction.register(this);
         FormatFunction.register(this);
+
+        AddFunction.register(this);
+        SubtractFunction.register(this);
+        MultiplyFunction.register(this);
+        DivideFunction.register(this);
+        ModulusFunction.register(this);
     }
 }

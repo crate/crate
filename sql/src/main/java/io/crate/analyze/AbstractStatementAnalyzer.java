@@ -82,10 +82,6 @@ public abstract class AbstractStatementAnalyzer<R extends Object, T extends Anal
         return visitNode(node, context);
     }
 
-    @Override
-    protected R visitArithmeticExpression(ArithmeticExpression node, T context) {
-       return visitNode(node, context);
-    }
 
     @Override
     protected R visitBetweenPredicate(BetweenPredicate node, T context) {

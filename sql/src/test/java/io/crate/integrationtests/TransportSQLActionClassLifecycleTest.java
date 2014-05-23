@@ -569,4 +569,20 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             assertThat(line, endsWith("}"));
         }
     }
+
+    @Test
+    public void testArithmeticFunctions() throws Exception {
+        SQLResponse response = executor.exec("select ((2 * 4 - 2 + 1) / 2) % 3 from sys.cluster");
+        assertThat(response.cols()[0], is("(((((2 * 4) - 2) + 1) / 2) % 3)"));
+        assertThat((Long)response.rows()[0][0], is(0L));
+
+        response = executor.exec("select ((2 * 4.0 - 2 + 1) / 2) % 3 from sys.cluster");
+        assertThat((Double)response.rows()[0][0], is(0.5));
+
+        response = executor.exec("select ? + 2 from sys.cluster", 1);
+        assertThat((Long)response.rows()[0][0], is(3L));
+
+        response = executor.exec("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
+        assertEquals(response.rows()[0][0], (Double)response.rows()[0][1] + (Double)response.rows()[0][2]);
+    }
 }

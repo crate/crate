@@ -57,6 +57,12 @@ public class TestStatementBuilder
         printStatement("select extract(day from x), extract(dow from x) from y");
 
         printStatement("select 1 + 13 || '15' from foo");
+        printStatement("select col['x'] + col['y'] from foo");
+        printStatement("select col['x'] - col['y'] from foo");
+        printStatement("select col['y'] / col[2 / 1] from foo");
+
+        // expressions as subscript index are only supported by the parser
+        printStatement("select col[1 + 2] - col['y'] from foo");
 
         printStatement("select x is distinct from y from foo where a is not distinct from b");
 

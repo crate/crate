@@ -404,6 +404,23 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     }
 
     @Override
+    protected Symbol visitArithmeticExpression(ArithmeticExpression node, T context) {
+        Symbol left = process(node.getLeft(), context);
+        Symbol right = process(node.getRight(), context);
+        DataType leftType = DataTypeVisitor.fromSymbol(left);
+        DataType rightType = DataTypeVisitor.fromSymbol(right);
+
+        FunctionIdent functionIdent = new FunctionIdent(
+                node.getType().name().toLowerCase(Locale.ENGLISH),
+                Arrays.asList(leftType, rightType)
+        );
+        return context.allocateFunction(
+                context.getFunctionInfo(functionIdent),
+                Arrays.asList(left, right)
+        );
+    }
+
+    @Override
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, T context) {
         ReferenceIdent ident = context.getReference(node.getName());
         return context.allocateReference(ident);

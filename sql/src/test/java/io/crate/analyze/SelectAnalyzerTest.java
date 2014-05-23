@@ -44,6 +44,7 @@ import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
 import io.crate.operation.scalar.CollectionCountFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.types.ArrayType;
@@ -1045,10 +1046,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select name from multi_parted order by format('abc %s', obj['name'])");
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testArithmeticExpressions() throws Exception {
-        analyze("select 1 + 1 from users");
-    }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testJoin() throws Exception {
@@ -1215,5 +1212,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testOrderByOnObject() throws Exception {
         analyze("select * from sys.nodes order by load");
+    }
+
+    @Test
+    public void testArithmeticPlus() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select load['1'] + load['5'] from sys.nodes");
+        assertThat(((Function) analysis.outputSymbols().get(0)).info().ident().name(), is(AddFunction.NAME));
     }
 }

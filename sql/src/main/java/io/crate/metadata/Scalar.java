@@ -29,5 +29,6 @@ import io.crate.planner.symbol.Function;
  * @param <ReturnType> the class of the returned value
  */
 public interface Scalar<ReturnType, InputType> extends FunctionImplementation<Function> {
+
     public ReturnType evaluate(Input<InputType>... args);
 }
