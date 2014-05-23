@@ -41,6 +41,8 @@ Alternatively you can follow the instructions on the Bintray repository overview
 Usage
 =====
 
+.. highlight:: java
+
 A minimal example is just a few lines of code::
 
     import io.crate.client.CrateClient;
@@ -84,3 +86,9 @@ these, one must defined it at the `SQLRequest` object::
    Queries are executed asynchronous. `client.sql("")` will return a
    `Future<SQLResponse>` and code execution is only blocked if
    `.actionGet()` is called on it.
+
+
+
+.. _`Bintray`: https://bintray.com/crate/crate/
+.. _`JCenter`: https://bintray.com/bintray/jcenter
+
