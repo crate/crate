@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
+import io.crate.PartitionName;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
@@ -29,11 +31,14 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
+
 public class AlterTableAnalysis extends AbstractDDLAnalysis {
 
     private final ReferenceInfos referenceInfos;
     private Settings settings;
     private TableInfo tableInfo;
+    private Optional<PartitionName> partitionName = Optional.absent();
     private SchemaInfo schemaInfo;
 
     public AlterTableAnalysis(Object[] parameters, ReferenceInfos referenceInfos) {
@@ -67,6 +72,14 @@ public class AlterTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public SchemaInfo schema() {
         return schemaInfo;
+    }
+
+    public void partitionName(@Nullable PartitionName partitionName) {
+        this.partitionName = Optional.fromNullable(partitionName);
+    }
+
+    public Optional<PartitionName> partitionName() {
+        return partitionName;
     }
 
     @Override

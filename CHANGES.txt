@@ -41,6 +41,8 @@ Changes for Crate Data
 2014/05/19 0.38.0
 =================
 
+ - implemented alter table to operate on single partitions
+
  - implemented object and array literals
 
  - changed refresh table for partitioned tables.

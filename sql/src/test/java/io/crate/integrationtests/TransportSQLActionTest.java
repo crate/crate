@@ -3725,6 +3725,43 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testAlterPartitionedTablePartition() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas=0)");
+        ensureGreen();
+        assertThat(response.rowCount(), is(1L));
+
+        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L,
+                        2, "Now panic", 1395961200000L}
+        );
+        assertThat(response.rowCount(), is(2L));
+        ensureGreen();
+        refresh();
+
+        execute("alter table quotes partition (date=1395874800000) set (number_of_replicas=1)");
+        ensureGreen();
+        List<String> partitions = ImmutableList.of(
+                new PartitionName("quotes", Arrays.asList("1395874800000")).stringValue(),
+                new PartitionName("quotes", Arrays.asList("1395961200000")).stringValue()
+        );
+
+        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
+                partitions.get(0), partitions.get(1)
+        ).execute().get();
+        assertThat(settingsResponse.getSetting(partitions.get(0), IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
+        assertThat(settingsResponse.getSetting(partitions.get(1), IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("0"));
+
+        String templateName = PartitionName.templateName("quotes");
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        Settings  templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+
+    }
+
+    @Test
     public void testSelectFormatFunction() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();

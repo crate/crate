@@ -796,6 +796,27 @@ In order to set a property to its default value use `reset`::
     cr> alter table my_table1 reset (number_of_replicas);
     ALTER OK (... sec)
 
+Altering a property of a partitioned table affects all partitions, even new ones.
+If only a single partition should be altered, the partition clause can be used.
+
+.. Hidden:: creating a partition to alter.
+
+    cr> insert into partitioned_table (id, title, date) values (1, 'The Hitchhikers Guide', '1970-01-01');
+    INSERT OK, 1 row affected (... sec)
+
+    cr> refresh table partitioned_table;
+    REFRESH OK (... sec)
+
+::
+
+    cr> alter table partitioned_table reset (number_of_replicas);
+    ALTER OK (... sec)
+
+.. Hidden:: delete the partition
+
+    cr> delete from partitioned_table;
+    DELETE OK, 0 rows affected (... sec)
+
 .. note::
 
     Any other table modifications are currently not possible.

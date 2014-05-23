@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Joiner;
+import io.crate.PartitionName;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -63,6 +64,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY.name())).thenReturn(userTableInfoRefreshIntervalByOnly);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -670,5 +673,42 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testCreateTableSameColumn() throws Exception {
         analyze("create table my_table (title string, title integer)");
     }
+
+    @Test
+    public void testAlterPartitionedTable() throws Exception {
+        AlterTableAnalysis analysis = (AlterTableAnalysis)analyze(
+                "alter table parted set (number_of_replicas='0-all')");
+        assertThat(analysis.partitionName().isPresent(), is(false));
+        assertThat(analysis.table().isPartitioned(), is(true));
+    }
+
+    @Test
+    public void testAlterPartitionedTablePartition() throws Exception {
+        AlterTableAnalysis analysis = (AlterTableAnalysis) analyze(
+                "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
+        assertThat(analysis.partitionName().isPresent(), is(true));
+        assertThat(analysis.partitionName().get(), is(new PartitionName("parted", Arrays.asList("1395874800000"))));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAlterPartitionedTableNonExistentPartition() throws Exception {
+        analyze("alter table parted partition (date='1970-01-01') set (number_of_replicas='0-all')");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAlterPartitionedTableInvalidPartitionColumns() throws Exception {
+        analyze("alter table parted partition (a=1) set (number_of_replicas='0-all')");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAlterPartitionedTableInvalidNumber() throws Exception {
+        analyze("alter table multi_parted partition (date=1395874800000) set (number_of_replicas='0-all')");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAlterTableWithPartitionClause() throws Exception {
+        analyze("alter table users partition (date='1970-01-01') reset (number_of_replicas)");
+    }
+
 
 }
