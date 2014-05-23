@@ -5,6 +5,7 @@ Changes for Crate Data
  - the ordering of null values can now be influenced using the ``NULLS { FIRST
    | LAST }`` keywords.
 
+2014/05/23 0.38.1
 2014/05/23 0.37.5
 =================
 
