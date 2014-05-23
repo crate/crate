@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,21 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.metadata;
 
-import io.crate.operation.collect.memory.HashMapTableProvider;
-import io.crate.operation.collect.memory.InMemoryCollectService;
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.operation.Input;
 
-public class CollectOperationModule extends AbstractModule {
+public abstract class InMemoryCollectorExpression<R, T> implements ReferenceImplementation, Input<T> {
+
+    protected final ReferenceInfo info;
+    protected R row;
+
+    public InMemoryCollectorExpression(ReferenceInfo info) {
+        this.info = info;
+    }
+
     @Override
-    protected void configure() {
-        bind(MapSideDataCollectOperation.class).asEagerSingleton();
-        bind(HandlerSideDataCollectOperation.class).asEagerSingleton();
-        bind(InformationSchemaCollectService.class).asEagerSingleton();
-        bind(UnassignedShardsCollectService.class).asEagerSingleton();
+    public ReferenceInfo info() {
+        return info;
+    }
 
-        bind(HashMapTableProvider.class).asEagerSingleton();
-        bind(InMemoryCollectService.class).asEagerSingleton();
+    @Override
+    public ReferenceImplementation getChildImplementation(String name) {
+        return null;
+    }
+
+    public void setNextRow(R row) {
+        this.row = row;
     }
 }

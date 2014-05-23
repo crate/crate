@@ -53,6 +53,7 @@ public class CollectNode extends AbstractDQLPlanNode {
     private RowGranularity maxRowgranularity = RowGranularity.CLUSTER;
     private List<String> downStreamNodes;
     private boolean isPartitioned = false;
+    private boolean isInMemory = false;
 
     public CollectNode(String id) {
         super(id);
@@ -128,6 +129,13 @@ public class CollectNode extends AbstractDQLPlanNode {
         return routing != null && routing.hasLocations();
     }
 
+    /**
+     * Whether collect operates on a partitioned table.
+     * Only used on {@link io.crate.operation.collect.HandlerSideDataCollectOperation},
+     * so no serialization is needed.
+     *
+     * @return
+     */
     public boolean isPartitioned() {
         return isPartitioned;
     }
@@ -154,6 +162,18 @@ public class CollectNode extends AbstractDQLPlanNode {
         this.jobId = Optional.fromNullable(jobId);
     }
 
+    /**
+     * Whether collect operates on an in-memory table.
+     *
+     * @param isInMemory
+     */
+    public void isInMemory(boolean isInMemory) {
+        this.isInMemory = isInMemory;
+    }
+
+    public boolean isInMemory() {
+        return isInMemory;
+    }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
@@ -191,6 +211,8 @@ public class CollectNode extends AbstractDQLPlanNode {
         if (in.readBoolean()) {
             jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
         }
+
+        isInMemory = in.readBoolean();
     }
 
     @Override
@@ -226,6 +248,8 @@ public class CollectNode extends AbstractDQLPlanNode {
             out.writeLong(jobId.get().getMostSignificantBits());
             out.writeLong(jobId.get().getLeastSignificantBits());
         }
+
+        out.writeBoolean(isInMemory);
     }
 
     /**

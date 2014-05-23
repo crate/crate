@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,21 +19,28 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.integrationtests;
 
-import io.crate.operation.collect.memory.HashMapTableProvider;
-import io.crate.operation.collect.memory.InMemoryCollectService;
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.test.integration.CrateIntegrationTest;
+import org.junit.Test;
 
-public class CollectOperationModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(MapSideDataCollectOperation.class).asEagerSingleton();
-        bind(HandlerSideDataCollectOperation.class).asEagerSingleton();
-        bind(InformationSchemaCollectService.class).asEagerSingleton();
-        bind(UnassignedShardsCollectService.class).asEagerSingleton();
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
-        bind(HashMapTableProvider.class).asEagerSingleton();
-        bind(InMemoryCollectService.class).asEagerSingleton();
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+public class SysJobsTest extends SQLTransportIntegrationTest {
+
+    @Test
+    public void testQueryAllColumns() throws Exception {
+        Long currentTime = System.currentTimeMillis();
+        String stmt = "select * from sys.jobs";
+        execute(stmt);
+
+        assertEquals(1L, response.rowCount());
+        assertNotNull(response.rows()[0][0]);
+        assertEquals(stmt, response.rows()[0][1]);
+        assertThat((Long)response.rows()[0][2], greaterThanOrEqualTo(currentTime));
     }
 }

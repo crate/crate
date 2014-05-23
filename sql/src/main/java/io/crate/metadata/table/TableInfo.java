@@ -94,6 +94,13 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
     public boolean isPartitioned();
 
     /**
+     * Whether the table is an in-memory table.
+     *
+     * @return
+     */
+    public boolean isInMemory();
+
+    /**
      * return a Dynamic Reference used when a column does not exist in the table mapping
      * but we need a reference
      *

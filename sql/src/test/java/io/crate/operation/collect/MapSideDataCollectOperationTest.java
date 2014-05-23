@@ -24,6 +24,8 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.metadata.*;
+import io.crate.operation.collect.memory.HashMapTableProvider;
+import io.crate.operation.collect.memory.InMemoryCollectService;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
@@ -82,7 +84,8 @@ public class MapSideDataCollectOperationTest {
                 functions,
                 referenceResolver,
                 indicesService,
-                new ThreadPool(ImmutableSettings.EMPTY, null)
+                new ThreadPool(ImmutableSettings.EMPTY, null),
+                new InMemoryCollectService(functions, new HashMapTableProvider())
         );
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");

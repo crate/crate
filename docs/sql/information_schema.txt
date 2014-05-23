@@ -35,10 +35,11 @@ settings like the number of shards or number of replicas::
     | information_schema | table_partitions  |                1 |                  0 | NULL         | NULL           |
     | information_schema | tables            |                1 |                  0 | NULL         | NULL           |
     | sys                | cluster           |                1 |                  0 | NULL         | NULL           |
+    | sys                | jobs              |                1 |                  0 | NULL         | NULL           |
     | sys                | nodes             |                1 |                  0 | NULL         | NULL           |
     | sys                | shards            |                1 |                  0 | NULL         | NULL           |
     +--------------------+-------------------+------------------+--------------------+--------------+----------------+
-    SELECT 13 rows in set (... sec)
+    SELECT 14 rows in set (... sec)
 
 
 Columns
@@ -119,6 +120,7 @@ their type, name and which table they are defined in.
     +--------------------+-------------------+--------------------------------------------------------+-----------------+
     | sys                | shards            | ["schema_name", "table_name", "id", "partition_ident"] | PRIMARY_KEY     |
     | sys                | nodes             | ["id"]                                                 | PRIMARY_KEY     |
+    | sys                | jobs              | ["id"]                                                 | PRIMARY_KEY     |
     | information_schema | tables            | ["schema_name", "table_name"]                          | PRIMARY_KEY     |
     | information_schema | columns           | ["schema_name", "table_name", "column_name"]           | PRIMARY_KEY     |
     | doc                | quotes            | ["id"]                                                 | PRIMARY_KEY     |
@@ -127,7 +129,7 @@ their type, name and which table they are defined in.
     | doc                | documents         | ["_id"]                                                | PRIMARY_KEY     |
     | blob               | myblobs           | ["digest"]                                             | PRIMARY_KEY     |
     +--------------------+-------------------+--------------------------------------------------------+-----------------+
-    SELECT 9 rows in set (... sec)
+    SELECT 10 rows in set (... sec)
 
 
 .. _is_table_partitions:
