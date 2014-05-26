@@ -7,6 +7,8 @@ Unreleased
 
  - improved error messages
 
+ - arithmetic operators now also work with timestamps
+
  - added arithmetic operators
 
  - implemented partition support for ``copy`` statements

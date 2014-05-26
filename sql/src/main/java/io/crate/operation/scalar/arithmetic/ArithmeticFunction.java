@@ -22,6 +22,7 @@
 package io.crate.operation.scalar.arithmetic;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -33,6 +34,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -40,6 +42,9 @@ abstract class ArithmeticFunction implements Scalar<Number, Number> {
 
     private final static Set<DataType> NUMERIC_WITH_DECIMAL =
             Sets.<DataType>newHashSet(DataTypes.FLOAT, DataTypes.DOUBLE);
+    private final static Set<DataType> ALLOWED_TYPES = Sets.<DataType>newHashSet(
+            Iterables.<DataType>concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))
+    );
 
     protected final FunctionInfo info;
 
@@ -77,8 +82,8 @@ abstract class ArithmeticFunction implements Scalar<Number, Number> {
         Preconditions.checkArgument(dataTypes.size() == 2);
         DataType leftType = dataTypes.get(0);
         DataType rightType = dataTypes.get(1);
-        Preconditions.checkArgument(DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(leftType));
-        Preconditions.checkArgument(DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(rightType));
+        Preconditions.checkArgument(ALLOWED_TYPES.contains(leftType));
+        Preconditions.checkArgument(ALLOWED_TYPES.contains(rightType));
     }
 
     protected static boolean containsTypesWithDecimal(List<DataType> dataTypes) {
