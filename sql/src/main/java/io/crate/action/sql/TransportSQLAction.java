@@ -21,6 +21,7 @@
 
 package io.crate.action.sql;
 
+import com.google.common.base.Objects;
 import com.google.common.util.concurrent.*;
 import io.crate.Constants;
 import io.crate.types.DataType;
@@ -210,8 +211,11 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
      * @return
      */
     public Throwable esToCrateException(Throwable e) {
-        if (e instanceof RemoteTransportException || e instanceof UncheckedExecutionException || e instanceof UncategorizedExecutionException) {
-            // if its a transport exception get the real cause throwable
+        // unwrap exceptions
+        if (e instanceof RemoteTransportException) {
+            e = e.getCause();
+        }
+        if (e instanceof UncheckedExecutionException || e instanceof UncategorizedExecutionException) {
             e = e.getCause();
         }
         if (e instanceof ExecutionException) {
@@ -291,6 +295,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             restStatus = RestStatus.BAD_REQUEST;
         }
 
+        if (logger.isTraceEnabled()) {
+            message = Objects.firstNonNull(message, stackTrace.toString());
+        }
         return new SQLActionException(message, errorCode, restStatus, stackTrace.toString());
     }
 

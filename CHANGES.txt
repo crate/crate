@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - improved error messages
+
  - added arithmetic operators
 
  - implemented partition support for ``copy`` statements
