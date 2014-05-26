@@ -403,7 +403,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(64L, response.rowCount());
+        assertEquals(67L, response.rowCount());
     }
 
     @Test

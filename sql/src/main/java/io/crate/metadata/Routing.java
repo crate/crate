@@ -15,8 +15,6 @@ import java.util.Set;
 
 public class Routing implements Streamable {
 
-    private TableIdent tableIdent;
-
     private Map<String, Map<String, Set<Integer>>> locations;
 
     public Routing() {
@@ -33,19 +31,6 @@ public class Routing implements Streamable {
 
     public boolean hasLocations() {
         return locations != null && locations().size() > 0;
-    }
-
-    public void tableIdent(TableIdent tableIdent) {
-        this.tableIdent = tableIdent;
-    }
-
-    /**
-     * the tableIdent can be used as alternative to the index/tableNames inside {@link #locations()}
-     * in order to figure out what data is being queried.
-     */
-    @Nullable
-    public TableIdent tableIdent() {
-        return tableIdent;
     }
 
     public Set<String> nodes() {
@@ -74,23 +59,19 @@ public class Routing implements Streamable {
     }
 
     /**
-     * return the number of shards of index <code>index</code> on node <code>nodeId</code>
-     * @param nodeId the id of the node in question
-     * @param index the name of the index to count shards from
-     * @return int >= 0
+     * returns true if the routing contains shards for any table of the given node
      */
-    public int numShards(String nodeId, String index) {
-        int count = 0;
-        if (hasLocations()) {
-            Map<String, Set<Integer>> nodeRouting = locations.get(nodeId);
-            if (nodeRouting != null) {
-                Set<Integer> shardIds = nodeRouting.get(index);
-                if (shardIds != null) {
-                    count = shardIds.size();
-                }
+    public boolean containsShards(String nodeId) {
+        if (!hasLocations()) return false;
+        Map<String, Set<Integer>> nodeRouting = locations.get(nodeId);
+        if (nodeRouting == null) return false;
+
+        for (Map.Entry<String, Set<Integer>> tableEntry : nodeRouting.entrySet()) {
+            if (tableEntry.getValue() != null && !tableEntry.getValue().isEmpty()) {
+                return true;
             }
         }
-        return count;
+        return false;
     }
 
     @Override
@@ -130,10 +111,6 @@ public class Routing implements Streamable {
                 }
             }
         }
-        if (in.readBoolean()) {
-            tableIdent = new TableIdent();
-            tableIdent.readFrom(in);
-        }
     }
 
     @Override
@@ -165,12 +142,6 @@ public class Routing implements Streamable {
             }
         } else {
             out.writeVInt(0);
-        }
-        if (tableIdent != null) {
-            out.writeBoolean(true);
-            tableIdent.writeTo(out);
-        } else {
-            out.writeBoolean(false);
         }
     }
 }

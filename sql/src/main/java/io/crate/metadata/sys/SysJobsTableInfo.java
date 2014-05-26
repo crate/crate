@@ -31,6 +31,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.*;
@@ -93,12 +94,13 @@ public class SysJobsTableInfo extends SysTableInfo {
         ImmutableMap.Builder<String, Map<String, Set<Integer>>> builder = ImmutableMap.builder();
 
         for (DiscoveryNode node : nodes) {
-            builder.put(node.id(), ImmutableMap.<String, Set<Integer>>of());
+            builder.put(
+                    node.id(),
+                    MapBuilder.<String, Set<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()
+            );
         }
 
-        Routing routing = new Routing(builder.build());
-        routing.tableIdent(ident());
-        return routing;
+        return new Routing(builder.build());
     }
 
     @Override
@@ -109,11 +111,6 @@ public class SysJobsTableInfo extends SysTableInfo {
     @Override
     public String[] concreteIndices() {
         return PARTITIONS;
-    }
-
-    @Override
-    public boolean isInMemory() {
-        return true;
     }
 
     @Override

@@ -69,11 +69,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
 
     @Override
     public ListenableFuture<Object[][]> collect(CollectNode collectNode) {
-        if (collectNode.isRouted()) {
-            // unassigned shards
-            assert collectNode.routing().locations().containsKey(null)
-                && collectNode.maxRowGranularity() == RowGranularity.SHARD;
-        } else if (collectNode.isPartitioned()) {
+        if (collectNode.isPartitioned()) {
             // edge case: partitioned table without actual indices
             // no results
             return Futures.immediateFuture(Constants.EMPTY_RESULT);
