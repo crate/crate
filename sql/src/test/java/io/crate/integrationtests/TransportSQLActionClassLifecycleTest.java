@@ -21,12 +21,16 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.TransportSQLAction;
+import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.logging.Loggers;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -50,6 +54,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+        Loggers.getLogger(TransportSQLAction.class).setLevel("TRACE");
     }
 
     @Rule
@@ -584,5 +589,32 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         response = executor.exec("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
         assertEquals(response.rows()[0][0], (Double)response.rows()[0][1] + (Double)response.rows()[0][2]);
+    }
+
+    @Test
+    public void testJobLog() throws Exception {
+        executor.exec("select name from sys.cluster");
+        SQLResponse response= executor.exec("select * from sys.jobs_log");
+        assertThat(response.rowCount(), is(0L)); // default length is zero
+
+        executor.client().admin().cluster().prepareUpdateSettings().setTransientSettings(
+                         ImmutableMap.of(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 1)
+                 ).get();
+
+        executor.exec("select id from sys.cluster");
+        executor.exec("select id from sys.cluster");
+        executor.exec("select id from sys.cluster");
+        response= executor.exec("select stmt from sys.jobs_log order by ended desc");
+
+        // there are 2 nodes so depending on whether both nodes were hit this should be either 1 or 2
+        // but never 3 because the queue size is only 1
+        assertThat(response.rowCount(), Matchers.lessThanOrEqualTo(2L));
+        assertThat((String)response.rows()[0][0], is("select id from sys.cluster"));
+
+        executor.client().admin().cluster().prepareUpdateSettings().setTransientSettings(
+                ImmutableMap.of(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0)
+        ).get();
+        response= executor.exec("select * from sys.jobs_log");
+        assertThat(response.rowCount(), is(0L));
     }
 }

@@ -21,24 +21,72 @@
 
 package io.crate.operation.collect;
 
+import io.crate.core.collections.NonBlockingArrayQueue;
+import io.crate.core.collections.NoopQueue;
+import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.job.JobContext;
+import io.crate.operation.reference.sys.job.JobContextLog;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.settings.NodeSettingsService;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * In memory tables that are globally available on each node and contain meta data of the cluster
+ * Stats tables that are globally available on each node and contain meta data of the cluster
  * like active jobs
  *
  * injected via guice instead of using static so that if two nodes run
- * in the same jvm the memoryTables aren't shared between the ndoes.
+ * in the same jvm the memoryTables aren't shared between the nodes.
  */
 public class StatsTables {
 
     public final Map<UUID, JobContext> jobsTable;
+    private AtomicReference<BlockingQueue<JobContextLog>> jobsLog;
+    private AtomicReference<Integer> lastLogSize;
 
-    public StatsTables() {
+    @Inject
+    public StatsTables(Settings settings, NodeSettingsService nodeSettingsService) {
         jobsTable = new ConcurrentHashMap<>();
+        lastLogSize = new AtomicReference<>(
+                settings.getAsInt(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0));
+
+        int logSize = lastLogSize.get();
+        if (logSize == 0) {
+            jobsLog = new AtomicReference<>((BlockingQueue<JobContextLog>)new NoopQueue<JobContextLog>());
+        } else {
+            jobsLog = new AtomicReference<>((BlockingQueue<JobContextLog>)new NonBlockingArrayQueue<JobContextLog>(logSize));
+        }
+        nodeSettingsService.addListener(new NodeSettingsService.Listener() {
+            @Override
+            public void onRefreshSettings(Settings settings) {
+                int newLogSize = settings.getAsInt(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0);
+                if (newLogSize != lastLogSize.get()) {
+                    lastLogSize.set(newLogSize);
+                    if (newLogSize == 0) {
+                        jobsLog.set(new NoopQueue<JobContextLog>());
+                    } else {
+                        jobsLog.set(new NonBlockingArrayQueue<JobContextLog>(newLogSize));
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * returns a queue that implements the BlockingQueue interface which contains the current
+     * JobContext log
+     *
+     * NOTE: The queue isn't actually a blocking queue but instead the implementation makes sure that
+     * offer() never blocks.
+     *
+     * This is done because there is no Unblocking/Bounding queue available in java.
+     */
+    public BlockingQueue<JobContextLog> jobsLog() {
+        return jobsLog.get();
     }
 }

@@ -68,6 +68,7 @@ import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.index.shard.service.InternalIndexShard;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
@@ -283,13 +284,18 @@ public class LocalDataCollectTest {
         when(discoveryNode.id()).thenReturn("dummyNodeId");
         when(discoveryService.localNode()).thenReturn(discoveryNode);
 
+        NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
+
         Provider<Client> clientProvider = injector.getProvider(Client.class);
         operation = new MapSideDataCollectOperation(
                 clientProvider,
                 injector.getInstance(ClusterService.class),
                 functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool,
                 new CollectServiceResolver(discoveryService,
-                    new SystemCollectService(discoveryService, functions, new StatsTables())
+                    new SystemCollectService(
+                            discoveryService,
+                            functions,
+                            new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService))
                 )
         );
     }

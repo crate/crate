@@ -41,6 +41,9 @@ public class RowContextDocLevelReferenceResolver implements DocLevelReferenceRes
         for (RowContextCollectorExpression<?, ?> implementation : SysJobExpression.IMPLEMENTATIONS) {
             implementations.put(implementation.info().ident(), implementation);
         }
+        for (SysJobLogExpression<?> implementation : SysJobLogExpression.IMPLEMENTATIONS) {
+            implementations.put(implementation.info().ident(), implementation);
+        }
     }
 
     /**

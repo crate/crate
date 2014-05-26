@@ -34,29 +34,29 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
-public class SysJobsTableInfo extends SysTableInfo {
+public class SysJobsLogTableInfo extends SysTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(SCHEMA, "jobs");
-    private static final String[] PARTITIONS = new String[]{IDENT.name()};
-
-    private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(new ColumnIdent("id"));
-
+    public static final TableIdent IDENT = new TableIdent(SCHEMA, "jobs_log");
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
+    private static final List<ColumnIdent> primaryKeys = ImmutableList.of(new ColumnIdent("id"));
+    private ClusterService clusterService;
+
 
     static {
         register("id", DataTypes.STRING, null);
         register("stmt", DataTypes.STRING, null);
         register("started", DataTypes.TIMESTAMP, null);
+        register("ended", DataTypes.TIMESTAMP, null);
+        register("error", DataTypes.STRING, null);
     }
 
-    private final ClusterService clusterService;
-
     @Inject
-    public SysJobsTableInfo(ClusterService service) {
-        clusterService = service;
+    public SysJobsLogTableInfo(ClusterService clusterService) {
+        this.clusterService = clusterService;
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {
@@ -68,6 +68,8 @@ public class SysJobsTableInfo extends SysTableInfo {
         return info;
     }
 
+
+    @Nullable
     @Override
     public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
         return INFOS.get(columnIdent);
@@ -105,12 +107,12 @@ public class SysJobsTableInfo extends SysTableInfo {
 
     @Override
     public List<ColumnIdent> primaryKey() {
-        return primaryKey;
+        return primaryKeys;
     }
 
     @Override
     public String[] concreteIndices() {
-        return PARTITIONS;
+        return new String[0];
     }
 
     @Override

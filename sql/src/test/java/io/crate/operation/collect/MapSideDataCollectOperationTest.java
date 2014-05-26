@@ -36,6 +36,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
@@ -79,6 +80,8 @@ public class MapSideDataCollectOperationTest {
                 return mock(Client.class);
             }
         };
+
+        NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
                 clientProvider,
                 clusterService,
@@ -87,7 +90,11 @@ public class MapSideDataCollectOperationTest {
                 indicesService,
                 new ThreadPool(ImmutableSettings.EMPTY, null),
                 new CollectServiceResolver(discoveryService,
-                    new SystemCollectService(discoveryService, functions, new StatsTables())
+                    new SystemCollectService(
+                            discoveryService,
+                            functions,
+                            new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService)
+                    )
                 )
         );
 
