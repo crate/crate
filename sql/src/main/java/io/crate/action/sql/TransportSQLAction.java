@@ -31,7 +31,7 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.exceptions.*;
 import io.crate.executor.*;
-import io.crate.operation.collect.memory.HashMapTableProvider;
+import io.crate.operation.collect.memory.StatsTables;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
@@ -62,8 +62,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
@@ -72,7 +70,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final Planner planner;
     private final Executor executor;
     private final DDLAnalysisDispatcher dispatcher;
-    private final ConcurrentHashMap<UUID, JobContext> jobsTable;
+    private final StatsTables statsTables;
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
@@ -81,13 +79,13 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             Executor executor,
             DDLAnalysisDispatcher dispatcher,
             TransportService transportService,
-            HashMapTableProvider hashMapTableProvider) {
+            StatsTables statsTables) {
         super(settings, threadPool);
         this.analyzer = analyzer;
         this.planner = planner;
         this.executor = executor;
         this.dispatcher = dispatcher;
-        jobsTable = hashMapTableProvider.get("jobs", true);
+        this.statsTables = statsTables;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
     }
 
@@ -154,7 +152,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             addResultCallback(request, listener, outputNames, plan, responseBuilder, null, zeroAffectedRows);
         } else {
             final Job job = executor.newJob(plan);
-            jobsTable.put(job.id(), new JobContext(job.id(), request.stmt(), System.currentTimeMillis()));
+            statsTables.jobsTable.put(
+                    job.id(), new JobContext(job.id(), request.stmt(), System.currentTimeMillis()));
             final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(executor.execute(job));
             addResultCallback(request, listener, outputNames, plan, responseBuilder, job, resultFuture);
         }
@@ -206,7 +205,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                         request.includeTypesOnResponse());
 
                 if (job != null) {
-                    jobsTable.remove(job.id());
+                    statsTables.jobsTable.remove(job.id());
                 }
                 listener.onResponse(response);
             }
@@ -215,7 +214,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             public void onFailure(Throwable t) {
                 logger.debug("Error processing SQLRequest", t);
                 if (job != null) {
-                    jobsTable.remove(job.id());
+                    statsTables.jobsTable.remove(job.id());
                 }
                 listener.onFailure(buildSQLActionException(t));
             }

@@ -21,32 +21,24 @@
 
 package io.crate.operation.collect.memory;
 
-import java.util.HashMap;
+import io.crate.operation.reference.sys.job.JobContext;
+
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class HashMapTableProvider {
+/**
+ * In memory tables that are globally available on each node and contain meta data of the cluster
+ * like active jobs
+ *
+ * injected via guice instead of using static so that if two nodes run
+ * in the same jvm the memoryTables aren't shared between the ndoes.
+ */
+public class StatsTables {
 
-    private final Map<String, ConcurrentHashMap> tables;
+    public final Map<UUID, JobContext> jobsTable;
 
-    public HashMapTableProvider() {
-        tables = new HashMap<>();
-    }
-
-    public <T> void create(String name) {
-        ConcurrentHashMap<String, T> table = new ConcurrentHashMap<>();
-        tables.put(name, table);
-    }
-
-    public <T> ConcurrentHashMap<UUID, T> get(String name) {
-        return get(name, false);
-    }
-
-    public <T> ConcurrentHashMap<UUID, T> get(String name, boolean create) {
-        if (create && !tables.containsKey(name)) {
-            create(name);
-        }
-        return tables.get(name);
+    public StatsTables() {
+        jobsTable = new ConcurrentHashMap<>();
     }
 }
