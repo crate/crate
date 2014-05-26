@@ -58,6 +58,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.settings.IndexSettings;
@@ -135,6 +136,10 @@ public class DistributingCollectTest {
             when(nodes.iterator()).thenReturn(nodeMap.valuesIt());
             when(state.nodes()).thenReturn(nodes);
             when(clusterService.state()).thenReturn(state);
+
+            DiscoveryService discoveryService = mock(DiscoveryService.class);
+            when(discoveryService.localNode()).thenReturn(testNode);
+            bind(DiscoveryService.class).toInstance(discoveryService);
 
             bind(SQLXContentQueryParser.class).toInstance(mock(SQLXContentQueryParser.class));
 

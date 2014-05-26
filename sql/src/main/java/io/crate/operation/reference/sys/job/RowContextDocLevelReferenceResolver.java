@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.sys.job;
 
-import io.crate.metadata.InMemoryCollectorExpression;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
@@ -31,14 +31,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Singleton
-public class InMemoryDocLevelReferenceResolver implements DocLevelReferenceResolver<InMemoryCollectorExpression<?, ?>> {
+public class RowContextDocLevelReferenceResolver implements DocLevelReferenceResolver<RowContextCollectorExpression<?, ?>> {
 
-    public static final InMemoryDocLevelReferenceResolver INSTANCE = new InMemoryDocLevelReferenceResolver();
+    public static final RowContextDocLevelReferenceResolver INSTANCE = new RowContextDocLevelReferenceResolver();
 
-    private static final Map<ReferenceIdent, InMemoryCollectorExpression<?, ?>> implementations = new HashMap<>();
+    private static final Map<ReferenceIdent, RowContextCollectorExpression<?, ?>> implementations = new HashMap<>();
 
     static {
-        for (InMemoryCollectorExpression<?, ?> implementation : SysJobExpression.IMPLEMENTATIONS) {
+        for (RowContextCollectorExpression<?, ?> implementation : SysJobExpression.IMPLEMENTATIONS) {
             implementations.put(implementation.info().ident(), implementation);
         }
     }
@@ -46,12 +46,12 @@ public class InMemoryDocLevelReferenceResolver implements DocLevelReferenceResol
     /**
      * This is a singleton Use the static INSTANCE attribute
      */
-    private InMemoryDocLevelReferenceResolver() {
+    private RowContextDocLevelReferenceResolver() {
 
     }
 
     @Override
-    public InMemoryCollectorExpression<?, ?> getImplementation(ReferenceInfo info) {
+    public RowContextCollectorExpression<?, ?> getImplementation(ReferenceInfo info) {
         return implementations.get(info.ident());
     }
 

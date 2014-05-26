@@ -30,9 +30,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class InformationTableInfo extends AbstractTableInfo {
 
@@ -73,7 +71,7 @@ public class InformationTableInfo extends AbstractTableInfo {
 
     }
 
-    private final HandlerSideRouting routing;
+    private final Routing routing;
     private final TableIdent ident;
     private final ImmutableList<ColumnIdent> primaryKey;
 
@@ -89,7 +87,11 @@ public class InformationTableInfo extends AbstractTableInfo {
         this.columns = columns;
         this.references = references;
         this.primaryKey = primaryKey;
-        this.routing = new HandlerSideRouting(ident);
+        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(1);
+        Map<String, Set<Integer>> tableLocation = new HashMap<>(1);
+        tableLocation.put(ident.fqn(), null);
+        locations.put(null, tableLocation);
+        this.routing = new Routing(locations);
     }
 
     @Nullable
@@ -109,7 +111,7 @@ public class InformationTableInfo extends AbstractTableInfo {
     }
 
     @Override
-    public HandlerSideRouting getRouting(WhereClause whereClause) {
+    public Routing getRouting(WhereClause whereClause) {
         return routing;
     }
 

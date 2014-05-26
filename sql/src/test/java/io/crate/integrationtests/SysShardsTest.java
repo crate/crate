@@ -228,6 +228,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         transportExecutor.exec("select max(num_docs) from sys.shards group by lol");
     }
 
+    @Test
     public void testGroupByUnknownOrderBy() throws Exception {
         expectedException.expect(SQLActionException.class);
         transportExecutor.exec(

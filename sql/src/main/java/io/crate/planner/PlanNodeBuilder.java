@@ -113,7 +113,6 @@ class PlanNodeBuilder {
         node.maxRowGranularity(analysis.rowGranularity());
         node.projections(projections);
         node.isPartitioned(analysis.table().isPartitioned());
-        node.isInMemory(analysis.table().isInMemory());
         setOutputTypes(node);
         return node;
     }

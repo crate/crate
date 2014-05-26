@@ -30,7 +30,6 @@ import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.collect.memory.InMemoryCollectService;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.client.Client;
@@ -177,8 +176,8 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                                         ThreadPool threadPool,
                                         TransportService transportService,
                                         PlanNodeStreamerVisitor streamerVisitor,
-                                        InMemoryCollectService inMemoryCollectService) {
-        super(clientProvider, clusterService, functions, referenceResolver, indicesService, threadPool, inMemoryCollectService);
+                                        CollectServiceResolver collectServiceResolver) {
+        super(clientProvider, clusterService, functions, referenceResolver, indicesService, threadPool, collectServiceResolver);
         this.transportService = transportService;
         this.streamerVisitor = streamerVisitor;
     }

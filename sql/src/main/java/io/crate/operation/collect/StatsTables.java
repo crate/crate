@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect.memory;
+package io.crate.operation.collect;
 
 import io.crate.operation.reference.sys.job.JobContext;
 
