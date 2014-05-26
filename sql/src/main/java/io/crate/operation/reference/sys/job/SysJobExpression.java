@@ -39,7 +39,7 @@ public abstract class SysJobExpression<T>
             .add(new SysJobExpression<BytesRef>(ID) {
                 @Override
                 public BytesRef value() {
-                    return new BytesRef(row.id);
+                    return new BytesRef(row.id.toString());
                 }
             })
             .add(new SysJobExpression<BytesRef>(STMT) {
