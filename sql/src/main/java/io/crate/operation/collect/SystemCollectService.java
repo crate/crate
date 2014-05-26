@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.sys.SysJobsLogTableInfo;
 import io.crate.metadata.sys.SysJobsTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
@@ -44,16 +45,50 @@ import java.util.Set;
 public class SystemCollectService implements CollectService {
 
     private final CollectInputSymbolVisitor<RowContextCollectorExpression<?, ?>> docInputSymbolVisitor;
-    private final ImmutableMap<String, Collection<?>> iterables;
+    private final ImmutableMap<String, CollectionGetter> collectionGetters;
     private final DiscoveryService discoveryService;
+
+    private interface CollectionGetter {
+        public Collection<?> getCollection();
+    }
+
+    private static class JobsLogCollectionGetter implements CollectionGetter {
+
+        private final StatsTables statsTables;
+
+        public JobsLogCollectionGetter(StatsTables statsTables) {
+            this.statsTables = statsTables;
+        }
+
+        @Override
+        public Collection<?> getCollection() {
+            return statsTables.jobsLog();
+        }
+    }
+
+    private static class JobsCollectionGetter implements CollectionGetter {
+
+        private final StatsTables statsTables;
+
+        public JobsCollectionGetter(StatsTables statsTables) {
+            this.statsTables = statsTables;
+        }
+
+        @Override
+        public Collection<?> getCollection() {
+            return statsTables.jobsTable.values();
+        }
+    }
 
     @Inject
     public SystemCollectService(DiscoveryService discoveryService, Functions functions, StatsTables statsTables) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
                 RowContextDocLevelReferenceResolver.INSTANCE);
 
-        iterables = ImmutableMap.<String, Collection<?>>of(
-                SysJobsTableInfo.IDENT.fqn(), statsTables.jobsTable.values());
+        collectionGetters = ImmutableMap.<String, CollectionGetter>of(
+                SysJobsTableInfo.IDENT.fqn(), new JobsCollectionGetter(statsTables),
+                SysJobsLogTableInfo.IDENT.fqn(), new JobsLogCollectionGetter(statsTables)
+        );
         this.discoveryService = discoveryService;
     }
 
@@ -64,8 +99,8 @@ public class SystemCollectService implements CollectService {
         }
         Set<String> tables = collectNode.routing().locations().get(discoveryService.localNode().id()).keySet();
         assert tables.size() == 1;
-        Iterable<?> iterator = iterables.get(tables.iterator().next());
-        assert iterator != null;
+        CollectionGetter collectionGetter = collectionGetters.get(tables.iterator().next());
+        assert collectionGetter != null;
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
 
         Input<Boolean> condition;
@@ -77,7 +112,7 @@ public class SystemCollectService implements CollectService {
         }
 
         return new SystemTableCollector(
-                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterator, condition);
+                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, collectionGetter.getCollection(), condition);
     }
 
     static class SystemTableCollector<R> implements CrateCollector {

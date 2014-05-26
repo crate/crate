@@ -22,6 +22,8 @@
 package io.crate.operation.collect;
 
 import io.crate.metadata.Routing;
+import io.crate.metadata.sys.SysJobsLogTableInfo;
+import io.crate.metadata.sys.SysJobsTableInfo;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
@@ -38,7 +40,8 @@ public class CollectServiceResolver {
     public CollectServiceResolver(DiscoveryService discoveryService,
                                   SystemCollectService systemCollectService) {
         this.discoveryService = discoveryService;
-        services.put("sys.jobs", systemCollectService);
+        services.put(SysJobsTableInfo.IDENT.fqn(), systemCollectService);
+        services.put(SysJobsLogTableInfo.IDENT.fqn(), systemCollectService);
     }
 
     public CollectService getService(Routing routing) {
