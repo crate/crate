@@ -39,6 +39,11 @@ public class Routing implements Streamable {
         this.tableIdent = tableIdent;
     }
 
+    /**
+     * the tableIdent can be used as alternative to the index/tableNames inside {@link #locations()}
+     * in order to figure out what data is being queried.
+     */
+    @Nullable
     public TableIdent tableIdent() {
         return tableIdent;
     }

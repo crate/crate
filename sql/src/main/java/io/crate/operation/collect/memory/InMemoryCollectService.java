@@ -24,40 +24,34 @@ package io.crate.operation.collect.memory;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Functions;
 import io.crate.metadata.InMemoryCollectorExpression;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.sys.SysJobsTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.CollectService;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.sys.job.InMemoryDocLevelReferenceResolver;
-import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.common.inject.Inject;
 
+import java.util.Collection;
 import java.util.List;
 
 public class InMemoryCollectService implements CollectService {
 
     private final CollectInputSymbolVisitor<InMemoryCollectorExpression<?, ?>> docInputSymbolVisitor;
-    private final ImmutableMap<String, Iterable<?>> iterables;
-    private final HashMapTableProvider tableProvider;
-
-    private final Iterable<JobContext> jobsIterable;
+    private final ImmutableMap<TableIdent, Collection<?>> iterables;
 
     @Inject
-    public InMemoryCollectService(Functions functions, HashMapTableProvider tableProvider) {
+    public InMemoryCollectService(Functions functions, StatsTables statsTables) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
                 InMemoryDocLevelReferenceResolver.INSTANCE);
-        this.tableProvider = tableProvider;
 
-        jobsIterable = this.tableProvider.<JobContext>get("jobs", true).values();
-
-        iterables = ImmutableMap.<String, Iterable<?>>of(
-                "jobs", jobsIterable
-        );
-
+        iterables = ImmutableMap.<TableIdent, Collection<?>>of(
+                SysJobsTableInfo.IDENT, statsTables.jobsTable.values());
     }
 
     @Override
@@ -66,7 +60,7 @@ public class InMemoryCollectService implements CollectService {
         if (collectNode.whereClause().noMatch()) {
             return CrateCollector.NOOP;
         }
-        Iterable<?> iterator = iterables.get(collectNode.routing().tableIdent().name());
+        Iterable<?> iterator = iterables.get(collectNode.routing().tableIdent());
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
 
         Input<Boolean> condition;
