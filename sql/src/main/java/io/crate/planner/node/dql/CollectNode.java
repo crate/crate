@@ -165,7 +165,6 @@ public class CollectNode extends AbstractDQLPlanNode {
     /**
      * Whether collect operates on an in-memory table.
      *
-     * @param isInMemory
      */
     public void isInMemory(boolean isInMemory) {
         this.isInMemory = isInMemory;
