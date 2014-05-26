@@ -21,12 +21,14 @@
 
 package io.crate.operation.reference.sys.job;
 
-public class JobContext {
-    public String id;
-    public String stmt;
-    public Long started;
+import java.util.UUID;
 
-    public JobContext(String id, String stmt, Long started) {
+public class JobContext {
+    public UUID id;
+    public String stmt;
+    public long started;
+
+    public JobContext(UUID id, String stmt, long started) {
         this.id = id;
         this.stmt = stmt;
         this.started = started;
