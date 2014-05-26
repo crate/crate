@@ -23,6 +23,7 @@ package io.crate.operation.collect.memory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class HashMapTableProvider {
@@ -38,15 +39,14 @@ public class HashMapTableProvider {
         tables.put(name, table);
     }
 
-    public <T> ConcurrentHashMap<String, T> get(String name) {
+    public <T> ConcurrentHashMap<UUID, T> get(String name) {
         return get(name, false);
     }
 
-    public <T> ConcurrentHashMap<String, T> get(String name, boolean create) {
+    public <T> ConcurrentHashMap<UUID, T> get(String name, boolean create) {
         if (create && !tables.containsKey(name)) {
             create(name);
         }
         return tables.get(name);
     }
-
 }
