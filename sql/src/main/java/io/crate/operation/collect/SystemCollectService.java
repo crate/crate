@@ -19,48 +19,53 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect.memory;
+package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Functions;
-import io.crate.metadata.InMemoryCollectorExpression;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.sys.SysJobsTableInfo;
 import io.crate.operation.Input;
-import io.crate.operation.collect.CollectInputSymbolVisitor;
-import io.crate.operation.collect.CollectService;
-import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.Projector;
-import io.crate.operation.reference.sys.job.InMemoryDocLevelReferenceResolver;
+import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.discovery.DiscoveryService;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
-public class InMemoryCollectService implements CollectService {
+/**
+ * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
+ */
+public class SystemCollectService implements CollectService {
 
-    private final CollectInputSymbolVisitor<InMemoryCollectorExpression<?, ?>> docInputSymbolVisitor;
-    private final ImmutableMap<TableIdent, Collection<?>> iterables;
+    private final CollectInputSymbolVisitor<RowContextCollectorExpression<?, ?>> docInputSymbolVisitor;
+    private final ImmutableMap<String, Collection<?>> iterables;
+    private final DiscoveryService discoveryService;
 
     @Inject
-    public InMemoryCollectService(Functions functions, StatsTables statsTables) {
+    public SystemCollectService(DiscoveryService discoveryService, Functions functions, StatsTables statsTables) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
-                InMemoryDocLevelReferenceResolver.INSTANCE);
+                RowContextDocLevelReferenceResolver.INSTANCE);
 
-        iterables = ImmutableMap.<TableIdent, Collection<?>>of(
-                SysJobsTableInfo.IDENT, statsTables.jobsTable.values());
+        iterables = ImmutableMap.<String, Collection<?>>of(
+                SysJobsTableInfo.IDENT.fqn(), statsTables.jobsTable.values());
+        this.discoveryService = discoveryService;
     }
 
     @Override
     public CrateCollector getCollector(CollectNode collectNode, Projector downstream) {
-        assert collectNode.routing().tableIdent() != null;
         if (collectNode.whereClause().noMatch()) {
             return CrateCollector.NOOP;
         }
-        Iterable<?> iterator = iterables.get(collectNode.routing().tableIdent());
+        Set<String> tables = collectNode.routing().locations().get(discoveryService.localNode().id()).keySet();
+        assert tables.size() == 1;
+        Iterable<?> iterator = iterables.get(tables.iterator().next());
+        assert iterator != null;
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
 
         Input<Boolean> condition;
@@ -71,23 +76,23 @@ public class InMemoryCollectService implements CollectService {
             condition = Literal.newLiteral(true);
         }
 
-        return new InMemoryCollector(
+        return new SystemTableCollector(
                 ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterator, condition);
     }
 
-    static class InMemoryCollector<R> implements CrateCollector {
+    static class SystemTableCollector<R> implements CrateCollector {
 
         private final List<Input<?>> inputs;
-        private final List<InMemoryCollectorExpression<R, ?>> collectorExpressions;
+        private final List<RowContextCollectorExpression<R, ?>> collectorExpressions;
         private Projector downstream;
         private final Iterable<R> rows;
         private final Input<Boolean> condition;
 
-        protected InMemoryCollector(List<Input<?>> inputs,
-                                             List<InMemoryCollectorExpression<R, ?>> collectorExpressions,
-                                             Projector downstream,
-                                             Iterable<R> rows,
-                                             Input<Boolean> condition) {
+        protected SystemTableCollector(List<Input<?>> inputs,
+                                       List<RowContextCollectorExpression<R, ?>> collectorExpressions,
+                                       Projector downstream,
+                                       Iterable<R> rows,
+                                       Input<Boolean> condition) {
             this.inputs = inputs;
             this.collectorExpressions = collectorExpressions;
             this.rows = rows;
@@ -99,7 +104,7 @@ public class InMemoryCollectService implements CollectService {
         @Override
         public void doCollect() throws Exception {
             for (R row : rows) {
-                for (InMemoryCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
+                for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
                 }
                 Boolean match = condition.value();

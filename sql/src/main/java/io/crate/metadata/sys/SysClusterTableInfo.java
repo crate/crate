@@ -27,13 +27,19 @@ import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.collect.MapBuilder;
 
 import java.util.*;
 
 public class SysClusterTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "cluster");
-    private static final HandlerSideRouting ROUTING = new HandlerSideRouting(IDENT);
+    public static final Routing ROUTING = new Routing(
+            MapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder().put(
+                    null,
+                    MapBuilder.<String, Set<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()
+            ).map()
+    );
     private static final String[] PARTITIONS = new String[]{IDENT.name()};
 
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();

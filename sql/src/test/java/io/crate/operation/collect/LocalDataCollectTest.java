@@ -34,8 +34,6 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.Input;
-import io.crate.operation.collect.memory.InMemoryCollectService;
-import io.crate.operation.collect.memory.StatsTables;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
@@ -61,6 +59,7 @@ import org.elasticsearch.common.inject.*;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.settings.IndexSettings;
@@ -279,12 +278,19 @@ public class LocalDataCollectTest {
         when(indexService.shardSafe(1)).thenReturn(shard1Injector.getInstance(IndexShard.class));
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
+        DiscoveryService discoveryService = mock(DiscoveryService.class);
+        DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
+        when(discoveryNode.id()).thenReturn("dummyNodeId");
+        when(discoveryService.localNode()).thenReturn(discoveryNode);
+
         Provider<Client> clientProvider = injector.getProvider(Client.class);
         operation = new MapSideDataCollectOperation(
                 clientProvider,
                 injector.getInstance(ClusterService.class),
                 functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool,
-                new InMemoryCollectService(functions, new StatsTables())
+                new CollectServiceResolver(discoveryService,
+                    new SystemCollectService(discoveryService, functions, new StatsTables())
+                )
         );
     }
 

@@ -21,8 +21,6 @@
 
 package io.crate.operation.collect;
 
-import io.crate.operation.collect.memory.InMemoryCollectService;
-import io.crate.operation.collect.memory.StatsTables;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class CollectOperationModule extends AbstractModule {
@@ -34,6 +32,6 @@ public class CollectOperationModule extends AbstractModule {
         bind(UnassignedShardsCollectService.class).asEagerSingleton();
 
         bind(StatsTables.class).asEagerSingleton();
-        bind(InMemoryCollectService.class).asEagerSingleton();
+        bind(SystemCollectService.class).asEagerSingleton();
     }
 }

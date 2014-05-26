@@ -611,11 +611,19 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     private void groupBy(SelectAnalysis analysis, Plan plan) {
         if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
-                || !analysis.table().getRouting(analysis.whereClause()).hasLocations()) {
+                || !requiresDistribution(analysis.table().getRouting(analysis.whereClause()))) {
             nonDistributedGroupBy(analysis, plan);
         } else {
             distributedGroupBy(analysis, plan);
         }
+    }
+
+    private boolean requiresDistribution(Routing routing) {
+        if (!routing.hasLocations()) return false;
+        if (routing.locations().size() > 1) return true;
+
+        String nodeId = routing.locations().keySet().iterator().next();
+        return !(nodeId == null || nodeId.equals(clusterService.localNode().id()));
     }
 
     private void nonDistributedGroupBy(SelectAnalysis analysis, Plan plan) {

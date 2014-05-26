@@ -35,7 +35,6 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.files.FileCollectInputSymbolVisitor;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
-import io.crate.operation.collect.memory.InMemoryCollectService;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
@@ -65,9 +64,9 @@ import java.util.*;
 public class MapSideDataCollectOperation implements CollectOperation<Object[][]> {
 
     private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
-    private ESLogger logger = Loggers.getLogger(getClass());
+    private final CollectServiceResolver collectServiceResolver;
     private final ProjectionToProjectorVisitor projectorVisitor;
-
+    private ESLogger logger = Loggers.getLogger(getClass());
 
     private static class SimpleShardCollectFuture extends ShardCollectFuture {
 
@@ -96,7 +95,6 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     private final ThreadPool threadPool;
     protected final ClusterService clusterService;
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
-    private final InMemoryCollectService inMemoryCollectService;
 
     @Inject
     public MapSideDataCollectOperation(Provider<Client> clientProvider,
@@ -105,12 +103,12 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                                        ReferenceResolver referenceResolver,
                                        IndicesService indicesService,
                                        ThreadPool threadPool,
-                                       InMemoryCollectService inMemoryCollectService) {
+                                       CollectServiceResolver collectServiceResolver) {
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.threadPool = threadPool;
-        this.inMemoryCollectService = inMemoryCollectService;
+        this.collectServiceResolver = collectServiceResolver;
         this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver,
                 functions,
@@ -138,7 +136,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         assert collectNode.isRouted(); // not routed collect is not handled here
         String localNodeId = clusterService.localNode().id();
         if (collectNode.executionNodes().contains(localNodeId)) {
-            if (collectNode.routing().locations().get(localNodeId).size() == 0) {
+            if (!collectNode.routing().containsShards(localNodeId)) {
                 // node collect
                 return handleNodeCollect(collectNode);
             } else {
@@ -200,9 +198,11 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     readers.length,
                     Arrays.binarySearch(readers, clusterService.localNode().id())
             );
-        } else if(collectNode.isInMemory()) {
-            return inMemoryCollectService.getCollector(collectNode, projectorChain.firstProjector());
         } else {
+            CollectService service = collectServiceResolver.getService(collectNode.routing());
+            if (service != null) {
+                return service.getCollector(collectNode, projectorChain.firstProjector());
+            }
             ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.process(collectNode);
             assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
             return new SimpleOneRowCollector(
