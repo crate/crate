@@ -23,12 +23,12 @@ package io.crate.operation.reference.sys.job;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.InMemoryCollectorExpression;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.sys.SysJobsTableInfo;
 import org.apache.lucene.util.BytesRef;
 
 public abstract class SysJobExpression<T>
-        extends InMemoryCollectorExpression<JobContext, T> {
+        extends RowContextCollectorExpression<JobContext, T> {
 
     private static final String ID = "id";
     private static final String STMT = "stmt";

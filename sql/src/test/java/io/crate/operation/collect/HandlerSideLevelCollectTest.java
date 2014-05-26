@@ -39,12 +39,11 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.hamcrest.core.Is.is;
 
@@ -67,7 +66,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testClusterLevel() throws Exception {
-        Routing routing = new HandlerSideRouting(SysClusterTableInfo.IDENT);
+        Routing routing = SysClusterTableInfo.ROUTING;
         CollectNode collectNode = new CollectNode("clusterCollect", routing);
 
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
@@ -80,7 +79,9 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInformationSchemaTables() throws Exception {
-        HandlerSideRouting routing = new HandlerSideRouting(new TableIdent("information_schema", "tables"));
+        Routing routing = new Routing(MapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder().put(
+                null, MapBuilder.<String, Set<Integer>>newMapBuilder().put("information_schema.tables", null).map()
+        ).map());
         CollectNode collectNode = new CollectNode("tablesCollect", routing);
 
         List<Symbol> toCollect = new ArrayList<>();
@@ -105,7 +106,9 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInformationSchemaColumns() throws Exception {
-        HandlerSideRouting routing = new HandlerSideRouting(new TableIdent("information_schema", "columns"));
+        Routing routing = new Routing(MapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder().put(
+                null, MapBuilder.<String, Set<Integer>>newMapBuilder().put("information_schema.columns", null).map()
+        ).map());
         CollectNode collectNode = new CollectNode("columnsCollect", routing);
 
         List<Symbol> toCollect = new ArrayList<>();

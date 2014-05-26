@@ -53,7 +53,6 @@ public class CollectNode extends AbstractDQLPlanNode {
     private RowGranularity maxRowgranularity = RowGranularity.CLUSTER;
     private List<String> downStreamNodes;
     private boolean isPartitioned = false;
-    private boolean isInMemory = false;
 
     public CollectNode(String id) {
         super(id);
@@ -162,18 +161,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         this.jobId = Optional.fromNullable(jobId);
     }
 
-    /**
-     * Whether collect operates on an in-memory table.
-     *
-     */
-    public void isInMemory(boolean isInMemory) {
-        this.isInMemory = isInMemory;
-    }
-
-    public boolean isInMemory() {
-        return isInMemory;
-    }
-
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitCollectNode(this, context);
@@ -210,8 +197,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         if (in.readBoolean()) {
             jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
         }
-
-        isInMemory = in.readBoolean();
     }
 
     @Override
@@ -247,8 +232,6 @@ public class CollectNode extends AbstractDQLPlanNode {
             out.writeLong(jobId.get().getMostSignificantBits());
             out.writeLong(jobId.get().getLeastSignificantBits());
         }
-
-        out.writeBoolean(isInMemory);
     }
 
     /**

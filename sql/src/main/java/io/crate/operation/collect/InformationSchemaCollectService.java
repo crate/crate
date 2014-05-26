@@ -55,15 +55,13 @@ public class InformationSchemaCollectService implements CollectService {
     private final CollectInputSymbolVisitor<InformationCollectorExpression<?, ?>> docInputSymbolVisitor;
     private final ImmutableMap<String, Iterable<?>> iterables;
 
-    private final RoutineInfos routineInfos;
     private final Iterable<TablePartitionInfo> tablePartitionsIterable;
 
     @Inject
     protected InformationSchemaCollectService(Functions functions, ReferenceInfos referenceInfos,
                                               FulltextAnalyzerResolver ftResolver) {
 
-        routineInfos = new RoutineInfos(ftResolver);
-
+        RoutineInfos routineInfos = new RoutineInfos(ftResolver);
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
                 InformationDocLevelReferenceResolver.INSTANCE);
 
@@ -108,11 +106,11 @@ public class InformationSchemaCollectService implements CollectService {
                     }
                 });
         this.iterables = ImmutableMap.of(
-                "tables", tablesIterable,
-                "columns", columnsIterable,
-                "table_constraints", tableConstraintsIterable,
-                "table_partitions", tablePartitionsIterable,
-                "routines", routinesIterable
+                "information_schema.tables", tablesIterable,
+                "information_schema.columns", columnsIterable,
+                "information_schema.table_constraints", tableConstraintsIterable,
+                "information_schema.table_partitions", tablePartitionsIterable,
+                "information_schema.routines", routinesIterable
         );
     }
 
@@ -218,12 +216,14 @@ public class InformationSchemaCollectService implements CollectService {
 
     @SuppressWarnings("unchecked")
     public CrateCollector getCollector(CollectNode collectNode, Projector downstream) {
-        assert collectNode.routing() instanceof HandlerSideRouting;
         if (collectNode.whereClause().noMatch()) {
             return CrateCollector.NOOP;
         }
-        HandlerSideRouting routing = (HandlerSideRouting) collectNode.routing();
-        Iterable<?> iterator = iterables.get(routing.tableIdent().name());
+        Routing routing =  collectNode.routing();
+        assert routing.locations().containsKey(null);
+        assert routing.locations().get(null).size() == 1;
+        String fqTableName = routing.locations().get(null).keySet().iterator().next();
+        Iterable<?> iterator = iterables.get(fqTableName);
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
 
         Input<Boolean> condition;

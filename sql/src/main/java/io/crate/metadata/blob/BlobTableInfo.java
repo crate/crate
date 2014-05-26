@@ -192,11 +192,6 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public boolean isInMemory() {
-        return false;
-    }
-
-    @Override
     public DynamicReference getDynamic(ColumnIdent ident) {
         return null;
     }

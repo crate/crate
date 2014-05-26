@@ -31,7 +31,7 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.exceptions.*;
 import io.crate.executor.*;
-import io.crate.operation.collect.memory.StatsTables;
+import io.crate.operation.collect.StatsTables;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;

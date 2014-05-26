@@ -23,10 +23,10 @@ package io.crate.metadata;
 
 import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.junit.Before;
@@ -39,7 +39,6 @@ import java.util.Set;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -150,7 +149,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterTable() throws Exception {
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "cluster"));
-        assertThat(ti.getRouting(null), instanceOf(HandlerSideRouting.class));
+        assertTrue(ti.getRouting(null).locations().containsKey(null));
     }
 
     @Test

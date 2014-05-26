@@ -24,7 +24,6 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -66,6 +65,13 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
 
     public String name() {
         return name;
+    }
+
+    public String fqn() {
+        if (schema == null) {
+            return name;
+        }
+        return String.format("%s.%s", schema, name);
     }
 
     @Override

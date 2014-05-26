@@ -24,8 +24,6 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.metadata.*;
-import io.crate.operation.collect.memory.InMemoryCollectService;
-import io.crate.operation.collect.memory.StatsTables;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
@@ -36,6 +34,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
@@ -62,6 +61,8 @@ public class MapSideDataCollectOperationTest {
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
         when(discoveryNode.id()).thenReturn("dummyNodeId");
         when(clusterService.localNode()).thenReturn(discoveryNode);
+        DiscoveryService discoveryService = mock(DiscoveryService.class);
+        when(discoveryService.localNode()).thenReturn(discoveryNode);
         IndicesService indicesService = mock(IndicesService.class);
         Functions functions = new Functions(
                 ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
@@ -85,7 +86,9 @@ public class MapSideDataCollectOperationTest {
                 referenceResolver,
                 indicesService,
                 new ThreadPool(ImmutableSettings.EMPTY, null),
-                new InMemoryCollectService(functions, new StatsTables())
+                new CollectServiceResolver(discoveryService,
+                    new SystemCollectService(discoveryService, functions, new StatsTables())
+                )
         );
 
         File tmpFile = File.createTempFile("fileUriCollectOperation", ".json");
