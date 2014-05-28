@@ -1,5 +1,8 @@
 allprojects {
     apply plugin: 'idea'
+    apply plugin: 'findbugs'
+    apply plugin: 'jacoco'
+
     group = 'io.crate'
     repositories {
         mavenCentral()
@@ -25,5 +28,5 @@ idea {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '1.11'
+    gradleVersion = '1.12'
 }
