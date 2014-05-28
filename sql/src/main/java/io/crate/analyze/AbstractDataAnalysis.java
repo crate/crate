@@ -521,7 +521,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
     protected void addIdAndRouting(Boolean create, List<String> primaryKeyValues, String clusteredByValue) {
 
         ColumnIdent clusteredBy = table().clusteredBy();
-        Id id = new Id(table().primaryKey(), primaryKeyValues, clusteredBy == null ? null : clusteredBy, create);
+        Id id = new Id(table().primaryKey(), primaryKeyValues, clusteredBy, create);
         if (id.isValid()) {
             String idString = id.stringValue();
             ids.add(idString);

@@ -61,7 +61,8 @@ public class Id implements Streamable {
                     return;
                 }
                 if (primaryKeys.get(i).equals(clusteredBy)) {
-                    // clusteredBy value must always be first
+                    // clusteredBy value must always be first,
+                    // so it can be extracted from id later on
                     values.add(0, primaryKeyValue);
                 } else {
                     values.add(primaryKeyValue);

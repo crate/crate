@@ -30,6 +30,7 @@ import io.crate.PartitionName;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
+import io.crate.analyze.Id;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
@@ -2333,6 +2334,29 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from quotes");
         assertEquals(3L, response.rowCount());
         assertThat(response.rows()[0].length, is(2));
+    }
+
+    @Test
+    public void testCopyFromFileIdGeneration() throws Exception {
+        execute("create table quotes (id int primary key, " +
+                "quote string primary key) clustered by(quote)");
+        refresh();
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{filePath});
+        // 2 nodes on same machine resulting in double affected rows
+        assertEquals(6L, response.rowCount());
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+        refresh();
+
+        execute("select _id from quotes where id = 1");
+        assertEquals(1L, response.rowCount());
+
+        Id id = Id.fromString((String)response.rows()[0][0]);
+
+        // first position must be the clustered-by value
+        assertThat(id.values().get(0), is("Don't panic"));
+        assertThat(id.values().get(1), is("1"));
     }
 
     @Test

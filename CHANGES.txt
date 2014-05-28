@@ -2,6 +2,14 @@
 Changes for Crate Data
 ======================
 
+Unreleased
+==========
+
+ - fix: id generation on import via `COPY FROM` were wrong if multiple
+   primary key constraints and clustered-by were used.
+   WARNING: records must be re-imported otherwise queries with filter
+   on primary key columns will not match any record
+
 2014/05/23 0.38.2
 =================
 
