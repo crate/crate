@@ -38,6 +38,7 @@ import java.util.List;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -125,5 +126,12 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = IllegalArgumentException.class)
     public void testRefreshBlobPartitioned() throws Exception {
         analyze("refresh table blob.blobs partition (n='n')");
+    }
+
+    @Test
+    public void testRefreshPartitionedTableNullPartition() throws Exception {
+        RefreshTableAnalysis analysis = (RefreshTableAnalysis) analyze("refresh table parted PARTITION (date=null)");
+        assertNotNull(analysis.partitionName());
+        assertThat(analysis.partitionName().stringValue(), is(".partitioned.parted.0400"));
     }
 }

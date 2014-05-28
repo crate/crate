@@ -65,6 +65,11 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Object[]> {
     }
 
     @Override
+    protected Number visitNullLiteral(NullLiteral node, Object[] context) {
+        return null;
+    }
+
+    @Override
     public Number visitParameterExpression(ParameterExpression node, Object[] context) {
         Number num;
         Object param = context[node.index()];

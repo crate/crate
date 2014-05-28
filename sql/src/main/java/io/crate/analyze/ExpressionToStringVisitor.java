@@ -87,6 +87,11 @@ public class ExpressionToStringVisitor extends AstVisitor<String, Object[]> {
     }
 
     @Override
+    protected String visitNullLiteral(NullLiteral node, Object[] context) {
+        return null;
+    }
+
+    @Override
     protected String visitNode(Node node, Object[] context) {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle %s.", node));
     }
