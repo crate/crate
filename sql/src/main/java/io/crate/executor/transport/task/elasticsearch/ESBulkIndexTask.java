@@ -30,7 +30,6 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.index.IndexRequest;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class ESBulkIndexTask extends AbstractESIndexTask {
@@ -71,27 +70,15 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
         this.bulkAction = bulkAction;
 
         this.request = new BulkRequest();
-
         for (int i = 0; i < this.node.sourceMaps().size(); i++) {
-            String[] indices;
-
-            if (node.indices().length == 1) {
-                // in case we have only one index for all indexRequests
-                String[] arr = new String[node.sourceMaps().size()];
-                Arrays.fill(arr, node.indices()[0]);
-                indices = arr;
-            } else {
-                indices = node.indices();
-            }
-
             IndexRequest indexRequest = buildIndexRequest(
-                    indices[i],
+                     // length is 1 if all inserts affect the same table
+                    node.indices()[node.indices().length == 1 ? 0 : i],
                     node.sourceMaps().get(i),
                     node.ids().get(i),
                     node.routingValues().get(i));
             this.request.add(indexRequest);
         }
-
         this.listener = new BulkIndexResponseListener(result);
     }
 
