@@ -61,6 +61,11 @@ class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
     }
 
     @Override
+    protected Object visitNullLiteral(NullLiteral node, Object[] context) {
+        return null;
+    }
+
+    @Override
     protected String visitSubscriptExpression(SubscriptExpression node, Object[] context) {
         return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), context), process(node.index(), context));
     }

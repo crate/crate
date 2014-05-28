@@ -66,7 +66,8 @@ public class PartitionPropertiesAnalyzer {
             int idx = tableInfo.partitionedBy().indexOf(entry.getKey());
             try {
                 ReferenceInfo referenceInfo = tableInfo.partitionedByColumns().get(idx);
-                values[idx] = referenceInfo.type().value(value).toString();
+                Object converted = referenceInfo.type().value(value);
+                values[idx] = converted == null ? null : converted.toString();
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(
                         String.format("\"%s\" is no known partition column", entry.getKey().fqn()));

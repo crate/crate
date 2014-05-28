@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: fix npe in partition clause analysis with null value
+
  - improved error messages
 
  - arithmetic operators now also work with timestamps
