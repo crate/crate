@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: display nested columns correctly in ``information_schema.table_partitions.values``
+
  - updated crash to 0.9.9 which includes following changes:
 
     - fix: increased precision of float formatting
