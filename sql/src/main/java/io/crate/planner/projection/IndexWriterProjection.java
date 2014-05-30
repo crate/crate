@@ -35,6 +35,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class IndexWriterProjection extends Projection {
@@ -166,8 +167,40 @@ public class IndexWriterProjection extends Projection {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return false;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        IndexWriterProjection that = (IndexWriterProjection) o;
+
+        if (!bulkActions.equals(that.bulkActions)) return false;
+        if (!clusteredBySymbol.equals(that.clusteredBySymbol)) return false;
+        if (!concurrency.equals(that.concurrency)) return false;
+        if (!Arrays.equals(excludes, that.excludes)) return false;
+        if (!idSymbols.equals(that.idSymbols)) return false;
+        if (!Arrays.equals(includes, that.includes)) return false;
+        if (!partitionedBySymbols.equals(that.partitionedBySymbols)) return false;
+        if (!primaryKeys.equals(that.primaryKeys)) return false;
+        if (!rawSourceSymbol.equals(that.rawSourceSymbol)) return false;
+        if (!tableName.equals(that.tableName)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + concurrency.hashCode();
+        result = 31 * result + bulkActions.hashCode();
+        result = 31 * result + tableName.hashCode();
+        result = 31 * result + idSymbols.hashCode();
+        result = 31 * result + primaryKeys.hashCode();
+        result = 31 * result + partitionedBySymbols.hashCode();
+        result = 31 * result + rawSourceSymbol.hashCode();
+        result = 31 * result + clusteredBySymbol.hashCode();
+        result = 31 * result + (includes != null ? Arrays.hashCode(includes) : 0);
+        result = 31 * result + (excludes != null ? Arrays.hashCode(excludes) : 0);
+        return result;
     }
 
     @Override

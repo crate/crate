@@ -133,7 +133,7 @@ public class UnassignedShardsCollectService implements CollectService {
             context.topLevelInputs(), context.docLevelExpressions(), projector, iterable, condition);
     }
 
-    private class UnassignedShardsCollector<R> implements CrateCollector {
+    private static class UnassignedShardsCollector<R> implements CrateCollector {
 
         private final List<Input<?>> inputs;
         private final List<UnassignedShardCollectorExpression<?>> collectorExpressions;

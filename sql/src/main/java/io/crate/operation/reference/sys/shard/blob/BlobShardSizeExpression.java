@@ -28,7 +28,7 @@ import org.elasticsearch.common.inject.Inject;
 
 public class BlobShardSizeExpression extends SysShardExpression<Long> implements BlobShardReferenceImplementation {
 
-    public static String NAME = "size";
+    public static final String NAME = "size";
 
     private final BlobShard blobShard;
 

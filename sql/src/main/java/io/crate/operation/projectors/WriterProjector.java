@@ -214,7 +214,7 @@ public class WriterProjector implements Projector {
         void close();
     }
 
-    class DocWriter implements RowWriter {
+    static class DocWriter implements RowWriter {
 
         private final OutputStream outputStream;
         private final Set<CollectExpression<?>> collectExpressions;
@@ -255,7 +255,7 @@ public class WriterProjector implements Projector {
         }
     }
 
-    class RawRowWriter implements RowWriter {
+    static class RawRowWriter implements RowWriter {
 
         private final OutputStream outputStream;
         private final AtomicReference<Throwable> failure;
@@ -282,7 +282,7 @@ public class WriterProjector implements Projector {
         }
     }
 
-    class ColumnRowWriter implements RowWriter {
+    static class ColumnRowWriter implements RowWriter {
         private final Set<CollectExpression<?>> collectExpressions;
         private final List<Input<?>> inputs;
         private final AtomicReference<Throwable> failure;

@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ComparisonChain;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -108,15 +107,6 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
                 .compare(ident, o.ident)
                 .compare(returnType, o.returnType)
                 .result();
-    }
-
-    public static Predicate<FunctionInfo> isAggregationPredicate() {
-        return new Predicate<FunctionInfo>() {
-            @Override
-            public boolean apply(FunctionInfo functionInfo) {
-                return functionInfo.isAggregate();
-            }
-        };
     }
 
     @Override

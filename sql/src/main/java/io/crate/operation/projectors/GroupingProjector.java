@@ -38,7 +38,6 @@ public class GroupingProjector implements Projector {
 
     private final Grouper grouper;
 
-    private Object[][] rows;
     private Projector downstream;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
@@ -98,7 +97,7 @@ public class GroupingProjector implements Projector {
     @Override
     public void upstreamFinished() {
         if (remainingUpstreams.decrementAndGet() <= 0) {
-            rows = grouper.finish();
+            grouper.finish();
         }
     }
 

@@ -222,7 +222,11 @@ public class FileReadingCollector implements CrateCollector {
             moduloPredicate = new Predicate<URI>() {
                 @Override
                 public boolean apply(URI input) {
-                    return Math.abs(input.hashCode()) % numReaders == readerNumber;
+                    int hash = input.hashCode();
+                    if (hash == Integer.MIN_VALUE) {
+                        hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
+                    }
+                    return Math.abs(hash) % numReaders == readerNumber;
                 }
             };
         } else {

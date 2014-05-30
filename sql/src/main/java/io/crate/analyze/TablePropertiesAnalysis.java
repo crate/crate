@@ -132,7 +132,7 @@ public class TablePropertiesAnalysis {
 
             Object refreshIntervalValue = ExpressionToObjectVisitor.convert(expression, parameters);
             try {
-                Long refreshInterval = ExpressionToNumberVisitor.convert(expression, parameters).longValue();
+                ExpressionToNumberVisitor.convert(expression, parameters).longValue();
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid value for argument '"
                         + REFRESH_INTERVAL + "'", e);

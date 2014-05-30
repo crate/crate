@@ -226,7 +226,7 @@ public class ESQueryBuilder {
         builder.endArray();
     }
 
-    class Context {
+    static class Context {
         XContentBuilder builder;
         Map<String, Object> ignoredFields = new HashMap<>();
 

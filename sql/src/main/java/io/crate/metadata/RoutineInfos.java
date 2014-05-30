@@ -37,9 +37,6 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
     private FulltextAnalyzerResolver ftResolver;
-    private Functions functions;
-
-    private static final String NO_DESC = "";
 
     private enum RoutineType {
         ANALYZER(CustomType.ANALYZER.getName().toUpperCase()),
@@ -57,8 +54,7 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
         }
     }
 
-    public RoutineInfos(Functions functions, FulltextAnalyzerResolver ftResolver) {
-        this.functions = functions;
+    public RoutineInfos(FulltextAnalyzerResolver ftResolver) {
         this.ftResolver = ftResolver;
     }
 
@@ -125,7 +121,8 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                     new Function<Map.Entry<String, Settings>, RoutineInfo>() {
                         @Nullable
                         @Override
-                        public RoutineInfo apply(@Nullable Map.Entry<String, Settings> input) {
+                        public RoutineInfo apply(Map.Entry<String, Settings> input) {
+                            assert input != null;
                             return new RoutineInfo(input.getKey(),
                                     RoutineType.ANALYZER.getName()
                             );
@@ -136,7 +133,8 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                     new Function<Map.Entry<String, Settings>, RoutineInfo>() {
                         @Nullable
                         @Override
-                        public RoutineInfo apply(@Nullable Map.Entry<String, Settings> input) {
+                        public RoutineInfo apply(Map.Entry<String, Settings> input) {
+                            assert input != null;
                             return new RoutineInfo(input.getKey(),
                                     RoutineType.CHAR_FILTER.getName()
                             );
@@ -147,7 +145,8 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                     new Function<Map.Entry<String, Settings>, RoutineInfo>() {
                         @Nullable
                         @Override
-                        public RoutineInfo apply(@Nullable Map.Entry<String, Settings> input) {
+                        public RoutineInfo apply(Map.Entry<String, Settings> input) {
+                            assert input != null;
                             return new RoutineInfo(input.getKey(),
                                     RoutineType.TOKEN_FILTER.getName()
                             );
@@ -158,7 +157,8 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                     new Function<Map.Entry<String, Settings>, RoutineInfo>() {
                         @Nullable
                         @Override
-                        public RoutineInfo apply(@Nullable Map.Entry<String, Settings> input) {
+                        public RoutineInfo apply(Map.Entry<String, Settings> input) {
+                            assert input != null;
                             return new RoutineInfo(input.getKey(),
                                     RoutineType.TOKENIZER.getName()
                             );

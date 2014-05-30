@@ -217,7 +217,7 @@ public class IndexWriterProjector implements Projector {
         return downstream;
     }
 
-    private class Listener implements BulkProcessor.Listener {
+    private static class Listener implements BulkProcessor.Listener {
         AtomicInteger inProgress = new AtomicInteger(0);
         final AtomicBoolean allRowsAdded;
         final AtomicReference<Throwable> failure = new AtomicReference<>();

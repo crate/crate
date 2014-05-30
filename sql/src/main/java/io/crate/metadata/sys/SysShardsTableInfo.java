@@ -39,7 +39,7 @@ public class SysShardsTableInfo extends SysTableInfo {
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "shards");
     private static final String[] CONCRETE_INDICES = new String[]{IDENT.name()};
 
-    public static Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>(7);
+    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>(7);
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>(7);
 
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(

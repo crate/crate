@@ -39,7 +39,7 @@ public class Reference extends DataTypeSymbol {
         }
     };
 
-    private ReferenceInfo info;
+    protected ReferenceInfo info;
 
     public Reference(ReferenceInfo info) {
         Preconditions.checkArgument(info!=null, "Info is null");

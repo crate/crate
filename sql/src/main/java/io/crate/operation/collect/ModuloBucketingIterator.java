@@ -37,7 +37,11 @@ public class ModuloBucketingIterator extends BucketingIterator {
         if (row == null || row.length == 0 || row[0] == null) {
             return 0;
         } else {
-            return Math.abs(row[0].hashCode()) % this.numBuckets;
+            int hash = row[0].hashCode();
+            if (hash == Integer.MIN_VALUE) {
+                hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
+            }
+            return Math.abs(hash) % numBuckets;
         }
     }
 }

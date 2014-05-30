@@ -388,7 +388,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return schemaStack.push(new ColumnSchema(null, nestedProperties, nestedMetaProperties));
     }
 
-    class ColumnSchema {
+    static class ColumnSchema {
         final String name;
         final Map<String, Object> crateMeta;
         final Map<String, Object> esMapping;

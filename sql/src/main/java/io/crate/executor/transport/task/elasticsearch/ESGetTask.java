@@ -236,7 +236,7 @@ public class ESGetTask implements Task<Object[][]> {
         throw new UnsupportedOperationException();
     }
 
-    class Context {
+    static class Context {
         final DataType[] types;
         final String[] fields;
         int idx;

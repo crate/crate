@@ -62,7 +62,7 @@ public class InformationSchemaCollectService implements CollectService {
     protected InformationSchemaCollectService(Functions functions, ReferenceInfos referenceInfos,
                                               FulltextAnalyzerResolver ftResolver) {
 
-        routineInfos = new RoutineInfos(functions, ftResolver);
+        routineInfos = new RoutineInfos(ftResolver);
 
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
                 InformationDocLevelReferenceResolver.INSTANCE);
@@ -71,11 +71,13 @@ public class InformationSchemaCollectService implements CollectService {
                 .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {
                     @Nullable
                     @Override
-                    public Iterable<TableInfo> apply(@Nullable SchemaInfo input) {
+                    public Iterable<TableInfo> apply(SchemaInfo input) {
+                        assert input != null;
                         // filter out partitions
                         return FluentIterable.from(input).filter(new Predicate<TableInfo>() {
                             @Override
-                            public boolean apply(@Nullable TableInfo input) {
+                            public boolean apply(TableInfo input) {
+                                assert input != null;
                                 return !PartitionName.isPartition(input.ident().name());
                             }
                         });
@@ -87,7 +89,8 @@ public class InformationSchemaCollectService implements CollectService {
                 .transformAndConcat(new Function<TableInfo, Iterable<ColumnContext>>() {
                     @Nullable
                     @Override
-                    public Iterable<ColumnContext> apply(@Nullable TableInfo input) {
+                    public Iterable<ColumnContext> apply(TableInfo input) {
+                        assert input != null;
                         return new ColumnsIterator(input);
                     }
                 });

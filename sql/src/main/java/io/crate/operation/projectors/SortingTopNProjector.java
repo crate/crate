@@ -64,7 +64,7 @@ public class SortingTopNProjector implements Projector, ResultProvider {
         }
     }
 
-    class ColOrdering extends Ordering<Object[]> {
+    static class ColOrdering extends Ordering<Object[]> {
 
         private final int col;
         private final Ordering<Comparable> ordering;

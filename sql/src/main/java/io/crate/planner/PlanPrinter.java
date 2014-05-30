@@ -36,7 +36,7 @@ import static java.lang.String.format;
 
 public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
 
-    class PrintContext {
+    static class PrintContext {
 
         private int indent = 0;
         private final StringBuilder output;
@@ -88,7 +88,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
         }
     }
 
-    class SymbolPrinter extends SymbolVisitor<PrintContext, Void> {
+    static class SymbolPrinter extends SymbolVisitor<PrintContext, Void> {
 
         @Override
         protected Void visitSymbol(Symbol symbol, PrintContext context) {

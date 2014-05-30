@@ -26,10 +26,6 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.NullType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 public class DynamicReference extends Reference {
 
@@ -40,8 +36,6 @@ public class DynamicReference extends Reference {
         }
     };
 
-    private ReferenceInfo info;
-
     public DynamicReference() {}
 
     public DynamicReference(ReferenceInfo info) {
@@ -50,11 +44,6 @@ public class DynamicReference extends Reference {
 
     public DynamicReference(ReferenceIdent ident, RowGranularity rowGranularity) {
         this.info = new ReferenceInfo(ident, rowGranularity, NullType.INSTANCE);
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return info;
     }
 
     public void valueType(DataType dataType) {
@@ -75,17 +64,5 @@ public class DynamicReference extends Reference {
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitDynamicReference(this, context);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        info = new ReferenceInfo();
-        info.readFrom(in);
-
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        info.writeTo(out);
     }
 }

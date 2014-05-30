@@ -25,7 +25,6 @@ import io.crate.Build;
 import io.crate.Version;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.apache.lucene.util.BytesRef;
 
 public class NodeVersionExpression extends SysNodeObjectReference {
 
@@ -41,7 +40,7 @@ public class NodeVersionExpression extends SysNodeObjectReference {
         childImplementations.put(BUILD_SNAPSHOT, new VersionBuildSnapshotExpression());
     }
 
-    class VersionNumberExpression extends SysNodeExpression<String> {
+    static class VersionNumberExpression extends SysNodeExpression<String> {
 
         private final String versionNumber;
 
@@ -56,7 +55,7 @@ public class NodeVersionExpression extends SysNodeObjectReference {
         }
     }
 
-    class VersionBuildHashExpression extends SysNodeExpression<String> {
+    static class VersionBuildHashExpression extends SysNodeExpression<String> {
 
         private final String buildHash;
 
@@ -71,7 +70,7 @@ public class NodeVersionExpression extends SysNodeObjectReference {
         }
     }
 
-    class VersionBuildSnapshotExpression extends SysNodeExpression<Boolean> {
+    static class VersionBuildSnapshotExpression extends SysNodeExpression<Boolean> {
 
         VersionBuildSnapshotExpression() {
             super(new ColumnIdent(NAME, BUILD_SNAPSHOT));
