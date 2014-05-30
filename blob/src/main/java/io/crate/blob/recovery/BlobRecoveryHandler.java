@@ -232,74 +232,75 @@ public class BlobRecoveryHandler {
                         request.shardId().index().name(), request.shardId().id(), file.getName());
                 }
 
-                FileInputStream fileStream = new FileInputStream(file);
-                String filePath = file.getAbsolutePath();
-                String relPath = filePath.substring(baseDir.length(), filePath.length());
-                byte[] buf = new byte[BUFFER_SIZE];
-                int bytesRead = fileStream.read(buf, 0, BUFFER_SIZE);
-                long bytesReadTotal = 0;
-                BytesArray content = new BytesArray(buf, 0, bytesRead);
-                BlobRecoveryStartTransferRequest startTransferRequest =
-                    new BlobRecoveryStartTransferRequest(request.recoveryId(), relPath, content,
-                        fileSize
-                    );
+                try (FileInputStream fileStream = new FileInputStream(file)) {
+                    String filePath = file.getAbsolutePath();
+                    String relPath = filePath.substring(baseDir.length(), filePath.length());
+                    byte[] buf = new byte[BUFFER_SIZE];
+                    int bytesRead = fileStream.read(buf, 0, BUFFER_SIZE);
+                    long bytesReadTotal = 0;
+                    BytesArray content = new BytesArray(buf, 0, bytesRead);
+                    BlobRecoveryStartTransferRequest startTransferRequest =
+                        new BlobRecoveryStartTransferRequest(request.recoveryId(), relPath, content,
+                            fileSize
+                        );
 
-                if (bytesRead > 0) {
-                    bytesReadTotal += bytesRead;
-
-                    logger.trace("[{}][{}] send BlobRecoveryStartTransferRequest to {} for file {} with size {}",
-                        request.shardId().index().name(), request.shardId().id(),
-                        request.targetNode().getName(),
-                        relPath,
-                        fileSize
-                    );
-                    transportService.submitRequest(
-                        request.targetNode(),
-                        BlobRecoveryTarget.Actions.START_TRANSFER,
-                        startTransferRequest,
-                        TransportRequestOptions.options(),
-                        EmptyTransportResponseHandler.INSTANCE_SAME
-                    ).txGet();
-
-                    boolean isLast = false;
-                    boolean sentChunks = false;
-                    while ( (bytesRead = fileStream.read(buf, 0, BUFFER_SIZE)) > 0 ) {
-
-                        sentChunks = true;
+                    if (bytesRead > 0) {
                         bytesReadTotal += bytesRead;
 
-                        if (shard.state() == IndexShardState.CLOSED) { // check if the shard got closed on us
-                            throw new IndexShardClosedException(shard.shardId());
-                        }
-                        if (bytesReadTotal == fileSize) {
-                            isLast = true;
-                        }
-                        content = new BytesArray(buf, 0, bytesRead);
-
-                        transportService.submitRequest(request.targetNode(),
-                            BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
-                            new BlobRecoveryChunkRequest(request.recoveryId(),
-                                startTransferRequest.transferId(), content, isLast),
+                        logger.trace("[{}][{}] send BlobRecoveryStartTransferRequest to {} for file {} with size {}",
+                            request.shardId().index().name(), request.shardId().id(),
+                            request.targetNode().getName(),
+                            relPath,
+                            fileSize
+                        );
+                        transportService.submitRequest(
+                            request.targetNode(),
+                            BlobRecoveryTarget.Actions.START_TRANSFER,
+                            startTransferRequest,
                             TransportRequestOptions.options(),
                             EmptyTransportResponseHandler.INSTANCE_SAME
                         ).txGet();
+
+                        boolean isLast = false;
+                        boolean sentChunks = false;
+                        while ((bytesRead = fileStream.read(buf, 0, BUFFER_SIZE)) > 0) {
+
+                            sentChunks = true;
+                            bytesReadTotal += bytesRead;
+
+                            if (shard.state() == IndexShardState.CLOSED) { // check if the shard got closed on us
+                                throw new IndexShardClosedException(shard.shardId());
+                            }
+                            if (bytesReadTotal == fileSize) {
+                                isLast = true;
+                            }
+                            content = new BytesArray(buf, 0, bytesRead);
+
+                            transportService.submitRequest(request.targetNode(),
+                                BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
+                                new BlobRecoveryChunkRequest(request.recoveryId(),
+                                    startTransferRequest.transferId(), content, isLast),
+                                TransportRequestOptions.options(),
+                                EmptyTransportResponseHandler.INSTANCE_SAME
+                            ).txGet();
+                        }
+
+                        if (!isLast && sentChunks) {
+                            logger.error("Sending isLast because it wasn't sent before for {}", relPath);
+                            transportService.submitRequest(request.targetNode(),
+                                BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
+                                new BlobRecoveryChunkRequest(request.recoveryId(),
+                                    startTransferRequest.transferId(), BytesArray.EMPTY, true),
+                                TransportRequestOptions.options(),
+                                EmptyTransportResponseHandler.INSTANCE_SAME
+                            ).txGet();
+                        }
                     }
 
-                    if (!isLast && sentChunks) {
-                        logger.error("Sending isLast because it wasn't sent before for {}", relPath);
-                        transportService.submitRequest(request.targetNode(),
-                            BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
-                            new BlobRecoveryChunkRequest(request.recoveryId(),
-                                startTransferRequest.transferId(), BytesArray.EMPTY, true),
-                            TransportRequestOptions.options(),
-                            EmptyTransportResponseHandler.INSTANCE_SAME
-                        ).txGet();
-                    }
+                    logger.trace("[{}][{}] completed to transfer file {} to {}",
+                        request.shardId().index().name(), request.shardId().id(), file.getName(),
+                        request.targetNode().getName());
                 }
-
-                logger.trace("[{}][{}] completed to transfer file {} to {}",
-                    request.shardId().index().name(), request.shardId().id(), file.getName(),
-                    request.targetNode().getName());
             } catch (IOException ex) {
                 logger.error("exception while file transfer", ex);
                 lastException.set(ex);

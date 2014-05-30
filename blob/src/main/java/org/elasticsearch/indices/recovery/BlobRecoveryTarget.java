@@ -178,13 +178,13 @@ public class BlobRecoveryTarget extends AbstractComponent {
         public void messageReceived(BlobRecoveryChunkRequest request, TransportChannel channel) throws Exception {
 
             BlobRecoveryStatus onGoingRecovery = onGoingRecoveries.get(request.recoveryId());
-            BlobShard shard = onGoingRecovery.blobShard;
-            BlobRecoveryTransferStatus transferStatus = onGoingRecovery.onGoingTransfers().get(request.transferId());
-
             if (onGoingRecovery == null) {
                  // shard is getting closed on us
                 throw new IllegalBlobRecoveryStateException("Could not retrieve onGoingRecoveryStatus");
             }
+
+            BlobRecoveryTransferStatus transferStatus = onGoingRecovery.onGoingTransfers().get(request.transferId());
+            BlobShard shard = onGoingRecovery.blobShard;
             if (onGoingRecovery.canceled()) {
                 onGoingRecovery.sentCanceledToSource();
                  throw new IndexShardClosedException(onGoingRecovery.shardId());
@@ -268,7 +268,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
             logger.debug("received BlobRecoveryStartTransferRequest for file {} with size {}",
                 request.path(), request.size());
             if (status == null) {
-                throw new IndexShardClosedException(status.shardId());
+                throw new IllegalBlobRecoveryStateException("Could not retrieve onGoingRecoveryStatus");
             }
             if (status.canceled()) {
                 throw new IndexShardClosedException(status.shardId());

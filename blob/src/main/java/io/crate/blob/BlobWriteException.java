@@ -26,6 +26,6 @@ import org.elasticsearch.ElasticsearchException;
 public class BlobWriteException extends ElasticsearchException {
 
     public BlobWriteException(String digest, long size, Throwable cause) {
-        super(String.format("digest: {} size:{}", digest, size), cause);
+        super(String.format("digest: %s size: %s", digest, size), cause);
     }
 }

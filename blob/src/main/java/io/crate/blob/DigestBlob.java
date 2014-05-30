@@ -83,13 +83,12 @@ public class DigestBlob {
         return tmpFile;
     }
 
-    private void updateDigest(ByteBuffer bbf){
+    private void updateDigest(ByteBuffer bbf) throws IOException {
         if (md == null){
             try {
                 md = MessageDigest.getInstance("SHA-1");
             } catch (NoSuchAlgorithmException e) {
-                // TODO: error handling
-                e.printStackTrace();
+                throw new IOException(e);
             }
         }
         md.update(bbf.slice());

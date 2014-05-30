@@ -65,40 +65,39 @@ public class PutHeadChunkRunnable implements Runnable {
     @Override
     public void run() {
         try {
-            FileInputStream inputStream = new FileInputStream(pendingFile);
-            int bufSize = 4096;
-            int bytesRead;
-            int size;
-            int maxFileGrowthWait = 5;
-            int fileGrowthWaited = 0;
-            byte[] buffer = new byte[bufSize];
-            long remainingBytes = bytesToSend;
+            try (FileInputStream inputStream = new FileInputStream(pendingFile)) {
+                int bufSize = 4096;
+                int bytesRead;
+                int size;
+                int maxFileGrowthWait = 5;
+                int fileGrowthWaited = 0;
+                byte[] buffer = new byte[bufSize];
+                long remainingBytes = bytesToSend;
 
-            while (remainingBytes > 0) {
-                size = (int)Math.min(bufSize, remainingBytes);
-                bytesRead = inputStream.read(buffer, 0, size);
-                if (bytesRead < size) {
-                    waitUntilFileHasGrown(pendingFile);
-                    fileGrowthWaited++;
-                    if (fileGrowthWaited == maxFileGrowthWait) {
-                        throw new HeadChunkFileTooSmallException(pendingFile.getAbsolutePath());
+                while (remainingBytes > 0) {
+                    size = (int) Math.min(bufSize, remainingBytes);
+                    bytesRead = inputStream.read(buffer, 0, size);
+                    if (bytesRead < size) {
+                        waitUntilFileHasGrown(pendingFile);
+                        fileGrowthWaited++;
+                        if (fileGrowthWaited == maxFileGrowthWait) {
+                            throw new HeadChunkFileTooSmallException(pendingFile.getAbsolutePath());
+                        }
+                        if (bytesRead < 1) {
+                            continue;
+                        }
                     }
-                    if (bytesRead < 1) {
-                        continue;
-                    }
+                    remainingBytes -= bytesRead;
+
+                    transportService.submitRequest(
+                        recipientNode,
+                        BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
+                        new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
+                        TransportRequestOptions.options(),
+                        EmptyTransportResponseHandler.INSTANCE_SAME
+                    ).txGet();
                 }
-                remainingBytes -= bytesRead;
-
-                transportService.submitRequest(
-                    recipientNode,
-                    BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
-                    new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
-                    TransportRequestOptions.options(),
-                    EmptyTransportResponseHandler.INSTANCE_SAME
-                ).txGet();
             }
-
-
         } catch (FileNotFoundException ex) {
             logger.error("Can't send HeadChunk - file not found", ex);
         } catch (IOException ex) {
