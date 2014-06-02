@@ -23,8 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.exceptions.UnhandledServerException;
-import io.crate.exceptions.VersionConflictException;
+import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.Task;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
@@ -34,11 +33,9 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
@@ -81,39 +78,7 @@ public class ESSearchTask implements Task<Object[][]> {
                 logger.debug(request.source().toUtf8());
             }
 
-            transportSearchAction.execute(request, new ActionListener<SearchResponse>() {
-                @Override
-                public void onResponse(SearchResponse searchResponse) {
-                    if (searchResponse.getFailedShards() > 0) {
-                        for (ShardSearchFailure failure : searchResponse.getShardFailures()) {
-                            if (failure.failure().getCause() instanceof VersionConflictEngineException) {
-                                onFailure(new VersionConflictException(failure.failure()));
-                            }
-                        }
-                        // just take the first failure to have at least some stack trace.
-                        onFailure(new UnhandledServerException(
-                                searchResponse.getShardFailures().length + " shard failures",
-                                searchResponse.getShardFailures()[0].failure()));
-                    } else {
-                        final SearchHit[] hits = searchResponse.getHits().getHits();
-                        final Object[][] rows = new Object[hits.length][numColumns];
-
-                        for (int r = 0; r < hits.length; r++) {
-                            rows[r] = new Object[numColumns];
-                            for (int c = 0; c < numColumns; c++) {
-                                rows[r][c] = extractor[c].extract(hits[r]);
-                            }
-                        }
-
-                        result.set(rows);
-                    }
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    result.setException(e);
-                }
-            });
+            transportSearchAction.execute(request, new SearchResponseListener(result, extractor, numColumns));
         } catch (IOException e) {
             result.setException(e);
         }
@@ -179,6 +144,46 @@ public class ESSearchTask implements Task<Object[][]> {
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
         throw new UnsupportedOperationException("Can't have upstreamResults");
+    }
+
+    static class SearchResponseListener implements ActionListener<SearchResponse> {
+
+        private final SettableFuture<Object[][]> result;
+        private final ESFieldExtractor[] extractor;
+        private final int numColumns;
+
+        public SearchResponseListener(SettableFuture<Object[][]> result,
+                                      ESFieldExtractor[] extractor,
+                                      int numColumns) {
+
+            this.result = result;
+            this.extractor = extractor;
+            this.numColumns = numColumns;
+        }
+
+        @Override
+        public void onResponse(SearchResponse searchResponse) {
+            if (searchResponse.getFailedShards() > 0) {
+                onFailure(new FailedShardsException(searchResponse.getShardFailures()));
+            } else {
+                final SearchHit[] hits = searchResponse.getHits().getHits();
+                final Object[][] rows = new Object[hits.length][numColumns];
+
+                for (int r = 0; r < hits.length; r++) {
+                    rows[r] = new Object[numColumns];
+                    for (int c = 0; c < numColumns; c++) {
+                        rows[r][c] = extractor[c].extract(hits[r]);
+                    }
+                }
+
+                result.set(rows);
+            }
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            result.setException(e);
+        }
     }
 
 }
