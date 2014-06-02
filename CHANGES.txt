@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: ``count(*)`` on a table which has unavailable records will now result
+   in a failure instead of returning only the available records
+
  - fix: insert statements with a large number of multi-values didn't insert all
    rows if the internal threading queues run full.
 

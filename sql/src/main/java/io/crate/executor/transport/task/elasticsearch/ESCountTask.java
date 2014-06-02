@@ -26,9 +26,12 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.planner.node.dql.ESCountNode;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.count.TransportCountAction;
+import org.elasticsearch.index.shard.IndexShardException;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -55,17 +58,7 @@ public class ESCountTask implements Task<Object[][]> {
             result.setException(e);
         }
 
-        listener = new ActionListener<CountResponse>() {
-            @Override
-            public void onResponse(CountResponse countResponse) {
-                result.set(new Object[][] { new Object[] { countResponse.getCount() }});
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                result.setException(e);
-            }
-        };
+        listener = new CountResponseListener(result);
     }
 
     @Override
@@ -81,5 +74,32 @@ public class ESCountTask implements Task<Object[][]> {
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
         throw new UnsupportedOperationException("ESCountTask does not support upstream results");
+    }
+
+    static class CountResponseListener implements ActionListener<CountResponse> {
+
+        private final SettableFuture<Object[][]> result;
+
+        public CountResponseListener(SettableFuture<Object[][]> result) {
+            this.result = result;
+        }
+
+        @Override
+        public void onResponse(CountResponse countResponse) {
+            if (countResponse.getFailedShards() > 0) {
+                ShardOperationFailedException shardOpFailure = countResponse.getShardFailures()[0];
+                result.setException(new IndexShardException(
+                        new ShardId(shardOpFailure.index(), shardOpFailure.shardId()),
+                        shardOpFailure.reason()
+                ));
+            } else {
+                result.set(new Object[][]{new Object[]{countResponse.getCount()}});
+            }
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            result.setException(e);
+        }
     }
 }
