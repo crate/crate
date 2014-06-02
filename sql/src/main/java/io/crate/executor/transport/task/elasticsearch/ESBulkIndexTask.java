@@ -21,6 +21,8 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.ActionListener;
@@ -29,12 +31,18 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ESBulkIndexTask extends AbstractESIndexTask {
 
+    private final static AtomicInteger currentDelay = new AtomicInteger(0);
     private final TransportBulkAction bulkAction;
     private final BulkRequest request;
     private final ActionListener<BulkResponse> listener;
@@ -42,21 +50,68 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
     static class BulkIndexResponseListener implements ActionListener<BulkResponse> {
 
         private final SettableFuture<Object[][]> result;
+        private final long initialRowsAffected;
+        private final ThreadPool threadPool;
+        private final TransportBulkAction bulkAction;
+        private final BulkRequest request;
+        private final ESLogger logger = Loggers.getLogger(getClass());
 
-        BulkIndexResponseListener(SettableFuture<Object[][]> result) {
+        BulkIndexResponseListener(ThreadPool threadPool,
+                                  TransportBulkAction bulkAction,
+                                  BulkRequest request,
+                                  SettableFuture<Object[][]> result,
+                                  long initialRowsAffected) {
+            this.threadPool = threadPool;
+            this.bulkAction = bulkAction;
+            this.request = request;
             this.result = result;
+            this.initialRowsAffected = initialRowsAffected;
         }
 
         @Override
         public void onResponse(BulkResponse bulkItemResponses) {
             BulkItemResponse[] responses = bulkItemResponses.getItems();
-            long rowsAffected = 0L;
+            long rowsAffected = initialRowsAffected;
+            IntArrayList toRetry = new IntArrayList();
+            String lastFailure = null;
+
             for (BulkItemResponse response : responses) {
                 if (!response.isFailed()) {
                     rowsAffected++;
+                } else if (response.getFailureMessage().startsWith("EsRejectedExecution")) {
+                    toRetry.add(response.getItemId());
+                } else {
+                    lastFailure = response.getFailureMessage();
                 }
             }
-            result.set(new Object[][]{new Object[]{rowsAffected}});
+
+            if (!toRetry.isEmpty()) {
+                logger.debug("%s requests failed due to full queue.. retrying", toRetry.size());
+                final BulkRequest bulkRequest = new BulkRequest();
+                for (IntCursor intCursor : toRetry) {
+                    bulkRequest.add(request.requests().get(intCursor.value));
+                }
+
+                final long currentRowsAffected = rowsAffected;
+                threadPool.schedule(TimeValue.timeValueSeconds(currentDelay.incrementAndGet()),
+                        ThreadPool.Names.SAME, new Runnable() {
+                            @Override
+                            public void run() {
+                                bulkAction.execute(bulkRequest, new BulkIndexResponseListener(
+                                        threadPool,
+                                        bulkAction,
+                                        bulkRequest,
+                                        result,
+                                        currentRowsAffected));
+                            }
+                        });
+            } else if (lastFailure == null) {
+                currentDelay.set(0);
+                result.set(new Object[][]{new Object[]{rowsAffected}});
+            } else {
+                currentDelay.set(0);
+                result.setException(new RuntimeException(lastFailure));
+            }
         }
 
         @Override
@@ -65,7 +120,8 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
         }
     }
 
-    public ESBulkIndexTask(TransportBulkAction bulkAction,
+    public ESBulkIndexTask(ThreadPool threadPool,
+                           TransportBulkAction bulkAction,
                            ESIndexNode node) {
         super(node);
         this.bulkAction = bulkAction;
@@ -91,8 +147,7 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
                     node.routingValues().get(i));
             this.request.add(indexRequest);
         }
-
-        this.listener = new BulkIndexResponseListener(result);
+        this.listener = new BulkIndexResponseListener(threadPool, bulkAction, request, result, 0L);
     }
 
     @Override

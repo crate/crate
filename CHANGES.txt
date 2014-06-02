@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: insert statements with a large number of multi-values didn't insert all
+   rows if the internal threading queues run full.
+
  - fix: display nested columns correctly in ``information_schema.table_partitions.values``
 
  - fix: id generation on import via `COPY FROM` were wrong if multiple
