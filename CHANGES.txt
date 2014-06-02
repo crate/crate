@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: display nested columns correctly in ``information_schema.table_partitions.values``
+
  - fix: id generation on import via `COPY FROM` were wrong if multiple
    primary key constraints and clustered-by were used.
    WARNING: records must be re-imported otherwise queries with filter

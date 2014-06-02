@@ -24,6 +24,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import io.crate.PartitionName;
+import io.crate.core.StringUtils;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -82,7 +83,7 @@ public class TablePartitionInfos implements Iterable<TablePartitionInfo> {
                 for (int i = 0; i < info.partitionedByColumns().size(); i++) {
                     // column
                     ReferenceInfo referenceInfo = info.partitionedByColumns().get(i);
-                    String partitionCol = referenceInfo.ident().columnIdent().name();
+                    String partitionCol = StringUtils.dottedToSqlPath(referenceInfo.ident().columnIdent().fqn());
 
                     // value
                     String strValue = pn.values().get(i);

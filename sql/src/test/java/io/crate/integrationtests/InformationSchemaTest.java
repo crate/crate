@@ -28,6 +28,7 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -377,7 +378,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         );
     }
 
-    /* TODO: enable when other information schema tables are implemented
     @Test
     public void testTableConstraintsWithOrderBy() throws Exception {
         execute("create table test1 (col11 integer primary key, col12 float)");
@@ -387,12 +387,15 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select table_name from INFORMATION_SCHEMA.table_constraints ORDER BY " +
                 "table_name");
-        assertEquals(3L, response.rowCount());
+        assertEquals(7L, response.rowCount());
         assertEquals(response.rows()[0][0], "abc");
-        assertEquals(response.rows()[1][0], "test1");
-        assertEquals(response.rows()[2][0], "test2");
+        assertEquals(response.rows()[1][0], "columns");
+        assertEquals(response.rows()[2][0], "nodes");
+        assertEquals(response.rows()[3][0], "shards");
+        assertEquals(response.rows()[4][0], "tables");
+        assertEquals(response.rows()[5][0], "test1");
+        assertEquals(response.rows()[6][0], "test2");
     }
-    */
 
     @Test
     public void testDefaultColumns() throws Exception {
@@ -807,6 +810,28 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertArrayEquals(row3, response.rows()[2]);
         assertArrayEquals(row4, response.rows()[3]);
         assertArrayEquals(row5, response.rows()[4]);
+    }
+
+    @Test
+    public void testInformationSchemaPartitionsNestedCol() throws Exception {
+        execute("create table my_table (id int, metadata object as (date timestamp)) partitioned by (metadata['date'])");
+        ensureGreen();
+        execute("insert into my_table (id, metadata) values (?, ?), (?, ?)",
+                new Object[]{
+                        1, new MapBuilder<String, Object>().put("date","1970-01-01").map(),
+                        2, new MapBuilder<String, Object>().put("date", "2014-05-28").map()
+                }
+                );
+        refresh();
+
+        execute("select * from information_schema.table_partitions order by table_name, partition_ident");
+        assertEquals(2, response.rowCount());
+
+        Object[] row1 = new Object[] { "my_table", "doc", "04130", ImmutableMap.of("metadata['date']", 0L) };
+        Object[] row2 = new Object[] { "my_table", "doc", "04732d1g64p36d9i60o30c1g", ImmutableMap.of("metadata['date']", 1401235200000L) };
+
+        assertArrayEquals(row1, response.rows()[0]);
+        assertArrayEquals(row2, response.rows()[1]);
     }
 
     @Test
