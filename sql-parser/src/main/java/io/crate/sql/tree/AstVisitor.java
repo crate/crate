@@ -544,4 +544,8 @@ public abstract class AstVisitor<R, C>
     public R visitObjectLiteral(ObjectLiteral node, C context) {
         return visitLiteral(node, context);
     }
+
+    public R visitArrayLikePredicate(ArrayLikePredicate node, C context) {
+        return visitExpression(node, context);
+    }
 }

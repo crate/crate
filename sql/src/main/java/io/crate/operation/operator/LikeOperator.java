@@ -87,7 +87,7 @@ public class LikeOperator extends Operator<BytesRef> {
         );
     }
 
-    protected static String patternToRegex(String patternString, char escapeChar, boolean shouldEscape) {
+    public static String patternToRegex(String patternString, char escapeChar, boolean shouldEscape) {
         StringBuilder regex = new StringBuilder(patternString.length() * 2);
 
         regex.append('^');

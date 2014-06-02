@@ -212,6 +212,7 @@ public class TestStatementBuilder
         printStatement("alter table t reset (number_of_replicas)");
         printStatement("alter table t reset (property1, property2, property3)");
 
+        printStatement("select * from t where 'value' LIKE ANY (col)");
     }
 
     @Test

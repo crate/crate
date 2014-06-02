@@ -346,6 +346,24 @@ public final class ExpressionFormatter
         }
 
         @Override
+        public String visitArrayLikePredicate(ArrayLikePredicate node, Void context) {
+            StringBuilder builder = new StringBuilder();
+            builder.append('(')
+                    .append(process(node.getPattern(), null))
+                    .append(" LIKE ")
+                    .append(node.quantifier().name())
+                    .append(" (")
+                    .append(process(node.getValue(), null))
+                    .append(") ");
+            if (node.getEscape() != null) {
+                builder.append("ESCAPE ")
+                        .append(process(node.getEscape(), null));
+            }
+            builder.append(')');
+            return builder.toString();
+        }
+
+        @Override
         protected String visitAllColumns(AllColumns node, Void context)
         {
             if (node.getPrefix().isPresent()) {

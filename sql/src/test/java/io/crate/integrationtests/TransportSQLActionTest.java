@@ -3917,6 +3917,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Integer) response.rows()[0][0], is(2));
         assertThat((Integer) response.rows()[1][0], is(3));
 
+        execute("select id, names from any_table where 'Ber%' LIKE ANY (names) order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((Integer) response.rows()[1][0], is(3));
+
     }
 
     @Test

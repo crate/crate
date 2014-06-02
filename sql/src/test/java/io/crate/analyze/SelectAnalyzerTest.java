@@ -728,9 +728,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis distinctAnalysis = (SelectAnalysis) analyze("select distinct * from users");
         SelectAnalysis groupByAnalysis =
                 (SelectAnalysis) analyze(
-                        "select _version, awesome, details, friends, counters, id, name, other_id " +
+                        "select _version, awesome, details, friends, tags, counters, id, name, other_id " +
                         "from users " +
-                        "group by _version, awesome, details, friends, counters, id, name, other_id");
+                        "group by _version, awesome, details, friends, tags, counters, id, name, other_id");
         assertEquals(groupByAnalysis.groupBy().size(), distinctAnalysis.groupBy().size());
         for (Symbol s : distinctAnalysis.groupBy()) {
             assertTrue(distinctAnalysis.groupBy().contains(s));
@@ -1218,5 +1218,37 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testArithmeticPlus() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select load['1'] + load['5'] from sys.nodes");
         assertThat(((Function) analysis.outputSymbols().get(0)).info().ident().name(), is(AddFunction.NAME));
+    }
+
+    @Test
+    public void testAnyLike() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where 'awesome' LIKE ANY (tags)");
+        assertThat(analysis.whereClause().hasQuery(), is(true));
+        Function query = (Function)analysis.whereClause().query();
+        assertThat(query.info().ident().name(), is("any_like"));
+        assertThat(query.arguments().size(), is(2));
+        assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
+        assertThat(((Reference)query.arguments().get(0)).info().ident().columnIdent().fqn(), is("tags"));
+        assertThat(query.arguments().get(1), instanceOf(Literal.class));
+        assertThat(((Literal<?>)query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
+    }
+
+    @Test
+    public void testAnyLikeLiteralMatchAll() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where 'awesome' LIKE ANY (['a', 'b', 'awesome'])");
+        assertThat(analysis.whereClause().hasQuery(), is(false));
+        assertThat(analysis.whereClause().noMatch(), is(false));
+    }
+
+    @Test
+    public void testAnyLikeLiteralNoMatch() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where 'awesome' LIKE ANY (['a', 'b'])");
+        assertThat(analysis.whereClause().hasQuery(), is(false));
+        assertThat(analysis.whereClause().noMatch(), is(true));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAnyLikeInvalidArray() throws Exception {
+        analyze("select * from users where 'awesome' LIKE ANY (name)");
     }
 }

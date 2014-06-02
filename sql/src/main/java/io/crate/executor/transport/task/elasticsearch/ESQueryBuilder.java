@@ -275,6 +275,7 @@ public class ESQueryBuilder {
                     .put(AnyLteOperator.NAME, lteConverter)
                     .put(AnyGtOperator.NAME, gtConverter)
                     .put(AnyGteOperator.NAME, gteConverter)
+                    .put(AnyLikeOperator.NAME, new LikeConverter())
                     .build();
         }
 

@@ -31,6 +31,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
+import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.DataTypeVisitor;
@@ -211,8 +212,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         // implicitly swapping arguments so we got 1. reference, 2. literal
-        Symbol left = process(node.getRight(), context);
-        Symbol right = process(node.getLeft(), context);
+        Symbol left = process(node.right(), context);
+        Symbol right = process(node.left(), context);
         DataType leftType = DataTypeVisitor.fromSymbol(left);
 
         if (! DataTypes.isCollectionType(leftType)) {
@@ -237,10 +238,48 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         if (swapOperatorTable.containsKey(operationType)) {
             operatorName = AnyOperator.OPERATOR_PREFIX + swapOperatorTable.get(operationType).getValue();
         } else {
-            operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
+            operatorName = AnyOperator.OPERATOR_PREFIX + node.getType().getValue();
         }
         FunctionIdent functionIdent = new FunctionIdent(
                 operatorName, Arrays.asList(leftType, ((Literal)right).valueType()));
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+        return context.allocateFunction(functionInfo, Arrays.asList(left, right));
+    }
+
+    @Override
+    public Symbol visitArrayLikePredicate(ArrayLikePredicate node, T context) {
+        if (node.getEscape() != null) {
+            throw new UnsupportedOperationException("ESCAPE is not supported yet.");
+        }
+        Symbol left = process(node.getValue(), context);
+        Symbol right = process(node.getPattern(), context);
+
+        DataType leftType = DataTypeVisitor.fromSymbol(left);
+
+        if (! DataTypes.isCollectionType(leftType)) {
+            throw new IllegalArgumentException(
+                    SymbolFormatter.format("invalid array expression: '%s'", left));
+        }
+
+        DataType leftInnerType = ((CollectionType)leftType).innerType();
+        if (leftInnerType.id() != StringType.ID) {
+            if (!(left instanceof Reference)) {
+                left = context.normalizeInputForType(left, new ArrayType(DataTypes.STRING));
+            } else {
+                throw new IllegalArgumentException(
+                        SymbolFormatter.format("elements not of type string: '%s'", left));
+            }
+        }
+
+        if (right.symbolType().isValueSymbol()) {
+            right = context.normalizeInputForType(right, leftInnerType);
+        } else {
+            throw new IllegalArgumentException(
+                    "The left side of an ANY comparison must be a value, not a column reference");
+        }
+
+        FunctionIdent functionIdent = new FunctionIdent(
+                AnyLikeOperator.NAME, Arrays.asList(leftType, ((Literal)right).valueType()));
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
         return context.allocateFunction(functionInfo, Arrays.asList(left, right));
     }

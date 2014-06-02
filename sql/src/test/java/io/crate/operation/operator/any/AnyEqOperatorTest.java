@@ -21,10 +21,14 @@
 
 package io.crate.operation.operator.any;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.input.ObjectInput;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -46,6 +50,21 @@ public class AnyEqOperatorTest {
         );
         return anyEqOperator.evaluate(new ObjectInput(value), new ObjectInput(arrayExpr));
 
+    }
+
+    private Boolean anyEqNormalizeSymbol(Object value, Object arrayExpr) {
+        AnyEqOperator anyEqOperator = new AnyEqOperator(
+                new FunctionInfo(
+                        new FunctionIdent("any_=", Arrays.<DataType>asList(new ArrayType(DataTypes.INTEGER), DataTypes.INTEGER)),
+                        DataTypes.BOOLEAN,
+                        false)
+        );
+        Function function = new Function(
+                anyEqOperator.info(),
+                ImmutableList.<Symbol>of(Literal.newLiteral(new ArrayType(DataTypes.INTEGER), arrayExpr),
+                        Literal.newLiteral(DataTypes.INTEGER, value))
+        );
+        return (Boolean)((Literal)anyEqOperator.normalizeSymbol(function)).value();
     }
 
     @Test
@@ -79,10 +98,25 @@ public class AnyEqOperatorTest {
     }
 
     @Test
-    public void testNormalizeSymbolNull() throws Exception {
+    public void testEvaluateNull() throws Exception {
         assertNull(anyEq(null, null));
         assertNull(anyEq(42, null));
         assertNull(anyEq(null, new Object[]{1}));
+    }
+
+    @Test
+    public void testNormalizeSymbolNull() throws Exception {
+        assertNull(anyEqNormalizeSymbol(null, null));
+        assertNull(anyEqNormalizeSymbol(42, null));
+        assertNull(anyEqNormalizeSymbol(null, new Object[]{1}));
+    }
+
+    @Test
+    public void testNormalizeSymbol() throws Exception {
+        assertTrue(anyEqNormalizeSymbol(42, new Object[]{42}));
+        assertTrue(anyEqNormalizeSymbol(42, new Object[]{1, 42, 2}));
+        assertFalse(anyEqNormalizeSymbol(42, new Object[]{}));
+        assertFalse(anyEqNormalizeSymbol(42, new Object[]{41, 43, -42}));
     }
 
 }

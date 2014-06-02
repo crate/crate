@@ -518,6 +518,8 @@ intervalSign returns [IntervalLiteral.Sign value]
 predicate returns [Expression value]
     : ^(BETWEEN v=expr min=expr max=expr) { $value = new BetweenPredicate($v.value, $min.value, $max.value); }
     | ^(LIKE v=expr p=expr esc=expr?)     { $value = new LikePredicate($v.value, $p.value, $esc.value); }
+    | ^(ARRAY_LIKE v=expr quant=setCompareQuantifier p=expr esc=expr?)
+                                          { $value = new ArrayLikePredicate($quant.value, $v.value, $p.value, $esc.value); }
     | ^(IS_NULL expr)                     { $value = new IsNullPredicate($expr.value); }
     | ^(IS_NOT_NULL expr)                 { $value = new IsNotNullPredicate($expr.value); }
     | ^(IN v=expr list=expr)              { $value = new InPredicate($v.value, $list.value); }

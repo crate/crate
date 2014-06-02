@@ -90,18 +90,24 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
             return Literal.NULL;
         }
         if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
-            Literal collLiteral = (Literal)right;
-            Object leftValue = ((Literal)left).value();
+            Literal collLiteral = (Literal)left;
+            Object rightValue = ((Literal)right).value();
             if (!DataTypes.isCollectionType(collLiteral.valueType())) {
                 throw new IllegalArgumentException("invalid array expression");
             }
-            return Literal.newLiteral(doEvaluate(leftValue, (Iterable<?>)collLiteral.value()));
+            Iterable<?> collectionIterable = collectionValueToIterable(collLiteral.value());
+            Boolean result = doEvaluate(rightValue, collectionIterable);
+            if (result == null) {
+                return Literal.NULL;
+            } else {
+                return Literal.newLiteral(result);
+            }
         }
         return symbol;
     }
 
     @SuppressWarnings("unchecked")
-    private Boolean doEvaluate(Object right, Iterable<?> leftIterable) {
+    protected Boolean doEvaluate(Object right, Iterable<?> leftIterable) {
         boolean rightComparable = right instanceof Comparable;
         boolean rightIsMap = right instanceof Map;
 
@@ -137,14 +143,22 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
             return null;
         }
         Iterable<?> leftIterable;
-        if (collectionReference instanceof Object[]) {
-            leftIterable = Arrays.asList((Object[])collectionReference);
-        } else if (collectionReference instanceof Set) {
-            leftIterable = (Set<?>)collectionReference;
-        } else {
+        try {
+           leftIterable = collectionValueToIterable(collectionReference);
+        } catch (IllegalArgumentException e) {
             return false;
         }
         return doEvaluate(value, leftIterable);
+    }
+
+    private Iterable<?> collectionValueToIterable(Object collectionRef) throws IllegalArgumentException {
+        if (collectionRef instanceof Object[]) {
+            return Arrays.asList((Object[])collectionRef);
+        } else if (collectionRef instanceof Set) {
+            return (Set<?>)collectionRef;
+        } else {
+            throw new IllegalArgumentException("cannot cast to Iterable");
+        }
     }
 
     @Override
