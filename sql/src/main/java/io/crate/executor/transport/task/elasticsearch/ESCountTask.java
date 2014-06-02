@@ -23,15 +23,13 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.Task;
 import io.crate.planner.node.dql.ESCountNode;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.count.TransportCountAction;
-import org.elasticsearch.index.shard.IndexShardException;
-import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -87,11 +85,7 @@ public class ESCountTask implements Task<Object[][]> {
         @Override
         public void onResponse(CountResponse countResponse) {
             if (countResponse.getFailedShards() > 0) {
-                ShardOperationFailedException shardOpFailure = countResponse.getShardFailures()[0];
-                result.setException(new IndexShardException(
-                        new ShardId(shardOpFailure.index(), shardOpFailure.shardId()),
-                        shardOpFailure.reason()
-                ));
+                onFailure(new FailedShardsException(countResponse.getShardFailures()));
             } else {
                 result.set(new Object[][]{new Object[]{countResponse.getCount()}});
             }

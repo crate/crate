@@ -23,43 +23,39 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.FailedShardsException;
-import org.elasticsearch.action.ShardOperationFailedException;
-import org.elasticsearch.action.count.CountResponse;
-import org.elasticsearch.action.support.DefaultShardOperationFailedException;
-import org.elasticsearch.index.shard.IndexShardException;
-import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.ShardSearchFailure;
+import org.elasticsearch.search.SearchShardTarget;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.concurrent.ExecutionException;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-public class ESCountTaskTest {
+public class SearchResponseListenerTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void testCountResponseOnShardFailures() throws Throwable {
+    public void testMissingShardsException() throws Throwable {
         expectedException.expect(FailedShardsException.class);
-        expectedException.expectMessage("the shard 2 is not available");
 
         SettableFuture<Object[][]> result = SettableFuture.create();
-        ESCountTask.CountResponseListener listener = new ESCountTask.CountResponseListener(result);
+        ESSearchTask.SearchResponseListener listener = new ESSearchTask.SearchResponseListener(
+                result, null, 4
+        );
 
-
-        ShardOperationFailedException[] shardFailures = new ShardOperationFailedException[] {
-                new DefaultShardOperationFailedException("dummy", 2,
-                        new IndexShardException(new ShardId("dummy", 2), "dummy message"))
-        };
-        CountResponse countResponse = mock(CountResponse.class);
-        when(countResponse.getFailedShards()).thenReturn(1);
-        when(countResponse.getShardFailures()).thenReturn(shardFailures);
-
-        listener.onResponse(countResponse);
+        listener.onResponse(new SearchResponse(
+                null,
+                "dummyScrollId",
+                10,
+                9,
+                200L,
+                new ShardSearchFailure[] {
+                        new ShardSearchFailure("dummy reason", new SearchShardTarget("nodeX", "dummyIndex", 2))
+                }
+        ));
 
         try {
             result.get();
