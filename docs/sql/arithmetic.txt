@@ -13,7 +13,7 @@ numeric data types or timestamps.
     The same restrictions that apply to scalar functions also apply to
     arithmetic operators. See :ref:`scalar`.
 
-supported operators
+Supported operators
 -------------------
 
     ========   =========================================================
@@ -26,15 +26,7 @@ supported operators
     %          finds the remainder of division of one number by another
     ========   =========================================================
 
-::
-
-    cr> select ((2 * 4 - 2 + 1) / 2) % 3  from sys.cluster
-    +---------------------------------+
-    | (((((2 * 4) - 2) + 1) / 2) % 3) |
-    +---------------------------------+
-    | 0                               |
-    +---------------------------------+
-    SELECT 1 row in set (... sec)
+Below is an example using all available arithmetic operators::
 
     cr> select ((2 * 4.0 - 2 + 1) / 2) % 3  from sys.cluster
     +-----------------------------------+
@@ -44,7 +36,19 @@ supported operators
     +-----------------------------------+
     SELECT 1 row in set (... sec)
 
-.. note::
 
-    As shown in the example if any number is of type double all other values
-    will be cast to double as well.
+Result types
+------------
+
+Arithmetic operators always return the data type of the argument with the
+higher precision. In the case of ``divide`` this means that if both arguments
+are of type integer the result will also be an integer with the fractional part
+truncated::
+
+    cr> select 5 / 2,  5 / 2.0 from sys.cluster
+    +---------+-----------+
+    | (5 / 2) | (5 / 2.0) |
+    +---------+-----------+
+    | 2       | 2.5       |
+    +---------+-----------+
+    SELECT 1 row in set (... sec)
