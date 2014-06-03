@@ -5,19 +5,21 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/06/03 0.38.3
+=================
+
  - updated crash to 0.9.10 which includes following changes:
 
-    - NULL values are now handled correctly.
+    - NULL values are handled correctly
 
     - fix: increased precision of float formatting
 
-    - crash renders complex types as json now instead of python representation
+    - crash renders complex types as json instead of their python representation
 
-    - print -1 for rowcount if rowcount is unknown
+    - return -1 for rowcount if rowcount is unknown
 
  - fix: `date_trunc` will now accept literals of type long or string and
    attempt to convert them to a timestamp.
-
 
  - fix: ``count(*)`` on a table which has unavailable records will now result
    in a failure instead of returning only the available records
