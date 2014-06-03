@@ -5,6 +5,14 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crash to 0.9.9 which includes following changes:
+
+    - fix: increased precision of float formatting
+
+    - crash renders complex types as json now instead of python representation
+
+    - print -1 for rowcount if rowcount is unknown
+
  - implemented ``LIKE`` and ``NOT LIKE`` operators on string arrays and sets::
 
         SELECT * from <table> WHERE 'pattern%' [NOT] LIKE (<column>)
