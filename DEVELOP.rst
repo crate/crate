@@ -89,7 +89,7 @@ Run/Debug Configurations
 ------------------------
 
 It is also possible to run Crate Data nodes directly from within IntelliJ. But
-before that can be done a bit of preparation is necessary::
+before that can be done a bit of preparation is necessary.
 
 First create the folders for the configuration and data::
 
@@ -151,7 +151,7 @@ After that the Run/Debug Configurations can be added within IntelliJ. Go to the
 (one for each node) with the following settings:
 
 +--------------------------+-----------------------------------------------+
-| Main class               | io.crate.bootstrap.CrateF                  |
+| Main class               | io.crate.bootstrap.CrateF                     |
 +--------------------------+-----------------------------------------------+
 | VM Options               | -Des.path.home=/full/path/to/sandbox/crate_1/ |
 +--------------------------+-----------------------------------------------+
@@ -179,6 +179,24 @@ execution time by setting the project property ``testForks`` like
 this::
 
   $ ./gradlew test -PtestForks=5
+
+Profiling
+---------
+
+Create profiling reports with `jacoco`_ in every module's ``build/reports/jacoco`` directory::
+
+  $ ./gradlew jacocoTestReport
+
+Findbugs
+--------
+
+Running `FindBugs`_ against our code base::
+
+  $ ./gradlew findBugsMain
+
+the findbugs check will also be executed when running::
+
+  $ ./gradlew check
 
 Benchmark
 =========
@@ -232,3 +250,7 @@ Also the ``itest`` task is run as a dependency of the ``dist`` task.
 .. _OpenJDK: http://openjdk.java.net/projects/jdk7/
 
 .. _`Read the Docs`: http://readthedocs.org
+
+.. _`jacoco`: http://www.eclemma.org/jacoco/
+
+.. _`FindBugs`: http://findbugs.sourceforge.net/
