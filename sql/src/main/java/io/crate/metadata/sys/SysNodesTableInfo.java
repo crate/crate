@@ -26,9 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.StringType;
+import io.crate.types.*;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -77,6 +75,14 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("version", StringType.INSTANCE, ImmutableList.of("number"));
         register("version", StringType.INSTANCE, ImmutableList.of("build_hash"));
         register("version", DataTypes.BOOLEAN, ImmutableList.of("build_snapshot"));
+        register("thread_pools", new ArrayType(DataTypes.OBJECT), null);
+        register("thread_pools", StringType.INSTANCE, ImmutableList.of("name"));
+        register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("active"));
+        register("thread_pools", LongType.INSTANCE, ImmutableList.of("rejected"));
+        register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("largest"));
+        register("thread_pools", LongType.INSTANCE, ImmutableList.of("completed"));
+        register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("threads"));
+        register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("queue"));
     }
 
     private final ClusterService clusterService;

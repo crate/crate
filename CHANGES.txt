@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - implemented `sys.nodes.thread_pools` expressions
+
  - fix: columns of type "ip" are now returned in the string representation
    instead of the internal long format when returned as part of a group by
    query.
@@ -18,6 +20,16 @@ Unreleased
     - display developer news notifications
 
  - implemented ``LIKE`` and ``NOT LIKE`` operators on string arrays and sets::
+
+ - fix: `date_trunc` will now accept literals of type long or string and
+   attempt to convert them to a timestamp.
+
+
+ - fix: ``count(*)`` on a table which has unavailable records will now result
+   in a failure instead of returning only the available records
+
+ - fix: insert statements with a large number of multi-values didn't insert all
+   rows if the internal threading queues run full.
 
         SELECT * from <table> WHERE 'pattern%' [NOT] LIKE (<column>)
 
