@@ -5,15 +5,17 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: display nested columns correctly in ``information_schema.table_partitions.values``
+ - updated crash to 0.9.10 which includes following changes:
 
- - updated crash to 0.9.9 which includes following changes:
+    - NULL values are now handled correctly.
 
     - fix: increased precision of float formatting
 
     - crash renders complex types as json now instead of python representation
 
     - print -1 for rowcount if rowcount is unknown
+
+ - fix: display nested columns correctly in ``information_schema.table_partitions.values``
 
  - implemented ``LIKE`` and ``NOT LIKE`` operators on string arrays and sets::
 
