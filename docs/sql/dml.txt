@@ -232,11 +232,11 @@ contains an element 'netball'::
 
     cr> select race['name'], race['interests'] from locations
     ... where '%books%' LIKE ANY(race['interests']);
-    +----------------+-------------------------------------------+
-    | race['name']   | race['interests']                         |
-    +----------------+-------------------------------------------+
-    | Bartledannians | [u'netball', u'books with 100.000 words'] |
-    +----------------+-------------------------------------------+
+    +----------------+-----------------------------------------+
+    | race['name']   | race['interests']                       |
+    +----------------+-----------------------------------------+
+    | Bartledannians | ["netball", "books with 100.000 words"] |
+    +----------------+-----------------------------------------+
     SELECT 1 row in set (... sec)
 
 Syntax of the ANY Operator:
@@ -280,11 +280,11 @@ The following query can be translated to
 
     cr> select race['name'], race['interests'] from locations
     ... where 'netball' = ANY(race['interests']);
-    +----------------+-------------------------------------------+
-    | race['name']   | race['interests']                         |
-    +----------------+-------------------------------------------+
-    | Bartledannians | [u'netball', u'books with 100.000 words'] |
-    +----------------+-------------------------------------------+
+    +----------------+-----------------------------------------+
+    | race['name']   | race['interests']                       |
+    +----------------+-----------------------------------------+
+    | Bartledannians | ["netball", "books with 100.000 words"] |
+    +----------------+-----------------------------------------+
     SELECT 1 row in set (... sec)
 
 The following query using the negated operator ``!=`` can be translated to
@@ -293,11 +293,11 @@ As you see, the result is the same in this case::
 
     cr> select race['name'], race['interests'] from locations
     ... where 'netball' != ANY(race['interests']);
-    +----------------+-------------------------------------------+
-    | race['name']   | race['interests']                         |
-    +----------------+-------------------------------------------+
-    | Bartledannians | [u'netball', u'books with 100.000 words'] |
-    +----------------+-------------------------------------------+
+    +----------------+-----------------------------------------+
+    | race['name']   | race['interests']                       |
+    +----------------+-----------------------------------------+
+    | Bartledannians | ["netball", "books with 100.000 words"] |
+    +----------------+-----------------------------------------+
     SELECT 1 row in set (... sec)
 
 Negating the ``=`` query from above is totally different. It can be translated to

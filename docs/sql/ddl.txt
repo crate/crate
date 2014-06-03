@@ -815,7 +815,7 @@ If only a single partition should be altered, the partition clause can be used.
 .. Hidden: delete the partition
 
     cr> delete from partitioned_table;
-    DELETE OK, 0 rows affected (... sec)
+    DELETE OK, -1 rows affected (... sec)
 
 .. note::
 
