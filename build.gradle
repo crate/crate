@@ -7,6 +7,10 @@ allprojects {
     repositories {
         mavenCentral()
     }
+
+    findbugs {
+        ignoreFailures = true
+    }
 }
 
 idea {

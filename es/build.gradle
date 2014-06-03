@@ -71,7 +71,12 @@ dependencies {
 sourceSets.test.compileClasspath = configurations.lucenetest + sourceSets.test.compileClasspath
 sourceSets.test.runtimeClasspath = configurations.lucenetest + sourceSets.test.runtimeClasspath
 
-test.enabled = false
+test {
+    enabled = false
+    jacoco {
+        enabled = false
+    }
+}
 
 sourceSets {
     main {
