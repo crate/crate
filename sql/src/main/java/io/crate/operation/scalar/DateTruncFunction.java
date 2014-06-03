@@ -24,23 +24,28 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.StringType;
-import io.crate.types.TimestampType;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.joda.time.DateTimeZone;
 
 public class DateTruncFunction extends BaseDateTruncFunction {
 
     public static void register(ScalarFunctionModule module) {
-        FunctionIdent timestampFunctionIdent = new FunctionIdent(NAME,
-                ImmutableList.<DataType>of(StringType.INSTANCE, TimestampType.INSTANCE));
-        module.register(new DateTruncFunction(
-                new FunctionInfo(timestampFunctionIdent, TimestampType.INSTANCE)));
+        module.register(new DateTruncFunction(new FunctionInfo(
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.TIMESTAMP)),
+                DataTypes.TIMESTAMP)
+        ));
+        module.register(new DateTruncFunction(new FunctionInfo(
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.LONG)),
+                DataTypes.TIMESTAMP)
+        ));
+        module.register(new DateTruncFunction(new FunctionInfo(
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING)),
+                DataTypes.TIMESTAMP)
+        ));
     }
 
     private static final DateTimeZone DEFAULT_TZ = DateTimeZone.UTC;
@@ -55,28 +60,38 @@ public class DateTruncFunction extends BaseDateTruncFunction {
 
         Literal interval = (Literal) symbol.arguments().get(0);
         isValidInterval(interval, symbol);
+        Symbol tsSymbol = symbol.arguments().get(1);
 
-        if (symbol.arguments().get(1).symbolType().isValueSymbol()) {
-            Literal timestamp = (Literal)symbol.arguments().get(1);
+        if (tsSymbol.symbolType().isValueSymbol()) {
             return Literal.newLiteral(
                     DataTypes.TIMESTAMP,
-                    evaluate(interval, timestamp)
+                    evaluate((BytesRef)interval.value(), DataTypes.TIMESTAMP.value(((Input) tsSymbol).value()))
             );
+        } else {
+            assert tsSymbol instanceof DataTypeSymbol;
+            if ( !((DataTypeSymbol) tsSymbol).valueType().equals(DataTypes.TIMESTAMP)) {
+                throw new IllegalArgumentException(SymbolFormatter.format(
+                        "The argument \"%s\" given to the date_trunc function has an invalid data type",
+                        tsSymbol));
+            }
         }
         return symbol;
     }
 
-    @Override
-    public Long evaluate(Input<Object>... args) {
-        assert (args.length == 2);
-        assert (args[0].value() != null);
-        if (args[1].value() == null) {
+    private Long evaluate(BytesRef interval, Long value) {
+        if (value == null) {
             return null;
         }
-        DateTimeUnit fieldParser = DATE_FIELD_PARSERS.get(args[0].value());
+        DateTimeUnit fieldParser = DATE_FIELD_PARSERS.get(interval);
         assert fieldParser != null;
-
-        return truncate(fieldParser, (Long) args[1].value(), DEFAULT_TZ);
+        return truncate(fieldParser, value, DEFAULT_TZ);
     }
 
+    @Override
+    public final Long evaluate(Input[] args) {
+        assert args.length == 2;
+        assert args[0].value() != null;
+        assert args[0].value() instanceof BytesRef;
+        return evaluate((BytesRef)args[0].value(), (Long)args[1].value());
+    }
 }

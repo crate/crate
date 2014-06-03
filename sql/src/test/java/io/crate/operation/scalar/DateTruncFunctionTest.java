@@ -21,9 +21,7 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
@@ -32,9 +30,17 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static io.crate.testing.TestingHelpers.createReference;
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertSame;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -51,9 +57,44 @@ public class DateTruncFunctionTest {
             DataTypes.TIMESTAMP);
     private final DateTruncFunction func = new DateTruncFunction(functionInfo);
 
+    private Functions functions;
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
+
+
+
+    static class TestModule extends ScalarFunctionModule {
+
+        private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
+        private MapBinder<String, DynamicFunctionResolver> resolverBinder;
+
+        public void register(FunctionImplementation impl) {
+            functionBinder.addBinding(impl.info().ident()).toInstance(impl);
+        }
+
+        public void register(String name, DynamicFunctionResolver dynamicFunctionResolver) {
+            resolverBinder.addBinding(name).toInstance(dynamicFunctionResolver);
+        }
+
+        @Override
+        protected void configure() {
+            functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+            resolverBinder = MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
+
+            DateTruncFunction.register(this);
+        }
+    }
+
+    @Before
+    public void setUp() {
+        ModulesBuilder builder = new ModulesBuilder();
+        builder.add(new TestModule());
+        Injector injector = builder.createInjector();
+        functions = injector.getInstance(Functions.class);
+    }
+
 
     protected class DateTruncInput implements Input<Object> {
         private Object o;
@@ -82,6 +123,49 @@ public class DateTruncFunctionTest {
                 new DateTruncInput(timestamp),
         };
         assertThat(func.evaluate(inputs), is(expected));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testDateTruncWithLongLiteral() {
+        Scalar implementation = (Scalar)functions.get(new FunctionIdent(DateTruncFunction.NAME,
+                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG)));
+        assertNotNull(implementation);
+
+        Function function = new Function(implementation.info(), Arrays.<Symbol>asList(
+                Literal.newLiteral("day"),
+                Literal.newLiteral(1401777485000L)
+        ));
+        Literal day = (Literal)implementation.normalizeSymbol(function);
+        assertThat((Long)day.value(), is(1401753600000L));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testDateTruncWithStringLiteral() {
+        Scalar implementation = (Scalar)functions.get(new FunctionIdent(DateTruncFunction.NAME,
+                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)));
+        assertNotNull(implementation);
+
+        Function function = new Function(implementation.info(), Arrays.<Symbol>asList(
+                Literal.newLiteral("day"),
+                Literal.newLiteral("2014-06-03")
+        ));
+        Literal day = (Literal)implementation.normalizeSymbol(function);
+        assertThat((Long)day.value(), is(1401753600000L));
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    @SuppressWarnings("unchecked")
+    public void testDateTruncWithStringReference() {
+        Scalar implementation = (Scalar)functions.get(new FunctionIdent(DateTruncFunction.NAME,
+                Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)));
+        assertNotNull(implementation);
+        Function function = new Function(implementation.info(), Arrays.<Symbol>asList(
+                Literal.newLiteral("day"),
+                createReference("dummy", DataTypes.STRING)
+        ));
+        implementation.normalizeSymbol(function);
     }
 
     @Test(expected = IllegalArgumentException.class)
