@@ -21,16 +21,31 @@
 
 package io.crate.operation.operator.any;
 
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.planner.symbol.Function;
 import io.crate.sql.tree.ComparisonExpression;
 
 public class AnyLteOperator extends AnyOperator<AnyLteOperator> {
 
     public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.LESS_THAN_OR_EQUAL.getValue();
 
+    static class AnyLteResolver extends AnyResolver {
+
+        @Override
+        public FunctionImplementation<Function> newInstance(FunctionInfo info) {
+            return new AnyLteOperator(info);
+        }
+
+        @Override
+        public String name() {
+            return NAME;
+        }
+    }
+
     public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(NAME, new AnyLteOperator());
+        module.registerDynamicOperatorFunction(NAME, new AnyLteResolver());
     }
 
     protected AnyLteOperator() {
@@ -43,15 +58,5 @@ public class AnyLteOperator extends AnyOperator<AnyLteOperator> {
     @Override
     protected boolean compare(int comparisonResult) {
         return comparisonResult <= 0;
-    }
-
-    @Override
-    protected String name() {
-        return NAME;
-    }
-
-    @Override
-    protected AnyLteOperator newInstance(FunctionInfo info) {
-        return new AnyLteOperator(info);
     }
 }

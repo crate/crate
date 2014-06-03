@@ -21,39 +21,45 @@
 
 package io.crate.operation.operator.any;
 
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.planner.symbol.Function;
-import io.crate.sql.tree.ComparisonExpression;
+import org.apache.lucene.util.BytesRef;
 
-public class AnyNeqOperator extends AnyOperator<AnyNeqOperator> {
+public abstract class AbstractAnyLikeOperator<T extends AbstractAnyLikeOperator<?>> extends AnyOperator<T> {
 
-    public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
-
-    static class AnyNeqResolver extends AnyResolver {
-
-        @Override
-        public FunctionImplementation<Function> newInstance(FunctionInfo info) {
-            return new AnyNeqOperator(info);
-        }
-
-        @Override
-        public String name() {
-            return NAME;
-        }
+    @Override
+    protected boolean compare(int comparisonResult) {
+        return false;
     }
 
-    public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(NAME, new AnyNeqResolver());
-    }
-
-    protected AnyNeqOperator(FunctionInfo info) {
+    protected AbstractAnyLikeOperator(FunctionInfo info) {
         super(info);
     }
 
     @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult != 0;
+    protected Boolean doEvaluate(Object right, Iterable<?> leftIterable) {
+        BytesRef rightBytesRef = (BytesRef)right;
+        String pattern = rightBytesRef.utf8ToString();
+
+        boolean hasNull = false;
+        for (Object elem : leftIterable) {
+            if (elem == null) {
+                hasNull = true;
+                continue;
+            }
+            assert (elem instanceof BytesRef || elem instanceof String);
+
+            String elemValue;
+            if (elem instanceof BytesRef) {
+                elemValue = ((BytesRef) elem).utf8ToString();
+            } else {
+                elemValue = (String)elem;
+            }
+            if (matches(elemValue, pattern)) {
+                return true;
+            }
+        }
+        return hasNull ? null : false;
     }
+
+    protected abstract boolean matches(String expression, String pattern);
 }

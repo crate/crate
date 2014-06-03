@@ -110,6 +110,7 @@ tokens {
     NAMED_PROPERTIES;
     ARRAY_CMP;
     ARRAY_LIKE;
+    ARRAY_NOT_LIKE;
     ARRAY_LITERAL;
     OBJECT_LITERAL;
     KEY_VALUE;
@@ -407,8 +408,8 @@ predicate
     : (predicatePrimary -> predicatePrimary)
       ( cmpOp quant=setCmpQuantifier '(' e=predicatePrimary ')'       -> ^(ARRAY_CMP $predicate cmpOp $quant $e)
       | (LIKE setCmpQuantifier) => LIKE quant=setCmpQuantifier '(' e=predicatePrimary ')' (ESCAPE x=predicatePrimary)?          -> ^(ARRAY_LIKE $predicate $quant $e $x?)
-      | (NOT LIKE setCmpQuantifier) => NOT LIKE quant=setCmpQuantifier '(' e=predicatePrimary ')' (ESCAPE x=predicatePrimary)?  -> ^(NOT ^(ARRAY_LIKE $predicate $quant $e $x?))
       | LIKE e=predicatePrimary (ESCAPE x=predicatePrimary)?          -> ^(LIKE $predicate $e $x?)
+      | (NOT LIKE setCmpQuantifier) => NOT LIKE quant=setCmpQuantifier '(' e=predicatePrimary ')' (ESCAPE x=predicatePrimary)?  -> ^(ARRAY_NOT_LIKE $predicate $quant $e $x?)
       | NOT LIKE e=predicatePrimary (ESCAPE x=predicatePrimary)?      -> ^(NOT ^(LIKE $predicate $e $x?))
       | cmpOp e=predicatePrimary                                      -> ^(cmpOp $predicate $e)
       | IS DISTINCT FROM e=predicatePrimary                           -> ^(IS_DISTINCT_FROM $predicate $e)

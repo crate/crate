@@ -5,9 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - implemented ``LIKE`` operator on string arrays and sets::
+ - implemented ``LIKE`` and ``NOT LIKE`` operators on string arrays and sets::
 
-        SELECT * from <table> WHERE 'pattern%' LIKE (<column>)
+        SELECT * from <table> WHERE 'pattern%' [NOT] LIKE (<column>)
 
  - fix: `date_trunc` will now accept literals of type long or string and
    attempt to convert them to a timestamp.

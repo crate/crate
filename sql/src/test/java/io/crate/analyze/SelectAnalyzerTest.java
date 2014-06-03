@@ -1247,6 +1247,20 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.whereClause().noMatch(), is(true));
     }
 
+    @Test
+    public void testAnyNotLike() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where 'awesome' NOT LIKE ANY (tags)");
+        assertThat(analysis.whereClause().hasQuery(), is(true));
+        Function query = (Function) analysis.whereClause().query();
+        assertThat(query.info().ident().name(), is("any_not_like"));
+
+        assertThat(query.arguments().size(), is(2));
+        assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
+        assertThat(((Reference)query.arguments().get(0)).info().ident().columnIdent().fqn(), is("tags"));
+        assertThat(query.arguments().get(1), instanceOf(Literal.class));
+        assertThat(((Literal<?>)query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testAnyLikeInvalidArray() throws Exception {
         analyze("select * from users where 'awesome' LIKE ANY (name)");

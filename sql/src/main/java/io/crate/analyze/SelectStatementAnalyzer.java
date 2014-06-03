@@ -175,7 +175,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     private Symbol ordinalOutputReference(List<Symbol> outputSymbols, Symbol symbol, String clauseName) {
         Symbol s = symbol;
         if (s.symbolType() == SymbolType.PARAMETER) {
-            s = toLiteral(s, DataTypes.LONG);
+            s = Literal.toLiteral(s, DataTypes.LONG);
         }
         int idx;
         if (s.symbolType() == SymbolType.LITERAL && ((Literal)s).valueType().equals(DataTypes.LONG)) {

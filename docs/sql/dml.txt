@@ -269,6 +269,56 @@ result.
 
     - Objects as ``expressions``.
 
+Negating ANY
+............
+
+One important thing to notice when using ANY is that negating the ANY operator
+does not behave as negating normal comparison operators.
+
+The following query can be translated to
+*get all rows where race['interests'] has at least one element that equals 'netball'*::
+
+    cr> select race['name'], race['interests'] from locations
+    ... where 'netball' = ANY(race['interests']);
+    +----------------+-------------------------------------------+
+    | race['name']   | race['interests']                         |
+    +----------------+-------------------------------------------+
+    | Bartledannians | [u'netball', u'books with 100.000 words'] |
+    +----------------+-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+The following query using the negated operator ``!=`` can be translated to
+*get all rows where race['interests'] has at least one element that does not equal 'netball'*.
+As you see, the result is the same in this case::
+
+    cr> select race['name'], race['interests'] from locations
+    ... where 'netball' != ANY(race['interests']);
+    +----------------+-------------------------------------------+
+    | race['name']   | race['interests']                         |
+    +----------------+-------------------------------------------+
+    | Bartledannians | [u'netball', u'books with 100.000 words'] |
+    +----------------+-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+Negating the ``=`` query from above is totally different. It can be translated to
+*get all rows where race['interests'] has no value that equals 'netball'*::
+
+    cr> select race['name'], race['interests'] from locations
+    ... where not 'netball' = ANY(race['interests']) order by race['name'];
+    +--------------+-------------------+
+    | race['name'] | race['interests'] |
+    +--------------+-------------------+
+    | NULL         | NULL              |
+    ...
+    +--------------+-------------------+
+    SELECT 12 rows in set (... sec)
+
+The same behaviour (though different comparison operations involved)
+holds true for operators
+
+ - ``LIKE`` and ``NOT LIKE``
+
+ - all other comparison operators (excluding ``IS NULL`` and ``IS NOT NULL``)
 
 Limits
 ------

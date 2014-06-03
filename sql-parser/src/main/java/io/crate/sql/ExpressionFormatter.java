@@ -350,6 +350,7 @@ public final class ExpressionFormatter
             StringBuilder builder = new StringBuilder();
             builder.append('(')
                     .append(process(node.getPattern(), null))
+                    .append(node.inverse() ? " NOT" : "")
                     .append(" LIKE ")
                     .append(node.quantifier().name())
                     .append(" (")

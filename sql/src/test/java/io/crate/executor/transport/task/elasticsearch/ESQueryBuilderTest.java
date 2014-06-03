@@ -27,6 +27,8 @@ import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.operation.operator.*;
+import io.crate.operation.operator.any.AnyLikeOperator;
+import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
@@ -80,6 +82,9 @@ public class ESQueryBuilderTest {
             new ReferenceIdent(characters, "isParanoid"), RowGranularity.DOC, DataTypes.BOOLEAN));
     static Reference extrafield = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "extrafield"), RowGranularity.DOC, DataTypes.STRING));
+    static Reference tagsField = new Reference(new ReferenceInfo(
+            new ReferenceIdent(characters, "tags"), RowGranularity.DOC, new ArrayType(DataTypes.STRING)
+    ));
     private ESQueryBuilder generator;
 
     private List<DataType> typeX2(DataType type) {
@@ -253,6 +258,28 @@ public class ESQueryBuilderTest {
                 Arrays.<Symbol>asList(name_ref, Literal.newLiteral("arthur")));
 
         xcontentAssert(match, "{\"query\":{\"match\":{\"name\":\"arthur\"}}}");
+    }
+
+    @Test
+    public void testWhereReferenceAnyLike() throws Exception {
+        FunctionIdent functionIdent = new FunctionIdent(AnyLikeOperator.NAME,
+                Arrays.<DataType>asList(new ArrayType(DataTypes.STRING), DataTypes.STRING));
+        FunctionImplementation anyLikeImpl = functions.get(functionIdent);
+        Function anyLike = new Function(anyLikeImpl.info(),
+                Arrays.<Symbol>asList(tagsField,
+                        Literal.newLiteral("foo%")));
+        xcontentAssert(anyLike, "{\"query\":{\"wildcard\":{\"tags\":\"foo*\"}}}");
+    }
+
+    @Test
+    public void testWhereReferenceAnyNotLike() throws Exception {
+        FunctionIdent functionIdent = new FunctionIdent(AnyNotLikeOperator.NAME,
+                Arrays.<DataType>asList(new ArrayType(DataTypes.STRING), DataTypes.STRING));
+        FunctionImplementation anyNotLikeImpl = functions.get(functionIdent);
+        Function anyNotLike = new Function(anyNotLikeImpl.info(),
+                Arrays.<Symbol>asList(tagsField,
+                        Literal.newLiteral("foo%")));
+        xcontentAssert(anyNotLike, "{\"query\":{\"regexp\":{\"tags\":{\"value\":\"~(foo.*)\",\"flags\":\"COMPLEMENT\"}}}}");
     }
 
     @Test

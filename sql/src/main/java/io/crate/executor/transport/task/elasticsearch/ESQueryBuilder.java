@@ -276,6 +276,7 @@ public class ESQueryBuilder {
                     .put(AnyGtOperator.NAME, gtConverter)
                     .put(AnyGteOperator.NAME, gteConverter)
                     .put(AnyLikeOperator.NAME, new LikeConverter())
+                    .put(AnyNotLikeOperator.NAME, new AnyNotLikeConverter())
                     .build();
         }
 
@@ -395,6 +396,21 @@ public class ESQueryBuilder {
             return wildcardString.replaceAll("\\\\_", "_");
         }
 
+        public static String convertWildcardToRegex(String wildcardString) {
+            // lucene uses * and ? as wildcard characters
+            // but via SQL they are used as % and _
+            // here they are converted back.
+            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
+            wildcardString = wildcardString.replaceAll("(?<!\\\\)%", ".*");
+            wildcardString = wildcardString.replaceAll("\\\\%", "%");
+
+            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
+            wildcardString = wildcardString.replaceAll("(?<!\\\\)_", ".");
+            return wildcardString.replaceAll("\\\\_", "_");
+        }
+
+
+
         class LikeConverter extends CmpConverter {
 
             @Override
@@ -403,6 +419,26 @@ public class ESQueryBuilder {
                 String like = prepare.v2().toString();
                 like = convertWildcard(like);
                 context.builder.startObject("wildcard").field(prepare.v1(), like).endObject();
+            }
+        }
+
+        class AnyNotLikeConverter extends LikeConverter {
+
+            public String negateWildcard(String wildCard) {
+                return String.format("~(%s)", wildCard);
+            }
+
+            @Override
+            public void convert(Function function, Context context) throws IOException {
+                Tuple<String, Object> prepare = prepare(function);
+                String notLike = prepare.v2().toString();
+                notLike = negateWildcard(convertWildcardToRegex(notLike));
+                context.builder.startObject("regexp")
+                            .startObject(prepare.v1())
+                            .field("value", notLike)
+                            .field("flags", "COMPLEMENT")
+                            .endObject()
+                            .endObject();
             }
         }
 

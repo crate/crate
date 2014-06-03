@@ -34,13 +34,24 @@ package io.crate.sql.tree;
 public class ArrayLikePredicate extends LikePredicate implements ArrayComparison {
 
     private final Quantifier quantifier;
+    private final boolean inverse;
 
+    /**
+     *
+     * @param quantifier quantifier of comparison operation
+     * @param value array/set expression to apply the like operation on
+     * @param pattern the like pattern used
+     * @param escape the escape value
+     * @param inverse if true, inverse the operation for every single comparison
+     */
     public ArrayLikePredicate(Quantifier quantifier,
                               Expression value,
                               Expression pattern,
-                              Expression escape) {
+                              Expression escape,
+                              boolean inverse) {
         super(pattern, value, escape);
         this.quantifier = quantifier;
+        this.inverse = inverse;
     }
 
     public Quantifier quantifier() {
@@ -57,6 +68,10 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
         return getValue();
     }
 
+    public boolean inverse() {
+        return inverse;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -65,6 +80,7 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
 
         ArrayLikePredicate that = (ArrayLikePredicate) o;
 
+        if (inverse != that.inverse) return false;
         if (quantifier != that.quantifier) return false;
 
         return true;
@@ -74,6 +90,7 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + quantifier.hashCode();
+        result = 31 * result + (inverse ? 1 : 0);
         return result;
     }
 

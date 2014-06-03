@@ -42,9 +42,6 @@ public class IsNullPredicate<T> implements Scalar<Boolean, T> {
 
     public static void register(PredicateModule module) {
         for (DataType type : DataTypes.PRIMITIVE_TYPES) {
-            if (type.equals(DataTypes.OBJECT)) {
-                continue;
-            }
             module.registerPredicateFunction(new IsNullPredicate(generateInfo(type)));
             module.registerPredicateFunction(new IsNullPredicate(generateInfo(new SetType(type))));
             module.registerPredicateFunction(new IsNullPredicate(generateInfo(new ArrayType(type))));

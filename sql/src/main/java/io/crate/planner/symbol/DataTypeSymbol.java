@@ -26,4 +26,12 @@ import io.crate.types.DataType;
 public abstract class DataTypeSymbol extends Symbol {
 
     public abstract DataType valueType();
+
+    public static DataTypeSymbol toDataTypeSymbol(Symbol symbol, DataType type) {
+        if (symbol.symbolType().isValueSymbol()) {
+            return Literal.toLiteral(symbol, type);
+        }
+        assert symbol instanceof DataTypeSymbol;
+        return (DataTypeSymbol)symbol;
+    }
 }
