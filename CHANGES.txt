@@ -5,7 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - updated crash to 0.9.9 which includes following changes:
+ - updated crash to 0.9.10 which includes following changes:
+
+    - NULL values are now handled correctly.
 
     - fix: increased precision of float formatting
 
