@@ -26,6 +26,8 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.action.sql.SQLResponse;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -65,13 +67,20 @@ public class RowsResponseBuilder implements ResponseBuilder {
         // and we have no case in which another Task returns a Map with ByteRefs/Strings inside.
         final IntArrayList stringColumns = new IntArrayList();
         final IntArrayList stringCollectionColumns = new IntArrayList();
+        final IntArrayList ipColumns = new IntArrayList();
+        final IntArrayList ipCollectionColumns = new IntArrayList();
         int idx = 0;
         for (DataType dataType : dataTypes) {
             if (dataType.equals(DataTypes.STRING)) {
                 stringColumns.add(idx);
+            } else if (dataType.equals(DataTypes.IP)) {
+                ipColumns.add(idx);
             } else if ((DataTypes.isCollectionType(dataType)
                     && ((CollectionType)dataType).innerType().equals(StringType.INSTANCE))) {
                 stringCollectionColumns.add(idx);
+            } else if ((DataTypes.isCollectionType(dataType)
+                    && ((CollectionType)dataType).innerType().equals(IpType.INSTANCE))) {
+                ipCollectionColumns.add(idx);
             }
             idx++;
         }
@@ -83,22 +92,14 @@ public class RowsResponseBuilder implements ResponseBuilder {
                     rows[r][stringColumn.value] = ((BytesRef)value).utf8ToString();
                 }
             }
-
             for (IntCursor stringCollectionColumn : stringCollectionColumns) {
                 Object value = rows[r][stringCollectionColumn.value];
                 if (value != null) {
-                    Iterator<BytesRef> iter = null;
-                    int size;
-                    if (value instanceof Set) {
-                        Set<BytesRef> bytesRefSet = ((Set<BytesRef>) value);
-                        iter = bytesRefSet.iterator();
-                        size = bytesRefSet.size();
-                    } else if (value instanceof BytesRef[]) {
-                        BytesRef[] bytesRefArray = (BytesRef[])value;
-                        iter = Arrays.asList(bytesRefArray).iterator();
-                        size = bytesRefArray.length;
-                    } else {
-                        return;
+                    Tuple<Iterator<BytesRef>, Integer> tuple = iteratorFromCollection(value);
+                    Iterator<BytesRef> iter = tuple.v1();
+                    Integer size = tuple.v2();
+                    if (iter == null) {
+                        continue;
                     }
 
                     String[] valuesString = new String[size];
@@ -109,6 +110,46 @@ public class RowsResponseBuilder implements ResponseBuilder {
                     rows[r][stringCollectionColumn.value] = valuesString;
                 }
             }
+
+            for (IntCursor ipColumn : ipColumns) {
+                Object value = rows[r][ipColumn.value];
+                if (value != null && value instanceof BytesRef) {
+                    rows[r][ipColumn.value] = IpFieldMapper.longToIp(new Long(((BytesRef) value).utf8ToString()));
+                }
+            }
+            for (IntCursor ipCollectionColumn : ipCollectionColumns) {
+                Object value = rows[r][ipCollectionColumn.value];
+                if (value != null) {
+                    Tuple<Iterator<BytesRef>, Integer> tuple = iteratorFromCollection(value);
+                    Iterator<BytesRef> iter = tuple.v1();
+                    Integer size = tuple.v2();
+                    if (iter == null) {
+                        continue;
+                    }
+
+                    String[] valuesString = new String[size];
+                    for (int i = 0; i < size; i++) {
+                        BytesRef currentValue = iter.next();
+                        valuesString[i] = currentValue == null ? null : IpFieldMapper.longToIp(new Long(currentValue.utf8ToString()));
+                    }
+                    rows[r][ipCollectionColumn.value] = valuesString;
+                }
+            }
         }
+    }
+
+    private Tuple<Iterator<BytesRef>, Integer> iteratorFromCollection(Object value) {
+        Iterator<BytesRef> iter = null;
+        Integer size = 0;
+        if (value instanceof Set) {
+            Set<BytesRef> bytesRefSet = ((Set<BytesRef>) value);
+            iter = bytesRefSet.iterator();
+            size = bytesRefSet.size();
+        } else if (value instanceof BytesRef[]) {
+            BytesRef[] array = (BytesRef[])value;
+            iter = Arrays.asList(array).iterator();
+            size = array.length;
+        }
+        return new Tuple<>(iter, size);
     }
 }

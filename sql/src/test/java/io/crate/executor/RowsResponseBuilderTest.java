@@ -28,12 +28,14 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -54,7 +56,7 @@ public class RowsResponseBuilderTest {
 
         rows[0][0] = refs;
         SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L, false);
-        assertThat(commaJoiner.join((String[])response.rows()[0][0]), is("foo, bar"));
+        assertThat((String[])response.rows()[0][0], arrayContainingInAnyOrder("foo", "bar"));
     }
 
     @Test
@@ -70,6 +72,37 @@ public class RowsResponseBuilderTest {
         rows[0][0] = refs;
         SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L, false);
         assertThat(commaJoiner.join((String[])response.rows()[0][0]), is("foo, bar"));
+    }
+
+    @Test
+    public void testBuildResponseSetIpString() throws Exception {
+        boolean convertBytesRef = true;
+        RowsResponseBuilder rrb = new RowsResponseBuilder(convertBytesRef);
+
+        String[] outputNames = new String[] { "col" };
+        DataType[] dataTypes = new DataType[] { new SetType(DataTypes.IP) };
+        Object[][] rows = new Object[1][1];
+        Set<BytesRef> refs = new HashSet<>(
+                Arrays.asList(new BytesRef(new Long(IpFieldMapper.ipToLong("127.0.0.1")).toString()), new BytesRef(new Long(IpFieldMapper.ipToLong("192.168.0.1")).toString())));
+
+        rows[0][0] = refs;
+        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L, false);
+        assertThat((String[])response.rows()[0][0], arrayContainingInAnyOrder("127.0.0.1", "192.168.0.1"));
+    }
+
+    @Test
+    public void testBuildResponseArrayIpString() throws Exception {
+        boolean convertBytesRef = true;
+        RowsResponseBuilder rrb = new RowsResponseBuilder(convertBytesRef);
+
+        String[] outputNames = new String[] { "col" };
+        DataType[] dataTypes = new DataType[] { new ArrayType(DataTypes.IP) };
+        Object[][] rows = new Object[1][1];
+        BytesRef[] refs = new BytesRef[] { new BytesRef(new Long(IpFieldMapper.ipToLong("127.0.0.1")).toString()), new BytesRef(new Long(IpFieldMapper.ipToLong("192.168.0.1")).toString()) };
+
+        rows[0][0] = refs;
+        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L, false);
+        assertThat(commaJoiner.join((String[])response.rows()[0][0]), is("127.0.0.1, 192.168.0.1"));
     }
 
 }
