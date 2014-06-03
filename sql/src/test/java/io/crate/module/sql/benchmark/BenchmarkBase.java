@@ -37,6 +37,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ElasticsearchTestCase;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -50,6 +51,7 @@ import static io.crate.test.integration.PathAccessor.bytesFromPath;
 
 
 @RunWith(JUnit4.class)
+@Ignore
 public class BenchmarkBase extends TestCase {
 
     static {
@@ -107,7 +109,7 @@ public class BenchmarkBase extends TestCase {
                     " \"isoAlpha3\" string," +
                     " \"isoNumeric\" string," +
                     " population integer" +
-                    ") clustered into 2 shards replicas 0", new Object[0], false);
+                    ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
             refresh(client());
             if (loadData()) {
                 doLoadData();
