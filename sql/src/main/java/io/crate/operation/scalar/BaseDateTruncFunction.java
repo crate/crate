@@ -66,7 +66,8 @@ public abstract class BaseDateTruncFunction implements Scalar<Long, Object> {
      * @throws java.lang.IllegalArgumentException in case of invalid <code>interval</code>
      */
     protected boolean isValidInterval(Literal interval, Function symbol) {
-        if (!DATE_FIELD_PARSERS.containsKey((BytesRef)interval.value())) {
+        assert interval.value() instanceof BytesRef;
+        if (!DATE_FIELD_PARSERS.containsKey(interval.value())) {
             throw new IllegalArgumentException(
                     SymbolFormatter.format("unknown interval %s for '%s'", interval, symbol));
         }
@@ -76,10 +77,6 @@ public abstract class BaseDateTruncFunction implements Scalar<Long, Object> {
     /**
      * Truncates given <code>timestamp</code> down to the given <code>interval</code>.
      * The <code>timestamp</code> is expected to be in milliseconds.
-     * @param interval
-     * @param ts
-     * @param tz
-     * @return
      */
     protected Long truncate(DateTimeUnit interval, Long ts, DateTimeZone tz) {
         TimeZoneRounding.Builder tzRoundingBuilder;
