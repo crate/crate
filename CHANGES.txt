@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: columns of type `ip` were not returned as string on group-by
+   clause or global aggregations
+
  - fix: `date_trunc` will now accept literals of type long or string and
    attempt to convert them to a timestamp.
 

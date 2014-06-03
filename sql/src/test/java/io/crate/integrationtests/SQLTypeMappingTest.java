@@ -432,4 +432,19 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("select count(*) from ut group by location");
     }
 
+    @Test
+    public void testIpMappingGroupBy() throws Exception {
+        setUpSimple(1);
+
+        execute("insert into t1 (id, ip_field) values (?, ?), (?, ?)",
+                new Object[]{1, "127.0.0.1", 2, "127.0.0.1"});
+        refresh();
+
+        execute("select count(*), ip_field from t1 group by ip_field");
+
+        assertEquals(1L, response.rowCount());
+        assertEquals(2L, response.rows()[0][0]);
+        assertEquals("127.0.0.1", response.rows()[0][1]);
+    }
+
 }
