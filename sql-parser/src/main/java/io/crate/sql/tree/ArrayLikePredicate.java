@@ -21,34 +21,55 @@
 
 package io.crate.sql.tree;
 
-public class ArrayComparisonExpression extends ComparisonExpression implements ArrayComparison {
+/**
+ * ATTENTION! pattern and value swapped. use left and right
+ * because they appear on wrong order in ANY LIKE predicate.
+ *
+ * <code><PATTERN> LIKE (<COLUMN>) [ ESCAPE <ESCAPE_VALUE> ]</code>
+ *
+ *
+ * left is pattern
+ * right is the array expression
+ */
+public class ArrayLikePredicate extends LikePredicate implements ArrayComparison {
 
     private final Quantifier quantifier;
+    private final boolean inverse;
 
-    public ArrayComparisonExpression(Type type, Quantifier quantifier,
-                                     Expression left, Expression right) {
-        super(type, left, right);
+    /**
+     *
+     * @param quantifier quantifier of comparison operation
+     * @param value array/set expression to apply the like operation on
+     * @param pattern the like pattern used
+     * @param escape the escape value
+     * @param inverse if true, inverse the operation for every single comparison
+     */
+    public ArrayLikePredicate(Quantifier quantifier,
+                              Expression value,
+                              Expression pattern,
+                              Expression escape,
+                              boolean inverse) {
+        super(pattern, value, escape);
         this.quantifier = quantifier;
+        this.inverse = inverse;
     }
 
-    @Override
     public Quantifier quantifier() {
         return quantifier;
     }
 
     @Override
     public Expression left() {
-        return getLeft();
+        return getPattern();
     }
 
     @Override
     public Expression right() {
-        return getRight();
+        return getValue();
     }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitArrayComparisonExpression(this, context);
+    public boolean inverse() {
+        return inverse;
     }
 
     @Override
@@ -57,8 +78,9 @@ public class ArrayComparisonExpression extends ComparisonExpression implements A
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
 
-        ArrayComparisonExpression that = (ArrayComparisonExpression) o;
+        ArrayLikePredicate that = (ArrayLikePredicate) o;
 
+        if (inverse != that.inverse) return false;
         if (quantifier != that.quantifier) return false;
 
         return true;
@@ -67,7 +89,13 @@ public class ArrayComparisonExpression extends ComparisonExpression implements A
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + (quantifier != null ? quantifier.hashCode() : 0);
+        result = 31 * result + quantifier.hashCode();
+        result = 31 * result + (inverse ? 1 : 0);
         return result;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitArrayLikePredicate(this, context);
     }
 }

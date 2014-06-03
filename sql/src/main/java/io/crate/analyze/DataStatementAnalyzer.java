@@ -31,6 +31,8 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
+import io.crate.operation.operator.any.AnyLikeOperator;
+import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.DataTypeVisitor;
@@ -114,7 +116,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             Symbol right = expression.accept(this, context);
             Literal rightLiteral;
             try {
-                rightLiteral = toLiteral(right, leftType);
+                rightLiteral = Literal.toLiteral(right, leftType);
                 rightValues.add(rightLiteral.value());
             } catch (IllegalArgumentException | ClassCastException e) {
                    throw new IllegalArgumentException(
@@ -211,8 +213,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         // implicitly swapping arguments so we got 1. reference, 2. literal
-        Symbol left = process(node.getRight(), context);
-        Symbol right = process(node.getLeft(), context);
+        Symbol left = process(node.right(), context);
+        Symbol right = process(node.left(), context);
         DataType leftType = DataTypeVisitor.fromSymbol(left);
 
         if (! DataTypes.isCollectionType(leftType)) {
@@ -227,7 +229,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         if (right.symbolType().isValueSymbol()) {
-            right = toLiteral(right, leftInnerType);
+            right = Literal.toLiteral(right, leftInnerType);
         } else {
             throw new IllegalArgumentException(
                     "The left side of an ANY comparison must be a value, not a column reference");
@@ -237,8 +239,47 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         if (swapOperatorTable.containsKey(operationType)) {
             operatorName = AnyOperator.OPERATOR_PREFIX + swapOperatorTable.get(operationType).getValue();
         } else {
-            operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
+            operatorName = AnyOperator.OPERATOR_PREFIX + node.getType().getValue();
         }
+        FunctionIdent functionIdent = new FunctionIdent(
+                operatorName, Arrays.asList(leftType, ((Literal)right).valueType()));
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+        return context.allocateFunction(functionInfo, Arrays.asList(left, right));
+    }
+
+    @Override
+    public Symbol visitArrayLikePredicate(ArrayLikePredicate node, T context) {
+        if (node.getEscape() != null) {
+            throw new UnsupportedOperationException("ESCAPE is not supported.");
+        }
+        Symbol left = process(node.getValue(), context);
+        Symbol right = process(node.getPattern(), context);
+
+        DataType leftType = DataTypeVisitor.fromSymbol(left);
+
+        if (! DataTypes.isCollectionType(leftType)) {
+            throw new IllegalArgumentException(
+                    SymbolFormatter.format("invalid array expression: '%s'", left));
+        }
+
+        DataType leftInnerType = ((CollectionType)leftType).innerType();
+        if (leftInnerType.id() != StringType.ID) {
+            if (!(left instanceof Reference)) {
+                left = context.normalizeInputForType(left, new ArrayType(DataTypes.STRING));
+            } else {
+                throw new IllegalArgumentException(
+                        SymbolFormatter.format("elements not of type string: '%s'", left));
+            }
+        }
+
+        if (right.symbolType().isValueSymbol()) {
+            right = context.normalizeInputForType(right, leftInnerType);
+        } else {
+            throw new IllegalArgumentException(
+                    "The left side of an ANY comparison must be a value, not a column reference");
+        }
+        String operatorName = node.inverse() ? AnyNotLikeOperator.NAME : AnyLikeOperator.NAME;
+
         FunctionIdent functionIdent = new FunctionIdent(
                 operatorName, Arrays.asList(leftType, ((Literal)right).valueType()));
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
@@ -476,7 +517,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                                         "array element %s not of array item type %s",
                                         e, innerType));
                     }
-                    literals.add(toLiteral(arrayElement, innerType));
+                    literals.add(Literal.toLiteral(arrayElement, innerType));
                 }
                 return Literal.implodeCollection(innerType, literals);
         }
@@ -512,28 +553,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     @Override
     public Symbol visitParameterExpression(ParameterExpression node, T context) {
         return new Parameter(context.parameterAt(node.index()));
-    }
-
-    static Literal toLiteral(Symbol symbol, DataType type) throws IllegalArgumentException {
-        switch (symbol.symbolType()) {
-            case PARAMETER:
-                return Literal.newLiteral(type, type.value(((Parameter)symbol).value()));
-            case LITERAL:
-                Literal literal = (Literal)symbol;
-                if (literal.valueType().equals(type)) {
-                    return literal;
-                }
-                return Literal.newLiteral(type, type.value(literal.value()));
-        }
-        throw new IllegalArgumentException("expected a parameter or literal symbol");
-    }
-
-    static DataTypeSymbol toDataTypeSymbol(Symbol symbol, DataType type) {
-        if (symbol.symbolType().isValueSymbol()) {
-            return toLiteral(symbol, type);
-        }
-        assert symbol instanceof DataTypeSymbol;
-        return (DataTypeSymbol)symbol;
     }
 
     private static class Comparison {
@@ -587,8 +606,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         private void castTypes() {
             if (leftType == rightType) {
                 // change parameter to literals so that the guessed type isn't lost.
-                left = toDataTypeSymbol(left, leftType);
-                right = toDataTypeSymbol(right, rightType);
+                left = DataTypeSymbol.toDataTypeSymbol(left, leftType);
+                right = DataTypeSymbol.toDataTypeSymbol(right, rightType);
                 return;
             }
             if (left instanceof Reference && right instanceof Reference) {
@@ -598,8 +617,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
             assert right.symbolType().isValueSymbol();
             try {
-                left = toDataTypeSymbol(left, leftType);
-                right = toDataTypeSymbol(right, leftType);
+                left = DataTypeSymbol.toDataTypeSymbol(left, leftType);
+                right = DataTypeSymbol.toDataTypeSymbol(right, leftType);
             } catch (ClassCastException e) {
                 throw new IllegalArgumentException(SymbolFormatter.format(
                         "type of \"%s\" doesn't match type of \"%s\" and cannot be cast implicitly",

@@ -23,19 +23,22 @@ package io.crate.operation.operator.any;
 
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.operation.operator.LikeOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.symbol.Function;
-import io.crate.sql.tree.ComparisonExpression;
 
-public class AnyEqOperator extends AnyOperator<AnyEqOperator> {
+import java.util.regex.Pattern;
 
-    public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
 
-    static class AnyEqResolver extends AnyResolver {
+public class AnyLikeOperator extends AbstractAnyLikeOperator<AnyLikeOperator> {
+
+    public static final String NAME = AnyOperator.OPERATOR_PREFIX + "like";
+
+    static class AnyLikeResolver extends AnyResolver {
 
         @Override
         public FunctionImplementation<Function> newInstance(FunctionInfo info) {
-            return new AnyEqOperator(info);
+            return new AnyLikeOperator(info);
         }
 
         @Override
@@ -45,15 +48,17 @@ public class AnyEqOperator extends AnyOperator<AnyEqOperator> {
     }
 
     public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(NAME, new AnyEqResolver());
+        module.registerDynamicOperatorFunction(NAME, new AnyLikeResolver());
     }
 
-    protected AnyEqOperator(FunctionInfo functionInfo) {
-        super(functionInfo);
+    public AnyLikeOperator(FunctionInfo info) {
+        super(info);
     }
 
-    @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult == 0;
+    protected boolean matches(String expression, String pattern) {
+        return Pattern.matches(
+                LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true),
+                expression
+        );
     }
 }

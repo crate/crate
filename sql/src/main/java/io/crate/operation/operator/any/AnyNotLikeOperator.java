@@ -23,19 +23,21 @@ package io.crate.operation.operator.any;
 
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.operation.operator.LikeOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.symbol.Function;
-import io.crate.sql.tree.ComparisonExpression;
 
-public class AnyEqOperator extends AnyOperator<AnyEqOperator> {
+import java.util.regex.Pattern;
 
-    public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
+public class AnyNotLikeOperator extends AbstractAnyLikeOperator<AnyNotLikeOperator> {
 
-    static class AnyEqResolver extends AnyResolver {
+    public static final String NAME = AnyOperator.OPERATOR_PREFIX + "not_like";
+
+    static class AnyNotLikeResolver extends AnyResolver {
 
         @Override
         public FunctionImplementation<Function> newInstance(FunctionInfo info) {
-            return new AnyEqOperator(info);
+            return new AnyNotLikeOperator(info);
         }
 
         @Override
@@ -44,16 +46,19 @@ public class AnyEqOperator extends AnyOperator<AnyEqOperator> {
         }
     }
 
-    public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(NAME, new AnyEqResolver());
+    public static void register(OperatorModule operatorModule) {
+        operatorModule.registerDynamicOperatorFunction(NAME, new AnyNotLikeResolver());
     }
 
-    protected AnyEqOperator(FunctionInfo functionInfo) {
-        super(functionInfo);
+    public AnyNotLikeOperator(FunctionInfo info) {
+        super(info);
     }
 
     @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult == 0;
+    protected boolean matches(String expression, String pattern) {
+        return !Pattern.matches(
+                LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true),
+                expression
+        );
     }
 }

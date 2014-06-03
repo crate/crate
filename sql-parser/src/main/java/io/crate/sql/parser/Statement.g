@@ -109,6 +109,8 @@ tokens {
     ANALYZER_ELEMENTS;
     NAMED_PROPERTIES;
     ARRAY_CMP;
+    ARRAY_LIKE;
+    ARRAY_NOT_LIKE;
     ARRAY_LITERAL;
     OBJECT_LITERAL;
     KEY_VALUE;
@@ -404,18 +406,20 @@ booleanPrimary
 
 predicate
     : (predicatePrimary -> predicatePrimary)
-      ( cmpOp quant=setCmpQuantifier '(' e=predicatePrimary ')'   -> ^(ARRAY_CMP $predicate cmpOp $quant $e)
-      | cmpOp e=predicatePrimary                                  -> ^(cmpOp $predicate $e)
-      | IS DISTINCT FROM e=predicatePrimary                       -> ^(IS_DISTINCT_FROM $predicate $e)
-      | IS NOT DISTINCT FROM e=predicatePrimary                   -> ^(NOT ^(IS_DISTINCT_FROM $predicate $e))
-      | BETWEEN min=predicatePrimary AND max=predicatePrimary     -> ^(BETWEEN $predicate $min $max)
-      | NOT BETWEEN min=predicatePrimary AND max=predicatePrimary -> ^(NOT ^(BETWEEN $predicate $min $max))
-      | LIKE e=predicatePrimary (ESCAPE x=predicatePrimary)?      -> ^(LIKE $predicate $e $x?)
-      | NOT LIKE e=predicatePrimary (ESCAPE x=predicatePrimary)?  -> ^(NOT ^(LIKE $predicate $e $x?))
-      | IS NULL                                                   -> ^(IS_NULL $predicate)
-      | IS NOT NULL                                               -> ^(IS_NOT_NULL $predicate)
-      | IN inList                                                 -> ^(IN $predicate inList)
-      | NOT IN inList                                             -> ^(NOT ^(IN $predicate inList))
+      ( cmpOp quant=setCmpQuantifier '(' e=predicatePrimary ')'       -> ^(ARRAY_CMP $predicate cmpOp $quant $e)
+      | (LIKE setCmpQuantifier) => LIKE quant=setCmpQuantifier '(' e=predicatePrimary ')' (ESCAPE x=predicatePrimary)?          -> ^(ARRAY_LIKE $predicate $quant $e $x?)
+      | LIKE e=predicatePrimary (ESCAPE x=predicatePrimary)?          -> ^(LIKE $predicate $e $x?)
+      | (NOT LIKE setCmpQuantifier) => NOT LIKE quant=setCmpQuantifier '(' e=predicatePrimary ')' (ESCAPE x=predicatePrimary)?  -> ^(ARRAY_NOT_LIKE $predicate $quant $e $x?)
+      | NOT LIKE e=predicatePrimary (ESCAPE x=predicatePrimary)?      -> ^(NOT ^(LIKE $predicate $e $x?))
+      | cmpOp e=predicatePrimary                                      -> ^(cmpOp $predicate $e)
+      | IS DISTINCT FROM e=predicatePrimary                           -> ^(IS_DISTINCT_FROM $predicate $e)
+      | IS NOT DISTINCT FROM e=predicatePrimary                       -> ^(NOT ^(IS_DISTINCT_FROM $predicate $e))
+      | BETWEEN min=predicatePrimary AND max=predicatePrimary         -> ^(BETWEEN $predicate $min $max)
+      | NOT BETWEEN min=predicatePrimary AND max=predicatePrimary     -> ^(NOT ^(BETWEEN $predicate $min $max))
+      | IS NULL                                                       -> ^(IS_NULL $predicate)
+      | IS NOT NULL                                                   -> ^(IS_NOT_NULL $predicate)
+      | IN inList                                                     -> ^(IN $predicate inList)
+      | NOT IN inList                                                 -> ^(NOT ^(IN $predicate inList))
       )*
     ;
 

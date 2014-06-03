@@ -3917,6 +3917,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Integer) response.rows()[0][0], is(2));
         assertThat((Integer) response.rows()[1][0], is(3));
 
+        execute("select id, names from any_table where 'Ber%' LIKE ANY (names) order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((Integer) response.rows()[1][0], is(3));
+
     }
 
     @Test
@@ -3934,6 +3939,23 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Integer)response.rows()[0][0], is(1));
         assertThat((Integer)response.rows()[1][0], is(2));
         assertThat((Integer)response.rows()[2][0], is(3));
+    }
+
+    @Test
+    public void testAnyLike() throws Exception {
+        this.setup.setUpArrayTables();
+
+        execute("select id from any_table where 'kuh%' LIKE ANY (tags) order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer)response.rows()[0][0], is(3));
+        assertThat((Integer)response.rows()[1][0], is(4));
+
+        execute("select id from any_table where 'kuh%' NOT LIKE ANY (tags) order by id");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((Integer)response.rows()[1][0], is(2));
+        assertThat((Integer)response.rows()[2][0], is(3));
+
     }
 
     @Test

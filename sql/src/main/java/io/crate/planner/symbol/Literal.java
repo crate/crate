@@ -184,4 +184,29 @@ public class Literal<ReturnType>
     public static Literal<Float> newLiteral(Float value) {
         return new Literal<>(DataTypes.FLOAT, value);
     }
+
+    public static Literal toLiteral(Symbol symbol, DataType type) throws IllegalArgumentException {
+        switch (symbol.symbolType()) {
+            case PARAMETER:
+                return Literal.newLiteral(type, type.value(((Parameter)symbol).value()));
+            case LITERAL:
+                Literal literal = (Literal)symbol;
+                if (literal.valueType().equals(type)) {
+                    return literal;
+                }
+                return Literal.newLiteral(type, type.value(literal.value()));
+        }
+        throw new IllegalArgumentException("expected a parameter or literal symbol");
+    }
+
+    public static Literal toLiteral(Symbol s) {
+        switch (s.symbolType()) {
+            case PARAMETER:
+                return Literal.fromParameter((Parameter) s);
+            case LITERAL:
+                return (Literal) s;
+            default:
+                throw new IllegalArgumentException("expected a parameter or literal symbol");
+        }
+    }
 }

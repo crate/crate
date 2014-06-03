@@ -21,19 +21,31 @@
 
 package io.crate.operation.operator.any;
 
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.planner.symbol.Function;
 import io.crate.sql.tree.ComparisonExpression;
 
 public class AnyGtOperator extends AnyOperator<AnyGtOperator> {
 
     public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.GREATER_THAN.getValue();
 
-    public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(NAME, new AnyGtOperator());
+    static class AnyGtResolver extends AnyResolver {
+
+        @Override
+        public FunctionImplementation<Function> newInstance(FunctionInfo info) {
+            return new AnyGtOperator(info);
+        }
+
+        @Override
+        public String name() {
+            return NAME;
+        }
     }
 
-    protected AnyGtOperator() {
+    public static void register(OperatorModule module) {
+        module.registerDynamicOperatorFunction(NAME, new AnyGtResolver());
     }
 
     protected AnyGtOperator(FunctionInfo functionInfo) {
@@ -43,15 +55,5 @@ public class AnyGtOperator extends AnyOperator<AnyGtOperator> {
     @Override
     protected boolean compare(int comparisonResult) {
         return comparisonResult > 0;
-    }
-
-    @Override
-    protected String name() {
-        return NAME;
-    }
-
-    @Override
-    protected AnyGtOperator newInstance(FunctionInfo info) {
-        return new AnyGtOperator(info);
     }
 }

@@ -26,9 +26,7 @@ import io.crate.core.collections.MapComparator;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.operator.Operator;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
@@ -37,8 +35,7 @@ import io.crate.types.DataTypes;
 import java.util.*;
 
 public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Object>
-                                                             implements Scalar<Boolean, Object>,
-                                                                        DynamicFunctionResolver {
+                                                             implements Scalar<Boolean, Object> {
     public static final String OPERATOR_PREFIX = "any_";
 
     /**
@@ -53,17 +50,6 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
      * @see {@linkplain io.crate.operation.operator.CmpOperator#compare(int)}
      */
     protected abstract boolean compare(int comparisonResult);
-
-    /**
-     * @return the name of the operator
-     */
-    protected abstract String name();
-
-    /**
-     * create a new instance of an AnyOperator subclass with a given {@linkplain io.crate.metadata.FunctionInfo}
-     * as one cannot intantiate generic class arguments directly
-     */
-    protected abstract Op newInstance(FunctionInfo info);
 
     protected FunctionInfo functionInfo;
 
@@ -90,18 +76,24 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
             return Literal.NULL;
         }
         if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
-            Literal collLiteral = (Literal)right;
-            Object leftValue = ((Literal)left).value();
+            Literal collLiteral = Literal.toLiteral(left);
+            Object rightValue = Literal.toLiteral(right).value();
             if (!DataTypes.isCollectionType(collLiteral.valueType())) {
                 throw new IllegalArgumentException("invalid array expression");
             }
-            return Literal.newLiteral(doEvaluate(leftValue, (Iterable<?>)collLiteral.value()));
+            Iterable<?> collectionIterable = collectionValueToIterable(collLiteral.value());
+            Boolean result = doEvaluate(rightValue, collectionIterable);
+            if (result == null) {
+                return Literal.NULL;
+            } else {
+                return Literal.newLiteral(result);
+            }
         }
         return symbol;
     }
 
     @SuppressWarnings("unchecked")
-    private Boolean doEvaluate(Object right, Iterable<?> leftIterable) {
+    protected Boolean doEvaluate(Object right, Iterable<?> leftIterable) {
         boolean rightComparable = right instanceof Comparable;
         boolean rightIsMap = right instanceof Map;
 
@@ -137,23 +129,39 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
             return null;
         }
         Iterable<?> leftIterable;
-        if (collectionReference instanceof Object[]) {
-            leftIterable = Arrays.asList((Object[])collectionReference);
-        } else if (collectionReference instanceof Set) {
-            leftIterable = (Set<?>)collectionReference;
-        } else {
+        try {
+           leftIterable = collectionValueToIterable(collectionReference);
+        } catch (IllegalArgumentException e) {
             return false;
         }
         return doEvaluate(value, leftIterable);
     }
 
-    @Override
-    public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        Preconditions.checkArgument(
-                dataTypes.size() == 2 &&
-                        DataTypes.isCollectionType(dataTypes.get(0)) &&
-                        ((CollectionType)dataTypes.get(0)).innerType().equals(dataTypes.get(1))
-        );
-        return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
+    public static Iterable<?> collectionValueToIterable(Object collectionRef) throws IllegalArgumentException {
+        if (collectionRef instanceof Object[]) {
+            return Arrays.asList((Object[])collectionRef);
+        } else if (collectionRef instanceof Set) {
+            return (Set<?>)collectionRef;
+        } else {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "cannot cast %s to Iterable", collectionRef));
+        }
+    }
+
+    public abstract static class AnyResolver implements DynamicFunctionResolver {
+
+        public abstract FunctionImplementation<Function> newInstance(FunctionInfo info);
+
+        public abstract String name();
+
+        @Override
+        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            Preconditions.checkArgument(
+                    dataTypes.size() == 2 &&
+                            DataTypes.isCollectionType(dataTypes.get(0)) &&
+                            ((CollectionType)dataTypes.get(0)).innerType().equals(dataTypes.get(1))
+            );
+            return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
+        }
     }
 }
