@@ -180,10 +180,10 @@ this::
 
   $ ./gradlew test -PtestForks=5
 
-Profiling
----------
+Test Coverage
+--------------
 
-Create profiling reports with `jacoco`_ in every module's ``build/reports/jacoco`` directory::
+Create test coverage reports with `jacoco`_ in every module's ``build/reports/jacoco`` directory::
 
   $ ./gradlew jacocoTestReport
 
