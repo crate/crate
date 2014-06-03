@@ -24,7 +24,10 @@ package io.crate.executor;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.action.sql.SQLResponse;
-import io.crate.types.*;
+import io.crate.types.CollectionType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Arrays;
@@ -97,8 +100,17 @@ public class RowsResponseBuilder implements ResponseBuilder {
                         BytesRef[] bytesRefArray = (BytesRef[])value;
                         iter = Arrays.asList(bytesRefArray).iterator();
                         size = bytesRefArray.length;
+                    } else if (value instanceof Object[]) {
+                        try {
+                            Object[] objectArray = (Object[]) value;
+                            BytesRef[] bytesRefArray = Arrays.copyOf(objectArray, objectArray.length, BytesRef[].class);
+                            iter = Arrays.asList(bytesRefArray).iterator();
+                            size = bytesRefArray.length;
+                        } catch (ArrayStoreException e) {
+                            continue;
+                        }
                     } else {
-                        return;
+                        continue;
                     }
 
                     String[] valuesString = new String[size];

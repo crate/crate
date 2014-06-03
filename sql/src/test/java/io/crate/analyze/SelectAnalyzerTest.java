@@ -264,7 +264,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select id, * from sys.nodes");
         assertThat(analysis.outputNames().get(0), is("id"));
         assertThat(analysis.outputNames().get(1), is("id"));
-        assertThat(analysis.outputNames().size(), is(10));
+        assertThat(analysis.outputNames().size(), is(11));
         assertEquals(analysis.outputNames().size(), analysis.outputSymbols().size());
     }
 
