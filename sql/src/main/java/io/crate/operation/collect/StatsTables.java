@@ -28,6 +28,7 @@ import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
+import io.crate.operation.reference.sys.operation.OperationContextLog;
 import jsr166e.ConcurrentHashMapV8;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -50,12 +51,18 @@ public class StatsTables {
 
     private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMapV8<>();
     private final Map<UUID, OperationContext> operationsTable = new ConcurrentHashMapV8<>();
-    private AtomicReference<BlockingQueue<JobContextLog>> jobsLog;
-    private final static NoopQueue<JobContextLog> NOOP_JOBS_LOG = new NoopQueue<>();
+    private final AtomicReference<Integer> lastOperationsLogSize = new AtomicReference<>();
+    private final AtomicReference<Integer> lastJobsLogSize = new AtomicReference<>();
+    private final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>();
+    private final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>();
+    private final static NoopQueue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();
+    private final static NoopQueue<JobContextLog> NOOP_JOBS_LOG = NoopQueue.instance();
 
     private final JobsLogIterableGetter jobsLogIterableGetter;
     private final JobsIterableGetter jobsIterableGetter;
     private final OperationsIterableGetter operationsIterableGetter;
+    private final OperationsLogIterableGetter operationsLogIterableGetter;
+
 
     public interface IterableGetter {
         public Iterable<?> getIterable();
@@ -63,21 +70,13 @@ public class StatsTables {
 
     @Inject
     public StatsTables(Settings settings, NodeSettingsService nodeSettingsService) {
-        AtomicReference<Integer> lastLogSize = new AtomicReference<>(
-                settings.getAsInt(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0));
-
-        int logSize = lastLogSize.get();
-        if (logSize == 0) {
-            jobsLog = new AtomicReference<>((BlockingQueue<JobContextLog>)NOOP_JOBS_LOG);
-        } else {
-            jobsLog = new AtomicReference<>(
-                    (BlockingQueue<JobContextLog>)new NonBlockingArrayQueue<JobContextLog>(logSize));
-        }
-        nodeSettingsService.addListener(new NodeSettingListener(jobsLog, lastLogSize));
-
+        setOperationsLog(settings.getAsInt(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 0));
+        setJobsLog(settings.getAsInt(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0));
+        nodeSettingsService.addListener(new NodeSettingListener());
         jobsLogIterableGetter = new JobsLogIterableGetter();
         jobsIterableGetter = new JobsIterableGetter();
         operationsIterableGetter = new OperationsIterableGetter();
+        operationsLogIterableGetter = new OperationsLogIterableGetter();
     }
 
     /**
@@ -111,11 +110,11 @@ public class StatsTables {
             return;
         }
         JobContext jobContext = jobsTable.remove(job.id());
-        BlockingQueue<JobContextLog> jobContextLogs = jobsLog.get();
-        if (jobContextLogs != null) {
-            jobContextLogs.offer(new JobContextLog(jobContext, errorMessage));
+        if (jobContext == null) {
+            return;
         }
-
+        BlockingQueue<JobContextLog> jobContextLogs = jobsLog.get();
+        jobContextLogs.offer(new JobContextLog(jobContext, errorMessage));
     }
 
     public void operationStarted(UUID operationId, UUID jobId, String name) {
@@ -126,11 +125,18 @@ public class StatsTables {
         }
     }
 
-    public void operationFinished(@Nullable UUID operationId) {
+    public void operationFinished(@Nullable UUID operationId, @Nullable String errorMessage) {
         if (operationId == null || !isEnabled()) {
             return;
         }
-        operationsTable.remove(operationId);
+        OperationContext operationContext = operationsTable.remove(operationId);
+        if (operationContext == null) {
+            // this might be the case if the stats were disabled when the operation started but have
+            // been enabled before the finish
+            return;
+        }
+        BlockingQueue<OperationContextLog> operationContextLogs = operationsLog.get();
+        operationContextLogs.offer(new OperationContextLog(operationContext, errorMessage));
     }
 
 
@@ -144,6 +150,10 @@ public class StatsTables {
 
     public IterableGetter operationsGetter() {
         return operationsIterableGetter;
+    }
+
+    public IterableGetter operationsLogGetter() {
+        return operationsLogIterableGetter;
     }
 
     private class JobsLogIterableGetter implements IterableGetter {
@@ -170,31 +180,54 @@ public class StatsTables {
         }
     }
 
-    private static class NodeSettingListener implements NodeSettingsService.Listener {
+    private class OperationsLogIterableGetter implements IterableGetter {
 
-        private final AtomicReference<BlockingQueue<JobContextLog>> jobsLog;
-        private final AtomicReference<Integer> lastLogSize;
-
-        public NodeSettingListener(AtomicReference<BlockingQueue<JobContextLog>> jobsLog,
-                                   AtomicReference<Integer> lastLogSize) {
-            this.jobsLog = jobsLog;
-            this.lastLogSize = lastLogSize;
+        @Override
+        public Iterable<?> getIterable() {
+            return operationsLog.get();
         }
+    }
+
+    private void setOperationsLog(int size) {
+        lastOperationsLogSize.set(size);
+        if (size == 0) {
+            operationsLog.set(NOOP_OPERATIONS_LOG);
+        } else {
+            operationsLog.set(new NonBlockingArrayQueue<OperationContextLog>(size));
+        }
+    }
+
+    private void setJobsLog(int size) {
+        lastJobsLogSize.set(size);
+        if (size == 0) {
+            jobsLog.set(NOOP_JOBS_LOG);
+        } else {
+            jobsLog.set(new NonBlockingArrayQueue<JobContextLog>(size));
+        }
+    }
+
+    private class NodeSettingListener implements NodeSettingsService.Listener {
 
         @Override
         public void onRefreshSettings(Settings settings) {
-            int newLogSize = settings.getAsInt(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0);
-            if (newLogSize != lastLogSize.get()) {
-                lastLogSize.set(newLogSize);
-                if (newLogSize == 0) {
-                    jobsLog.set(NOOP_JOBS_LOG);
-                } else {
-                    jobsLog.set(new NonBlockingArrayQueue<JobContextLog>(newLogSize));
-                }
-            }
-
+            updateJobsLog(settings);
+            updateOperationsLog(settings);
             // TODO: track isEnabled and if it changes to false remember to clear any current jobs/operations
             // as well as the history
+        }
+
+        private void updateOperationsLog(Settings settings) {
+            int newSize = settings.getAsInt(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 0);
+            if (newSize != lastOperationsLogSize.get()) {
+                setOperationsLog(newSize);
+            }
+        }
+
+        private void updateJobsLog(Settings settings) {
+            int newSize = settings.getAsInt(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0);
+            if (newSize != lastJobsLogSize.get()) {
+                setJobsLog(newSize);
+            }
         }
     }
 }

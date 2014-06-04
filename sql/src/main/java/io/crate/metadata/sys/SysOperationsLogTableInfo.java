@@ -33,41 +33,51 @@ import org.elasticsearch.common.inject.Inject;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class SysJobsLogTableInfo extends SysTableInfo {
+public class SysOperationsLogTableInfo extends SysTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(SCHEMA, "jobs_log");
-    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
+    public static class ColumnNames {
+        public static final String JOB_ID = "job_id";
+        public static final String NAME = "name";
+        public static final String STARTED = "started";
+        public static final String ENDED = "ended";
+        public static final String ERROR = "error";
+    }
+
+    public static final TableIdent IDENT = new TableIdent(SCHEMA, "operations_log");
     private static final String[] INDICES = new String[] { IDENT.name() };
+    private static final Map<ColumnIdent, ReferenceInfo> COLUMNS_INFO = new LinkedHashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
-    private static final List<ColumnIdent> primaryKeys = ImmutableList.of(new ColumnIdent("id"));
 
-    static {
-        register("id", DataTypes.STRING, null);
-        register("stmt", DataTypes.STRING, null);
-        register("started", DataTypes.TIMESTAMP, null);
-        register("ended", DataTypes.TIMESTAMP, null);
-        register("error", DataTypes.STRING, null);
-    }
 
-    @Inject
-    public SysJobsLogTableInfo(ClusterService clusterService) {
-        super(clusterService);
-    }
-
-    private static ReferenceInfo register(String column, DataType type, List<String> path) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.NODE, type);
-        if (info.ident().isColumn()) {
-            columns.add(info);
-        }
-        INFOS.put(info.ident().columnIdent(), info);
+    private static ReferenceInfo register(String column, DataType type) {
+        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column), RowGranularity.DOC, type);
+        columns.add(info);
+        COLUMNS_INFO.put(info.ident().columnIdent(), info);
         return info;
     }
 
+    static {
+        register(ColumnNames.JOB_ID, DataTypes.STRING);
+        register(ColumnNames.NAME, DataTypes.STRING);
+        register(ColumnNames.STARTED, DataTypes.TIMESTAMP);
+        register(ColumnNames.ENDED, DataTypes.TIMESTAMP);
+        register(ColumnNames.ERROR, DataTypes.STRING);
+    }
+
+    @Inject
+    protected SysOperationsLogTableInfo(ClusterService clusterService) {
+        super(clusterService);
+    }
 
     @Nullable
     @Override
     public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
-        return INFOS.get(columnIdent);
+        return columnInfo(columnIdent);
+    }
+
+    @Nullable
+    public static ReferenceInfo columnInfo(ColumnIdent ident) {
+        return COLUMNS_INFO.get(ident);
     }
 
     @Override
@@ -92,7 +102,7 @@ public class SysJobsLogTableInfo extends SysTableInfo {
 
     @Override
     public List<ColumnIdent> primaryKey() {
-        return primaryKeys;
+        return ImmutableList.of();
     }
 
     @Override
@@ -102,6 +112,6 @@ public class SysJobsLogTableInfo extends SysTableInfo {
 
     @Override
     public Iterator<ReferenceInfo> iterator() {
-        return INFOS.values().iterator();
+        return COLUMNS_INFO.values().iterator();
     }
 }

@@ -104,13 +104,13 @@ public class LocalMergeTask implements Task<Object[][]> {
         Futures.addCallback(mergeOperation.result(), new FutureCallback<Object[][]>() {
             @Override
             public void onSuccess(@Nullable Object[][] rows) {
-                statsTables.operationFinished(operationId);
+                statsTables.operationFinished(operationId, null);
                 result.set(rows);
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                statsTables.operationFinished(operationId);
+                statsTables.operationFinished(operationId, t.getMessage());
                 result.setException(t);
             }
         });

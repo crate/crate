@@ -19,13 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.sys.job;
+package io.crate.operation.reference.sys.operation;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.sys.SysOperationsTableInfo;
-import io.crate.operation.reference.sys.operation.OperationContext;
 import org.apache.lucene.util.BytesRef;
 
 public abstract class SysOperationExpression<T> extends RowContextCollectorExpression<OperationContext, T> {

@@ -155,7 +155,8 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
     @Test
     public void testSysSchemaTables() throws Exception {
         SchemaInfo si = referenceInfos.getSchemaInfo("sys");
-        assertThat(si.tableNames(), contains("cluster", "nodes", "shards", "jobs", "jobs_log", "operations"));
+        assertThat(si.tableNames(), contains("cluster", "nodes", "shards", "jobs", "jobs_log",
+            "operations", "operations_log"));
     }
 
     @Test

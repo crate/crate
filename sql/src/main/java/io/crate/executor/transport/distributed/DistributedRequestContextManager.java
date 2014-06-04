@@ -101,7 +101,7 @@ public class DistributedRequestContextManager {
                     public void finished() {
                         logger.trace("DoneCallback.finished: {} {}", mergeNode.contextId());
                         activeMergeOperations.remove(mergeNode.contextId());
-                        statsTables.operationFinished(operationId);
+                        statsTables.operationFinished(operationId, null);
                     }
                 }
         );
