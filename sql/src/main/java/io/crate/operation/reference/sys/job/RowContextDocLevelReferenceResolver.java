@@ -25,6 +25,8 @@ import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.operation.reference.sys.operation.SysOperationExpression;
+import io.crate.operation.reference.sys.operation.SysOperationLogExpression;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.HashMap;
@@ -45,6 +47,9 @@ public class RowContextDocLevelReferenceResolver implements DocLevelReferenceRes
             implementations.put(implementation.info().ident(), implementation);
         }
         for (SysOperationExpression<?> implementation : SysOperationExpression.IMPLEMENTATIONS) {
+            implementations.put(implementation.info().ident(), implementation);
+        }
+        for (SysOperationLogExpression<?> implementation : SysOperationLogExpression.IMPLEMENTATIONS) {
             implementations.put(implementation.info().ident(), implementation);
         }
     }

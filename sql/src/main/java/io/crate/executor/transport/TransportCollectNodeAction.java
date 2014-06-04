@@ -128,13 +128,13 @@ public class TransportCollectNodeAction {
                 response.rows(result);
 
                 collectResponse.onResponse(response);
-                statsTables.operationFinished(operationId);
+                statsTables.operationFinished(operationId, null);
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 collectResponse.onFailure(t);
-                statsTables.operationFinished(operationId);
+                statsTables.operationFinished(operationId, t.getMessage());
             }
         });
         return collectResponse;
