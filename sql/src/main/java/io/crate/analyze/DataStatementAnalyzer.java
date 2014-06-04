@@ -213,8 +213,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         // implicitly swapping arguments so we got 1. reference, 2. literal
-        Symbol left = process(node.right(), context);
-        Symbol right = process(node.left(), context);
+        Symbol left = process(node.getRight(), context);
+        Symbol right = process(node.getLeft(), context);
         DataType leftType = DataTypeVisitor.fromSymbol(left);
 
         if (! DataTypes.isCollectionType(leftType)) {
@@ -239,7 +239,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         if (swapOperatorTable.containsKey(operationType)) {
             operatorName = AnyOperator.OPERATOR_PREFIX + swapOperatorTable.get(operationType).getValue();
         } else {
-            operatorName = AnyOperator.OPERATOR_PREFIX + node.getType().getValue();
+            operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
         }
         FunctionIdent functionIdent = new FunctionIdent(
                 operatorName, Arrays.asList(leftType, ((Literal)right).valueType()));

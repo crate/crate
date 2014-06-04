@@ -392,6 +392,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table abc (col31 integer primary key, col32 string)");
 
         ensureGreen();
+
         execute("select table_name from INFORMATION_SCHEMA.table_constraints " +
                 "where schema_name not in ('sys', 'information_schema')  " +
                 "ORDER BY table_name");
@@ -404,7 +405,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(83L, response.rowCount());
+        assertEquals(84L, response.rowCount());
     }
 
     @Test

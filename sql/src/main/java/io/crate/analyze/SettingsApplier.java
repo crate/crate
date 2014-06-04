@@ -23,7 +23,10 @@ package io.crate.analyze;
 
 import io.crate.sql.tree.Expression;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 public interface SettingsApplier {
     void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression);
+
+    Settings getDefault();
 }
