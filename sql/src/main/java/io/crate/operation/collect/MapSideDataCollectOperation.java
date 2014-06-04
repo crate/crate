@@ -158,7 +158,6 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         if (collectNode.whereClause().noMatch()) {
             return Futures.immediateFuture(Constants.EMPTY_RESULT);
         }
-        assert collectNode.toCollect().size() > 0;
 
         FlatProjectorChain projectorChain = new FlatProjectorChain(
                 collectNode.projections(), projectorVisitor);

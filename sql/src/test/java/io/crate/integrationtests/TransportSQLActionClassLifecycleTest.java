@@ -600,6 +600,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response= executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L)); // default length is zero
 
+        // TODO: change this to use sql once the set statement is implemented
         executor.client().admin().cluster().prepareUpdateSettings().setTransientSettings(
                          ImmutableMap.of(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 1)
                  ).get();
@@ -614,6 +615,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat(response.rowCount(), Matchers.lessThanOrEqualTo(2L));
         assertThat((String)response.rows()[0][0], is("select id from sys.cluster"));
 
+        // TODO: change this to use sql once the set statement is implemented
         executor.client().admin().cluster().prepareUpdateSettings().setTransientSettings(
                 ImmutableMap.of(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0)
         ).get();
@@ -705,5 +707,37 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             assertThat(response.rowCount(), is(1L));
             assertThat((Integer) response.rows()[0][0], is(0));
         }
+    }
+
+    @Test
+    public void testSysOperationsLog() throws Exception {
+        executor.exec(
+            "select count(*), race from characters group by race order by count(*) desc limit 2");
+        SQLResponse resp = executor.exec("select count(*) from sys.operations_log");
+        assertThat((Long)resp.rows()[0][0], is(0L));
+
+
+        // TODO: change this to use sql once the set statement is implemented
+        executor.client().admin().cluster().prepareUpdateSettings().setTransientSettings(
+            ImmutableMap.of(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 10)
+        ).get();
+
+        executor.exec(
+            "select count(*), race from characters group by race order by count(*) desc limit 2");
+        resp = executor.exec("select * from sys.operations_log");
+
+        List<String> names = new ArrayList<>();
+        for (Object[] objects : resp.rows()) {
+            names.add((String)objects[1]);
+        }
+        assertTrue(names.contains("distributing collect"));
+        assertTrue(names.contains("distributed merge"));
+        assertTrue(names.contains("localMerge"));
+
+        executor.client().admin().cluster().prepareUpdateSettings().setTransientSettings(
+            ImmutableMap.of(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 0)
+        ).get();
+        resp = executor.exec("select count(*) from sys.operations_log");
+        assertThat((Long) resp.rows()[0][0], is(0L));
     }
 }

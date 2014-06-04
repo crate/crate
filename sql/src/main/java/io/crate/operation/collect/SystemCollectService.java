@@ -26,6 +26,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
 import io.crate.metadata.sys.SysJobsTableInfo;
+import io.crate.metadata.sys.SysOperationsLogTableInfo;
 import io.crate.metadata.sys.SysOperationsTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
@@ -57,7 +58,8 @@ public class SystemCollectService implements CollectService {
         iterableGetters = ImmutableMap.<String, StatsTables.IterableGetter>of(
                 SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter(),
                 SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter(),
-                SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter()
+                SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter(),
+                SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter()
         );
         this.discoveryService = discoveryService;
     }

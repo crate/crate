@@ -31,6 +31,14 @@ import java.util.concurrent.TimeUnit;
 
 public class NoopQueue<E> implements BlockingQueue<E>, Queue<E> {
 
+    private final static NoopQueue INSTANCE = new NoopQueue();
+
+    private NoopQueue() {}
+
+    public static <T> NoopQueue<T> instance() {
+        return INSTANCE;
+    }
+
     @Override
     public boolean add(E e) {
         return false;
@@ -155,4 +163,5 @@ public class NoopQueue<E> implements BlockingQueue<E>, Queue<E> {
     public int drainTo(Collection<? super E> c, int maxElements) {
         return 0;
     }
+
 }
