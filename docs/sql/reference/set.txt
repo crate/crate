@@ -1,0 +1,61 @@
+.. highlight:: psql
+.. _ref-set:
+
+===========
+SET / RESET
+===========
+
+Alter and restore global cluster configuration values at runtime.
+
+Synopsis
+========
+
+::
+
+    SET GLOBAL { PERSISTENT | TRANSIENT } parameter = value [ , ... ]
+
+    RESET GLOBAL { PERSISTENT | TRANSIENT } parameter [ , ... ]
+
+Description
+===========
+
+Using the ``SET`` and ``RESET`` statements it is possible to configure the crate cluster
+at runtime.
+
+``SET`` can be used to change a configuration parameter to a different value. Using
+``RESET`` will reset the parameter to its default value.
+
+Parameters
+==========
+
+:parameter: The name of the configuration parameter to set / reset.
+
+:value: the value to set for the configuration parameter
+
+
+Supported Configuration Parameters
+==================================
+
+:collect_stats: a boolean indicating whether or not to collect statistical information
+                about the cluster.
+
+:jobs_log_size: the number of jobs kept in the ``sys.jobs_log`` table on each node for performance analytics.
+                Older entries will be deleted when the ``jobs_log_size`` is reached.
+                A single SQL statement results in a job to be executed on the cluster.
+                A higher number results in more expressive results but also in more
+                occupied RAM. Setting it to ``0`` disables collecting job information.
+
+:operations_log_size: the number of operations to keep in the ``sys.operations_log`` table
+                on each node for performance analytics.
+                Older entries will be deleted when the ``operations_log_size`` is reached.
+                A job consists of one or many operations.
+                A higher number results in more expressive results but also in more
+                occupied RAM.
+                Setting it to ``0`` disables collecting operation information.
+
+Persistence
+===========
+
+If used with ``PERSISTENT`` the setting will survive a cluster restart,
+if uses with ``TRANSIENT`` the default value or the value from the config file
+will be restored.

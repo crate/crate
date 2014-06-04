@@ -139,8 +139,8 @@ public class TestGlobalSysExpressions {
         SysObjectReference<Object> settingsExpression = (SysObjectReference<Object>) resolver.getImplementation(ident);
 
         Map<String, Object> settings = settingsExpression.value();
-        assertEquals(String.valueOf(0), settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
-        assertEquals(String.valueOf(0), settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        assertEquals(0, settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
+        assertEquals(0, settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
     }
 
 }

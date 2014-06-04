@@ -5,11 +5,19 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crash to 0.9.11 for ``SET`` and ``RESET`` support
+
+ - implemented ``SET`` and ``RESET`` statements::
+
+        SET GLOBAL { PERSISTENT | TRANSIENT } parameter = value [ , ... ]
+
+        RESET GLOBAL { PERSISTENT | TRANSIENT } parameter [ , ... ]
+
  - implemented ``sys.nodes.thread_pools`` expressions
 
  - implemented ``LIKE`` and ``NOT LIKE`` operators on string arrays and sets::
 
-        SELECT * from <table> WHERE 'pattern%' [NOT] LIKE (<column>)
+        SELECT * from <table> WHERE 'pattern%' [NOT] LIKE ANY (<column>)
 
  - improved error messages
 
@@ -34,7 +42,7 @@ Unreleased
 
    it is now::
 
-        refresh table my_table PARITION (<columnName> = <value> [, ... ])
+        refresh table my_table PARTITION (<columnName> = <value> [, ... ])
 
  - the ordering of null values can now be influenced using the ``NULLS { FIRST
    | LAST }`` keywords.

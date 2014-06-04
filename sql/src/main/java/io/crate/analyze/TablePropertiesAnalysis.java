@@ -48,14 +48,6 @@ public class TablePropertiesAnalysis {
                     .put(REFRESH_INTERVAL, new RefreshIntervalSettingApplier())
                     .build();
 
-    private static final ImmutableMap<String, Settings> defaultValues = ImmutableMap.<String, Settings>builder()
-                    .put(NUMBER_OF_REPLICAS, ImmutableSettings.builder()
-                            .put(NUMBER_OF_REPLICAS, 1)
-                            .put(AUTO_EXPAND_REPLICAS, false)
-                            .build())
-            .put(REFRESH_INTERVAL, ImmutableSettings.builder().put(REFRESH_INTERVAL, 1000).build()) // ms
-            .build();
-
     public static Settings propertiesToSettings(GenericProperties properties, Object[] parameters) {
         return propertiesToSettings(properties, parameters, false);
     }
@@ -63,8 +55,8 @@ public class TablePropertiesAnalysis {
     public static Settings propertiesToSettings(GenericProperties properties, Object[] parameters, boolean withDefaults) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         if (withDefaults) {
-            for (Settings defaultSetting : defaultValues.values()) {
-                builder.put(defaultSetting);
+            for (SettingsApplier defaultSetting : supportedProperties.values()) {
+                builder.put(defaultSetting.getDefault());
             }
         }
         for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
@@ -82,10 +74,11 @@ public class TablePropertiesAnalysis {
 
     public static Settings getDefault(String property) {
         String normalizedKey = normalizeKey(property);
-        Preconditions.checkArgument(defaultValues.containsKey(normalizedKey),
+
+        Preconditions.checkArgument(supportedProperties.containsKey(normalizedKey),
                 "TABLE doesn't have a property \"%s\"", property);
 
-        return defaultValues.get(normalizedKey);
+        return supportedProperties.get(normalizedKey).getDefault();
     }
 
     public static String normalizeKey(String property) {
@@ -97,6 +90,11 @@ public class TablePropertiesAnalysis {
 
 
     private static class NumberOfReplicasSettingApplier implements SettingsApplier {
+
+        private static final Settings DEFAULT = ImmutableSettings.builder()
+                .put(NUMBER_OF_REPLICAS, 1)
+                .put(AUTO_EXPAND_REPLICAS, false)
+                .build();
 
         @Override
         public void apply(ImmutableSettings.Builder settingsBuilder,
@@ -118,10 +116,17 @@ public class TablePropertiesAnalysis {
             settingsBuilder.put(AUTO_EXPAND_REPLICAS, false);
             settingsBuilder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
         }
+
+        @Override
+        public Settings getDefault() {
+            return DEFAULT;
+        }
     }
 
     private static class RefreshIntervalSettingApplier implements SettingsApplier {
 
+        public static final Settings DEFAULT = ImmutableSettings.builder()
+                .put(REFRESH_INTERVAL, 1000).build(); // ms
 
         @Override
         public void apply(ImmutableSettings.Builder settingsBuilder,
@@ -130,14 +135,19 @@ public class TablePropertiesAnalysis {
             Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
                     String.format("array literal not allowed for \"%s\"", NUMBER_OF_REPLICAS));
 
-            Object refreshIntervalValue = ExpressionToObjectVisitor.convert(expression, parameters);
+            Number refreshIntervalValue;
             try {
-                ExpressionToNumberVisitor.convert(expression, parameters).longValue();
+                refreshIntervalValue = ExpressionToNumberVisitor.convert(expression, parameters);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid value for argument '"
                         + REFRESH_INTERVAL + "'", e);
             }
             settingsBuilder.put(REFRESH_INTERVAL, refreshIntervalValue.toString());
+        }
+
+        @Override
+        public Settings getDefault() {
+            return DEFAULT;
         }
     }
 }

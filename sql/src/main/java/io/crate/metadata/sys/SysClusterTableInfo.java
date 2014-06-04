@@ -24,6 +24,7 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
+import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -51,8 +52,9 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("id", DataTypes.STRING, null);
         register("name", DataTypes.STRING, null);
         register("settings", DataTypes.OBJECT, null);
-        register("settings", DataTypes.STRING, ImmutableList.of("jobs_log_size"));
-        register("settings", DataTypes.STRING, ImmutableList.of("operations_log_size"));
+        register("settings", DataTypes.INTEGER, ImmutableList.of(ClusterSettingsExpression.JOBS_LOG_SIZE));
+        register("settings", DataTypes.INTEGER, ImmutableList.of(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        register("settings", DataTypes.BOOLEAN, ImmutableList.of(ClusterSettingsExpression.COLLECT_STATS));
     }
 
     @Inject
