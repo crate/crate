@@ -60,11 +60,9 @@ public class SysShardsTableInfo extends SysTableInfo {
         register("state", StringType.INSTANCE, null);
     }
 
-    private final ClusterService clusterService;
-
     @Inject
     public SysShardsTableInfo(ClusterService service) {
-        clusterService = service;
+        super(service);
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {

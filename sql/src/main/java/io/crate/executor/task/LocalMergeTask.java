@@ -31,6 +31,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.executor.Task;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.client.Client;
@@ -39,9 +40,11 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -52,6 +55,7 @@ public class LocalMergeTask implements Task<Object[][]> {
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final MergeNode mergeNode;
+    private final StatsTables statsTables;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final ThreadPool threadPool;
     private final SettableFuture<Object[][]> result;
@@ -68,11 +72,13 @@ public class LocalMergeTask implements Task<Object[][]> {
     public LocalMergeTask(ThreadPool threadPool,
                           Provider<Client> clientProvider,
                           ImplementationSymbolVisitor implementationSymbolVisitor,
-                          MergeNode mergeNode) {
+                          MergeNode mergeNode,
+                          StatsTables statsTables) {
         this.clientProvider = clientProvider;
         this.threadPool = threadPool;
         this.symbolVisitor = implementationSymbolVisitor;
         this.mergeNode = mergeNode;
+        this.statsTables = statsTables;
         this.result = SettableFuture.create();
         this.resultList = Arrays.<ListenableFuture<Object[][]>>asList(this.result);
     }
@@ -92,15 +98,19 @@ public class LocalMergeTask implements Task<Object[][]> {
 
         final MergeOperation mergeOperation = new MergeOperation(clientProvider, symbolVisitor, mergeNode);
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
+        final UUID operationId = UUID.randomUUID();
+        statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
 
         Futures.addCallback(mergeOperation.result(), new FutureCallback<Object[][]>() {
             @Override
             public void onSuccess(@Nullable Object[][] rows) {
+                statsTables.operationFinished(operationId);
                 result.set(rows);
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
+                statsTables.operationFinished(operationId);
                 result.setException(t);
             }
         });

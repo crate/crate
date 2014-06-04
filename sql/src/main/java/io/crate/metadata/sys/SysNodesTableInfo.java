@@ -85,11 +85,9 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("queue"));
     }
 
-    private final ClusterService clusterService;
-
     @Inject
     public SysNodesTableInfo(ClusterService service) {
-        clusterService = service;
+        super(service);
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {

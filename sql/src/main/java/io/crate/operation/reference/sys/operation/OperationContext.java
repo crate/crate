@@ -19,31 +19,19 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.core.collections;
+package io.crate.operation.reference.sys.operation;
 
-import java.util.NoSuchElementException;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.UUID;
 
-public class NonBlockingArrayQueue<E> extends ArrayBlockingQueue<E> implements BlockingQueue<E> {
-    public NonBlockingArrayQueue(int capacity) {
-        super(capacity);
-        assert capacity > 0;
-    }
+public class OperationContext {
 
-    @Override
-    public boolean offer(E e) {
-        while (true) {
-            if (!super.offer(e)) {
-                try {
-                    super.remove();
-                } catch (NoSuchElementException ex) {
-                    // race condition, queue was already empty... ignore
-                }
-            } else {
-                break;
-            }
-        }
-        return true;
+    public UUID jobId;
+    public String name;
+    public long started;
+
+    public OperationContext(UUID jobId, String name, long started) {
+        this.jobId = jobId;
+        this.name = name;
+        this.started = started;
     }
 }

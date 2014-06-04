@@ -26,6 +26,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
 import io.crate.metadata.sys.SysJobsTableInfo;
+import io.crate.metadata.sys.SysOperationsTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
@@ -35,7 +36,6 @@ import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -45,49 +45,19 @@ import java.util.Set;
 public class SystemCollectService implements CollectService {
 
     private final CollectInputSymbolVisitor<RowContextCollectorExpression<?, ?>> docInputSymbolVisitor;
-    private final ImmutableMap<String, CollectionGetter> collectionGetters;
+    private final ImmutableMap<String, StatsTables.IterableGetter> iterableGetters;
     private final DiscoveryService discoveryService;
 
-    private interface CollectionGetter {
-        public Collection<?> getCollection();
-    }
-
-    private static class JobsLogCollectionGetter implements CollectionGetter {
-
-        private final StatsTables statsTables;
-
-        public JobsLogCollectionGetter(StatsTables statsTables) {
-            this.statsTables = statsTables;
-        }
-
-        @Override
-        public Collection<?> getCollection() {
-            return statsTables.jobsLog();
-        }
-    }
-
-    private static class JobsCollectionGetter implements CollectionGetter {
-
-        private final StatsTables statsTables;
-
-        public JobsCollectionGetter(StatsTables statsTables) {
-            this.statsTables = statsTables;
-        }
-
-        @Override
-        public Collection<?> getCollection() {
-            return statsTables.jobsTable.values();
-        }
-    }
 
     @Inject
     public SystemCollectService(DiscoveryService discoveryService, Functions functions, StatsTables statsTables) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
                 RowContextDocLevelReferenceResolver.INSTANCE);
 
-        collectionGetters = ImmutableMap.<String, CollectionGetter>of(
-                SysJobsTableInfo.IDENT.fqn(), new JobsCollectionGetter(statsTables),
-                SysJobsLogTableInfo.IDENT.fqn(), new JobsLogCollectionGetter(statsTables)
+        iterableGetters = ImmutableMap.<String, StatsTables.IterableGetter>of(
+                SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter(),
+                SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter(),
+                SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter()
         );
         this.discoveryService = discoveryService;
     }
@@ -99,8 +69,8 @@ public class SystemCollectService implements CollectService {
         }
         Set<String> tables = collectNode.routing().locations().get(discoveryService.localNode().id()).keySet();
         assert tables.size() == 1;
-        CollectionGetter collectionGetter = collectionGetters.get(tables.iterator().next());
-        assert collectionGetter != null;
+        StatsTables.IterableGetter iterableGetter = iterableGetters.get(tables.iterator().next());
+        assert iterableGetter != null;
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
 
         Input<Boolean> condition;
@@ -112,7 +82,7 @@ public class SystemCollectService implements CollectService {
         }
 
         return new SystemTableCollector(
-                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, collectionGetter.getCollection(), condition);
+                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterableGetter.getIterable(), condition);
     }
 
     static class SystemTableCollector<R> implements CrateCollector {

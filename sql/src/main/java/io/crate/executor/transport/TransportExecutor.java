@@ -35,6 +35,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
+import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
@@ -71,6 +72,7 @@ public class TransportExecutor implements Executor {
 
     private final Functions functions;
     private final ReferenceResolver referenceResolver;
+    private final StatsTables statsTables;
     private final Visitor visitor;
     private final ThreadPool threadPool;
 
@@ -117,7 +119,8 @@ public class TransportExecutor implements Executor {
                              TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                              TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction,
                              TransportIndicesAliasesAction transportCreateAliasAction,
-                             HandlerSideDataCollectOperation handlerSideDataCollectOperation) {
+                             HandlerSideDataCollectOperation handlerSideDataCollectOperation,
+                             StatsTables statsTables) {
         this.transportGetAction = transportGetAction;
         this.transportMultiGetAction = transportMultiGetAction;
         this.transportCollectNodeAction = transportCollectNodeAction;
@@ -141,6 +144,7 @@ public class TransportExecutor implements Executor {
         this.threadPool = threadPool;
         this.functions = functions;
         this.referenceResolver = referenceResolver;
+        this.statsTables = statsTables;
         this.visitor = new Visitor();
     }
 
@@ -195,7 +199,8 @@ public class TransportExecutor implements Executor {
                         threadPool,
                         clientProvider,
                         new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
-                        node));
+                        node,
+                        statsTables));
             } else {
                 context.addTask(new DistributedMergeTask(transportMergeNodeAction, node));
             }

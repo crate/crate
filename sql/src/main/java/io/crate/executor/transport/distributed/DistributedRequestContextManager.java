@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
 import io.crate.operation.DownstreamOperationFactory;
+import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.Streamer;
@@ -67,10 +68,13 @@ public class DistributedRequestContextManager {
     private final Object lock = new Object();
     private final DownstreamOperationFactory downstreamOperationFactory;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
+    private final StatsTables statsTables;
 
     public DistributedRequestContextManager(DownstreamOperationFactory downstreamOperationFactory,
-                                            Functions functions) {
+                                            Functions functions,
+                                            StatsTables statsTables) {
         this.downstreamOperationFactory = downstreamOperationFactory;
+        this.statsTables = statsTables;
         this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
     }
 
@@ -84,6 +88,8 @@ public class DistributedRequestContextManager {
     public void createContext(final MergeNode mergeNode,
                               final ActionListener<NodeMergeResponse> listener) throws IOException {
         logger.trace("createContext: {}", mergeNode);
+        final UUID operationId = UUID.randomUUID();
+        statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
         PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode);
         SettableFuture<Object[][]> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
@@ -95,6 +101,7 @@ public class DistributedRequestContextManager {
                     public void finished() {
                         logger.trace("DoneCallback.finished: {} {}", mergeNode.contextId());
                         activeMergeOperations.remove(mergeNode.contextId());
+                        statsTables.operationFinished(operationId);
                     }
                 }
         );

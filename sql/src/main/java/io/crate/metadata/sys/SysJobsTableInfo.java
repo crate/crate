@@ -22,16 +22,12 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.*;
@@ -52,15 +48,13 @@ public class SysJobsTableInfo extends SysTableInfo {
         register("started", DataTypes.TIMESTAMP, null);
     }
 
-    private final ClusterService clusterService;
-
     @Inject
     public SysJobsTableInfo(ClusterService service) {
-        clusterService = service;
+        super(service);
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.NODE, type);
+        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.DOC, type);
         if (info.ident().isColumn()) {
             columns.add(info);
         }
@@ -90,17 +84,7 @@ public class SysJobsTableInfo extends SysTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause) {
-        DiscoveryNodes nodes = clusterService.state().nodes();
-        ImmutableMap.Builder<String, Map<String, Set<Integer>>> builder = ImmutableMap.builder();
-
-        for (DiscoveryNode node : nodes) {
-            builder.put(
-                    node.id(),
-                    MapBuilder.<String, Set<Integer>>newMapBuilder().put(IDENT.fqn(), null).map()
-            );
-        }
-
-        return new Routing(builder.build());
+        return tableRouting(whereClause);
     }
 
     @Override

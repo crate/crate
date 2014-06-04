@@ -31,6 +31,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.DownstreamOperationFactory;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
@@ -67,7 +68,8 @@ public class TransportMergeNodeAction {
                                     ClusterService clusterService,
                                     ReferenceResolver referenceResolver,
                                     Functions functions,
-                                    ThreadPool threadPool) {
+                                    ThreadPool threadPool,
+                                    StatsTables statsTables) {
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
@@ -82,7 +84,7 @@ public class TransportMergeNodeAction {
             public DownstreamOperation create(MergeNode node) {
                 return new MergeOperation(clientProvider, implementationSymbolVisitor, node);
             }
-        }, functions);
+        }, functions, statsTables);
 
         transportService.registerHandler(startMergeAction, new StartMergeHandler());
         transportService.registerHandler(mergeRowsAction, new DistributedResultRequestHandler(contextManager));

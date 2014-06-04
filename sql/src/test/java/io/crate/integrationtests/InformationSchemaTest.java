@@ -82,7 +82,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultTables() throws Exception {
         execute("select * from information_schema.tables order by schema_name, table_name");
-        assertEquals(10L, response.rowCount());
+        assertEquals(11L, response.rowCount());
 
         assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, "0", null, null});
         assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "routines", 1, "0", null, null});
@@ -93,7 +93,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertArrayEquals(response.rows()[6], new Object[]{"sys", "jobs", 1, "0", null, null});
         assertArrayEquals(response.rows()[7], new Object[]{"sys", "jobs_log", 1, "0", null, null});
         assertArrayEquals(response.rows()[8], new Object[]{"sys", "nodes", 1, "0", null, null});
-        assertArrayEquals(response.rows()[9], new Object[]{"sys", "shards", 1, "0", null, null});
+        assertArrayEquals(response.rows()[9], new Object[]{"sys", "operations", 1, "0", null, null});
+        assertArrayEquals(response.rows()[10], new Object[]{"sys", "shards", 1, "0", null, null});
     }
 
     @Test
@@ -101,7 +102,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         serviceSetup();
 
         execute("select * from information_schema.tables");
-        assertEquals(13L, response.rowCount());
+        assertEquals(14L, response.rowCount());
 
         client().execute(SQLAction.INSTANCE,
             new SQLRequest("create table t4 (col1 integer, col2 string)")).actionGet();
@@ -111,7 +112,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         Thread.sleep(10);
 
         execute("select * from information_schema.tables");
-        assertEquals(14L, response.rowCount());
+        assertEquals(15L, response.rowCount());
     }
 
     @Test
@@ -391,22 +392,19 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table abc (col31 integer primary key, col32 string)");
 
         ensureGreen();
-        execute("select table_name from INFORMATION_SCHEMA.table_constraints ORDER BY " +
-                "table_name");
-        assertEquals(7L, response.rowCount());
-        assertEquals(response.rows()[0][0], "abc");
-        assertEquals(response.rows()[1][0], "columns");
-        assertEquals(response.rows()[2][0], "nodes");
-        assertEquals(response.rows()[3][0], "shards");
-        assertEquals(response.rows()[4][0], "tables");
-        assertEquals(response.rows()[5][0], "test1");
-        assertEquals(response.rows()[6][0], "test2");
+        execute("select table_name from INFORMATION_SCHEMA.table_constraints " +
+                "where schema_name not in ('sys', 'information_schema')  " +
+                "ORDER BY table_name");
+        assertEquals(3L, response.rowCount());
+        assertEquals("abc", response.rows()[0][0]);
+        assertEquals("test1", response.rows()[1][0]);
+        assertEquals("test2", response.rows()[2][0]);
     }
 
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(80L, response.rowCount());
+        assertEquals(83L, response.rowCount());
     }
 
     @Test
@@ -591,7 +589,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("select count(*) from information_schema.tables");
         assertEquals(1, response.rowCount());
-        assertEquals(13L, response.rows()[0][0]);
+        assertEquals(14L, response.rows()[0][0]);
     }
 
     @Test
