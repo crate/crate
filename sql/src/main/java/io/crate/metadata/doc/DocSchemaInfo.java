@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.cache.CacheBuilder;
@@ -28,6 +29,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableIterator;
 import io.crate.PartitionName;
 import io.crate.blob.v2.BlobIndices;
@@ -39,6 +41,8 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -133,8 +137,67 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        if (event.metaDataChanged()) {
-            cache.invalidateAll();
+        if (event.metaDataChanged() && cache.size() > 0) {
+            cache.invalidateAll(event.indicesDeleted());
+
+            // search for aliases of deleted and created indices, they must be invalidated also
+            if (cache.size() > 0) {
+                for (String index : event.indicesDeleted()) {
+                    IndexMetaData indexMetaData = event.previousState().metaData().index(index);
+                    if (indexMetaData.aliases() != null && indexMetaData.aliases().size() > 0) {
+                        cache.invalidateAll(Lists.newArrayList(indexMetaData.aliases().keys()));
+                    }
+                }
+            }
+            if (cache.size() > 0) {
+                for (String index : event.indicesCreated()) {
+                    IndexMetaData indexMetaData = event.state().metaData().index(index);
+                    if (indexMetaData.aliases() != null && indexMetaData.aliases().size() > 0) {
+                        cache.invalidateAll(Lists.newArrayList(indexMetaData.aliases().keys()));
+                    }
+                }
+            }
+
+            // search for templates with changed meta data => invalidate template aliases
+            if (cache.size() > 0
+                    && event.state().metaData().templates() != event.previousState().metaData().templates()) {
+                // current state templates
+                for (ObjectCursor<IndexTemplateMetaData> cursor : event.state().metaData().getTemplates().values()) {
+                    IndexTemplateMetaData templateMetaData = cursor.value;
+                    if (templateMetaData.aliases() != null && templateMetaData.aliases().size() > 0) {
+                        cache.invalidateAll(Lists.newArrayList(templateMetaData.aliases().keys()));
+                    }
+                }
+                // previous state templates
+                if (cache.size() > 0) {
+                    for (ObjectCursor<IndexTemplateMetaData> cursor : event.previousState().metaData().getTemplates().values()) {
+                        IndexTemplateMetaData templateMetaData = cursor.value;
+                        if (templateMetaData.aliases() != null && templateMetaData.aliases().size() > 0) {
+                            cache.invalidateAll(Lists.newArrayList(templateMetaData.aliases().keys()));
+                        }
+                    }
+                }
+            }
+
+            // search indices with changed meta data
+            Iterator<String> it = cache.asMap().keySet().iterator();
+            while (it.hasNext()) {
+                String index = it.next();
+                IndexMetaData newIndexMetaData = event.state().getMetaData().index(index);
+                if (newIndexMetaData != null && event.indexMetaDataChanged(newIndexMetaData)) {
+                    cache.invalidate(index);
+                    // invalidate aliases of changed indices
+                    if (newIndexMetaData.aliases() != null && newIndexMetaData.aliases().size() > 0) {
+                        cache.invalidateAll(Lists.newArrayList(newIndexMetaData.aliases().keys()));
+                    }
+                    IndexMetaData oldIndexMetaData = event.previousState().metaData().index(index);
+                    if (oldIndexMetaData != null && oldIndexMetaData.aliases() != null
+                            && oldIndexMetaData.aliases().size() > 0) {
+                        cache.invalidateAll(Lists.newArrayList(oldIndexMetaData.aliases().keys()));
+                    }
+                }
+            }
+
         }
     }
 
