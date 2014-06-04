@@ -5,6 +5,14 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.8.1 which includes following changes:
+
+    - fix: round percentage of available and underreplicated data correctly
+
+    - make table that displays table partitions horizontally scrollable
+
+    - display developer news notifications
+
  - implemented ``LIKE`` and ``NOT LIKE`` operators on string arrays and sets::
 
         SELECT * from <table> WHERE 'pattern%' [NOT] LIKE (<column>)
