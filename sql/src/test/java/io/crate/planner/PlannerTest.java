@@ -76,6 +76,10 @@ public class PlannerTest {
 
     class TestClusterTableInfo extends SysClusterTableInfo {
 
+        public TestClusterTableInfo() {
+            super(null);
+        }
+
         // granularity < DOC is already handled different
         // here we want a table with handlerSideRouting and DOC granularity.
 

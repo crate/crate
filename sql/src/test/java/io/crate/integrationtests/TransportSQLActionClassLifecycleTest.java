@@ -44,6 +44,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
@@ -616,5 +617,22 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         ).get();
         response= executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testQueryNameFromSysOperations() throws Exception {
+        SQLResponse resp = executor.exec("select name, job_id from sys.operations order by name asc");
+
+        // usually this should return collect on 2 nodes, localMerge on 1 node
+        // but it could be that the collect is finished before the localMerge task is started in which
+        // case it is missing.
+
+        assertThat(resp.rowCount(), Matchers.greaterThanOrEqualTo(2L));
+        List<String> names = new ArrayList<>();
+        for (Object[] objects : resp.rows()) {
+            names.add((String)objects[0]);
+        }
+        Collections.sort(names);
+        assertTrue(names.contains("collect"));
     }
 }

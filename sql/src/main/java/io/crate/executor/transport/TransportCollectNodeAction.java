@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.operation.collect.DistributingCollectOperation;
 import io.crate.operation.collect.MapSideDataCollectOperation;
+import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.ActionListener;
@@ -42,8 +43,10 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.UUID;
 
 public class TransportCollectNodeAction {
 
@@ -57,6 +60,7 @@ public class TransportCollectNodeAction {
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
     private final String executor = ThreadPool.Names.SEARCH;
     private final DistributingCollectOperation distributingCollectOperation;
+    private final StatsTables statsTables;
 
     @Inject
     public TransportCollectNodeAction(ThreadPool threadPool,
@@ -64,13 +68,15 @@ public class TransportCollectNodeAction {
                                       TransportService transportService,
                                       MapSideDataCollectOperation localDataCollector,
                                       DistributingCollectOperation distributingCollectOperation,
-                                      PlanNodeStreamerVisitor planNodeStreamerVisitor) {
+                                      PlanNodeStreamerVisitor planNodeStreamerVisitor,
+                                      StatsTables statsTables) {
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.localDataCollector = localDataCollector;
         this.distributingCollectOperation = distributingCollectOperation;
         this.planNodeStreamerVisitor = planNodeStreamerVisitor;
+        this.statsTables = statsTables;
 
         transportService.registerHandler(transportAction, new TransportHandler());
     }
@@ -89,7 +95,17 @@ public class TransportCollectNodeAction {
     private ListenableActionFuture<NodeCollectResponse> nodeOperation(final NodeCollectRequest request) {
         final CollectNode node = request.collectNode();
         final ListenableFuture<Object[][]> collectResult;
-        final PlainListenableActionFuture<NodeCollectResponse> collectResponse = new PlainListenableActionFuture<>(false, threadPool);
+        final PlainListenableActionFuture<NodeCollectResponse> collectResponse =
+                new PlainListenableActionFuture<>(false, threadPool);
+
+        final UUID operationId;
+        if (request.collectNode().jobId().isPresent()) {
+            operationId = UUID.randomUUID();
+            statsTables.operationStarted(
+                    operationId, request.collectNode().jobId().get(), request.collectNode().id());
+        } else {
+            operationId = null;
+        }
 
         try {
             if (node.hasDownstreams()) {
@@ -110,12 +126,15 @@ public class TransportCollectNodeAction {
                 PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(node);
                 NodeCollectResponse response = new NodeCollectResponse(streamerContext.outputStreamers());
                 response.rows(result);
+
                 collectResponse.onResponse(response);
+                statsTables.operationFinished(operationId);
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 collectResponse.onFailure(t);
+                statsTables.operationFinished(operationId);
             }
         });
         return collectResponse;

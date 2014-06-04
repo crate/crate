@@ -38,9 +38,10 @@ settings like the number of shards or number of replicas::
     | sys                | jobs              |                1 |                  0 | NULL         | NULL           |
     | sys                | jobs_log          |                1 |                  0 | NULL         | NULL           |
     | sys                | nodes             |                1 |                  0 | NULL         | NULL           |
+    | sys                | operations        |                1 |                  0 | NULL         | NULL           |
     | sys                | shards            |                1 |                  0 | NULL         | NULL           |
     +--------------------+-------------------+------------------+--------------------+--------------+----------------+
-    SELECT 15 rows in set (... sec)
+    SELECT 16 rows in set (... sec)
 
 
 Columns

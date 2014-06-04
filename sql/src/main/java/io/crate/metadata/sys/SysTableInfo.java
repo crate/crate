@@ -21,17 +21,46 @@
 
 package io.crate.metadata.sys;
 
+import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Routing;
 import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.planner.symbol.DynamicReference;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.collect.MapBuilder;
+
+import java.util.Map;
+import java.util.Set;
 
 public abstract class SysTableInfo extends AbstractTableInfo {
 
     public static final String SCHEMA = "sys";
 
+    protected final ClusterService clusterService;
+
+    protected SysTableInfo(ClusterService clusterService) {
+        this.clusterService = clusterService;
+    }
+
     @Override
     public DynamicReference getDynamic(ColumnIdent ident) {
         return new DynamicReference(new ReferenceIdent(ident(),ident), rowGranularity());
+    }
+
+
+    protected Routing tableRouting(WhereClause whereClause) {
+        DiscoveryNodes nodes = clusterService.state().nodes();
+        ImmutableMap.Builder<String, Map<String, Set<Integer>>> builder = ImmutableMap.builder();
+        for (DiscoveryNode node : nodes) {
+            builder.put(
+                    node.id(),
+                    MapBuilder.<String, Set<Integer>>newMapBuilder().put(ident().fqn(), null).map()
+            );
+        }
+        return new Routing(builder.build());
     }
 }

@@ -44,6 +44,7 @@ public class MetaDataSysModule extends AbstractModule {
         tableInfoBinder.addBinding(SysShardsTableInfo.IDENT.name()).to(SysShardsTableInfo.class).asEagerSingleton();
         tableInfoBinder.addBinding(SysJobsTableInfo.IDENT.name()).to(SysJobsTableInfo.class).asEagerSingleton();
         tableInfoBinder.addBinding(SysJobsLogTableInfo.IDENT.name()).to(SysJobsLogTableInfo.class).asEagerSingleton();
+        tableInfoBinder.addBinding(SysOperationsTableInfo.IDENT.name()).to(SysOperationsTableInfo.class).asEagerSingleton();
     }
 
 }

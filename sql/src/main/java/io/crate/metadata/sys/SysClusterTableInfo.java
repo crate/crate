@@ -27,7 +27,9 @@ import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.inject.Inject;
 
 import java.util.*;
 
@@ -51,6 +53,11 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("settings", DataTypes.OBJECT, null);
         register("settings", DataTypes.STRING, ImmutableList.of("jobs_log_size"));
         register("settings", DataTypes.STRING, ImmutableList.of("operations_log_size"));
+    }
+
+    @Inject
+    protected SysClusterTableInfo(ClusterService clusterService) {
+        super(clusterService);
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {

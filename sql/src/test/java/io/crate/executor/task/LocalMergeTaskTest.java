@@ -28,6 +28,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
+import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
@@ -126,7 +127,8 @@ public class LocalMergeTaskTest {
             ThreadPool threadPool = new ThreadPool();
 
             LocalMergeTask localMergeTask = new LocalMergeTask(
-                    threadPool, injector.getProvider(Client.class), symbolVisitor, mergeNode);
+                    threadPool, injector.getProvider(Client.class), symbolVisitor, mergeNode,
+                    mock(StatsTables.class));
             localMergeTask.upstreamResult(upstreamResults);
             localMergeTask.start();
 

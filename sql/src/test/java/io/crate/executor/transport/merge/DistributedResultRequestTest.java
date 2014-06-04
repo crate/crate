@@ -32,6 +32,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.DownstreamOperationFactory;
+import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
@@ -47,6 +48,8 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.node.settings.NodeSettingsService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,6 +61,7 @@ import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class DistributedResultRequestTest {
 
@@ -112,7 +116,8 @@ public class DistributedResultRequestTest {
 
         // receiver
         DistributedRequestContextManager contextManager =
-                new DistributedRequestContextManager(new DummyDownstreamOperationFactory(rows), functions);
+                new DistributedRequestContextManager(new DummyDownstreamOperationFactory(rows), functions,
+                        new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)));
         BytesStreamInput streamInput = new BytesStreamInput(streamOutput.bytes());
         DistributedResultRequest requestReceiver = new DistributedResultRequest(contextManager);
         requestReceiver.readFrom(streamInput);
@@ -154,7 +159,8 @@ public class DistributedResultRequestTest {
         dummyMergeNode.projections(Arrays.<Projection>asList(topNProjection));
 
         DistributedRequestContextManager contextManager =
-                new DistributedRequestContextManager(new DummyDownstreamOperationFactory(rows), functions);
+                new DistributedRequestContextManager(new DummyDownstreamOperationFactory(rows), functions,
+                        new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)));
 
         contextManager.createContext(dummyMergeNode, new NoopActionListener());
 
