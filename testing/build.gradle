@@ -20,6 +20,12 @@ dependencies {
     compile project(':es').sourceSets.test.runtimeClasspath
 }
 
+test {
+    jacoco {
+        excludes = [ "*Test*" ]
+    }
+}
+
 
 sourceSets {
     main {

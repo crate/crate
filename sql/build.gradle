@@ -45,6 +45,13 @@ test {
     if (project.hasProperty('testForks')) {
         maxParallelForks = project.testForks as int
     }
+
+    jacoco {
+        excludes = [
+            "*Test*",
+            "*Benchmark*"
+        ]
+    }
 }
 
 

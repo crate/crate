@@ -43,4 +43,12 @@ test {
     testLogging.showStandardStreams = true
 
     useTestNG()
+
+    jacoco {
+        excludes = [
+                "*Test*",
+                "TreeAssertions*",
+                "TreePrinter*"
+                ]
+    }
 }

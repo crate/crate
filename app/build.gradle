@@ -181,6 +181,12 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
     maxHeapSize = '512m'
 }
 
+test {
+    jacoco {
+        excludes = [ "*Test*" ]
+    }
+}
+
 sourceSets {
     test {
         resources {
