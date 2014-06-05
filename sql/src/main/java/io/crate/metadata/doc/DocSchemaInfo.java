@@ -29,7 +29,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableIterator;
 import io.crate.PartitionName;
 import io.crate.blob.v2.BlobIndices;
@@ -145,7 +144,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 for (String index : event.indicesDeleted()) {
                     IndexMetaData indexMetaData = event.previousState().metaData().index(index);
                     if (indexMetaData.aliases() != null && indexMetaData.aliases().size() > 0) {
-                        cache.invalidateAll(Lists.newArrayList(indexMetaData.aliases().keys()));
+                        cache.invalidateAll(Arrays.asList(indexMetaData.aliases().keys().toArray(String.class)));
                     }
                 }
             }
@@ -153,7 +152,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 for (String index : event.indicesCreated()) {
                     IndexMetaData indexMetaData = event.state().metaData().index(index);
                     if (indexMetaData.aliases() != null && indexMetaData.aliases().size() > 0) {
-                        cache.invalidateAll(Lists.newArrayList(indexMetaData.aliases().keys()));
+                        cache.invalidateAll(Arrays.asList(indexMetaData.aliases().keys().toArray(String.class)));
                     }
                 }
             }
@@ -165,7 +164,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 for (ObjectCursor<IndexTemplateMetaData> cursor : event.state().metaData().getTemplates().values()) {
                     IndexTemplateMetaData templateMetaData = cursor.value;
                     if (templateMetaData.aliases() != null && templateMetaData.aliases().size() > 0) {
-                        cache.invalidateAll(Lists.newArrayList(templateMetaData.aliases().keys()));
+                        cache.invalidateAll(Arrays.asList(templateMetaData.aliases().keys().toArray(String.class)));
                     }
                 }
                 // previous state templates
@@ -173,7 +172,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                     for (ObjectCursor<IndexTemplateMetaData> cursor : event.previousState().metaData().getTemplates().values()) {
                         IndexTemplateMetaData templateMetaData = cursor.value;
                         if (templateMetaData.aliases() != null && templateMetaData.aliases().size() > 0) {
-                            cache.invalidateAll(Lists.newArrayList(templateMetaData.aliases().keys()));
+                            cache.invalidateAll(Arrays.asList(templateMetaData.aliases().keys().toArray(String.class)));
                         }
                     }
                 }
@@ -188,12 +187,12 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                     cache.invalidate(index);
                     // invalidate aliases of changed indices
                     if (newIndexMetaData.aliases() != null && newIndexMetaData.aliases().size() > 0) {
-                        cache.invalidateAll(Lists.newArrayList(newIndexMetaData.aliases().keys()));
+                        cache.invalidateAll(Arrays.asList(newIndexMetaData.aliases().keys().toArray(String.class)));
                     }
                     IndexMetaData oldIndexMetaData = event.previousState().metaData().index(index);
                     if (oldIndexMetaData != null && oldIndexMetaData.aliases() != null
                             && oldIndexMetaData.aliases().size() > 0) {
-                        cache.invalidateAll(Lists.newArrayList(oldIndexMetaData.aliases().keys()));
+                        cache.invalidateAll(Arrays.asList(oldIndexMetaData.aliases().keys().toArray(String.class)));
                     }
                 }
             }
