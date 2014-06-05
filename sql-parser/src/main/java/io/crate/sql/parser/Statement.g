@@ -714,7 +714,7 @@ insertStmt
 insertSource
    : VALUES values=insertValues -> $values
    | '(' query ')' -> query
-   ;	 
+   ;
 
 identList
     : '(' ident ( ',' ident )* ')' -> ^(IDENT_LIST ident+)
