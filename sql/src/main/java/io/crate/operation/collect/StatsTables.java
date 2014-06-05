@@ -210,7 +210,12 @@ public class StatsTables {
         if (size == 0) {
             operationsLog.set(NOOP_OPERATIONS_LOG);
         } else {
-            operationsLog.set(new NonBlockingArrayQueue<OperationContextLog>(size));
+            BlockingQueue<OperationContextLog> oldQ = operationsLog.get();
+            NonBlockingArrayQueue<OperationContextLog> newQ = new NonBlockingArrayQueue<>(size);
+            if (oldQ != null && oldQ.size() > 0) {
+                oldQ.drainTo(newQ, size);
+            }
+            operationsLog.set(newQ);
         }
     }
 
@@ -218,7 +223,12 @@ public class StatsTables {
         if (size == 0) {
             jobsLog.set(NOOP_JOBS_LOG);
         } else {
-            jobsLog.set(new NonBlockingArrayQueue<JobContextLog>(size));
+            BlockingQueue<JobContextLog> oldQ = jobsLog.get();
+            NonBlockingArrayQueue<JobContextLog> newQ = new NonBlockingArrayQueue<>(size);
+            if (oldQ != null && oldQ.size() > 0) {
+                oldQ.drainTo(newQ, size);
+            }
+            jobsLog.set(newQ);
         }
     }
 
