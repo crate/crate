@@ -117,3 +117,19 @@ arguments and returns a formatted string::
 For details about the format string syntax see `formatter`_
 
 .. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
+
+substr('string', from, [ count ]) returns string
+================================================
+
+The ``substr`` function extracts a substring from a given string
+starting at character ``from``. It takes an optional argument ``count``
+which defines the length of the substring::
+
+    cr> select substr(name, 1, 1) from sys.nodes
+    ... limit 1;
+    +--------------------+
+    | substr(name, 3, 2) |
+    +--------------------+
+    | at                 |
+    +--------------------+
+    SELECT 1 row in set (... sec)

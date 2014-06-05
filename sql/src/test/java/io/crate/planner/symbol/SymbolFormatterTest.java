@@ -60,6 +60,22 @@ public class SymbolFormatterTest {
     }
 
     @Test
+    public void testSubstrFunction() throws Exception {
+        Function f = new Function(new FunctionInfo(
+                new FunctionIdent("substr", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG)), DataTypes.STRING, false),
+                Arrays.<Symbol>asList(Literal.newLiteral("foobar"), Literal.newLiteral(4)));
+        assertFormat(f, "substr(string, long)");
+    }
+
+    @Test
+    public void testSubstrFunctionWithLength() throws Exception {
+        Function f = new Function(new FunctionInfo(
+                new FunctionIdent("substr", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG, DataTypes.LONG)), DataTypes.STRING, false),
+                Arrays.<Symbol>asList(Literal.newLiteral("foobar"), Literal.newLiteral(4), Literal.newLiteral(1)));
+        assertFormat(f, "substr(string, long, long)");
+    }
+
+    @Test
     public void testFormatAggregation() throws Exception {
         Aggregation a = new Aggregation(new FunctionInfo(
                 new FunctionIdent("agg", Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.LONG, true
