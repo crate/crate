@@ -23,6 +23,7 @@ package io.crate.operation.reference.sys.cluster;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.SysClusterObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -34,14 +35,6 @@ public class ClusterSettingsExpression extends SysClusterObjectReference<Object>
 
     public static final String NAME = "settings";
 
-    public static final String JOBS_LOG_SIZE = "jobs_log_size";
-    public static final String OPERATIONS_LOG_SIZE = "operations_log_size";
-    public static final String COLLECT_STATS = "collect_stats";
-
-    public static final String SETTING_JOBS_LOG_SIZE = "cluster.jobs_log_size";
-    public static final String SETTING_OPERATIONS_LOG_SIZE = "cluster.operations_log_size";
-    public static final String SETTING_COLLECT_STATS = "cluster.collect_stats";
-
     abstract class SettingExpression extends SysClusterExpression<Object> {
         protected SettingExpression(String name) {
             super(new ColumnIdent(NAME, ImmutableList.of(name)));
@@ -52,28 +45,24 @@ public class ClusterSettingsExpression extends SysClusterObjectReference<Object>
 
         @Override
         public void onRefreshSettings(Settings settings) {
-            final int newJobsLogSize = settings.getAsInt(SETTING_JOBS_LOG_SIZE,
-                    ClusterSettingsExpression.this.jobsLogSize);
+            final int newJobsLogSize = CrateSettings.JOBS_LOG_SIZE.extract(settings);
             if (newJobsLogSize != ClusterSettingsExpression.this.jobsLogSize) {
-                logger.info("updating [{}] from [{}] to [{}]", SETTING_JOBS_LOG_SIZE,
+                logger.info("updating [{}] from [{}] to [{}]", CrateSettings.JOBS_LOG_SIZE.name(),
                         ClusterSettingsExpression.this.jobsLogSize, newJobsLogSize);
                 ClusterSettingsExpression.this.jobsLogSize = newJobsLogSize;
             }
-
-            final int newOperationsLogSize = settings.getAsInt(SETTING_OPERATIONS_LOG_SIZE,
-                    ClusterSettingsExpression.this.operationsLogSize);
+            final int newOperationsLogSize = CrateSettings.OPERATIONS_LOG_SIZE.extract(settings);
             if (newOperationsLogSize != ClusterSettingsExpression.this.operationsLogSize) {
-                logger.info("updating [{}] from [{}] to [{}]", SETTING_OPERATIONS_LOG_SIZE,
+                logger.info("updating [{}] from [{}] to [{}]", CrateSettings.OPERATIONS_LOG_SIZE.name(),
                         ClusterSettingsExpression.this.operationsLogSize, newOperationsLogSize);
                 ClusterSettingsExpression.this.operationsLogSize = newOperationsLogSize;
             }
 
-            final boolean newCollectStats = settings.getAsBoolean(SETTING_COLLECT_STATS,
-                    ClusterSettingsExpression.this.collectStats);
+            final boolean newCollectStats = CrateSettings.COLLECT_STATS.extract(settings);
             if (newCollectStats != ClusterSettingsExpression.this.collectStats) {
                 logger.info("{} [{}]",
                         (newCollectStats ? "enabling" : "disabling"),
-                        SETTING_COLLECT_STATS);
+                        CrateSettings.COLLECT_STATS.name());
                 ClusterSettingsExpression.this.collectStats = newCollectStats;
             }
 
@@ -81,9 +70,9 @@ public class ClusterSettingsExpression extends SysClusterObjectReference<Object>
     }
 
     protected final ESLogger logger;
-    private volatile int jobsLogSize = 0;
-    private volatile int operationsLogSize = 0;
-    private volatile boolean collectStats = true;
+    private volatile int jobsLogSize = CrateSettings.JOBS_LOG_SIZE.defaultValue();
+    private volatile int operationsLogSize = CrateSettings.OPERATIONS_LOG_SIZE.defaultValue();
+    private volatile boolean collectStats = CrateSettings.COLLECT_STATS.defaultValue();
 
     @Inject
     public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService) {
@@ -94,19 +83,26 @@ public class ClusterSettingsExpression extends SysClusterObjectReference<Object>
     }
 
     private void addChildImplementations() {
-        childImplementations.put(JOBS_LOG_SIZE, new SettingExpression(JOBS_LOG_SIZE) {
+        childImplementations.put(
+                CrateSettings.JOBS_LOG_SIZE.name(),
+                new SettingExpression(CrateSettings.JOBS_LOG_SIZE.name()) {
+
             @Override
             public Integer value() {
                 return jobsLogSize;
             }
         });
-        childImplementations.put(OPERATIONS_LOG_SIZE, new SettingExpression(OPERATIONS_LOG_SIZE) {
+        childImplementations.put(
+                CrateSettings.OPERATIONS_LOG_SIZE.name(),
+                new SettingExpression(CrateSettings.OPERATIONS_LOG_SIZE.name()) {
             @Override
             public Integer value() {
                 return operationsLogSize;
             }
         });
-        childImplementations.put(COLLECT_STATS, new SettingExpression(COLLECT_STATS) {
+        childImplementations.put(
+                CrateSettings.COLLECT_STATS.name(),
+                new SettingExpression(CrateSettings.COLLECT_STATS.name()) {
             @Override
             public Boolean value() {
                 return collectStats;
