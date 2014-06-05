@@ -41,6 +41,11 @@ class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
     }
 
     @Override
+    protected Object visitBooleanLiteral(BooleanLiteral node, Object[] context) {
+        return node.getValue();
+    }
+
+    @Override
     protected String visitStringLiteral(StringLiteral node, Object[] parameters) {
         return node.getValue();
     }

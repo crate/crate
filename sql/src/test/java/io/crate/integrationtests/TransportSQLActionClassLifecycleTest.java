@@ -26,10 +26,12 @@ import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.TransportSQLAction;
+import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.common.logging.Loggers;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -589,7 +591,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat((Long)response.rows()[0][0], is(3L));
 
         response = executor.exec("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
-        assertEquals(response.rows()[0][0], (Double)response.rows()[0][1] + (Double)response.rows()[0][2]);
+        assertEquals(response.rows()[0][0], (Double) response.rows()[0][1] + (Double) response.rows()[0][2]);
     }
 
     @Test
@@ -630,9 +632,78 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat(resp.rowCount(), Matchers.greaterThanOrEqualTo(2L));
         List<String> names = new ArrayList<>();
         for (Object[] objects : resp.rows()) {
-            names.add((String)objects[0]);
+            names.add((String) objects[0]);
         }
         Collections.sort(names);
         assertTrue(names.contains("collect"));
+    }
+
+    @Test
+    public void testSetSingleStatement() throws Exception {
+        SQLResponse response = executor.exec("select sys.cluster.settings['jobs_log_size'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(0));
+
+        response = executor.exec("set global persistent jobs_log_size=7");
+        assertThat(response.rowCount(), is(1L));
+        executor.ensureGreen();
+
+        response = executor.exec("select sys.cluster.settings['jobs_log_size'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(7));
+
+        response = executor.exec("reset global persistent jobs_log_size");
+        assertThat(response.rowCount(), is(1L));
+        executor.ensureGreen();
+
+        response = executor.exec("select sys.cluster.settings['jobs_log_size'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(0));
+
+    }
+
+    @Test
+    public void testSetMultipleStatement() throws Exception {
+        SQLResponse response = executor.exec("select sys.cluster.settings['operations_log_size'], sys.cluster.settings['collect_stats'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(0));
+        assertThat((Boolean)response.rows()[0][1], is(true));
+
+        response = executor.exec("set global persistent operations_log_size=1024, collect_stats=false");
+        assertThat(response.rowCount(), is(1L));
+        executor.ensureGreen();
+
+        response = executor.exec("select sys.cluster.settings['operations_log_size'], sys.cluster.settings['collect_stats'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(1024));
+        assertThat((Boolean)response.rows()[0][1], is(false));
+
+        response = executor.exec("reset global persistent operations_log_size, collect_stats");
+        assertThat(response.rowCount(), is(1L));
+        executor.ensureGreen();
+
+        response = executor.exec("select sys.cluster.settings['operations_log_size'], sys.cluster.settings['collect_stats'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(0));
+        assertThat((Boolean) response.rows()[0][1], is(true));
+    }
+
+    @Test
+    public void testSetStatementInvalid() throws Exception {
+
+        SQLResponse response = executor.exec("select sys.cluster.settings['operations_log_size'] from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer) response.rows()[0][0], is(0));
+
+        try {
+            executor.exec("set global persistent operations_log_size=-1024");
+            fail("expected SQLActionException, none was thrown");
+        } catch (SQLActionException e) {
+            assertThat(e.getMessage(), is("Invalid value for argument 'cluster.operations_log_size'"));
+
+            response = executor.exec("select sys.cluster.settings['operations_log_size'] from sys.cluster");
+            assertThat(response.rowCount(), is(1L));
+            assertThat((Integer) response.rows()[0][0], is(0));
+        }
     }
 }

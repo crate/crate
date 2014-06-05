@@ -44,6 +44,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.PlanModule;
 import io.crate.rest.action.RestSQLAction;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
+import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -135,7 +136,10 @@ public class SQLPlugin extends AbstractPlugin {
         // add our dynamic cluster settings
         clusterDynamicSettingsModule.addDynamicSettings(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
 
-        clusterDynamicSettingsModule.addDynamicSettings(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE);
-        clusterDynamicSettingsModule.addDynamicSettings(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE);
+        clusterDynamicSettingsModule.addDynamicSetting(
+                ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, Validator.NON_NEGATIVE_INTEGER);
+        clusterDynamicSettingsModule.addDynamicSetting(
+                ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, Validator.NON_NEGATIVE_INTEGER);
+        clusterDynamicSettingsModule.addDynamicSetting(ClusterSettingsExpression.SETTING_COLLECT_STATS, Validator.BOOLEAN);
     }
 }

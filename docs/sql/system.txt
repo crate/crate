@@ -25,14 +25,19 @@ the ``sys.cluster`` table:
 | settings        | The cluster settings.           | Object            |
 +-----------------+---------------------------------+-------------------+
 
+.. Hidden: reset settings
+
+    cr> reset GLOBAL PERSISTENT collect_stats, jobs_log_size, operations_log_size;
+    RESET OK (... sec)
+
 The result has at most 1 row::
 
   cr> select id, name, settings from sys.cluster;
-  +----...-+--------------+----------------------------------------------------+
-  | id     | name         | settings                                           |
-  +----...-+--------------+----------------------------------------------------+
-  | ...    | Testing44200 | {"jobs_log_size": "0", "operations_log_size": "0"} |
-  +----...-+--------------+----------------------------------------------------+
+  +----...-+--------------+-----------------------------------------------------------------------+
+  | id     | name         | settings                                                              |
+  +----...-+--------------+-----------------------------------------------------------------------+
+  | ...    | Testing44200 | {"collect_stats": true, "jobs_log_size": 0, "operations_log_size": 0} |
+  +----...-+--------------+-----------------------------------------------------------------------+
   SELECT 1 row in set (... sec)
 
 
@@ -40,23 +45,9 @@ Cluster Settings
 ----------------
 
 The ``sys.cluster.settings`` expression returns information about the
-current applied cluster settings. All settings are in string format.
+currently applied cluster settings.
 
-Following settings are available:
-
-+---------------------+----------------------------------+-------------------+
-| Name                | Description                      | Default value     |
-+=====================+==================================+===================+
-| jobs_log_size       | Configures the size of the       | "0"               |
-|                     | ``sys.jobs_log`` table. Setting  |                   |
-|                     | it to "0" disables the log at    |                   |
-|                     | all.                             |                   |
-+---------------------+----------------------------------+-------------------+
-| operations_log_size | Configures the size of the       | "0"               |
-|                     | Setting it to "0" disables the   |                   |
-|                     | log at all.                      |                   |
-+---------------------+----------------------------------+-------------------+
-
+For further details, see the :ref:`ref-set` reference.
 
 
 Nodes

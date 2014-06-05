@@ -84,6 +84,7 @@ public class Analyzer {
         private final AbstractStatementAnalyzer refreshTableAnalyzer = new RefreshTableAnalyzer();
         private final AbstractStatementAnalyzer alterTableAnalyzer = new AlterTableAnalyzer();
         private final AbstractStatementAnalyzer alterBlobTableAnalyzer = new AlterBlobTableAnalyzer();
+        private final AbstractStatementAnalyzer setStatementeAnalyzer = new SetStatementAnalyzer();
 
         public AnalyzerDispatcher(ReferenceInfos referenceInfos,
                                   Functions functions,
@@ -183,6 +184,18 @@ public class Analyzer {
         public AbstractStatementAnalyzer visitAlterTable(AlterTable node, Context context) {
             context.analysis = new AlterTableAnalysis(context.parameters, referenceInfos);
             return alterTableAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitSetStatement(SetStatement node, Context context) {
+            context.analysis = new SetAnalysis(context.parameters);
+            return setStatementeAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitResetStatement(ResetStatement node, Context context) {
+            context.analysis = new SetAnalysis(context.parameters);
+            return setStatementeAnalyzer;
         }
 
         @Override

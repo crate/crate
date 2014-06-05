@@ -820,3 +820,35 @@ If only a single partition should be altered, the partition clause can be used.
 .. note::
 
     Any other table modifications are currently not possible.
+
+
+Set and Reset
+=============
+
+The crate cluster can be configured at runtime using the ``SET`` and ``RESET`` statement.
+If used with ``PERSISTENT`` the change will survive a cluster restart, if used with
+``TRANSIENT`` the value will be restored to default or config file value on a restart::
+
+    cr> SET GLOBAL PERSISTENT collect_stats=false;
+    SET OK (... sec)
+
+    cr> select sys.cluster.settings['collect_stats'] from sys.cluster;
+    +---------------------------------------+
+    | sys.cluster.settings['collect_stats'] |
+    +---------------------------------------+
+    | FALSE                                 |
+    +---------------------------------------+
+    SELECT 1 row in set (... sec)
+
+You can change multiple values at once::
+
+    cr> SET GLOBAL TRANSIENT collect_stats=true, jobs_log_size=1024, operations_log_size=4096;
+    SET OK (... sec)
+
+    cr> select sys.cluster.settings from sys.cluster;
+    +-----------------------------------------------------------------------------+
+    | sys.cluster.settings                                                        |
+    +-----------------------------------------------------------------------------+
+    | {"collect_stats": true, "jobs_log_size": 1024, "operations_log_size": 4096} |
+    +-----------------------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
