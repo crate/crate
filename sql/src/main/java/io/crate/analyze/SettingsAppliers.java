@@ -21,12 +21,13 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.settings.BoolSetting;
+import io.crate.metadata.settings.IntSetting;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
 import java.util.Locale;
 
 public class SettingsAppliers {
@@ -58,9 +59,9 @@ public class SettingsAppliers {
 
     public static class BooleanSettingsApplier extends AbstractSettingsApplier {
 
-        public BooleanSettingsApplier(String name, @Nullable Boolean defaultValue) {
-            super(name, defaultValue == null ? ImmutableSettings.EMPTY :
-                    ImmutableSettings.builder().put(name, defaultValue).build());
+        public BooleanSettingsApplier(BoolSetting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
         }
 
         @Override
@@ -75,24 +76,18 @@ public class SettingsAppliers {
         }
     }
 
-    public static class LongSettingsApplier extends AbstractSettingsApplier {
+    public static class IntSettingsApplier extends AbstractSettingsApplier {
 
-        private final long inclusiveMin;
-        private final long inclusiveMax;
+        private final IntSetting setting;
 
-        public LongSettingsApplier(String name) {
-            this(name, Long.MIN_VALUE, Long.MAX_VALUE, null);
-        }
-
-        public LongSettingsApplier(String name, long inclusiveMin, long inclusiveMax, @Nullable Long defaultValue) {
-            super(name, defaultValue == null ? ImmutableSettings.EMPTY :
-                    ImmutableSettings.builder().put(name, defaultValue).build());
-            this.inclusiveMin = inclusiveMin;
-            this.inclusiveMax = inclusiveMax;
+        public IntSettingsApplier(IntSetting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+            this.setting = setting;
         }
 
         private void validate(long num) {
-            if (inclusiveMin > num || num > inclusiveMax) {
+            if (num < setting.minValue() || num > setting.maxValue()) {
                 throw invalidException();
             }
         }
@@ -107,17 +102,12 @@ public class SettingsAppliers {
             }
 
             if (num == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "'%s' does not supprt null values", name));
+                throw new IllegalArgumentException(String.format(
+                        "'%s' does not support null values", name));
             }
-            long value = num.longValue();
+            int value = num.intValue();
             validate(value);
             settingsBuilder.put(this.name, value);
-        }
-    }
-
-    public static class PositiveLongSettingsApplier extends LongSettingsApplier {
-        public PositiveLongSettingsApplier(String name, long inclusiveMax, long defaultValue) {
-            super(name, 0L, inclusiveMax, defaultValue);
         }
     }
 }

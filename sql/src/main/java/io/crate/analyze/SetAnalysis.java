@@ -23,9 +23,9 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -33,18 +33,14 @@ import java.util.Map;
 
 public class SetAnalysis extends Analysis {
 
-    public static Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
-        .put(
-                ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE,
-                new SettingsAppliers.PositiveLongSettingsApplier(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, new Integer(Integer.MAX_VALUE).longValue(), 0L)
-        )
-        .put(
-            ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE,
-            new SettingsAppliers.PositiveLongSettingsApplier(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, new Integer(Integer.MAX_VALUE).longValue(), 0L)
-        )
-        .put(ClusterSettingsExpression.SETTING_COLLECT_STATS,
-                new SettingsAppliers.BooleanSettingsApplier(ClusterSettingsExpression.SETTING_COLLECT_STATS, true))
-        .build();
+    public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
+        .put(CrateSettings.JOBS_LOG_SIZE.settingName(),
+                new SettingsAppliers.IntSettingsApplier(CrateSettings.JOBS_LOG_SIZE))
+        .put(CrateSettings.OPERATIONS_LOG_SIZE.settingName(),
+                new SettingsAppliers.IntSettingsApplier(CrateSettings.OPERATIONS_LOG_SIZE))
+        .put(CrateSettings.COLLECT_STATS.settingName(),
+                new SettingsAppliers.BooleanSettingsApplier(CrateSettings.COLLECT_STATS))
+            .build();
 
     private Settings settings;
     private boolean persistent = false;

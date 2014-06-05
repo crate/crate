@@ -21,17 +21,14 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.TransportSQLAction;
-import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
-import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.common.logging.Loggers;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -600,10 +597,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response= executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L)); // default length is zero
 
-        // TODO: change this to use sql once the set statement is implemented
-        executor.client().admin().cluster().prepareUpdateSettings().setTransientSettings(
-                         ImmutableMap.of(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 1)
-                 ).get();
+        executor.exec("set global transient collect_stats = true, jobs_log_size=1");
 
         executor.exec("select id from sys.cluster");
         executor.exec("select id from sys.cluster");
@@ -615,16 +609,14 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat(response.rowCount(), Matchers.lessThanOrEqualTo(2L));
         assertThat((String)response.rows()[0][0], is("select id from sys.cluster"));
 
-        // TODO: change this to use sql once the set statement is implemented
-        executor.client().admin().cluster().prepareUpdateSettings().setTransientSettings(
-                ImmutableMap.of(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0)
-        ).get();
+        executor.exec("reset global transient collect_stats, jobs_log_size");
         response= executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L));
     }
 
     @Test
     public void testQueryNameFromSysOperations() throws Exception {
+        executor.exec("set global collect_stats = true");
         SQLResponse resp = executor.exec("select name, job_id from sys.operations order by name asc");
 
         // usually this should return collect on 2 nodes, localMerge on 1 node
@@ -642,70 +634,65 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     @Test
     public void testSetSingleStatement() throws Exception {
-        SQLResponse response = executor.exec("select sys.cluster.settings['jobs_log_size'] from sys.cluster");
+        SQLResponse response = executor.exec("select settings['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(0));
+        assertThat((Integer)response.rows()[0][0], is(CrateSettings.JOBS_LOG_SIZE.defaultValue()));
 
-        response = executor.exec("set global persistent jobs_log_size=7");
+        response = executor.exec("set global persistent collect_stats = true, jobs_log_size=7");
         assertThat(response.rowCount(), is(1L));
-        executor.ensureGreen();
 
-        response = executor.exec("select sys.cluster.settings['jobs_log_size'] from sys.cluster");
+        response = executor.exec("select settings['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer)response.rows()[0][0], is(7));
 
-        response = executor.exec("reset global persistent jobs_log_size");
+        response = executor.exec("reset global persistent collect_stats, jobs_log_size");
         assertThat(response.rowCount(), is(1L));
-        executor.ensureGreen();
 
-        response = executor.exec("select sys.cluster.settings['jobs_log_size'] from sys.cluster");
+        response = executor.exec("select settings['collect_stats'], settings['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(0));
+        assertThat((Boolean)response.rows()[0][0], is(CrateSettings.COLLECT_STATS.defaultValue()));
+        assertThat((Integer)response.rows()[0][1], is(CrateSettings.JOBS_LOG_SIZE.defaultValue()));
 
     }
 
     @Test
     public void testSetMultipleStatement() throws Exception {
-        SQLResponse response = executor.exec("select sys.cluster.settings['operations_log_size'], sys.cluster.settings['collect_stats'] from sys.cluster");
+        SQLResponse response = executor.exec(
+                "select settings['operations_log_size'], settings['collect_stats'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(0));
-        assertThat((Boolean)response.rows()[0][1], is(true));
+        assertThat((Integer)response.rows()[0][0], is(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue()));
+        assertThat((Boolean)response.rows()[0][1], is(CrateSettings.COLLECT_STATS.defaultValue()));
 
         response = executor.exec("set global persistent operations_log_size=1024, collect_stats=false");
         assertThat(response.rowCount(), is(1L));
-        executor.ensureGreen();
 
-        response = executor.exec("select sys.cluster.settings['operations_log_size'], sys.cluster.settings['collect_stats'] from sys.cluster");
+        response = executor.exec(
+                "select settings['operations_log_size'], settings['collect_stats'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer)response.rows()[0][0], is(1024));
         assertThat((Boolean)response.rows()[0][1], is(false));
 
         response = executor.exec("reset global persistent operations_log_size, collect_stats");
         assertThat(response.rowCount(), is(1L));
-        executor.ensureGreen();
 
-        response = executor.exec("select sys.cluster.settings['operations_log_size'], sys.cluster.settings['collect_stats'] from sys.cluster");
+        response = executor.exec(
+                "select settings['operations_log_size'], settings['collect_stats'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(0));
-        assertThat((Boolean) response.rows()[0][1], is(true));
+        assertThat((Integer)response.rows()[0][0], is(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue()));
+        assertThat((Boolean)response.rows()[0][1], is(CrateSettings.COLLECT_STATS.defaultValue()));
     }
 
     @Test
     public void testSetStatementInvalid() throws Exception {
-
-        SQLResponse response = executor.exec("select sys.cluster.settings['operations_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(0));
-
         try {
             executor.exec("set global persistent operations_log_size=-1024");
             fail("expected SQLActionException, none was thrown");
         } catch (SQLActionException e) {
             assertThat(e.getMessage(), is("Invalid value for argument 'cluster.operations_log_size'"));
 
-            response = executor.exec("select sys.cluster.settings['operations_log_size'] from sys.cluster");
+            SQLResponse response = executor.exec("select settings['operations_log_size'] from sys.cluster");
             assertThat(response.rowCount(), is(1L));
-            assertThat((Integer) response.rows()[0][0], is(0));
+            assertThat((Integer) response.rows()[0][0], is(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue()));
         }
     }
 
@@ -716,11 +703,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse resp = executor.exec("select count(*) from sys.operations_log");
         assertThat((Long)resp.rows()[0][0], is(0L));
 
-
-        // TODO: change this to use sql once the set statement is implemented
-        executor.client().admin().cluster().prepareUpdateSettings().setTransientSettings(
-            ImmutableMap.of(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 10)
-        ).get();
+        executor.exec("set global transient collect_stats = true, operations_log_size=10");
 
         executor.exec(
             "select count(*), race from characters group by race order by count(*) desc limit 2");
@@ -734,9 +717,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertTrue(names.contains("distributed merge"));
         assertTrue(names.contains("localMerge"));
 
-        executor.client().admin().cluster().prepareUpdateSettings().setTransientSettings(
-            ImmutableMap.of(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 0)
-        ).get();
+        executor.exec("reset global transient collect_stats, operations_log_size");
         resp = executor.exec("select count(*) from sys.operations_log");
         assertThat((Long) resp.rows()[0][0], is(0L));
     }

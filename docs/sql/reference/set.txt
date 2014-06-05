@@ -12,18 +12,18 @@ Synopsis
 
 ::
 
-    SET GLOBAL { PERSISTENT | TRANSIENT } parameter = value [ , ... ]
+    SET GLOBAL [ PERSISTENT | TRANSIENT ] parameter = value [ , ... ]
 
-    RESET GLOBAL { PERSISTENT | TRANSIENT } parameter [ , ... ]
+    RESET GLOBAL [ PERSISTENT | TRANSIENT ] parameter [ , ... ]
 
 Description
 ===========
 
-Using the ``SET`` and ``RESET`` statements it is possible to configure the crate cluster
-at runtime.
+Using the ``SET`` and ``RESET`` statements it is possible to configure the
+crate cluster at runtime.
 
-``SET`` can be used to change a configuration parameter to a different value. Using
-``RESET`` will reset the parameter to its default value.
+``SET`` can be used to change a configuration parameter to a different value.
+Using ``RESET`` will reset the parameter to its default value.
 
 Parameters
 ==========
@@ -56,6 +56,8 @@ Supported Configuration Parameters
 Persistence
 ===========
 
-If used with ``PERSISTENT`` the setting will survive a cluster restart,
-if uses with ``TRANSIENT`` the default value or the value from the config file
-will be restored.
+The default is ``TRANSIENT``. Settings that are changed using the ``TRANSIENT``
+keyword will be lost if the cluster is stopped or restarted.
+
+Using the ``PERSISTENT`` keyword will persist the changes to disk so that the
+change will survive cluster restarts.

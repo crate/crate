@@ -23,6 +23,7 @@ package io.crate.operation.reference.sys;
 
 
 import io.crate.metadata.*;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
@@ -139,8 +140,10 @@ public class TestGlobalSysExpressions {
         SysObjectReference<Object> settingsExpression = (SysObjectReference<Object>) resolver.getImplementation(ident);
 
         Map<String, Object> settings = settingsExpression.value();
-        assertEquals(0, settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
-        assertEquals(0, settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        assertEquals(CrateSettings.JOBS_LOG_SIZE.defaultValue(),
+                settings.get(CrateSettings.JOBS_LOG_SIZE.name()));
+        assertEquals(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue(),
+                settings.get(CrateSettings.OPERATIONS_LOG_SIZE.name()));
     }
 
 }

@@ -21,26 +21,41 @@
 
 package io.crate.integrationtests;
 
-import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.action.sql.SQLResponse;
+import io.crate.test.integration.ClassLifecycleIntegrationTest;
+import io.crate.testing.SQLTransportExecutor;
+import org.junit.Before;
 import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import java.util.ArrayList;
+import java.util.List;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
-public class SysJobsTest extends SQLTransportIntegrationTest {
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+public class SysJobsTest extends ClassLifecycleIntegrationTest {
+
+    private SQLTransportExecutor e;
+
+    @Before
+    public void before() throws Exception {
+        e = SQLTransportExecutor.create(ClassLifecycleIntegrationTest.GLOBAL_CLUSTER);
+    }
 
     @Test
     public void testQueryAllColumns() throws Exception {
-        Long currentTime = System.currentTimeMillis();
+        e.exec("set global collect_stats = true");
         String stmt = "select * from sys.jobs";
-        execute(stmt);
 
-        assertEquals(1L, response.rowCount());
-        assertNotNull(response.rows()[0][0]);
-        assertEquals(stmt, response.rows()[0][1]);
-        assertThat((Long)response.rows()[0][2], greaterThanOrEqualTo(currentTime));
+        // the response contains all current jobs, if the tests are executed in parallel
+        // this might be more then only the "select * from sys.jobs" statement.
+        SQLResponse response = e.exec(stmt);
+        List<String> statements = new ArrayList<>();
+
+        for (Object[] objects : response.rows()) {
+            assertNotNull(objects[0]);
+            statements.add((String)objects[1]);
+        }
+        assertTrue(statements.contains(stmt));
     }
 }
