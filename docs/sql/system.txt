@@ -206,4 +206,105 @@ For example, you can query shards like this::
   +-------------+------------+----+-----------------+----------+---------+-----------------+---------+------...
   SELECT 1 row in set (... sec)
 
+
+Jobs, Operations and Logs
+=========================
+
+In order to see what is happening in the cluster crate provides the
+``sys.jobs`` and ``sys.operations`` tables and there corresponding "logs"
+``sys.jobs_log`` and ``sys.operations_log``.
+
+These tables are by *default always empty*. Jobs and operations aren't tracked
+unless stats collection is activiated as tracking statistics adds a slight
+performance overhead.
+
+In order to activate stats tracking :ref:`ref-set` can be used::
+
+    cr> set global collect_stats = true;
+    SET OK (... sec)
+
+Jobs
+----
+
+The ``sys.jobs`` table provides an overview over all jobs that are currently
+being executed in the cluster::
+
+    cr> select * from sys.jobs where stmt like 'select * from sys.jobs%'
+    +----...-+------------------------------------------------------------------+-...---------+
+    | id     | stmt                                                             |     started |
+    +----...-+------------------------------------------------------------------+-...---------+
+    | ...    | select * from sys.jobs where stmt like 'select * from sys.jobs%' | ...         |
+    +----...-+------------------------------------------------------------------+-...---------+
+    SELECT 1 row in set (... sec)
+
+Each request sent to crate that queries data or manipulates data is considered
+a ``job`` if it passes the analysis step.
+
+For example a request that fails because it attempts to query a table that
+doesn't exist won't get listed.
+
+
+Operations
+----------
+
+The ``sys.operations`` table lists all operations that are currently being
+executed in the cluster.
+
+A ``operation`` is part of a ``job`` but not all jobs list their operations. A
+operation is listed on each node it is being executed on.
+
+In order to see on which nodes the operations are being executed the
+``sys.nodes.name`` expression can be used in the query::
+
+    cr> select sys.nodes.name, job_id, name from sys.operations order by name limit 1;
+    +----------------+--------...-+---------+
+    | sys.nodes.name | job_id     | name    |
+    +----------------+--------...-+---------+
+    | crate          | ...        | collect |
+    +----------------+--------...-+---------+
+    SELECT 1 row in set (... sec)
+
+Logs
+----
+
+Both ``sys.jobs`` and ``sys.operations`` have a corresponding ``_log`` table.
+
+After a job or operation finishes the entries will be moved into the ``_log``
+table. The ``_log`` tables are bound in size and once a table has reached its
+limit old entries will be discarded as new entries are added::
+
+    cr> select * from sys.jobs_log order by ended desc limit 2;
+    +-----...+------------------------...-+-...--------+-...------+-------+
+    | id     | stmt                       |    started |    ended | error |
+    +-----...+------------------------...-+-...--------+-...------+-------+
+    | ...    | select sys.nodes.name, ... | ...        | ...      |  NULL |
+    | ...    | select * from sys.jobs ... | ...        | ...      |  NULL |
+    +-----...+------------------------...-+-...--------+-...------+-------+
+    SELECT 2 rows in set (... sec)
+
+See :ref:`ref-set` on how to change the size of the tables.
+
+
+As described above the stats tracking is by default deactivated and has to be
+enabled using the ``SET`` statement. The same statement can also be used to
+deactivate the stats tracking. This will also wipe all existing log entries::
+
+    cr> set global collect_stats = false;
+    SET OK (... sec)
+
+    cr> select count(*) from sys.jobs_log;
+    +----------+
+    | count(*) |
+    +----------+
+    |        0 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+
+.. note::
+
+    Instead of ``SET`` the ``RESET`` statement could also have been used to
+    reset the value of ``collect_stats`` to its default which is false.
+
+
 .. _configuration: ../configuration.html
