@@ -109,8 +109,9 @@ public class Analyzer {
             return deleteStatementAnalyzer;
         }
 
+
         @Override
-        public AbstractStatementAnalyzer visitInsert(Insert node, Context context) {
+        public AbstractStatementAnalyzer visitInsertFromValues(InsertFromValues node, Context context) {
             context.analysis = new InsertAnalysis(
                     referenceInfos, functions, context.parameters, referenceResolver);
             return insertStatementAnalyzer;

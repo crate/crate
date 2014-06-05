@@ -33,10 +33,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Insert;
-import io.crate.sql.tree.Table;
-import io.crate.sql.tree.ValuesList;
+import io.crate.sql.tree.*;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
@@ -45,7 +42,7 @@ import java.util.*;
 public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysis> {
 
     @Override
-    public Symbol visitInsert(Insert node, InsertAnalysis context) {
+    public Symbol visitInsertFromValues(InsertFromValues node, InsertAnalysis context) {
         process(node.table(), context);
 
         if (context.table().isAlias() && !context.table().isPartitioned()) {

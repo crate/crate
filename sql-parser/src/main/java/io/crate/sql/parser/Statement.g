@@ -705,8 +705,13 @@ objectKeyValue
     ;
 
 insertStmt
-    : INSERT INTO table (columns=identList)? VALUES values=insertValues -> ^(INSERT table $values $columns?)
+    : INSERT INTO table identList? insertSource -> ^(INSERT insertSource table identList?)
     ;
+
+insertSource
+   : VALUES values=insertValues -> $values
+   | query
+   ;	 
 
 identList
     : '(' ident ( ',' ident )* ')' -> ^(IDENT_LIST ident+)

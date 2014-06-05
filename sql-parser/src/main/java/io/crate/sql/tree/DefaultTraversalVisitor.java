@@ -400,7 +400,7 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
 
     @Override
-    public R visitInsert(Insert node, C context) {
+    public R visitInsertFromValues(InsertFromValues node, C context) {
         process(node.table(), context);
         for (ValuesList valuesList : node.valuesLists()) {
             process(valuesList, context);
