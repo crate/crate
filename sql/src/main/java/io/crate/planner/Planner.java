@@ -53,6 +53,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -370,6 +371,20 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         }
 
         ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(analyzerSettings);
+        plan.add(node);
+        plan.expectsAffectedRows(true);
+        return plan;
+    }
+
+    @Override
+    public Plan visitSetAnalysis(SetAnalysis analysis, Void context) {
+        Plan plan = new Plan();
+        ESClusterUpdateSettingsNode node;
+        if (analysis.isPersistent()) {
+            node = new ESClusterUpdateSettingsNode(analysis.settings());
+        } else {
+            node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
+        }
         plan.add(node);
         plan.expectsAffectedRows(true);
         return plan;

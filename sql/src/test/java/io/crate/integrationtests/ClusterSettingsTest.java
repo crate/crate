@@ -33,14 +33,16 @@ public class ClusterSettingsTest extends SQLTransportIntegrationTest {
     public void testDynamicTransientSettings() throws Exception {
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
                 .put(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 1)
-                .put(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 2);
+                .put(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 2)
+                .put(ClusterSettingsExpression.SETTING_COLLECT_STATS, false);
         client().admin().cluster().prepareUpdateSettings().setTransientSettings(builder.build()).execute().actionGet();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
         Map<String, Object> settings = (Map)response.rows()[0][0];
-        assertEquals("1", settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
-        assertEquals("2", settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        assertEquals(1, settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
+        assertEquals(2, settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        assertEquals(false, settings.get(ClusterSettingsExpression.COLLECT_STATS));
 
         cluster().fullRestart();
         ensureGreen();
@@ -48,21 +50,24 @@ public class ClusterSettingsTest extends SQLTransportIntegrationTest {
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
         settings = (Map)response.rows()[0][0];
-        assertEquals("0", settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
-        assertEquals("0", settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        assertEquals(0, settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
+        assertEquals(0, settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        assertEquals(true, settings.get(ClusterSettingsExpression.COLLECT_STATS));
     }
 
     public void testDynamicPersistentSettings() throws Exception {
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
                 .put(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 1)
-                .put(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 2);
+                .put(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 2)
+                .put(ClusterSettingsExpression.SETTING_COLLECT_STATS, false);
         client().admin().cluster().prepareUpdateSettings().setPersistentSettings(builder.build()).execute().actionGet();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
         Map<String, Object> settings = (Map)response.rows()[0][0];
-        assertEquals("1", settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
-        assertEquals("2", settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        assertEquals(1, settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
+        assertEquals(2, settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        assertEquals(false, settings.get(ClusterSettingsExpression.COLLECT_STATS));
 
         cluster().fullRestart();
         ensureGreen();
@@ -70,8 +75,9 @@ public class ClusterSettingsTest extends SQLTransportIntegrationTest {
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
         settings = (Map)response.rows()[0][0];
-        assertEquals("1", settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
-        assertEquals("2", settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        assertEquals(1, settings.get(ClusterSettingsExpression.JOBS_LOG_SIZE));
+        assertEquals(2, settings.get(ClusterSettingsExpression.OPERATIONS_LOG_SIZE));
+        assertEquals(false, settings.get(ClusterSettingsExpression.COLLECT_STATS));
     }
 
 }

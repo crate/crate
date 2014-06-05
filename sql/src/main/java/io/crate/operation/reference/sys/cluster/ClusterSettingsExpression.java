@@ -36,9 +36,11 @@ public class ClusterSettingsExpression extends SysClusterObjectReference<Object>
 
     public static final String JOBS_LOG_SIZE = "jobs_log_size";
     public static final String OPERATIONS_LOG_SIZE = "operations_log_size";
+    public static final String COLLECT_STATS = "collect_stats";
 
     public static final String SETTING_JOBS_LOG_SIZE = "cluster.jobs_log_size";
     public static final String SETTING_OPERATIONS_LOG_SIZE = "cluster.operations_log_size";
+    public static final String SETTING_COLLECT_STATS = "cluster.collect_stats";
 
     abstract class SettingExpression extends SysClusterExpression<Object> {
         protected SettingExpression(String name) {
@@ -66,12 +68,22 @@ public class ClusterSettingsExpression extends SysClusterObjectReference<Object>
                 ClusterSettingsExpression.this.operationsLogSize = newOperationsLogSize;
             }
 
+            final boolean newCollectStats = settings.getAsBoolean(SETTING_COLLECT_STATS,
+                    ClusterSettingsExpression.this.collectStats);
+            if (newCollectStats != ClusterSettingsExpression.this.collectStats) {
+                logger.info("{} [{}]",
+                        (newCollectStats ? "enabling" : "disabling"),
+                        SETTING_COLLECT_STATS);
+                ClusterSettingsExpression.this.collectStats = newCollectStats;
+            }
+
         }
     }
 
     protected final ESLogger logger;
     private volatile int jobsLogSize = 0;
     private volatile int operationsLogSize = 0;
+    private volatile boolean collectStats = true;
 
     @Inject
     public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService) {
@@ -84,14 +96,20 @@ public class ClusterSettingsExpression extends SysClusterObjectReference<Object>
     private void addChildImplementations() {
         childImplementations.put(JOBS_LOG_SIZE, new SettingExpression(JOBS_LOG_SIZE) {
             @Override
-            public String value() {
-                return String.valueOf(jobsLogSize);
+            public Integer value() {
+                return jobsLogSize;
             }
         });
         childImplementations.put(OPERATIONS_LOG_SIZE, new SettingExpression(OPERATIONS_LOG_SIZE) {
             @Override
-            public String value() {
-                return String.valueOf(operationsLogSize);
+            public Integer value() {
+                return operationsLogSize;
+            }
+        });
+        childImplementations.put(COLLECT_STATS, new SettingExpression(COLLECT_STATS) {
+            @Override
+            public Boolean value() {
+                return collectStats;
             }
         });
     }
