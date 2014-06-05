@@ -94,7 +94,7 @@ public class SetAnalysis extends Analysis {
 
     @Override
     public boolean hasNoResult() {
-        throw new UnsupportedOperationException();
+        return settings.getAsMap().isEmpty();
     }
 
     @Override
