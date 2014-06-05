@@ -60,6 +60,7 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
             case ShortType.ID:
                 return new ShortColumnReference(colName);
             case IpType.ID:
+                return new IpColumnReference(colName);
             case StringType.ID:
                 return new BytesRefColumnReference(colName);
             case DoubleType.ID:

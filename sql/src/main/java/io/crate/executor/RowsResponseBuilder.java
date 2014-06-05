@@ -23,6 +23,7 @@ package io.crate.executor;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SQLResponse;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
@@ -37,6 +38,9 @@ public class RowsResponseBuilder implements ResponseBuilder {
      * TODO: let the client set this flag through SQLRequest and Planner
      */
     private final boolean convertBytesRefs;
+
+    private final static Set<DataType> BYTES_REF_TYPES = ImmutableSet.<DataType>of(
+            DataTypes.STRING, DataTypes.IP);
 
     public RowsResponseBuilder(boolean convertBytesRefs) {
         this.convertBytesRefs = convertBytesRefs;
@@ -67,10 +71,10 @@ public class RowsResponseBuilder implements ResponseBuilder {
         final IntArrayList stringCollectionColumns = new IntArrayList();
         int idx = 0;
         for (DataType dataType : dataTypes) {
-            if (dataType.equals(DataTypes.STRING)) {
+            if (BYTES_REF_TYPES.contains(dataType)) {
                 stringColumns.add(idx);
             } else if ((DataTypes.isCollectionType(dataType)
-                    && ((CollectionType)dataType).innerType().equals(StringType.INSTANCE))) {
+                    && (BYTES_REF_TYPES.contains(((CollectionType)dataType).innerType())))) {
                 stringCollectionColumns.add(idx);
             }
             idx++;

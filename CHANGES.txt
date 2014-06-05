@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: columns of type "ip" are now returned in the string representation
+   instead of the internal long format when returned as part of a group by
+   query.
+
  - updated crate-admin to 0.8.1 which includes following changes:
 
     - fix: round percentage of available and underreplicated data correctly
