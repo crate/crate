@@ -24,7 +24,7 @@ package io.crate.operation.collect;
 import io.crate.core.collections.NonBlockingArrayQueue;
 import io.crate.core.collections.NoopQueue;
 import io.crate.executor.Job;
-import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
@@ -35,6 +35,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
@@ -47,14 +48,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * injected via guice instead of using static so that if two nodes run
  * in the same jvm the memoryTables aren't shared between the nodes.
  */
+@ThreadSafe
 public class StatsTables {
 
-    private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMapV8<>();
-    private final Map<UUID, OperationContext> operationsTable = new ConcurrentHashMapV8<>();
-    private final AtomicReference<Integer> lastOperationsLogSize = new AtomicReference<>();
-    private final AtomicReference<Integer> lastJobsLogSize = new AtomicReference<>();
-    private final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>();
-    private final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>();
+    protected final Map<UUID, JobContext> jobsTable = new ConcurrentHashMapV8<>();
+    protected final Map<UUID, OperationContext> operationsTable = new ConcurrentHashMapV8<>();
+    protected final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>();
+    protected final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>();
     private final static NoopQueue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();
     private final static NoopQueue<JobContextLog> NOOP_JOBS_LOG = NoopQueue.instance();
 
@@ -63,6 +63,10 @@ public class StatsTables {
     private final OperationsIterableGetter operationsIterableGetter;
     private final OperationsLogIterableGetter operationsLogIterableGetter;
 
+    protected final NodeSettingsService.Listener listener = new NodeSettingListener();
+    protected volatile int lastOperationsLogSize;
+    protected volatile int lastJobsLogSize;
+    protected volatile boolean lastIsEnabled;
 
     public interface IterableGetter {
         public Iterable<?> getIterable();
@@ -70,9 +74,23 @@ public class StatsTables {
 
     @Inject
     public StatsTables(Settings settings, NodeSettingsService nodeSettingsService) {
-        setOperationsLog(settings.getAsInt(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 0));
-        setJobsLog(settings.getAsInt(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0));
-        nodeSettingsService.addListener(new NodeSettingListener());
+        int operationsLogSize = CrateSettings.OPERATIONS_LOG_SIZE.extract(settings);
+        int jobsLogSize = CrateSettings.JOBS_LOG_SIZE.extract(settings);
+        boolean isEnabled = CrateSettings.COLLECT_STATS.extract(settings);
+
+        if (isEnabled) {
+            setJobsLog(jobsLogSize);
+            setOperationsLog(operationsLogSize);
+        } else {
+            setJobsLog(0);
+            setOperationsLog(0);
+        }
+
+        lastOperationsLogSize = operationsLogSize;
+        lastJobsLogSize = jobsLogSize;
+        lastIsEnabled = isEnabled;
+
+        nodeSettingsService.addListener(listener);
         jobsLogIterableGetter = new JobsLogIterableGetter();
         jobsIterableGetter = new JobsIterableGetter();
         operationsIterableGetter = new OperationsIterableGetter();
@@ -84,7 +102,7 @@ public class StatsTables {
      * This result will change if the cluster settings is updated.
      */
     public boolean isEnabled() {
-        return true;
+        return lastIsEnabled;
     }
 
     /**
@@ -189,7 +207,6 @@ public class StatsTables {
     }
 
     private void setOperationsLog(int size) {
-        lastOperationsLogSize.set(size);
         if (size == 0) {
             operationsLog.set(NOOP_OPERATIONS_LOG);
         } else {
@@ -198,7 +215,6 @@ public class StatsTables {
     }
 
     private void setJobsLog(int size) {
-        lastJobsLogSize.set(size);
         if (size == 0) {
             jobsLog.set(NOOP_JOBS_LOG);
         } else {
@@ -210,23 +226,40 @@ public class StatsTables {
 
         @Override
         public void onRefreshSettings(Settings settings) {
-            updateJobsLog(settings);
-            updateOperationsLog(settings);
-            // TODO: track isEnabled and if it changes to false remember to clear any current jobs/operations
-            // as well as the history
-        }
+            boolean wasEnabled = lastIsEnabled;
+            boolean becomesEnabled = CrateSettings.COLLECT_STATS.extract(settings);
 
-        private void updateOperationsLog(Settings settings) {
-            int newSize = settings.getAsInt(ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, 0);
-            if (newSize != lastOperationsLogSize.get()) {
-                setOperationsLog(newSize);
-            }
-        }
+            if (wasEnabled && becomesEnabled) {
+                int opSize = CrateSettings.OPERATIONS_LOG_SIZE.extract(settings);
+                if (opSize != lastOperationsLogSize) {
+                    lastOperationsLogSize = opSize;
+                    setOperationsLog(opSize);
+                }
 
-        private void updateJobsLog(Settings settings) {
-            int newSize = settings.getAsInt(ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, 0);
-            if (newSize != lastJobsLogSize.get()) {
-                setJobsLog(newSize);
+                int jobSize = CrateSettings.JOBS_LOG_SIZE.extract(settings);
+                if (jobSize != lastJobsLogSize) {
+                    lastJobsLogSize = jobSize;
+                    setJobsLog(jobSize);
+                }
+
+            } else if (wasEnabled) { // !becomesEnabled
+                setOperationsLog(0);
+                setJobsLog(0);
+                lastIsEnabled = false;
+
+                lastOperationsLogSize = CrateSettings.OPERATIONS_LOG_SIZE.extract(settings);
+                lastJobsLogSize = CrateSettings.JOBS_LOG_SIZE.extract(settings);
+            } else if (becomesEnabled) { // !wasEnabled
+                lastIsEnabled = true;
+
+                // queue sizes was zero before so we have to change it
+                int opSize = CrateSettings.OPERATIONS_LOG_SIZE.extract(settings);
+                lastOperationsLogSize = opSize;
+                setOperationsLog(opSize);
+
+                int jobSize = CrateSettings.JOBS_LOG_SIZE.extract(settings);
+                lastJobsLogSize = jobSize;
+                setJobsLog(jobSize);
             }
         }
     }

@@ -28,6 +28,7 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.doc.MetaDataDocModule;
 import io.crate.metadata.information.MetaDataInformationModule;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -35,7 +36,6 @@ import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.CollectShardModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
@@ -137,9 +137,10 @@ public class SQLPlugin extends AbstractPlugin {
         clusterDynamicSettingsModule.addDynamicSettings(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
 
         clusterDynamicSettingsModule.addDynamicSetting(
-                ClusterSettingsExpression.SETTING_JOBS_LOG_SIZE, Validator.NON_NEGATIVE_INTEGER);
+                CrateSettings.JOBS_LOG_SIZE.settingName(), Validator.NON_NEGATIVE_INTEGER);
         clusterDynamicSettingsModule.addDynamicSetting(
-                ClusterSettingsExpression.SETTING_OPERATIONS_LOG_SIZE, Validator.NON_NEGATIVE_INTEGER);
-        clusterDynamicSettingsModule.addDynamicSetting(ClusterSettingsExpression.SETTING_COLLECT_STATS, Validator.BOOLEAN);
+                CrateSettings.OPERATIONS_LOG_SIZE.settingName(), Validator.NON_NEGATIVE_INTEGER);
+        clusterDynamicSettingsModule.addDynamicSetting(
+                CrateSettings.COLLECT_STATS.settingName(), Validator.BOOLEAN);
     }
 }

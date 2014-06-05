@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
-import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,7 +32,6 @@ import java.util.Map;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     private static SQLTransportExecutor executor;
