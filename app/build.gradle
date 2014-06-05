@@ -9,7 +9,10 @@ configurations {
 
 task release(dependsOn: 'distTar') << {
     logger.info("released version: " + getVersion.version);
+}
 
+task nightly(dependsOn: 'distTar') << {
+    logger.info("nightly version: " + getVersion.version);
 }
 
 task getVersion ( dependsOn: 'classes') << {
@@ -24,10 +27,13 @@ task getVersion ( dependsOn: 'classes') << {
 
     if (gradle.taskGraph.hasTask(release)) {
         assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
-    } else {
-        if (!gradle.taskGraph.hasTask(':client:uploadArchives')) {
-            ext.version = version + "-" + "git rev-parse --short HEAD".execute().in.text.trim()
-        }
+    } else if (gradle.taskGraph.hasTask(nightly)) {
+        def date = new Date().format('yyyyMMddHHmm')
+        def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
+        ext.version = version.replace('-SNAPSHOT','') + "-" + date + "-" + shortHash
+    } else if (!gradle.taskGraph.hasTask(':client:uploadArchives')) {
+        def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
+        ext.version = version + "-" + shortHash
     }
 
     logger.quiet("gitTag: " + gitTag)
