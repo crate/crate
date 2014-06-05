@@ -3924,6 +3924,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((List<Double>)response.rows()[1][0], is(Arrays.asList(47.22, 12.09)));
     }
 
+    @Test
     public void testCountPartitionedTable() throws Exception {
         execute("create table parted (" +
                 "  id int, " +
@@ -3945,4 +3946,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Long)response.rows()[0][0], is(2L));
     }
 
+    @Test
+    public void testGroupByOnIpType() throws Exception {
+        execute("create table t (i ip) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.2'), ('192.168.1.3')");
+        execute("refresh table t");
+        execute("select i, count(*) from t group by 1 order by count(*) desc");
+
+        assertThat(response.rowCount(), is(2L));
+        assertThat((String)response.rows()[0][0], is("192.168.1.2"));
+        assertThat((Long)response.rows()[0][1], is(2L));
+        assertThat((String)response.rows()[1][0], is("192.168.1.3"));
+        assertThat((Long)response.rows()[1][1], is(1L));
+    }
 }

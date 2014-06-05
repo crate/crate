@@ -42,4 +42,21 @@ public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
     public String toString() {
         return columnName().contains(".") ? StringUtils.dottedToSqlPath(columnName()) : columnName();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ColumnReferenceCollectorExpression)) return false;
+
+        ColumnReferenceCollectorExpression that = (ColumnReferenceCollectorExpression) o;
+
+        if (!columnName.equals(that.columnName)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return columnName.hashCode();
+    }
 }

@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: columns of type "ip" are now returned in the string representation
+   instead of the internal long format when returned as part of a group by
+   query.
+
 2014/06/03 0.38.3
 =================
 
