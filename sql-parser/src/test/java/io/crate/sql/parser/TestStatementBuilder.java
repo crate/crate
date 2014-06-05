@@ -98,11 +98,6 @@ public class TestStatementBuilder
         printStatement("select * from foo limit 100 offset 20");
         printStatement("select * from foo offset 20");
 
-        printStatement("insert into foo (id, name) values ('string', 1.2)");
-        printStatement("insert into foo values ('string', NULL)");
-        printStatement("insert into foo (id, name) values ('string', 1.2), (abs(-4), 4+?)");
-        printStatement("insert into schemah.foo (id, name) values ('string', 1.2)");
-
         printStatement("delete from foo");
         printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
 
@@ -275,6 +270,20 @@ public class TestStatementBuilder
         printStatement("alter blob table screenshots set (number_of_replicas=3)");
         printStatement("alter blob table screenshots set (number_of_replicas='0-all')");
         printStatement("alter blob table screenshots reset (number_of_replicas)");
+    }
+
+
+    @Test
+    public void testInsert() throws Exception {
+        printStatement("insert into foo (id, name) values ('string', 1.2)");
+        printStatement("insert into foo values ('string', NULL)");
+        printStatement("insert into foo (id, name) values ('string', 1.2), (abs(-4), 4+?)");
+        printStatement("insert into schemah.foo (id, name) values ('string', 1.2)");
+
+        printStatement("insert into foo (id, name) (select id, name from bar order by id)");
+        printStatement("insert into foo (id, name) (select * from bar limit 3 offset 10)");
+        printStatement("insert into foo (wealth, name) (select sum(money), name from bar group by name)");
+        printStatement("insert into foo (select sum(money), name from bar group by name)");
     }
 
     @Test

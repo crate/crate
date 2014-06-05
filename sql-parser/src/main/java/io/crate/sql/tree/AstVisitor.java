@@ -556,4 +556,12 @@ public abstract class AstVisitor<R, C>
     public R visitResetStatement(ResetStatement node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitInsertFromValues(InsertFromValues node, C context) {
+        return visitInsert(node, context);
+    }
+
+    public R visitInsertFromSubquery(InsertFromSubquery node, C context) {
+        return visitInsert(node, context);
+    }
 }
