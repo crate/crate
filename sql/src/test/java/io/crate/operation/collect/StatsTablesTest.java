@@ -24,10 +24,17 @@ package io.crate.operation.collect;
 import io.crate.core.collections.NonBlockingArrayQueue;
 import io.crate.core.collections.NoopQueue;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.operation.reference.sys.job.JobContext;
+import io.crate.operation.reference.sys.job.JobContextLog;
+import io.crate.operation.reference.sys.operation.OperationContext;
+import io.crate.operation.reference.sys.operation.OperationContextLog;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -64,5 +71,33 @@ public class StatsTablesTest {
         // logs got wiped:
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(NoopQueue.class));
         assertThat(stats.isEnabled(), is(false));
+    }
+
+    @Test
+    public void testLogsArentWipedOnSizeChange() {
+        NodeSettingsService nodeSettingsService = new NodeSettingsService(ImmutableSettings.EMPTY);
+        Settings settings = ImmutableSettings.builder()
+                .put(CrateSettings.COLLECT_STATS.settingName(), true).build();
+        StatsTables stats = new StatsTables(settings, nodeSettingsService);
+
+        stats.jobsLog.get().add(new JobContextLog(new JobContext(UUID.randomUUID(), "select 1", 1L), null));
+
+        stats.listener.onRefreshSettings(ImmutableSettings.builder()
+                .put(CrateSettings.COLLECT_STATS.settingName(), true)
+                .put(CrateSettings.JOBS_LOG_SIZE.settingName(), 200).build());
+
+        assertThat(stats.jobsLog.get().size(), is(1));
+
+
+        stats.operationsLog.get().add(new OperationContextLog(
+                new OperationContext(UUID.randomUUID(), "foo", 2L), null));
+        stats.operationsLog.get().add(new OperationContextLog(
+                new OperationContext(UUID.randomUUID(), "foo", 3L), null));
+
+        stats.listener.onRefreshSettings(ImmutableSettings.builder()
+                .put(CrateSettings.COLLECT_STATS.settingName(), true)
+                .put(CrateSettings.OPERATIONS_LOG_SIZE.settingName(), 1).build());
+
+        assertThat(stats.operationsLog.get().size(), is(1));
     }
 }
