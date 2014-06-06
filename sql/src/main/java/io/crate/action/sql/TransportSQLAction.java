@@ -59,6 +59,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 
 public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
@@ -143,15 +144,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
         final ResponseBuilder responseBuilder = getResponseBuilder(plan);
         if (plan.isEmpty()) {
+            UUID jobId = UUID.randomUUID();
+            statsTables.jobStarted(jobId, request.stmt());
             assert plan.expectsAffectedRows();
             ListenableFuture<List<Object[][]>> zeroAffectedRows =
                     Futures.immediateFuture(Arrays.<Object[][]>asList(new Object[][] { new Object[] { 0 }}));
-            addResultCallback(request, listener, outputNames, plan, responseBuilder, null, zeroAffectedRows);
+            addResultCallback(request, listener, outputNames, plan, responseBuilder, jobId, zeroAffectedRows);
         } else {
             final Job job = executor.newJob(plan);
-            statsTables.jobStarted(job, request.stmt());
+            statsTables.jobStarted(job.id(), request.stmt());
             final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(executor.execute(job));
-            addResultCallback(request, listener, outputNames, plan, responseBuilder, job, resultFuture);
+            addResultCallback(request, listener, outputNames, plan, responseBuilder, job.id(), resultFuture);
         }
 
     }
@@ -180,7 +183,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                                           final String[] outputNames,
                                           final Plan plan,
                                           final ResponseBuilder responseBuilder,
-                                          @Nullable final Job job,
+                                          @Nullable final UUID jobId,
                                           ListenableFuture<List<Object[][]>> resultFuture) {
         Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
             @Override
@@ -200,22 +203,22 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                         request.creationTime(),
                         request.includeTypesOnResponse());
 
-                handleJobStats(job, null);
+                handleJobStats(jobId, null);
                 listener.onResponse(response);
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 logger.debug("Error processing SQLRequest", t);
-                handleJobStats(job, Exceptions.messageOf(t));
+                handleJobStats(jobId, Exceptions.messageOf(t));
                 listener.onFailure(buildSQLActionException(t));
             }
 
-            private void handleJobStats(@Nullable Job job, @Nullable String errorMessage) {
-                if (job == null) {
+            private void handleJobStats(@Nullable UUID jobId, @Nullable String errorMessage) {
+                if (jobId == null) {
                     return;
                 }
-                statsTables.jobFinished(job, errorMessage);
+                statsTables.jobFinished(jobId, errorMessage);
             }
         });
     }

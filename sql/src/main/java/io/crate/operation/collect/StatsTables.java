@@ -111,11 +111,11 @@ public class StatsTables {
      *
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void jobStarted(Job job, String statement) {
+    public void jobStarted(UUID jobId, String statement) {
         if (!isEnabled()) {
             return;
         }
-        jobsTable.put(job.id(), new JobContext(job.id(), statement, System.currentTimeMillis()));
+        jobsTable.put(jobId, new JobContext(jobId, statement, System.currentTimeMillis()));
     }
 
     /**
@@ -123,11 +123,11 @@ public class StatsTables {
      *
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void jobFinished(Job job, @Nullable String errorMessage) {
+    public void jobFinished(UUID jobId, @Nullable String errorMessage) {
         if (!isEnabled()) {
             return;
         }
-        JobContext jobContext = jobsTable.remove(job.id());
+        JobContext jobContext = jobsTable.remove(jobId);
         if (jobContext == null) {
             return;
         }

@@ -722,6 +722,18 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat((Long) resp.rows()[0][0], is(0L));
     }
 
+    @Test
+    public void testEmptyJobsInLog() throws Exception {
+        executor.exec("set global transient collect_stats = true");
+        executor.exec("insert into characters (name) values ('sysjobstest')");
+        executor.exec("delete from characters where name = 'sysjobstest'");
+
+        SQLResponse response = executor.exec(
+                "select * from sys.jobs_log where stmt like 'insert into%' or stmt like 'delete%'");
+        assertThat(response.rowCount(), is(2L));
+        executor.exec("set global transient collect_stats = false");
+    }
+
 
     @Test
     public void testDistinctSysOperations() throws Exception {
