@@ -136,4 +136,12 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertEquals("t| 04132\n", TestingHelpers.printedTable(response.rows()));
     }
 
+    @Test
+    public void testStartPartitionWithMissingTable() throws Exception {
+        // ensureYellow must succeed
+        String partition = ".partitioned.parted.04130";
+        client().admin().indices().prepareCreate(partition).execute().actionGet();
+        ensureYellow();
+    }
+
 }
