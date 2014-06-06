@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added ``substr`` scalar function
+
  - fix: in some cases ``format`` function returned bytes instead of string
 
  - added the ``sys.jobs``, ``sys.jobs_log``, ``sys.operations`` and

@@ -52,6 +52,7 @@ public class ScalarFunctionModule extends AbstractModule {
         DateTruncFunction.register(this);
         DateTruncTimeZoneAwareFunction.register(this);
         FormatFunction.register(this);
+        SubstrFunction.register(this);
 
         AddFunction.register(this);
         SubtractFunction.register(this);
