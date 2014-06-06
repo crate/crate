@@ -55,7 +55,7 @@ public class SysJobsLogTableInfo extends SysTableInfo {
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.NODE, type);
+        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.DOC, type);
         if (info.ident().isColumn()) {
             columns.add(info);
         }

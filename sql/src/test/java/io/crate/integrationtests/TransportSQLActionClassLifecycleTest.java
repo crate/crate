@@ -721,4 +721,13 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         resp = executor.exec("select count(*) from sys.operations_log");
         assertThat((Long) resp.rows()[0][0], is(0L));
     }
+
+
+    @Test
+    public void testDistinctSysOperations() throws Exception {
+        // this tests a distributing collect without shards but DOC level granularity
+        SQLResponse response = executor.exec("select distinct name  from sys.operations");
+        // no data since collect_stats is disabled
+        assertThat(response.rowCount(), is(0L));
+    }
 }

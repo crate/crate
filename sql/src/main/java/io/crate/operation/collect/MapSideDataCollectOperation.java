@@ -55,6 +55,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 
@@ -76,14 +77,14 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
 
         @Override
         protected void onAllShardsFinished() {
-            Futures.addCallback(projectorChain.result(), new FutureCallback<Object[][]>() {
+            Futures.addCallback(resultProvider.result(), new FutureCallback<Object[][]>() {
                 @Override
                 public void onSuccess(@Nullable Object[][] result) {
                     set(result);
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
+                public void onFailure(@Nonnull Throwable t) {
                     setException(t);
                 }
             });
@@ -161,6 +162,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
 
         FlatProjectorChain projectorChain = new FlatProjectorChain(
                 collectNode.projections(), projectorVisitor);
+
         CrateCollector collector;
         try {
             collector = getCollector(collectNode, projectorChain);
