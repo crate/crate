@@ -417,8 +417,10 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         for (PartitionName partitionName : context.table.partitions()) {
             String leftValue = partitionName.values().get(idx);
             Literal left = null;
-            if (leftValue != null) {
+            if (leftValue != null && dataType != DataTypes.NULL) {
                 left = Literal.newLiteral(dataType, dataType.value(leftValue));
+            } else if (dataType == DataTypes.NULL) {
+                left = Literal.newLiteral(leftValue);
             }
 
             boolean result = false;
