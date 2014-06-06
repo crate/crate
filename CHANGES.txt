@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: in some cases ``format`` function returned bytes instead of string
+
  - fix: columns of type "ip" are now returned in the string representation
    instead of the internal long format when returned as part of a group by
    query.

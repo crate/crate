@@ -61,11 +61,14 @@ public class FormatFunction implements Scalar<BytesRef, Object>, DynamicFunction
 
         Object[] values = new Object[args.length - 1];
         for (int i = 0; i < args.length - 1; i++) {
-            values[i] = args[i + 1].value();
+            if (args[i + 1].value() instanceof BytesRef) {
+                values[i] = ((BytesRef) args[i + 1].value()).utf8ToString();
+            } else {
+                values[i] = args[i + 1].value();
+            }
         }
 
         Object formatString = args[0].value();
-        assert formatString instanceof BytesRef;
         return new BytesRef(String.format(((BytesRef)formatString).utf8ToString(), values));
     }
 
