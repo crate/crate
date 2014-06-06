@@ -31,9 +31,10 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.Projection;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
-public class ShardProjectorChain {
+public class ShardProjectorChain implements ResultProvider {
 
     private final List<Projection> projections;
     private final List<Projector> shardProjectors;
@@ -120,8 +121,9 @@ public class ShardProjectorChain {
         return lastProjector.result();
     }
 
-    public ResultProvider lastProjector() {
-        return lastProjector;
+    @Override
+    public Iterator<Object[]> iterator() throws IllegalStateException {
+        return lastProjector.iterator();
     }
 
     public void startProjections() {

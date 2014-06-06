@@ -266,14 +266,15 @@ public class DistributingCollectTest {
         assertTrue(buckets.containsKey(OTHER_NODE_ID));
     }
 
-    @Test( expected = UnsupportedOperationException.class )
+    @Test
     public void testCollectFromNodes() throws Exception {
         CollectNode collectNode = new CollectNode("dcollect", nodeRouting);
         collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.NODE);
         collectNode.toCollect(Arrays.<Symbol>asList(Literal.newLiteral(true)));
-        operation.collect(collectNode).get();
+        Object[][] objects = operation.collect(collectNode).get();
+        assertThat((Boolean)objects[0][0], is(true));
     }
 
     @Test
