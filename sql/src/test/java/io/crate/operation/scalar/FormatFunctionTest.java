@@ -101,5 +101,28 @@ public class FormatFunctionTest {
 
         BytesRef result = format.evaluate(arg1, arg2, arg3);
         assertThat(result.utf8ToString(), is("Arthur bla 38"));
+
+        arg1 = new Input<Object>() {
+            @Override
+            public Object value() {
+                return formatString.value();
+            }
+        };
+        arg2 = new Input<Object>() {
+            @Override
+            public Object value() {
+                return new BytesRef("Arthur");
+            }
+        };
+        arg3 = new Input<Object>() {
+            @Override
+            public Object value() {
+                return 42L;
+            }
+        };
+
+        result = format.evaluate(arg1, arg2, arg3);
+        assertThat(result.utf8ToString(), is("Arthur bla 42"));
+
     }
 }
