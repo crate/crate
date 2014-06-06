@@ -155,7 +155,6 @@ public class PlannerTest {
             TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.LONG, null)
-                    .add(DocSysColumns.RAW.name(), DataTypes.STRING, null)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
@@ -168,7 +167,6 @@ public class PlannerTest {
                     .build();
             TableIdent partedTableIdent = new TableIdent(null, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
-                    .addDocSysColumns()
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
@@ -901,7 +899,7 @@ public class PlannerTest {
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESClusterUpdateSettingsNode.class));
 
-        ESClusterUpdateSettingsNode node = (ESClusterUpdateSettingsNode)planNode;
+        ESClusterUpdateSettingsNode node = (ESClusterUpdateSettingsNode) planNode;
         // set transient settings too when setting persistent ones
         assertThat(node.transientSettings().toDelimitedString(','), is("cluster.jobs_log_size=1024,"));
         assertThat(node.persistentSettings().toDelimitedString(','), is("cluster.jobs_log_size=1024,"));
@@ -911,8 +909,13 @@ public class PlannerTest {
         planNode = iterator.next();
         assertThat(planNode, instanceOf(ESClusterUpdateSettingsNode.class));
 
-        node = (ESClusterUpdateSettingsNode)planNode;
+        node = (ESClusterUpdateSettingsNode) planNode;
         assertThat(node.persistentSettings().getAsMap().size(), is(0));
         assertThat(node.transientSettings().toDelimitedString(','), is("cluster.collect_stats=false,cluster.jobs_log_size=0,"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testInsertFromSubQuery() throws Exception {
+        plan("insert into users (id, name) (select id, name from users where name='Ford')");
     }
 }

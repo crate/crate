@@ -30,6 +30,11 @@ public class NotSupportedType extends DataType<Void> implements DataTypeFactory 
     private NotSupportedType() {}
 
     @Override
+    public boolean isConvertableTo(DataType other) {
+        return false;
+    }
+
+    @Override
     public int id() {
         return ID;
     }
