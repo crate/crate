@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: where is null / is not null didn't work correctly on system tables
+
  - updated crate-admin to 0.8.2 which includes following changes:
 
     - fix: make table list and node list available in mobile view

@@ -22,6 +22,7 @@
 package io.crate.operation.predicate;
 
 import io.crate.metadata.*;
+import io.crate.operation.Input;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
@@ -35,6 +36,7 @@ import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class IsNullPredicateTest {
@@ -61,11 +63,31 @@ public class IsNullPredicateTest {
     @Test
     public void testNormalizeReference() throws Exception {
         Reference name_ref = new Reference(new ReferenceInfo(
-                        new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
-                        RowGranularity.DOC,
-                        DataTypes.STRING));
+                new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
+                RowGranularity.DOC,
+                DataTypes.STRING));
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
         Symbol symbol = predicate.normalizeSymbol(isNull);
         assertThat(symbol, instanceOf(Function.class));
     }
+
+    @Test
+    public void testNormalizeSymbolWithStringLiteralThatIsNull() throws Exception {
+        Function isNull = new Function(predicate.info(),
+                Arrays.<Symbol>asList(Literal.newLiteral(DataTypes.STRING, null)));
+        Symbol symbol = predicate.normalizeSymbol(isNull);
+        assertThat((Boolean) ((Input) symbol).value(), is(true));
+    }
+
+    @Test
+    public void testEvaluateWithInputThatReturnsNull() throws Exception {
+        Boolean result = predicate.evaluate(new Input[]{new Input() {
+            @Override
+            public Object value() {
+                return null;
+            }
+        }});
+        assertThat(result, is(true));
+    }
 }
+

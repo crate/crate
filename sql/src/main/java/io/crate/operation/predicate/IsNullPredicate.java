@@ -72,14 +72,14 @@ public class IsNullPredicate<T> implements Scalar<Boolean, T> {
         if (arg.equals(Literal.NULL)) {
             return Literal.newLiteral(true);
         } else if (arg.symbolType().isValueSymbol()) {
-            return Literal.newLiteral(false);
+            return Literal.newLiteral(((Input) arg).value() == null);
         }
         return symbol;
     }
 
     @Override
-    public Boolean evaluate(Input<T>... args) {
+    public Boolean evaluate(Input[] args) {
         assert args.length == 1;
-        return args[0] == null;
+        return args[0] == null || args[0].value() == null;
     }
 }
