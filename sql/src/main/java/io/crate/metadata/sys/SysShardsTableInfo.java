@@ -91,11 +91,13 @@ public class SysShardsTableInfo extends SysTableInfo {
         }
 
         node = shardRouting.currentNodeId();
-
+        if (!shardRouting.active()) {
+            node = null;
+        }
         Map<String, Set<Integer>> nodeMap = routing.get(node);
         if (nodeMap == null) {
             nodeMap = new HashMap<>();
-            routing.put(shardRouting.currentNodeId(), nodeMap);
+            routing.put(node, nodeMap);
         }
 
         Set<Integer> shards = nodeMap.get(shardRouting.getIndex());

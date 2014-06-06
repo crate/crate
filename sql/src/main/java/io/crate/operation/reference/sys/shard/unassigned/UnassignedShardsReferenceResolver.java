@@ -77,7 +77,7 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
         register(new UnassignedShardCollectorExpression<BytesRef>(ShardStateExpression.NAME) {
             @Override
             public BytesRef value() {
-                return new BytesRef("UNASSIGNED");
+                return row.state();
             }
         });
 

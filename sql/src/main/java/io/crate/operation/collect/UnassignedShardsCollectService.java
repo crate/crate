@@ -104,8 +104,9 @@ public class UnassignedShardsCollectService implements CollectService {
             @Override
             public UnassignedShard apply(@Nullable ShardRouting input) {
                 assert input != null;
-                if (input.unassigned()) {
-                    return new UnassignedShard(input.shardId(), context.isPrimary(input.shardId()));
+                if (!input.active()) {
+                    return new UnassignedShard(
+                        input.shardId(), context.isPrimary(input.shardId()), input.state());
                 }
                 return null;
             }
