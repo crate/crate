@@ -29,6 +29,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.Task;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.StatsTables;
@@ -67,7 +68,6 @@ public class LocalMergeTask implements Task<Object[][]> {
     /**
      *
      * @param implementationSymbolVisitor symbol visitor (on cluster level)
-     * @param mergeNode
      */
     public LocalMergeTask(ThreadPool threadPool,
                           Provider<Client> clientProvider,
@@ -110,7 +110,7 @@ public class LocalMergeTask implements Task<Object[][]> {
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                statsTables.operationFinished(operationId, t.getMessage());
+                statsTables.operationFinished(operationId, Exceptions.messageOf(t));
                 result.setException(t);
             }
         });
@@ -126,6 +126,7 @@ public class LocalMergeTask implements Task<Object[][]> {
                     try {
                         shouldContinue = mergeOperation.addRows(rows);
                     } catch (Exception ex) {
+                        statsTables.operationFinished(operationId, Exceptions.messageOf(ex));
                         result.setException(ex);
                         logger.error("Failed to add rows", ex);
                         return;
@@ -137,7 +138,8 @@ public class LocalMergeTask implements Task<Object[][]> {
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
+                public void onFailure(@Nonnull Throwable t) {
+                    statsTables.operationFinished(operationId, Exceptions.messageOf(t));
                     result.setException(t);
                 }
             }, threadPool.executor(ThreadPool.Names.GENERIC));

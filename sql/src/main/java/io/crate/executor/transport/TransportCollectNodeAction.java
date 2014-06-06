@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
+import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.DistributingCollectOperation;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
@@ -116,6 +117,7 @@ public class TransportCollectNodeAction {
         } catch (Exception e){
             logger.error("Error when creating result futures", e);
             collectResponse.onFailure(e);
+            statsTables.operationFinished(operationId, Exceptions.messageOf(e));
             return collectResponse;
         }
 
@@ -134,7 +136,7 @@ public class TransportCollectNodeAction {
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 collectResponse.onFailure(t);
-                statsTables.operationFinished(operationId, t.getMessage());
+                statsTables.operationFinished(operationId, Exceptions.messageOf(t));
             }
         });
         return collectResponse;
