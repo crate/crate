@@ -437,9 +437,4 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         ));
         assertThat(analysis.sourceMaps().size(), is(2));
     }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testInsertFromQuery() throws Exception {
-        analyze("insert into users (id, name) (select id, name from useres where name like '%ord')");
-    }
 }
