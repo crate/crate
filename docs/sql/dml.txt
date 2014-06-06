@@ -113,6 +113,13 @@ all simple data types:
   'not_analyzed' in the schema. For an 'analyzed' field the result may
   differ depending on the used Analyzer/Tokenizer.
 
+
+.. note::
+
+    Not all operators can utilize the index efficiently. For example ``is
+    null`` can't use the index at all and will therefore performe worse than
+    other operators.
+
 For strings a lexicographical comparison is performed based on the
 Lucene TermRangeQuery::
 

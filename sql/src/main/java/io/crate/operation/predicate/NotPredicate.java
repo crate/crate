@@ -40,7 +40,7 @@ public class NotPredicate implements Scalar<Boolean, Boolean> {
             new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN)), DataTypes.BOOLEAN);
 
     public static void register(PredicateModule module) {
-        module.registerPredicateFunction(new NotPredicate());
+        module.register(new NotPredicate());
     }
 
     @Override

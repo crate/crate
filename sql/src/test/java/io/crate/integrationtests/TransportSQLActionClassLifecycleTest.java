@@ -760,4 +760,18 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         expectedException.expectMessage("Cannot add a primary key column to a table that isn't empty");
         executor.exec("alter table characters add newpkcol string primary key");
     }
+
+    @Test
+    public void testIsNullOnObjects() throws Exception {
+        SQLResponse resp = executor.exec("select name from characters where details is null order by name");
+        assertThat(resp.rowCount(), is(5L));
+        List<String> names = new ArrayList<>(5);
+        for (Object[] objects : resp.rows()) {
+            names.add((String) objects[0]);
+        }
+        assertThat(names, Matchers.contains("Anjie", "Ford Perfect", "Jeltz" ,"Kwaltz", "Marving"));
+
+        resp = executor.exec("select count(*) from characters where details is not null");
+        assertThat((Long)resp.rows()[0][0], is(2L));
+    }
 }

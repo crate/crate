@@ -21,19 +21,16 @@
 
 package io.crate.operation.predicate;
 
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
+import com.google.common.base.Preconditions;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 
-import java.util.Arrays;
+import java.util.List;
 
 public class IsNullPredicate<T> implements Scalar<Boolean, T> {
 
@@ -41,16 +38,11 @@ public class IsNullPredicate<T> implements Scalar<Boolean, T> {
     private final FunctionInfo info;
 
     public static void register(PredicateModule module) {
-        for (DataType type : DataTypes.PRIMITIVE_TYPES) {
-            module.registerPredicateFunction(new IsNullPredicate(generateInfo(type)));
-            module.registerPredicateFunction(new IsNullPredicate(generateInfo(new SetType(type))));
-            module.registerPredicateFunction(new IsNullPredicate(generateInfo(new ArrayType(type))));
-        }
-        module.registerPredicateFunction(new IsNullPredicate(generateInfo(DataTypes.NULL)));
+        module.register(NAME, new Resolver());
     }
 
-    private static FunctionInfo generateInfo(DataType type) {
-        return new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(type)), DataTypes.BOOLEAN);
+    private static FunctionInfo generateInfo(List<DataType> types) {
+        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.BOOLEAN);
     }
 
     IsNullPredicate(FunctionInfo info) {
@@ -81,5 +73,16 @@ public class IsNullPredicate<T> implements Scalar<Boolean, T> {
     public Boolean evaluate(Input[] args) {
         assert args.length == 1;
         return args[0] == null || args[0].value() == null;
+    }
+
+    private static class Resolver implements DynamicFunctionResolver {
+
+        @Override
+        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            Preconditions.checkArgument(
+                dataTypes.size() == 1, "the is null predicate takes only 1 argument");
+
+            return new IsNullPredicate<>(generateInfo(dataTypes));
+        }
     }
 }
