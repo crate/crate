@@ -21,11 +21,8 @@
 
 package io.crate.analyze;
 
-import com.carrotsearch.hppc.IntOpenHashSet;
-import com.carrotsearch.hppc.IntSet;
 import io.crate.PartitionName;
 import io.crate.metadata.*;
-import io.crate.planner.symbol.Reference;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -33,20 +30,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class InsertAnalysis extends AbstractDataAnalysis {
-
-    private List<Reference> columns;
-    private IntSet primaryKeyColumnIndices = new IntOpenHashSet(); // optional
-    private IntSet partitionedByColumnsIndices = new IntOpenHashSet();
-    private int routingColumnIndex = -1;
+public class InsertFromValuesAnalysis extends AbstractInsertAnalysis {
 
     private final List<Map<String, Object>> sourceMaps = new ArrayList<>();
     private List<Map<String, String>> partitionMaps = new ArrayList<>();
 
-    public InsertAnalysis(ReferenceInfos referenceInfos,
-                          Functions functions,
-                          Object[] parameters,
-                          ReferenceResolver referenceResolver) {
+    public InsertFromValuesAnalysis(ReferenceInfos referenceInfos,
+                                    Functions functions,
+                                    Object[] parameters,
+                                    ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameters, referenceResolver);
     }
 
@@ -62,18 +54,6 @@ public class InsertAnalysis extends AbstractDataAnalysis {
                 }
             }
         }
-    }
-
-    public List<Reference> columns() {
-        return columns;
-    }
-
-    public IntSet partitionedByIndices() {
-        return partitionedByColumnsIndices;
-    }
-
-    public void addPartitionedByIndex(int i) {
-        this.partitionedByColumnsIndices.add(i);
     }
 
     public List<Map<String, String>> partitionMaps() {
@@ -112,39 +92,6 @@ public class InsertAnalysis extends AbstractDataAnalysis {
         return partitionValues;
     }
 
-    public void columns(List<Reference> columns) {
-        this.columns = columns;
-    }
-
-    public IntSet primaryKeyColumnIndices() {
-        return primaryKeyColumnIndices;
-    }
-
-    public void addPrimaryKeyColumnIdx(int primaryKeyColumnIdx) {
-        this.primaryKeyColumnIndices.add(primaryKeyColumnIdx);
-    }
-
-    /**
-     * TODO: use proper info from DocTableInfo when implemented
-     * @return
-     */
-    private List<String> partitionedByColumnNames() {
-        assert table != null;
-        List<String> names = new ArrayList<>(table.partitionedByColumns().size());
-        for (ReferenceInfo info : table.partitionedByColumns()) {
-            names.add(info.ident().columnIdent().fqn());
-        }
-        return names;
-    }
-
-    public void routingColumnIndex(int routingColumnIndex) {
-        this.routingColumnIndex = routingColumnIndex;
-    }
-
-    public int routingColumnIndex() {
-        return routingColumnIndex;
-    }
-
     public List<Map<String, Object>> sourceMaps() {
         return sourceMaps;
     }
@@ -154,15 +101,8 @@ public class InsertAnalysis extends AbstractDataAnalysis {
         addIdAndRouting(true, primaryKeyValues, clusteredByValue);
     }
 
-    @Nullable
-    @Override
-    public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
-        // fields of object arrays interpreted as they were created
-        return referenceInfos.getReferenceInfo(ident);
-    }
-
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitInsertAnalysis(this, context);
+        return analysisVisitor.visitInsertFromValuesAnalysis(this, context);
     }
 }

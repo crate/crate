@@ -55,6 +55,11 @@ public class NullType extends DataType<Void> implements DataTypeFactory, Streame
     }
 
     @Override
+    public boolean isConvertableTo(DataType other) {
+        return true;
+    }
+
+    @Override
     public int compareValueTo(Void val1, Void val2) {
         return 0;
     }

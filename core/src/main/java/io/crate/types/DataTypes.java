@@ -23,6 +23,7 @@ package io.crate.types;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.TimestampFormat;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -101,6 +102,31 @@ public class DataTypes {
                 return new SetType();
             }
         }).build();
+
+    private static final Set<DataType> NUMBER_CONVERSIONS = ImmutableSet.<DataType>builder()
+            .addAll(NUMERIC_PRIMITIVE_TYPES)
+            .add(STRING, TIMESTAMP, IP, NULL)
+            .build();
+    // allowed conversion from key to one of the value types
+    // the key type itself does not need to be in the value set
+    public static final ImmutableMap<Integer, Set<DataType>> ALLOWED_CONVERSIONS = ImmutableMap.<Integer, Set<DataType>>builder()
+            .put(BYTE.id(), NUMBER_CONVERSIONS)
+            .put(SHORT.id(), NUMBER_CONVERSIONS)
+            .put(INTEGER.id(), NUMBER_CONVERSIONS)
+            .put(LONG.id(), NUMBER_CONVERSIONS)
+            .put(FLOAT.id(), NUMBER_CONVERSIONS)
+            .put(DOUBLE.id(), NUMBER_CONVERSIONS)
+            .put(BOOLEAN.id(), ImmutableSet.<DataType>of(STRING, NULL))
+            .put(STRING.id(), NUMBER_CONVERSIONS)
+            .put(IP.id(), ImmutableSet.<DataType>of(STRING, NULL))
+            .put(TIMESTAMP.id(), ImmutableSet.<DataType>of(LONG, NULL))
+            .put(NULL.id(), ImmutableSet.<DataType>of()) // actually convertible to every type, see NullType
+            .put(NOT_SUPPORTED.id(), ImmutableSet.<DataType>of(NULL))
+            .put(GEO_POINT.id(), ImmutableSet.<DataType>of(new ArrayType(DOUBLE), NULL))
+            .put(OBJECT.id(), ImmutableSet.<DataType>of(NULL))
+            .put(ArrayType.ID, ImmutableSet.<DataType>of()) // convertability handled in ArrayType
+            .put(SetType.ID, ImmutableSet.<DataType>of()) // convertability handled in SetType
+            .build();
 
     public static boolean isCollectionType(DataType type) {
         return type.id() == ArrayType.ID || type.id() == SetType.ID;

@@ -85,6 +85,13 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
     }
 
     @Override
+    public boolean isConvertableTo(DataType other) {
+        return other.id() == NullType.ID ||
+                ((other instanceof ArrayType)
+                && this.innerType.isConvertableTo(((ArrayType) other).innerType));
+    }
+
+    @Override
     public int compareValueTo(Object val1, Object val2) {
         if (val2 == null) {
             return 1;

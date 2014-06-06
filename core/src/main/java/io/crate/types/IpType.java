@@ -21,6 +21,9 @@
 
 package io.crate.types;
 
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.index.mapper.ip.IpFieldMapper;
+
 public class IpType extends StringType {
 
     public final static int ID = 5;
@@ -30,6 +33,21 @@ public class IpType extends StringType {
     @Override
     public int id() {
         return ID;
+    }
+
+    @Override
+    public BytesRef value(Object value) {
+        String strIp;
+        if (value instanceof BytesRef) {
+            return (BytesRef)value;
+        }
+        if (value instanceof String) {
+            strIp = (String) value;
+        } else {
+            Long longIp = ((Number)value).longValue();
+            strIp = IpFieldMapper.longToIp(longIp);
+        }
+        return new BytesRef(strIp);
     }
 
     @Override
