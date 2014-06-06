@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added the ``sys.jobs``, ``sys.jobs_log``, ``sys.operations`` and
+   ``sys.operations_log`` tables
+
  - updated crash to 0.9.11 for ``SET`` and ``RESET`` support
 
  - implemented ``SET`` and ``RESET`` statements::
