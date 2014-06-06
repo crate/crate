@@ -726,9 +726,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis distinctAnalysis = (SelectAnalysis) analyze("select distinct * from users");
         SelectAnalysis groupByAnalysis =
                 (SelectAnalysis) analyze(
-                        "select _version, awesome, details, friends, tags, counters, id, name, other_id " +
+                        "select awesome, details, friends, tags, counters, id, name, other_id " +
                         "from users " +
-                        "group by _version, awesome, details, friends, tags, counters, id, name, other_id");
+                        "group by awesome, details, friends, tags, counters, id, name, other_id");
         assertEquals(groupByAnalysis.groupBy().size(), distinctAnalysis.groupBy().size());
         for (Symbol s : distinctAnalysis.groupBy()) {
             assertTrue(distinctAnalysis.groupBy().contains(s));
