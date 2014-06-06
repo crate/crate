@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: querying ``sys.shards`` could result in an exception if one of the
+   shards was initializing
+
  - fix: where is null / is not null didn't work correctly on system tables
 
  - fix: log error instead of recurring exception throwing if shard of

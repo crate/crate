@@ -4,6 +4,8 @@ import io.crate.PartitionName;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.index.shard.ShardId;
 
 public class UnassignedShard {
@@ -13,8 +15,12 @@ public class UnassignedShard {
     private final Boolean primary;
     private final int id;
     private final String partitionIdent;
+    private final BytesRef state;
 
-    public UnassignedShard(ShardId shardId, Boolean primary) {
+    private static final BytesRef UNASSIGNED = new BytesRef("UNASSIGNED");
+    private static final BytesRef INITIALIZING = new BytesRef("INITIALIZING");
+
+    public UnassignedShard(ShardId shardId, Boolean primary, ShardRoutingState state) {
         String index = shardId.index().name();
         boolean isBlobIndex = BlobIndices.isBlobIndex(index);
         String tableName;
@@ -36,6 +42,7 @@ public class UnassignedShard {
         partitionIdent = ident;
         this.primary = primary;
         this.id = shardId.id();
+        this.state = state == ShardRoutingState.UNASSIGNED ? UNASSIGNED : INITIALIZING;
     }
 
     public String tableName() {
@@ -56,5 +63,9 @@ public class UnassignedShard {
 
     public Boolean primary() {
         return primary;
+    }
+
+    public BytesRef state() {
+        return state;
     }
 }
