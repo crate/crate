@@ -32,6 +32,8 @@ import io.crate.operation.reference.partitioned.PartitionedColumnExpression;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
 
 import java.util.Locale;
@@ -40,6 +42,7 @@ import java.util.Map;
 public class ShardReferenceResolver extends AbstractReferenceResolver {
 
     private final Map<ReferenceIdent, ReferenceImplementation> implementations;
+    private final ESLogger logger = Loggers.getLogger(getClass());
 
     @Inject
     public ShardReferenceResolver(Index index,
@@ -53,33 +56,40 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
 
         if (PartitionName.isPartition(index.name())) {
             String tableName = PartitionName.tableName(index.name());
-            // get DocTableInfo for virtual partitioned table
-            DocTableInfo info = new DocTableInfoBuilder(
-                    new TableIdent(DocSchemaInfo.NAME, tableName),
-                    clusterService, transportPutIndexTemplateAction, true).build();
-            assert info.isPartitioned();
-            int i = 0;
-            int numPartitionedColumns = info.partitionedByColumns().size();
+            // check if alias exists
+            if (clusterService.state().metaData().hasConcreteIndex(tableName)) {
+                // get DocTableInfo for virtual partitioned table
+                DocTableInfo info = new DocTableInfoBuilder(
+                        new TableIdent(DocSchemaInfo.NAME, tableName),
+                        clusterService, transportPutIndexTemplateAction, true).build();
+                assert info.isPartitioned();
+                int i = 0;
+                int numPartitionedColumns = info.partitionedByColumns().size();
 
-            PartitionName partitionName;
-            try {
-                partitionName = PartitionName.fromString(
-                        index.name(),
-                        tableName);
-            } catch (IllegalArgumentException e) {
-                throw new UnhandledServerException(
-                        String.format(Locale.ENGLISH,
-                                "Unable to load PARTITIONED BY columns from partition %s",
-                                index.name())
-                );
-            }
-            assert partitionName.values().size() == numPartitionedColumns : "invalid number of partitioned columns";
-            for (ReferenceInfo partitionedInfo : info.partitionedByColumns()) {
-                builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
-                        partitionedInfo,
-                        partitionName.values().get(i)
-                ));
-                i++;
+                PartitionName partitionName;
+                try {
+                    partitionName = PartitionName.fromString(
+                            index.name(),
+                            tableName);
+                } catch (IllegalArgumentException e) {
+                    throw new UnhandledServerException(
+                            String.format(Locale.ENGLISH,
+                                    "Unable to load PARTITIONED BY columns from partition %s",
+                                    index.name())
+                    );
+                }
+                assert partitionName.values().size() == numPartitionedColumns : "invalid number of partitioned columns";
+                for (ReferenceInfo partitionedInfo : info.partitionedByColumns()) {
+                    builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
+                            partitionedInfo,
+                            partitionName.values().get(i)
+                    ));
+                    i++;
+                }
+            } else {
+                logger.error("Orphaned partition '{}' with missing table '{}' found",
+                        index, tableName);
+
             }
         }
         this.implementations = builder.build();

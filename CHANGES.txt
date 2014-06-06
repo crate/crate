@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: log error instead of recurring exception throwing if shard of
+   orphaned partition is started
+
  - updated crate-admin to 0.7.4 which includes following changes:
 
     - fix: make table list and node list available in mobile view
