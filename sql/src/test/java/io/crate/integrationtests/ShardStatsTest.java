@@ -63,7 +63,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
         execute("select * from sys.shards order by state, \"primary\"");
         assertEquals(45L, response.rowCount());
-        assertEquals(9, response.cols().length);
+        assertEquals(10, response.cols().length);
         assertEquals("UNASSIGNED", response.rows()[44][8]);
         assertEquals(false, response.rows()[44][5]);
     }

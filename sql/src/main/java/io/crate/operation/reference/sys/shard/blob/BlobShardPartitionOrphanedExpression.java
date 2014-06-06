@@ -23,22 +23,24 @@ package io.crate.operation.reference.sys.shard.blob;
 
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.index.shard.ShardId;
 
-public class BlobShardPartitionIdentExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation {
+public class BlobShardPartitionOrphanedExpression extends SysShardExpression<Boolean> implements BlobShardReferenceImplementation {
 
-    public static final String NAME = "partition_ident";
-    private static final BytesRef value = new BytesRef("");
+    public static final String NAME = "orphan_partition";
+    private String tableName;
+
 
     @Inject
-    public BlobShardPartitionIdentExpression() {
+    public BlobShardPartitionOrphanedExpression(ShardId shardId) {
         super(NAME);
+        tableName = shardId.getIndex();
     }
 
     @Override
-    public BytesRef value() {
-        return value;
+    public Boolean value() {
+        return false;
     }
 
 }
