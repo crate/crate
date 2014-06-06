@@ -113,11 +113,16 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     @Override
-    protected Plan visitInsertAnalysis(InsertAnalysis analysis, Void context) {
+    protected Plan visitInsertFromValuesAnalysis(InsertFromValuesAnalysis analysis, Void context) {
         Preconditions.checkState(!analysis.sourceMaps().isEmpty(), "no values given");
         Plan plan = new Plan();
         ESIndex(analysis, plan);
         return plan;
+    }
+
+    @Override
+    protected Plan visitInsertFromSubQueryAnalysis(InsertFromSubQueryAnalysis analysis, Void context) {
+        throw new UnsupportedOperationException("insert from query not supported");
     }
 
     @Override
@@ -751,7 +756,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         return Lists.newArrayList(analysis.table().getRouting(analysis.whereClause()).nodes());
     }
 
-    private void ESIndex(InsertAnalysis analysis, Plan plan) {
+    private void ESIndex(InsertFromValuesAnalysis analysis, Plan plan) {
         String[] indices = new String[]{analysis.table().ident().name()};
         if (analysis.table().isPartitioned()) {
             indices = analysis.partitions().toArray(new String[analysis.partitions().size()]);

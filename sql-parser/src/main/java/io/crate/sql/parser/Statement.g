@@ -713,7 +713,7 @@ insertStmt
 
 insertSource
    : VALUES values=insertValues -> $values
-   | query
+   | '(' query ')' -> query
    ;	 
 
 identList
