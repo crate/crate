@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.7.4 which includes following changes:
+
+    - fix: make table list and node list available in mobile view
+
  - fix: in some cases ``format`` function returned bytes instead of string
 
  - fix: columns of type "ip" are now returned in the string representation
