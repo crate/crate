@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: where is null / is not null didn't work correctly on system tables
+
  - fix: log error instead of recurring exception throwing if shard of
    orphaned partition is started
 
