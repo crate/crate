@@ -25,7 +25,6 @@ import com.google.common.base.Objects;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.Constants;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
@@ -44,7 +43,6 @@ import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
@@ -52,10 +50,10 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
-import org.elasticsearch.transport.RemoteTransportException;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -207,9 +205,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 logger.debug("Error processing SQLRequest", t);
-                handleJobStats(job, Objects.firstNonNull(t.getMessage(), t.toString()));
+                handleJobStats(job, Exceptions.messageOf(t));
                 listener.onFailure(buildSQLActionException(t));
             }
 
@@ -227,20 +225,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
      * and {@link org.elasticsearch.action.search.ReduceSearchPhaseException}.
      * Also transform throwable to {@link io.crate.exceptions.CrateException}.
      *
-     * @param e
-     * @return
      */
     public Throwable esToCrateException(Throwable e) {
-        // unwrap exceptions
-        if (e instanceof RemoteTransportException) {
-            e = e.getCause();
-        }
-        if (e instanceof UncheckedExecutionException || e instanceof UncategorizedExecutionException) {
-            e = e.getCause();
-        }
-        if (e instanceof ExecutionException) {
-            e = e.getCause();
-        }
+        e = Exceptions.unwrap(e);
 
         if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
             return new SQLParseException(e.getMessage(), (Exception)e);
@@ -281,8 +268,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
      * If concrete {@link org.elasticsearch.ElasticsearchException} is found, first transform it
      * to a {@link io.crate.exceptions.CrateException}
      *
-     * @param e
-     * @return
      */
     public SQLActionException buildSQLActionException(Throwable e) {
         if (e instanceof SQLActionException) {
