@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/06/07 0.38.4
+=================
+
  - fix: querying ``sys.shards`` could result in an exception if one of the
    shards was initializing
 
