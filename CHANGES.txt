@@ -5,18 +5,17 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: querying ``sys.shards`` could result in an exception if one of the
-   shards was initializing
-
- - fix: where is null / is not null didn't work correctly on system tables
-
  - updated crate-admin to 0.8.2 which includes following changes:
 
     - fix: make table list and node list available in mobile view
 
- - added ``substr`` scalar function
+    - fix: round percentage of available and underreplicated data correctly
 
- - fix: in some cases ``format`` function returned bytes instead of string
+    - make table that displays table partitions horizontally scrollable
+
+    - display developer news notifications
+
+ - added ``substr`` scalar function
 
  - added the ``sys.jobs``, ``sys.jobs_log``, ``sys.operations`` and
    ``sys.operations_log`` tables
@@ -26,18 +25,6 @@ Unreleased
  - implemented ``SET`` and ``RESET`` statements
 
  - implemented ``sys.nodes.thread_pools`` expressions
-
- - fix: columns of type "ip" are now returned in the string representation
-   instead of the internal long format when returned as part of a group by
-   query.
-
- - updated crate-admin to 0.8.1 which includes following changes:
-
-    - fix: round percentage of available and underreplicated data correctly
-
-    - make table that displays table partitions horizontally scrollable
-
-    - display developer news notifications
 
  - implemented ``LIKE`` and ``NOT LIKE`` operators on string arrays and sets.
 
@@ -55,6 +42,27 @@ Unreleased
 
  - the ordering of null values can now be influenced using the ``NULLS { FIRST
    | LAST }`` keywords.
+
+2014/06/07 0.38.4
+=================
+
+ - fix: querying ``sys.shards`` could result in an exception if one of the
+   shards was initializing
+
+ - fix: where is null / is not null didn't work correctly on system tables
+
+ - fix: log error instead of recurring exception throwing if shard of
+   orphaned partition is started
+
+ - updated crate-admin to 0.7.4 which includes following changes:
+
+    - fix: make table list and node list available in mobile view
+
+ - fix: in some cases ``format`` function returned bytes instead of string
+
+ - fix: columns of type "ip" are now returned in the string representation
+   instead of the internal long format when returned as part of a group by
+   query.
 
 2014/06/03 0.38.3
 =================
