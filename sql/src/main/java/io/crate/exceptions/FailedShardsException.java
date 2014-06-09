@@ -23,6 +23,7 @@ package io.crate.exceptions;
 
 import com.google.common.base.Joiner;
 import org.elasticsearch.action.ShardOperationFailedException;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,15 @@ public class FailedShardsException extends RuntimeException implements CrateExce
 
     public FailedShardsException(ShardOperationFailedException[] shardFailures) {
         super(genMessage(shardFailures));
+    }
+
+    public FailedShardsException(ShardId shardId) {
+        super(genMessage(shardId));
+    }
+
+    private static String genMessage(ShardId shardId) {
+        return String.format("the shard %s of table %s is not available",
+            shardId.getId(), shardId.getIndex());
     }
 
     private static String genMessage(ShardOperationFailedException[] shardFailures) {

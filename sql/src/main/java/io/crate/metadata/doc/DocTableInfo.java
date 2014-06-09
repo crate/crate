@@ -25,12 +25,12 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.FailedShardsException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
@@ -163,7 +163,7 @@ public class DocTableInfo implements TableInfo {
     private void processShardRouting(Map<String, Map<String, Set<Integer>>> locations, ShardRouting shardRouting, ShardId shardId) {
         String node;
         if (shardRouting == null) {
-            throw new NoShardAvailableActionException(shardId);
+            throw new FailedShardsException(shardId);
         }
         node = shardRouting.currentNodeId();
         Map<String, Set<Integer>> nodeMap = locations.get(node);
