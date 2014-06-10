@@ -42,6 +42,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
+import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -172,6 +173,8 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         projectorChain.startProjections();
         try {
             collector.doCollect();
+        } catch (CollectionTerminatedException ex) {
+            // ignore
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }

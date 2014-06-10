@@ -735,6 +735,16 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         executor.exec("set global transient collect_stats = false");
     }
 
+    @Test
+    public void testSelectFromJobsLogWithLimit() throws Exception {
+        // this is an regression test to verify that the CollectionTerminatedException is handled correctly
+        executor.exec("set global transient collect_stats = true");
+        executor.exec("select * from sys.jobs");
+        executor.exec("select * from sys.jobs");
+        executor.exec("select * from sys.jobs");
+        executor.exec("select * from sys.jobs_log limit 1");
+        executor.exec("set global transient collect_stats = false");
+    }
 
     @Test
     public void testDistinctSysOperations() throws Exception {
