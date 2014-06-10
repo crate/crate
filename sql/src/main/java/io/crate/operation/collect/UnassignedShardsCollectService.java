@@ -106,7 +106,8 @@ public class UnassignedShardsCollectService implements CollectService {
                 assert input != null;
                 if (!input.active()) {
                     return new UnassignedShard(
-                        input.shardId(), context.isPrimary(input.shardId()), input.state());
+                        input.shardId(), clusterService,
+                        context.isPrimary(input.shardId()),input.state());
                 }
                 return null;
             }

@@ -80,6 +80,12 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
                 return row.state();
             }
         });
+        register(new UnassignedShardCollectorExpression<Boolean>(ShardPartitionOrphanedExpression.NAME) {
+            @Override
+            public Boolean value() {
+                return this.row.orphanedPartition();
+            }
+        });
 
         for (ReferenceInfo referenceInfo : SysNodesTableInfo.INFOS.values()) {
             register(nullExpression(referenceInfo));

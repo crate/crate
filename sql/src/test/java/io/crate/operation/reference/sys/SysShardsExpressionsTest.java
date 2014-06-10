@@ -31,12 +31,15 @@ import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.shard.ShardPartitionIdentExpression;
+import io.crate.operation.reference.sys.shard.ShardPartitionOrphanedExpression;
 import io.crate.operation.reference.sys.shard.ShardTableNameExpression;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -115,6 +118,12 @@ public class SysShardsExpressionsTest {
             bind(TransportPutIndexTemplateAction.class).toInstance(transportPutIndexTemplateAction);
 
             when(indexShard.state()).thenReturn(IndexShardState.STARTED);
+
+            MetaData metaData = mock(MetaData.class);
+            when(metaData.hasConcreteIndex(Constants.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1")).thenReturn(false);
+            ClusterState clusterState = mock(ClusterState.class);
+            when(clusterService.state()).thenReturn(clusterState);
+            when(clusterState.metaData()).thenReturn(metaData);
         }
     }
 
@@ -233,6 +242,18 @@ public class SysShardsExpressionsTest {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardPartitionIdentExpression.NAME);
         SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(new BytesRef(""), shardExpression.value());
+    }
+
+    @Test
+    public void testOrphanPartition() throws Exception {
+        indexName = Constants.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
+        setUp();
+        ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardPartitionOrphanedExpression.NAME);
+        SysExpression<Boolean> shardExpression = (SysExpression<Boolean>) resolver.getImplementation(ident);
+        assertEquals(true, shardExpression.value());
+
+        // reset indexName
+        indexName = "wikipedia_de";
     }
 
 }

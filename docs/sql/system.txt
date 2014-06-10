@@ -151,59 +151,67 @@ shards of all (non-system) tables.
 
 The table schema is as follows:
 
-+-----------------+---------------------------------+-------------------+
-| Name            | Description                     | Return Type       |
-+=================+=================================+===================+
-| schema_name     | The schema name.                | String            |
-|                 | This will be "blob" for         |                   |
-|                 | shards of blob tables and "doc" |                   |
-|                 | for shards of common tables.    |                   |
-+-----------------+---------------------------------+-------------------+
-| table_name      | The table name.                 | String            |
-+-----------------+---------------------------------+-------------------+
-| partition_ident | The partition ident of a        | String            |
-|                 | partitioned table.              |                   |
-|                 | Empty string on non-partitioned |                   |
-|                 | tables.                         |                   |
-+-----------------+---------------------------------+-------------------+
-| id              | The shard id. This shard id is  | Integer           |
-|                 | managed by the system ranging   |                   |
-|                 | from 0 and up to the specified  |                   |
-|                 | number of shards of a table     |                   |
-|                 | (by default the number of       |                   |
-|                 | shards is 5).                   |                   |
-+-----------------+---------------------------------+-------------------+
-| num_docs        | The total amount of docs        | Long              |
-|                 | within a shard.                 |                   |
-+-----------------+---------------------------------+-------------------+
-| primary         | Describes if the shard is the   | Boolean           |
-|                 | primary shard.                  |                   |
-+-----------------+---------------------------------+-------------------+
-| relocating_node | The node id which the shard is  | String            |
-|                 | getting relocated to at the time|                   |
-+-----------------+---------------------------------+-------------------+
-| size            | Current size in bytes.          | Long              |
-+-----------------+---------------------------------+-------------------+
-| state           | The current state of the shard. | String            |
-|                 | Possible states are:            |                   |
-|                 | CREATED,                        |                   |
-|                 | RECOVERING,                     |                   |
-|                 | POST_RECOVERY,                  |                   |
-|                 | STARTED,                        |                   |
-|                 | RELOCATED,                      |                   |
-|                 | CLOSED,                         |                   |
-|                 | UNASSIGNED                      |                   |
++------------------+---------------------------------+-------------------+
+| Name             | Description                     | Return Type       |
++==================+=================================+===================+
+| schema_name      | The schema name.                | String            |
+|                  | This will be "blob" for         |                   |
+|                  | shards of blob tables and "doc" |                   |
+|                  | for shards of common tables.    |                   |
++------------------+---------------------------------+-------------------+
+| table_name       | The table name.                 | String            |
++------------------+---------------------------------+-------------------+
+| partition_ident  | The partition ident of a        | String            |
+|                  | partitioned table.              |                   |
+|                  | Empty string on non-partitioned |                   |
+|                  | tables.                         |                   |
++------------------+---------------------------------+-------------------+
+| id               | The shard id. This shard id is  | Integer           |
+|                  | managed by the system ranging   |                   |
+|                  | from 0 and up to the specified  |                   |
+|                  | number of shards of a table     |                   |
+|                  | (by default the number of       |                   |
+|                  | shards is 5).                   |                   |
++------------------+---------------------------------+-------------------+
+| num_docs         | The total amount of docs        | Long              |
+|                  | within a shard.                 |                   |
++------------------+---------------------------------+-------------------+
+| primary          | Describes if the shard is the   | Boolean           |
+|                  | primary shard.                  |                   |
++------------------+---------------------------------+-------------------+
+| relocating_node  | The node id which the shard is  | String            |
+|                  | getting relocated to at the time|                   |
++------------------+---------------------------------+-------------------+
+| size             | Current size in bytes.          | Long              |
++------------------+---------------------------------+-------------------+
+| state            | The current state of the shard. | String            |
+|                  | Possible states are:            |                   |
+|                  | CREATED,                        |                   |
+|                  | RECOVERING,                     |                   |
+|                  | POST_RECOVERY,                  |                   |
+|                  | STARTED,                        |                   |
+|                  | RELOCATED,                      |                   |
+|                  | CLOSED,                         |                   |
+|                  | INITIALIZING,                   |                   |
+|                  | UNASSIGNED                      |                   |
++------------------+---------------------------------+-------------------+
+| orphan_partition | True if the partition has NO    | Boolean           |
+|                  | table associated with. In rare  |                   |
+|                  | situations the table is         |                   |
+|                  | missing.                        |                   |
+|                  | False on non-partitioned        |                   |
+|                  | tables.                         |                   |
 +-----------------+---------------------------------+-------------------+
 
 For example, you can query shards like this::
 
-  cr> select schema_name, table_name, id, partition_ident, num_docs, primary, relocating_node, state, size
+  cr> select schema_name, table_name, id, partition_ident, num_docs, primary, relocating_node, state, size, orphan_partition
   ... from sys.shards where table_name='locations' and id = 1;
-  +-------------+------------+----+-----------------+----------+---------+-----------------+---------+------...
-  | schema_name | table_name | id | partition_ident | num_docs | primary | relocating_node | state   | size ...
-  +-------------+------------+----+-----------------+----------+---------+-----------------+---------+------...
-  | doc         | locations  | 1  |                 | 6        | TRUE    | NULL            | STARTED | ...
-  +-------------+------------+----+-----------------+----------+---------+-----------------+---------+------...
+  +-------------+------------+----+-----------------+----------+---------+-----------------+---------+------+------------------+
+  | schema_name | table_name | id | partition_ident | num_docs | primary | relocating_node | state   | size | orphan_partition |
+  +-------------+------------+----+-----------------+----------+---------+-----------------+---------+------+------------------+
+  | doc         | locations  |  1 |                 |        6 | TRUE    |            NULL | STARTED | ...  | FALSE            |
+  +-------------+------------+----+-----------------+----------+---------+-----------------+---------+------+------------------+
   SELECT 1 row in set (... sec)
 
 

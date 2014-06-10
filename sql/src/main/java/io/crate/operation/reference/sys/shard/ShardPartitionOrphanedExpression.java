@@ -18,27 +18,43 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+package io.crate.operation.reference.sys.shard;
 
-package io.crate.operation.reference.sys.shard.blob;
-
-import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
-import io.crate.operation.reference.sys.shard.SysShardExpression;
-import org.apache.lucene.util.BytesRef;
+import io.crate.PartitionName;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.index.shard.ShardId;
 
-public class BlobShardPartitionIdentExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation {
+public class ShardPartitionOrphanedExpression extends SysShardExpression<Boolean> {
 
-    public static final String NAME = "partition_ident";
-    private static final BytesRef value = new BytesRef("");
+    public static final String NAME = "orphan_partition";
+    private final ClusterService clusterService;
+    private String tableName;
+    private boolean isPartition = false;
+
 
     @Inject
-    public BlobShardPartitionIdentExpression() {
+    public ShardPartitionOrphanedExpression(ShardId shardId, ClusterService clusterService) {
         super(NAME);
+        this.clusterService = clusterService;
+        tableName = shardId.getIndex();
+        try {
+            tableName = PartitionName.tableName(tableName);
+            isPartition = true;
+        } catch (IllegalArgumentException e) {
+            // no partition
+        }
     }
 
     @Override
-    public BytesRef value() {
-        return value;
+    public Boolean value() {
+        if (!isPartition) {
+            return false;
+        }
+        if (!clusterService.state().metaData().hasConcreteIndex(tableName)) {
+            return true;
+        }
+        return false;
     }
 
 }

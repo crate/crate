@@ -60,6 +60,7 @@ public class BlobShardExpressionModule extends AbstractModule {
             binder.addBinding(infos.get(new ColumnIdent(BlobShardStateExpression.NAME)).ident()).to(BlobShardStateExpression.class).asEagerSingleton();
             binder.addBinding(infos.get(new ColumnIdent(BlobShardTableNameExpression.NAME)).ident()).to(BlobShardTableNameExpression.class).asEagerSingleton();
             binder.addBinding(infos.get(new ColumnIdent(BlobShardPartitionIdentExpression.NAME)).ident()).to(BlobShardPartitionIdentExpression.class).asEagerSingleton();
+            binder.addBinding(infos.get(new ColumnIdent(BlobShardPartitionOrphanedExpression.NAME)).ident()).to(BlobShardPartitionOrphanedExpression.class).asEagerSingleton();
 
         }
     }

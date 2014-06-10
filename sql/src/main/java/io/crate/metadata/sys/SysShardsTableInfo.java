@@ -58,6 +58,7 @@ public class SysShardsTableInfo extends SysTableInfo {
         register("relocating_node", StringType.INSTANCE, null);
         register("size", LongType.INSTANCE, null);
         register("state", StringType.INSTANCE, null);
+        register("orphan_partition", BooleanType.INSTANCE, null);
     }
 
     @Inject
