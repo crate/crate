@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - upgraded elasticsearch to 1.1.2
+
  - implemented `sys.shards.orphan_partition` expression
 
  - updated crate-admin to 0.8.2 which includes following changes:
