@@ -630,6 +630,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         }
         Collections.sort(names);
         assertTrue(names.contains("collect"));
+        executor.exec("set global collect_stats = false");
     }
 
     @Test

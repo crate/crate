@@ -23,7 +23,6 @@ package io.crate.operation.collect;
 
 import io.crate.core.collections.NonBlockingArrayQueue;
 import io.crate.core.collections.NoopQueue;
-import io.crate.executor.Job;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
@@ -106,7 +105,7 @@ public class StatsTables {
     }
 
     /**
-     * Track a job. If the job has finished {@link #jobFinished(io.crate.executor.Job, String)}
+     * Track a job. If the job has finished {@link #jobFinished(java.util.UUID, String)}
      * must be called.
      *
      * If {@link #isEnabled()} is false this method won't do anything.

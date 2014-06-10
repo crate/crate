@@ -57,5 +57,6 @@ public class SysJobsTest extends ClassLifecycleIntegrationTest {
             statements.add((String)objects[1]);
         }
         assertTrue(statements.contains(stmt));
+        e.exec("set global collect_stats = false");
     }
 }
