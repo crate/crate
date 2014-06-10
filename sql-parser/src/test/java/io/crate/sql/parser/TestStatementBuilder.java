@@ -212,6 +212,11 @@ public class TestStatementBuilder
         printStatement("alter table t reset (number_of_replicas)");
         printStatement("alter table t reset (property1, property2, property3)");
 
+        printStatement("alter table t add foo integer");
+        printStatement("alter table t add column foo integer");
+        printStatement("alter table t add foo integer primary key");
+        printStatement("alter table t add foo string index using fulltext");
+
         printStatement("select * from t where 'value' LIKE ANY (col)");
         printStatement("select * from t where 'value' NOT LIKE ANY (col)");
     }

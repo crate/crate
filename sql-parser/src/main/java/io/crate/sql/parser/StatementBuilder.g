@@ -722,6 +722,10 @@ alterTable returns [Statement value]
         {
             $value = new AlterTable($namedTable.value, $columnIdentList.value);
         }
+    | ^(ADD_COLUMN namedTable tableElement)
+        {
+            $value = new AlterTableAddColumn($namedTable.value, $tableElement.value);
+        }
     ;
 
 

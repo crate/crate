@@ -86,6 +86,7 @@ tokens {
     DROP_TABLE;
     DROP_BLOB_TABLE;
     TABLE_ELEMENT_LIST;
+    ADD_COLUMN;
     COLUMN_DEF;
     NOT_NULL;
     ALIASED_RELATION;
@@ -762,7 +763,7 @@ createStatement
     | ALIAS createAliasStmt -> createAliasStmt
     | ANALYZER createAnalyzerStmt -> createAnalyzerStmt
     ;
-    
+
 createTableStmt
     : table
       tableElementList
@@ -799,6 +800,7 @@ alterBlobTableStmt
 
 alterTableStmt
     : (tableWithPartition SET) => tableWithPartition SET '(' genericProperties ')' -> ^(ALTER_TABLE genericProperties tableWithPartition)
+    | (tableWithPartition ADD) => tableWithPartition ADD COLUMN? tableElement -> ^(ADD_COLUMN tableWithPartition tableElement)
     | tableWithPartition RESET identList -> ^(ALTER_TABLE identList tableWithPartition)
     ;
 // END ALTER STATEMENTS
@@ -1061,6 +1063,9 @@ CREATE: 'CREATE';
 BLOB: 'BLOB';
 TABLE: 'TABLE';
 ALTER: 'ALTER';
+
+ADD: 'ADD';
+COLUMN: 'COLUMN';
 
 BOOLEAN: 'BOOLEAN';
 BYTE: 'BYTE';
