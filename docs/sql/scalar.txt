@@ -125,7 +125,7 @@ The ``substr`` function extracts a substring from a given string
 starting at character ``from``. It takes an optional argument ``count``
 which defines the length of the substring::
 
-    cr> select substr(name, 1, 1) from sys.nodes
+    cr> select substr(name, 3, 2) from sys.nodes
     ... limit 1;
     +--------------------+
     | substr(name, 3, 2) |
