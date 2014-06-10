@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added support for ``alter table add column``
+
  - upgraded elasticsearch to 1.1.2
 
  - implemented `sys.shards.orphan_partition` expression

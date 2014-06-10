@@ -45,6 +45,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -4013,5 +4014,35 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Long)response.rows()[0][1], is(2L));
         assertThat((String)response.rows()[1][0], is("192.168.1.3"));
         assertThat((Long)response.rows()[1][1], is(1L));
+    }
+
+    @Test
+    public void testAlterTableAddColumn() throws Exception {
+        execute("create table t (id int primary key) with (number_of_replicas=0)");
+        execute("alter table t add column name string");
+
+        execute("select data_type from information_schema.columns where " +
+                "table_name = 't' and column_name = 'name'");
+        assertThat((String)response.rows()[0][0], is("string"));
+
+        execute("alter table t add column o object as (age int)");
+        execute("select data_type from information_schema.columns where " +
+                "table_name = 't' and column_name = 'o'");
+        assertThat((String) response.rows()[0][0], is("object"));
+    }
+
+    @Test
+    public void testAlterTableAddColumnOnPartitionedTable() throws Exception {
+        execute("create table t (id int primary key, date timestamp primary key) " +
+                "partitioned by (date) " +
+                "with (number_of_replicas=0)");
+
+        execute("insert into t (id, date) values (1, '2014-01-01')");
+        refresh();
+
+        execute("alter table t add name string");
+        execute("select * from t");
+
+        assertThat(Arrays.asList(response.cols()), Matchers.contains("date", "id", "name"));
     }
 }
