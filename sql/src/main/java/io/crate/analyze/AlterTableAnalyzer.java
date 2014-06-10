@@ -23,12 +23,19 @@ package io.crate.analyze;
 
 import io.crate.PartitionName;
 import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.AlterTable;
-import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.Table;
+import io.crate.sql.tree.*;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTableAnalysis> {
+
+    @Override
+    public Void visitColumnDefinition(ColumnDefinition node, AlterTableAnalysis context) {
+        if (node.ident().startsWith("_")) {
+            throw new IllegalArgumentException("Column ident must not start with '_'");
+        }
+
+        return null;
+    }
 
     @Override
     public Void visitAlterTable(AlterTable node, AlterTableAnalysis context) {

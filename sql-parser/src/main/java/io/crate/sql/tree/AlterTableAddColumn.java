@@ -67,4 +67,9 @@ public class AlterTableAddColumn extends Statement {
                 .add("table", table)
                 .add("element", tableElement).toString();
     }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitAlterTableAddColumnStatement(this, context);
+    }
 }

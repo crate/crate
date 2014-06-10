@@ -31,8 +31,12 @@ import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.AlterTableAliasException;
+import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
+import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
@@ -46,13 +50,20 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.common.compress.CompressedString;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentHelper;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
@@ -64,17 +75,20 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
 
     private final BlobIndices blobIndices;
     private final TransportRefreshAction transportRefreshAction;
+    private final TransportPutMappingAction transportPutMappingAction;
     private final TransportUpdateSettingsAction transportUpdateSettingsAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final TransportGetIndexTemplatesAction transportGetIndexTemplatesAction;
 
     @Inject
     public DDLAnalysisDispatcher(BlobIndices blobIndices,
-                                  TransportRefreshAction transportRefreshAction,
-                                  TransportUpdateSettingsAction transportUpdateSettingsAction,
-                                  TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                                  TransportGetIndexTemplatesAction transportGetIndexTemplatesAction) {
+                                 TransportPutMappingAction transportPutMappingAction,
+                                 TransportRefreshAction transportRefreshAction,
+                                 TransportUpdateSettingsAction transportUpdateSettingsAction,
+                                 TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                                 TransportGetIndexTemplatesAction transportGetIndexTemplatesAction) {
         this.blobIndices = blobIndices;
+        this.transportPutMappingAction = transportPutMappingAction;
         this.transportRefreshAction = transportRefreshAction;
         this.transportUpdateSettingsAction = transportUpdateSettingsAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
@@ -86,7 +100,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         throw new UnsupportedOperationException(String.format("Can't handle \"%s\"", analysis));
     }
 
-    @Override
+   @Override
     public ListenableFuture<Long> visitCreateBlobTableAnalysis(
             CreateBlobTableAnalysis analysis, Void context) {
         return wrapRowCountFuture(
@@ -97,6 +111,93 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                 ),
                 1L
         );
+    }
+
+    private Map<String, Object> parseMapping(String mappingSource) throws IOException {
+        return XContentFactory.xContent(mappingSource).createParser(mappingSource).mapAndClose();
+    }
+
+    @Override
+    public ListenableFuture<Long> visitAddColumnAnalysis(final AddColumnAnalysis analysis, Void context) {
+        boolean updateTemplate = analysis.table().isPartitioned() && !analysis.partitionName().isPresent();
+        final SettableFuture<Long> future = SettableFuture.create();
+        final AtomicInteger operations = new AtomicInteger(updateTemplate ? 2 : 1);
+        PutMappingRequest request = new PutMappingRequest(
+                getIndexNames(analysis.table(), analysis.partitionName().orNull()));
+        request.type(Constants.DEFAULT_MAPPING_TYPE);
+        request.source(analysis.mapping());
+
+        if (updateTemplate) {
+            final String templateName = PartitionName.templateName(analysis.table().ident().name());
+
+            transportGetIndexTemplatesAction.execute(new GetIndexTemplatesRequest(templateName), new ActionListener<GetIndexTemplatesResponse>() {
+                @Override
+                public void onResponse(GetIndexTemplatesResponse getIndexTemplatesResponse) {
+                    IndexTemplateMetaData templateMetaData;
+                    try {
+                        templateMetaData = getIndexTemplatesResponse.getIndexTemplates().get(0);
+                    } catch (IndexOutOfBoundsException e) {
+                        future.setException(e);
+                        return;
+                    }
+
+                    Map<String, Object> mergedMapping = new HashMap<>();
+                    for (ObjectObjectCursor<String, CompressedString> cursor : templateMetaData.mappings()) {
+                        try {
+                            Map<String, Object> mapping = parseMapping(cursor.value.toString());
+                            Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
+                            assert o != null && o instanceof Map;
+
+                            XContentHelper.mergeDefaults(mergedMapping, (Map) o);
+                        } catch (IOException e) {
+                            // pass
+                        }
+                    }
+                    XContentHelper.mergeDefaults(mergedMapping, analysis.mapping());
+                    PutIndexTemplateRequest updateTemplateRequest = new PutIndexTemplateRequest(templateName)
+                            .create(false)
+                            .mapping(Constants.DEFAULT_MAPPING_TYPE, mergedMapping)
+                            .settings(templateMetaData.settings())
+                            .template(templateMetaData.template());
+                    for (ObjectObjectCursor<String, AliasMetaData> container : templateMetaData.aliases()) {
+                        Alias alias = new Alias(container.key);
+                        updateTemplateRequest.alias(alias);
+                    }
+                    transportPutIndexTemplateAction.execute(updateTemplateRequest, new ActionListener<PutIndexTemplateResponse>() {
+                        @Override
+                        public void onResponse(PutIndexTemplateResponse putIndexTemplateResponse) {
+                            if (operations.decrementAndGet() == 0) {
+                                future.set(1L);
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Throwable e) {
+                            future.setException(e);
+                        }
+                    });
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    future.setException(e);
+                }
+            });
+        }
+        transportPutMappingAction.execute(request, new ActionListener<PutMappingResponse>() {
+            @Override
+            public void onResponse(PutMappingResponse putMappingResponse) {
+                if (operations.decrementAndGet() == 0) {
+                    future.set(1L);
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                future.setException(e);
+            }
+        });
+        return future;
     }
 
     @Override
@@ -111,26 +212,31 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         return wrapRowCountFuture(blobIndices.dropBlobTable(analysis.table().ident().name()), 1L);
     }
 
+    private String[] getIndexNames(TableInfo tableInfo, @Nullable PartitionName partitionName) {
+        String[] indexNames;
+        if (tableInfo.isPartitioned()) {
+            if (partitionName == null) {
+                // all partitions
+                indexNames = tableInfo.concreteIndices();
+            } else {
+                // refresh single partition
+                indexNames = new String[] { partitionName.stringValue() };
+            }
+        } else {
+            indexNames = new String[] { tableInfo.ident().name() };
+        }
+        return indexNames;
+    }
+
     @Override
     public ListenableFuture<Long> visitRefreshTableAnalysis(RefreshTableAnalysis analysis, Void context) {
-        final SettableFuture<Long> future = SettableFuture.create();
-        String[] indexNames;
-        if (analysis.table().isPartitioned()) {
-            if (analysis.partitionName() == null) {
-                // refresh all partitions
-                indexNames = analysis.table().concreteIndices();
-            } else {
-                // refresh a single partition
-                indexNames = new String[]{ analysis.partitionName().stringValue() };
-            }
-
-        } else {
-            indexNames = new String[]{analysis.table().ident().name()};
-        }
+        String[] indexNames = getIndexNames(analysis.table(), analysis.partitionName());
         if (analysis.schema().systemSchema() || indexNames.length == 0) {
-            future.set(null); // shortcut when refreshing on system tables
-                              // or empty partitioned tables
+            // shortcut when refreshing on system tables
+            // or empty partitioned tables
+            return Futures.immediateFuture(null);
         } else {
+            final SettableFuture<Long> future = SettableFuture.create();
             RefreshRequest request = new RefreshRequest(indexNames);
             transportRefreshAction.execute(request, new ActionListener<RefreshResponse>() {
                 @Override
@@ -143,8 +249,8 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                     future.setException(e);
                 }
             });
+            return future;
         }
-        return future;
     }
 
     private ListenableFuture<Long> wrapRowCountFuture(ListenableFuture<?> wrappedFuture, final Long rowCount) {

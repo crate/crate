@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added support for ``alter table add column``
+
 2014/06/16 0.39.0
 =================
 
