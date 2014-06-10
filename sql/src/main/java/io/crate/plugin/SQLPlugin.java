@@ -27,6 +27,8 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
+import io.crate.autocomplete.SQLAutoCompleteAction;
+import io.crate.autocomplete.TransportSQLAutoCompleteAction;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacetParser;
 import io.crate.metadata.MetaDataModule;
@@ -51,6 +53,7 @@ import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSortScript;
 import io.crate.planner.PlanModule;
 import io.crate.rest.action.RestSQLAction;
+import io.crate.rest.action.RestSQLAutoCompleteAction;
 import io.crate.service.SQLService;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
@@ -138,6 +141,7 @@ public class SQLPlugin extends AbstractPlugin {
 
     public void onModule(RestModule restModule) {
         restModule.addRestAction(RestSQLAction.class);
+        restModule.addRestAction(RestSQLAutoCompleteAction.class);
     }
 
     public void onModule(FacetModule facetModule) {
@@ -170,5 +174,6 @@ public class SQLPlugin extends AbstractPlugin {
     public void onModule(ActionModule actionModule) {
         actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
         actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);
+        actionModule.registerAction(SQLAutoCompleteAction.INSTANCE, TransportSQLAutoCompleteAction.class);
     }
 }
