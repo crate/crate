@@ -96,4 +96,8 @@ public class AnalysisVisitor<C, R> {
     public R visitSetAnalysis(SetAnalysis analysis, C context) {
         return visitAnalysis(analysis, context);
     }
+
+    public R visitAddColumnAnalysis(AddColumnAnalysis analysis, C context) {
+        return visitAnalysis(analysis, context);
+    }
 }

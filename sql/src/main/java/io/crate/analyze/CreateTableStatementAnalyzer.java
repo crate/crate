@@ -131,7 +131,6 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         }
 
         process(node.type(), context);
-
         context.pop();
 
         return null;

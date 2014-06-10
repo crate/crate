@@ -69,9 +69,9 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
      *      primary_keys: [ ... ]
      * }
      */
-    private final Map<String, Object> crateMeta;
-    private final ReferenceInfos referenceInfos;
-    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    protected final Map<String, Object> crateMeta;
+    protected final ReferenceInfos referenceInfos;
+    protected final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     public CreateTableAnalysis(ReferenceInfos referenceInfos,
                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
