@@ -45,7 +45,11 @@ public class AnalysisVisitor<C, R> {
         return visitAnalysis(analysis, context);
     }
 
-    protected R visitInsertAnalysis(InsertAnalysis analysis, C context) {
+    protected R visitInsertFromValuesAnalysis(InsertFromValuesAnalysis analysis, C context) {
+        return visitAnalysis(analysis, context);
+    }
+
+    protected R visitInsertFromSubQueryAnalysis(InsertFromSubQueryAnalysis analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 

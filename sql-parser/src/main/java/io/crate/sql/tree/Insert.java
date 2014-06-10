@@ -37,7 +37,6 @@ public abstract class Insert extends Statement {
     public Insert(Table table, @Nullable List<String> columns) {
         this.table = table;
         this.columns = Objects.firstNonNull(columns, ImmutableList.<String>of());
-
     }
 
     public Table table() {

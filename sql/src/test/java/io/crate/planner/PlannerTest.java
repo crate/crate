@@ -150,7 +150,6 @@ public class PlannerTest {
             TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.LONG, null)
-                    .add(DocSysColumns.RAW.name(), DataTypes.STRING, null)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
@@ -163,7 +162,6 @@ public class PlannerTest {
                     .build();
             TableIdent partedTableIdent = new TableIdent(null, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
-                    .addDocSysColumns()
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
@@ -887,5 +885,10 @@ public class PlannerTest {
 
         ESCountNode node = (ESCountNode)planNode;
         assertThat(node.indexName(), is("users"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testInsertFromSubQuery() throws Exception {
+        plan("insert into users (id, name) (select id, name from users where name='Ford')");
     }
 }

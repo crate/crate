@@ -74,7 +74,6 @@ public class BaseAnalyzerTest {
             .add("name", DataTypes.STRING, null)
             .add("details", DataTypes.OBJECT, null)
             .add("awesome", DataTypes.BOOLEAN, null)
-            .add("_version", DataTypes.INTEGER, null)
             .add("counters", new ArrayType(DataTypes.LONG), null)
             .add("friends", new ArrayType(DataTypes.OBJECT), null, ReferenceInfo.ObjectType.DYNAMIC)
             .add("friends", DataTypes.LONG, Arrays.asList("id"))
@@ -89,7 +88,6 @@ public class BaseAnalyzerTest {
             .add("name", DataTypes.STRING, null)
             .add("details", DataTypes.OBJECT, null)
             .add("awesome", DataTypes.BOOLEAN, null)
-            .add("_version", DataTypes.INTEGER, null)
             .add("friends", new ArrayType(DataTypes.OBJECT), null, ReferenceInfo.ObjectType.DYNAMIC)
             .addPrimaryKey("id")
             .addPrimaryKey("name")
@@ -101,7 +99,6 @@ public class BaseAnalyzerTest {
             .add("name", DataTypes.STRING, null)
             .add("details", DataTypes.OBJECT, null)
             .add("awesome", DataTypes.BOOLEAN, null)
-            .add("_version", DataTypes.INTEGER, null)
             .add("friends", new ArrayType(DataTypes.OBJECT), null, ReferenceInfo.ObjectType.DYNAMIC)
             .clusteredBy("id")
             .build();

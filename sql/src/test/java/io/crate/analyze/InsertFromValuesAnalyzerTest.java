@@ -47,7 +47,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class InsertAnalyzerTest extends BaseAnalyzerTest {
+public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     private static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
     private static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
@@ -90,7 +90,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (id, name) values (1, 'Trillian')");
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into users (id, name) values (1, 'Trillian')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
@@ -109,7 +109,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithTwistedColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (name, id) values ('Trillian', 2)");
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into users (name, id) values ('Trillian', 2)");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
@@ -153,7 +153,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithConvertedTypes() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome) values ($1, 'Trillian', $2)", new Object[]{1.0f, "true"});
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze("insert into users (id, name, awesome) values ($1, 'Trillian', $2)", new Object[]{1.0f, "true"});
 
         assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
         assertEquals(DataTypes.BOOLEAN, analysis.columns().get(2).valueType());
@@ -166,7 +166,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithFunction() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (id, name) values (ABS(-1), 'Trillian')");
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into users (id, name) values (ABS(-1), 'Trillian')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
@@ -185,7 +185,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithoutColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (1, 1, 'Trillian')");
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into users values (1, 1, 'Trillian')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(3));
 
@@ -208,7 +208,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithoutColumnsAndOnlyOneColumn() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (1)");
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into users values (1)");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(1));
 
@@ -244,7 +244,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testNullLiterals() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
                 new Object[]{1, null, null, null});
         Map<String, Object> values = analysis.sourceMaps().get(0);
         assertThat((Long) values.get("id"), is(1L));
@@ -255,7 +255,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testObjectLiterals() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
                 new Object[]{1, null, null, new HashMap<String, Object>(){{
                     put("new_col", "new value");
                 }}});
@@ -281,7 +281,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertObjectArrayParameter() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, friends) values(?, ?)",
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze("insert into users (id, friends) values(?, ?)",
                 new Object[]{ 0, new Map[]{
                         new HashMap<String, Object>() {{ put("name", "Jeltz"); }},
                         new HashMap<String, Object>() {{ put("name", "Prosser"); }}
@@ -299,7 +299,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertEmptyObjectArrayParameter() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, friends) values(?, ?)",
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze("insert into users (id, friends) values(?, ?)",
                 new Object[]{ 0, new Map[0] });
         assertThat((Long)analysis.sourceMaps().get(0).get("id"), is(0L));
         assertThat(((Object[]) analysis.sourceMaps().get(0).get("friends")).length, is(0));
@@ -315,7 +315,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testNestedPk() throws Exception {
         // FYI: insert nested clustered by test here too
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into nested_pk (id, o) values (?, ?)",
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze("insert into nested_pk (id, o) values (?, ?)",
                 new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0),
@@ -324,7 +324,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testNestedPkAllColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into nested_pk values (?, ?)",
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze("insert into nested_pk values (?, ?)",
                 new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0),
@@ -343,7 +343,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testTwistedNestedPk() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into nested_pk (o, id) values (?, ?)",
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into nested_pk (o, id) values (?, ?)",
                 new Object[]{new MapBuilder<String, Object>().put("b", 4).map(), 1});
         assertThat(analysis.ids().get(0),
                 is(new Id(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList("1", "4"), new ColumnIdent("o.b")).stringValue()));
@@ -352,7 +352,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertMultipleValues() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze(
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze(
                 "insert into users (id, name, awesome) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{ 99, "Marvin", true, 42, "Deep Thought", false });
         assertThat(analysis.sourceMaps().size(), is(2));
@@ -368,7 +368,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertPartitionedTable() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into parted (id, name, date) " +
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into parted (id, name, date) " +
                 "values (?, ?, ?)", new Object[]{0, "Trillian", 0L});
         assertThat(analysis.sourceMaps().size(), is(1));
         assertThat(analysis.sourceMaps().get(0).size(), is(2));
@@ -379,7 +379,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertIntoPartitionedTableOnlyPartitionColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into parted (date) " +
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into parted (date) " +
                 "values (?)", new Object[]{0L});
         assertThat(analysis.sourceMaps().size(), is(1));
         assertThat(analysis.sourceMaps().get(0).size(), is(0));
@@ -390,7 +390,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void bulkIndexPartitionedTable() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into parted (id, name, date) " +
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into parted (id, name, date) " +
                 "values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
                 new Object[]{
                         1, "Trillian", 13963670051500L,
@@ -424,7 +424,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertNestedPartitionedColumn() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into nested_parted (id, date, obj)" +
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into nested_parted (id, date, obj)" +
                 "values (?, ?, ?), (?, ?, ?)",
                 new Object[]{
                         1, "1970-01-01", new MapBuilder<String, Object>().put("name", "Zaphod").map(),
@@ -436,10 +436,5 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
         ));
         assertThat(analysis.sourceMaps().size(), is(2));
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testInsertFromQuery() throws Exception {
-        analyze("insert into users (id, name) (select id, name from useres where name like '%ord')");
     }
 }
