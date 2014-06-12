@@ -40,10 +40,9 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static io.crate.testing.TestingHelpers.createFunction;
-import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
 public class SubstrFunctionTest {
@@ -227,9 +226,36 @@ public class SubstrFunctionTest {
                 return 5;
             }
         };
-
         BytesRef result = format.evaluate(arg1, arg2, arg3);
         assertThat(result.utf8ToString(), is("crate"));
 
     }
+
+    @Test
+    public void testEvaluateWithNullInput() throws Exception {
+        List<Symbol> args = Arrays.<Symbol>asList(
+                createReference("tag", DataTypes.STRING),
+                createReference("start", DataTypes.INTEGER),
+                createReference("end", DataTypes.SHORT)
+        );
+        Function function = createFunction(SubstrFunction.NAME, DataTypes.STRING, args);
+        Scalar<BytesRef, Object> format = (Scalar<BytesRef, Object>) functions.get(function.info().ident());
+
+        assertNull(format.evaluate(
+                (Input) Literal.newLiteral(DataTypes.STRING, null),
+                (Input) Literal.newLiteral(1)));
+    }
+
+    @Test
+    public void testNormalizeWithNullLiteral() throws Exception {
+        Function function = createFunction(SubstrFunction.NAME, DataTypes.STRING,
+                Arrays.<Symbol>asList(
+                        Literal.newLiteral(DataTypes.STRING, null),
+                        Literal.newLiteral(1)
+                ));
+        Scalar<BytesRef, Object> func = (Scalar<BytesRef, Object>) functions.get(function.info().ident());
+        Symbol symbol = func.normalizeSymbol(function);
+        assertNull(((Literal) symbol).value());
+    }
 }
+

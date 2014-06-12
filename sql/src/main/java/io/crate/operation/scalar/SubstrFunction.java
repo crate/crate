@@ -22,24 +22,24 @@
 package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
-import io.crate.sql.tree.StringLiteral;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 public class SubstrFunction implements Scalar<BytesRef, Object>, DynamicFunctionResolver {
 
     public static final String NAME = "substr";
     private FunctionInfo info;
+    private static final BytesRef EMPTY_BYTES_REF = new BytesRef("");
 
     public SubstrFunction() {}
     public SubstrFunction(FunctionInfo info) {
@@ -60,59 +60,73 @@ public class SubstrFunction implements Scalar<BytesRef, Object>, DynamicFunction
     }
 
     @Override
-    public BytesRef evaluate(Input<Object>... args) {
+    public BytesRef evaluate(Input[] args) {
         assert (args.length >= 2 && args.length <= 3);
-        assert args[0].value() != null;
-
-        String inputStr;
-        if (args[0].value() instanceof BytesRef) {
-            inputStr = ((BytesRef) args[0].value()).utf8ToString();
-        } else {
-            inputStr = (String) args[0].value();
+        final Object val = args[0].value();
+        if (val == null) {
+            return null;
         }
-
-        int startPos = Math.max(0, ((Number) args[1].value()).intValue() - 1);
-        if (startPos > inputStr.length() - 1) {
-            return new BytesRef();
-        }
-
-        int endPos = inputStr.length();
-
         if (args.length == 3) {
-            int len = ((Number) args[2].value()).intValue();
-            if (startPos + len < endPos) {
-                endPos = startPos + len;
-            }
-        }
+            return evaluate(BytesRefs.toString(val),
+                    ((Number) args[1].value()).intValue(),
+                    ((Number) args[2].value()).intValue());
 
+        }
+        return evaluate(BytesRefs.toString(val), ((Number) args[1].value()).intValue());
+    }
+
+    private static BytesRef evaluate(@Nonnull String inputStr, int beginIdx) {
+        final int startPos = Math.max(0, beginIdx - 1);
+        if (startPos > inputStr.length() - 1) {
+            return EMPTY_BYTES_REF;
+        }
+        int endPos = inputStr.length();
+        return new BytesRef(inputStr.substring(startPos, endPos));
+    }
+
+    private static BytesRef evaluate(@Nonnull String inputStr, int beginIdx, int len) {
+        final int startPos = Math.max(0, beginIdx - 1);
+        if (startPos > inputStr.length() - 1) {
+            return EMPTY_BYTES_REF;
+        }
+        int endPos = inputStr.length();
+        if (startPos + len < endPos) {
+            endPos = startPos + len;
+        }
         return new BytesRef(inputStr.substring(startPos, endPos));
     }
 
     @Override
     public Symbol normalizeSymbol(Function symbol) {
-        int size = symbol.arguments().size();
+        final int size = symbol.arguments().size();
         assert (size >= 2 && size <= 3);
 
-        if (symbol.arguments().get(0).symbolType() != SymbolType.LITERAL ||
-                symbol.arguments().get(1).symbolType() != SymbolType.LITERAL ||
-                (size == 3 && symbol.arguments().get(2).symbolType() != SymbolType.LITERAL)) {
+        final Symbol input = symbol.arguments().get(0);
+        final Symbol beginIdx = symbol.arguments().get(1);
+
+        if (anyNonLiterals(input, beginIdx, symbol.arguments())) {
             return symbol;
         }
 
-        String inputStr = ((BytesRef)((Literal) symbol.arguments().get(0)).value()).utf8ToString();
-
-        int startPos = Math.max(0, ((Number)((Literal) symbol.arguments().get(1)).value()).intValue() - 1);
-        if (startPos > inputStr.length() - 1) {
-            return Literal.EMPTY_STRING;
+        final Object inputValue = ((Input) input).value();
+        if (inputValue == null) {
+            return Literal.NULL;
         }
-
-        int endPos = inputStr.length();
-
         if (size == 3) {
-            int len = ((Number)((Literal) symbol.arguments().get(2)).value()).intValue();
-            endPos = Math.min(startPos + len, endPos);
+            return Literal.newLiteral(
+                    evaluate(BytesRefs.toString(inputValue),
+                    ((Number) ((Input) beginIdx).value()).intValue(),
+                    ((Number) ((Input) symbol.arguments().get(2)).value()).intValue()));
         }
-        return Literal.newLiteral(inputStr.substring(startPos, endPos));
+        return Literal.newLiteral(evaluate(
+                        BytesRefs.toString(inputValue),
+                        ((Number) ((Input) beginIdx).value()).intValue()));
+    }
+
+    private static boolean anyNonLiterals(Symbol input, Symbol beginIdx, List<Symbol> arguments) {
+        return !input.symbolType().isValueSymbol() ||
+                !beginIdx.symbolType().isValueSymbol() ||
+                (arguments.size() == 3 && !arguments.get(2).symbolType().isValueSymbol());
     }
 
     @Override

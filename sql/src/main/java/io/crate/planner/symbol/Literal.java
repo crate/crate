@@ -174,6 +174,10 @@ public class Literal<ReturnType>
         return new Literal<>(DataTypes.STRING, new BytesRef(value));
     }
 
+    public static Literal<BytesRef> newLiteral(BytesRef value) {
+        return new Literal<>(DataTypes.STRING, value);
+    }
+
     public static Literal<Boolean> newLiteral(Boolean value) {
         return value ? BOOLEAN_TRUE : BOOLEAN_FALSE;
     }
