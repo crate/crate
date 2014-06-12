@@ -64,5 +64,7 @@ public class ScalarFunctionModule extends AbstractModule {
 
         DistanceFunction.register(this);
         WithinFunction.register(this);
+
+        CastFunction.register(this);
     }
 }
