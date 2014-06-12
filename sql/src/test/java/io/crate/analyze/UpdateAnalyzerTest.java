@@ -35,6 +35,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.predicate.PredicateModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.types.ArrayType;
@@ -91,6 +92,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 new TestModule(),
                 new TestMetaDataModule(),
                 new OperatorModule(),
+                new PredicateModule(),
                 new MetaDataSysModule()
         ));
         return modules;
@@ -328,6 +330,12 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = IllegalArgumentException.class)
     public void testWhereClauseObjectArrayField() throws Exception {
         analyze("update users set awesome=true where friends['id'] = 5");
+    }
+
+    @Test
+    public void testUpdateWithVersionZero() throws Exception {
+        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set awesome=true where name='Ford' and _version=0");
+        assertThat(analysis.whereClause().noMatch(), is(true));
     }
 
 }

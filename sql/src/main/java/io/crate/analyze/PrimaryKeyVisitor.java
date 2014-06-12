@@ -208,182 +208,183 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         }
     }
 
-        private static class KeyBucket {
-            private final Literal[] keyParts;
-            Long version;
-            public Literal clusteredBy;
-            private Set<Literal> partitions;
-            private Literal[] partitionColumnParts;
-            public int partsFound = 0;
+    private static class KeyBucket {
+        private final Literal[] keyParts;
+        Long version;
+        public Literal clusteredBy;
+        private Set<Literal> partitions;
+        private Literal[] partitionColumnParts;
+        public int partsFound = 0;
 
-            KeyBucket(int numKeys, int numPartitionColumns) {
-                keyParts = new Literal[numKeys];
-                partitionColumnParts = new Literal[numPartitionColumns];
-                partitions = new HashSet<>();
-            }
+        KeyBucket(int numKeys, int numPartitionColumns) {
+            keyParts = new Literal[numKeys];
+            partitionColumnParts = new Literal[numPartitionColumns];
+            partitions = new HashSet<>();
         }
+    }
 
-        @Nullable
-        public Context process(AbstractDataAnalysis analysis, Symbol whereClause) {
-            if (analysis.table().primaryKey().size() > 0 || analysis.table().clusteredBy() != null || analysis.table().partitionedBy().size() > 0) {
-                Context context = new Context(analysis);
-                context.whereClause = process(whereClause, context);
-                context.finish();
-                return context;
-            }
-            return null;
+    @Nullable
+    public Context process(AbstractDataAnalysis analysis, Symbol whereClause) {
+        if (analysis.table().primaryKey().size() > 0 || analysis.table().clusteredBy() != null || analysis.table().partitionedBy().size() > 0) {
+            Context context = new Context(analysis);
+            context.whereClause = process(whereClause, context);
+            context.finish();
+            return context;
         }
+        return null;
+    }
 
-        @Override
-        public Symbol visitReference(Reference reference, Context context) {
-            ColumnIdent columnIdent = reference.info().ident().columnIdent();
-            if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
-                invalidate(context);
-                return reference;
-            }
-
-            // where booleanCol; can be handled like: where booleanCol = true;
-            if (reference.valueType().equals(DataTypes.BOOLEAN)) {
-                if (columnIdent.equals(context.table.clusteredBy())) {
-                    setClusterBy(context, Literal.newLiteral(true));
-                }
-                int idx = context.table.primaryKey().indexOf(columnIdent);
-                if (idx >= 0) {
-                    setPrimaryKey(context, Literal.newLiteral(true), idx);
-                }
-            }
-
+    @Override
+    public Symbol visitReference(Reference reference, Context context) {
+        ColumnIdent columnIdent = reference.info().ident().columnIdent();
+        if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
+            invalidate(context);
             return reference;
         }
 
-        @Override
-        public Function visitFunction(Function function, Context context) {
-            String functionName = function.info().ident().name();
-            if (logicalBinaryExpressions.contains(functionName)) {
-                function = continueTraversal(function, context);
-                return function;
+        // where booleanCol; can be handled like: where booleanCol = true;
+        if (reference.valueType().equals(DataTypes.BOOLEAN)) {
+            if (columnIdent.equals(context.table.clusteredBy())) {
+                setClusterBy(context, Literal.newLiteral(true));
             }
-
-            assert function.arguments().size() > 0;
-            Symbol left = function.arguments().get(0);
-            Symbol right = Literal.NULL;
-
-            if (function.arguments().size() > 1) {
-                right = function.arguments().get(1);
-            }
-
-            if (left.symbolType() != SymbolType.REFERENCE || !right.symbolType().isValueSymbol()) {
-                invalidate(context);
-                return function;
-            }
-
-            Reference reference = (Reference) left;
-            ColumnIdent columnIdent = reference.info().ident().columnIdent();
-            if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
-                invalidate(context);
-                return function;
-            }
-
-            boolean clusteredBySet = false;
-            if (functionName.equals(EqOperator.NAME)) {
-                if (columnIdent.equals(context.table.clusteredBy())) {
-                    setClusterBy(context, (Literal) right);
-                    clusteredBySet = true;
-                }
-                if (columnIdent.name().equals("_version")) {
-                    setVersion(context, right);
-                    return function;
-                }
-            }
-
             int idx = context.table.primaryKey().indexOf(columnIdent);
-            int partitionIdx = context.table.partitionedBy().indexOf(columnIdent);
+            if (idx >= 0) {
+                setPrimaryKey(context, Literal.newLiteral(true), idx);
+            }
+        }
 
-            if (idx < 0 && !clusteredBySet && partitionIdx < 0 && !context.hasPartitionedColumn) {
-                invalidate(context);
-                return function;
-            }
-            if (idx >= 0 && PK_COMPARISONS.contains(functionName)) {
-                setPrimaryKey(context, (Literal) right, idx);
-            } else if (idx >= 0) {
-                // unsupported pk comparison
-                invalidate(context);
-            }
-            if (partitionIdx >= 0) {
-                context.hasPartitionedColumn = true;
-                boolean matched = setPartitionedBy(context, (Literal) right, partitionIdx, function.info().ident());
-                // rewrite current function so it can be normalized to true or false
-                List<Symbol> booleanSymbols = ImmutableList.<Symbol>of(
-                        Literal.newLiteral(true),
-                        Literal.newLiteral(matched)
-                );
-                FunctionInfo info = context.analysis.getFunctionInfo(
-                        new FunctionIdent(
-                                EqOperator.NAME,
-                                ImmutableList.<DataType>of(BooleanType.INSTANCE, BooleanType.INSTANCE)));
-                function = context.analysis.allocateFunction(info, booleanSymbols);
-            }
+        return reference;
+    }
+
+
+    @Override
+    public Function visitFunction(Function function, Context context) {
+        String functionName = function.info().ident().name();
+        if (logicalBinaryExpressions.contains(functionName)) {
+            function = continueTraversal(function, context);
             return function;
         }
 
-        private void setPrimaryKey(Context context, Literal right, int idx) {
-            if (context.currentBucket.keyParts[idx] == null) {
-                context.currentBucket.keyParts[idx] = right;
-                context.currentBucket.partsFound++;
-            } else if (!context.currentBucket.keyParts[idx].equals(right)) {
-                if (context.currentBucket.keyParts[idx].valueType().id() == SetType.ID) {
-                    Set intersection = generateIntersection(
-                            context.currentBucket.keyParts[idx], right);
-                    if (intersection.size() > 0) {
-                        context.currentBucket.keyParts[idx] = Literal.newLiteral(
-                                context.currentBucket.keyParts[idx].valueType(),
-                                intersection
-                        );
-                        return;
-                    }
-                }
+        assert function.arguments().size() > 0;
+        Symbol left = function.arguments().get(0);
+        Symbol right = Literal.NULL;
 
-                /**
-                 * if we get to this point we've had something like
-                 *      where pkCol = 1 and pkCol = 2
-                 * or
-                 *      where pkCol in (1, 2) and pkCol = 3
-                 *
-                 * which can never match so the query doesn't need to be executed.
-                 */
-                context.noMatch = true;
+        if (function.arguments().size() > 1) {
+            right = function.arguments().get(1);
+        }
+
+        if (left.symbolType() != SymbolType.REFERENCE || !right.symbolType().isValueSymbol()) {
+            invalidate(context);
+            return function;
+        }
+
+        Reference reference = (Reference) left;
+        ColumnIdent columnIdent = reference.info().ident().columnIdent();
+        if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
+            invalidate(context);
+            return function;
+        }
+
+        boolean clusteredBySet = false;
+        if (functionName.equals(EqOperator.NAME)) {
+            if (columnIdent.equals(context.table.clusteredBy())) {
+                setClusterBy(context, (Literal) right);
+                clusteredBySet = true;
+            }
+            if (columnIdent.name().equals("_version")) {
+                setVersion(context, right);
+                return function;
             }
         }
 
-        private boolean setPartitionedBy(Context context, Literal right, int idx, FunctionIdent functionIdent) {
-            boolean matched = false;
-            if (context.currentBucket.partitionColumnParts[idx] == null) {
-                context.currentBucket.partitionColumnParts[idx] = right;
-                matched = evaluatePartitionedBy(context, right, idx, functionIdent);
-            } else if (!context.currentBucket.partitionColumnParts[idx].equals(right)) {
-                if (context.currentBucket.partitionColumnParts[idx].valueType().id() == SetType.ID) {
-                    Set intersection = generateIntersection(
-                            context.currentBucket.partitionColumnParts[idx], right);
+        int idx = context.table.primaryKey().indexOf(columnIdent);
+        int partitionIdx = context.table.partitionedBy().indexOf(columnIdent);
 
-                    if (intersection.size() > 0) {
-                        context.currentBucket.partitionColumnParts[idx] = Literal.newLiteral(
-                                context.currentBucket.partitionColumnParts[idx].valueType(),
-                                intersection);
-                        return false; // matched
-                    }
-                }
-                /**
-                 * if we get to this point we've had something like
-                 *      where partitionCol = 1 and partitionCol = 2
-                 * or
-                 *      where partitionCol in (1, 2) and partitionCol = 3
-                 *
-                 * which can never match so the query doesn't need to be executed.
-                 */
-                context.noMatch = true;
-            }
-            return matched;
+        if (idx < 0 && !clusteredBySet && partitionIdx < 0 && !context.hasPartitionedColumn) {
+            invalidate(context);
+            return function;
         }
+        if (idx >= 0 && PK_COMPARISONS.contains(functionName)) {
+            setPrimaryKey(context, (Literal) right, idx);
+        } else if (idx >= 0) {
+            // unsupported pk comparison
+            invalidate(context);
+        }
+        if (partitionIdx >= 0) {
+            context.hasPartitionedColumn = true;
+            boolean matched = setPartitionedBy(context, (Literal) right, partitionIdx, function.info().ident());
+            // rewrite current function so it can be normalized to true or false
+            List<Symbol> booleanSymbols = ImmutableList.<Symbol>of(
+                    Literal.newLiteral(true),
+                    Literal.newLiteral(matched)
+            );
+            FunctionInfo info = context.analysis.getFunctionInfo(
+                    new FunctionIdent(
+                            EqOperator.NAME,
+                            ImmutableList.<DataType>of(BooleanType.INSTANCE, BooleanType.INSTANCE)));
+            function = context.analysis.allocateFunction(info, booleanSymbols);
+        }
+        return function;
+    }
+
+    private void setPrimaryKey(Context context, Literal right, int idx) {
+        if (context.currentBucket.keyParts[idx] == null) {
+            context.currentBucket.keyParts[idx] = right;
+            context.currentBucket.partsFound++;
+        } else if (!context.currentBucket.keyParts[idx].equals(right)) {
+            if (context.currentBucket.keyParts[idx].valueType().id() == SetType.ID) {
+                Set intersection = generateIntersection(
+                        context.currentBucket.keyParts[idx], right);
+                if (intersection.size() > 0) {
+                    context.currentBucket.keyParts[idx] = Literal.newLiteral(
+                            context.currentBucket.keyParts[idx].valueType(),
+                            intersection
+                    );
+                    return;
+                }
+            }
+
+            /**
+             * if we get to this point we've had something like
+             *      where pkCol = 1 and pkCol = 2
+             * or
+             *      where pkCol in (1, 2) and pkCol = 3
+             *
+             * which can never match so the query doesn't need to be executed.
+             */
+            context.noMatch = true;
+        }
+    }
+
+    private boolean setPartitionedBy(Context context, Literal right, int idx, FunctionIdent functionIdent) {
+        boolean matched = false;
+        if (context.currentBucket.partitionColumnParts[idx] == null) {
+            context.currentBucket.partitionColumnParts[idx] = right;
+            matched = evaluatePartitionedBy(context, right, idx, functionIdent);
+        } else if (!context.currentBucket.partitionColumnParts[idx].equals(right)) {
+            if (context.currentBucket.partitionColumnParts[idx].valueType().id() == SetType.ID) {
+                Set intersection = generateIntersection(
+                        context.currentBucket.partitionColumnParts[idx], right);
+
+                if (intersection.size() > 0) {
+                    context.currentBucket.partitionColumnParts[idx] = Literal.newLiteral(
+                            context.currentBucket.partitionColumnParts[idx].valueType(),
+                            intersection);
+                    return false; // matched
+                }
+            }
+            /**
+             * if we get to this point we've had something like
+             *      where partitionCol = 1 and partitionCol = 2
+             * or
+             *      where partitionCol in (1, 2) and partitionCol = 3
+             *
+             * which can never match so the query doesn't need to be executed.
+             */
+            context.noMatch = true;
+        }
+        return matched;
+    }
 
     @SuppressWarnings("unchecked")
     private Set generateIntersection(Literal setLiteral, Literal right) {
@@ -468,13 +469,16 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                 break;
         }
         if (version == null) {
-            throw new IllegalArgumentException("_version... "); // TODO:
+            throw new IllegalArgumentException("\"_version\" cannot be compared to null");
         }
 
         if (context.currentBucket.version != null && !context.currentBucket.version.equals(version)) {
             invalidateVersion(context);
         } else {
             context.currentBucket.version = version;
+            if(version <= 0) {
+                context.noMatch = true;
+            }
         }
         return false;
     }
