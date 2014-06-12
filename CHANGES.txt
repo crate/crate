@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - implemented ``cast`` scalar function
+
  - updated crate-admin to 0.8.1 which includes following changes:
 
     - fix: round percentage of available and underreplicated data correctly

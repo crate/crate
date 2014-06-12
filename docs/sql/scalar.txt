@@ -117,3 +117,38 @@ arguments and returns a formatted string::
 For details about the format string syntax see `formatter`_
 
 .. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
+
+
+.. _scalar-cast:
+
+cast(column as type) returns converted value
+============================================
+
+The ``cast`` functions is casting the given column value to the specified
+data type if possible::
+
+  cr> select cast(position as float) from locations order by position
+  ... limit 1;
+  +-------------------------+
+  | CAST(position AS FLOAT) |
+  +-------------------------+
+  |                     1.0 |
+  +-------------------------+
+  SELECT 1 row in set (0.003 sec)
+
+Valid types are:
+
+* string
+
+* integer
+
+* long
+
+* short
+
+* double
+
+* float
+
+* timestamp
+

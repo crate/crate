@@ -35,6 +35,7 @@ import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
+import io.crate.operation.scalar.CastFunction;
 import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
@@ -553,6 +554,18 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     @Override
     public Symbol visitParameterExpression(ParameterExpression node, T context) {
         return new Parameter(context.parameterAt(node.index()));
+    }
+
+    @Override
+    public Symbol visitCast(Cast node, T context) {
+        Symbol expression = process(node.getExpression(), context);
+        DataType inputDataType = DataTypeVisitor.fromSymbol(expression);
+        DataType returnDataType = DataTypes.ofName(node.getType().toLowerCase(Locale.ENGLISH));
+        FunctionIdent ident = new FunctionIdent(CastFunction.NAME, ImmutableList.of(inputDataType, returnDataType));
+        FunctionInfo functionInfo = context.getFunctionInfo(ident);
+        // 2nd argument type is defining the return type
+        // because size of argument types and arguments must be equal, we add a dummy argument here
+        return context.allocateFunction(functionInfo, Arrays.asList(expression, Literal.newLiteral(returnDataType, returnDataType.value(0))));
     }
 
     private static class Comparison {

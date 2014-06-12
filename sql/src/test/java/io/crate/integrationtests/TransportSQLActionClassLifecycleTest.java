@@ -585,4 +585,19 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         response = executor.exec("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
         assertEquals(response.rows()[0][0], (Double)response.rows()[0][1] + (Double)response.rows()[0][2]);
     }
+
+    @Test
+    public void testCastFunction() throws Exception {
+        executor.exec("create table test_cast (float_field float, string_field string) with (number_of_replicas=0)");
+        executor.ensureGreen();
+        executor.exec("insert into test_cast (float_field, string_field) values (?, ?)",
+                new Object[]{1.234, "1234"});
+        executor.refresh("test_cast");
+        SQLResponse response = executor.exec("select cast(float_field as integer), cast(string_field as long) from test_cast");
+
+        assertEquals(1, response.rows()[0][0]);
+        assertEquals(1234L, response.rows()[0][1]);
+
+        executor.exec("drop table test_cast");
+    }
 }
