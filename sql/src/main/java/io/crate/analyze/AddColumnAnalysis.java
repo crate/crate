@@ -27,19 +27,25 @@ import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
 
-public class AddColumnAnalysis extends CreateTableAnalysis {
+public class AddColumnAnalysis extends AbstractDDLAnalysis {
 
-    private Optional<PartitionName> partitionName;
+    private final ReferenceInfos referenceInfos;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private Optional<PartitionName> partitionName = Optional.absent();
     private TableInfo tableInfo;
+    private AnalyzedTableElements analyzedTableElements;
 
-    public AddColumnAnalysis(ReferenceInfos referenceInfos,
-                             FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                             Object[] parameters) {
-        super(referenceInfos, fulltextAnalyzerResolver, parameters);
+    protected AddColumnAnalysis(ReferenceInfos referenceInfos,
+                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                Object[] parameters) {
+        super(parameters);
+        this.referenceInfos = referenceInfos;
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
     public void partitionName(@Nullable PartitionName partitionName) {
@@ -66,6 +72,16 @@ public class AddColumnAnalysis extends CreateTableAnalysis {
     }
 
     @Override
+    public SchemaInfo schema() {
+        return referenceInfos.getSchemaInfo(tableIdent.schema());
+    }
+
+    @Override
+    public void normalize() {
+
+    }
+
+    @Override
     public boolean isData() {
         return false;
     }
@@ -73,5 +89,17 @@ public class AddColumnAnalysis extends CreateTableAnalysis {
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> visitor, C context) {
         return visitor.visitAddColumnAnalysis(this, context);
+    }
+
+    public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
+        return fulltextAnalyzerResolver;
+    }
+
+    public void analyzedTableElements(AnalyzedTableElements analyzedTableElements) {
+        this.analyzedTableElements = analyzedTableElements;
+    }
+
+    public AnalyzedTableElements analyzedTableElements() {
+        return this.analyzedTableElements;
     }
 }

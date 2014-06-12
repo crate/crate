@@ -21,15 +21,10 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import io.crate.PartitionName;
-import io.crate.core.StringUtils;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
@@ -39,39 +34,19 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
-    private final Map<String, Object> mappingProperties = new HashMap<>();
-    private final Map<String, Object> metaIndices = new HashMap<>();
-    private final Map<String, Object> metaColumns = new HashMap<>();
-    private final List<String> primaryKeys = new ArrayList<>();
-    private final List<List<String>> partitionedBy = new ArrayList<>();
 
-    private final Map<String, Object> mapping = new HashMap<>();
-    private final Map<String, Set<String>> copyTo = new HashMap<>();
-
-    private final Stack<ColumnSchema> schemaStack = new Stack<>();
-
-
-    /**
-     *  _meta : {
-     *      columns: {
-     *          "someColumn": {
-     *              "collection_type": [array | set | null]
-     *          }
-     *      },
-     *      indices: {
-     *          "someColumn_ft: {}
-     *      }
-     *      primary_keys: [ ... ]
-     * }
-     */
-    protected final Map<String, Object> crateMeta;
     protected final ReferenceInfos referenceInfos;
     protected final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private AnalyzedTableElements analyzedTableElements;
+    private Settings builtSettings;
+    private Map<String, Object> mapping;
+    private ColumnIdent routingColumn;
 
     public CreateTableAnalysis(ReferenceInfos referenceInfos,
                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
@@ -79,18 +54,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         super(parameters);
         this.referenceInfos = referenceInfos;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
-
-        crateMeta = new HashMap<>();
-        crateMeta.put("primary_keys", primaryKeys);
-        crateMeta.put("columns", metaColumns);
-        crateMeta.put("indices", metaIndices);
-        crateMeta.put("partitioned_by", partitionedBy);
-
-        mapping.put("_meta", crateMeta);
-        mapping.put("properties", mappingProperties);
-        mapping.put("_all", ImmutableMap.of("enabled", false));
-
-        schemaStack.push(new ColumnSchema(null, mappingProperties, metaColumns));
     }
 
     @Override
@@ -125,15 +88,11 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     }
 
     public List<List<String>> partitionedBy() {
-        return partitionedBy;
+        return analyzedTableElements().partitionedBy();
     }
 
     public boolean isPartitioned() {
-        return partitionedBy.size() > 0;
-    }
-
-    public void addPartitionedByColumn(String column, String type) {
-        this.partitionedBy.add(Arrays.asList(column, type));
+        return !analyzedTableElements().partitionedByColumns.isEmpty();
     }
 
     /**
@@ -166,43 +125,33 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     }
 
     public Settings indexSettings() {
-        return indexSettingsBuilder.build();
+        if (builtSettings == null) {
+            indexSettingsBuilder.put(analyzedTableElements.settings());
+            builtSettings = indexSettingsBuilder.build();
+        }
+        return builtSettings;
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> mappingProperties() {
-        return mappingProperties;
-    }
-
-    public void addPrimaryKey(String columnName) {
-        primaryKeys.add(columnName);
+        return (Map) mapping().get("properties");
     }
 
     public List<String> primaryKeys() {
-        return primaryKeys;
+        return analyzedTableElements.primaryKeys();
     }
 
     public Map<String, Object> mapping() {
+        if (mapping == null) {
+            mapping = analyzedTableElements.toMapping();
+            if (routingColumn != null) {
+                ((Map) mapping.get("_meta")).put("routing", routingColumn.fqn());
+            }
+        }
         return mapping;
     }
 
-    public Map<String, Object> metaMapping() {
-        return crateMeta;
-    }
-
-    public void addCopyTo(String sourceColumn, String targetColumn) {
-        Set<String> targetColumns = copyTo.get(sourceColumn);
-        if (targetColumns == null) {
-            targetColumns = new HashSet<>();
-            copyTo.put(sourceColumn, targetColumns);
-        }
-        targetColumns.add(targetColumn);
-    }
-
-    public Map<String, Set<String>> copyTo() {
-        return copyTo;
-    }
-
-    public FulltextAnalyzerResolver analyzerService() {
+    public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
         return fulltextAnalyzerResolver;
     }
 
@@ -210,102 +159,24 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return tableIdent;
     }
 
-    public void routing(String routingPath) {
-        if (routingPath.equalsIgnoreCase("_id")) {
+    public void routing(ColumnIdent routingColumn) {
+        if (routingColumn.name().equalsIgnoreCase("_id")) {
             return;
         }
-        crateMeta.put("routing", routingPath);
+        this.routingColumn = routingColumn;
     }
 
-    public @Nullable String routing() {
-        return (String)crateMeta.get("routing");
+    public @Nullable ColumnIdent routing() {
+        return routingColumn;
     }
 
     /**
      * return true if a columnDefinition with name <code>columnName</code> exists
-     * as top level column or nested (if <code>columnName</code> contains a dot)
-     *
-     * @param columnName (dotted) column name
      */
-    public boolean hasColumnDefinition(String columnName) {
-        if (columnName.equalsIgnoreCase("_id")) { return true; }
-        return getColumnDefinition(columnName) != null;
+    public boolean hasColumnDefinition(ColumnIdent columnIdent) {
+        return (analyzedTableElements().columnIdents().contains(columnIdent) ||
+                columnIdent.name().equalsIgnoreCase("_id"));
     }
-
-    @SuppressWarnings("unchecked")
-    public @Nullable
-    Map<String, Object> getColumnDefinition(String columnName) {
-        return getColumnDefinition(columnName, false);
-    }
-
-    /**
-     * like Map.remove(key)
-     * @param columnName
-     * @return
-     */
-    public @Nullable Map<String, Object> popColumnDefinition(String columnName) {
-        return getColumnDefinition(columnName, true);
-    }
-
-    private @Nullable Map<String, Object> getColumnDefinition(String columnName, boolean remove) {
-        if (metaIndices.containsKey(columnName)) {
-            return null;  // ignore fulltext index columns
-        }
-
-        Map<String, Object> parentProperties = null;
-        Map<String, Object> columnsMeta = this.metaColumns;
-        Map<String, Object> properties = mappingProperties;
-        List<String> columPath = Splitter.on('.').splitToList(columnName);
-        for (String namePart : columPath) {
-            Map<String, Object> fieldMapping = (Map<String, Object>)properties.get(namePart);
-            if (fieldMapping == null) {
-                return null;
-            } else if (fieldMapping.get("type") != null) {
-                parentProperties = properties;
-                if (fieldMapping.get("type").equals("object")
-                        && fieldMapping.get("properties") != null) {
-                    properties = (Map<String, Object>)fieldMapping.get("properties");
-                    if (columnsMeta != null) {
-                        columnsMeta = (Map<String, Object>) columnsMeta.get("properties");
-                    }
-                } else {
-                    properties = fieldMapping;
-                }
-            }
-        }
-        if (parentProperties != null && remove) {
-            String lastPath = columPath.get(columPath.size()-1);
-            parentProperties.remove(lastPath);
-            if (columnsMeta != null) {
-                columnsMeta.remove(lastPath);
-            }
-        }
-        return properties;
-    }
-
-
-
-    /**
-     * return true if column with name <code>columnName</code> is an array
-     * or is a nested column inside an array, false otherwise
-     */
-    @SuppressWarnings("unchecked")
-    public boolean isInArray(String columnName) {
-        Map<String, Object> metaColumnInfo = metaColumns;
-        for (String namePart : Splitter.on('.').split(columnName)) {
-            Map<String, Object> columnInfo = (Map<String, Object>) metaColumnInfo.get(namePart);
-            if (columnInfo != null) {
-                if (columnInfo.get("collection_type") != null
-                        && columnInfo.get("collection_type").equals("array")) {
-                    return true;
-                } else if (columnInfo.get("properties") != null) {
-                    metaColumnInfo = (Map<String, Object>) columnInfo.get("properties");
-                }
-            }
-        }
-        return false;
-    }
-
 
     @Override
     public boolean isData() {
@@ -313,90 +184,11 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return true;
     }
 
-    public ColumnSchema pushColumn(String ident) {
-        ColumnSchema columnSchema = schemaStack.peek();
-
-        if (columnSchema.crateMeta.containsKey(ident)
-                || columnSchema.esMapping.containsKey(ident)) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "column '%s' specified more than once", ident));
-        }
-
-        Map<String, Object> esMapping = new HashMap<>();
-        Map<String, Object> crateMeta = new HashMap<>();
-        columnSchema.crateMeta.put(ident, crateMeta);
-        columnSchema.esMapping.put(ident, esMapping);
-
-        return schemaStack.push(new ColumnSchema(ident, esMapping, crateMeta));
+    public void analyzedTableElements(AnalyzedTableElements analyze) {
+        this.analyzedTableElements = analyze;
     }
 
-    public ColumnSchema pushIndex(String ident) {
-        if (metaIndices.containsKey(ident)) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "the index name \"%s\" is already in use!", ident));
-        }
-        metaIndices.put(ident, ImmutableMap.of());
-        ColumnSchema columnSchema = schemaStack.peek();
-        Map<String, Object> esMapping = new HashMap<>();
-        columnSchema.esMapping.put(ident, esMapping);
-
-        return schemaStack.push(new ColumnSchema(ident, esMapping, null));
-    }
-
-    public Map<String, Object> currentColumnDefinition() {
-        return schemaStack.peek().esMapping;
-    }
-
-    public Map<String, Object> currentMetaColumnDefinition() {
-        return schemaStack.peek().crateMeta;
-    }
-
-    public String currentColumnName() {
-        return schemaStack.peek().name;
-    }
-
-    public String currentFullQualifiedColumnName() {
-        return StringUtils.PATH_JOINER.join(Iterables.filter(Iterables.transform(schemaStack, new Function<ColumnSchema, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable ColumnSchema input) {
-                if (input == null) {
-                    return null;
-                } else {
-                    return input.name;
-                }
-            }
-        }), new Predicate<String>() {
-            @Override
-            public boolean apply(@Nullable String input) {
-                return input != null;
-            }
-        }));
-    }
-
-
-    public ColumnSchema pop() {
-        return schemaStack.pop();
-    }
-
-    public ColumnSchema pushNestedProperties() {
-        ColumnSchema currentSchema = schemaStack.peek();
-        Map<String, Object> nestedProperties = new HashMap<>();
-        Map<String, Object> nestedMetaProperties = new HashMap<>();
-        currentSchema.esMapping.put("properties", nestedProperties);
-        currentSchema.crateMeta.put("properties", nestedMetaProperties);
-        return schemaStack.push(new ColumnSchema(null, nestedProperties, nestedMetaProperties));
-    }
-
-    static class ColumnSchema {
-        final String name;
-        final Map<String, Object> crateMeta;
-        final Map<String, Object> esMapping;
-
-        public ColumnSchema(String name, Map<String, Object> esMapping, Map<String, Object> crateMeta) {
-            this.name = name;
-            this.esMapping = esMapping;
-            this.crateMeta = crateMeta;
-        }
+    public AnalyzedTableElements analyzedTableElements() {
+        return analyzedTableElements;
     }
 }

@@ -1638,8 +1638,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .actionGet().isExists());
 
         String expectedMapping = "{\"default\":{" +
-                "\"_meta\":{\"primary_keys\":[\"col1\"]," +
-                "\"columns\":{\"col1\":{},\"col2\":{}},\"partitioned_by\":[],\"indices\":{}}," +
+                "\"_meta\":{\"primary_keys\":[\"col1\"]}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
                 "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
@@ -1796,14 +1795,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String expectedMapping = "{\"default\":{" +
                 "\"_meta\":{" +
                 "\"primary_keys\":[\"col1\"]," +
-                "\"columns\":{" +
-                "\"col1\":{}," +
-                "\"col2\":{}" +
-                "}," +
-                "\"partitioned_by\":[]," +
-                "\"indices\":{}," +
-                "\"routing\":\"col1\"" +
-                "}," +
+                "\"routing\":\"col1\"}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
                 "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
@@ -4038,11 +4030,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "with (number_of_replicas=0)");
 
         execute("insert into t (id, date) values (1, '2014-01-01')");
+        execute("insert into t (id, date) values (10, '2015-01-01')");
+        ensureGreen();
         refresh();
 
-        execute("alter table t add name string");
+        execute("alter table t partition (date='2014-01-01') add name string");
+        // only partition updated, select * won't return the name column
         execute("select * from t");
+        assertThat(Arrays.asList(response.cols()), Matchers.contains("date", "id"));
 
+        execute("insert into t (id, date, name) values (2, '2014-01-01', 100)"); // insert integer as name
+        execute("select name from t where id = 2 and date = '2014-01-01'");
+        assertThat((String)response.rows()[0][0], is("100")); // is returned as string
+
+
+        execute("alter table t add name string"); // now the template is updated as-well
+        execute("select * from t");
         assertThat(Arrays.asList(response.cols()), Matchers.contains("date", "id", "name"));
     }
 }
