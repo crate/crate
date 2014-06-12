@@ -125,7 +125,8 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         PutMappingRequest request = new PutMappingRequest(
                 getIndexNames(analysis.table(), analysis.partitionName().orNull()));
         request.type(Constants.DEFAULT_MAPPING_TYPE);
-        request.source(analysis.mapping());
+        final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
+        request.source(mapping);
 
         if (updateTemplate) {
             final String templateName = PartitionName.templateName(analysis.table().ident().name());
@@ -153,7 +154,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                             // pass
                         }
                     }
-                    XContentHelper.mergeDefaults(mergedMapping, analysis.mapping());
+                    XContentHelper.mergeDefaults(mergedMapping, mapping);
                     PutIndexTemplateRequest updateTemplateRequest = new PutIndexTemplateRequest(templateName)
                             .create(false)
                             .mapping(Constants.DEFAULT_MAPPING_TYPE, mergedMapping)
@@ -219,7 +220,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                 // all partitions
                 indexNames = tableInfo.concreteIndices();
             } else {
-                // refresh single partition
+                // single partition
                 indexNames = new String[] { partitionName.stringValue() };
             }
         } else {
