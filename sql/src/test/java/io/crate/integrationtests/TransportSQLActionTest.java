@@ -3790,13 +3790,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "(1, 'Trillian', '1970-01-01'), " +
                 "(2, 'Arthur', '1970-01-07')");
         assertThat(response.rowCount(), is(2L));
+        ensureGreen();
 
         execute("select count(*) from parted");
-        assertThat((Long)response.rows()[0][0], is(0L));
+        // cannot exactly tell which rows are visible
+        assertThat((Long)response.rows()[0][0], lessThanOrEqualTo(2L));
 
         execute("refresh table parted");
         assertThat(response.rowCount(), is(-1L));
 
+        // assert that all is available after refresh
         execute("select count(*) from parted");
         assertThat((Long)response.rows()[0][0], is(2L));
     }
@@ -3831,19 +3834,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
 
         execute("select * from parted");
-        assertThat(response.rowCount(), is(2L));
+        // cannot exactly tell how much rows are visible at this point
+        assertThat(response.rowCount(), lessThanOrEqualTo(4L));
 
         execute("refresh table parted PARTITION (date='1970-01-01')");
         assertThat(response.rowCount(), is(-1L));
 
-        execute("select * from parted");
-        assertThat(response.rowCount(), is(3L));
+        // assert all partition rows are available after refresh
+        execute("select * from parted where date='1970-01-01'");
+        assertThat(response.rowCount(), is(2L));
 
         execute("refresh table parted PARTITION (date='1970-01-07')");
         assertThat(response.rowCount(), is(-1L));
 
-        execute("select * from parted");
-        assertThat(response.rowCount(), is(4L));
+        // assert all partition rows are available after refresh
+        execute("select * from parted where date='1970-01-07'");
+        assertThat(response.rowCount(), is(2L));
     }
 
 
