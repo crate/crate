@@ -184,4 +184,10 @@ to 1000 milliseconds.
     equal than 0 turns off the automatic refresh. A value of greater than 0
     schedules a periodic refresh of the table.
 
+.. note::
+
+    a ``refresh_interval`` of 0 does not guarantee that new writes are *NOT* visible to
+    subsequent reads. Only the periodic refresh is disabled. There are other
+    internal factors that might trigger a refresh.
+
 For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.
