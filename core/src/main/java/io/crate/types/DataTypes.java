@@ -208,4 +208,28 @@ public class DataTypes {
             return new ArrayType(current);
         }
     }
+
+    private static final ImmutableMap<String, DataType> staticTypesNameMap = ImmutableMap.<String, DataType>builder()
+            .put(NULL.getName(), NULL)
+            .put(BYTE.getName(), BYTE)
+            .put(BOOLEAN.getName(), BOOLEAN)
+            .put(STRING.getName(), STRING)
+            .put(IP.getName(), IP)
+            .put(DOUBLE.getName(), DOUBLE)
+            .put(FLOAT.getName(), FLOAT)
+            .put(SHORT.getName(), SHORT)
+            .put(INTEGER.getName(), INTEGER)
+            .put(LONG.getName(), LONG)
+            .put(TIMESTAMP.getName(), TIMESTAMP)
+            .put(OBJECT.getName(), OBJECT)
+            .put(GEO_POINT.getName(), GEO_POINT)
+            .build();
+
+    public static DataType ofName(String name) {
+        DataType dataType = staticTypesNameMap.get(name);
+        if (dataType == null) {
+            throw new IllegalArgumentException("Cannot find data type of name " + name);
+        }
+        return dataType;
+    }
 }

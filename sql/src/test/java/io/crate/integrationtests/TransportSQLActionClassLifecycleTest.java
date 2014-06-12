@@ -753,4 +753,5 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         // no data since collect_stats is disabled
         assertThat(response.rowCount(), is(0L));
     }
+
 }

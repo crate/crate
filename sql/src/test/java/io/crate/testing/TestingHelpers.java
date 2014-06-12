@@ -135,6 +135,10 @@ public class TestingHelpers {
         assertLiteral(symbol, expectedValue, DataTypes.LONG);
     }
 
+    public static void assertLiteralSymbol(Symbol symbol, Integer expectedValue) {
+        assertLiteral(symbol, expectedValue, DataTypes.INTEGER);
+    }
+
     public static void assertLiteralSymbol(Symbol symbol, Double expectedValue) {
         assertLiteral(symbol, expectedValue, DataTypes.DOUBLE);
     }
