@@ -201,7 +201,7 @@ The table schema is as follows:
 |                  | missing.                        |                   |
 |                  | False on non-partitioned        |                   |
 |                  | tables.                         |                   |
-+-----------------+---------------------------------+-------------------+
++------------------+---------------------------------+-------------------+
 
 For example, you can query shards like this::
 

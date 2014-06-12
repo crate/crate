@@ -466,8 +466,9 @@ always return one row, as they do an aggregation operation on the matching rows 
 
 .. note::
 
-    Aggregations can only be applied on indexed fields. For more information,
-    please refer to :ref:`sql_ddl_index_off`.
+    Aggregations can only be applied to columns with a plain index, which is the
+    default for all columns.
+    For more information, please refer to :ref:`sql_ddl_index_plain`.
 
 
 Some Examples::
@@ -620,8 +621,9 @@ This is useful if used in conjunction with aggregation functions::
 
 .. note::
 
-    Grouping can only be applied on indexed fields. For more information,
-    please refer to :ref:`sql_ddl_index_off`.
+    Grouping can only be applied to columns with a plain index, which is the
+    default for all columns.
+    For more information, please refer to :ref:`sql_ddl_index_plain`.
 
 Fulltext search
 ---------------

@@ -363,7 +363,7 @@ Synopsis (literal brackets are given in single quotes)::
 
     '[' [ element [ , ... ] ] ']'
 
-Valid ``element``s are literals and parameters.
+Valid elements are literals and parameters.
 
 All array elements have to be of the type of the first element,
 which determines the element type. If an array contains no elements, its element
