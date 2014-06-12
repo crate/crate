@@ -585,4 +585,5 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         response = executor.exec("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
         assertEquals(response.rows()[0][0], (Double)response.rows()[0][1] + (Double)response.rows()[0][2]);
     }
+
 }

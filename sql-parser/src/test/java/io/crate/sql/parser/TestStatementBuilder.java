@@ -288,6 +288,11 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testCast() throws Exception {
+        printStatement("select cast(y as integer) from foo");
+    }
+
+    @Test
     public void testCaseSensitivity() throws Exception {
         Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
         QualifiedNameReference nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();
