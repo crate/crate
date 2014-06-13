@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.planner.symbol.Aggregation;
@@ -35,22 +36,28 @@ import java.util.List;
 public class PlannerContextBuilder {
 
     private final PlannerContext context;
+    public final boolean ignoreOrderBy;
     public boolean aggregationsWrappedInScalar;
 
+    public PlannerContextBuilder() {
+        this(0, ImmutableList.<Symbol>of(), false);
+    }
+
+    public PlannerContextBuilder(int numAggregationSteps) {
+        this(numAggregationSteps, ImmutableList.<Symbol>of(), false);
+    }
+
     public PlannerContextBuilder(int numAggregationSteps, List<Symbol> groupBy) {
+        this(numAggregationSteps, groupBy, false);
+    }
+
+    public PlannerContextBuilder(int numAggregationSteps, List<Symbol> groupBy, boolean ignoreOrderBy) {
         this.context = new PlannerContext(groupBy.size(), numAggregationSteps);
         context.originalGroupBy = groupBy;
         for (Symbol symbol : groupBy) {
             context.groupBy.add(context.allocateToCollect(symbol));
         }
-    }
-
-    public PlannerContextBuilder() {
-        this.context = new PlannerContext(0, 0);
-    }
-
-    public PlannerContextBuilder(int numAggregationSteps) {
-        this.context = new PlannerContext(0, numAggregationSteps);
+        this.ignoreOrderBy = ignoreOrderBy;
     }
 
     public List<Symbol> groupBy() {
@@ -143,11 +150,11 @@ public class PlannerContextBuilder {
     }
 
     public List<Symbol> orderBy() {
-        return Lists.newArrayList(context.orderBy);
+        return ignoreOrderBy ? ImmutableList.<Symbol>of() : Lists.newArrayList(context.orderBy);
     }
 
     public PlannerContextBuilder orderBy(List<Symbol> symbols) {
-        if (symbols == null) {
+        if (symbols == null || ignoreOrderBy) {
             return this;
         }
         if (context.steps == null || context.numGroupKeys == 0) {

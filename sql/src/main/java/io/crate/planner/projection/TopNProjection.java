@@ -27,6 +27,7 @@ import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,14 +61,16 @@ public class TopNProjection extends Projection {
         this.offset = offset;
     }
 
-    public TopNProjection(int limit, int offset, List<Symbol> orderBy, boolean[] reverseFlags, Boolean[] nullsFirst) {
+    public TopNProjection(int limit, int offset, @Nullable List<Symbol> orderBy, @Nullable boolean[] reverseFlags, @Nullable Boolean[] nullsFirst) {
         this(limit, offset);
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
-        this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
-        this.nullsFirst = Objects.firstNonNull(nullsFirst, new Boolean[0]);
-
-
-
+        if (this.orderBy.isEmpty()) {
+            this.reverseFlags = new boolean[0];
+            this.nullsFirst = new Boolean[0];
+        } else {
+            this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
+            this.nullsFirst = Objects.firstNonNull(nullsFirst, new Boolean[0]);
+        }
         assert this.orderBy.size() == this.reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert this.nullsFirst.length == this.reverseFlags.length;
     }

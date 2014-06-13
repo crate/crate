@@ -25,7 +25,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.Constants;
 import io.crate.core.collections.ArrayIterator;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
@@ -119,7 +118,7 @@ public class SortingTopNProjector implements Projector, ResultProvider {
      * @param numOutputs         <code>inputs</code> contains this much output {@link io.crate.operation.Input}s starting form index 0
      * @param orderBy            indices of {@link io.crate.operation.Input}s in parameter <code>inputs</code> we sort by
      * @param reverseFlags       for every index orderBy a boolean indicates ascending (<code>false</code>) or descending (<code>true</code>) order
-     * @param limit              the number of rows to gather, pass to upStream
+     * @param limit              the number of rows to gather, pass to upStream, must be > 0
      * @param offset             the initial offset, this number of rows are skipped
      */
     public SortingTopNProjector(Input<?>[] inputs,
@@ -130,7 +129,7 @@ public class SortingTopNProjector implements Projector, ResultProvider {
                                 Boolean[] nullsFirst,
                                 int limit,
                                 int offset) {
-        Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
+        Preconditions.checkArgument(limit > TopN.NO_LIMIT, "invalid limit");
         Preconditions.checkArgument(offset >= 0, "invalid offset");
         assert nullsFirst.length == reverseFlags.length;
 
@@ -139,9 +138,7 @@ public class SortingTopNProjector implements Projector, ResultProvider {
         this.collectExpressions = collectExpressions;
         this.offset = offset;
 
-        if (limit == TopN.NO_LIMIT) {
-            limit = Constants.DEFAULT_SELECT_LIMIT;
-        }
+        limit = Math.max(limit, 0);
         this.maxSize = this.offset + limit;
         comparators = new Comparator[orderBy.length];
         for (int i = 0; i < orderBy.length; i++) {
