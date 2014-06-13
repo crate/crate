@@ -28,8 +28,10 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.scalar.CastFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.symbol.DataTypeSymbol;
+import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -142,23 +144,13 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = IllegalArgumentException.class)
     public void testFromQueryWithWrongColumnTypes() throws Exception {
         analyze("insert into users (id, details, name) (" +
-                        "  select id, name, details from users " +
-                        "  where name = 'Trillian'" +
-                        ")");
+                "  select id, name, details from users " +
+                "  where name = 'Trillian'" +
+                ")");
     }
 
     @Test
     public void testFromQueryWithConvertableInsertColumns() throws Exception {
-        InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
-            analyze("insert into users (id, other_id, name) (" +
-                "  select other_id, id, name from users " +
-                "  where name = 'Trillian'" +
-                ")");
-        assertCompatibleColumns(analysis);
-    }
-
-    @Test
-    public void testFromQueryWithConvertableInsertColumns2() throws Exception {
         InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
             analyze("insert into users (id, name) (" +
                 "  select id, other_id from users " +
@@ -175,5 +167,19 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
                 "  where name = 'Trillian'" +
                 ")");
         assertCompatibleColumns(analysis);
+    }
+
+    @Test
+    public void testImplicitTypeCasting() throws Exception {
+        InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
+                analyze("insert into users (id, name) (" +
+                        "  select id, other_id from users " +
+                        "  where name = 'Trillian'" +
+                        ")");
+
+        assertThat(analysis.columns().size(), is(analysis.getSubQueryColumns().size()));
+        assertThat(analysis.getSubQueryColumns().get(1), instanceOf(Function.class));
+        Function castFunction = (Function)analysis.getSubQueryColumns().get(1);
+        assertThat(castFunction.info().ident().name(), is(CastFunction.NAME));
     }
 }
