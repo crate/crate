@@ -319,28 +319,28 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     public Void visitPartitionedBy(PartitionedBy node, CreateTableAnalysis context) {
         for (Expression partitionByColumn : node.columns()) {
             String columnName = expressionVisitor.process(partitionByColumn, null).toString();
+            String type;
+
+            if (context.primaryKeys().size() > 0 && !context.primaryKeys().contains(columnName)) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH,
+                                "Cannot use non primary key column '%s' in PARTITIONED BY clause if primary key is set on table",
+                                columnName));
+            }
+            String routing = context.routing();
+            if (routing != null && routing.equals(columnName)) {
+                throw new IllegalArgumentException(
+                        "Cannot use CLUSTERED BY column in PARTITIONED BY clause"
+                );
+            }
+            if (context.isInArray(columnName)) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH,
+                                "Cannot use array column '%s' in PARTITIONED BY clause", columnName));
+            }
 
             Map<String, Object> columnDefinition = context.popColumnDefinition(columnName);
-            String type;
             if (columnDefinition != null) {
-                if (context.primaryKeys().size() > 0 && !context.primaryKeys().contains(columnName)) {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH,
-                                    "Cannot use non primary key column '%s' in PARTITIONED BY clause if primary key is set on table",
-                                    columnName));
-                }
-                String routing = context.routing();
-                if (routing != null && routing.equals(columnName)) {
-                    throw new IllegalArgumentException(
-                                    "Cannot use CLUSTERED BY column in PARTITIONED BY clause"
-                    );
-                }
-                if (context.isInArray(columnName)) {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH,
-                                    "Cannot use array column '%s' in PARTITIONED BY clause", columnName));
-                }
-
                 if ((columnDefinition.get("type") != null && columnDefinition.get("type").equals("object"))) {
                     throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH,

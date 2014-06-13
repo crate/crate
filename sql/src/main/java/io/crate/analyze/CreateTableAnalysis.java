@@ -252,28 +252,24 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
             return null;  // ignore fulltext index columns
         }
 
-        Map<String, Object> parentProperties = null;
+        Map<String, Object> parentProperties = mappingProperties;
         Map<String, Object> columnsMeta = this.metaColumns;
         Map<String, Object> properties = mappingProperties;
         List<String> columPath = Splitter.on('.').splitToList(columnName);
         for (String namePart : columPath) {
             Map<String, Object> fieldMapping = (Map<String, Object>)properties.get(namePart);
-            if (fieldMapping == null) {
-                return null;
-            } else if (fieldMapping.get("type") != null) {
-                parentProperties = properties;
-                if (fieldMapping.get("type").equals("object")
-                        && fieldMapping.get("properties") != null) {
-                    properties = (Map<String, Object>)fieldMapping.get("properties");
-                    if (columnsMeta != null) {
-                        columnsMeta = (Map<String, Object>) columnsMeta.get("properties");
-                    }
-                } else {
-                    properties = fieldMapping;
+            if (fieldMapping == null && properties.get("type") != null && properties.get("type").equals("object")
+                    && properties.get("properties") != null) {
+                parentProperties = (Map<String, Object>)properties.get("properties");
+                properties = (Map<String, Object>)parentProperties.get(namePart);
+                if (columnsMeta != null) {
+                    columnsMeta = (Map<String, Object>) columnsMeta.get("properties");
                 }
+            } else {
+                properties = fieldMapping;
             }
         }
-        if (parentProperties != null && remove) {
+        if (properties != parentProperties && remove) {
             String lastPath = columPath.get(columPath.size()-1);
             parentProperties.remove(lastPath);
             if (columnsMeta != null) {

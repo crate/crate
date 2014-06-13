@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: validation for ``array`` and ``object`` typed partition
+   columns were broken
+
  - updated crash to 0.9.12 which includes following changes:
 
     - fixed output encoding when LC_CTYPE locale is not UTF-8
