@@ -21,13 +21,16 @@
 
 package io.crate.analyze;
 
-import io.crate.planner.symbol.DataTypeSymbol;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolFormatter;
+import com.google.common.collect.ImmutableList;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.operation.scalar.CastFunction;
+import io.crate.planner.symbol.*;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.Query;
+import io.crate.types.DataType;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -74,6 +77,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
         Iterator<Symbol> subQueryColumnsIter = subQueryColumns.iterator();
         Reference insertColumn;
         Symbol subQueryColumn;
+        int idx = 0;
         while (insertColumnsIter.hasNext()) {
 
             insertColumn = insertColumnsIter.next();
@@ -84,18 +88,30 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
                         SymbolFormatter.format("Invalid column expression in subquery: '%s'", subQueryColumn)
                 );
             }
+            DataType subQueryColumnType = ((DataTypeSymbol) subQueryColumn).valueType();
 
-            if (!((DataTypeSymbol) subQueryColumn).valueType().isConvertableTo(insertColumn.valueType())) {
-                throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH,
-                                "Type of subquery column %s (%s) does not match /" +
-                                    " is not convertable to the type of table column %s (%s)",
-                                SymbolFormatter.format(subQueryColumn),
-                                ((DataTypeSymbol) subQueryColumn).valueType(),
-                                insertColumn.info().ident().columnIdent().fqn(),
-                                insertColumn.valueType()
-                        ));
+            if (subQueryColumnType != insertColumn.valueType()) {
+                if (!subQueryColumnType.isConvertableTo(insertColumn.valueType())) {
+                    throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH,
+                                    "Type of subquery column %s (%s) does not match /" +
+                                            " is not convertable to the type of table column %s (%s)",
+                                    SymbolFormatter.format(subQueryColumn),
+                                    ((DataTypeSymbol) subQueryColumn).valueType(),
+                                    insertColumn.info().ident().columnIdent().fqn(),
+                                    insertColumn.valueType()
+                            ));
+                } else {
+                    // replace column by `cast` function
+                    // 2nd argument type is defining the return type
+                    FunctionIdent ident = new FunctionIdent(CastFunction.NAME, ImmutableList.of(subQueryColumnType, insertColumn.valueType()));
+                    FunctionInfo functionInfo = context.getFunctionInfo(ident);
+                    // because size of argument types and arguments must be equal, we add a dummy argument here
+                    subQueryColumns.set(idx, context.allocateFunction(functionInfo, Arrays.asList(subQueryColumn, null)));
+
+                }
             }
+            idx++;
         }
         // congrats! valid statement
     }
