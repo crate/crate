@@ -5,8 +5,13 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crash to 0.9.12 which includes following changes:
+
+    - fixed output encoding when LC_CTYPE locale is not UTF-8
+
  - fix: queries for ``_version=0`` have no match and do not execute as
    ``_version`` can never be ``0``
+
 
 2014/06/07 0.38.4
 =================
