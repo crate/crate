@@ -786,6 +786,9 @@ _score
 Alter table
 ===========
 
+Updating Properties
+-------------------
+
 The properties of a table can be modified using the `ALTER TABLE` clause::
 
     cr> alter table my_table1 set (number_of_replicas='0-all');
@@ -817,9 +820,15 @@ If only a single partition should be altered, the partition clause can be used.
     cr> delete from partitioned_table;
     DELETE OK, -1 rows affected (... sec)
 
-.. note::
 
-    Any other table modifications are currently not possible.
+Adding Columns
+--------------
+
+In order to add a column to an existing table use ``ALTER TABLE`` with the
+``ADD COLUMN`` clause::
+
+    cr> alter table my_table1 add column name string;
+    ALTER OK (... sec)
 
 
 Set and Reset

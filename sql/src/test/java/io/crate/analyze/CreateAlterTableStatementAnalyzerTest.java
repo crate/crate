@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import io.crate.PartitionName;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidTableNameException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -105,11 +106,9 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.indexSettings().get(IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("3"));
         assertThat(analysis.indexSettings().get(TablePropertiesAnalysis.NUMBER_OF_REPLICAS), is("0"));
 
-        Map<String, Object> metaMapping = analysis.metaMapping();
-        Map<String, Object> metaName = (Map<String, Object>)((Map<String, Object>)
-                metaMapping.get("columns")).get("name");
+        Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
 
-        assertNull(metaName.get("collection_type"));
+        assertNull(metaMapping.get("columns"));
 
         Map<String,Object> mappingProperties = analysis.mappingProperties();
 
@@ -237,7 +236,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(((List<String>) nameMapping.get("copy_to")).get(0), is("author_title_ft"));
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test (expected = ColumnUnknownException.class)
     public void testCreateTableWithInvalidFulltextIndexDefinition() throws Exception {
         analyze("create table my_table1g (" +
                 "title string, " +
@@ -254,7 +253,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
                 "create table foo (id integer primary key, details array(object as (name string, age integer, tags array(string))))");
 
-        Map<String, Object> metaMapping = analysis.metaMapping();
+        Map<String, Object> metaMapping = (Map) analysis.mapping().get("_meta");
         Map<String, Object> metaDetails = (Map<String, Object>)((Map<String, Object>)
                 metaMapping.get("columns")).get("details");
 
@@ -406,46 +405,18 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "  obj object as ( date timestamp )," +
                 "  index ft using fulltext(name, obj['date']) with (analyzer='standard')" +
                 ")");
-        assertTrue(analysis.hasColumnDefinition("id"));
-        assertTrue(analysis.hasColumnDefinition("name"));
-        assertTrue(analysis.hasColumnDefinition("indexed"));
-        assertTrue(analysis.hasColumnDefinition("arr"));
-        assertTrue(analysis.hasColumnDefinition("arr.nested"));
-        assertTrue(analysis.hasColumnDefinition("arr.nested_object.id"));
-        assertTrue(analysis.hasColumnDefinition("obj"));
-        assertTrue(analysis.hasColumnDefinition("obj.date"));
+        assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("id")));
+        assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("name")));
+        assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("indexed")));
+        assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr")));
+        assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr.nested")));
+        assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr.nested_object.id")));
+        assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj")));
+        assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj.date")));
 
-        assertFalse(analysis.hasColumnDefinition("arr.nested.wrong"));
-        assertFalse(analysis.hasColumnDefinition("ft"));
-        assertFalse(analysis.hasColumnDefinition("obj.date.ft"));
-    }
-
-    @Test
-    public void testIsInArray() throws Exception {
-        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
-                "  id integer primary key, " +
-                "  thing object as (" +
-                "    ints array(int)" +
-                "  )," +
-                "  arr array(object as(" +
-                "    nested float," +
-                "    nested_object object as (id byte)" +
-                "  ))," +
-                "  obj object as ( date timestamp )," +
-                "  index ft using fulltext(obj['date']) with (analyzer='standard')" +
-                ")");
-        assertFalse(analysis.isInArray("id"));
-        assertFalse(analysis.isInArray("thing"));
-        assertTrue(analysis.isInArray("thing.ints"));
-        assertTrue(analysis.isInArray("arr"));
-        assertTrue(analysis.isInArray("arr.nested"));
-        assertTrue(analysis.isInArray("arr.nested_object"));
-        assertTrue(analysis.isInArray("arr.nested_object.id"));
-        assertFalse(analysis.isInArray("obj"));
-        assertFalse(analysis.isInArray("obj.id"));
-        assertFalse(analysis.isInArray("ft"));
-        assertFalse(analysis.isInArray("non_existent"));
-        assertFalse(analysis.isInArray("obj.nope"));
+        assertFalse(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr.nested.wrong")));
+        assertFalse(analysis.hasColumnDefinition(ColumnIdent.fromPath("ft")));
+        assertFalse(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj.date.ft")));
     }
 
     @Test
@@ -458,7 +429,6 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         Map my_point = (Map) analyze.mappingProperties().get("my_point");
         assertEquals("geo_point", my_point.get("type"));
     }
-
 
     @Test
     public void testPartitionedBy() throws Exception {
@@ -473,8 +443,9 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         // partitioned columns should not appear as regular columns
         assertThat(analysis.mappingProperties(), not(hasKey("name")));
-        assertThat((Map<String, Object>) analysis.metaMapping().get("columns"), not(hasKey("name")));
-        List<List<String>> partitionedByMeta = (List<List<String>>)analysis.metaMapping().get("partitioned_by");
+        Map<String, Object> metaMapping = (Map) analysis.mapping().get("_meta");
+        assertThat((Map<String, Object>) metaMapping.get("columns"), not(hasKey("name")));
+        List<List<String>> partitionedByMeta = (List<List<String>>)metaMapping.get("partitioned_by");
         assertTrue(analysis.isPartitioned());
         assertThat(partitionedByMeta.size(), is(1));
         assertThat(partitionedByMeta.get(0).get(0), is("name"));
@@ -494,7 +465,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 not(hasKey("name")),
                 not(hasKey("date"))
         ));
-        assertThat((Map<String, Object>)analysis.metaMapping().get("columns"),
+        assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
                 allOf(
                         not(hasKey("name")),
                         not(hasKey("date"))
@@ -515,11 +486,11 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 ") partitioned by (date, o['name'])");
         assertThat(analysis.partitionedBy().size(), is(2));
         assertThat(analysis.mappingProperties(), not(hasKey("name")));
-        assertThat((Map<String, Object>)analysis.mappingProperties().get("o"), not(hasKey("name")));
-        assertThat((Map<String, Object>)analysis.metaMapping().get("columns"), not(hasKey("date")));
-        assertThat(
-                (Map<String, Object>)((Map<String, Object>)analysis.metaMapping().get("columns")).get("o"),
-                not(hasKey("name")));
+        assertThat((Map<String, Object>) ((Map) analysis.mappingProperties().get("o")).get("properties"), not(hasKey("name")));
+        assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"), not(hasKey("date")));
+
+        Map metaColumns = (Map) ((Map) analysis.mapping().get("_meta")).get("columns");
+        assertNull(metaColumns);
         assertThat(analysis.partitionedBy().get(0), contains("date", "date"));
         assertThat(analysis.partitionedBy().get(1), contains("o.name", "string"));
     }
@@ -555,7 +526,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
         assertThat(analysis.mappingProperties(), not(hasKey("id1")));
-        assertThat((Map<String, Object>) analysis.metaMapping().get("columns"),
+        assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
                 not(hasKey("id1")));
     }
 
@@ -571,7 +542,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     }
 
-    @Test(expected = ColumnUnknownException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testPartitionedByCompoundIndex() throws Exception {
         analyze("create table my_table(" +
                 "  name string index using fulltext," +
@@ -634,8 +605,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "name string" +
                 ")");
         assertThat(
-                Joiner.on(", ").withKeyValueSeparator(": ").join(analysis.metaMapping()),
-                is("primary_keys: [], partitioned_by: [], columns: {title={}, name={}}, indices: {ft={}}"));
+                Joiner.on(", ").withKeyValueSeparator(": ").join((Map)analysis.mapping().get("_meta")),
+                is("indices: {ft={}}"));
         assertThat(
                 (List<String>) ((Map<String, Object>) analysis.mappingProperties()
                         .get("title")).get("copy_to"),

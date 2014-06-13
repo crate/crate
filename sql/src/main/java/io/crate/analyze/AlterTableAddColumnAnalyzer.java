@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -23,40 +23,31 @@ package io.crate.analyze;
 
 import io.crate.PartitionName;
 import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.*;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.Table;
 
-public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTableAnalysis> {
+public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void, AddColumnAnalysis> {
 
     @Override
-    public Void visitColumnDefinition(ColumnDefinition node, AlterTableAnalysis context) {
-        if (node.ident().startsWith("_")) {
-            throw new IllegalArgumentException("Column ident must not start with '_'");
-        }
-
-        return null;
+    protected Void visitNode(Node node, AddColumnAnalysis context) {
+        throw new RuntimeException(
+                String.format("Encountered node %s but expected a AlterTableAddColumn node", node));
     }
 
     @Override
-    public Void visitAlterTable(AlterTable node, AlterTableAnalysis context) {
+    public Void visitAlterTableAddColumnStatement(AlterTableAddColumn node, AddColumnAnalysis context) {
         setTableAndPartitionName(node.table(), context);
 
-        if (node.genericProperties().isPresent()) {
-            GenericProperties properties = node.genericProperties().get();
-            context.settings(
-                    TablePropertiesAnalysis.propertiesToSettings(properties, context.parameters()));
-        } else if (!node.resetProperties().isEmpty()) {
-            ImmutableSettings.Builder builder = ImmutableSettings.builder();
-            for (String property : node.resetProperties()) {
-                builder.put(TablePropertiesAnalysis.getDefault(property));
-            }
-            context.settings(builder.build());
-        }
-
+        context.analyzedTableElements(TableElementsAnalyzer.analyze(
+                node.tableElement(),
+                context.parameters(),
+                context.fulltextAnalyzerResolver()
+        ));
         return null;
     }
 
-    private void setTableAndPartitionName(Table node, AlterTableAnalysis context) {
+    private void setTableAndPartitionName(Table node, AddColumnAnalysis context) {
         context.table(TableIdent.of(node));
         if (!node.partitionProperties().isEmpty()) {
             PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
