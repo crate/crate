@@ -24,9 +24,6 @@ package io.crate.integrationtests;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.core.NumberOfReplicas;
 import io.crate.test.integration.CrateIntegrationTest;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -36,42 +33,23 @@ import static org.hamcrest.Matchers.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class ShardStatsTest extends SQLTransportIntegrationTest {
 
-    private Setup setup = new Setup(sqlExecutor);
-
-    @Override
-    public Settings indexSettings() {
-        return ImmutableSettings.builder()
-                .put("number_of_replicas", 1)
-                .put("number_of_shards", 5).build();
-    }
-
-    @Before
-    public void initTestData() throws Exception {
-        setup.groupBySetup();
-        execute("create table quotes (id integer primary key, quote string) with(number_of_replicas=1)");
-        BlobIndices blobIndices = cluster().getInstance(BlobIndices.class);
-        blobIndices.createBlobTable("blobs", new NumberOfReplicas(1), 5);
-        ensureGreen();
-    }
-
     @Test
     public void testSelectIncludingUnassignedShards() throws Exception {
-        execute("create table locations (id integer primary key, name string) with(number_of_replicas=2)");
-        refresh();
-
+        execute("create table locations (id integer primary key, name string) " +
+            "clustered into 2 shards " +
+            "with (number_of_replicas=2)");
         client().admin().cluster().prepareHealth("locations").setWaitForYellowStatus().execute().actionGet();
 
-        execute("select * from sys.shards order by state, \"primary\"");
-        assertEquals(45L, response.rowCount());
+        execute("select * from sys.shards where table_name = 'locations' order by state, \"primary\"");
+        assertEquals(6L, response.rowCount());
         assertEquals(10, response.cols().length);
-        assertEquals("UNASSIGNED", response.rows()[44][8]);
-        assertEquals(false, response.rows()[44][5]);
+        assertEquals("UNASSIGNED", response.rows()[5][8]);
+        assertEquals(false, response.rows()[5][5]);
     }
 
     @Test
     public void testSelectGroupByIncludingUnassignedShards() throws Exception {
         execute("create table locations (id integer primary key, name string) with(number_of_replicas=2)");
-        refresh();
         ensureYellow();
 
         execute("select count(*), state, \"primary\" from sys.shards " +
@@ -85,8 +63,12 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testTableNameBlobTable() throws Exception {
+        BlobIndices blobIndices = cluster().getInstance(BlobIndices.class);
+        blobIndices.createBlobTable("blobs", new NumberOfReplicas(1), 1).get();
+        ensureGreen();
+
         execute("select * from sys.shards where table_name = 'blobs'");
-        assertThat(response.rowCount(), is(10L));
+        assertThat(response.rowCount(), is(2L));
         for (int i = 0; i<response.rowCount(); i++) {
             assertThat((String)response.rows()[0][1], is("blobs"));
         }

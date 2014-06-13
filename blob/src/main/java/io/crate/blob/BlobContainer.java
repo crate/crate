@@ -89,7 +89,11 @@ public class BlobContainer {
 
     public void walkFiles(FilenameFilter filter, FileVisitor visitor) {
         for (File dir : subDirs) {
-            for (File file : dir.listFiles(filter)) {
+            File[] files = dir.listFiles(filter);
+            if (files == null) {
+                continue;
+            }
+            for (File file : files) {
                 if (!visitor.visit(file)) {
                     return;
                 }
@@ -126,14 +130,17 @@ public class BlobContainer {
      * they are leftover files from a previous recovery that was interrupted
      */
     private String[] cleanDigests(String[] names, int index) {
-        List<String> newNames = new ArrayList<String>(names.length);
-        for (int nameIdx = 0; nameIdx < names.length; nameIdx++) {
-            if (names[nameIdx].contains(".")) {
-                if (!new File(subDirs[index], names[nameIdx]).delete()) {
-                    logger.error("Could not delete {}/{}", subDirs[index], names[nameIdx]);
+        if (names == null) {
+            return null;
+        }
+        List<String> newNames = new ArrayList<>(names.length);
+        for (String name : names) {
+            if (name.contains(".")) {
+                if (!new File(subDirs[index], name).delete()) {
+                    logger.error("Could not delete {}/{}", subDirs[index], name);
                 }
             } else {
-                newNames.add(names[nameIdx]);
+                newNames.add(name);
             }
         }
 
