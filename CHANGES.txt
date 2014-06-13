@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/06/14 0.38.5
+=================
+
  - fix: validation for ``array`` and ``object`` typed partition
    columns were broken
 
