@@ -57,6 +57,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 Arrays.asList(ID_IDENT),
                 Arrays.<Input<?>>asList(idInput),
                 ImmutableList.<Input<?>>of(),
+                new ColumnIdent("id"),
                 idInput,
                 sourceInput,
                 collectExpressions,

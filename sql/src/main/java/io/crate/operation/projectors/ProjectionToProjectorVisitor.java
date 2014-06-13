@@ -36,7 +36,10 @@ import io.crate.types.StringType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Provider;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projector> {
 
@@ -182,7 +185,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         return objectMap;
     }
 
-    public Projector visitIndexWriterProjection(IndexWriterProjection projection, Void context) {
+    public Projector visitSourceIndexWriterProjection(SourceIndexWriterProjection projection, Void context) {
         ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
         List<Input<?>> idInputs = new ArrayList<>(projection.ids().size());
         for (Symbol idSymbol : projection.ids()) {
@@ -193,13 +196,17 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
             partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
         }
         Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
-        Input<?> clusteredBy = symbolVisitor.process(projection.clusteredBy(), symbolContext);
+        Input<?> clusteredBy = null;
+        if (projection.clusteredBy() != null) {
+            clusteredBy = symbolVisitor.process(projection.clusteredBy(), symbolContext);
+        }
         return new IndexWriterProjector(
                 clientProvider.get(),
                 projection.tableName(),
                 projection.primaryKeys(),
                 idInputs,
                 partitionedByInputs,
+                projection.clusteredByIdent().orNull(),
                 clusteredBy,
                 sourceInput,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
@@ -207,6 +214,41 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 projection.concurrency(),
                 projection.includes(),
                 projection.excludes()
+        );
+    }
+
+    @Override
+    public Projector visitColumnIndexWriterProjection(ColumnIndexWriterProjection projection, Void context) {
+        final ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
+        List<Input<?>> idInputs = new ArrayList<>(projection.ids().size());
+        for (Symbol idSymbol : projection.ids()) {
+            idInputs.add(symbolVisitor.process(idSymbol, symbolContext));
+        }
+        List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
+        for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
+            partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
+        }
+        Input<?> clusteredBy = null;
+        if (projection.clusteredBy() != null) {
+            clusteredBy = symbolVisitor.process(projection.clusteredBy(), symbolContext);
+        }
+        List<Input<?>> columnInputs = new ArrayList<>(projection.columnSymbols().size());
+        for (Symbol columnSymbol : projection.columnSymbols()) {
+            columnInputs.add(symbolVisitor.process(columnSymbol, symbolContext));
+        }
+        return new ColumnIndexWriterProjector(
+                clientProvider.get(),
+                projection.tableName(),
+                projection.primaryKeys(),
+                idInputs,
+                partitionedByInputs,
+                projection.clusteredByIdent().orNull(),
+                clusteredBy,
+                projection.columnIdents(),
+                columnInputs,
+                symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
+                projection.bulkActions(),
+                projection.concurrency()
         );
     }
 }

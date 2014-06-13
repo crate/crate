@@ -88,6 +88,17 @@ public abstract class AbstractInsertAnalysis extends AbstractDataAnalysis {
         return routingColumnIndex;
     }
 
+    /**
+     *
+     * @return routing column if it is used in insert statement
+     */
+    public @Nullable ColumnIdent routingColumn() {
+        if (routingColumnIndex < 0) { return null; }
+        else {
+            return table().clusteredBy();
+        }
+    }
+
     @Nullable
     @Override
     public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
