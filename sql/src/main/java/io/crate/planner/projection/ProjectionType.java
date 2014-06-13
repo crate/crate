@@ -27,7 +27,7 @@ public enum ProjectionType {
     GROUP(GroupProjection.FACTORY),
     AGGREGATION(AggregationProjection.FACTORY),
     WRITER(WriterProjection.FACTORY),
-    INDEX_WRITER(IndexWriterProjection.FACTORY);
+    INDEX_WRITER(SourceIndexWriterProjection.FACTORY);
 
     private final Projection.ProjectionFactory factory;
 
