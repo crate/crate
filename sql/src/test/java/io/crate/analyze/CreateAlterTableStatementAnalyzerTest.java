@@ -535,6 +535,38 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void testPartitionedByArray() throws Exception {
+        analyze("create table my_table (" +
+                "  a array(string)," +
+                "  date timestamp" +
+                ") partitioned by (a)");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPartitionedByInnerArray() throws Exception {
+        analyze("create table my_table (" +
+                "  a object as (names array(string))," +
+                "  date timestamp" +
+                ") partitioned by (a['names'])");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPartitionedByObject() throws Exception {
+        analyze("create table my_table (" +
+                "  a object as(name string)," +
+                "  date timestamp" +
+                ") partitioned by (a)");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPartitionedByInnerObject() throws Exception {
+        analyze("create table my_table (" +
+                "  a object as(b object as(name string))," +
+                "  date timestamp" +
+                ") partitioned by (a['b'])");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testPartitionedByNotPartOfPrimaryKey() throws Exception {
         analyze("create table my_table (" +
                 "  id1 integer," +
