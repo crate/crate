@@ -27,6 +27,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
+import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -67,7 +68,7 @@ public class PartitionPropertiesAnalyzer {
             try {
                 ReferenceInfo referenceInfo = tableInfo.partitionedByColumns().get(idx);
                 Object converted = referenceInfo.type().value(value);
-                values[idx] = converted == null ? null : converted.toString();
+                values[idx] = converted == null ? null : DataTypes.STRING.value(converted).utf8ToString();
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(
                         String.format("\"%s\" is no known partition column", entry.getKey().fqn()));
