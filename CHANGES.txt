@@ -5,17 +5,14 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/06/16 0.39.0
+=================
+
  - upgraded elasticsearch to 1.1.2
 
  - implemented `sys.shards.orphan_partition` expression
 
- - updated crate-admin to 0.8.2 which includes following changes:
-
-    - fix: make table list and node list available in mobile view
-
-    - fix: round percentage of available and underreplicated data correctly
-
-    - make table that displays table partitions horizontally scrollable
+ - updated crate-admin to 0.8.3
 
     - display developer news notifications
 
@@ -44,6 +41,21 @@ Unreleased
 
  - the ordering of null values can now be influenced using the ``NULLS { FIRST
    | LAST }`` keywords.
+
+2014/06/16 0.38.6
+=================
+
+ - fixed an NPE that could occur when retrieving shard stats from a blob table
+
+ - updated crate-admin to 0.7.4 which includes following changes:
+
+    - fixed ui glitch that caused right column content to be cut off
+
+    - fix: make table list and node list available in mobile view
+
+    - fix: round percentage of available and underreplicated data correctly
+
+    - make table that displays table partitions horizontally scrollable
 
 2014/06/14 0.38.5
 =================
