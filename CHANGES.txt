@@ -5,9 +5,6 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: validation for ``array`` and ``object`` typed partition
-   columns were broken
-
  - upgraded elasticsearch to 1.1.2
 
  - implemented `sys.shards.orphan_partition` expression
@@ -26,8 +23,6 @@ Unreleased
 
  - added the ``sys.jobs``, ``sys.jobs_log``, ``sys.operations`` and
    ``sys.operations_log`` tables
-
- - updated crash to 0.9.11 for ``SET`` and ``RESET`` support
 
  - implemented ``SET`` and ``RESET`` statements
 
@@ -49,6 +44,19 @@ Unreleased
 
  - the ordering of null values can now be influenced using the ``NULLS { FIRST
    | LAST }`` keywords.
+
+2014/06/14 0.38.5
+=================
+
+ - fix: validation for ``array`` and ``object`` typed partition
+   columns were broken
+
+ - updated crash to 0.9.12 which includes following changes:
+
+    - fixed output encoding when LC_CTYPE locale is not UTF-8
+
+ - fix: queries for ``_version=0`` have no match and do not execute as
+   ``_version`` can never be ``0``
 
 2014/06/07 0.38.4
 =================
