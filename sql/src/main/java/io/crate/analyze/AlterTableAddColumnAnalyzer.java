@@ -44,6 +44,7 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
                 context.parameters(),
                 context.fulltextAnalyzerResolver()
         ));
+        context.analyzedTableElements().finalizeAndValidate();
         return null;
     }
 

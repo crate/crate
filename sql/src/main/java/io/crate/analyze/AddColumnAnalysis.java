@@ -24,6 +24,8 @@ package io.crate.analyze;
 import com.google.common.base.Optional;
 import io.crate.PartitionName;
 import io.crate.exceptions.InvalidTableNameException;
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
@@ -61,8 +63,18 @@ public class AddColumnAnalysis extends AbstractDDLAnalysis {
         if (!isValidTableName(tableIdent.name())) {
             throw new InvalidTableNameException(tableIdent.name());
         }
-
-        this.tableInfo = referenceInfos.getTableInfoUnsafe(tableIdent);
+        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(tableIdent.schema());
+        } else if (schemaInfo.systemSchema()) {
+            throw new UnsupportedOperationException(String.format(
+                    "tables of schema \"%s\" are read only.", tableIdent.schema()));
+        }
+        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        if (tableInfo == null) {
+            throw new TableUnknownException(tableIdent.name());
+        }
+        this.tableInfo = tableInfo;
         this.tableIdent = tableIdent;
     }
 
