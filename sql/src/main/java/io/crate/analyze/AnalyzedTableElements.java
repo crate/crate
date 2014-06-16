@@ -278,4 +278,8 @@ public class AnalyzedTableElements {
         columnIdents.remove(columnDefinition.ident());
         partitionedByColumns.add(columnDefinition);
     }
+
+    public List<AnalyzedColumnDefinition> columns() {
+        return columns;
+    }
 }

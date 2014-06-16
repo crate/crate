@@ -753,4 +753,11 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         // no data since collect_stats is disabled
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void testAddPrimaryKeyColumnToNonEmptyTable() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot add a primary key column to a table that isn't empty");
+        executor.exec("alter table characters add newpkcol string primary key");
+    }
 }

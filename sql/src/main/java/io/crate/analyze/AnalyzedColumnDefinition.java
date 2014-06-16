@@ -140,6 +140,10 @@ public class AnalyzedColumnDefinition {
                             ident.sqlFqn()
                     ));
         }
+        if (isPrimaryKey() && collectionType != null) {
+            throw new UnsupportedOperationException(
+                    String.format("Cannot use columns of type \"%s\" as primary key", collectionType));
+        }
         for (AnalyzedColumnDefinition child : children) {
             child.validate();
         }
