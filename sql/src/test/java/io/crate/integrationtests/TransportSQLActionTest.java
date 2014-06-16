@@ -36,9 +36,11 @@ import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.status.IndicesStatusResponse;
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
@@ -4027,6 +4029,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testAlterTableAddColumnOnPartitionedTable() throws Exception {
         execute("create table t (id int primary key, date timestamp primary key) " +
                 "partitioned by (date) " +
+                "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
 
         execute("insert into t (id, date) values (1, '2014-01-01')");
@@ -4035,17 +4038,46 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("alter table t partition (date='2014-01-01') add name string");
-        // only partition updated, select * won't return the name column
-        execute("select * from t");
-        assertThat(Arrays.asList(response.cols()), Matchers.contains("date", "id"));
+
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).actionGet();
+        IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
+        String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
+        Map mapping = (Map)XContentFactory.xContent(mappingSource)
+                .createParser(mappingSource)
+                .mapAndClose()
+                .get(Constants.DEFAULT_MAPPING_TYPE);
+        assertNull(((Map) mapping.get("properties")).get("name"));
 
         execute("insert into t (id, date, name) values (2, '2014-01-01', 100)"); // insert integer as name
+        refresh();
+        ensureGreen();
         execute("select name from t where id = 2 and date = '2014-01-01'");
         assertThat((String)response.rows()[0][0], is("100")); // is returned as string
 
-
-        execute("alter table t add name string"); // now the template is updated as-well
+        execute("alter table t add name2 string"); // now template is also updated
         execute("select * from t");
-        assertThat(Arrays.asList(response.cols()), Matchers.contains("date", "id", "name"));
+        assertThat(Arrays.asList(response.cols()), Matchers.contains("date", "id", "name", "name2"));
+
+        templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).actionGet();
+        metaData = templatesResponse.getIndexTemplates().get(0);
+        mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
+        mapping = (Map) XContentFactory.xContent(mappingSource)
+                .createParser(mappingSource)
+                .mapAndClose().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertNotNull(((Map) mapping.get("properties")).get("name2"));
+    }
+
+    @Test
+    public void testAlterTableAddColumnAsPrimaryKey() throws Exception {
+        execute("create table t (id int primary key) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureGreen();
+        execute("alter table t add column name string primary key");
+        execute("select constraint_name from information_schema.table_constraints " +
+                "where table_name = 't' and schema_name = 'doc' and constraint_type = 'PRIMARY_KEY'");
+
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String[]) response.rows()[0][0], equalTo(new String[]{"name", "id"}));
     }
 }

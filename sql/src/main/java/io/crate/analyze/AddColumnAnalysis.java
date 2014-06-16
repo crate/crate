@@ -41,6 +41,7 @@ public class AddColumnAnalysis extends AbstractDDLAnalysis {
     private Optional<PartitionName> partitionName = Optional.absent();
     private TableInfo tableInfo;
     private AnalyzedTableElements analyzedTableElements;
+    private boolean newPrimaryKeys = false;
 
     protected AddColumnAnalysis(ReferenceInfos referenceInfos,
                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
@@ -113,5 +114,13 @@ public class AddColumnAnalysis extends AbstractDDLAnalysis {
 
     public AnalyzedTableElements analyzedTableElements() {
         return this.analyzedTableElements;
+    }
+
+    public void newPrimaryKeys(boolean newPrimaryKeys) {
+        this.newPrimaryKeys = newPrimaryKeys;
+    }
+
+    public boolean newPrimaryKeys() {
+        return this.newPrimaryKeys;
     }
 }

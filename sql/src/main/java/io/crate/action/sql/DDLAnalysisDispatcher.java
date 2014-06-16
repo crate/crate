@@ -31,6 +31,7 @@ import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.AlterTableAliasException;
+import io.crate.exceptions.FailedShardsException;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -49,7 +50,12 @@ import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemp
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.action.count.CountRequest;
+import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.action.count.TransportCountAction;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.common.compress.CompressedString;
 import org.elasticsearch.common.inject.Inject;
@@ -73,21 +79,27 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFuture<Long>> {
 
+    private final ClusterService clusterService;
     private final BlobIndices blobIndices;
     private final TransportRefreshAction transportRefreshAction;
+    private final TransportCountAction transportCountAction;
     private final TransportPutMappingAction transportPutMappingAction;
     private final TransportUpdateSettingsAction transportUpdateSettingsAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final TransportGetIndexTemplatesAction transportGetIndexTemplatesAction;
 
     @Inject
-    public DDLAnalysisDispatcher(BlobIndices blobIndices,
+    public DDLAnalysisDispatcher(ClusterService clusterService,
+                                 BlobIndices blobIndices,
+                                 TransportCountAction transportCountAction,
                                  TransportPutMappingAction transportPutMappingAction,
                                  TransportRefreshAction transportRefreshAction,
                                  TransportUpdateSettingsAction transportUpdateSettingsAction,
                                  TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                                  TransportGetIndexTemplatesAction transportGetIndexTemplatesAction) {
+        this.clusterService = clusterService;
         this.blobIndices = blobIndices;
+        this.transportCountAction = transportCountAction;
         this.transportPutMappingAction = transportPutMappingAction;
         this.transportRefreshAction = transportRefreshAction;
         this.transportUpdateSettingsAction = transportUpdateSettingsAction;
@@ -105,100 +117,145 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
             CreateBlobTableAnalysis analysis, Void context) {
         return wrapRowCountFuture(
                 blobIndices.createBlobTable(
-                    analysis.tableName(),
-                    analysis.numberOfReplicas(),
-                    analysis.numberOfShards()
+                        analysis.tableName(),
+                        analysis.numberOfReplicas(),
+                        analysis.numberOfShards()
                 ),
                 1L
         );
+    }
+
+    @Override
+    public ListenableFuture<Long> visitAddColumnAnalysis(final AddColumnAnalysis analysis, Void context) {
+        final SettableFuture<Long> result = SettableFuture.create();
+        if (analysis.newPrimaryKeys()) {
+            transportCountAction.execute(new CountRequest(analysis.table().concreteIndices()), new ActionListener<CountResponse>() {
+                        @Override
+                        public void onResponse(CountResponse countResponse) {
+                            if (countResponse.getFailedShards() > 0) {
+                                result.setException(new FailedShardsException(countResponse.getShardFailures()));
+                            }
+                            if (countResponse.getCount() == 0L) {
+                                addColumnToTable(analysis, result);
+                            } else {
+                                result.setException(new UnsupportedOperationException(
+                                        "Cannot add a primary key column to a table that isn't empty"));
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Throwable e) {
+                            result.setException(e);
+                        }
+                    }
+            );
+        } else {
+            addColumnToTable(analysis, result);
+        }
+        return result;
+    }
+
+    private void addColumnToTable(AddColumnAnalysis analysis, final SettableFuture<Long> result) {
+        boolean updateTemplate = analysis.table().isPartitioned() && !analysis.partitionName().isPresent();
+        final AtomicInteger operations = new AtomicInteger(updateTemplate ? 2 : 1);
+        final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
+
+        if (updateTemplate) {
+            String templateName = PartitionName.templateName(analysis.table().ident().name());
+            IndexTemplateMetaData indexTemplateMetaData =
+                    clusterService.state().metaData().templates().get(templateName);
+            if (indexTemplateMetaData == null) {
+                result.setException(new RuntimeException("Template for partitioned table is missing"));
+            }
+            mergeMappingAndUpdateTemplate(result, mapping, indexTemplateMetaData, operations);
+        }
+
+        // need to merge the _meta part of the mapping mapping before-hand because ES doesn't
+        // update the _meta column recursively. Instead it is overwritten and therefore partitioned by
+        // and collection_type information would be lost.
+        String[] indexNames = getIndexNames(analysis.table(), analysis.partitionName().orNull());
+        PutMappingRequest request = new PutMappingRequest();
+        request.indices(indexNames);
+        request.type(Constants.DEFAULT_MAPPING_TYPE);
+        IndexMetaData indexMetaData = clusterService.state().getMetaData().getIndices().get(indexNames[0]);
+        try {
+            Map mergedMeta = (Map)indexMetaData.getMappings()
+                    .get(Constants.DEFAULT_MAPPING_TYPE)
+                    .getSourceAsMap()
+                    .get("_meta");
+            if (mergedMeta != null) {
+                XContentHelper.update(mergedMeta, (Map) mapping.get("_meta"));
+                mapping.put("_meta", mergedMeta);
+            }
+            request.source(mapping);
+        } catch (IOException e) {
+            result.setException(e);
+        }
+        transportPutMappingAction.execute(request, new ActionListener<PutMappingResponse>() {
+            @Override
+            public void onResponse(PutMappingResponse putMappingResponse) {
+                if (operations.decrementAndGet() == 0) {
+                    result.set(1L);
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                result.setException(e);
+            }
+        });
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws IOException {
         return XContentFactory.xContent(mappingSource).createParser(mappingSource).mapAndClose();
     }
 
-    @Override
-    public ListenableFuture<Long> visitAddColumnAnalysis(final AddColumnAnalysis analysis, Void context) {
-        boolean updateTemplate = analysis.table().isPartitioned() && !analysis.partitionName().isPresent();
-        final SettableFuture<Long> future = SettableFuture.create();
-        final AtomicInteger operations = new AtomicInteger(updateTemplate ? 2 : 1);
-        PutMappingRequest request = new PutMappingRequest(
-                getIndexNames(analysis.table(), analysis.partitionName().orNull()));
-        request.type(Constants.DEFAULT_MAPPING_TYPE);
-        final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
-        request.source(mapping);
+    private void mergeMappingAndUpdateTemplate(final SettableFuture<Long> result,
+                                               final Map<String, Object> mapping,
+                                               final IndexTemplateMetaData templateMetaData,
+                                               final AtomicInteger operations) {
+        Map<String, Object> mergedMapping = mergeMapping(templateMetaData, mapping);
+        PutIndexTemplateRequest updateTemplateRequest = new PutIndexTemplateRequest(templateMetaData.name())
+                .create(false)
+                .mapping(Constants.DEFAULT_MAPPING_TYPE, mergedMapping)
+                .settings(templateMetaData.settings())
+                .template(templateMetaData.template());
 
-        if (updateTemplate) {
-            final String templateName = PartitionName.templateName(analysis.table().ident().name());
-
-            transportGetIndexTemplatesAction.execute(new GetIndexTemplatesRequest(templateName), new ActionListener<GetIndexTemplatesResponse>() {
+            for (ObjectObjectCursor<String, AliasMetaData> container : templateMetaData.aliases()) {
+                Alias alias = new Alias(container.key);
+                updateTemplateRequest.alias(alias);
+            }
+            transportPutIndexTemplateAction.execute(updateTemplateRequest, new ActionListener<PutIndexTemplateResponse>() {
                 @Override
-                public void onResponse(GetIndexTemplatesResponse getIndexTemplatesResponse) {
-                    IndexTemplateMetaData templateMetaData;
-                    try {
-                        templateMetaData = getIndexTemplatesResponse.getIndexTemplates().get(0);
-                    } catch (IndexOutOfBoundsException e) {
-                        future.setException(e);
-                        return;
+                public void onResponse(PutIndexTemplateResponse putIndexTemplateResponse) {
+                    if (operations.decrementAndGet() == 0) {
+                        result.set(1L);
                     }
-
-                    Map<String, Object> mergedMapping = new HashMap<>();
-                    for (ObjectObjectCursor<String, CompressedString> cursor : templateMetaData.mappings()) {
-                        try {
-                            Map<String, Object> mapping = parseMapping(cursor.value.toString());
-                            Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
-                            assert o != null && o instanceof Map;
-
-                            XContentHelper.mergeDefaults(mergedMapping, (Map) o);
-                        } catch (IOException e) {
-                            // pass
-                        }
-                    }
-                    XContentHelper.mergeDefaults(mergedMapping, mapping);
-                    PutIndexTemplateRequest updateTemplateRequest = new PutIndexTemplateRequest(templateName)
-                            .create(false)
-                            .mapping(Constants.DEFAULT_MAPPING_TYPE, mergedMapping)
-                            .settings(templateMetaData.settings())
-                            .template(templateMetaData.template());
-                    for (ObjectObjectCursor<String, AliasMetaData> container : templateMetaData.aliases()) {
-                        Alias alias = new Alias(container.key);
-                        updateTemplateRequest.alias(alias);
-                    }
-                    transportPutIndexTemplateAction.execute(updateTemplateRequest, new ActionListener<PutIndexTemplateResponse>() {
-                        @Override
-                        public void onResponse(PutIndexTemplateResponse putIndexTemplateResponse) {
-                            if (operations.decrementAndGet() == 0) {
-                                future.set(1L);
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Throwable e) {
-                            future.setException(e);
-                        }
-                    });
                 }
 
                 @Override
                 public void onFailure(Throwable e) {
-                    future.setException(e);
+                    result.setException(e);
                 }
             });
         }
-        transportPutMappingAction.execute(request, new ActionListener<PutMappingResponse>() {
-            @Override
-            public void onResponse(PutMappingResponse putMappingResponse) {
-                if (operations.decrementAndGet() == 0) {
-                    future.set(1L);
-                }
-            }
 
-            @Override
-            public void onFailure(Throwable e) {
-                future.setException(e);
+    private Map<String, Object> mergeMapping(IndexTemplateMetaData templateMetaData,
+                                             Map<String, Object> newMapping) {
+        Map<String, Object> mergedMapping = new HashMap<>();
+        for (ObjectObjectCursor<String, CompressedString> cursor : templateMetaData.mappings()) {
+            try {
+                Map<String, Object> mapping = parseMapping(cursor.value.toString());
+                Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
+                assert o != null && o instanceof Map;
+
+                XContentHelper.update(mergedMapping, (Map) o);
+            } catch (IOException e) {
+                // pass
             }
-        });
-        return future;
+        }
+        XContentHelper.update(mergedMapping, newMapping);
+        return mergedMapping;
     }
 
     @Override

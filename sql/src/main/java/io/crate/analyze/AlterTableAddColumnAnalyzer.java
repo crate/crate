@@ -22,10 +22,15 @@
 package io.crate.analyze;
 
 import io.crate.PartitionName;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Table;
+import io.crate.types.CollectionType;
+
+import java.util.List;
 
 public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void, AddColumnAnalysis> {
 
@@ -44,8 +49,61 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
                 context.parameters(),
                 context.fulltextAnalyzerResolver()
         ));
+        ensureColumnsDoNotExistAlready(context);
+        addExistingPrimaryKeys(context);
+        ensureNoIndexDefinitions(context.analyzedTableElements().columns());
         context.analyzedTableElements().finalizeAndValidate();
+
+        int numCurrentPks = context.table().primaryKey().size();
+        if (context.table().primaryKey().contains(new ColumnIdent("_id"))) {
+            numCurrentPks -= 1;
+        }
+        context.newPrimaryKeys(context.analyzedTableElements().primaryKeys().size() > numCurrentPks);
         return null;
+    }
+
+    private void ensureColumnsDoNotExistAlready(AddColumnAnalysis context) {
+        for (AnalyzedColumnDefinition column : context.analyzedTableElements().columns()) {
+            if (context.table().getColumnInfo(column.ident()) != null) {
+                throw new IllegalArgumentException(String.format(
+                        "The table \"%s\" already has a column named \"%s\"",
+                        context.table().ident().name(),
+                        column.ident().sqlFqn()));
+            }
+        }
+    }
+
+    private void addExistingPrimaryKeys(AddColumnAnalysis context) {
+        for (ColumnIdent pkIdent : context.table().primaryKey()) {
+            if (pkIdent.name().equals("_id")) {
+                continue;
+            }
+            ReferenceInfo pkInfo = context.table().getColumnInfo(pkIdent);
+            assert pkInfo != null;
+
+            AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null);
+            pkColumn.ident(pkIdent);
+            pkColumn.name(pkIdent.name());
+            pkColumn.isPrimaryKey(true);
+
+            assert !(pkInfo.type() instanceof CollectionType); // pk can't be an array
+            pkColumn.dataType(pkInfo.type().getName());
+            context.analyzedTableElements().add(pkColumn);
+        }
+
+        for (ColumnIdent columnIdent : context.table().partitionedBy()) {
+            context.analyzedTableElements().changeToPartitionedByColumn(columnIdent);
+        }
+    }
+
+    private void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition> columns) {
+        for (AnalyzedColumnDefinition column : columns) {
+            if (column.isIndex()) {
+                throw new UnsupportedOperationException(
+                        "Adding an index using ALTER TABLE ADD COLUMN is not supported");
+            }
+            ensureNoIndexDefinitions(column.children());
+        }
     }
 
     private void setTableAndPartitionName(Table node, AddColumnAnalysis context) {
