@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed an NPE that could occur when retrieving shard stats from a blob table
+
 2014/06/14 0.38.5
 =================
 
