@@ -5,6 +5,17 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/06/16 0.38.6
+=================
+
+ - updated crate-admin to 0.7.5 which includes following changes:
+
+    - fix: round percentage of available and underreplicated data correctly
+
+    - fixed ui glitch that caused right column content to be cut off
+
+    - make table that displays table partitions horizontally scrollable
+
  - fixed an NPE that could occur when retrieving shard stats from a blob table
 
 2014/06/14 0.38.5
