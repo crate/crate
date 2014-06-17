@@ -560,4 +560,8 @@ public abstract class AstVisitor<R, C>
     public R visitAlterTableAddColumnStatement(AlterTableAddColumn node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitNestedColumnDefinition(NestedColumnDefinition node, C context) {
+        return visitTableElement(node, context);
+    }
 }

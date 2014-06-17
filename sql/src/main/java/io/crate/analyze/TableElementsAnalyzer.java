@@ -21,8 +21,10 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.sql.tree.*;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -58,7 +60,7 @@ public class TableElementsAnalyzer {
     private static class ColumnDefinitionContext {
         final Object[] parameters;
         final FulltextAnalyzerResolver fulltextAnalyzerResolver;
-        final AnalyzedColumnDefinition analyzedColumnDefinition;
+        AnalyzedColumnDefinition analyzedColumnDefinition;
         final AnalyzedTableElements analyzedTableElements;
 
         public ColumnDefinitionContext(@Nullable AnalyzedColumnDefinition parent,
@@ -82,6 +84,38 @@ public class TableElementsAnalyzer {
                 process(columnConstraint, context);
             }
             process(node.type(), context);
+            return null;
+        }
+
+        @Override
+        public Void visitNestedColumnDefinition(NestedColumnDefinition node, ColumnDefinitionContext context) {
+            String columnName = ExpressionToStringVisitor.convert(node.name(), context.parameters);
+            ColumnIdent ident = ColumnIdent.fromPath(columnName);
+            context.analyzedColumnDefinition.name(ident.name());
+
+            // nested columns can only be added using alter table so no other columns exist.
+            assert context.analyzedTableElements.columns().size() == 0;
+
+            AnalyzedColumnDefinition root = context.analyzedColumnDefinition;
+            if (!ident.path().isEmpty()) {
+                context.analyzedColumnDefinition.isObjectExtension(true);
+                AnalyzedColumnDefinition parent = context.analyzedColumnDefinition;
+                AnalyzedColumnDefinition leaf = parent;
+                for (String name : ident.path()) {
+                    parent.dataType(DataTypes.OBJECT.getName());
+                    leaf = new AnalyzedColumnDefinition(parent);
+                    leaf.name(name);
+                    parent.addChild(leaf);
+                    parent = leaf;
+                }
+                context.analyzedColumnDefinition = leaf;
+            }
+
+            for (ColumnConstraint columnConstraint : node.constraints()) {
+                process(columnConstraint, context);
+            }
+            process(node.type(), context);
+            context.analyzedColumnDefinition = root;
             return null;
         }
 

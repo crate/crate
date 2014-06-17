@@ -4080,4 +4080,29 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat((String[]) response.rows()[0][0], equalTo(new String[]{"name", "id"}));
     }
+
+    @Test
+    public void testAlterTableAddObjectColumnToExistingObject() throws Exception {
+        execute("create table t (o object as (x string)) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureGreen();
+        execute("alter table t add o['y'] int");
+        try {
+            execute("alter table t add o object as (z string)");
+            assertTrue(false);
+        } catch (SQLActionException e) {
+            // column o exists already
+        }
+        execute("select * from information_schema.columns where " +
+                "table_name = 't' and schema_name='doc'" +
+                "order by column_name asc");
+        assertThat(response.rowCount(), is(3L));
+
+        List<String> fqColumnNames = new ArrayList<>();
+        for (Object[] row : response.rows()) {
+            fqColumnNames.add((String) row[2]);
+        }
+        assertThat(fqColumnNames, Matchers.contains("o", "o.x", "o.y"));
+    }
 }

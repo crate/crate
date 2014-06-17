@@ -41,13 +41,14 @@ public class AnalyzedColumnDefinition {
     private String collectionType;
     private String index;
     private String analyzer;
-    private String objectType;
+    private String objectType = "true"; // dynamic = true
     private boolean isPrimaryKey = false;
     private Settings analyzerSettings = ImmutableSettings.EMPTY;
 
     private List<AnalyzedColumnDefinition> children = new ArrayList<>();
     private boolean isIndex = false;
     private ArrayList<String> copyToTargets;
+    private boolean isObjectExtension = false;
 
 
     public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
@@ -260,5 +261,13 @@ public class AnalyzedColumnDefinition {
 
     public boolean isArrayOrInArray() {
         return collectionType != null || (parent != null && parent.isArrayOrInArray());
+    }
+
+    public void isObjectExtension(boolean isObjectExtension) {
+        this.isObjectExtension = isObjectExtension;
+    }
+
+    public boolean isObjectExtension() {
+        return this.isObjectExtension;
     }
 }

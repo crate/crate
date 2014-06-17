@@ -217,6 +217,9 @@ public class TestStatementBuilder
         printStatement("alter table t add foo integer primary key");
         printStatement("alter table t add foo string index using fulltext");
 
+        printStatement("alter table t add column foo['x'] integer");
+        printStatement("alter table t add column foo['x']['y'] object as (z integer)");
+
         printStatement("select * from t where 'value' LIKE ANY (col)");
         printStatement("select * from t where 'value' NOT LIKE ANY (col)");
     }

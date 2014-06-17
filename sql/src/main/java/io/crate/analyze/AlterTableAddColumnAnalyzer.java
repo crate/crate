@@ -25,6 +25,7 @@ import io.crate.PartitionName;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Table;
@@ -49,7 +50,10 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
                 context.parameters(),
                 context.fulltextAnalyzerResolver()
         ));
-        ensureColumnsDoNotExistAlready(context);
+
+        for (AnalyzedColumnDefinition column : context.analyzedTableElements().columns()) {
+            ensureColumnLeafsAreNew(column, context.table());
+        }
         addExistingPrimaryKeys(context);
         ensureNoIndexDefinitions(context.analyzedTableElements().columns());
         context.analyzedTableElements().finalizeAndValidate();
@@ -62,14 +66,16 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
         return null;
     }
 
-    private void ensureColumnsDoNotExistAlready(AddColumnAnalysis context) {
-        for (AnalyzedColumnDefinition column : context.analyzedTableElements().columns()) {
-            if (context.table().getColumnInfo(column.ident()) != null) {
-                throw new IllegalArgumentException(String.format(
-                        "The table \"%s\" already has a column named \"%s\"",
-                        context.table().ident().name(),
-                        column.ident().sqlFqn()));
-            }
+    private void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
+        if ((!column.isObjectExtension() || column.children().isEmpty())
+                && tableInfo.getColumnInfo(column.ident()) != null) {
+            throw new IllegalArgumentException(String.format(
+                    "The table \"%s\" already has a column named \"%s\"",
+                    tableInfo.ident().name(),
+                    column.ident().sqlFqn()));
+        }
+        for (AnalyzedColumnDefinition child : column.children()) {
+            ensureColumnLeafsAreNew(child, tableInfo);
         }
     }
 

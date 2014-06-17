@@ -25,16 +25,16 @@ import com.google.common.base.Objects;
 
 public class AlterTableAddColumn extends Statement {
 
-    private final TableElement tableElement;
     private final Table table;
+    private final NestedColumnDefinition nestedColumnDefinition;
 
-    public AlterTableAddColumn(Table table, TableElement tableElement) {
+    public AlterTableAddColumn(Table table, NestedColumnDefinition nestedColumnDefinition) {
         this.table = table;
-        this.tableElement = tableElement;
+        this.nestedColumnDefinition = nestedColumnDefinition;
     }
 
     public TableElement tableElement() {
-        return tableElement;
+        return nestedColumnDefinition;
     }
 
     public Table table() {
@@ -49,14 +49,14 @@ public class AlterTableAddColumn extends Statement {
         AlterTableAddColumn that = (AlterTableAddColumn) o;
 
         if (!table.equals(that.table)) return false;
-        if (!tableElement.equals(that.tableElement)) return false;
+        if (!nestedColumnDefinition.equals(that.nestedColumnDefinition)) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result = tableElement.hashCode();
+        int result = nestedColumnDefinition.hashCode();
         result = 31 * result + table.hashCode();
         return result;
     }
@@ -65,7 +65,7 @@ public class AlterTableAddColumn extends Statement {
     public String toString() {
         return Objects.toStringHelper(this)
                 .add("table", table)
-                .add("element", tableElement).toString();
+                .add("element", nestedColumnDefinition).toString();
     }
 
     @Override

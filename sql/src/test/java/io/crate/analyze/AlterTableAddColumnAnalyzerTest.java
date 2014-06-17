@@ -21,24 +21,26 @@
 
 package io.crate.analyze;
 
+import io.crate.core.collections.StringObjectMaps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.sql.parser.ParsingException;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -85,8 +87,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAddFulltextIndex() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Adding an index using ALTER TABLE ADD COLUMN is not supported");
+        expectedException.expect(ParsingException.class);
         analyze("alter table users add column index ft_foo using fulltext (name)");
     }
 
@@ -139,5 +140,41 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot use columns of type \"array\" as primary key");
         analyze("alter table users add column newpk array(string) primary key");
+    }
+
+    @Test
+    public void testAddArrayColumn() throws Exception {
+        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table users add newtags array(string)");
+        AnalyzedColumnDefinition columnDefinition = analysis.analyzedTableElements().columns().get(0);
+        assertThat(columnDefinition.name(), Matchers.equalTo("newtags"));
+        assertThat(columnDefinition.dataType(), Matchers.equalTo("string"));
+        assertTrue(columnDefinition.isArrayOrInArray());
+    }
+
+    @Test
+    public void testAddNewNestedObjectColumn() throws Exception {
+        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze(
+                "alter table users add column foo['x']['y'] string");
+
+        assertThat(analysis.analyzedTableElements().columns().size(), is(2)); // id pk column is also added
+        AnalyzedColumnDefinition column = analysis.analyzedTableElements().columns().get(0);
+        assertThat(column.ident(), Matchers.equalTo(new ColumnIdent("foo")));
+        assertThat(column.children().size(), is(1));
+        AnalyzedColumnDefinition xColumn = column.children().get(0);
+        assertThat(xColumn.ident(), Matchers.equalTo(new ColumnIdent("foo", Arrays.asList("x"))));
+        assertThat(xColumn.children().size(), is(1));
+        AnalyzedColumnDefinition yColumn = xColumn.children().get(0);
+        assertThat(yColumn.ident(), Matchers.equalTo(new ColumnIdent("foo", Arrays.asList("x", "y"))));
+        assertThat(yColumn.children().size(), is(0));
+
+        Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
+        Map foo = (Map) StringObjectMaps.getByPath(mapping, "properties.foo");
+        assertThat((String)foo.get("type"), is("object"));
+
+        Map x = (Map) StringObjectMaps.getByPath(mapping, "properties.foo.properties.x");
+        assertThat((String)x.get("type"), is("object"));
+
+        Map y = (Map) StringObjectMaps.getByPath(mapping, "properties.foo.properties.x.properties.y");
+        assertThat((String)y.get("type"), is("string"));
     }
 }

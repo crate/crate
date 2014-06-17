@@ -830,6 +830,31 @@ In order to add a column to an existing table use ``ALTER TABLE`` with the
     cr> alter table my_table1 add column new_column_name string;
     ALTER OK (... sec)
 
+The inner schema of object columns can also be extended, as shown in the
+following example.
+
+First a column of type object is added::
+
+    cr> alter table my_table1 add column obj_column object as (age int);
+    ALTER OK (... sec)
+
+
+And now a nested column named ``name`` is added to the ``obj_column``::
+
+    cr> alter table my_table1 add column obj_column['name'] string;
+    ALTER OK (... sec)
+
+    cr> select column_name, data_type from information_schema.columns
+    ... where table_name = 'my_table1' and column_name like 'obj_%';
+    +-----------------+-----------+
+    | column_name     | data_type |
+    +-----------------+-----------+
+    | obj_column      | object    |
+    | obj_column.age  | integer   |
+    | obj_column.name | string    |
+    +-----------------+-----------+
+    SELECT 3 rows in set (... sec)
+
 
 Set and Reset
 =============

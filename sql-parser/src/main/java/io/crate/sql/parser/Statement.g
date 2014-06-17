@@ -88,6 +88,7 @@ tokens {
     TABLE_ELEMENT_LIST;
     ADD_COLUMN;
     COLUMN_DEF;
+    NESTED_COLUMN_DEF;
     NOT_NULL;
     ALIASED_RELATION;
     SAMPLED_RELATION;
@@ -800,7 +801,7 @@ alterBlobTableStmt
 
 alterTableStmt
     : (tableWithPartition SET) => tableWithPartition SET '(' genericProperties ')' -> ^(ALTER_TABLE genericProperties tableWithPartition)
-    | (tableWithPartition ADD) => tableWithPartition ADD COLUMN? tableElement -> ^(ADD_COLUMN tableWithPartition tableElement)
+    | (tableWithPartition ADD) => tableWithPartition ADD COLUMN? nestedColumnDefinition -> ^(ADD_COLUMN tableWithPartition nestedColumnDefinition)
     | tableWithPartition RESET identList -> ^(ALTER_TABLE identList tableWithPartition)
     ;
 // END ALTER STATEMENTS
@@ -829,6 +830,10 @@ tableElement
     :   columnDefinition
     |   indexDefinition
     |   primaryKeyConstraint
+    ;
+
+nestedColumnDefinition
+    : expr dataType columnConstDef* -> ^(NESTED_COLUMN_DEF expr dataType columnConstDef*)
     ;
 
 columnDefinition

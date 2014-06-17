@@ -722,9 +722,9 @@ alterTable returns [Statement value]
         {
             $value = new AlterTable($namedTable.value, $columnIdentList.value);
         }
-    | ^(ADD_COLUMN namedTable tableElement)
+    | ^(ADD_COLUMN namedTable nestedColumnDefinition)
         {
-            $value = new AlterTableAddColumn($namedTable.value, $tableElement.value);
+            $value = new AlterTableAddColumn($namedTable.value, $nestedColumnDefinition.value);
         }
     ;
 
@@ -747,6 +747,16 @@ tableElement returns [TableElement value]
     : columnDefinition { $value = $columnDefinition.value; }
     | indexDefinition  { $value = $indexDefinition.value; }
     | primaryKeyConstraint { $value = $primaryKeyConstraint.value; }
+    ;
+
+
+nestedColumnDefinition returns [NestedColumnDefinition value]
+    : ^(NESTED_COLUMN_DEF expr dataType columnConstraints)
+        {
+            $value = new NestedColumnDefinition($expr.value,
+                                                $dataType.value,
+                                                $columnConstraints.value);
+        }
     ;
 
 columnDefinition returns [ColumnDefinition value]
