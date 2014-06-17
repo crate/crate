@@ -46,7 +46,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
     private final FunctionInfo info;
     private final boolean hasArgs;
 
-    private static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
+    public static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
             ImmutableList.<DataType>of()), DataTypes.LONG, true);
 
     public static void register(AggregationImplModule mod) {

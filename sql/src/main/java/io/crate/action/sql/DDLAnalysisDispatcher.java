@@ -22,6 +22,7 @@
 package io.crate.action.sql;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -31,8 +32,21 @@ import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.AlterTableAliasException;
-import io.crate.exceptions.FailedShardsException;
+import io.crate.executor.Executor;
+import io.crate.executor.Job;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.planner.Plan;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -50,9 +64,6 @@ import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemp
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.action.count.CountRequest;
-import org.elasticsearch.action.count.CountResponse;
-import org.elasticsearch.action.count.TransportCountAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -63,12 +74,10 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -82,7 +91,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     private final ClusterService clusterService;
     private final BlobIndices blobIndices;
     private final TransportRefreshAction transportRefreshAction;
-    private final TransportCountAction transportCountAction;
+    private final Executor executor;
     private final TransportPutMappingAction transportPutMappingAction;
     private final TransportUpdateSettingsAction transportUpdateSettingsAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
@@ -91,7 +100,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     @Inject
     public DDLAnalysisDispatcher(ClusterService clusterService,
                                  BlobIndices blobIndices,
-                                 TransportCountAction transportCountAction,
+                                 Executor executor,
                                  TransportPutMappingAction transportPutMappingAction,
                                  TransportRefreshAction transportRefreshAction,
                                  TransportUpdateSettingsAction transportUpdateSettingsAction,
@@ -99,7 +108,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                                  TransportGetIndexTemplatesAction transportGetIndexTemplatesAction) {
         this.clusterService = clusterService;
         this.blobIndices = blobIndices;
-        this.transportCountAction = transportCountAction;
+        this.executor = executor;
         this.transportPutMappingAction = transportPutMappingAction;
         this.transportRefreshAction = transportRefreshAction;
         this.transportUpdateSettingsAction = transportUpdateSettingsAction;
@@ -129,30 +138,58 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     public ListenableFuture<Long> visitAddColumnAnalysis(final AddColumnAnalysis analysis, Void context) {
         final SettableFuture<Long> result = SettableFuture.create();
         if (analysis.newPrimaryKeys()) {
-            transportCountAction.execute(new CountRequest(analysis.table().concreteIndices()), new ActionListener<CountResponse>() {
-                        @Override
-                        public void onResponse(CountResponse countResponse) {
-                            if (countResponse.getFailedShards() > 0) {
-                                result.setException(new FailedShardsException(countResponse.getShardFailures()));
-                            }
-                            if (countResponse.getCount() == 0L) {
-                                addColumnToTable(analysis, result);
-                            } else {
-                                result.setException(new UnsupportedOperationException(
-                                        "Cannot add a primary key column to a table that isn't empty"));
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Throwable e) {
-                            result.setException(e);
-                        }
+            Plan plan = genCountStarPlan(analysis.table());
+            Job job = executor.newJob(plan);
+            ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(executor.execute(job));
+            Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
+                @Override
+                public void onSuccess(@Nullable List<Object[][]> resultList) {
+                    assert resultList != null && resultList.size() == 1;
+                    Object[][] rows = resultList.get(0);
+                    if ((Long) rows[0][0] == 0L) {
+                        addColumnToTable(analysis, result);
+                    } else {
+                        result.setException(new UnsupportedOperationException(
+                                "Cannot add a primary key column to a table that isn't empty"));
                     }
-            );
+                }
+
+                @Override
+                public void onFailure(@Nonnull Throwable t) {
+                    result.setException(t);
+                }
+            });
         } else {
             addColumnToTable(analysis, result);
         }
         return result;
+    }
+
+    private Plan genCountStarPlan(TableInfo table) {
+        Aggregation countAggregationPartial = new Aggregation(
+                CountAggregation.COUNT_STAR_FUNCTION,
+                ImmutableList.<Symbol>of(),
+                Aggregation.Step.ITER,
+                Aggregation.Step.PARTIAL);
+        Aggregation countAggregationFinal = new Aggregation(
+                CountAggregation.COUNT_STAR_FUNCTION,
+                ImmutableList.<Symbol>of(new InputColumn(0)),
+                Aggregation.Step.PARTIAL,
+                Aggregation.Step.FINAL);
+
+        CollectNode collectNode = new CollectNode(
+                "count",
+                table.getRouting(WhereClause.MATCH_ALL),
+                ImmutableList.<Symbol>of(),
+                Arrays.<Projection>asList(new AggregationProjection(ImmutableList.of(countAggregationPartial))));
+        collectNode.maxRowGranularity(RowGranularity.DOC);
+        collectNode.outputTypes(ImmutableList.<DataType>of(DataTypes.NULL));
+        MergeNode mergeNode = new MergeNode("local count merge", collectNode.executionNodes().size());
+        mergeNode.projections(ImmutableList.<Projection>of(new AggregationProjection(ImmutableList.of(countAggregationFinal))));
+        Plan plan = new Plan();
+        plan.add(collectNode);
+        plan.add(mergeNode);
+        return plan;
     }
 
     private void addColumnToTable(AddColumnAnalysis analysis, final SettableFuture<Long> result) {
