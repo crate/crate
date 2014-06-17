@@ -22,11 +22,16 @@
 package io.crate.types;
 
 import com.google.common.base.Preconditions;
+import com.spatial4j.core.context.SpatialContext;
+import com.spatial4j.core.shape.Point;
 import io.crate.Streamer;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.Arrays;
 
 public class GeoPointType extends DataType<Double[]> implements Streamer<Double[]>, DataTypeFactory {
@@ -34,6 +39,8 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
     public static final int ID = 13;
     public static final GeoPointType INSTANCE = new GeoPointType();
     private GeoPointType() {}
+
+    private static final SpatialContext SPATIAL_CONTEXT = SpatialContext.GEO;
 
     @Override
     public int id() {
@@ -55,10 +62,26 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
         if (value == null) {
             return null;
         }
+        if (value instanceof BytesRef) {
+            return pointFromString(BytesRefs.toString(value));
+        }
+        if (value instanceof String) {
+            return pointFromString((String) value);
+        }
         Object[] values = (Object[])value;
         Preconditions.checkArgument(values.length == 2,
                 "The value of a GeoPoint must be a double array with 2 items, not %s", values.length);
         return Arrays.copyOf(values, 2, Double[].class);
+    }
+
+    private static Double[] pointFromString(String value) {
+        try {
+            Point point = (Point)SPATIAL_CONTEXT.readShapeFromWkt(value);
+            return new Double[] {point.getX(), point.getY()};
+        } catch (ParseException e) {
+            throw new IllegalArgumentException(String.format(
+                    "Cannot convert \"%s\" to geo_point", value), e);
+        }
     }
 
     @Override

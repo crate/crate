@@ -25,6 +25,7 @@ import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.scalar.arithmetic.*;
+import io.crate.operation.scalar.geo.DistanceFunction;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -59,5 +60,7 @@ public class ScalarFunctionModule extends AbstractModule {
         MultiplyFunction.register(this);
         DivideFunction.register(this);
         ModulusFunction.register(this);
+
+        DistanceFunction.register(this);
     }
 }

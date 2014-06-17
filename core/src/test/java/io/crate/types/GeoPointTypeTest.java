@@ -26,6 +26,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class GeoPointTypeTest {
@@ -41,5 +42,13 @@ public class GeoPointTypeTest {
         Double[] p2 = DataTypes.GEO_POINT.readValueFrom(in);
 
         assertThat(p1, equalTo(p2));
+    }
+
+    @Test
+    public void testWktToGeoPointValue() throws Exception {
+        Double[] value = DataTypes.GEO_POINT.value("POINT(1 2)");
+
+        assertThat(value[0], is(1.0d));
+        assertThat(value[1], is(2.0d));
     }
 }

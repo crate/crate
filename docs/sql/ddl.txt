@@ -155,6 +155,8 @@ fractions. Example::
     SQLActionException[Validation failed for first_column: Invalid format: "wrong"]
 
 
+.. _geo_point_data_type:
+
 geo_point
 ---------
 
@@ -166,10 +168,15 @@ array in the following format::
 
     [<lat_value>, <lon_value>]
 
+Alternatively a `WKT`_ string can also be used to declare geo points::
+
+    'POINT ( <lat_value> <lon_value> )'
+
 .. note::
 
-    In order to insert arrays the REST endpoint or a client driver that
-    supports arrays has to be used.
+    If a column is dynamically created the type detection won't recognize
+    neither WKT strings nor double arrays. That means columns of type geo_point
+    must always be declared beforehand.
 
 Create table example::
 
@@ -886,3 +893,6 @@ You can change multiple values at once::
     | {"collect_stats": true, "jobs_log_size": 1024, "operations_log_size": 4096} |
     +-----------------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
+
+
+.. _WKT: http://en.wikipedia.org/wiki/Well-known_text

@@ -133,3 +133,24 @@ which defines the length of the substring::
     | at                 |
     +--------------------+
     SELECT 1 row in set (... sec)
+
+
+distance(geo_point1, geo_point2) returns double
+===============================================
+
+The ``distance`` function can be used to calculate the distance between two
+points on earth.
+
+The return value is the distance in meters.
+
+Below is an example of the distance function where both points are specified
+using WKT. See :ref:`geo_point_data_type` for more information on the implicit
+type casting of geo points::
+
+    cr> select distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster;
+    +--------------------------------------------+
+    | distance('POINT (10 20)', 'POINT (11 21)') |
+    +--------------------------------------------+
+    |                              156098.812312 |
+    +--------------------------------------------+
+    SELECT 1 row in set (... sec)
