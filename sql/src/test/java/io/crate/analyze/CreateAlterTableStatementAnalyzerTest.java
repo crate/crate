@@ -518,7 +518,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat((Map<String, Object>)analysis.mappingProperties().get("o"), not(hasKey("name")));
         assertThat((Map<String, Object>)analysis.metaMapping().get("columns"), not(hasKey("date")));
         assertThat(
-                (Map<String, Object>)((Map<String, Object>)analysis.metaMapping().get("columns")).get("o"),
+                (Map<String, Object>) ((Map<String, Object>) analysis.metaMapping().get("columns")).get("o"),
                 not(hasKey("name")));
         assertThat(analysis.partitionedBy().get(0), contains("date", "date"));
         assertThat(analysis.partitionedBy().get(1), contains("o.name", "string"));
@@ -742,5 +742,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         analyze("alter table users partition (date='1970-01-01') reset (number_of_replicas)");
     }
 
-
+    @Test (expected = UnsupportedOperationException.class)
+    public void testCreateTableWithArrayPrimaryKeyUnsupported() throws Exception {
+        analyze("create table t (id array(int) primary key)");
+    }
 }
