@@ -38,10 +38,6 @@ public class S3FileInput implements FileInput {
 
     final S3ClientHelper clientBuilder;
 
-    public S3FileInput() {
-        clientBuilder = new S3ClientHelper();
-    }
-
     public S3FileInput(S3ClientHelper clientBuilder) {
         this.clientBuilder = clientBuilder;
     }

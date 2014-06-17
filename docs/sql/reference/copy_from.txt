@@ -65,8 +65,9 @@ Can be used to access buckets on the Amazon AWS S3 Service:
 If the accesskey and secret key is ommited an attempt to load the credentials
 from the environment or java settings is made.
 
-Environment Variables - AWS_ACCESS_KEY_ID and AWS_SECRET_KEY
-Java System Properties - aws.accessKeyId and aws.secretKey
+Environment Variables - ``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_KEY``
+
+Java System Properties - ``aws.accessKeyId`` and ``aws.secretKey``
 
 Using a s3 URI will set the ``shared`` option implicitly.
 
@@ -77,6 +78,21 @@ Using a s3 URI will set the ``shared`` option implicitly.
    the authentication code includes a plus (+) sign, encode it as %2B in the
    request. Encode a forward slash as %2F and equals as %3D. For a detailed
    explanation read the official `AWS documentation`_.
+
+.. _copy_from_gs:
+
+gs
+--
+
+Can be used to to import data from Google Cloud Storage and works the
+same way s3 does:
+
+.. code-block:: text
+
+    gs://[<accesskey>:<secretkey>]@<bucketname>/<path>
+
+.. note::
+   Read the official `Google Cloud Storage documentation`_ for more information.
 
 Parameters
 ==========
@@ -174,5 +190,7 @@ compression
 The default value is ``null``. Can be set to ``gzip`` to read gzipped files.
 
 .. _`AWS documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
+
+.. _`Google Cloud Storage documentation`: https://developers.google.com/storage/
 
 .. _`RFC2396`: http://www.ietf.org/rfc/rfc2396.txt

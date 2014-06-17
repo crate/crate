@@ -21,6 +21,7 @@
 
 package io.crate.external;
 
+import com.amazonaws.services.s3.internal.Constants;
 import org.junit.Test;
 
 import java.net.URI;
@@ -29,28 +30,38 @@ import static junit.framework.Assert.assertNotNull;
 
 public class S3ClientHelperTest {
 
-    private final S3ClientHelper s3ClientHelper = new S3ClientHelper();
+    private final S3ClientHelper clientHelper = new S3ClientHelper(Constants.S3_HOSTNAME);
+    private final AmazonS3ClientHelper s3ClientHelper = new AmazonS3ClientHelper();
+    private final GoogleS3ClientHelper gsClientHelper = new GoogleS3ClientHelper();
 
     @Test
-    public void testClient() throws Exception {
+    public void testS3Client() throws Exception {
         assertNotNull(s3ClientHelper.client(new URI("s3://baz")));
         assertNotNull(s3ClientHelper.client(new URI("s3://baz/path/to/file")));
         assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@baz")));
         assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@baz/path/to/file")));
     }
 
+    @Test
+    public void testGSClient() throws Exception {
+        assertNotNull(gsClientHelper.client(new URI("gs://baz")));
+        assertNotNull(gsClientHelper.client(new URI("gs://baz/path/to/file")));
+        assertNotNull(gsClientHelper.client(new URI("gs://foo:inv%2Falid@baz")));
+        assertNotNull(gsClientHelper.client(new URI("gs://foo:inv%2Falid@baz/path/to/file")));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testWrongURIEncodingSecretKey() throws Exception {
         // 'inv/alid' should be 'inv%2Falid'
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-        s3ClientHelper.client(new URI("s3://foo:inv/alid@baz/path/to/file"));
+        clientHelper.client(new URI("s3://foo:inv/alid@baz/path/to/file"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testWrongURIEncodingAccessKey() throws Exception {
         // 'fo/o' should be 'fo%2Fo'
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-        s3ClientHelper.client(new URI("s3://fo/o:inv%2Falid@baz"));
+        clientHelper.client(new URI("s3://fo/o:inv%2Falid@baz"));
     }
 
 }
