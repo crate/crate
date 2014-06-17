@@ -197,6 +197,13 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         } else {
             clusteredBySymbol = null;
         }
+        if (in.readBoolean()) {
+            ColumnIdent ident = new ColumnIdent();
+            ident.readFrom(in);
+            clusteredByColumn = Optional.of(ident);
+        } else {
+            clusteredByColumn = Optional.absent();
+        }
         concurrency = in.readVInt();
         bulkActions = in.readVInt();
     }
@@ -222,6 +229,13 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         } else {
             out.writeBoolean(true);
             Symbol.toStream(clusteredBySymbol, out);
+        }
+
+        if (!clusteredByColumn.isPresent()) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            clusteredByColumn.get().writeTo(out);
         }
         out.writeVInt(concurrency);
         out.writeVInt(bulkActions);
