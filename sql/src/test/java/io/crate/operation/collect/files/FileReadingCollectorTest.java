@@ -28,7 +28,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.ImmutableMap;
-import io.crate.external.S3ClientHelper;
+import io.crate.external.AmazonS3ClientHelper;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -165,7 +165,7 @@ public class FileReadingCollectorTest {
                 ImmutableMap.<String, FileInputFactory>of("s3", new FileInputFactory() {
                     @Override
                     public FileInput create() throws IOException {
-                        return new S3FileInput(new S3ClientHelper() {
+                        return new S3FileInput(new AmazonS3ClientHelper() {
                             @Override
                             protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
                                 AmazonS3 client = mock(AmazonS3Client.class);

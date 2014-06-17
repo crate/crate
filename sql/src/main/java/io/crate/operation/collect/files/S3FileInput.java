@@ -26,7 +26,6 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.base.Predicate;
-import io.crate.external.ClientHelper;
 import io.crate.external.S3ClientHelper;
 
 import java.io.IOException;
@@ -37,9 +36,9 @@ import java.util.List;
 
 public class S3FileInput implements FileInput {
 
-    final ClientHelper clientBuilder;
+    final S3ClientHelper clientBuilder;
 
-    public S3FileInput(ClientHelper clientBuilder) {
+    public S3FileInput(S3ClientHelper clientBuilder) {
         this.clientBuilder = clientBuilder;
     }
 

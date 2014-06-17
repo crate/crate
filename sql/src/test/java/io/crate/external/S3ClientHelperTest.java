@@ -30,9 +30,9 @@ import static junit.framework.Assert.assertNotNull;
 
 public class S3ClientHelperTest {
 
-    private final ClientHelper clientHelper = new ClientHelper(Constants.S3_HOSTNAME);
-    private final S3ClientHelper s3ClientHelper = new S3ClientHelper();
-    private final GSClientHelper gsClientHelper = new GSClientHelper();
+    private final S3ClientHelper clientHelper = new S3ClientHelper(Constants.S3_HOSTNAME);
+    private final AmazonS3ClientHelper s3ClientHelper = new AmazonS3ClientHelper();
+    private final GoogleS3ClientHelper gsClientHelper = new GoogleS3ClientHelper();
 
     @Test
     public void testS3Client() throws Exception {

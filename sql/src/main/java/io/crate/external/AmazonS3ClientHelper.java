@@ -21,15 +21,15 @@
 
 package io.crate.external;
 
+import com.amazonaws.services.s3.internal.Constants;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 @NotThreadSafe
-public class GSClientHelper extends ClientHelper {
+public class AmazonS3ClientHelper extends S3ClientHelper {
 
-    public static String HOSTNAME = "storage.googleapis.com";
-
-    public GSClientHelper() {
-        super(HOSTNAME);
+    public AmazonS3ClientHelper() {
+        super(Constants.S3_HOSTNAME);
     }
 
 }

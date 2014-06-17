@@ -57,10 +57,15 @@ public class OutputS3 extends Output {
 
     @Override
     public void open() throws IOException {
-        outputStream = new S3OutputStream(uri, new S3ClientHelper());
+        assert outputStream != null;
         if (compression) {
             outputStream = new GZIPOutputStream(outputStream);
         }
+    }
+
+    public void openWithHelper(S3ClientHelper helper) throws IOException {
+        outputStream = new S3OutputStream(uri, helper);
+        open();
     }
 
     @Override
