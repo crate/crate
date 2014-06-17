@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
+import io.crate.external.S3ClientHelper;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;

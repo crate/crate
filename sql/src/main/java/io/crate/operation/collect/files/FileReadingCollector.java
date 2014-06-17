@@ -26,6 +26,8 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.external.GSClientHelper;
+import io.crate.external.S3ClientHelper;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.Projector;
@@ -71,7 +73,13 @@ public class FileReadingCollector implements CrateCollector {
                     "s3", new FileInputFactory() {
                         @Override
                         public FileInput create() throws IOException {
-                            return new S3FileInput();
+                            return new S3FileInput(new S3ClientHelper());
+                        }
+                    },
+                    "gs", new FileInputFactory() {
+                        @Override
+                        public FileInput create() throws IOException {
+                            return new S3FileInput(new GSClientHelper());
                         }
                     },
                     "file", new FileInputFactory() {
