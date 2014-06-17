@@ -26,6 +26,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
+import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
@@ -249,6 +250,17 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
     public void validatePrimaryKeys(CreateTableAnalysis context) {
         for (String pKey : context.primaryKeys()) {
+            Map<String, Object> columns = (Map<String, Object>)context.metaMapping().get("columns");
+            if (columns != null) {
+                Map metaColumn = (Map) StringObjectMaps.getByPath(columns, pKey);
+                if (metaColumn != null) {
+                    Object collectionType = metaColumn.get("collection_type");
+                    if (collectionType != null && collectionType.equals("array")) {
+                        throw new UnsupportedOperationException(
+                                "Cannot use columns of type \"array\" as primary keys");
+                    }
+                }
+            }
             if (!context.hasColumnDefinition(pKey)) {
                 throw new ColumnUnknownException(pKey);
             }
