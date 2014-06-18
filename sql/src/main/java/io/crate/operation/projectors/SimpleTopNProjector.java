@@ -54,6 +54,7 @@ public class SimpleTopNProjector implements Projector {
         }
         this.remainingOffset = offset;
         this.toCollect = limit;
+
     }
 
     @Override
@@ -82,14 +83,15 @@ public class SimpleTopNProjector implements Projector {
             return true;
         }
 
-        Object[] evaluatedRow = generateNextRow(row);
         if (downstream != null) {
+            Object[] evaluatedRow = generateNextRow(row);
             if (!downstream.setNextRow(evaluatedRow)) {
                 toCollect = -1;
             }
         }
 
         toCollect--;
+
         return toCollect > 0 && failure.get() == null;
     }
 

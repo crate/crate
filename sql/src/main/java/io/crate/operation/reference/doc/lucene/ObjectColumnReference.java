@@ -24,24 +24,41 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.index.AtomicReaderContext;
+import org.elasticsearch.search.lookup.SourceLookup;
 
 import java.util.Map;
 
-public class ObjectColumnReference<ReturnType> extends ColumnReferenceCollectorExpression<Map<String, Object>> {
+public class ObjectColumnReference extends ColumnReferenceCollectorExpression<Map<String, Object>> {
+
+    protected SourceLookup sourceLookup;
 
     public ObjectColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public Map<String, Object> value() {
-        //TODO: this returns null since we are called in aggregation collectors onnly vor now,
-        // once this gets called from result columns it should be implemented
-        return null;
+    public void setNextDocId(int doc) {
+        sourceLookup.setNextDocId(doc);
+    }
+
+    @Override
+    public void setNextReader(AtomicReaderContext context) {
+        sourceLookup.setNextReader(context);
+    }
+
+    @Override
+    public void startCollect(CollectorContext context) {
+        sourceLookup = context.searchContext().lookup().source();
     }
 
     @Override
     public DataType returnType() {
         return DataTypes.OBJECT;
+    }
+
+    @Override
+    public Map<String, Object> value() {
+        return (Map<String, Object>)sourceLookup.extractValue(columnName);
     }
 }
