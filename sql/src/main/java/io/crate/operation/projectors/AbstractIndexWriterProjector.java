@@ -39,6 +39,7 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -120,7 +121,6 @@ public abstract class AbstractIndexWriterProjector implements Projector {
     }
 
     private IndexRequest buildRequest() {
-        // TODO: reuse logic that is currently  in AbstractESIndexTask
         IndexRequest indexRequest = new IndexRequest();
 
         Object value = generateSource();
@@ -134,11 +134,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
                 @Nullable
                 @Override
                 public String apply(Input<?> input) {
-                    Object value = input.value();
-                    if (value == null) {
-                        return null;
-                    }
-                    return value.toString();
+                    return BytesRefs.toString(input.value());
                 }
             });
 
@@ -159,9 +155,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
         List<String> primaryKeyValues = Lists.transform(idInputs, new Function<Input<?>, String>() {
             @Override
             public String apply(Input<?> input) {
-                if (input.value() == null)
-                    return null;
-                return input.value().toString();
+                return BytesRefs.toString(input.value());
             }
         });
 

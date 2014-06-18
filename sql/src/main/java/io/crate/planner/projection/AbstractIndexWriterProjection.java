@@ -21,7 +21,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
@@ -54,7 +53,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     protected Integer bulkActions;
     protected String tableName;
     protected List<ColumnIdent> primaryKeys;
-    protected Optional<ColumnIdent> clusteredByColumn;
+    protected @Nullable ColumnIdent clusteredByColumn;
 
     protected List<Symbol> idSymbols;
     protected List<Symbol> partitionedBySymbols;
@@ -68,7 +67,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
                                             Settings settings) {
         this.tableName = tableName;
         this.primaryKeys = primaryKeys;
-        this.clusteredByColumn = Optional.fromNullable(clusteredByColumn);
+        this.clusteredByColumn = clusteredByColumn;
 
         this.bulkActions = settings.getAsInt(BULK_SIZE, BULK_SIZE_DEFAULT);
         this.concurrency = settings.getAsInt(CONCURRENCY, CONCURRENCY_DEFAULT);
@@ -80,10 +79,12 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         return idSymbols;
     }
 
-    public Optional<ColumnIdent> clusteredByIdent() {
+    @Nullable
+    public ColumnIdent clusteredByIdent() {
         return clusteredByColumn;
     }
 
+    @Nullable
     public Symbol clusteredBy() {
         return clusteredBySymbol;
     }
@@ -111,11 +112,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         if (clusteredByIdx >= 0) {
             clusteredBySymbol = new InputColumn(clusteredByIdx);
         }
-    }
-
-    @Override
-    public ProjectionType projectionType() {
-        return ProjectionType.INDEX_WRITER;
     }
 
     public List<ColumnIdent> primaryKeys() {
@@ -200,9 +196,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         if (in.readBoolean()) {
             ColumnIdent ident = new ColumnIdent();
             ident.readFrom(in);
-            clusteredByColumn = Optional.of(ident);
-        } else {
-            clusteredByColumn = Optional.absent();
+            clusteredByColumn = ident;
         }
         concurrency = in.readVInt();
         bulkActions = in.readVInt();
@@ -231,11 +225,11 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             Symbol.toStream(clusteredBySymbol, out);
         }
 
-        if (!clusteredByColumn.isPresent()) {
+        if (clusteredByColumn == null) {
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            clusteredByColumn.get().writeTo(out);
+            clusteredByColumn.writeTo(out);
         }
         out.writeVInt(concurrency);
         out.writeVInt(bulkActions);
