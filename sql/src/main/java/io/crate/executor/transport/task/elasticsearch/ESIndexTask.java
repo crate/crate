@@ -66,10 +66,11 @@ public class ESIndexTask extends AbstractESIndexTask {
         this.transport = transport;
 
         assert node.indices().length == 1 : "invalid number of indices";
+        List<String> routingValues = this.node.routingValues();
         request = buildIndexRequest(this.node.indices()[0],
                 this.node.sourceMaps().get(0),
                 this.node.ids().get(0),
-                this.node.routingValues().get(0)
+                routingValues == null ? null : routingValues.get(0)
         );
         listener = new IndexResponseListener(result);
 
