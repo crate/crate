@@ -33,6 +33,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Arrays;
+import java.util.List;
 
 public class GeoPointType extends DataType<Double[]> implements Streamer<Double[]>, DataTypeFactory {
 
@@ -67,6 +68,12 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
         }
         if (value instanceof String) {
             return pointFromString((String) value);
+        }
+        if (value instanceof List)  {
+            List values = (List) value;
+            Preconditions.checkArgument(values.size() == 2,
+                    "The value of a GeoPoint must be a double array with 2 items, not %s", values.size());
+            return new Double[] { (Double) values.get(0), (Double) values.get(1) };
         }
         Object[] values = (Object[])value;
         Preconditions.checkArgument(values.length == 2,

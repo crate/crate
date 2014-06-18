@@ -4105,4 +4105,41 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         }
         assertThat(fqColumnNames, Matchers.contains("o", "o.x", "o.y"));
     }
+
+    @Test
+    public void testGeoTypeQueries() throws Exception {
+        execute("create table t (id int primary key, p geo_point) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (id, p) values (1, 'POINT (10 20)')");
+        execute("insert into t (id, p) values (2, 'POINT (11 21)')");
+        refresh();
+
+        execute("select distance(p, 'POINT (11 21)') from t");
+        assertThat(response.rowCount(), is(2L));
+
+        // no order by so need to figure out the order
+        Double result1 = Math.min((Double) response.rows()[0][0], (Double) response.rows()[1][0]);
+        Double result2 = Math.max((Double) response.rows()[0][0], (Double) response.rows()[1][0]);
+
+        assertThat(result1, is(0.0d));
+        assertThat(result2, is(156098.81231186818D));
+
+        execute("select p from t where distance(p, 'POINT (11 21)') > 0.0");
+        List<Double> row = (List<Double>) response.rows()[0][0];
+        assertThat(row.get(0), is(10.0d));
+        assertThat(row.get(1), is(20.0d));
+
+        execute("select p from t where distance(p, 'POINT (11 21)') < 10.0");
+        row = (List<Double>) response.rows()[0][0];
+        assertThat(row.get(0), is(11.0d));
+        assertThat(row.get(1), is(21.0d));
+
+        execute("select p from t where distance(p, 'POINT (11 21)') < 10.0 or distance(p, 'POINT (11 21)') > 10.0");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select p from t where distance(p, 'POINT (10 20)') = 0");
+        assertThat(response.rowCount(), is(1L));
+    }
 }

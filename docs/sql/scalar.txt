@@ -11,7 +11,7 @@ Scalar functions return a single data value (not a table).
 
     Scalar functions aren't available in all query clauses. For example if a
     regular (non-system table) is queried the WHERE clause may not contain any
-    functions.
+    scalar functions unless otherwise described in a function description below.
 
     In addition, the ORDER BY clause also may not contain any scalar functions
     unless GROUP BY is also present in the statement.
@@ -154,3 +154,6 @@ type casting of geo points::
     |                              156098.812312 |
     +--------------------------------------------+
     SELECT 1 row in set (... sec)
+
+This scalar function can be used in the ``WHERE`` clause as part of a
+comparison with a literal.

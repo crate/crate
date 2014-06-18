@@ -28,11 +28,13 @@ import io.crate.analyze.WhereClause;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.operation.Input;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.MatchFunction;
+import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.ESSearchNode;
@@ -45,6 +47,7 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -250,13 +253,16 @@ public class ESQueryBuilder {
 
     static class Visitor extends SymbolVisitor<Context, Void> {
 
+        private final ImmutableMap<String, Converter<? extends Symbol>> innerFunctions;
+        private final ImmutableMap<String, Converter<? extends Symbol>> functions;
+
         Visitor() {
             EqConverter eqConverter = new EqConverter();
             RangeConverter ltConverter = new RangeConverter("lt");
             RangeConverter lteConverter = new RangeConverter("lte");
             RangeConverter gtConverter = new RangeConverter("gt");
             RangeConverter gteConverter = new RangeConverter("gte");
-            functions = ImmutableMap.<String, Converter>builder()
+            functions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
                     .put(AndOperator.NAME, new AndConverter())
                     .put(OrOperator.NAME, new OrConverter())
                     .put(EqOperator.NAME, eqConverter)
@@ -278,16 +284,107 @@ public class ESQueryBuilder {
                     .put(AnyLikeOperator.NAME, new LikeConverter())
                     .put(AnyNotLikeOperator.NAME, new AnyNotLikeConverter())
                     .build();
+
+
+            innerFunctions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
+                    .put(DistanceFunction.NAME, new DistanceConverter())
+                    .build();
         }
 
         static abstract class Converter<T extends Symbol> {
-            public abstract void convert(T function, Context context) throws IOException;
+
+            /**
+             * function that writes the xContent onto the context.
+             * May abort early by returning false if it can't convert the argument.
+             * Concrete implementation must not write to the context if it returns false.
+             */
+            public abstract boolean convert(T function, Context context) throws IOException;
+        }
+
+
+        class DistanceConverter extends Converter<Function> {
+
+            private final Map<String, String> FIELD_NAME_MAP = ImmutableMap.<String, String>builder()
+                    .put(GtOperator.NAME, "gt")
+                    .put(GteOperator.NAME, "gte")
+                    .put(LtOperator.NAME, "lt")
+                    .put(LteOperator.NAME, "lte")
+                    .build();
+
+            @Override
+            public boolean convert(Function function, Context context) throws IOException {
+                assert function.arguments().size() == 2;
+
+                String functionName = function.info().ident().name();
+                String valueFieldName = FIELD_NAME_MAP.get(functionName);
+
+                context.builder.startObject("filtered");
+                context.builder.startObject("query")
+                        .startObject("match_all").endObject()
+                        .endObject();
+                context.builder.startObject("filter")
+                        .startObject("geo_distance_range");
+
+                Symbol valueSymbol;
+                Symbol functionSymbol = function.arguments().get(0);
+                if (functionSymbol.symbolType().isValueSymbol()) {
+                    valueSymbol = functionSymbol;
+                    functionSymbol = function.arguments().get(1);
+                    if (functionSymbol.symbolType() != SymbolType.FUNCTION) {
+                        throw new IllegalArgumentException("Can't compare two distance functions");
+                    }
+                } else {
+                    valueSymbol = function.arguments().get(1);
+                    if (!valueSymbol.symbolType().isValueSymbol()) {
+                        throw new IllegalArgumentException("Can't compare two distance functions");
+                    }
+                }
+                handleFunctionSymbol(context, (Function) functionSymbol);
+                handleValueSymbol(context, functionName, valueFieldName, valueSymbol);
+
+                context.builder.endObject(); // geo_distance_range
+                context.builder.endObject(); // filter
+                context.builder.endObject(); // filtered
+                return true;
+            }
+
+            private void handleFunctionSymbol(Context context, Function functionSymbol) throws IOException {
+                assert functionSymbol.arguments().size() == 2;
+                assert functionSymbol.info().ident().name().equals(DistanceFunction.NAME);
+                String fieldName = null;
+                Double[] point = null;
+                for (Symbol distanceArgument : functionSymbol.arguments()) {
+                    if (distanceArgument instanceof Reference) {
+                        fieldName = ((Reference)distanceArgument).info().ident().columnIdent().fqn();
+                    } else if (distanceArgument.symbolType().isValueSymbol()) {
+                        point = (Double[]) ((Input) distanceArgument).value();
+                    }
+                }
+                assert fieldName != null;
+                assert point != null;
+                context.builder.field(fieldName, point);
+            }
+
+            private void handleValueSymbol(Context context,
+                                           String functionName,
+                                           String valueFieldName,
+                                           Symbol valueSymbol) throws IOException {
+                Literal literal = Literal.toLiteral(valueSymbol, DataTypes.DOUBLE);
+                if (functionName.equals(EqOperator.NAME)) {
+                    context.builder.field("from", literal.value());
+                    context.builder.field("to", literal.value());
+                    context.builder.field("include_upper", true);
+                    context.builder.field("include_lower", true);
+                } else {
+                    context.builder.field(valueFieldName, literal.value());
+                }
+            }
         }
 
         class AndConverter extends Converter<Function> {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 context.builder.startObject("bool").startArray("must");
 
                 for (Symbol symbol : function.arguments()) {
@@ -296,13 +393,14 @@ public class ESQueryBuilder {
                     context.builder.endObject();
                 }
                 context.builder.endArray().endObject();
+                return true;
             }
         }
 
         class OrConverter extends Converter<Function> {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 context.builder.startObject("bool").field("minimum_should_match", 1).startArray("should");
 
                 for (Symbol symbol : function.arguments()) {
@@ -312,11 +410,13 @@ public class ESQueryBuilder {
                 }
 
                 context.builder.endArray().endObject();
+                return true;
             }
         }
 
         abstract class CmpConverter extends Converter<Function> {
 
+            @Nullable
             protected Tuple<String, Object> prepare(Function function) {
                 Preconditions.checkNotNull(function);
                 Preconditions.checkArgument(function.arguments().size() == 2);
@@ -325,7 +425,7 @@ public class ESQueryBuilder {
                 Symbol right = function.arguments().get(1);
 
                 if (left.symbolType() == SymbolType.FUNCTION || right.symbolType() == SymbolType.FUNCTION) {
-                    raiseUnsupported(function);
+                    return null;
                 }
 
                 assert left.symbolType() == SymbolType.REFERENCE || left.symbolType() == SymbolType.DYNAMIC_REFERENCE;
@@ -348,17 +448,24 @@ public class ESQueryBuilder {
 
         class EqConverter extends CmpConverter {
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = super.prepare(function);
+                if (tuple == null) {
+                    return false;
+                }
                 context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+                return true;
             }
         }
 
         class AnyNeqConverter extends CmpConverter {
             // 1 != ANY (col) --> gt 1 or lt 1
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = super.prepare(function);
+                if (tuple == null) {
+                    return false;
+                }
                 context.builder.startObject("bool")
                                 .field("minimum_should_match", 1)
                                 .startArray("should")
@@ -378,8 +485,7 @@ public class ESQueryBuilder {
                                     .endObject()
                                 .endArray()
                             .endObject();
-
-
+                return true;
             }
         }
 
@@ -414,11 +520,15 @@ public class ESQueryBuilder {
         class LikeConverter extends CmpConverter {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> prepare = prepare(function);
+                if (prepare == null) {
+                    return false;
+                }
                 String like = prepare.v2().toString();
                 like = convertWildcard(like);
                 context.builder.startObject("wildcard").field(prepare.v1(), like).endObject();
+                return true;
             }
         }
 
@@ -429,8 +539,11 @@ public class ESQueryBuilder {
             }
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> prepare = prepare(function);
+                if (prepare == null) {
+                    return false;
+                }
                 String notLike = prepare.v2().toString();
                 notLike = negateWildcard(convertWildcardToRegex(notLike));
                 context.builder.startObject("regexp")
@@ -439,13 +552,14 @@ public class ESQueryBuilder {
                             .field("flags", "COMPLEMENT")
                             .endObject()
                             .endObject();
+                return true;
             }
         }
 
         static class IsNullConverter extends Converter<Function> {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Preconditions.checkNotNull(function);
                 Preconditions.checkArgument(function.arguments().size() == 1);
 
@@ -460,19 +574,21 @@ public class ESQueryBuilder {
                         .field("existence", true)
                         .field("null_value", true)
                         .endObject().endObject().endObject();
+                return true;
             }
         }
 
         class NotConverter extends Converter<Function> {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Preconditions.checkNotNull(function);
                 Preconditions.checkArgument(function.arguments().size() == 1);
 
                 context.builder.startObject("bool").startObject("must_not");
                 process(function.arguments().get(0), context);
                 context.builder.endObject().endObject();
+                return true;
             }
         }
 
@@ -485,27 +601,35 @@ public class ESQueryBuilder {
             }
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = super.prepare(function);
+                if (tuple == null) {
+                    return false;
+                }
                 context.builder.startObject("range")
                         .startObject(tuple.v1()).field(operator, tuple.v2()).endObject()
                         .endObject();
+                return true;
             }
         }
 
         class MatchConverter extends CmpConverter {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = super.prepare(function);
+                if (tuple == null) {
+                    return false;
+                }
                 context.builder.startObject("match").field(tuple.v1(), tuple.v2()).endObject();
+                return true;
             }
         }
 
         static class InConverter extends Converter<Function> {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 assert (function != null);
                 assert (function.arguments().size() == 2);
 
@@ -528,6 +652,7 @@ public class ESQueryBuilder {
                     }
                 }
                 context.builder.endArray().endObject();
+                return true;
             }
 
         }
@@ -545,15 +670,18 @@ public class ESQueryBuilder {
             }
 
             @Override
-            public void convert(Reference reference, Context context) throws IOException {
+            public boolean convert(Reference reference, Context context) throws IOException {
                 assert (reference != null);
                 assert (reference.valueType() == DataTypes.BOOLEAN);
                 Tuple<String, Boolean> tuple = prepare(reference);
+                if (tuple == null) {
+                    return false;
+                }
                 context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+                return true;
             }
         }
 
-        private ImmutableMap<String, Converter> functions;
 
         @Override
         public Void visitFunction(Function function, Context context) {
@@ -569,12 +697,26 @@ public class ESQueryBuilder {
                 if (converter == null) {
                     return raiseUnsupported(function);
                 }
-                converter.convert(function, context);
-
+                if (!convert(converter, function, context)) {
+                    for (Symbol symbol : function.arguments()) {
+                        if (symbol.symbolType() == SymbolType.FUNCTION) {
+                            converter = innerFunctions.get(((Function) symbol).info().ident().name());
+                            if (converter != null) {
+                                convert(converter, function, context);
+                                return null;
+                            }
+                        }
+                    }
+                }
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
             return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        private boolean convert(Converter converter, Function function, Context context) throws IOException {
+            return converter.convert(function, context);
         }
 
         @Override

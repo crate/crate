@@ -34,6 +34,7 @@ import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.MatchFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dql.ESSearchNode;
@@ -41,7 +42,6 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -58,6 +58,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.*;
 
+import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -326,7 +327,7 @@ public class ESQueryBuilderTest {
     public void testQueryWith_Version() throws Exception {
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataTypes.STRING)));
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(
-                TestingHelpers.createReference("_version", DataTypes.INTEGER),
+                createReference("_version", DataTypes.INTEGER),
                 Literal.newLiteral(4)));
 
         generator.convert(new WhereClause(whereClause));
@@ -348,7 +349,7 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testSelect_OnlyVersion() throws Exception {
-        Reference version_ref = TestingHelpers.createReference("_version", DataTypes.INTEGER);
+        Reference version_ref = createReference("_version", DataTypes.INTEGER);
         ESSearchNode searchNode = new ESSearchNode(
                 new String[]{characters.name()},
                 ImmutableList.<Symbol>of(version_ref),
@@ -381,8 +382,8 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testSelect_WholeObjectAndPartial() throws Exception {
-        Reference author = TestingHelpers.createReference("author", DataTypes.OBJECT);
-        Reference age = TestingHelpers.createReference(
+        Reference author = createReference("author", DataTypes.OBJECT);
+        Reference age = createReference(
                 ColumnIdent.getChild(author.info().ident().columnIdent(), "age"), DataTypes.INTEGER);
 
         ESSearchNode searchNode = new ESSearchNode(
@@ -428,7 +429,7 @@ public class ESQueryBuilderTest {
         // 0.0 < ANY_OF (d_array)
 
         DataType doubleArrayType = new ArrayType(DataTypes.DOUBLE);
-        Reference doubleArrayRef = TestingHelpers.createReference("d_array", doubleArrayType);
+        Reference doubleArrayRef = createReference("d_array", doubleArrayType);
         FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent("any_>",
                 Arrays.<DataType>asList(doubleArrayType, DataTypes.DOUBLE)));
 
@@ -442,7 +443,7 @@ public class ESQueryBuilderTest {
         // 0.0 <= ANY_OF (d_array)
 
         DataType doubleArrayType = new ArrayType(DataTypes.DOUBLE);
-        Reference doubleArrayRef = TestingHelpers.createReference("d_array", doubleArrayType);
+        Reference doubleArrayRef = createReference("d_array", doubleArrayType);
         FunctionImplementation anyGreaterImpl = functions.get(new FunctionIdent("any_>=",
                 Arrays.<DataType>asList(doubleArrayType, DataTypes.DOUBLE)));
 
@@ -450,5 +451,91 @@ public class ESQueryBuilderTest {
                 Arrays.<Symbol>asList(doubleArrayRef, Literal.newLiteral(0.0)));
 
         xcontentAssert(whereClause, "{\"query\":{\"range\":{\"d_array\":{\"gte\":0.0}}}}");
+    }
+
+    @Test
+    public void testDistanceGteQuery() throws Exception {
+        Function distanceFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(DistanceFunction.NAME, Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT)),
+                        DataTypes.DOUBLE),
+                Arrays.<Symbol>asList(
+                        createReference("location", DataTypes.GEO_POINT),
+                        Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
+                )
+        );
+        Function whereClause = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(GteOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                        DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(distanceFunction, Literal.newLiteral(20.0d))
+        );
+        xcontentAssert(whereClause,
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_distance_range\":{\"location\":[10.0,20.0],\"gte\":20.0}}}}}");
+    }
+
+    @Test
+    public void testDistanceGteQuerySwappedArgs() throws Exception {
+        Function distanceFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(DistanceFunction.NAME, Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT)),
+                        DataTypes.DOUBLE),
+                Arrays.<Symbol>asList(
+                        createReference("location", DataTypes.GEO_POINT),
+                        Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
+                )
+        );
+        Function whereClause = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(GteOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                        DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(Literal.newLiteral(20.d), distanceFunction)
+        );
+        xcontentAssert(whereClause,
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_distance_range\":{\"location\":[10.0,20.0],\"gte\":20.0}}}}}");
+    }
+
+    @Test
+    public void testDistanceEqQuery() throws Exception {
+        Function distanceFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(DistanceFunction.NAME, Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT)),
+                        DataTypes.DOUBLE),
+                Arrays.<Symbol>asList(
+                        createReference("location", DataTypes.GEO_POINT),
+                        Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
+                )
+        );
+        Function whereClause = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                        DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(distanceFunction, Literal.newLiteral(20.0d))
+        );
+        xcontentAssert(whereClause,
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_distance_range\":{\"location\":[10.0,20.0],\"from\":20.0,\"to\":20.0,\"include_upper\":true,\"include_lower\":true}}}}}");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testWhereDistanceFunctionEqDistanceFunction() throws Exception {
+        /**
+         * distance(p, ...) = distance(p, ...) isn't supported
+         */
+        Function distanceFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(DistanceFunction.NAME, Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT)),
+                        DataTypes.DOUBLE),
+                Arrays.<Symbol>asList(
+                        createReference("location", DataTypes.GEO_POINT),
+                        Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
+                )
+        );
+        Function whereClause = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(GteOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                        DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(distanceFunction, distanceFunction)
+        );
+        generator.convert(new WhereClause(whereClause));
     }
 }

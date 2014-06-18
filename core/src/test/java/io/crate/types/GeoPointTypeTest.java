@@ -25,6 +25,8 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -50,5 +52,12 @@ public class GeoPointTypeTest {
 
         assertThat(value[0], is(1.0d));
         assertThat(value[1], is(2.0d));
+    }
+
+    @Test
+    public void testValueConversionFromList() throws Exception {
+        Double[] value = DataTypes.GEO_POINT.value(Arrays.asList(10.0, 20.2));
+        assertThat(value[0], is(10.0d));
+        assertThat(value[1], is(20.2d));
     }
 }

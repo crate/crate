@@ -81,17 +81,27 @@ public class DistanceFunction implements Scalar<Double, Object> {
         if (value2 == null) {
             return null;
         }
+        double x1;
+        double y1;
+        double x2;
+        double y2;
 
-        assert value1 instanceof Double[];
-        assert value2 instanceof Double[];
-
-        Double[] p1 = (Double[]) value1;
-        Double[] p2 = (Double[]) value2;
-
-        assert p1.length == 2;
-        assert p2.length == 2;
-
-        return GeoDistance.SLOPPY_ARC.calculate(p1[0], p1[1], p2[0], p2[1], DistanceUnit.METERS);
+         // need to handle list also - because e.g. ESSearchTask returns geo_points as list
+        if (value1 instanceof List) {
+            x1 = (Double)((List) value1).get(0);
+            y1 = (Double)((List) value1).get(1);
+        } else {
+            x1 = ((Double[]) value1)[0];
+            y1 = ((Double[]) value1)[1];
+        }
+        if (value2 instanceof List) {
+            x2 = (Double)((List) value2).get(0);
+            y2 = (Double)((List) value2).get(1);
+        } else {
+            x2 = ((Double[]) value2)[0];
+            y2 = ((Double[]) value2)[1];
+        }
+        return GeoDistance.SLOPPY_ARC.calculate(x1, y1, x2, y2, DistanceUnit.METERS);
     }
 
     @Override
