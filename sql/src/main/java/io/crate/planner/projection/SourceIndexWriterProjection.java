@@ -109,6 +109,11 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     }
 
     @Override
+    public ProjectionType projectionType() {
+        return ProjectionType.INDEX_WRITER;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

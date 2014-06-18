@@ -64,13 +64,8 @@ public class TopNProjection extends Projection {
     public TopNProjection(int limit, int offset, @Nullable List<Symbol> orderBy, @Nullable boolean[] reverseFlags, @Nullable Boolean[] nullsFirst) {
         this(limit, offset);
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
-        if (this.orderBy.isEmpty()) {
-            this.reverseFlags = new boolean[0];
-            this.nullsFirst = new Boolean[0];
-        } else {
-            this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
-            this.nullsFirst = Objects.firstNonNull(nullsFirst, new Boolean[0]);
-        }
+        this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
+        this.nullsFirst = Objects.firstNonNull(nullsFirst, new Boolean[0]);
         assert this.orderBy.size() == this.reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert this.nullsFirst.length == this.reverseFlags.length;
     }

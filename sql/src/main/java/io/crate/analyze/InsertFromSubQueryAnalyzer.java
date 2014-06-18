@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.CastFunction;
@@ -44,6 +45,13 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
         node.table().accept(this, context); // table existence check happening here
 
         process(node.subQuery(), context);
+
+        // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
+        if (!context.subQueryAnalysis().hasGroupBy()
+                && (context.subQueryAnalysis().isLimited() || context.subQueryAnalysis().isSorted())) {
+            throw new UnsupportedFeatureException("Using limit, offset or order by is not" +
+                    "supported on insert using a sub-query");
+        }
 
         int numInsertColumns = node.columns().size() == 0 ? context.table().columns().size() : node.columns().size();
         int maxInsertValues = Math.max(numInsertColumns, context.getSubQueryColumns().size());
@@ -107,8 +115,20 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
                     FunctionIdent ident = new FunctionIdent(CastFunction.NAME, ImmutableList.of(subQueryColumnType, insertColumn.valueType()));
                     FunctionInfo functionInfo = context.getFunctionInfo(ident);
                     // because size of argument types and arguments must be equal, we add a dummy argument here
-                    subQueryColumns.set(idx, context.allocateFunction(functionInfo, Arrays.asList(subQueryColumn, null)));
-
+                    Function function = context.allocateFunction(functionInfo, Arrays.asList(subQueryColumn, Literal.newLiteral(insertColumn.valueType(), null)));
+                    if (context.subQueryAnalysis().hasGroupBy()) {
+                        int groupByIdx = context.subQueryAnalysis().groupBy().indexOf(subQueryColumn);
+                        if (groupByIdx != -1) {
+                            context.subQueryAnalysis().groupBy().set(groupByIdx, function);
+                        }
+                    }
+                    if (context.subQueryAnalysis().sortSymbols() != null) {
+                        int sortSymbolIdx = context.subQueryAnalysis().sortSymbols().indexOf(subQueryColumn);
+                        if (sortSymbolIdx != -1) {
+                            context.subQueryAnalysis().sortSymbols().set(sortSymbolIdx, function);
+                        }
+                    }
+                    subQueryColumns.set(idx, function);
                 }
             }
             idx++;

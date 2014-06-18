@@ -26,9 +26,12 @@ import com.google.common.collect.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,10 +92,82 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return columnIdents;
     }
 
-
-
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitColumnIndexWriterProjection(this, context);
     }
+
+    @Override
+    public ProjectionType projectionType() {
+        return ProjectionType.COLUMN_INDEX_WRITER;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        ColumnIndexWriterProjection that = (ColumnIndexWriterProjection) o;
+
+        if (!columnSymbols.equals(that.columnSymbols)) return false;
+        if (!columnIdents.equals(that.columnIdents)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (columnSymbols != null ? columnSymbols.hashCode() : 0);
+        result = 31 * result + (columnIdents != null ? columnIdents.hashCode() : 0);
+        return result;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+
+        if (in.readBoolean()) {
+            int length = in.readVInt();
+            columnSymbols = new ArrayList<>(length);
+            for (int i = 0; i < length; i++) {
+                columnSymbols.add(Symbol.fromStream(in));
+            }
+        }
+        if (in.readBoolean()) {
+            int length = in.readVInt();
+            columnIdents = new ArrayList<>(length);
+            for (int i = 0; i < length; i++) {
+                ColumnIdent columnIdent = new ColumnIdent();
+                columnIdent.readFrom(in);
+                columnIdents.add(columnIdent);
+            }
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+
+        if (columnSymbols == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeVInt(columnSymbols.size());
+            for (Symbol columnSymbol : columnSymbols) {
+                Symbol.toStream(columnSymbol, out);
+            }
+        }
+        if (columnIdents == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeVInt(columnIdents.size());
+            for (ColumnIdent columnIdent : columnIdents) {
+                columnIdent.writeTo(out);
+            }
+        }
+    }
+
 }
