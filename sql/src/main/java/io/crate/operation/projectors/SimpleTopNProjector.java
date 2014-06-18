@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
+import io.crate.Constants;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
@@ -39,7 +40,6 @@ public class SimpleTopNProjector implements Projector {
     private int remainingOffset;
     private int toCollect;
     private AtomicReference<Throwable> failure = new AtomicReference<>(null);
-    private final boolean collectAll;
 
     public SimpleTopNProjector(Input<?>[] inputs,
                                CollectExpression<?>[] collectExpressions,
@@ -49,8 +49,10 @@ public class SimpleTopNProjector implements Projector {
         Preconditions.checkArgument(offset>=0, "invalid offset");
         this.inputs = inputs;
         this.collectExpressions = collectExpressions;
+        if (limit == TopN.NO_LIMIT) {
+            limit = Constants.DEFAULT_SELECT_LIMIT;
+        }
         this.remainingOffset = offset;
-        this.collectAll = limit < 0;
         this.toCollect = limit;
 
     }
@@ -75,6 +77,7 @@ public class SimpleTopNProjector implements Projector {
 
     @Override
     public synchronized boolean setNextRow(Object[] row) {
+        assert toCollect >= 1;
         if (remainingOffset > 0) {
             remainingOffset--;
             return true;
@@ -83,13 +86,13 @@ public class SimpleTopNProjector implements Projector {
         if (downstream != null) {
             Object[] evaluatedRow = generateNextRow(row);
             if (!downstream.setNextRow(evaluatedRow)) {
-                return false;
+                toCollect = -1;
             }
         }
 
         toCollect--;
 
-        return (collectAll || toCollect > 0) && failure.get() == null;
+        return toCollect > 0 && failure.get() == null;
     }
 
     private Object[] generateNextRow(Object[] row) {
