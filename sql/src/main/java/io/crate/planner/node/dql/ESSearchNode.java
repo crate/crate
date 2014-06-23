@@ -38,7 +38,7 @@ import java.util.List;
 
 public class ESSearchNode extends ESDQLPlanNode {
 
-    private final List<Reference> orderBy;
+    private final List<Symbol> orderBy;
     private final int limit;
     private final int offset;
     private final boolean[] reverseFlags;
@@ -55,7 +55,7 @@ public class ESSearchNode extends ESDQLPlanNode {
      */
     public ESSearchNode(String[] indices,
                         List<Symbol> outputs,
-                        @Nullable List<Reference> orderBy,
+                        @Nullable List<Symbol> orderBy,
                         @Nullable boolean[] reverseFlags,
                         @Nullable Boolean[] nullsFirst,
                         @Nullable Integer limit,
@@ -67,7 +67,7 @@ public class ESSearchNode extends ESDQLPlanNode {
         assert outputs != null;
         assert whereClause != null;
         this.indices = indices;
-        this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Reference>of());
+        this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
         this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
         this.nullsFirst = Objects.firstNonNull(nullsFirst, new Boolean[0]);
         Preconditions.checkArgument(this.orderBy.size() == this.reverseFlags.length,
@@ -108,7 +108,7 @@ public class ESSearchNode extends ESDQLPlanNode {
         return reverseFlags;
     }
 
-    public List<Reference> orderBy() {
+    public List<Symbol> orderBy() {
         return orderBy;
     }
 

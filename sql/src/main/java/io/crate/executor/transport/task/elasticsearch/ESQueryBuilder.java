@@ -57,6 +57,7 @@ import java.util.*;
 public class ESQueryBuilder {
 
     private final static Visitor visitor = new Visitor();
+    private final static OrderBySymbolVisitor orderByVisitor = new OrderBySymbolVisitor();
 
     /**
      * adds the "query" part to the XContentBuilder
@@ -197,7 +198,7 @@ public class ESQueryBuilder {
         return builder.bytes();
     }
 
-    private void addSorting(List<Reference> orderBy,
+    private void addSorting(List<Symbol> orderBy,
                             boolean[] reverseFlags,
                             Boolean[] nullsFirst,
                             XContentBuilder builder) throws IOException {
@@ -206,27 +207,75 @@ public class ESQueryBuilder {
         }
 
         builder.startArray("sort");
-        int i = 0;
-        for (Reference reference : orderBy) {
+        OrderByContext context = new OrderByContext(builder, reverseFlags, nullsFirst);
+        for (Symbol symbol : orderBy) {
+            orderByVisitor.process(symbol, context);
+        }
+        builder.endArray();
+    }
+
+    static class OrderByContext {
+        final boolean[] reverseFlags;
+        final Boolean[] nullsFirst;
+        final XContentBuilder builder;
+        int idx;
+
+        public OrderByContext(XContentBuilder builder, boolean[] reverseFlags, Boolean[] nullsFirst) {
+            this.builder = builder;
+            this.reverseFlags = reverseFlags;
+            this.nullsFirst = nullsFirst;
+            this.idx = 0;
+        }
+
+        boolean reverseFlag() {
+            return reverseFlags[idx];
+        }
+
+        @Nullable
+        Boolean nullFirst() {
+            return nullsFirst[idx];
+        }
+    }
+
+    static class OrderBySymbolVisitor extends SymbolVisitor<OrderByContext, Void> {
+
+        @Override
+        protected Void visitSymbol(Symbol symbol, OrderByContext context) {
+            throw new IllegalArgumentException(SymbolFormatter.format(
+                    "Can't use \"%s\" in the ORDER BY clause", symbol));
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, OrderByContext context) {
             String order = "asc";
             String missing = "_last";   // null > 'anyValue'; null values at the end.
-            if (reverseFlags[i]) {
+            if (context.reverseFlag()) {
                 order = "desc";
                 missing = "_first";     // null > 'anyValue'; null values at the beginning.
             }
-            if (nullsFirst[i] != null) {
-                missing = nullsFirst[i] ? "_first" : "_last";
+            Boolean nullFirst = context.nullFirst();
+            if (nullFirst != null) {
+                missing = nullFirst ? "_first" : "_last";
             }
-            builder.startObject()
-                    .startObject(reference.info().ident().columnIdent().fqn())
-                    .field("order", order)
-                    .field("missing", missing)
-                    .field("ignore_unmapped", true)
-                    .endObject()
-                    .endObject();
-            i++;
+            try {
+                context.builder.startObject()
+                        .startObject(symbol.info().ident().columnIdent().fqn())
+                        .field("order", order)
+                        .field("missing", missing)
+                        .field("ignore_unmapped", true)
+                        .endObject()
+                        .endObject();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            context.idx++;
+            return null;
         }
-        builder.endArray();
+
+        @Override
+        public Void visitDynamicReference(DynamicReference symbol, OrderByContext context) {
+            return visitReference(symbol, context);
+        }
     }
 
     static class Context {

@@ -531,26 +531,10 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         } else {
             searchSymbols = analysis.outputSymbols();
         }
-
-        List<Reference> orderBy = null;
-        if (analysis.isSorted()) {
-            orderBy = Lists.transform(analysis.sortSymbols(), new com.google.common.base.Function<Symbol, Reference>() {
-                @Nullable
-                @Override
-                public Reference apply(@Nullable Symbol symbol) {
-                    if (!symbolIsReference.apply(symbol)) {
-                        throw new IllegalArgumentException(
-                                SymbolFormatter.format(
-                                        "Unsupported order symbol for ESPlan: %s", symbol));
-                    }
-                    return (Reference)symbol;
-                }
-            });
-        }
         ESSearchNode node = new ESSearchNode(
                 indices(analysis),
                 searchSymbols,
-                orderBy,
+                analysis.sortSymbols(),
                 analysis.reverseFlags(),
                 analysis.nullsFirst(),
                 analysis.limit(),

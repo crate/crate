@@ -238,7 +238,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchNode node = new ESSearchNode(
                 new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
-                Arrays.<Reference>asList(name_ref),
+                Arrays.<Symbol>asList(name_ref),
                 new boolean[]{false},
                 new Boolean[] { null },
                 null, null, WhereClause.MATCH_ALL,
@@ -275,7 +275,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchNode node = new ESSearchNode(
                 new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
-                Arrays.<Reference>asList(name_ref),
+                Arrays.<Symbol>asList(name_ref),
                 new boolean[]{false},
                 new Boolean[] { null },
                 null, null,
@@ -329,7 +329,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchNode node = new ESSearchNode(
                 new String[]{"searchf"},
                 Arrays.<Symbol>asList(id_ref, date_ref),
-                Arrays.asList(id_ref),
+                Arrays.<Symbol>asList(id_ref),
                 new boolean[]{false},
                 new Boolean[] { null },
                 null, null,
@@ -367,7 +367,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchNode node = new ESSearchNode(
                 aliases.keys().toArray(String.class),
                 Arrays.<Symbol>asList(parted_id_ref, parted_name_ref, parted_date_ref),
-                Arrays.<Reference>asList(name_ref),
+                Arrays.<Symbol>asList(name_ref),
                 new boolean[]{false},
                 new Boolean[] { null },
                 null, null,
@@ -422,7 +422,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchNode searchNode = new ESSearchNode(
                 new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
-                Arrays.<Reference>asList(name_ref),
+                Arrays.<Symbol>asList(name_ref),
                 new boolean[]{false},
                 new Boolean[] { null },
                 null, null,
@@ -763,7 +763,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchNode node = new ESSearchNode(
                 new String[]{"characters"},
                 Arrays.<Symbol>asList(id_ref, name_ref),
-                ImmutableList.of(id_ref),
+                ImmutableList.<Symbol>of(id_ref),
                 new boolean[]{false},
                 new Boolean[] { null },
                 null, null, new WhereClause(searchWhereClause),

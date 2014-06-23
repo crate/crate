@@ -309,7 +309,7 @@ public class ESQueryBuilderTest {
         ESSearchNode searchNode = new ESSearchNode(
                 new String[]{characters.name()},
                 ImmutableList.<Symbol>of(name_ref),
-                ImmutableList.<Reference>of(),
+                ImmutableList.<Symbol>of(),
                 new boolean[0],
                 new Boolean[0],
                 null,
