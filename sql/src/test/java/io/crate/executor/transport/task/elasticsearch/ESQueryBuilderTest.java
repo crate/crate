@@ -538,4 +538,55 @@ public class ESQueryBuilderTest {
         );
         generator.convert(new WhereClause(whereClause));
     }
+
+    @Test
+    public void testConvertESSearchNodeWithOrderByDistance() throws Exception {
+        Function distanceFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(DistanceFunction.NAME, Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT)),
+                        DataTypes.DOUBLE),
+                Arrays.<Symbol>asList(
+                        createReference("location", DataTypes.GEO_POINT),
+                        Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
+                )
+        );
+        ESSearchNode searchNode = new ESSearchNode(
+                new String[]{characters.name()},
+                ImmutableList.<Symbol>of(name_ref),
+                ImmutableList.<Symbol>of(distanceFunction),
+                new boolean[] { false },
+                new Boolean[] { null },
+                null,
+                null,
+                WhereClause.MATCH_ALL,
+                null);
+        BytesReference reference = generator.convert(searchNode);
+        String actual = reference.toUtf8();
+        assertThat(actual, is(
+                "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}},\"sort\":[{\"_geo_distance\":{\"location\":[10.0,20.0],\"order\":\"asc\"}}],\"from\":0,\"size\":10000}"));
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testConvertESSearchNodeWithOrderByDistanceTwoReferences() throws Exception {
+        Function distanceFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(DistanceFunction.NAME, Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT)),
+                        DataTypes.DOUBLE),
+                Arrays.<Symbol>asList(
+                        createReference("location", DataTypes.GEO_POINT),
+                        createReference("location2", DataTypes.GEO_POINT)
+                )
+        );
+        ESSearchNode searchNode = new ESSearchNode(
+                new String[]{characters.name()},
+                ImmutableList.<Symbol>of(name_ref),
+                ImmutableList.<Symbol>of(distanceFunction),
+                new boolean[] { false },
+                new Boolean[] { null },
+                null,
+                null,
+                WhereClause.MATCH_ALL,
+                null);
+        generator.convert(searchNode);
+    }
 }

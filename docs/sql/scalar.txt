@@ -155,5 +155,6 @@ type casting of geo points::
     +--------------------------------------------+
     SELECT 1 row in set (... sec)
 
-This scalar function can be used in the ``WHERE`` clause as part of a
-comparison with a literal.
+This scalar function can always be used in both the ``WHERE`` and ``ORDER BY``
+clauses. With the limitation that one of the arguments must be a literal and
+the other argument must be a column reference.

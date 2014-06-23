@@ -4116,12 +4116,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into t (id, p) values (2, 'POINT (11 21)')");
         refresh();
 
-        execute("select distance(p, 'POINT (11 21)') from t");
+        execute("select distance(p, 'POINT (11 21)') from t order by 1");
         assertThat(response.rowCount(), is(2L));
 
-        // no order by so need to figure out the order
-        Double result1 = Math.min((Double) response.rows()[0][0], (Double) response.rows()[1][0]);
-        Double result2 = Math.max((Double) response.rows()[0][0], (Double) response.rows()[1][0]);
+        Double result1 = (Double) response.rows()[0][0];
+        Double result2 = (Double) response.rows()[1][0];
 
         assertThat(result1, is(0.0d));
         assertThat(result2, is(156098.81231186818D));

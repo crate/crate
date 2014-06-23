@@ -247,21 +247,12 @@ public class ESQueryBuilder {
 
         @Override
         public Void visitReference(Reference symbol, OrderByContext context) {
-            String order = "asc";
-            String missing = "_last";   // null > 'anyValue'; null values at the end.
-            if (context.reverseFlag()) {
-                order = "desc";
-                missing = "_first";     // null > 'anyValue'; null values at the beginning.
-            }
-            Boolean nullFirst = context.nullFirst();
-            if (nullFirst != null) {
-                missing = nullFirst ? "_first" : "_last";
-            }
+            SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
             try {
                 context.builder.startObject()
                         .startObject(symbol.info().ident().columnIdent().fqn())
-                        .field("order", order)
-                        .field("missing", missing)
+                        .field("order", sortOrder.order())
+                        .field("missing", sortOrder.missing())
                         .field("ignore_unmapped", true)
                         .endObject()
                         .endObject();
@@ -273,8 +264,76 @@ public class ESQueryBuilder {
         }
 
         @Override
+        public Void visitFunction(Function symbol, OrderByContext context) {
+            if (symbol.info().ident().name().equals(DistanceFunction.NAME)) {
+                Symbol referenceSymbol = symbol.arguments().get(0);
+                Symbol valueSymbol = symbol.arguments().get(1);
+                if (referenceSymbol.symbolType().isValueSymbol()) {
+                    if (!valueSymbol.symbolType().isValueSymbol()) {
+                        throw new IllegalArgumentException(SymbolFormatter.format(
+                                "Can't use \"%s\" in the ORDER BY clause. Requires one column reference and one literal", symbol));
+                    }
+                    Symbol tmp = referenceSymbol;
+                    referenceSymbol = valueSymbol;
+                    valueSymbol = tmp;
+                }
+
+                SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
+                Reference reference;
+                Input input;
+                try {
+                    reference = (Reference) referenceSymbol;
+                    input = (Input) valueSymbol;
+                } catch (ClassCastException e) {
+                    throw new IllegalArgumentException(SymbolFormatter.format(
+                            "Can't use \"%s\" in the ORDER BY clause. Requires one column reference and one literal", symbol), e);
+                }
+
+                try {
+                    context.builder.startObject().startObject("_geo_distance")
+                            .field(reference.info().ident().columnIdent().fqn(), input.value())
+                            .field("order", sortOrder.order())
+                            .endObject()
+                            .endObject();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                context.idx++;
+                return null;
+            } else {
+                context.idx++;
+                return visitSymbol(symbol, context);
+            }
+        }
+
+        @Override
         public Void visitDynamicReference(DynamicReference symbol, OrderByContext context) {
             return visitReference(symbol, context);
+        }
+
+        private class SortOrder {
+            private String order;
+            private String missing;
+
+            public SortOrder(boolean reverseFlag, Boolean nullFirst) {
+                order = "asc";
+                missing = "_last";
+                if (reverseFlag) {
+                    order = "desc";
+                    missing = "_first";     // null > 'anyValue'; null values at the beginning.
+                }
+                if (nullFirst != null) {
+                    missing = nullFirst ? "_first" : "_last";
+                }
+            }
+
+            public String order() {
+                return order;
+            }
+
+            public String missing() {
+                return missing;
+            }
         }
     }
 
