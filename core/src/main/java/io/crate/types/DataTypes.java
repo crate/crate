@@ -53,6 +53,7 @@ public class DataTypes {
     public final static ObjectType OBJECT = ObjectType.INSTANCE;
 
     public final static GeoPointType GEO_POINT = GeoPointType.INSTANCE;
+    public final static GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
 
     public final static ImmutableList<DataType> PRIMITIVE_TYPES = ImmutableList.<DataType>of(
             BYTE,
@@ -89,6 +90,7 @@ public class DataTypes {
         .put(TimestampType.ID, TIMESTAMP)
         .put(ObjectType.ID, OBJECT)
         .put(GeoPointType.ID, GEO_POINT)
+        .put(GeoShapeType.ID, GEO_SHAPE)
         .put(ArrayType.ID, new DataTypeFactory() {
             @Override
             public DataType<?> create() {

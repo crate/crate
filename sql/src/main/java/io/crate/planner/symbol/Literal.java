@@ -2,6 +2,7 @@ package io.crate.planner.symbol;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.spatial4j.core.shape.Shape;
 import io.crate.operation.Input;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
@@ -188,6 +189,10 @@ public class Literal<ReturnType>
 
     public static Literal<Float> newLiteral(Float value) {
         return new Literal<>(DataTypes.FLOAT, value);
+    }
+
+    public static Literal<Shape> newGeoShape(String value) {
+        return new Literal<>(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value(value));
     }
 
     public static Literal toLiteral(Symbol symbol, DataType type) throws IllegalArgumentException {

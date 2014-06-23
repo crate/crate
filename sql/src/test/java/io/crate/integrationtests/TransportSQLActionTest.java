@@ -4141,4 +4141,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select p from t where distance(p, 'POINT (10 20)') = 0");
         assertThat(response.rowCount(), is(1L));
     }
+
+    @Test
+    public void testWithinQuery() throws Exception {
+        execute("create table t (id int primary key, p geo_point) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (id, p) values (1, 'POINT (10 10)')");
+        refresh();
+
+        execute("select within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))') from t");
+        assertThat((Boolean) response.rows()[0][0], is(true));
+    }
 }
