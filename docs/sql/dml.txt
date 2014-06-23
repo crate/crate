@@ -753,6 +753,61 @@ multiple values for the ``INSERT`` statement::
     ... ('17', '2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10);
     INSERT OK, 2 rows affected (... sec)
 
+Inserting data by query
+-----------------------
+
+It is possible to insert data using a query instead of values. Column
+data types of source and target table can differ as long as the values
+are castable. This gives the opportunity to restructure the tables
+data, renaming a field, changing a field's data type or convert a
+normal table into a partitioned one.
+
+Example of changing a field's data type, in this case, changing the
+``position`` data type from integer to short::
+
+    cr> create table locations2 (id string primary key, name string, date timestamp, kind string, position short, description string)
+    ... clustered by(id) into 2 shards with (number_of_replicas=0)
+    CREATE OK (... sec)
+    cr> insert into locations2 (id, name, date, kind, postition, description) (select id, name, date, kind, position, description from locations where position < 10)
+    INSERT OK, 13 rows affected (... sec)
+
+.. Hidden: drop previously created table
+
+   cr> drop table locations2
+    DROP OK (... sec)
+
+Example of creating a new partitioned table out of the ``locations``
+table with data partitioned by year::
+
+    cr> create table locations_parted (id string primary key, name string, year string primary key, date timestamp, kind string, position integer, description string)
+    ... clustered by(id) into 2 shards partitioned by(year) with (number_of_replicas=0)
+    CREATE OK (... sec)
+    cr> insert into locations_parted (id, name, year, date, kind, postition, description)
+    ... (select id, name, format('%tY', date_trunc('year', date)), date, kind, position, description from locations)
+    INSERT OK, 15 rows affected (... sec)
+
+Resulting partitions of the last insert by query::
+
+    cr> select * from information_schema.table_partitions where table_name = 'locations_parted'
+    +------------------+-------------+-----------------+------------------+
+    | table_name       | schema_name | partition_ident | values           |
+    +------------------+-------------+-----------------+------------------+
+    | locations_parted | doc         | 042mstbcdg      | {"year": "null"} |
+    | locations_parted | doc         | 042j4c1h6c      | {"year": "2013"} |
+    | locations_parted | doc         | 042j2e9n74      | {"year": "1979"} |
+    +------------------+-------------+-----------------+------------------+
+    SELECT 3 rows in set (... sec)
+
+.. Hidden: drop previously created table
+
+   cr> drop table locations_parted
+    DROP OK (... sec)
+
+.. note::
+
+   ``limit``, ``offset`` and ``order by`` are not supported inside the
+   query statement.
+
 
 Updating data
 =============
