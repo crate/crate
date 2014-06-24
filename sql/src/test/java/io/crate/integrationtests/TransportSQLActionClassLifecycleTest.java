@@ -774,4 +774,11 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         resp = executor.exec("select count(*) from characters where details is not null");
         assertThat((Long)resp.rows()[0][0], is(2L));
     }
+
+    @Test
+    public void testDistanceQueryOnSysTable() throws Exception {
+        SQLResponse response = executor.exec(
+                "select Distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster");
+        assertThat((Double) response.rows()[0][0], is(156098.81231186818d));
+    }
 }

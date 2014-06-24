@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -75,6 +76,10 @@ public class TestingHelpers {
     }
 
 
+
+    public static Function createFunction(String functionName, DataType returnType, Symbol... arguments) {
+        return createFunction(functionName, returnType, Arrays.asList(arguments));
+    }
 
     public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments) {
         List<DataType> dataTypes = Lists.transform(arguments, new com.google.common.base.Function<Symbol, DataType>() {

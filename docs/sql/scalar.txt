@@ -11,7 +11,7 @@ Scalar functions return a single data value (not a table).
 
     Scalar functions aren't available in all query clauses. For example if a
     regular (non-system table) is queried the WHERE clause may not contain any
-    functions.
+    scalar functions unless otherwise described in a function description below.
 
     In addition, the ORDER BY clause also may not contain any scalar functions
     unless GROUP BY is also present in the statement.
@@ -133,3 +133,61 @@ which defines the length of the substring::
     | at                 |
     +--------------------+
     SELECT 1 row in set (... sec)
+
+
+distance(geo_point1, geo_point2) returns double
+===============================================
+
+The ``distance`` function can be used to calculate the distance between two
+points on earth.
+
+The return value is the distance in meters.
+
+Below is an example of the distance function where both points are specified
+using WKT. See :ref:`geo_point_data_type` for more information on the implicit
+type casting of geo points::
+
+    cr> select distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster;
+    +--------------------------------------------+
+    | distance('POINT (10 20)', 'POINT (11 21)') |
+    +--------------------------------------------+
+    |                              156098.812312 |
+    +--------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+This scalar function can always be used in both the ``WHERE`` and ``ORDER BY``
+clauses. With the limitation that one of the arguments must be a literal and
+the other argument must be a column reference.
+
+.. note::
+
+    The algorithm of the calculation which is used when the distance function
+    is used as part of the result column list has a different precision than
+    what is stored inside the index which is utilized if the distance function
+    is part of a WHERE clause.
+    
+    For example if `select distance(...)` returns 0.0 an equality check with
+    `where distance(...) = 0` might not yield anything at all due to the
+    precision difference.
+
+within(shape1, shape2) returns boolean
+======================================
+
+The ``within`` function returns true if ``shape1`` is within ``shape2``. If
+that is not the case false is returned.
+
+``shape1`` can either be a ``geo_shape`` or a ``geo_point``. ``shape2`` must be
+a ``geo_shape``.
+
+Below is an example of the within function which makes use of the implicit type
+casting from strings to geo point and geo shapes::
+
+    cr> select within('POINT (10 10)', 'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))') from sys.cluster;
+    +--------------------------------------------------------------------+
+    | within('POINT (10 10)', 'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))') |
+    +--------------------------------------------------------------------+
+    | TRUE                                                               |
+    +--------------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+This function can always be used within a ``WHERE`` clause.

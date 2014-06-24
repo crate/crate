@@ -24,15 +24,23 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.spatial4j.core.context.jts.JtsSpatialContext;
+import com.spatial4j.core.shape.Shape;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.operation.Input;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.MatchFunction;
+import io.crate.operation.scalar.geo.DistanceFunction;
+import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.ESSearchNode;
@@ -43,8 +51,10 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -54,13 +64,28 @@ import java.util.*;
 public class ESQueryBuilder {
 
     private final static Visitor visitor = new Visitor();
+    private final static OrderBySymbolVisitor orderByVisitor = new OrderBySymbolVisitor();
+
+    static final class Fields {
+        static final XContentBuilderString FILTERED = new XContentBuilderString("filtered");
+        static final XContentBuilderString QUERY = new XContentBuilderString("query");
+        static final XContentBuilderString MATCH_ALL = new XContentBuilderString("match_all");
+        static final XContentBuilderString FILTER = new XContentBuilderString("filter");
+        static final XContentBuilderString GEO_BOUNDING_BOX = new XContentBuilderString("geo_bounding_box");
+        static final XContentBuilderString TOP_LEFT = new XContentBuilderString("top_left");
+        static final XContentBuilderString BOTTOM_RIGHT = new XContentBuilderString("bottom_right");
+        static final XContentBuilderString LON = new XContentBuilderString("lon");
+        static final XContentBuilderString LAT = new XContentBuilderString("lat");
+        static final XContentBuilderString GEO_POLYGON = new XContentBuilderString("geo_polygon");
+        static final XContentBuilderString POINTS = new XContentBuilderString("points");
+    }
 
     /**
      * adds the "query" part to the XContentBuilder
      */
 
     private void whereClause(Context context, WhereClause whereClause) throws IOException {
-        context.builder.startObject("query");
+        context.builder.startObject(Fields.QUERY);
         if (whereClause.hasQuery()) {
             visitor.process(whereClause.query(), context);
         } else {
@@ -194,7 +219,7 @@ public class ESQueryBuilder {
         return builder.bytes();
     }
 
-    private void addSorting(List<Reference> orderBy,
+    private void addSorting(List<Symbol> orderBy,
                             boolean[] reverseFlags,
                             Boolean[] nullsFirst,
                             XContentBuilder builder) throws IOException {
@@ -203,38 +228,145 @@ public class ESQueryBuilder {
         }
 
         builder.startArray("sort");
-        int i = 0;
-        for (Reference reference : orderBy) {
-            String order = "asc";
-            String missing = "_last";   // null > 'anyValue'; null values at the end.
-            if (reverseFlags[i]) {
-                order = "desc";
-                missing = "_first";     // null > 'anyValue'; null values at the beginning.
-            }
-            if (nullsFirst[i] != null) {
-                missing = nullsFirst[i] ? "_first" : "_last";
-            }
-            builder.startObject()
-                    .startObject(reference.info().ident().columnIdent().fqn())
-                    .field("order", order)
-                    .field("missing", missing)
-                    .field("ignore_unmapped", true)
-                    .endObject()
-                    .endObject();
-            i++;
+        OrderByContext context = new OrderByContext(builder, reverseFlags, nullsFirst);
+        for (Symbol symbol : orderBy) {
+            orderByVisitor.process(symbol, context);
         }
         builder.endArray();
     }
 
+    static class OrderByContext {
+        final boolean[] reverseFlags;
+        final Boolean[] nullsFirst;
+        final XContentBuilder builder;
+        int idx;
+
+        public OrderByContext(XContentBuilder builder, boolean[] reverseFlags, Boolean[] nullsFirst) {
+            this.builder = builder;
+            this.reverseFlags = reverseFlags;
+            this.nullsFirst = nullsFirst;
+            this.idx = 0;
+        }
+
+        boolean reverseFlag() {
+            return reverseFlags[idx];
+        }
+
+        @Nullable
+        Boolean nullFirst() {
+            return nullsFirst[idx];
+        }
+    }
+
+    static class OrderBySymbolVisitor extends SymbolVisitor<OrderByContext, Void> {
+
+        @Override
+        protected Void visitSymbol(Symbol symbol, OrderByContext context) {
+            throw new IllegalArgumentException(SymbolFormatter.format(
+                    "Can't use \"%s\" in the ORDER BY clause", symbol));
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, OrderByContext context) {
+            SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
+            try {
+                context.builder.startObject()
+                        .startObject(symbol.info().ident().columnIdent().fqn())
+                        .field("order", sortOrder.order())
+                        .field("missing", sortOrder.missing())
+                        .field("ignore_unmapped", true)
+                        .endObject()
+                        .endObject();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            context.idx++;
+            return null;
+        }
+
+        @Override
+        public Void visitFunction(Function symbol, OrderByContext context) {
+            if (symbol.info().ident().name().equals(DistanceFunction.NAME)) {
+                Symbol referenceSymbol = symbol.arguments().get(0);
+                Symbol valueSymbol = symbol.arguments().get(1);
+                if (referenceSymbol.symbolType().isValueSymbol()) {
+                    if (!valueSymbol.symbolType().isValueSymbol()) {
+                        throw new IllegalArgumentException(SymbolFormatter.format(
+                                "Can't use \"%s\" in the ORDER BY clause. Requires one column reference and one literal", symbol));
+                    }
+                    Symbol tmp = referenceSymbol;
+                    referenceSymbol = valueSymbol;
+                    valueSymbol = tmp;
+                }
+
+                SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
+                Reference reference;
+                Input input;
+                try {
+                    reference = (Reference) referenceSymbol;
+                    input = (Input) valueSymbol;
+                } catch (ClassCastException e) {
+                    throw new IllegalArgumentException(SymbolFormatter.format(
+                            "Can't use \"%s\" in the ORDER BY clause. Requires one column reference and one literal", symbol), e);
+                }
+
+                try {
+                    context.builder.startObject().startObject("_geo_distance")
+                            .field(reference.info().ident().columnIdent().fqn(), input.value())
+                            .field("order", sortOrder.order())
+                            .endObject()
+                            .endObject();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                context.idx++;
+                return null;
+            } else {
+                context.idx++;
+                return visitSymbol(symbol, context);
+            }
+        }
+
+        @Override
+        public Void visitDynamicReference(DynamicReference symbol, OrderByContext context) {
+            return visitReference(symbol, context);
+        }
+
+        private class SortOrder {
+            private String order;
+            private String missing;
+
+            public SortOrder(boolean reverseFlag, Boolean nullFirst) {
+                order = "asc";
+                missing = "_last";
+                if (reverseFlag) {
+                    order = "desc";
+                    missing = "_first";     // null > 'anyValue'; null values at the beginning.
+                }
+                if (nullFirst != null) {
+                    missing = nullFirst ? "_first" : "_last";
+                }
+            }
+
+            public String order() {
+                return order;
+            }
+
+            public String missing() {
+                return missing;
+            }
+        }
+    }
+
     static class Context {
         XContentBuilder builder;
-        Map<String, Object> ignoredFields = new HashMap<>();
+        final Map<String, Object> ignoredFields = new HashMap<>();
 
         /**
          * these fields are ignored in the whereClause
          * (only applies to Function with 2 arguments and if left == reference and right == literal)
          */
-        Set<String> filteredFields = new HashSet<String>(){{ add("_score"); }};
+        final Set<String> filteredFields = new HashSet<String>(){{ add("_score"); }};
 
         /**
          * key = columnName
@@ -243,12 +375,15 @@ public class ESQueryBuilder {
          * (in the _version case if the primary key is present a GetPlan is built from the planner and
          * the ESQueryBuilder is never used)
          */
-        Map<String, String> unsupportedFields = ImmutableMap.<String, String>builder()
+        final Map<String, String> unsupportedFields = ImmutableMap.<String, String>builder()
                 .put("_version", "\"_version\" column is only valid in the WHERE clause if the primary key column is also present")
                 .build();
     }
 
     static class Visitor extends SymbolVisitor<Context, Void> {
+
+        private final ImmutableMap<String, Converter<? extends Symbol>> innerFunctions;
+        private final ImmutableMap<String, Converter<? extends Symbol>> functions;
 
         Visitor() {
             EqConverter eqConverter = new EqConverter();
@@ -256,7 +391,7 @@ public class ESQueryBuilder {
             RangeConverter lteConverter = new RangeConverter("lte");
             RangeConverter gtConverter = new RangeConverter("gt");
             RangeConverter gteConverter = new RangeConverter("gte");
-            functions = ImmutableMap.<String, Converter>builder()
+            functions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
                     .put(AndOperator.NAME, new AndConverter())
                     .put(OrOperator.NAME, new OrConverter())
                     .put(EqOperator.NAME, eqConverter)
@@ -277,17 +412,206 @@ public class ESQueryBuilder {
                     .put(AnyGteOperator.NAME, gteConverter)
                     .put(AnyLikeOperator.NAME, new LikeConverter())
                     .put(AnyNotLikeOperator.NAME, new AnyNotLikeConverter())
+                    .put(WithinFunction.NAME, new WithinConverter())
+                    .build();
+
+
+            innerFunctions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
+                    .put(DistanceFunction.NAME, new DistanceConverter())
+                    .put(WithinFunction.NAME, new WithinConverter())
                     .build();
         }
 
         static abstract class Converter<T extends Symbol> {
-            public abstract void convert(T function, Context context) throws IOException;
+
+            /**
+             * function that writes the xContent onto the context.
+             * May abort early by returning false if it can't convert the argument.
+             * Concrete implementation must not write to the context if it returns false.
+             */
+            public abstract boolean convert(T function, Context context) throws IOException;
+        }
+
+
+        class WithinConverter extends Converter<Function> {
+
+            @Override
+            public boolean convert(Function function, Context context) throws IOException {
+                assert function.arguments().size() == 2;
+                String functionName = function.info().ident().name();
+
+                boolean negate = false;
+                Function withinFunction;
+                if (functionName.equals(WithinFunction.NAME)) {
+                    withinFunction = function;
+                } else {
+                    Symbol functionSymbol = function.arguments().get(0);
+                    Symbol valueSymbol;
+                    if (functionSymbol.symbolType().isValueSymbol()) {
+                        valueSymbol = functionSymbol;
+                        functionSymbol = function.arguments().get(1);
+                        if (functionSymbol.symbolType() != SymbolType.FUNCTION) {
+                            throw new IllegalArgumentException("Can't compare two within functions");
+                        }
+                    } else {
+                        valueSymbol = function.arguments().get(1);
+                        if (!valueSymbol.symbolType().isValueSymbol()) {
+                            throw new IllegalArgumentException("Can't compare two within functions");
+                        }
+                    }
+                    withinFunction = (Function) functionSymbol;
+                    negate = !((Boolean) ((Input) valueSymbol).value());
+                }
+                if (negate) {
+                    context.builder.startObject("bool").startObject("must_not");
+                }
+
+                assert withinFunction.arguments().size() == 2;
+                Symbol leftSymbol = withinFunction.arguments().get(0);
+                Symbol rightSymbol = withinFunction.arguments().get(1);
+
+                if (!(leftSymbol instanceof Reference)) {
+                    throw new IllegalArgumentException("Second argument to the within function must be a literal");
+                }
+                writeFilterToContext(context, (Reference) leftSymbol, (Input) rightSymbol);
+
+                if (negate) {
+                    context.builder.endObject().endObject();
+                }
+                return true;
+            }
+
+            private void writeFilterToContext(Context context, Reference reference, Input rightSymbol) throws IOException {
+                Shape shape = (Shape) rightSymbol.value();
+                Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
+
+                context.builder.startObject(Fields.FILTERED)
+                        .startObject(Fields.QUERY)
+                        .startObject(Fields.MATCH_ALL).endObject()
+                        .endObject()
+                        .startObject(Fields.FILTER);
+
+                if (geometry.isRectangle()) {
+                    Envelope envelope = geometry.getEnvelopeInternal();
+
+                    context.builder.startObject(Fields.GEO_BOUNDING_BOX)
+                            .startObject(reference.info().ident().columnIdent().fqn())
+                            .startObject(Fields.TOP_LEFT)
+                            .field(Fields.LON, envelope.getMinX())
+                            .field(Fields.LAT, envelope.getMaxY())
+                            .endObject()
+                            .startObject(Fields.BOTTOM_RIGHT)
+                            .field(Fields.LON, envelope.getMaxX())
+                            .field(Fields.LAT, envelope.getMinY())
+                            .endObject()
+                            .endObject() // reference
+                            .endObject(); // bounding box
+                } else {
+                    context.builder
+                            .startObject(Fields.GEO_POLYGON)
+                            .startObject(reference.info().ident().columnIdent().fqn())
+                            .startArray(Fields.POINTS);
+
+                    for (Coordinate coordinate : geometry.getCoordinates()) {
+                        context.builder.startObject()
+                                .field(Fields.LON, coordinate.x)
+                                .field(Fields.LAT, coordinate.y)
+                                .endObject();
+                    }
+
+                    context.builder.endArray() // points
+                            .endObject() // reference name
+                            .endObject(); // geo_polygon
+                }
+
+                context.builder.endObject() // filter
+                       .endObject(); // filtered
+            }
+        }
+
+        class DistanceConverter extends Converter<Function> {
+
+            private final Map<String, String> FIELD_NAME_MAP = ImmutableMap.<String, String>builder()
+                    .put(GtOperator.NAME, "gt")
+                    .put(GteOperator.NAME, "gte")
+                    .put(LtOperator.NAME, "lt")
+                    .put(LteOperator.NAME, "lte")
+                    .build();
+
+            @Override
+            public boolean convert(Function function, Context context) throws IOException {
+                assert function.arguments().size() == 2;
+
+                String functionName = function.info().ident().name();
+                String valueFieldName = FIELD_NAME_MAP.get(functionName);
+
+                context.builder.startObject(Fields.FILTERED);
+                context.builder.startObject(Fields.QUERY)
+                        .startObject(Fields.MATCH_ALL).endObject()
+                        .endObject();
+                context.builder.startObject(Fields.FILTER)
+                        .startObject("geo_distance_range");
+
+                Symbol valueSymbol;
+                Symbol functionSymbol = function.arguments().get(0);
+                if (functionSymbol.symbolType().isValueSymbol()) {
+                    valueSymbol = functionSymbol;
+                    functionSymbol = function.arguments().get(1);
+                    if (functionSymbol.symbolType() != SymbolType.FUNCTION) {
+                        throw new IllegalArgumentException("Can't compare two distance functions");
+                    }
+                } else {
+                    valueSymbol = function.arguments().get(1);
+                    if (!valueSymbol.symbolType().isValueSymbol()) {
+                        throw new IllegalArgumentException("Can't compare two distance functions");
+                    }
+                }
+                handleFunctionSymbol(context, (Function) functionSymbol);
+                handleValueSymbol(context, functionName, valueFieldName, valueSymbol);
+
+                context.builder.endObject(); // geo_distance_range
+                context.builder.endObject(); // filter
+                context.builder.endObject(); // filtered
+                return true;
+            }
+
+            private void handleFunctionSymbol(Context context, Function functionSymbol) throws IOException {
+                assert functionSymbol.arguments().size() == 2;
+                assert functionSymbol.info().ident().name().equals(DistanceFunction.NAME);
+                String fieldName = null;
+                Double[] point = null;
+                for (Symbol distanceArgument : functionSymbol.arguments()) {
+                    if (distanceArgument instanceof Reference) {
+                        fieldName = ((Reference)distanceArgument).info().ident().columnIdent().fqn();
+                    } else if (distanceArgument.symbolType().isValueSymbol()) {
+                        point = (Double[]) ((Input) distanceArgument).value();
+                    }
+                }
+                assert fieldName != null;
+                assert point != null;
+                context.builder.field(fieldName, point);
+            }
+
+            private void handleValueSymbol(Context context,
+                                           String functionName,
+                                           String valueFieldName,
+                                           Symbol valueSymbol) throws IOException {
+                Literal literal = Literal.toLiteral(valueSymbol, DataTypes.DOUBLE);
+                if (functionName.equals(EqOperator.NAME)) {
+                    context.builder.field("from", literal.value());
+                    context.builder.field("to", literal.value());
+                    context.builder.field("include_upper", true);
+                    context.builder.field("include_lower", true);
+                } else {
+                    context.builder.field(valueFieldName, literal.value());
+                }
+            }
         }
 
         class AndConverter extends Converter<Function> {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 context.builder.startObject("bool").startArray("must");
 
                 for (Symbol symbol : function.arguments()) {
@@ -296,13 +620,14 @@ public class ESQueryBuilder {
                     context.builder.endObject();
                 }
                 context.builder.endArray().endObject();
+                return true;
             }
         }
 
         class OrConverter extends Converter<Function> {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 context.builder.startObject("bool").field("minimum_should_match", 1).startArray("should");
 
                 for (Symbol symbol : function.arguments()) {
@@ -312,11 +637,13 @@ public class ESQueryBuilder {
                 }
 
                 context.builder.endArray().endObject();
+                return true;
             }
         }
 
         abstract class CmpConverter extends Converter<Function> {
 
+            @Nullable
             protected Tuple<String, Object> prepare(Function function) {
                 Preconditions.checkNotNull(function);
                 Preconditions.checkArgument(function.arguments().size() == 2);
@@ -325,7 +652,7 @@ public class ESQueryBuilder {
                 Symbol right = function.arguments().get(1);
 
                 if (left.symbolType() == SymbolType.FUNCTION || right.symbolType() == SymbolType.FUNCTION) {
-                    raiseUnsupported(function);
+                    return null;
                 }
 
                 assert left.symbolType() == SymbolType.REFERENCE || left.symbolType() == SymbolType.DYNAMIC_REFERENCE;
@@ -348,17 +675,24 @@ public class ESQueryBuilder {
 
         class EqConverter extends CmpConverter {
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = super.prepare(function);
+                if (tuple == null) {
+                    return false;
+                }
                 context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+                return true;
             }
         }
 
         class AnyNeqConverter extends CmpConverter {
             // 1 != ANY (col) --> gt 1 or lt 1
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = super.prepare(function);
+                if (tuple == null) {
+                    return false;
+                }
                 context.builder.startObject("bool")
                                 .field("minimum_should_match", 1)
                                 .startArray("should")
@@ -378,8 +712,7 @@ public class ESQueryBuilder {
                                     .endObject()
                                 .endArray()
                             .endObject();
-
-
+                return true;
             }
         }
 
@@ -414,11 +747,15 @@ public class ESQueryBuilder {
         class LikeConverter extends CmpConverter {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> prepare = prepare(function);
+                if (prepare == null) {
+                    return false;
+                }
                 String like = prepare.v2().toString();
                 like = convertWildcard(like);
                 context.builder.startObject("wildcard").field(prepare.v1(), like).endObject();
+                return true;
             }
         }
 
@@ -429,8 +766,11 @@ public class ESQueryBuilder {
             }
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> prepare = prepare(function);
+                if (prepare == null) {
+                    return false;
+                }
                 String notLike = prepare.v2().toString();
                 notLike = negateWildcard(convertWildcardToRegex(notLike));
                 context.builder.startObject("regexp")
@@ -439,13 +779,14 @@ public class ESQueryBuilder {
                             .field("flags", "COMPLEMENT")
                             .endObject()
                             .endObject();
+                return true;
             }
         }
 
         static class IsNullConverter extends Converter<Function> {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Preconditions.checkNotNull(function);
                 Preconditions.checkArgument(function.arguments().size() == 1);
 
@@ -455,24 +796,26 @@ public class ESQueryBuilder {
                 Reference reference = (Reference) arg;
                 String columnName = reference.info().ident().columnIdent().fqn();
 
-                context.builder.startObject("filtered").startObject("filter").startObject("missing")
+                context.builder.startObject(Fields.FILTERED).startObject(Fields.FILTER).startObject("missing")
                         .field("field", columnName)
                         .field("existence", true)
                         .field("null_value", true)
                         .endObject().endObject().endObject();
+                return true;
             }
         }
 
         class NotConverter extends Converter<Function> {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Preconditions.checkNotNull(function);
                 Preconditions.checkArgument(function.arguments().size() == 1);
 
                 context.builder.startObject("bool").startObject("must_not");
                 process(function.arguments().get(0), context);
                 context.builder.endObject().endObject();
+                return true;
             }
         }
 
@@ -485,27 +828,35 @@ public class ESQueryBuilder {
             }
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = super.prepare(function);
+                if (tuple == null) {
+                    return false;
+                }
                 context.builder.startObject("range")
                         .startObject(tuple.v1()).field(operator, tuple.v2()).endObject()
                         .endObject();
+                return true;
             }
         }
 
         class MatchConverter extends CmpConverter {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> tuple = super.prepare(function);
+                if (tuple == null) {
+                    return false;
+                }
                 context.builder.startObject("match").field(tuple.v1(), tuple.v2()).endObject();
+                return true;
             }
         }
 
         static class InConverter extends Converter<Function> {
 
             @Override
-            public void convert(Function function, Context context) throws IOException {
+            public boolean convert(Function function, Context context) throws IOException {
                 assert (function != null);
                 assert (function.arguments().size() == 2);
 
@@ -528,6 +879,7 @@ public class ESQueryBuilder {
                     }
                 }
                 context.builder.endArray().endObject();
+                return true;
             }
 
         }
@@ -545,15 +897,18 @@ public class ESQueryBuilder {
             }
 
             @Override
-            public void convert(Reference reference, Context context) throws IOException {
+            public boolean convert(Reference reference, Context context) throws IOException {
                 assert (reference != null);
                 assert (reference.valueType() == DataTypes.BOOLEAN);
                 Tuple<String, Boolean> tuple = prepare(reference);
+                if (tuple == null) {
+                    return false;
+                }
                 context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+                return true;
             }
         }
 
-        private ImmutableMap<String, Converter> functions;
 
         @Override
         public Void visitFunction(Function function, Context context) {
@@ -569,12 +924,26 @@ public class ESQueryBuilder {
                 if (converter == null) {
                     return raiseUnsupported(function);
                 }
-                converter.convert(function, context);
-
+                if (!convert(converter, function, context)) {
+                    for (Symbol symbol : function.arguments()) {
+                        if (symbol.symbolType() == SymbolType.FUNCTION) {
+                            converter = innerFunctions.get(((Function) symbol).info().ident().name());
+                            if (converter != null) {
+                                convert(converter, function, context);
+                                return null;
+                            }
+                        }
+                    }
+                }
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
             return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        private boolean convert(Converter converter, Function function, Context context) throws IOException {
+            return converter.convert(function, context);
         }
 
         @Override

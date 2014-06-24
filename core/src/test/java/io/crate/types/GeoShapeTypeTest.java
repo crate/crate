@@ -21,43 +21,25 @@
 
 package io.crate.types;
 
+import com.spatial4j.core.shape.Shape;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
-import java.util.Arrays;
-
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-public class GeoPointTypeTest {
+public class GeoShapeTypeTest {
 
     @Test
-    public void testStreaming() throws Throwable {
-        Double[] p1 = new Double[] { 41.2, -37.4 };
+    public void testStreamer() throws Exception {
+        Shape value = GeoShapeType.INSTANCE.value("POINT (10 10)");
 
         BytesStreamOutput out = new BytesStreamOutput();
-        DataTypes.GEO_POINT.writeValueTo(out, p1);
-
+        GeoShapeType.INSTANCE.writeValueTo(out, value);
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        Double[] p2 = DataTypes.GEO_POINT.readValueFrom(in);
+        Shape streamedShape = GeoShapeType.INSTANCE.readValueFrom(in);
 
-        assertThat(p1, equalTo(p2));
-    }
-
-    @Test
-    public void testWktToGeoPointValue() throws Exception {
-        Double[] value = DataTypes.GEO_POINT.value("POINT(1 2)");
-
-        assertThat(value[0], is(1.0d));
-        assertThat(value[1], is(2.0d));
-    }
-
-    @Test
-    public void testValueConversionFromList() throws Exception {
-        Double[] value = DataTypes.GEO_POINT.value(Arrays.asList(10.0, 20.2));
-        assertThat(value[0], is(10.0d));
-        assertThat(value[1], is(20.2d));
+        assertThat(streamedShape, equalTo(value));
     }
 }
