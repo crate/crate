@@ -5,10 +5,12 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/06/24 0.38.8
+=================
+
  - updated crate-admin to 0.7.6 which includes following changes:
 
     - fix: ui showed partitions from previously selected table
-
 
 2014/06/18 0.38.7
 =================
