@@ -138,6 +138,19 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(((String) response.rows()[0][0]).length(), is(36)); // looks like a uuid
     }
 
+    public void testSysClusterMasterNode() throws Exception {
+        execute("select id from sys.nodes");
+        List<String> nodes = new ArrayList<>();
+        for (Object[] nodeId : response.rows()) {
+            nodes.add((String)nodeId[0]);
+        }
+
+        execute("select master_node from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        String node = (String)response.rows()[0][0];
+        assertTrue(nodes.contains(node));
+    }
+
     @Test
     public void testSelectStar() throws Exception {
         execute("create table test (\"firstName\" string, \"lastName\" string)");

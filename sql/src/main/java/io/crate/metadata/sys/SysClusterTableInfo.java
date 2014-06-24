@@ -51,6 +51,7 @@ public class SysClusterTableInfo extends SysTableInfo {
     static {
         register("id", DataTypes.STRING, null);
         register("name", DataTypes.STRING, null);
+        register("master_node", DataTypes.STRING, null);
         register("settings", DataTypes.OBJECT, null);
         register("settings", DataTypes.INTEGER, ImmutableList.of(CrateSettings.JOBS_LOG_SIZE.name()));
         register("settings", DataTypes.INTEGER, ImmutableList.of(CrateSettings.OPERATIONS_LOG_SIZE.name()));

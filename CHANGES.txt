@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - implemented ``sys.cluster.master_node`` expression.
+
  - it is now possible to use `is null` on columns of any data type.
 
  - fix: creating a table with arrays as primary key now correctly results in an
