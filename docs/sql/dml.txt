@@ -763,6 +763,11 @@ multiple values for the ``INSERT`` statement::
 Inserting data by query
 -----------------------
 
+.. Hidden: refresh locations
+
+    cr> refresh table locations
+    REFRESH OK (... sec)
+
 It is possible to insert data using a query instead of values. Column
 data types of source and target table can differ as long as the values
 are castable. This gives the opportunity to restructure the tables
@@ -772,11 +777,23 @@ normal table into a partitioned one.
 Example of changing a field's data type, in this case, changing the
 ``position`` data type from integer to short::
 
-    cr> create table locations2 (id string primary key, name string, date timestamp, kind string, position short, description string)
-    ... clustered by(id) into 2 shards with (number_of_replicas=0)
+    cr> create table locations2 (
+    ...     id string primary key,
+    ...     name string,
+    ...     date timestamp,
+    ...     kind string,
+    ...     position short,
+    ...     description string
+    ... ) clustered by (id) into 2 shards with (number_of_replicas=0);
     CREATE OK (... sec)
-    cr> insert into locations2 (id, name, date, kind, postition, description) (select id, name, date, kind, position, description from locations where position < 10)
-    INSERT OK, 13 rows affected (... sec)
+
+    cr> insert into locations2 (id, name, date, kind, postition, description)
+    ... (
+    ...     select id, name, date, kind, position, description
+    ...     from locations
+    ...     where position < 10
+    ... )
+    INSERT OK, 14 rows affected (... sec)
 
 .. Hidden: drop previously created table
 
@@ -786,12 +803,29 @@ Example of changing a field's data type, in this case, changing the
 Example of creating a new partitioned table out of the ``locations``
 table with data partitioned by year::
 
-    cr> create table locations_parted (id string primary key, name string, year string primary key, date timestamp, kind string, position integer, description string)
-    ... clustered by(id) into 2 shards partitioned by(year) with (number_of_replicas=0)
+    cr> create table locations_parted (
+    ...     id string primary key,
+    ...     name string,
+    ...     year string primary key,
+    ...     date timestamp,
+    ...     kind string,
+    ...     position integer
+    ... ) clustered by (id) into 2 shards
+    ... partitioned by (year) with (number_of_replicas=0);
     CREATE OK (... sec)
-    cr> insert into locations_parted (id, name, year, date, kind, postition, description)
-    ... (select id, name, format('%tY', date_trunc('year', date)), date, kind, position, description from locations)
-    INSERT OK, 15 rows affected (... sec)
+
+    cr> insert into locations_parted (id, name, year, date, kind, postition)
+    ... (
+    ...     select
+    ...         id,
+    ...         name,
+    ...         format('%tY', date_trunc('year', date)),
+    ...         date,
+    ...         kind,
+    ...         position
+    ...     from locations
+    ... )
+    INSERT OK, 18 rows affected (... sec)
 
 Resulting partitions of the last insert by query::
 
