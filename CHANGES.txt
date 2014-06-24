@@ -5,6 +5,14 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.8.4 with includes following changes
+
+    - changed font in console for better readability
+
+    - fixed ui glitch that caused right column content to be cut off
+
+    - fix: include initializing shards in calculation for underreplicated shards
+
  - fix: creating a table with arrays as primary key now correctly results in an
    error as it is not supported.
 
