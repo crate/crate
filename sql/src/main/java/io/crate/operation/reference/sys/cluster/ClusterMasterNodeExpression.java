@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,35 +21,23 @@
 
 package io.crate.operation.reference.sys.cluster;
 
-import io.crate.ClusterIdService;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
-import java.util.concurrent.ExecutionException;
+public class ClusterMasterNodeExpression extends SysClusterExpression<BytesRef> {
 
-public class ClusterIdExpression extends SysClusterExpression<BytesRef> {
-
-    public static final String NAME = "id";
-    private final ClusterIdService clusterIdService;
-    private BytesRef value = null;
+    public static final String NAME = "master_node";
+    private final ClusterService clusterService;
 
     @Inject
-    public ClusterIdExpression(ClusterIdService clusterIdService) {
+    protected ClusterMasterNodeExpression(ClusterService clusterService) {
         super(NAME);
-        this.clusterIdService = clusterIdService;
+        this.clusterService = clusterService;
     }
 
     @Override
     public BytesRef value() {
-        // value could not be ready on node start-up, but is static once set
-        try {
-            if (value == null && clusterIdService.clusterId().get() != null) {
-                value = new BytesRef(clusterIdService.clusterId().get().value().toString());
-            }
-        } catch (InterruptedException|ExecutionException e) {
-            return null;
-        }
-        return value;
+        return new BytesRef(clusterService.state().nodes().masterNodeId());
     }
-
 }
