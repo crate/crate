@@ -159,6 +159,17 @@ This scalar function can always be used in both the ``WHERE`` and ``ORDER BY``
 clauses. With the limitation that one of the arguments must be a literal and
 the other argument must be a column reference.
 
+.. note::
+
+    The algorithm of the calculation which is used when the distance function
+    is used as part of the result column list has a different precision than
+    what is stored inside the index which is utilized if the distance function
+    is part of a WHERE clause.
+    
+    For example if `select distance(...)` returns 0.0 an equality check with
+    `where distance(...) = 0` might not yield anything at all due to the
+    precision difference.
+
 within(shape1, shape2) returns boolean
 ======================================
 
