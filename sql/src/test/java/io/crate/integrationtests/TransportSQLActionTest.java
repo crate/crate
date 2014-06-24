@@ -4153,5 +4153,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))') from t");
         assertThat((Boolean) response.rows()[0][0], is(true));
+
+        execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
+        assertThat(response.rowCount(), is(1L));
+        execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))')");
+        assertThat(response.rowCount(), is(1L));
     }
 }

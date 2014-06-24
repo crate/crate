@@ -179,3 +179,4 @@ casting from strings to geo point and geo shapes::
     +--------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
+This function can always be used within a ``WHERE`` clause.

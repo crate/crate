@@ -35,6 +35,7 @@ import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.MatchFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.geo.DistanceFunction;
+import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dql.ESSearchNode;
@@ -58,6 +59,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.*;
 
+import static io.crate.testing.TestingHelpers.createFunction;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -588,5 +590,82 @@ public class ESQueryBuilderTest {
                 WhereClause.MATCH_ALL,
                 null);
         generator.convert(searchNode);
+    }
+
+    @Test
+    public void testWhereClauseWithWithinPolygonQuery() throws Exception {
+        Function withinFunction = createFunction(
+                WithinFunction.NAME,
+                DataTypes.BOOLEAN,
+                createReference("location", DataTypes.GEO_POINT),
+                Literal.newGeoShape("POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))")
+        );
+        xcontentAssert(withinFunction,
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_polygon\":{\"location\":{\"points\":[{\"lon\":5.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":30.0},{\"lon\":5.0,\"lat\":35.0},{\"lon\":5.0,\"lat\":5.0}]}}}}}}");
+    }
+
+    @Test
+    public void testWhereClauseWithWithinRectangleQuery() throws Exception {
+        Function withinFunction = createFunction(
+                WithinFunction.NAME,
+                DataTypes.BOOLEAN,
+                createReference("location", DataTypes.GEO_POINT),
+                Literal.newGeoShape("POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))")
+        );
+        xcontentAssert(withinFunction,
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_bounding_box\":{\"location\":{\"top_left\":{\"lon\":5.0,\"lat\":30.0},\"bottom_right\":{\"lon\":30.0,\"lat\":5.0}}}}}}}");
+    }
+
+    @Test
+    public void testWhereClauseWithWithinPolygonEqualsTrueQuery() throws Exception {
+        Function withinFunction = createFunction(
+                WithinFunction.NAME,
+                DataTypes.BOOLEAN,
+                createReference("location", DataTypes.GEO_POINT),
+                Literal.newGeoShape("POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))")
+        );
+        Function eqFunction = createFunction(
+                EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                Literal.newLiteral(true),
+                withinFunction
+        );
+        xcontentAssert(eqFunction,
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_polygon\":{\"location\":{\"points\":[{\"lon\":5.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":5.0},{\"lon\":30.0,\"lat\":30.0},{\"lon\":5.0,\"lat\":35.0},{\"lon\":5.0,\"lat\":5.0}]}}}}}}");
+    }
+
+    @Test
+    public void testWhereClauseWithWithinEqualsFalseQuery() throws Exception {
+        Function withinFunction = createFunction(
+                WithinFunction.NAME,
+                DataTypes.BOOLEAN,
+                createReference("location", DataTypes.GEO_POINT),
+                Literal.newGeoShape("POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))")
+        );
+        Function eqFunction = createFunction(
+                EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                withinFunction,
+                Literal.newLiteral(false)
+        );
+        xcontentAssert(eqFunction,
+                "{\"query\":{\"bool\":{\"must_not\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"geo_bounding_box\":{\"location\":{\"top_left\":{\"lon\":5.0,\"lat\":30.0},\"bottom_right\":{\"lon\":30.0,\"lat\":5.0}}}}}}}}}");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testWithinEqWithin() throws Exception {
+        Function withinFunction = createFunction(
+                WithinFunction.NAME,
+                DataTypes.BOOLEAN,
+                createReference("location", DataTypes.GEO_POINT),
+                Literal.newGeoShape("POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))")
+        );
+        Function eqFunction = createFunction(
+                EqOperator.NAME,
+                DataTypes.BOOLEAN,
+                withinFunction,
+                withinFunction
+        );
+        generator.convert(new WhereClause(eqFunction));
     }
 }
