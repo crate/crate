@@ -533,10 +533,19 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             projections = ImmutableList.of();
         }
 
-        CollectNode collectNode = PlanNodeBuilder.collect(analysis, contextBuilder.toCollect(), projections);
+        List<Symbol> toCollect;
+        if (analysis.schema().systemSchema()) {
+            toCollect = contextBuilder.toCollect();
+        } else {
+            toCollect = new ArrayList<>();
+            for (Symbol symbol : contextBuilder.toCollect()) {
+                toCollect.add(DocReferenceBuildingVisitor.convert(symbol));
+
+            }
+        }
+
+        CollectNode collectNode = PlanNodeBuilder.collect(analysis, toCollect, projections);
         plan.add(collectNode);
-
-
         ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.<Projection>builder();
 
         if (!context.indexWriterProjection.isPresent() || analysis.isLimited()) {

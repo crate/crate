@@ -4268,4 +4268,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(13L));
         assertThat((String)response.rows()[0][0], is(firstName));
     }
+
+    @Test
+    public void testInsertFormQueryWithGeoType() throws Exception {
+        execute("create table t (p geo_point) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into t (p) values (?)", new Object[] { new Double[] {10.d, 10.d} });
+        execute("refresh table t");
+        execute("create table t2 (p geo_point) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into t2 (p) (select p from t)");
+        assertThat(response.rowCount(), is(1L));
+    }
 }
