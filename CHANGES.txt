@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added ``distance`` and ``within`` geo scalar functions
+
  - updated crate-admin to 0.8.4 with includes following changes
 
     - changed font in console for better readability
