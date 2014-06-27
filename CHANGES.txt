@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: with a very large number of shards, queries on ``sys.shards`` could
+   overflow the threadpools.
+
  - added ``distance`` and ``within`` geo scalar functions
 
  - updated crate-admin to 0.8.4 with includes following changes
