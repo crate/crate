@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed wrong geo_point definition in documentation
+
  - added insert by query support
 
  - fix: if partitioned tables exists, information_schema queries did
