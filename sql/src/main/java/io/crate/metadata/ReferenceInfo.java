@@ -169,7 +169,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         if (granularity != that.granularity) return false;
         if (ident != null ? !ident.equals(that.ident) : that.ident != null) return false;
         if (objectType.ordinal() != that.objectType.ordinal()) { return false; }
-        if (type != that.type) return false;
+        if (type != null ? !type.equals(that.type) : that.type != null) return false;
 
         return true;
     }
