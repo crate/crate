@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: if partitioned tables exists, information_schema queries did
+   not work properly
+
  - updated crash to 0.9.13 which includes the following changes
 
     - fix: avoid stripping arbitrative whitespaces from
