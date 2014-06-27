@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -22,53 +22,52 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public abstract class Insert extends Statement {
+public class InsertFromSubquery extends Insert {
 
-    protected final Table table;
+    private final Query subQuery;
 
-    protected final List<String> columns;
-
-
-    public Insert(Table table, @Nullable List<String> columns) {
-        this.table = table;
-        this.columns = Objects.firstNonNull(columns, ImmutableList.<String>of());
+    public InsertFromSubquery(Table table, Query subQuery, @Nullable List<String> columns) {
+        super(table, columns);
+        this.subQuery = subQuery;
     }
 
-    public Table table() {
-        return table;
-    }
-
-    public List<String> columns() {
-        return columns;
+    public Query subQuery() {
+        return subQuery;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, columns);
+        return Objects.hashCode(super.hashCode(), subQuery);
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
 
-        Insert insert = (Insert) o;
+        InsertFromSubquery that = (InsertFromSubquery) o;
 
-        if (columns != null ? !columns.equals(insert.columns) : insert.columns != null)
-            return false;
-        if (table != null ? !table.equals(insert.table) : insert.table != null)
-            return false;
+        if (!subQuery.equals(that.subQuery)) return false;
 
         return true;
     }
 
     @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("table", table)
+                .add("columns", columns)
+                .add("subquery", subQuery)
+                .toString();
+    }
+
+    @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitInsert(this, context);
+        return visitor.visitInsertFromSubquery(this, context);
     }
 }

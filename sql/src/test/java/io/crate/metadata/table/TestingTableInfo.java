@@ -68,11 +68,20 @@ public class TestingTableInfo extends AbstractTableInfo {
             this.ident = ident;
         }
 
-        public Builder addDocSysColumns() {
+        private ReferenceInfo genInfo(ColumnIdent columnIdent, DataType type) {
+            return new ReferenceInfo(
+                    new ReferenceIdent(ident, columnIdent.name(), columnIdent.path()),
+                    RowGranularity.DOC, type
+            );
+        }
+
+        private void addDocSysColumns() {
             for (Map.Entry<ColumnIdent, DataType> entry : DocSysColumns.COLUMN_IDENTS.entrySet()) {
-                add(entry.getKey(), entry.getValue());
+                references.put(
+                        entry.getKey(),
+                        genInfo(entry.getKey(), entry.getValue())
+                );
             }
-            return this;
         }
 
         public Builder add(ColumnIdent columnIdent, DataType type) {
@@ -134,6 +143,7 @@ public class TestingTableInfo extends AbstractTableInfo {
         }
 
         public TableInfo build() {
+            addDocSysColumns();
             return new TestingTableInfo(
                     columns.build(),
                     partitionedByColumns.build(),

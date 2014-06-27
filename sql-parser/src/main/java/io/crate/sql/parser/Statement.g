@@ -550,7 +550,7 @@ specialFunction
     | CURRENT_TIMESTAMP ('(' integer ')')?         -> ^(CURRENT_TIMESTAMP integer?)
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')' -> ^(FUNCTION_CALL ^(QNAME IDENT["substr"]) expr expr expr?)
     | EXTRACT '(' ident FROM expr ')'              -> ^(EXTRACT ident expr)
-    | CAST '(' expr AS ident ')'                    -> ^(CAST expr ident)
+    | CAST '(' expr AS dataType ')'                    -> ^(CAST expr dataType)
     ;
 
 
@@ -709,8 +709,13 @@ objectKeyValue
     ;
 
 insertStmt
-    : INSERT INTO table (columns=identList)? VALUES values=insertValues -> ^(INSERT table $values $columns?)
+    : INSERT INTO table identList? insertSource -> ^(INSERT insertSource table identList?)
     ;
+
+insertSource
+   : VALUES values=insertValues -> $values
+   | '(' query ')' -> query
+   ;
 
 identList
     : '(' ident ( ',' ident )* ')' -> ^(IDENT_LIST ident+)

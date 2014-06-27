@@ -447,7 +447,7 @@ extract returns [Extract value]
     ;
 
 cast returns [Cast value]
-    : ^(CAST expr IDENT) { $value = new Cast($expr.value, $IDENT.text); }
+    : ^(CAST expr dataType) { $value = new Cast($expr.value, $dataType.value.name()); }
     ;
 
 current_time returns [CurrentTime value]
@@ -634,10 +634,14 @@ dropTable returns [Statement value]
     ;
 
 insert returns [Statement value]
-    : ^(INSERT namedTable values=insertValues cols=columnIdentList?)
+    : ^(INSERT values=insertValues namedTable cols=columnIdentList?)
         {
-            $value = new Insert($namedTable.value, $values.value, $cols.value);
+            $value = new InsertFromValues($namedTable.value, $values.value, $cols.value);
         }
+    | ^(INSERT subQuery=query namedTable cols=columnIdentList?)
+    	{
+    	    $value = new InsertFromSubquery($namedTable.value, $subQuery.value, $cols.value);
+    	}
     ;
 
 insertValues returns [List<ValuesList> value = new ArrayList<>()]

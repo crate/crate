@@ -6,6 +6,7 @@ import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.WhereClause;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
@@ -21,6 +22,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
@@ -155,7 +157,7 @@ public class PlannerTest {
             TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.LONG, null)
-                    .add(DocSysColumns.RAW.name(), DataTypes.STRING, null)
+                    .add("date", DataTypes.TIMESTAMP, null)
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
@@ -168,7 +170,6 @@ public class PlannerTest {
                     .build();
             TableIdent partedTableIdent = new TableIdent(null, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
-                    .addDocSysColumns()
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
@@ -446,8 +447,8 @@ public class PlannerTest {
         assertThat(groupProjection.keys().size(), is(1));
         assertThat(((InputColumn) groupProjection.outputs().get(0)).index(), is(0));
         assertThat(groupProjection.outputs().get(1), is(instanceOf(Aggregation.class)));
-        assertThat(((Aggregation)groupProjection.outputs().get(1)).functionIdent().name(), is("count"));
-        assertThat(((Aggregation)groupProjection.outputs().get(1)).fromStep(), is(Aggregation.Step.PARTIAL));
+        assertThat(((Aggregation) groupProjection.outputs().get(1)).functionIdent().name(), is("count"));
+        assertThat(((Aggregation) groupProjection.outputs().get(1)).fromStep(), is(Aggregation.Step.PARTIAL));
         assertThat(((Aggregation)groupProjection.outputs().get(1)).toStep(), is(Aggregation.Step.FINAL));
 
         TopNProjection projection = (TopNProjection) mergeNode.projections().get(1);
@@ -569,8 +570,8 @@ public class PlannerTest {
 
         assertThat(indexNode.sourceMaps().get(0).keySet(), contains("id", "name"));
 
-        assertThat((Long)indexNode.sourceMaps().get(0).get("id"), is(42L));
-        assertThat((String)indexNode.sourceMaps().get(0).get("name"), is("Deep Thought"));
+        assertThat((Long) indexNode.sourceMaps().get(0).get("id"), is(42L));
+        assertThat((String) indexNode.sourceMaps().get(0).get("name"), is("Deep Thought"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.LONG, indexNode.outputTypes().get(0));
@@ -768,7 +769,7 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(FileUriCollectNode.class));
 
         FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
-        assertThat((BytesRef)((Literal)collectNode.targetUri()).value(),
+        assertThat((BytesRef) ((Literal) collectNode.targetUri()).value(),
                 is(new BytesRef("/path/to/file.extension")));
     }
 
@@ -789,7 +790,7 @@ public class PlannerTest {
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(FileUriCollectNode.class));
         FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
-        IndexWriterProjection indexWriterProjection = (IndexWriterProjection) collectNode.projections().get(0);
+        SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectNode.projections().get(0);
         assertThat(indexWriterProjection.concurrency(), is(8));
         assertThat(indexWriterProjection.bulkActions(), is(30));
         assertThat(collectNode.compression(), is("gzip"));
@@ -901,7 +902,7 @@ public class PlannerTest {
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESClusterUpdateSettingsNode.class));
 
-        ESClusterUpdateSettingsNode node = (ESClusterUpdateSettingsNode)planNode;
+        ESClusterUpdateSettingsNode node = (ESClusterUpdateSettingsNode) planNode;
         // set transient settings too when setting persistent ones
         assertThat(node.transientSettings().toDelimitedString(','), is("cluster.jobs_log_size=1024,"));
         assertThat(node.persistentSettings().toDelimitedString(','), is("cluster.jobs_log_size=1024,"));
@@ -911,8 +912,225 @@ public class PlannerTest {
         planNode = iterator.next();
         assertThat(planNode, instanceOf(ESClusterUpdateSettingsNode.class));
 
-        node = (ESClusterUpdateSettingsNode)planNode;
+        node = (ESClusterUpdateSettingsNode) planNode;
         assertThat(node.persistentSettings().getAsMap().size(), is(0));
         assertThat(node.transientSettings().toDelimitedString(','), is("cluster.collect_stats=false,cluster.jobs_log_size=0,"));
+    }
+
+    @Test
+    public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
+        Plan plan = plan("insert into users (id, name) (select name, count(*) from sys.nodes where name='Ford' group by name)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+
+        assertThat(mergeNode.projections().size(), is(3));
+        TopNProjection projection = (TopNProjection)mergeNode.projections().get(1);
+        assertThat(projection.isOrdered(), is(false));
+        assertThat(projection.limit(), is(TopN.NO_LIMIT));
+        assertThat(projection.offset(), is(TopN.NO_OFFSET));
+        assertThat(projection.outputs().size(), is(2));
+        assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
+
+        assertThat(iterator.hasNext(), is(false));
+    }
+
+    @Test
+    public void testInsertFromSubQueryDistributedGroupByWithLimit() throws Exception {
+        Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name order by name limit 10)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        mergeNode = (MergeNode)planNode;
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection)mergeNode.projections().get(0)).limit(), is(10));
+
+        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+
+        assertThat(iterator.hasNext(), is(false));
+    }
+
+    @Test
+    public void testInsertFromSubQueryDistributedGroupByWithoutLimit() throws Exception {
+        Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name order by name)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+        assertThat(mergeNode.projections().size(), is(3));
+        assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(2);
+        assertThat(projection.primaryKeys().size(), is(1));
+        assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
+        assertThat(projection.columnIdents().size(), is(2));
+        assertThat(projection.columnIdents().get(0).fqn(), is("id"));
+        assertThat(projection.columnIdents().get(1).fqn(), is("name"));
+
+        assertNotNull(projection.clusteredByIdent());
+        assertThat(projection.clusteredByIdent().fqn(), is("id"));
+        assertThat(projection.tableName(), is("users"));
+        assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(1));
+        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
+
+        assertThat(iterator.hasNext(), is(false));
+    }
+
+    @Test
+    public void testInsertFromSubQueryDistributedGroupByPartitioned() throws Exception {
+        Plan plan = plan("insert into parted (id, date) (select id, date from users group by id, date)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(1);
+        assertThat(projection.primaryKeys().size(), is(2));
+        assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
+        assertThat(projection.primaryKeys().get(1).fqn(), is("date"));
+
+        assertThat(projection.columnIdents().size(), is(1));
+        assertThat(projection.columnIdents().get(0).fqn(), is("id"));
+
+        assertThat(projection.partitionedBySymbols().size(), is(1));
+        assertThat(((InputColumn)projection.partitionedBySymbols().get(0)).index(), is(1));
+
+        assertNotNull(projection.clusteredByIdent());
+        assertThat(projection.clusteredByIdent().fqn(), is("id"));
+        assertThat(projection.tableName(), is("parted"));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(1));
+        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
+
+        assertThat(iterator.hasNext(), is(false));
+    }
+
+    @Test
+    public void testInsertFromSubQueryGlobalAggregate() throws Exception {
+        Plan plan = plan("insert into users (name, id) (select arbitrary(name), count(*) from users)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(2));
+        assertThat(localMergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)localMergeNode.projections().get(1);
+
+        assertThat(projection.columnIdents().size(), is(2));
+        assertThat(projection.columnIdents().get(0).fqn(), is("name"));
+        assertThat(projection.columnIdents().get(1).fqn(), is("id"));
+
+        assertThat(projection.columnSymbols().size(), is(2));
+        assertThat(((InputColumn)projection.columnSymbols().get(0)).index(), is(0));
+        assertThat(((InputColumn)projection.columnSymbols().get(1)).index(), is(1));
+
+        assertNotNull(projection.clusteredByIdent());
+        assertThat(projection.clusteredByIdent().fqn(), is("id"));
+        assertThat(projection.tableName(), is("users"));
+        assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
+    }
+
+    @Test
+    public void testInsertFromSubQueryESGet() throws Exception {
+        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users where id=1)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESGetNode.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(2));
+        assertThat(localMergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)localMergeNode.projections().get(1);
+
+        assertThat(projection.columnIdents().size(), is(3));
+        assertThat(projection.columnIdents().get(0).fqn(), is("date"));
+        assertThat(projection.columnIdents().get(1).fqn(), is("id"));
+        assertThat(projection.columnIdents().get(2).fqn(), is("name"));
+
+        assertThat(((InputColumn)projection.ids().get(0)).index(), is(1));
+        assertThat(((InputColumn)projection.clusteredBy()).index(), is(1));
+        assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
+    }
+
+    @Test (expected = UnsupportedFeatureException.class)
+    public void testInsertFromSubQueryWithLimit() throws Exception {
+        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESSearchNode.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(2));
+        assertThat(localMergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+    }
+
+    @Test (expected = UnsupportedFeatureException.class)
+    public void testInsertFromSubQueryWithOffset() throws Exception {
+        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users offset 10)");
+    }
+
+    @Test (expected = UnsupportedFeatureException.class)
+    public void testInsertFromSubQueryWithOrderBy() throws Exception {
+        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users order by id)");
+    }
+
+    @Test
+    public void testInsertFromSubQueryWithoutLimit() throws Exception {
+        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+        CollectNode collectNode = (CollectNode)planNode;
+        assertThat(collectNode.projections().size(), is(1));
+        assertThat(collectNode.projections().get(0), instanceOf(ColumnIndexWriterProjection.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(1));
+        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
     }
 }

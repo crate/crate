@@ -72,7 +72,8 @@ public class Analyzer {
         private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
         private final AbstractStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer();
-        private final AbstractStatementAnalyzer insertStatementAnalyzer = new InsertStatementAnalyzer();
+        private final AbstractStatementAnalyzer insertFromValuesAnalyzer = new InsertFromValuesAnalyzer();
+        private final AbstractStatementAnalyzer insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer();
         private final AbstractStatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer();
         private final AbstractStatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer();
         private final AbstractStatementAnalyzer copyStatementAnalyzer = new CopyStatementAnalyzer();
@@ -111,11 +112,19 @@ public class Analyzer {
             return deleteStatementAnalyzer;
         }
 
+
         @Override
-        public AbstractStatementAnalyzer visitInsert(Insert node, Context context) {
-            context.analysis = new InsertAnalysis(
+        public AbstractStatementAnalyzer visitInsertFromValues(InsertFromValues node, Context context) {
+            context.analysis = new InsertFromValuesAnalysis(
                     referenceInfos, functions, context.parameters, referenceResolver);
-            return insertStatementAnalyzer;
+            return insertFromValuesAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitInsertFromSubquery(InsertFromSubquery node, Context context) {
+            context.analysis = new InsertFromSubQueryAnalysis(
+                    referenceInfos, functions, context.parameters, referenceResolver);
+            return insertFromSubQueryAnalyzer;
         }
 
         @Override

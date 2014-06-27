@@ -71,6 +71,10 @@ public class SelectAnalysis extends AbstractDataAnalysis {
         return offset;
     }
 
+    public boolean isLimited() {
+        return limit != null || offset > 0;
+    }
+
     public void groupBy(List<Symbol> groupBy) {
         if (groupBy != null && groupBy.size() > 0) {
             sysExpressionsAllowed = true;

@@ -36,6 +36,15 @@ public abstract class DataType<T> implements Comparable, Streamable {
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
     public abstract int compareValueTo(T val1, T val2);
 
+    /**
+     * check whether a value of this type is convertible to <code>other</code>
+     * @param other the DataType to check conversion to
+     * @return true or false
+     */
+    public boolean isConvertableTo(DataType other) {
+        return this.equals(other) || DataTypes.ALLOWED_CONVERSIONS.get(id()).contains(other);
+    }
+
     public int hashCode() {
         return id();
     }

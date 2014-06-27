@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -22,53 +22,66 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public abstract class Insert extends Statement {
+public class InsertFromValues extends Insert {
 
-    protected final Table table;
+    private final List<ValuesList> valuesLists;
+    private final int maxValuesLength;
 
-    protected final List<String> columns;
+    public InsertFromValues(Table table, List<ValuesList> valuesLists, @Nullable List<String> columns) {
+        super(table, columns);
+        this.valuesLists = valuesLists;
 
-
-    public Insert(Table table, @Nullable List<String> columns) {
-        this.table = table;
-        this.columns = Objects.firstNonNull(columns, ImmutableList.<String>of());
+        int i = 0;
+        for (ValuesList valuesList : valuesLists) {
+            i = Math.max(i, valuesList.values().size());
+        }
+        maxValuesLength = i;
     }
 
-    public Table table() {
-        return table;
+    public List<ValuesList> valuesLists() {
+        return valuesLists;
     }
 
-    public List<String> columns() {
-        return columns;
+    /**
+     * returns the length of the longest values List
+     */
+    public int maxValuesLength() {
+        return maxValuesLength;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, columns);
+        return Objects.hashCode(super.hashCode(), valuesLists);
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
 
-        Insert insert = (Insert) o;
+        InsertFromValues that = (InsertFromValues) o;
 
-        if (columns != null ? !columns.equals(insert.columns) : insert.columns != null)
-            return false;
-        if (table != null ? !table.equals(insert.table) : insert.table != null)
-            return false;
+        if (!valuesLists.equals(that.valuesLists)) return false;
 
         return true;
     }
 
     @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("table", table)
+                .add("columns", columns)
+                .add("values", valuesLists)
+                .toString();
+    }
+
+    @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitInsert(this, context);
+        return visitor.visitInsertFromValues(this, context);
     }
 }

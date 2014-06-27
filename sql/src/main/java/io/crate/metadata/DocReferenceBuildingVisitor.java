@@ -65,7 +65,7 @@ public class DocReferenceBuildingVisitor extends SymbolVisitor<Void, Symbol> {
 
     @Override
     public Symbol visitDynamicReference(DynamicReference symbol, Void context) {
-        return super.visitReference(symbol, context);
+        return visitReference(symbol, context);
     }
 
     @Override

@@ -564,4 +564,12 @@ public abstract class AstVisitor<R, C>
     public R visitNestedColumnDefinition(NestedColumnDefinition node, C context) {
         return visitTableElement(node, context);
     }
+
+    public R visitInsertFromValues(InsertFromValues node, C context) {
+        return visitInsert(node, context);
+    }
+
+    public R visitInsertFromSubquery(InsertFromSubquery node, C context) {
+        return visitInsert(node, context);
+    }
 }

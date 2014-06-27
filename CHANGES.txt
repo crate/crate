@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added insert by query support
+
  - fix: if partitioned tables exists, information_schema queries did
    not work properly
 
