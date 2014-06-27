@@ -5,6 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crash to 0.9.13 which includes the following changes
+
+    - fix: avoid stripping arbitrative whitespaces from
+      commands passed via stdin
+
  - fix: with a very large number of shards, queries on ``sys.shards`` could
    overflow the threadpools.
 
