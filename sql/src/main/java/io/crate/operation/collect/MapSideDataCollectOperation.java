@@ -276,22 +276,22 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         // start the projection
         projectorChain.startProjections();
 
-        // start shardCollectors
-        for (final CrateCollector shardCollector : shardCollectors) {
-            threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        shardCollector.doCollect();
-                        result.shardFinished();
-                    } catch (Exception ex) {
-                        result.shardFailure(ex);
+        if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
+            // run sequential to prevent sys.shards queries from using too many threads
+            // and overflowing the threadpool queues
+            for (CrateCollector shardCollector : shardCollectors) {
+                doCollect(result, shardCollector);
+            }
+        } else {
+            // start shardCollectors
+            for (final CrateCollector shardCollector : shardCollectors) {
+                threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        doCollect(result, shardCollector);
                     }
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("shard finished collect, {} to go", result.numShards());
-                    }
-                }
-            });
+                });
+            }
         }
 
         if (logger.isTraceEnabled()) {
@@ -299,6 +299,18 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         }
 
         return result;
+    }
+
+    private void doCollect(ShardCollectFuture result, CrateCollector shardCollector) {
+        try {
+            shardCollector.doCollect();
+            result.shardFinished();
+        } catch (Exception ex) {
+            result.shardFailure(ex);
+        }
+        if (logger.isTraceEnabled()) {
+            logger.trace("shard finished collect, {} to go", result.numShards());
+        }
     }
 
     /**
