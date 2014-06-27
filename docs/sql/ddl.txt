@@ -164,7 +164,11 @@ coordinates.
 Columns with the ``geo_point`` are represented and inserted using a double
 array in the following format::
 
-    [<lat_value>, <lon_value>]
+    [<lon_value>, <lat_value>]
+
+Alternatively a `WKT`_ string can also be used to declare geo points::
+
+    'POINT ( <lon_value> <lat_value> )'
 
 .. note::
 
