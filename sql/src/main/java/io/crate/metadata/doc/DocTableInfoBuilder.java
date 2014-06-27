@@ -88,7 +88,7 @@ public class DocTableInfoBuilder {
             }
         }
 
-        if ((docIndexMetaData.partitionedBy().isEmpty() && concreteIndices.length == 1)
+        if ((!createdFromTemplate && concreteIndices.length == 1)
                 || !checkAliasSchema) {
             return docIndexMetaData;
         }
