@@ -59,6 +59,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.Executor;
 
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
@@ -68,6 +69,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
     private final CollectServiceResolver collectServiceResolver;
     private final ProjectionToProjectorVisitor projectorVisitor;
+    private final Executor executor;
     private ESLogger logger = Loggers.getLogger(getClass());
 
     private static class SimpleShardCollectFuture extends ShardCollectFuture {
@@ -94,7 +96,6 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
 
     private final IndicesService indicesService;
     protected final EvaluatingNormalizer nodeNormalizer;
-    private final ThreadPool threadPool;
     protected final ClusterService clusterService;
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
 
@@ -106,10 +107,10 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                                        IndicesService indicesService,
                                        ThreadPool threadPool,
                                        CollectServiceResolver collectServiceResolver) {
+        executor = threadPool.executor(ThreadPool.Names.SEARCH);
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
-        this.threadPool = threadPool;
         this.collectServiceResolver = collectServiceResolver;
         this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver,
@@ -239,7 +240,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
             return result;
         }
 
-        List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
+        final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
 
         // get shardCollectors from single shards
         Map<String, Set<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);
@@ -279,13 +280,18 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
             // run sequential to prevent sys.shards queries from using too many threads
             // and overflowing the threadpool queues
-            for (CrateCollector shardCollector : shardCollectors) {
-                doCollect(result, shardCollector);
-            }
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    for (CrateCollector shardCollector : shardCollectors) {
+                        doCollect(result, shardCollector);
+                    }
+                }
+            });
         } else {
             // start shardCollectors
             for (final CrateCollector shardCollector : shardCollectors) {
-                threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
+                executor.execute(new Runnable() {
                     @Override
                     public void run() {
                         doCollect(result, shardCollector);
@@ -300,6 +306,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
 
         return result;
     }
+
 
     private void doCollect(ShardCollectFuture result, CrateCollector shardCollector) {
         try {
