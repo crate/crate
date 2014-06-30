@@ -159,7 +159,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
             // search for templates with changed meta data => invalidate template aliases
             if (cache.size() > 0
-                    && event.state().metaData().templates() != event.previousState().metaData().templates()) {
+                    && !event.state().metaData().templates().equals(event.previousState().metaData().templates())) {
                 // current state templates
                 for (ObjectCursor<IndexTemplateMetaData> cursor : event.state().metaData().getTemplates().values()) {
                     IndexTemplateMetaData templateMetaData = cursor.value;
@@ -196,7 +196,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                     }
                 }
             }
-
         }
     }
 

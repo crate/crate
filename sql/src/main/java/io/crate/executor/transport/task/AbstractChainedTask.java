@@ -28,6 +28,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.TaskExecutionException;
 import io.crate.executor.Task;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -37,6 +39,8 @@ public abstract class AbstractChainedTask<ResultType> implements Task<ResultType
     protected List<ListenableFuture<ResultType>> upstreamResult = ImmutableList.of();
     protected final List<ListenableFuture<ResultType>> resultList;
     protected final SettableFuture<ResultType> result;
+
+    protected final ESLogger logger = Loggers.getLogger(getClass());
 
     protected AbstractChainedTask() {
         this.result = SettableFuture.create();
@@ -81,5 +85,10 @@ public abstract class AbstractChainedTask<ResultType> implements Task<ResultType
     @Override
     public void upstreamResult(List<ListenableFuture<ResultType>> result) {
         this.upstreamResult = result;
+    }
+
+    protected void warnNotAcknowledged(String operationName) {
+        logger.warn("{} was not acknowledged. This could lead to inconsistent state.",
+                operationName);
     }
 }
