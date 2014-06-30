@@ -21,9 +21,8 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.Task;
+import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -31,17 +30,15 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.support.IndicesOptions;
 
-import java.util.Arrays;
 import java.util.List;
 
-public class ESDeleteIndexTask implements Task<Object[][]> {
+public class ESDeleteIndexTask extends AbstractChainedTask<Object[][]> {
 
     private static final Object[][] RESULT = new Object[][]{ new Object[]{ 1L } };
     private static final Object[][] RESULT_PARTITION = new Object[][]{ new Object[]{ -1L } };
 
     private final TransportDeleteIndexAction transport;
     private final DeleteIndexRequest request;
-    private final List<ListenableFuture<Object[][]>> results;
     private final ActionListener<DeleteIndexResponse> listener;
 
     static class DeleteIndexListener implements ActionListener<DeleteIndexResponse> {
@@ -70,26 +67,15 @@ public class ESDeleteIndexTask implements Task<Object[][]> {
     }
 
     public ESDeleteIndexTask(TransportDeleteIndexAction transport, ESDeleteIndexNode node) {
+        super();
         this.transport = transport;
         this.request = new DeleteIndexRequest(node.index());
         this.request.indicesOptions(IndicesOptions.strict());
-        SettableFuture <Object[][]> result = SettableFuture.create();
         this.listener = new DeleteIndexListener(result, node.isPartition());
-        this.results = Arrays.<ListenableFuture<Object[][]>>asList(result);
     }
 
     @Override
-    public void start() {
-        this.transport.execute(this.request, this.listener);
-    }
-
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        return this.results;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException();
+    protected void doStart(List<Object[][]> upstreamResults) {
+        transport.execute(request, listener);
     }
 }

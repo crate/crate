@@ -28,7 +28,9 @@ import io.crate.executor.Task;
 import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
+import io.crate.executor.transport.task.CreateTableTask;
 import io.crate.executor.transport.task.DistributedMergeTask;
+import io.crate.executor.transport.task.DropTableTask;
 import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.Functions;
@@ -47,7 +49,6 @@ import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
@@ -62,6 +63,7 @@ import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -76,6 +78,7 @@ public class TransportExecutor implements Executor {
     private final Visitor visitor;
     private final ThreadPool threadPool;
 
+    private final ClusterService clusterService;
     private final TransportSearchAction transportSearchAction;
     private final TransportCollectNodeAction transportCollectNodeAction;
     private final TransportMergeNodeAction transportMergeNodeAction;
@@ -92,7 +95,6 @@ public class TransportExecutor implements Executor {
     private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction;
-    private final TransportIndicesAliasesAction transportCreateAliasAction;
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final Provider<Client> clientProvider;
@@ -118,9 +120,9 @@ public class TransportExecutor implements Executor {
                              TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction,
                              TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                              TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction,
-                             TransportIndicesAliasesAction transportCreateAliasAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
-                             StatsTables statsTables) {
+                             StatsTables statsTables,
+                             ClusterService clusterService) {
         this.transportGetAction = transportGetAction;
         this.transportMultiGetAction = transportMultiGetAction;
         this.transportCollectNodeAction = transportCollectNodeAction;
@@ -137,7 +139,6 @@ public class TransportExecutor implements Executor {
         this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.transportDeleteIndexTemplateAction = transportDeleteIndexTemplateAction;
-        this.transportCreateAliasAction = transportCreateAliasAction;
         this.clientProvider = clientProvider;
 
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -145,6 +146,7 @@ public class TransportExecutor implements Executor {
         this.functions = functions;
         this.referenceResolver = referenceResolver;
         this.statsTables = statsTables;
+        this.clusterService = clusterService;
         this.visitor = new Visitor();
     }
 
@@ -233,26 +235,19 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Void visitESCreateIndexNode(ESCreateIndexNode node, Job context) {
-            context.addTask(new ESCreateIndexTask(node, transportCreateIndexAction));
-            return null;
-        }
-
-        @Override
-        public Void visitESCreateAliasNode(ESCreateAliasNode node, Job context) {
-            context.addTask(new ESCreateAliasTask(node, transportCreateAliasAction));
+        public Void visitCreateTableNode(CreateTableNode node, Job context) {
+            context.addTask(new CreateTableTask(clusterService,
+                    transportCreateIndexAction,
+                    transportDeleteIndexAction,
+                    transportPutIndexTemplateAction,
+                    node)
+            );
             return null;
         }
 
         @Override
         public Void visitESCreateTemplateNode(ESCreateTemplateNode node, Job context) {
             context.addTask(new ESCreateTemplateTask(node, transportPutIndexTemplateAction));
-            return null;
-        }
-
-        @Override
-        public Void visitESDeleteTemplateNode(ESDeleteTemplateNode node, Job context) {
-            context.addTask(new ESDeleteTemplateTask(node, transportDeleteIndexTemplateAction));
             return null;
         }
 
@@ -280,6 +275,13 @@ public class TransportExecutor implements Executor {
             } else {
                 context.addTask(new ESUpdateByQueryTask(transportSearchAction, node));
             }
+            return null;
+        }
+
+        @Override
+        public Void visitDropTableNode(DropTableNode node, Job context) {
+            context.addTask(new DropTableTask(transportDeleteIndexTemplateAction,
+                    transportDeleteIndexAction, node));
             return null;
         }
 

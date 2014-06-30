@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: avoid failed execution of ``DROP TABLE`` on partitioned table
+   to leave unrecoverable inconsistent state behind
+
  - fix: columns referenced by positional arguments in a ORDER BY or
    GROUP BY clause are now validated for their data types.
 

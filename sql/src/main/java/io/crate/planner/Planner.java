@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
@@ -314,20 +313,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     @Override
     protected Plan visitDropTableAnalysis(DropTableAnalysis analysis, Void context) {
         Plan plan = new Plan();
-
-        if (!analysis.table().isPartitioned() || analysis.table().partitions().size() > 0) {
-            // delete index always for normal tables
-            // and for partitioned tables only if partitions exist
-            ESDeleteIndexNode node = new ESDeleteIndexNode(analysis.index());
-            plan.add(node);
-        }
-
-        if (analysis.table().isPartitioned()) {
-            String templateName = PartitionName.templateName(analysis.index());
-            ESDeleteTemplateNode templateNode = new ESDeleteTemplateNode(templateName);
-            plan.add(templateNode);
-        }
-
+        plan.add(new DropTableNode(analysis.table()));
         plan.expectsAffectedRows(true);
         return plan;
     }
@@ -338,23 +324,24 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         TableIdent tableIdent = analysis.tableIdent();
         Preconditions.checkArgument(Strings.isNullOrEmpty(tableIdent.schema()),
                 "a SCHEMA name other than null isn't allowed.");
+
+        CreateTableNode createTableNode;
         if (analysis.isPartitioned()) {
-            ESCreateTemplateNode node = new ESCreateTemplateNode(
-                    analysis.templateName(),
-                    analysis.templatePrefix(),
-                    analysis.indexSettings().getByPrefix("index."), // strip 'index' prefix for template api
+            createTableNode = CreateTableNode.createPartitionedTableNode(
+                    tableIdent.name(),
+                    analysis.indexSettings().getByPrefix("index."),
                     analysis.mapping(),
-                    tableIdent.name()
+                    analysis.templateName(),
+                    analysis.templatePrefix()
             );
-            plan.add(node);
         } else {
-            ESCreateIndexNode node = new ESCreateIndexNode(
+            createTableNode = CreateTableNode.createTableNode(
                     tableIdent.name(),
                     analysis.indexSettings(),
                     analysis.mapping()
             );
-            plan.add(node);
         }
+        plan.add(createTableNode);
         plan.expectsAffectedRows(true);
         return plan;
     }

@@ -96,12 +96,17 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public void table(TableIdent tableIdent) {
         try {
-            referenceInfos.getTableInfoUnsafe(tableIdent);
+            TableInfo existingTable = referenceInfos.getTableInfoUnsafe(tableIdent);
             // no exception thrown, table exists
-            throw new TableAlreadyExistsException(tableIdent.name());
+            // is it an orphaned alias? allow it,
+            // as it will be deleted before the actual table creation
+            if (!isOrphanedAlias(existingTable)) {
+                throw new TableAlreadyExistsException(existingTable.ident().name());
+            }
         } catch (TableUnknownException e) {
-            super.table(tableIdent); // name validated here
+            // ok, that is expected
         }
+        super.table(tableIdent); // name validated here
     }
 
     @Override
@@ -112,6 +117,27 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public SchemaInfo schema() {
         return null;
+    }
+
+    /**
+     * checks if the given TableInfo has been created from an orphaned alias left from
+     * an incomplete drop table on a partitioned table
+     */
+    private boolean isOrphanedAlias(TableInfo table) {
+        if (!table.isPartitioned() && table.isAlias()
+                && table.concreteIndices().length >= 1) {
+
+            boolean isPartitionAlias = true;
+            for (String index : table.concreteIndices()) {
+                if (!PartitionName.isPartition(index, table.ident().name())) {
+                    isPartitionAlias = false;
+                    break;
+                }
+            }
+            return isPartitionAlias;
+        }
+        return false;
+
     }
 
     @Override

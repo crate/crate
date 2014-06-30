@@ -20,11 +20,11 @@
  */
 package io.crate.analyze;
 
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.sql.tree.*;
-import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.common.inject.Inject;
 
 public class Analyzer {
@@ -146,7 +146,9 @@ public class Analyzer {
 
         @Override
         public AbstractStatementAnalyzer visitCreateTable(CreateTable node, Context context) {
-            context.analysis = new CreateTableAnalysis(referenceInfos, fulltextAnalyzerResolver, context.parameters);
+            context.analysis = new CreateTableAnalysis(referenceInfos,
+                    fulltextAnalyzerResolver,
+                    context.parameters);
             return createTableStatementAnalyzer;
         }
 
