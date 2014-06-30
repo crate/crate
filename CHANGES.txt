@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: columns referenced by positional arguments in a ORDER BY or
+   GROUP BY clause are now validated for their data types.
+
  - fixed wrong geo_point definition in documentation
 
  - fix: if partitioned tables exists, information_schema queries did
