@@ -100,6 +100,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_DOC_TRANSACTIONS_TABLE_IDENT.name()))
+                    .thenReturn(TEST_DOC_TRANSACTIONS_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -723,12 +725,12 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectGlobalDistinctRewriteAllColumns() {
-        SelectAnalysis distinctAnalysis = (SelectAnalysis) analyze("select distinct * from users");
+        SelectAnalysis distinctAnalysis = (SelectAnalysis) analyze("select distinct * from transactions");
         SelectAnalysis groupByAnalysis =
                 (SelectAnalysis) analyze(
-                        "select awesome, details, friends, tags, counters, id, name, other_id " +
-                        "from users " +
-                        "group by awesome, details, friends, tags, counters, id, name, other_id");
+                        "select id, sender, recipient, amount, timestamp " +
+                        "from transactions " +
+                        "group by id, sender, recipient, amount, timestamp");
         assertEquals(groupByAnalysis.groupBy().size(), distinctAnalysis.groupBy().size());
         for (Symbol s : distinctAnalysis.groupBy()) {
             assertTrue(distinctAnalysis.groupBy().contains(s));
@@ -1262,5 +1264,15 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = IllegalArgumentException.class)
     public void testAnyLikeInvalidArray() throws Exception {
         analyze("select * from users where 'awesome' LIKE ANY (name)");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPositionalArgumentGroupByArrayType() throws Exception {
+        analyze("SELECT sum(id), friends FROM users GROUP BY 2");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPositionalArgumentOrderByArrayType() throws Exception {
+        analyze("SELECT id, friends FROM users ORDER BY 2");
     }
 }

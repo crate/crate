@@ -157,6 +157,15 @@ public class BaseAnalyzerTest {
                     new PartitionName("nested_parted", Arrays.asList("1395961200000", "Ford")).stringValue(),
                     new PartitionName("nested_parted", Arrays.asList(null, "Zaphod")).stringValue())
             .build();
+    static final TableIdent TEST_DOC_TRANSACTIONS_TABLE_IDENT = new TableIdent(null, "transactions");
+    static final TableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
+            TEST_DOC_TRANSACTIONS_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("id", DataTypes.LONG, null)
+            .add("sender", DataTypes.STRING, null)
+            .add("recipient", DataTypes.STRING, null)
+            .add("amount", DataTypes.DOUBLE, null)
+            .add("timestamp", DataTypes.TIMESTAMP, null)
+            .build();
 
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.<DataType>asList(DataTypes.LONG)),

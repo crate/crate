@@ -150,11 +150,14 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         for (SortItem sortItem : orderBy) {
             Symbol s = process(sortItem, context);
             Symbol refOutput = ordinalOutputReference(context.outputSymbols(), s, "ORDER BY");
-            if (refOutput != null) {
-                sortSymbols.add(refOutput);
-            } else {
-                sortSymbols.add(s);
+            s = Objects.firstNonNull(refOutput, s);
+            if (s.symbolType() == SymbolType.REFERENCE && !DataTypes.PRIMITIVE_TYPES.contains(((Reference)s).valueType())) {
+                throw new IllegalArgumentException(
+                        String.format("Cannot order by '%s': invalid data type '%s'",
+                        SymbolFormatter.format(s),
+                        ((Reference) s).valueType()));
             }
+            sortSymbols.add(s);
             switch (sortItem.getNullOrdering()) {
                 case FIRST:
                     context.nullsFirst()[i] = true;
@@ -239,6 +242,11 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                         SymbolFormatter.format("unknown column '%s' not allowed in GROUP BY", s));
             } else if (s.symbolType() == SymbolType.FUNCTION && ((Function) s).info().isAggregate()) {
                 throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
+            } else if (s.symbolType() == SymbolType.REFERENCE && !DataTypes.PRIMITIVE_TYPES.contains(((Reference)s).valueType())) {
+                throw new IllegalArgumentException(
+                        String.format("Cannot group by '%s': invalid data type '%s'",
+                                SymbolFormatter.format(s),
+                                ((Reference) s).valueType()));
             }
             groupBy.add(s);
         }
