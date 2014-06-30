@@ -148,16 +148,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         int i = 0;
         for (SortItem sortItem : orderBy) {
-            Symbol s = process(sortItem, context);
-            Symbol refOutput = ordinalOutputReference(context.outputSymbols(), s, "ORDER BY");
-            s = Objects.firstNonNull(refOutput, s);
-            if (s.symbolType() == SymbolType.REFERENCE && !DataTypes.PRIMITIVE_TYPES.contains(((Reference)s).valueType())) {
-                throw new IllegalArgumentException(
-                        String.format("Cannot order by '%s': invalid data type '%s'",
-                        SymbolFormatter.format(s),
-                        ((Reference) s).valueType()));
-            }
-            sortSymbols.add(s);
+            sortSymbols.add(process(sortItem, context));
             switch (sortItem.getNullOrdering()) {
                 case FIRST:
                     context.nullsFirst()[i] = true;
@@ -283,8 +274,12 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         if (sortSymbol.symbolType() == SymbolType.PARAMETER) {
             sortSymbol = Literal.fromParameter((Parameter)sortSymbol);
         }
+        if (sortSymbol.symbolType() == SymbolType.LITERAL && DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(((Literal)sortSymbol).valueType())) {
+            // deref
+            sortSymbol = ordinalOutputReference(context.outputSymbols(), sortSymbol, "ORDER BY");
+        }
         // validate sortSymbol
-        sortSymbolValidator.process(sortSymbol, context.table);
+        sortSymbolValidator.process(sortSymbol, new SortSymbolValidator.SortContext(context.table));
         return sortSymbol;
     }
 
@@ -322,37 +317,61 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     /**
      * validate that sortSymbols don't contain partition by columns
      */
-    static class SortSymbolValidator extends SymbolVisitor<TableInfo, Void> {
+    static class SortSymbolValidator extends SymbolVisitor<SortSymbolValidator.SortContext, Void> {
+
+        static class SortContext {
+            private final TableInfo tableInfo;
+            private boolean inFunction;
+            public SortContext(TableInfo tableInfo) {
+                this.tableInfo = tableInfo;
+                this.inFunction = false;
+            }
+        }
 
         @Override
-        public Void visitFunction(Function symbol, TableInfo context) {
-            for (Symbol arg : symbol.arguments()) {
-                process(arg, context);
-
+        public Void visitFunction(Function symbol, SortContext context) {
+            try {
+                context.inFunction = true;
+                if (!DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
+                    throw new UnsupportedOperationException(
+                            String.format(Locale.ENGLISH,
+                                    "Cannot ORDER BY '%s': invalid return type '%s'.",
+                                    SymbolFormatter.format(symbol),
+                                    symbol.valueType())
+                    );
+                }
+                for (Symbol arg : symbol.arguments()) {
+                    process(arg, context);
+                }
+            } finally {
+                context.inFunction = false;
             }
             return null;
         }
 
         @Override
-        public Void visitReference(Reference symbol, TableInfo context) {
-            if (context.partitionedBy().contains(symbol.info().ident().columnIdent())) {
+        public Void visitReference(Reference symbol, SortContext context) {
+            if (context.tableInfo.partitionedBy().contains(symbol.info().ident().columnIdent())) {
                 throw new UnsupportedOperationException(
                         SymbolFormatter.format(
                                 "cannot use partitioned column %s in ORDER BY clause",
                                 symbol));
             }
-            if (!DataTypes.PRIMITIVE_TYPES.contains(symbol.info().type())) {
+            // if we are in a function, we do not need to check the data type.
+            // the function will do that for us.
+            if (!context.inFunction && !DataTypes.PRIMITIVE_TYPES.contains(symbol.info().type())) {
                 throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH,
-                                "cannot sort on columns of type '%s'",
-                                symbol.info().type().getName())
+                                "Cannot ORDER BY '%s': invalid data type '%s'.",
+                                SymbolFormatter.format(symbol),
+                                symbol.valueType())
                 );
             }
             return null;
         }
 
         @Override
-        public Void visitSymbol(Symbol symbol, TableInfo context) {
+        public Void visitSymbol(Symbol symbol, SortContext context) {
             return null;
         }
     }

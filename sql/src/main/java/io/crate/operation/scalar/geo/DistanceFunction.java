@@ -111,11 +111,13 @@ public class DistanceFunction implements Scalar<Double, Object> {
         DataType arg1Type = DataTypeVisitor.fromSymbol(arg1);
         DataType arg2Type = DataTypeVisitor.fromSymbol(arg2);
 
+        boolean arg1IsReference = true;
         boolean literalConverted = false;
         short numLiterals = 0;
 
         if (arg1.symbolType().isValueSymbol()) {
             numLiterals++;
+            arg1IsReference = false;
             if (!arg1Type.equals(DataTypes.GEO_POINT)) {
                 literalConverted = true;
                 arg1 = Literal.toLiteral(arg1, DataTypes.GEO_POINT);
@@ -138,6 +140,10 @@ public class DistanceFunction implements Scalar<Double, Object> {
             return Literal.newLiteral(evaluate((Input) arg1, (Input) arg2));
         }
 
+        // ensure reference is the first argument.
+        if (!arg1IsReference) {
+            return new Function(geoPointInfo, Arrays.asList(arg2, arg1));
+        }
         if (literalConverted) {
             return new Function(geoPointInfo, Arrays.asList(arg1, arg2));
         }
