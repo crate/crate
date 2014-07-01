@@ -32,18 +32,15 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Matchers;
-import org.mockito.MockitoAnnotations;
+import org.junit.rules.ExpectedException;
+import org.mockito.*;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -54,9 +51,46 @@ public class BulkShardProcessorTest {
     @Captor
     private ArgumentCaptor<ActionListener<BulkShardResponse>> bulkShardResponseListener;
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    @Mock(answer = Answers.RETURNS_MOCKS)
+    ClusterService clusterService;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+    }
+
+    @Test
+    public void testNonEsRejectedExceptionDoesNotResultInRetryButAborts() throws Throwable {
+        expectedException.expect(RuntimeException.class);
+        expectedException.expectMessage("a random exception");
+
+        TransportShardBulkAction transportShardBulkAction = mock(TransportShardBulkAction.class);
+        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+                clusterService,
+                ImmutableSettings.EMPTY,
+                transportShardBulkAction,
+                mock(TransportCreateIndexAction.class),
+                false,
+                1
+        );
+        bulkShardProcessor.add("foo", new BytesArray("{\"foo\": \"bar1\"}"), "1", null);
+
+        verify(transportShardBulkAction).execute(
+                any(BulkShardRequest.class),
+                bulkShardResponseListener.capture());
+        ActionListener<BulkShardResponse> listener = bulkShardResponseListener.getValue();
+        listener.onFailure(new RuntimeException("a random exception"));
+
+        assertFalse(bulkShardProcessor.add("foo", new BytesArray("{\"foo\": \"bar2\"}"), "2", null));
+
+        try {
+            bulkShardProcessor.result().get();
+        } catch (ExecutionException e) {
+            throw e.getCause();
+        }
     }
 
     @Test
