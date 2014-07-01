@@ -1,0 +1,138 @@
+============
+Client Usage
+============
+
+.. highlight:: java
+
+Connect to a Database
+=====================
+
+The ``CrateClient`` class is used to connect to a Crate database.
+It requires one or more hosts as arguments. Note that the Java client
+talks to Crate via the transport port ``4300``.
+
+Since Crate is a clustered database it is recommended to specify
+all hosts of the cluster. This way if a server is unavailable the host
+is skipped and the request is automatically routed to the next server::
+
+
+    import io.crate.client.CrateClient;
+
+    CrateClient client = new CrateClient("host1.example.com:4300", "host2.example.com:4300");
+
+
+Selecting Data
+==============
+
+Using the ``sql()`` method on the client class you can execute
+simple SQL statements::
+
+    SQLResponse response = client.sql("SELECT * FROM sys.nodes").actionGet()
+
+Retrieving the returned columns using the ``cols()`` method::
+
+    System.out.println(Arrays.toString(response.cols()));
+
+will print::
+
+    ["id", "name", "hostname", "port", "load", "mem", "heap", "fs", "version", "thread_pools"]
+
+Retrieving the returned rows using the ``rows()`` method::
+
+    for (Object[] row: r.rows()){
+        System.out.println(Arrays.toString(row));
+    }
+
+will print (something similar like)::
+
+    ["UhT82pZnQ3qT5EGasqs-nw", "host1", "host1.example.com", ...]
+    ["aAKieK6zQDKX4iGkqHgM6Q", "host2", "host2.example.com", ...]
+    ...
+
+
+SQLRequest Class
+================
+
+By default, the column data types are not serialized. In order to get
+these, one must defined it at the ``SQLRequest`` object::
+
+    SQLRequest request = new SQLRequest("SELECT name FROM sys.nodes");
+
+If you want to receive the types of the columns in the ``SQLResponse``
+you'll need to set ``includeTypesOnResponse``::
+
+    request.includeTypesOnResponse(true);
+
+Now you're able to call ``sql()`` using the request object
+as its argument::
+
+    SQLResponse response = client.sql(request).actionGet()
+
+.. note::
+
+   Queries are executed asynchronously. ``client.sql("...")`` will return a
+   ``Future<SQLResponse>`` and code execution is only blocked if
+   ``.actionGet()`` is called on it.
+
+
+Get the data type of the first column::
+
+    DataType dataType = r.columnTypes()[0]
+    System.out.print(dataType.getName())
+
+will print::
+
+    "string"
+
+
+Parameter Substitution
+======================
+
+To prevent `SQL Injection`_ and for convenience reasons one always
+should use parameter substitution when quering data.
+
+In order to perform parameter substitution you have to use the
+``SQLRequest`` class again.
+
+Here we'll create a table ``foo`` first and then insert data
+using parameter substitution::
+
+
+    client.sql("CREATE TABLE foo (id int primary key, name string)").actionGet()
+
+    String stmt = "INSERT INTO foo (id, name) VALUES (?, ?)";
+    Object[] args = new Object[]{1, "bar"};
+
+    SQLRequest request = new SQLRequest(stmt, args).actionGet();
+
+
+Data Type Mapping
+=================
+
+The data type of columns in the ``SQLResponse`` are Crate data types
+and map with the following native Java types.
+
+========== =========
+Crate Type Java Type
+========== =========
+string     String
+short      Short
+integer    Integer
+long       Long
+float      Float
+double     Double
+byte       Byte
+boolean    Boolean
+array      Array
+object     Map
+ip         String
+timestamp  Double
+geo_point  Double[2]
+========== =========
+
+The mapping also works the other way round for parameter substitution.
+
+
+
+.. _`SQL Injection`: http://en.wikipedia.org/wiki/SQL_injection
+
