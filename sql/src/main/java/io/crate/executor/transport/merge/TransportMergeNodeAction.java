@@ -37,13 +37,14 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
@@ -63,9 +64,11 @@ public class TransportMergeNodeAction {
     private final ThreadPool threadPool;
 
     @Inject
-    public TransportMergeNodeAction(final Provider<Client> clientProvider,
+    public TransportMergeNodeAction(final ClusterService clusterService,
+                                    final Settings settings,
+                                    final TransportShardBulkAction transportShardBulkAction,
+                                    final TransportCreateIndexAction transportCreateIndexAction,
                                     TransportService transportService,
-                                    ClusterService clusterService,
                                     ReferenceResolver referenceResolver,
                                     Functions functions,
                                     ThreadPool threadPool,
@@ -82,7 +85,14 @@ public class TransportMergeNodeAction {
         this.contextManager = new DistributedRequestContextManager(new DownstreamOperationFactory<MergeNode>() {
             @Override
             public DownstreamOperation create(MergeNode node) {
-                return new MergeOperation(clientProvider, implementationSymbolVisitor, node);
+                return new MergeOperation(
+                        clusterService,
+                        settings,
+                        transportShardBulkAction,
+                        transportCreateIndexAction,
+                        implementationSymbolVisitor,
+                        node
+                );
             }
         }, functions, statsTables);
 

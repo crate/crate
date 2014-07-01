@@ -29,10 +29,10 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.indices.IndicesService;
@@ -74,17 +74,13 @@ public class MapSideDataCollectOperationTest {
                 return null;
             }
         };
-        Provider<Client> clientProvider = new Provider<Client>() {
-            @Override
-            public Client get() {
-                return mock(Client.class);
-            }
-        };
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
-                clientProvider,
                 clusterService,
+                ImmutableSettings.EMPTY,
+                mock(TransportShardBulkAction.class),
+                mock(TransportCreateIndexAction.class),
                 functions,
                 referenceResolver,
                 indicesService,

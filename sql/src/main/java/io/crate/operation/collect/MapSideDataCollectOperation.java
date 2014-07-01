@@ -43,13 +43,14 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
 import org.apache.lucene.search.CollectionTerminatedException;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.indices.IndexMissingException;
@@ -100,8 +101,10 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
 
     @Inject
-    public MapSideDataCollectOperation(Provider<Client> clientProvider,
-                                       ClusterService clusterService,
+    public MapSideDataCollectOperation(ClusterService clusterService,
+                                       Settings settings,
+                                       TransportShardBulkAction transportShardBulkAction,
+                                       TransportCreateIndexAction transportCreateIndexAction,
                                        Functions functions,
                                        ReferenceResolver referenceResolver,
                                        IndicesService indicesService,
@@ -119,7 +122,13 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         );
         this.fileInputSymbolVisitor =
                 new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
-        this.projectorVisitor = new ProjectionToProjectorVisitor(clientProvider, nodeImplementationSymbolVisitor);
+        this.projectorVisitor = new ProjectionToProjectorVisitor(
+                clusterService,
+                settings,
+                transportShardBulkAction,
+                transportCreateIndexAction,
+                nodeImplementationSymbolVisitor
+        );
     }
 
 

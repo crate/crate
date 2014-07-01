@@ -35,10 +35,12 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.node.dql.MergeNode;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -57,11 +59,14 @@ public class LocalMergeTask implements Task<Object[][]> {
 
     private final MergeNode mergeNode;
     private final StatsTables statsTables;
+    private final ClusterService clusterService;
+    private final Settings settings;
+    private final TransportShardBulkAction transportShardBulkAction;
+    private final TransportCreateIndexAction transportCreateIndexAction;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final ThreadPool threadPool;
     private final SettableFuture<Object[][]> result;
     private final List<ListenableFuture<Object[][]>> resultList;
-    private final Provider<Client> clientProvider;
 
     private List<ListenableFuture<Object[][]>> upstreamResults;
 
@@ -70,12 +75,18 @@ public class LocalMergeTask implements Task<Object[][]> {
      * @param implementationSymbolVisitor symbol visitor (on cluster level)
      */
     public LocalMergeTask(ThreadPool threadPool,
-                          Provider<Client> clientProvider,
+                          ClusterService clusterService,
+                          Settings settings,
+                          TransportShardBulkAction transportShardBulkAction,
+                          TransportCreateIndexAction transportCreateIndexAction,
                           ImplementationSymbolVisitor implementationSymbolVisitor,
                           MergeNode mergeNode,
                           StatsTables statsTables) {
-        this.clientProvider = clientProvider;
         this.threadPool = threadPool;
+        this.clusterService = clusterService;
+        this.settings = settings;
+        this.transportShardBulkAction = transportShardBulkAction;
+        this.transportCreateIndexAction = transportCreateIndexAction;
         this.symbolVisitor = implementationSymbolVisitor;
         this.mergeNode = mergeNode;
         this.statsTables = statsTables;
@@ -96,7 +107,9 @@ public class LocalMergeTask implements Task<Object[][]> {
             return;
         }
 
-        final MergeOperation mergeOperation = new MergeOperation(clientProvider, symbolVisitor, mergeNode);
+        final MergeOperation mergeOperation = new MergeOperation(
+                clusterService, settings, transportShardBulkAction, transportCreateIndexAction,
+                symbolVisitor, mergeNode);
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
         final UUID operationId = UUID.randomUUID();
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());

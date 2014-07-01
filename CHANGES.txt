@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: ``copy from`` will now throttle and retry if there are failures due to
+   full thread pool queues.
+   The ``concurrency`` option has also been removed.
+
  - fix: columns referenced by positional arguments in a ORDER BY or
    GROUP BY clause are now validated for their data types.
 

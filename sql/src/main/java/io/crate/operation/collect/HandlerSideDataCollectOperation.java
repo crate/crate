@@ -34,11 +34,13 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import org.apache.lucene.search.CollectionTerminatedException;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 import java.util.Set;
@@ -54,7 +56,10 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     private final UnassignedShardsCollectService unassignedShardsCollectService;
 
     @Inject
-    public HandlerSideDataCollectOperation(Provider<Client> clientProvider,
+    public HandlerSideDataCollectOperation(ClusterService clusterService,
+                                           Settings settings,
+                                           TransportShardBulkAction transportShardBulkAction,
+                                           TransportCreateIndexAction transportCreateIndexAction,
                                            Functions functions,
                                            ReferenceResolver referenceResolver,
                                            InformationSchemaCollectService informationSchemaCollectService,
@@ -64,7 +69,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         this.clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         this.implementationVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         this.projectorVisitor = new ProjectionToProjectorVisitor(
-                clientProvider, implementationVisitor, clusterNormalizer);
+                clusterService, settings, transportShardBulkAction, transportCreateIndexAction, implementationVisitor, clusterNormalizer);
     }
 
     @Override

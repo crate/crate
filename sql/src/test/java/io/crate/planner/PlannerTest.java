@@ -785,13 +785,12 @@ public class PlannerTest {
 
     @Test
     public void testCopyFromPlanWithParameters() throws Exception {
-        Plan plan = plan("copy users from '/path/to/file.ext' with (concurrency=8, bulk_size=30, compression='gzip', shared=true)");
+        Plan plan = plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(FileUriCollectNode.class));
         FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
         SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectNode.projections().get(0);
-        assertThat(indexWriterProjection.concurrency(), is(8));
         assertThat(indexWriterProjection.bulkActions(), is(30));
         assertThat(collectNode.compression(), is("gzip"));
         assertThat(collectNode.sharedStorage(), is(true));
@@ -828,7 +827,7 @@ public class PlannerTest {
 
     @Test (expected = IllegalArgumentException.class)
     public void testCopyFromPlanWithInvalidParameters() throws Exception {
-        plan("copy users from '/path/to/file.ext' with (concurrency=-28)");
+        plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
     }
 
     @Test

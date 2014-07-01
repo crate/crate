@@ -24,19 +24,34 @@ package io.crate.operation.projectors;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.client.Requests;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
+
+    private final ESLogger logger = Loggers.getLogger(getClass());
+
     private final List<Input<?>> columnInputs;
     private final List<ColumnIdent> columnIdents;
 
-    protected ColumnIndexWriterProjector(Client client,
+    protected ColumnIndexWriterProjector(ClusterService clusterService,
+                                         Settings settings,
+                                         TransportShardBulkAction transportShardBulkAction,
+                                         TransportCreateIndexAction transportCreateIndexAction,
                                          String tableName,
                                          List<ColumnIdent> primaryKeys,
                                          List<Input<?>> idInputs,
@@ -46,25 +61,29 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          List<ColumnIdent> columnIdents,
                                          List<Input<?>> columnInputs,
                                          CollectExpression<?>[] collectExpressions,
-                                         @Nullable Integer bulkActions,
-                                         @Nullable Integer concurrency) {
-        super(client, tableName, primaryKeys, idInputs, partitionedByInputs,
-                routingIdent, routingInput, collectExpressions,
-                bulkActions, concurrency);
+                                         @Nullable Integer bulkActions) {
+        super(clusterService, settings, transportShardBulkAction, transportCreateIndexAction,
+                tableName, primaryKeys, idInputs, partitionedByInputs,
+                routingIdent, routingInput, collectExpressions, bulkActions);
         assert columnIdents.size() == columnInputs.size();
         this.columnIdents = columnIdents;
         this.columnInputs = columnInputs;
-
     }
 
     @Override
-    protected Object generateSource() {
+    protected BytesReference generateSource() {
         Map<String, Object> sourceMap = new HashMap<>(this.columnInputs.size());
         Iterator<ColumnIdent> identIterator = columnIdents.iterator();
         Iterator<Input<?>> inputIterator = columnInputs.iterator();
         while (identIterator.hasNext()) {
             sourceMap.put(identIterator.next().fqn(), inputIterator.next().value());
         }
-        return sourceMap;
+
+        try {
+            return XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE).map(sourceMap).bytes();
+        } catch (IOException e) {
+            logger.error("Could not parse xContent", e);
+            return null;
+        }
     }
 }
