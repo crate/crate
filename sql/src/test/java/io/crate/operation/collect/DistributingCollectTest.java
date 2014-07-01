@@ -45,8 +45,7 @@ import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -110,10 +109,12 @@ public class DistributingCollectTest {
         @Override
         protected void configure() {
             MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-            bind(Client.class).toInstance(new TransportClient(ImmutableSettings.EMPTY));
 
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
+
+            bind(TransportShardBulkAction.class).toInstance(mock(TransportShardBulkAction.class));
+            bind(TransportCreateIndexAction.class).toInstance(mock(TransportCreateIndexAction.class));
 
             DiscoveryNode testNode = mock(DiscoveryNode.class);
             when(testNode.id()).thenReturn(TEST_NODE_ID);

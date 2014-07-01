@@ -37,10 +37,14 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -99,7 +103,13 @@ public class MergeOperationTest {
         ));
 
         MergeOperation mergeOperation = new MergeOperation(
-                injector.getProvider(Client.class), symbolVisitor, mergeNode);
+                mock(ClusterService.class),
+                ImmutableSettings.EMPTY,
+                mock(TransportShardBulkAction.class),
+                mock(TransportCreateIndexAction.class),
+                symbolVisitor,
+                mergeNode
+        );
 
         Object[][] rows = new Object[20][];
         for (int i=0; i<rows.length; i++) {
@@ -129,7 +139,13 @@ public class MergeOperationTest {
                 groupProjection
         ));
         MergeOperation mergeOperation = new MergeOperation(
-                injector.getProvider(Client.class), symbolVisitor, mergeNode);
+                mock(ClusterService.class),
+                ImmutableSettings.EMPTY,
+                mock(TransportShardBulkAction.class),
+                mock(TransportCreateIndexAction.class),
+                symbolVisitor,
+                mergeNode
+        );
         Object[][] rows = new Object[1][];
         MinimumAggregation.MinimumAggState aggState = minAggFunction.newState();
         aggState.setValue(100.0d);
