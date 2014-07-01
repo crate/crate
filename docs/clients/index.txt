@@ -1,94 +1,16 @@
-========================
+======================
 Crate Data Java Client
-========================
+======================
 
 The client module exposes a very simple interface to query Crate using
 SQL.
 
-Download and Setup
-==================
+Contents
+========
 
-The ``crate-client`` jar files are hosted on `Bintray`_ and available via `JCenter`_.
+.. toctree::
+   :maxdepth: 2
 
-If you want to use ``crate-client`` with your Maven project you need to
-add the Bintray repository to your ``pom.xml``::
-
-    ...
-    <repositories>
-        ...
-        <repository>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>central</id>
-            <name>bintray</name>
-            <url>http://dl.bintray.com/crate/crate</url>
-        </repository>
-    </repositories>
-    ...
-    <dependencies>
-        ...
-        <dependency>
-            <groupId>io.crate</groupId>
-            <artifactId>crate-client</artifactId>
-            <version>...</version>
-        </dependency>
-    </dependencies>
-    ...
-
-Alternatively you can follow the instructions on the Bintray repository overview page by clicking the "Set me up!" button.
-
-Usage
-=====
-
-.. highlight:: java
-
-A minimal example is just a few lines of code::
-
-    import io.crate.client.CrateClient;
-
-    CrateClient client = new CrateClient("server1.crate.org:4300", "server2.crate.org:4300");
-    SQLResponse r = client.sql("select firstName, lastName from users").actionGet();
-
-    System.out.println(Arrays.toString(r.cols()));
-    // outputs ["firstName", "lastName"]
-
-    for (Object[] row: r.rows()){
-        System.out.println(Arrays.toString(row));
-    }
-    // outputs the users. For example:
-    // ["Arthur", "Dent"]
-    // ["Ford", "Perfect"]
-
-The `CrateClient` takes multiple servers as arguments. They are used in a
-round-robin fashion to distribute the load. In case a server is unavailable it
-will be skipped.
-
-By default, the column data types are not serialized. In order to get
-these, one must defined it at the `SQLRequest` object::
-
-    import io.crate.client.CrateClient;
-
-    CrateClient client = new CrateClient("server1.crate.org:4300", "server2.crate.org:4300");
-
-    SQLRequest request = new SQLRequest("select firstName, lastName from users");
-    request.includeTypesOnResponse(true);
-
-    SQLResponse r = client.sql().actionGet();
-
-    // Get the data type of the first column
-    DataType dataType = r.columnTypes()[0]
-    System.out.print(dataType.getName())
-    // outputs: "string"
-
-.. note::
-
-   Queries are executed asynchronous. `client.sql("")` will return a
-   `Future<SQLResponse>` and code execution is only blocked if
-   `.actionGet()` is called on it.
-
-
-
-.. _`Bintray`: https://bintray.com/crate/crate/
-.. _`JCenter`: https://bintray.com/bintray/jcenter
+   setup.txt
+   client.txt
 
