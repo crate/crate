@@ -640,8 +640,7 @@ public class DocIndexMetaDataTest {
                 new ReferenceInfos(
                         ImmutableMap.<String, SchemaInfo>of("doc", new DocSchemaInfo(clusterService, mock(TransportPutIndexTemplateAction.class)))),
                 new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
-                new Object[0]
-        );
+                new Object[0]);
         analysis.analyzedTableElements(new AnalyzedTableElements());
 
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder()

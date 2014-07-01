@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,28 +21,27 @@
 
 package io.crate.planner.node.ddl;
 
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.PlanVisitor;
 
-public class ESCreateAliasNode extends DDLPlanNode {
+public class DropTableNode extends DDLPlanNode {
 
-    private final String tableName;
-    private final String aliasName;
+    private final TableInfo table;
 
-    public ESCreateAliasNode(String tableName, String aliasName) {
-        this.tableName = tableName;
-        this.aliasName = aliasName;
+
+    public DropTableNode(TableInfo table) {
+        assert table.ident().schema() == null
+                || table.ident().schema().equals(DocSchemaInfo.NAME);
+        this.table = table;
     }
 
-    public String tableName() {
-        return tableName;
-    }
-
-    public String aliasName() {
-        return aliasName;
+    public TableInfo tableInfo() {
+        return table;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESCreateAliasNode(this, context);
+        return visitor.visitDropTableNode(this, context);
     }
 }

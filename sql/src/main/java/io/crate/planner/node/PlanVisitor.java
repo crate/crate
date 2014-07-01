@@ -68,10 +68,6 @@ public class PlanVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitESCreateIndexNode(ESCreateIndexNode esCreateTableNode, C context) {
-        return visitDDLPlanNode(esCreateTableNode, context);
-    }
-
     private R visitDDLPlanNode(DDLPlanNode node, C context) {
         return visitPlanNode(node, context);
     }
@@ -92,11 +88,11 @@ public class PlanVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitESDeleteTemplateNode(ESDeleteTemplateNode node, C context) {
+    public R visitDropTableNode(DropTableNode node, C context) {
         return visitPlanNode(node, context);
     }
 
-    public R visitESCreateAliasNode(ESCreateAliasNode node, C context) {
+    public R visitCreateTableNode(CreateTableNode node, C context) {
         return visitPlanNode(node, context);
     }
 }
