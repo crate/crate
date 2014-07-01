@@ -111,7 +111,7 @@ public class DistanceFunctionTest {
         Double distance = evaluate(Arrays.<Literal>asList(
                 Literal.newLiteral(DataTypes.GEO_POINT, new Double[]{10.04, 28.02}),
                 Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(10.30 29.3)"))));
-        assertThat(distance, is(143190.3805416909d));
+        assertThat(distance, is(144623.6842773458));
     }
 
     @Test
@@ -121,7 +121,7 @@ public class DistanceFunctionTest {
                 Literal.newLiteral("POINT (10 20)"),
                 Literal.newLiteral("POINT (11 21)")
         ));
-        assertLiteralSymbol(symbol, 156098.81231186818d);
+        assertLiteralSymbol(symbol, 152462.70754934277);
     }
 
     @Test
@@ -131,7 +131,7 @@ public class DistanceFunctionTest {
                 Literal.newLiteral(type, new Double[]{10.0, 20.0}),
                 Literal.newLiteral(type, new Double[]{11.0, 21.0})
         ));
-        assertLiteralSymbol(symbol, 156098.81231186818d);
+        assertLiteralSymbol(symbol, 152462.70754934277);
     }
 
     @Test

@@ -779,6 +779,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testDistanceQueryOnSysTable() throws Exception {
         SQLResponse response = executor.exec(
                 "select Distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster");
-        assertThat((Double) response.rows()[0][0], is(156098.81231186818d));
+        assertThat((Double) response.rows()[0][0], is(152462.70754934277));
     }
 }
