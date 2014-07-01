@@ -25,10 +25,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import jsr166e.LongAdder;
-import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.AutoCreateIndex;
@@ -103,11 +102,10 @@ public class BulkShardProcessor {
         }
 
         if (autoCreateIndices) {
-            createIndexIfRequired(indexName, source, id, routing);
-        } else {
-            partitionRequestByShard(indexName, source, id, routing);
-            executeIfNeeded();
+            createIndexIfRequired(indexName);
         }
+        partitionRequestByShard(indexName, source, id, routing);
+        executeIfNeeded();
         return true;
     }
 
@@ -225,44 +223,29 @@ public class BulkShardProcessor {
         transportShardBulkAction.execute(request, new RetryResponseListener(request));
     }
 
-    private void createIndexIfRequired(final String indexName, final BytesReference source, final String id, final String routing) {
-
+    private void createIndexIfRequired(final String indexName) {
         if (!indexCreated(indexName) || autoCreateIndex.shouldAutoCreate(indexName, clusterService.state())) {
             pendingCreateIndexRequests.incrementAndGet();
-            transportCreateIndexAction.execute(new CreateIndexRequest(indexName).cause("bulkShardProcessor"),
-                    new ActionListener<CreateIndexResponse>() {
-                        @Override
-                        public void onResponse(CreateIndexResponse createIndexResponse) {
-                            onCreatedOrExistsAlready();
-                        }
-
-                        @Override
-                        public void onFailure(Throwable e) {
-                            e = ExceptionsHelper.unwrapCause(e);
-                            if (e instanceof IndexAlreadyExistsException) {
-                                // copy from with multiple readers might attempt to create the index
-                                // multiple times
-                                // can be ignored.
-                                logger.debug("copy from index {}", e.getMessage());
-                                onCreatedOrExistsAlready();
-                            } else {
-                                setFailure(e);
-                            }
-                        }
-
-                        private void onCreatedOrExistsAlready() {
-                            synchronized (createIndexLock) {
-                                indicesCreated.add(indexName);
-                            }
-                            partitionRequestByShard(indexName, source, id, routing);
-                            if (pendingCreateIndexRequests.decrementAndGet() == 0) {
-                                executeIfNeeded();
-                            }
-                        }
-                    });
-        } else {
-            partitionRequestByShard(indexName, source, id, routing);
-            executeIfNeeded();
+            try {
+                transportCreateIndexAction.execute(new CreateIndexRequest(indexName).cause("bulkShardProcessor")).actionGet();
+                synchronized (createIndexLock) {
+                    indicesCreated.add(indexName);
+                }
+                pendingCreateIndexRequests.decrementAndGet();
+            } catch (ElasticsearchException e) {
+                if (e instanceof IndexAlreadyExistsException) {
+                    // copy from with multiple readers might attempt to create the index
+                    // multiple times
+                    // can be ignored.
+                    logger.info("copy from index {}", e.getMessage());
+                    synchronized (createIndexLock) {
+                        indicesCreated.add(indexName);
+                    }
+                    pendingCreateIndexRequests.decrementAndGet();
+                } else {
+                    setFailure(e);
+                }
+            }
         }
     }
 
