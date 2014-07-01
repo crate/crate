@@ -69,7 +69,10 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         this.path = Objects.firstNonNull(path, ImmutableList.<String>of());
     }
 
-    public static ColumnIdent fromPath(String path) {
+    public static ColumnIdent fromPath(@Nullable String path) {
+        if (path == null) {
+            return null;
+        }
         List<String> parts = StringUtils.PATH_SPLITTER.splitToList(path);
         if (parts.size() > 1) {
             return new ColumnIdent(parts.get(0), parts.subList(1, parts.size()));

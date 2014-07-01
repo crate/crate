@@ -43,13 +43,9 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             new Value(DataTypes.LONG)  // number of rows imported
     );
 
-    protected final static String CONCURRENCY = "concurrency";
-    protected final static int CONCURRENCY_DEFAULT = 4;
-
     protected final static String BULK_SIZE = "bulk_size";
     protected final static int BULK_SIZE_DEFAULT = 10000;
 
-    protected Integer concurrency;
     protected Integer bulkActions;
     protected String tableName;
     protected List<ColumnIdent> primaryKeys;
@@ -70,8 +66,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         this.clusteredByColumn = clusteredByColumn;
 
         this.bulkActions = settings.getAsInt(BULK_SIZE, BULK_SIZE_DEFAULT);
-        this.concurrency = settings.getAsInt(CONCURRENCY, CONCURRENCY_DEFAULT);
-        Preconditions.checkArgument(concurrency > 0, "\"concurrency\" must be greater than 0.");
         Preconditions.checkArgument(bulkActions > 0, "\"bulk_size\" must be greater than 0.");
     }
 
@@ -126,9 +120,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     public Integer bulkActions() {
         return bulkActions;
     }
-    public Integer concurrency() {
-        return concurrency;
-    }
+
     public String tableName() {
         return tableName;
     }
@@ -143,7 +135,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         if (!bulkActions.equals(that.bulkActions)) return false;
         if (clusteredBySymbol != null ? !clusteredBySymbol.equals(that.clusteredBySymbol) : that.clusteredBySymbol != null)
             return false;
-        if (!concurrency.equals(that.concurrency)) return false;
         if (!idSymbols.equals(that.idSymbols)) return false;
         if (!partitionedBySymbols.equals(that.partitionedBySymbols))
             return false;
@@ -156,7 +147,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + concurrency.hashCode();
         result = 31 * result + bulkActions.hashCode();
         result = 31 * result + tableName.hashCode();
         result = 31 * result + primaryKeys.hashCode();
@@ -198,7 +188,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             ident.readFrom(in);
             clusteredByColumn = ident;
         }
-        concurrency = in.readVInt();
         bulkActions = in.readVInt();
     }
 
@@ -231,7 +220,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             out.writeBoolean(true);
             clusteredByColumn.writeTo(out);
         }
-        out.writeVInt(concurrency);
         out.writeVInt(bulkActions);
     }
 }

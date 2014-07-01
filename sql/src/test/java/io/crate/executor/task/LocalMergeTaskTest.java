@@ -40,10 +40,14 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
@@ -127,7 +131,12 @@ public class LocalMergeTaskTest {
             ThreadPool threadPool = new ThreadPool();
 
             LocalMergeTask localMergeTask = new LocalMergeTask(
-                    threadPool, injector.getProvider(Client.class), symbolVisitor, mergeNode,
+                    threadPool,
+                    mock(ClusterService.class),
+                    ImmutableSettings.EMPTY,
+                    mock(TransportShardBulkAction.class),
+                    mock(TransportCreateIndexAction.class),
+                    symbolVisitor, mergeNode,
                     mock(StatsTables.class));
             localMergeTask.upstreamResult(upstreamResults);
             localMergeTask.start();

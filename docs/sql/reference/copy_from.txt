@@ -18,7 +18,6 @@ Synopsis
 where `option` can be one of:
 
 - `bulk_size` *integer*
-- `concurrency` *integer*
 - `shared` *boolean*
 - `num_readers` *integer*
 - `compression` *string*
@@ -133,22 +132,6 @@ Crate will process the lines it reads from the ``path`` in bulks. This option
 specifies the size of such a bulk. The default is 10000.
 
 Must be set to a number greater than 0
-
-.. warning::
-
-    A bulk_size that is too high will cause a very high load on the cluster and
-    some lines that should be inserted might even be dropped.
-
-concurrency
-^^^^^^^^^^^
-
-The number of parallel bulk actions that should be executed. Default is 4.
-Must be set to a number greater than 0.
-
-.. warning::
-
-    Similar to a high bulk_size a high concurrency setting will cause a very
-    high load on the cluster.
 
 shared
 ^^^^^^

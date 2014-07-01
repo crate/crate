@@ -29,7 +29,10 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -52,7 +55,10 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         CollectExpression[] collectExpressions = new CollectExpression[]{ idInput, sourceInput };
 
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
-                cluster().getInstance(Client.class),
+                cluster().getInstance(ClusterService.class),
+                ImmutableSettings.EMPTY,
+                cluster().getInstance(TransportShardBulkAction.class),
+                cluster().getInstance(TransportCreateIndexAction.class),
                 "bulk_import",
                 Arrays.asList(ID_IDENT),
                 Arrays.<Input<?>>asList(idInput),
@@ -62,7 +68,6 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
                 sourceInput,
                 collectExpressions,
                 20,
-                2,
                 null, null
         );
         indexWriter.registerUpstream(null);

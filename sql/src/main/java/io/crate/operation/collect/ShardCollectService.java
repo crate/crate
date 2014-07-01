@@ -39,13 +39,14 @@ import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
@@ -70,8 +71,10 @@ public class ShardCollectService {
     private final BlobIndices blobIndices;
 
     @Inject
-    public ShardCollectService(Provider<Client> clientProvider,
-                               ClusterService clusterService,
+    public ShardCollectService(ClusterService clusterService,
+                               Settings settings,
+                               TransportShardBulkAction transportShardBulkAction,
+                               TransportCreateIndexAction transportCreateIndexAction,
                                ShardId shardId,
                                IndexService indexService,
                                ScriptService scriptService,
@@ -111,8 +114,13 @@ public class ShardCollectService {
                 RowGranularity.SHARD,
                 (isBlobShard ? blobShardReferenceResolver : referenceResolver)
         );
-        this.projectorVisitor = new ProjectionToProjectorVisitor(clientProvider,
-                shardImplementationSymbolVisitor, shardNormalizer);
+        this.projectorVisitor = new ProjectionToProjectorVisitor(
+                clusterService,
+                settings,
+                transportShardBulkAction,
+                transportCreateIndexAction,
+                shardImplementationSymbolVisitor,
+                shardNormalizer);
     }
 
     /**
