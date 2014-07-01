@@ -4126,14 +4126,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGeoTypeQueries() throws Exception {
-        execute("create table t (id int primary key, p geo_point) " +
+        // setup
+        execute("create table t (id int primary key, i int, p geo_point) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
         ensureGreen();
-        execute("insert into t (id, p) values (1, 'POINT (10 20)')");
-        execute("insert into t (id, p) values (2, 'POINT (11 21)')");
+        execute("insert into t (id, i, p) values (1, 1, 'POINT (10 20)')");
+        execute("insert into t (id, i, p) values (2, 1, 'POINT (11 21)')");
         refresh();
 
+        // order by
         execute("select distance(p, 'POINT (11 21)') from t order by 1");
         assertThat(response.rowCount(), is(2L));
 
@@ -4143,16 +4145,26 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(result1, is(0.0d));
         assertThat(result2, is(152462.70754934277));
 
-        String stmt = "SELECT id " +
+        String stmtOrderBy = "SELECT id " +
                 "FROM t " +
                 "ORDER BY distance(p, 'POINT(30.0 30.0)')";
-        execute(stmt);
+        execute(stmtOrderBy);
         assertThat(response.rowCount(), is(2L));
-        String expected =
+        String expectedOrderBy =
                 "2\n" +
                 "1\n";
-        assertEquals(expected, TestingHelpers.printedTable(response.rows()));
+        assertEquals(expectedOrderBy, TestingHelpers.printedTable(response.rows()));
 
+        // aggregation (max())
+        String stmtAggregate = "SELECT i, max(distance(p, 'POINT(30.0 30.0)')) " +
+                "FROM t " +
+                "GROUP BY i";
+        execute(stmtAggregate);
+        assertThat(response.rowCount(), is(1L));
+        String expectedAggregate = "1| 2297790.338709135\n";
+        assertEquals(expectedAggregate, TestingHelpers.printedTable(response.rows()));
+
+        // queries
         execute("select p from t where distance(p, 'POINT (11 21)') > 0.0");
         List<Double> row = (List<Double>) response.rows()[0][0];
         assertThat(row.get(0), is(10.0d));

@@ -76,6 +76,8 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
                 return new LongColumnReference(colName);
             case IntegerType.ID:
                 return new IntegerColumnReference(colName);
+            case GeoPointType.ID:
+                return new GeoPointColumnReference(colName);
             default:
                 throw new UnhandledServerException(String.format("unsupported type '%s'", referenceInfo.type().getName()));
         }
