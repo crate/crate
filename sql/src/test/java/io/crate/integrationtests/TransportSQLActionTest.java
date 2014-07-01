@@ -31,6 +31,7 @@ import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -4142,6 +4143,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(result1, is(0.0d));
         assertThat(result2, is(156098.81231186818D));
 
+        String stmt = "SELECT id " +
+                "FROM t " +
+                "ORDER BY distance(p, 'POINT(30.0 30.0)')";
+        execute(stmt);
+        assertThat(response.rowCount(), is(2L));
+        String expected =
+                "2\n" +
+                "1\n";
+        assertEquals(expected, TestingHelpers.printedTable(response.rows()));
+
         execute("select p from t where distance(p, 'POINT (11 21)') > 0.0");
         List<Double> row = (List<Double>) response.rows()[0][0];
         assertThat(row.get(0), is(10.0d));
@@ -4280,4 +4291,5 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into t2 (p) (select p from t)");
         assertThat(response.rowCount(), is(1L));
     }
+
 }

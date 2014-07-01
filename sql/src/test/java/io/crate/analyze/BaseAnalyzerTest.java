@@ -167,6 +167,12 @@ public class BaseAnalyzerTest {
             .add("timestamp", DataTypes.TIMESTAMP, null)
             .build();
 
+    static final TableIdent TEST_DOC_LOCATIONS_TABLE_IDENT = new TableIdent(null, "locations");
+    static final TableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, RowGranularity.DOC, shardRouting)
+            .add("id", DataTypes.LONG, null)
+            .add("loc", DataTypes.GEO_POINT, null)
+            .build();
+
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.<DataType>asList(DataTypes.LONG)),
             DataTypes.LONG);

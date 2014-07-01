@@ -45,6 +45,7 @@ import io.crate.operation.reference.sys.node.NodeLoadExpression;
 import io.crate.operation.scalar.CollectionCountFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.AddFunction;
+import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.types.ArrayType;
@@ -102,6 +103,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_DOC_TRANSACTIONS_TABLE_IDENT.name()))
                     .thenReturn(TEST_DOC_TRANSACTIONS_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_DOC_LOCATIONS_TABLE_IDENT.name()))
+                    .thenReturn(TEST_DOC_LOCATIONS_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -1271,8 +1274,47 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("SELECT sum(id), friends FROM users GROUP BY 2");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = UnsupportedOperationException.class)
     public void testPositionalArgumentOrderByArrayType() throws Exception {
         analyze("SELECT id, friends FROM users ORDER BY 2");
     }
+
+    @Test
+    public void testOrderByDistanceAlias() throws Exception {
+        String stmt = "SELECT distance(loc, 'POINT(-0.1275 51.507222)') AS distance_to_london " +
+                "FROM locations " +
+                "ORDER BY distance_to_london";
+        testDistanceOrderBy(stmt);
+    }
+
+    @Test
+    public void testOrderByDistancePositionalArgument() throws Exception {
+        String stmt = "SELECT distance(loc, 'POINT(-0.1275 51.507222)') " +
+                "FROM locations " +
+                "ORDER BY 1";
+        testDistanceOrderBy(stmt);
+    }
+
+    @Test
+    public void testOrderByDistanceExplicitly() throws Exception {
+        String stmt = "SELECT distance(loc, 'POINT(-0.1275 51.507222)') " +
+                "FROM locations " +
+                "ORDER BY distance(loc, 'POINT(-0.1275 51.507222)')";
+        testDistanceOrderBy(stmt);
+    }
+
+    @Test
+    public void testOrderByDistancePermutatedExplicitly() throws Exception {
+        String stmt = "SELECT distance('POINT(-0.1275 51.507222)', loc) " +
+                "FROM locations " +
+                "ORDER BY distance('POINT(-0.1275 51.507222)', loc)";
+        testDistanceOrderBy(stmt);
+    }
+
+    private void testDistanceOrderBy(String stmt) throws Exception{
+        SelectAnalysis analysis = (SelectAnalysis) analyze(stmt);
+        assertTrue(analysis.isSorted());
+        assertEquals(DistanceFunction.NAME, ((Function)analysis.sortSymbols().get(0)).info().ident().name());
+    }
+
 }

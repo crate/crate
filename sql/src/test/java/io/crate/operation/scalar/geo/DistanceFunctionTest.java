@@ -47,6 +47,7 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static io.crate.testing.TestingHelpers.createReference;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
@@ -151,7 +152,6 @@ public class DistanceFunctionTest {
                 createReference("foo", DataTypes.GEO_POINT),
                 Literal.newLiteral("POINT(10 20)")
         ));
-
         assertLiteralSymbol(symbol.arguments().get(1),
                 new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT);
 
@@ -160,8 +160,42 @@ public class DistanceFunctionTest {
                 Literal.newLiteral("POINT(10 20)"),
                 createReference("foo", DataTypes.GEO_POINT)
         ));
-        assertLiteralSymbol(symbol.arguments().get(0),
+        assertLiteralSymbol(symbol.arguments().get(1),
                 new Double[] { 10.0d, 20.0d }, DataTypes.GEO_POINT);
+    }
+
+    @Test
+    public void testNormalizeWithValidRefAndGeoPointLiteral() throws Exception {
+        Function symbol = (Function) normalize(Arrays.<Symbol>asList(
+                createReference("foo", DataTypes.GEO_POINT),
+                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
+        ));
+        assertLiteralSymbol(symbol.arguments().get(1),
+                new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT);
+
+        // args reversed
+        symbol = (Function) normalize(Arrays.<Symbol>asList(
+                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
+                createReference("foo", DataTypes.GEO_POINT)
+        ));
+        assertLiteralSymbol(symbol.arguments().get(1),
+                new Double[] { 10.0d, 20.0d }, DataTypes.GEO_POINT);
+    }
+
+    @Test
+    public void testNormalizeWithValidGeoPointLiterals() throws Exception {
+        Literal symbol = (Literal) normalize(Arrays.<Symbol>asList(
+                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
+                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (30 40)"))
+        ));
+        assertThat(symbol.value(), instanceOf(Double.class));
+
+        // args reversed
+        symbol = (Literal) normalize(Arrays.<Symbol>asList(
+                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (30 40)")),
+                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
+        ));
+        assertThat(symbol.value(), instanceOf(Double.class));
     }
 
     @Test

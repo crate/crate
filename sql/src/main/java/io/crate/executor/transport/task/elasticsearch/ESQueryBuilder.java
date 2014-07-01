@@ -289,27 +289,16 @@ public class ESQueryBuilder {
             if (symbol.info().ident().name().equals(DistanceFunction.NAME)) {
                 Symbol referenceSymbol = symbol.arguments().get(0);
                 Symbol valueSymbol = symbol.arguments().get(1);
-                if (referenceSymbol.symbolType().isValueSymbol()) {
-                    if (!valueSymbol.symbolType().isValueSymbol()) {
-                        throw new IllegalArgumentException(SymbolFormatter.format(
-                                "Can't use \"%s\" in the ORDER BY clause. Requires one column reference and one literal", symbol));
-                    }
-                    Symbol tmp = referenceSymbol;
-                    referenceSymbol = valueSymbol;
-                    valueSymbol = tmp;
+
+                if (referenceSymbol.symbolType() != SymbolType.REFERENCE || !(valueSymbol instanceof Input)) {
+                    throw new IllegalArgumentException(SymbolFormatter.format(
+                            "Can't use \"%s\" in the ORDER BY clause. " +
+                            "Requires one column reference and one literal, in that order.", symbol));
                 }
 
                 SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
-                Reference reference;
-                Input input;
-                try {
-                    reference = (Reference) referenceSymbol;
-                    input = (Input) valueSymbol;
-                } catch (ClassCastException e) {
-                    throw new IllegalArgumentException(SymbolFormatter.format(
-                            "Can't use \"%s\" in the ORDER BY clause. Requires one column reference and one literal", symbol), e);
-                }
-
+                Reference reference = (Reference) referenceSymbol;
+                Input input = (Input) valueSymbol;
                 try {
                     context.builder.startObject().startObject("_geo_distance")
                             .field(reference.info().ident().columnIdent().fqn(), input.value())
