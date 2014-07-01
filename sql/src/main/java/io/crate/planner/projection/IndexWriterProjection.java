@@ -190,7 +190,6 @@ public class IndexWriterProjection extends Projection {
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + concurrency.hashCode();
         result = 31 * result + bulkActions.hashCode();
         result = 31 * result + tableName.hashCode();
         result = 31 * result + idSymbols.hashCode();

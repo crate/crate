@@ -2401,7 +2401,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas=0)");
         ensureGreen();
 
-        execute("copy quotes from ? with (concurrency=2, shared=true)", new Object[]{copyFilePath + "/*"});
+        execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "/*"});
         assertEquals(3L, response.rowCount());
         refresh();
 

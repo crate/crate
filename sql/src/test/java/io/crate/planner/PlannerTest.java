@@ -826,7 +826,7 @@ public class PlannerTest {
 
     @Test (expected = IllegalArgumentException.class)
     public void testCopyFromPlanWithInvalidParameters() throws Exception {
-        plan("copy users from '/path/to/file.ext' with (concurrency=-28)");
+        plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
     }
 
     @Test

@@ -22,36 +22,38 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Function;
+import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
-import io.crate.Constants;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import io.crate.PartitionName;
 import io.crate.analyze.Id;
-import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.bulk.BulkItemResponse;
-import org.elasticsearch.action.bulk.BulkProcessor;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.client.Requests;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class IndexWriterProjector implements Projector {
 
-    private final BulkProcessor bulkProcessor;
-    private final Listener listener;
     private final AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final CollectExpression<?>[] collectExpressions;
     private final List<Input<?>> idInputs;
@@ -63,9 +65,19 @@ public class IndexWriterProjector implements Projector {
     private final List<Input<?>> partitionedByInputs;
     private final String[] includes;
     private final String[] excludes;
+    private final BulkShardProcessor bulkShardProcessor;
     private Projector downstream;
-
-    public IndexWriterProjector(Client client,
+    private final Function<Input<?>, String> inputToString = new Function<Input<?>, String>() {
+        @Nullable
+        @Override
+        public String apply(Input<?> input) {
+            return BytesRefs.toString(input.value());
+        }
+    };
+    public IndexWriterProjector(ClusterService clusterService,
+                                Settings settings,
+                                TransportShardBulkAction transportShardBulkAction,
+                                TransportCreateIndexAction transportCreateIndexAction,
                                 String tableName,
                                 List<ColumnIdent> primaryKeys,
                                 List<Input<?>> idInputs,
@@ -74,10 +86,8 @@ public class IndexWriterProjector implements Projector {
                                 Input<?> sourceInput,
                                 CollectExpression<?>[] collectExpressions,
                                 @Nullable Integer bulkActions,
-                                @Nullable Integer concurrency,
                                 @Nullable String[] includes,
                                 @Nullable String[] excludes) {
-        listener = new Listener();
         this.tableName = tableName;
         this.primaryKeys = primaryKeys;
         this.collectExpressions = collectExpressions;
@@ -87,34 +97,71 @@ public class IndexWriterProjector implements Projector {
         this.partitionedByInputs = partitionedByInputs;
         this.includes = includes;
         this.excludes = excludes;
-        BulkProcessor.Builder builder = BulkProcessor.builder(client, listener);
-        if (bulkActions != null) {
-            builder.setBulkActions(bulkActions);
-        }
-        if (concurrency != null) {
-            builder.setConcurrentRequests(concurrency);
-        }
-        bulkProcessor = builder.build();
+        this.bulkShardProcessor = new BulkShardProcessor(
+                clusterService,
+                settings,
+                transportShardBulkAction,
+                transportCreateIndexAction,
+                partitionedByInputs.size() > 0, // autoCreate indices if this is a partitioned table
+                Objects.firstNonNull(bulkActions, 100)
+        );
     }
 
     @Override
     public void startProjection() {
-        listener.allRowsAdded.set(false);
     }
 
     @Override
     public boolean setNextRow(Object... row) {
-        IndexRequest indexRequest;
+        String indexName;
+        BytesReference source;
+        String id;
+        String clusteredByValue;
+
         synchronized (lock) {
             for (CollectExpression<?> collectExpression : collectExpressions) {
                 collectExpression.setNextRow(row);
             }
-            indexRequest = buildRequest();
+
+            Object value = sourceInput.value();
+            if (value == null) {
+                return true;
+            }
+            clusteredByValue = BytesRefs.toString(routingInput.value());
+            id = getId(clusteredByValue).stringValue();
+            source = getSource(value);
+            indexName = getIndexName();
         }
-        if (indexRequest != null) {
-            bulkProcessor.add(indexRequest);
+
+        return bulkShardProcessor.add(indexName, source, id, clusteredByValue);
+    }
+
+    private BytesReference getSource(Object value) {
+        if (includes != null || excludes != null) {
+            assert value instanceof Map;
+            // exclude partitioned columns from source
+            Map<String, Object> sourceAsMap = XContentMapValues.filter((Map) value, includes, excludes);
+
+            try {
+                return XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE).map(sourceAsMap).bytes();
+            } catch (IOException e) {
+                // TODO: handle correctly
+                return null;
+            }
+        } else {
+            assert value instanceof BytesRef;
+            byte[] bytes = ((BytesRef) value).bytes;
+            return new BytesArray(bytes, 0, bytes.length);
         }
-        return true;
+    }
+
+    public Id getId(String clusteredByValue) {
+        return new Id(
+                primaryKeys,
+                Lists.transform(idInputs, inputToString),
+                ColumnIdent.fromPath(clusteredByValue),
+                true
+        );
     }
 
     @Override
@@ -125,150 +172,52 @@ public class IndexWriterProjector implements Projector {
     @Override
     public void upstreamFinished() {
         if (remainingUpstreams.decrementAndGet() <= 0) {
-            bulkProcessor.close();
-            listener.allRowsAdded.set(true);
-            if (listener.inProgress.get() == 0) {
-                downstream.setNextRow(listener.rowsImported.get());
-                downstream.upstreamFinished();
-            }
+            bulkShardProcessor.close();
         }
     }
 
     @Override
     public void upstreamFailed(Throwable throwable) {
-        if (remainingUpstreams.decrementAndGet() <= 0) {
-            bulkProcessor.close();
-            if (downstream != null) {
-                downstream.setNextRow(listener.rowsImported.get());
-                downstream.upstreamFailed(throwable);
-            }
-            return;
+        if (downstream != null) {
+            downstream.upstreamFailed(throwable);
         }
-        listener.failure.set(throwable);
+        bulkShardProcessor.close();
     }
 
-    private IndexRequest buildRequest() {
-        // TODO: reuse logic that is currently  in AbstractESIndexTask
-        IndexRequest indexRequest = new IndexRequest();
-        Object value = sourceInput.value();
-        if (value == null) {
-            return null;
-        }
-        indexRequest.type(Constants.DEFAULT_MAPPING_TYPE);
-
-        if (partitionedByInputs.size() > 0) {
-            List<String> partitionedByValues = Lists.transform(partitionedByInputs, new Function<Input<?>, String>() {
-                @Nullable
-                @Override
-                public String apply(Input<?> input) {
-                    Object value = input.value();
-                    if (value == null) {
-                        return null;
-                    }
-                    return value.toString();
-                }
-            });
-
-            String partition = new PartitionName(tableName, partitionedByValues).stringValue();
-            indexRequest.index(partition);
-
-        } else {
-            indexRequest.index(tableName);
-        }
-
-        if (includes != null || excludes != null) {
-            assert value instanceof Map;
-            // exclude partitioned columns from source
-            Map<String, Object> sourceAsMap = XContentMapValues.filter((Map) value, includes, excludes);
-            indexRequest.source(sourceAsMap);
-        } else {
-            assert value instanceof BytesRef;
-            indexRequest.source(((BytesRef) value).bytes);
-        }
-
-        List<String> primaryKeyValues = Lists.transform(idInputs, new Function<Input<?>, String>() {
+    private void setResultCallback() {
+        assert downstream != null;
+        Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<Long>() {
             @Override
-            public String apply(Input<?> input) {
-                if (input.value() == null)
-                    return null;
-                return input.value().toString();
+            public void onSuccess(@Nullable Long result) {
+                downstream.setNextRow(result);
+                downstream.upstreamFinished();
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                downstream.upstreamFailed(t);
             }
         });
+    }
 
-        Object routing = routingInput.value();
-        String clusteredByValue = null;
-        if (routing != null) {
-            clusteredByValue = routing.toString();
-            indexRequest.routing(clusteredByValue);
+    private String getIndexName() {
+        if (partitionedByInputs.size() > 0) {
+            return new PartitionName(tableName,
+                    Lists.transform(partitionedByInputs, inputToString)).stringValue();
+        } else {
+            return tableName;
         }
-        Id id = new Id(primaryKeys, primaryKeyValues, clusteredByValue != null ? ColumnIdent.fromPath(clusteredByValue) : null, true);
-        indexRequest.id(id.stringValue());
-        return indexRequest;
     }
 
     @Override
     public void downstream(Projector downstream) {
         this.downstream = downstream;
-        this.listener.downstream(downstream);
+        setResultCallback();
     }
 
     @Override
     public Projector downstream() {
         return downstream;
     }
-
-    private static class Listener implements BulkProcessor.Listener {
-        AtomicInteger inProgress = new AtomicInteger(0);
-        final AtomicBoolean allRowsAdded;
-        final AtomicReference<Throwable> failure = new AtomicReference<>();
-        final AtomicLong rowsImported = new AtomicLong(0);
-        Projector downstream;
-
-        Listener() {
-            allRowsAdded = new AtomicBoolean(false);
-        }
-
-        void downstream(Projector downstream) {
-            this.downstream = downstream;
-        }
-
-        @Override
-        public void beforeBulk(long executionId, BulkRequest request) {
-            inProgress.incrementAndGet();
-        }
-
-        @Override
-        public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
-            if (response.hasFailures()) {
-                for (BulkItemResponse item : response.getItems()) {
-                    if (!item.isFailed()) {
-                        rowsImported.incrementAndGet();
-                    } else {
-                        failure.set(new UnhandledServerException(item.getFailureMessage()));
-                    }
-                }
-            } else {
-                rowsImported.addAndGet(response.getItems().length);
-            }
-
-            if (inProgress.decrementAndGet() == 0 && allRowsAdded.get() && downstream != null) {
-                Throwable throwable = failure.get();
-                if (throwable != null) {
-                    downstream.upstreamFailed(throwable);
-                } else {
-                    downstream.setNextRow(rowsImported.get());
-                    downstream.upstreamFinished();
-                }
-            }
-        }
-
-        @Override
-        public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
-            this.failure.set(failure);
-            if (inProgress.decrementAndGet() == 0 && allRowsAdded.get() && downstream != null) {
-                downstream.setNextRow(rowsImported.get());
-                downstream.upstreamFailed(failure);
-            }
-        }
-    }
 }
+

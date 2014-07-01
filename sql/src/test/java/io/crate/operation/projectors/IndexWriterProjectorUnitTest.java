@@ -27,8 +27,17 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
@@ -39,15 +48,32 @@ public class IndexWriterProjectorUnitTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("id");
 
-    @Test(expected = IllegalStateException.class)
+    @Mock(answer = Answers.RETURNS_MOCKS)
+    ClusterService clusterService;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    @Before
+    public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
+    }
+
+    @Test
     public void testExceptionBubbling() throws Throwable {
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("my dummy exception");
+
         CollectingProjector collectingProjector = new CollectingProjector();
         InputCollectExpression<Object> idInput = new InputCollectExpression<>(0);
         InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(1);
         CollectExpression[] collectExpressions = new CollectExpression[]{ idInput, sourceInput };
 
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
-                null,
+                clusterService,
+                ImmutableSettings.EMPTY,
+                mock(TransportShardBulkAction.class),
+                mock(TransportCreateIndexAction.class),
                 "bulk_import",
                 Arrays.asList(ID_IDENT),
                 Arrays.<Input<?>>asList(idInput),
@@ -56,7 +82,6 @@ public class IndexWriterProjectorUnitTest {
                 sourceInput,
                 collectExpressions,
                 20,
-                2,
                 null, null
         );
         indexWriter.downstream(collectingProjector);
@@ -79,7 +104,10 @@ public class IndexWriterProjectorUnitTest {
         InputCollectExpression<Object> routingInput = new InputCollectExpression<>(0);
         CollectExpression[] collectExpressions = new CollectExpression[]{ idInput, sourceInput, routingInput };
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
-                mock(Client.class),
+                clusterService,
+                ImmutableSettings.EMPTY,
+                mock(TransportShardBulkAction.class),
+                mock(TransportCreateIndexAction.class),
                 "bulk_import",
                 Arrays.asList(ID_IDENT),
                 Arrays.<Input<?>>asList(idInput),
@@ -88,7 +116,6 @@ public class IndexWriterProjectorUnitTest {
                 sourceInput,
                 collectExpressions,
                 20,
-                2,
                 null, null
         );
         indexWriter.downstream(collectingProjector);

@@ -37,14 +37,15 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportResponseHandler;
@@ -187,8 +188,10 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
     private final PlanNodeStreamerVisitor streamerVisitor;
 
     @Inject
-    public DistributingCollectOperation(Provider<Client> clientProvider,
-                                        ClusterService clusterService,
+    public DistributingCollectOperation(ClusterService clusterService,
+                                        Settings settings,
+                                        TransportShardBulkAction transportShardBulkAction,
+                                        TransportCreateIndexAction transportCreateIndexAction,
                                         Functions functions,
                                         ReferenceResolver referenceResolver,
                                         IndicesService indicesService,
@@ -196,7 +199,9 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                                         TransportService transportService,
                                         PlanNodeStreamerVisitor streamerVisitor,
                                         CollectServiceResolver collectServiceResolver) {
-        super(clientProvider, clusterService, functions, referenceResolver, indicesService, threadPool, collectServiceResolver);
+        super(clusterService, settings, transportShardBulkAction, transportCreateIndexAction,
+                functions, referenceResolver, indicesService,
+                threadPool, collectServiceResolver);
         this.transportService = transportService;
         this.streamerVisitor = streamerVisitor;
     }

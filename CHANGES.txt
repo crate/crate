@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: ``copy from`` will now throttle and retry if there are failures due to
+   full thread pool queues.
+   The ``concurrency`` option has also been removed.
+
  - fix: improve input validation for objects and object arrays
 
  - fix: avoid failed execution of ``DROP TABLE`` on partitioned table
