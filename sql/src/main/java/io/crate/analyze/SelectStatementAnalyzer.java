@@ -363,7 +363,12 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         @Override
         public Void visitSymbol(Symbol symbol, SortContext context) {
-            return null;
+            if (context.inFunction) {
+                return null;
+            }
+            throw new UnsupportedOperationException(
+                    String.format("Cannot ORDER BY for '%s'", SymbolFormatter.format(symbol))
+            );
         }
     }
 
