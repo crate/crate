@@ -40,6 +40,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     private final static AggregationSearcher aggregationSearcher = new AggregationSearcher();
     private final static SortSymbolValidator sortSymbolValidator = new SortSymbolValidator();
+    private final static GroupBySymbolValidator groupBySymbolValidator = new GroupBySymbolValidator();
 
     @Override
     protected Symbol visitSelect(Select node, SelectAnalysis context) {
@@ -226,19 +227,9 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
         for (Expression expression : groupByExpressions) {
             Symbol s = process(expression, context);
-            Symbol refOutput = ordinalOutputReference(context.outputSymbols(), s, "GROUP BY");
-            s = Objects.firstNonNull(refOutput, s);
-            if (s.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
-                throw new IllegalArgumentException(
-                        SymbolFormatter.format("unknown column '%s' not allowed in GROUP BY", s));
-            } else if (s.symbolType() == SymbolType.FUNCTION && ((Function) s).info().isAggregate()) {
-                throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
-            } else if (s.symbolType() == SymbolType.REFERENCE && !DataTypes.PRIMITIVE_TYPES.contains(((Reference)s).valueType())) {
-                throw new IllegalArgumentException(
-                        String.format("Cannot group by '%s': invalid data type '%s'",
-                                SymbolFormatter.format(s),
-                                ((Reference) s).valueType()));
-            }
+            Symbol deref = ordinalOutputReference(context.outputSymbols(), s, "GROUP BY");
+            s = Objects.firstNonNull(deref, s);
+            groupBySymbolValidator.process(s, null);
             groupBy.add(s);
         }
         context.groupBy(groupBy);
@@ -375,4 +366,40 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             return null;
         }
     }
+
+    static class GroupBySymbolValidator extends SymbolVisitor<Void, Void> {
+
+        @Override
+        public Void visitDynamicReference(DynamicReference symbol, Void context) {
+            throw new IllegalArgumentException(
+                    SymbolFormatter.format("unknown column '%s' not allowed in GROUP BY", symbol));
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, Void context) {
+            if (!DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
+                throw new IllegalArgumentException(
+                        String.format("Cannot GROUP BY '%s': invalid data type '%s'",
+                                SymbolFormatter.format(symbol),
+                                symbol.valueType()));
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitFunction(Function symbol, Void context) {
+             if (symbol.info().isAggregate()) {
+                 throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
+             }
+             return null;
+         }
+
+        @Override
+        protected Void visitSymbol(Symbol symbol, Void context) {
+            throw new UnsupportedOperationException(
+                    String.format("Cannot GROUP BY for '%s'", SymbolFormatter.format(symbol))
+            );
+        }
+    }
+
 }
