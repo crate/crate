@@ -31,6 +31,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.symbol.Parameter;
 import io.crate.planner.symbol.Reference;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -94,7 +95,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
                 "copy parted partition (date=1395874800000) from '/some/distant/file.ext'");
         assertThat(
                 analysis.partitionIdent(),
-                equalTo(PartitionName.encodeIdent(Arrays.<String>asList("1395874800000"))));
+                equalTo(PartitionName.encodeIdent(Arrays.asList(new BytesRef("1395874800000")))));
     }
 
     @Test( expected = TableUnknownException.class)
@@ -162,6 +163,6 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToFileWithPartitionClause() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted partition (date=0) to '/blah.txt'");
-        assertThat(analysis.partitionIdent(), is(PartitionName.encodeIdent(Arrays.asList("0"))));
+        assertThat(analysis.partitionIdent(), is(PartitionName.encodeIdent(Arrays.asList(new BytesRef("0")))));
     }
 }

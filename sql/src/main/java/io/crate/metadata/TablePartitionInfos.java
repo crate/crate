@@ -29,6 +29,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -86,12 +87,9 @@ public class TablePartitionInfos implements Iterable<TablePartitionInfo> {
                     String partitionCol = StringUtils.dottedToSqlPath(referenceInfo.ident().columnIdent().fqn());
 
                     // value
-                    String strValue = pn.values().get(i);
-                    Object value;
-                    if (referenceInfo.type().equals(DataTypes.STRING)) {
-                        value = strValue;
-                    } else {
-                        value = referenceInfo.type().value(strValue);
+                    Object value = BytesRefs.toString(pn.values().get(i));
+                    if (!referenceInfo.type().equals(DataTypes.STRING)) {
+                        value = referenceInfo.type().value(value);
                     }
 
                     // column -> value

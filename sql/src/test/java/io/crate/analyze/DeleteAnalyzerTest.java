@@ -32,6 +32,7 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
@@ -106,7 +107,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.whereClause().hasQuery(), Matchers.is(false));
         assertThat(analysis.whereClause().noMatch(), Matchers.is(false));
         assertEquals(ImmutableList.of(
-                        new PartitionName("parted", Arrays.asList("1395874800000")).stringValue()),
+                        new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()),
                 analysis.whereClause().partitions());
 
         analysis = (DeleteAnalysis) analyze("delete from parted");

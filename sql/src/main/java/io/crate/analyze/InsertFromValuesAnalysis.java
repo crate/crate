@@ -23,6 +23,8 @@ package io.crate.analyze;
 
 import io.crate.PartitionName;
 import io.crate.metadata.*;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -78,10 +80,10 @@ public class InsertFromValuesAnalysis extends AbstractInsertAnalysis {
     public List<String> partitions() {
         List<String> partitionValues = new ArrayList<>(partitionMaps.size());
         for (Map<String, String> map : partitionMaps) {
-            List<String> values = new ArrayList<>(map.size());
+            List<BytesRef> values = new ArrayList<>(map.size());
             List<String> columnNames = partitionedByColumnNames();
             for (String columnName : columnNames) {
-                values.add(map.get(columnName));
+                values.add(BytesRefs.toBytesRef(map.get(columnName)));
             }
             PartitionName partitionName = new PartitionName(
                 table().ident().name(),
@@ -97,7 +99,7 @@ public class InsertFromValuesAnalysis extends AbstractInsertAnalysis {
     }
 
     @Override
-    public void addIdAndRouting(List<String> primaryKeyValues, String clusteredByValue) {
+    public void addIdAndRouting(List<BytesRef> primaryKeyValues, String clusteredByValue) {
         addIdAndRouting(true, primaryKeyValues, clusteredByValue);
     }
 

@@ -29,6 +29,7 @@ import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -93,7 +94,7 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRefreshPartition() throws Exception {
-        PartitionName partition = new PartitionName("parted", Arrays.asList("1395874800000"));
+        PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
         RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table parted PARTITION (date=1395874800000)");
         assertThat(analysis.table().ident().name(), is("parted"));
         assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
@@ -101,7 +102,7 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRefreshPartitionsParameter() throws Exception {
-        PartitionName partition = new PartitionName("parted", Arrays.asList("1395874800000"));
+        PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
         RefreshTableAnalysis analysis = (RefreshTableAnalysis) analyze(
                 "refresh table parted PARTITION (date=?)", new Object[] {"1395874800000"});
         assertThat(analysis.table().ident().name(), is("parted"));

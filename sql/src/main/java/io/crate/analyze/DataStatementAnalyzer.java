@@ -40,6 +40,7 @@ import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
 import io.crate.types.*;
+import org.apache.lucene.util.BytesRef;
 
 import java.util.*;
 
@@ -399,8 +400,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     }
 
     protected void processPrimaryKeyLiterals(List primaryKeyLiterals, T context) {
-        List<List<String>> primaryKeyValuesList = new ArrayList<>(primaryKeyLiterals.size());
-        primaryKeyValuesList.add(new ArrayList<String>(context.table().primaryKey().size()));
+        List<List<BytesRef>> primaryKeyValuesList = new ArrayList<>(primaryKeyLiterals.size());
+        primaryKeyValuesList.add(new ArrayList<BytesRef>(context.table().primaryKey().size()));
 
         for (int i=0; i<primaryKeyLiterals.size(); i++) {
             Object primaryKey = primaryKeyLiterals.get(i);
@@ -416,30 +417,30 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                             // copy already parsed pk values, so we have all possible multiple pk for all sets
                             primaryKeyValuesList.add(Lists.newArrayList(primaryKeyValuesList.get(s - 1)));
                         }
-                        List<String> primaryKeyValues = primaryKeyValuesList.get(s);
+                        List<BytesRef> primaryKeyValues = primaryKeyValuesList.get(s);
                         if (primaryKeyValues.size() > i) {
-                            primaryKeyValues.set(i, StringValueSymbolVisitor.INSTANCE.process(pk));
+                            primaryKeyValues.set(i, BytesRefValueSymbolVisitor.INSTANCE.process(pk));
                         } else {
-                            primaryKeyValues.add(StringValueSymbolVisitor.INSTANCE.process(pk));
+                            primaryKeyValues.add(BytesRefValueSymbolVisitor.INSTANCE.process(pk));
                         }
                     }
                 } else {
-                    for (List<String> primaryKeyValues : primaryKeyValuesList) {
-                        primaryKeyValues.add((StringValueSymbolVisitor.INSTANCE.process(pkLiteral)));
+                    for (List<BytesRef> primaryKeyValues : primaryKeyValuesList) {
+                        primaryKeyValues.add((BytesRefValueSymbolVisitor.INSTANCE.process(pkLiteral)));
                     }
                 }
             } else if (primaryKey instanceof List) {
-                primaryKey = Lists.transform((List<Literal>) primaryKey, new com.google.common.base.Function<Literal, String>() {
+                primaryKey = Lists.transform((List<Literal>) primaryKey, new com.google.common.base.Function<Literal, BytesRef>() {
                     @Override
-                    public String apply(Literal input) {
-                        return StringValueSymbolVisitor.INSTANCE.process(input);
+                    public BytesRef apply(Literal input) {
+                        return BytesRefValueSymbolVisitor.INSTANCE.process(input);
                     }
                 });
-                primaryKeyValuesList.add((List<String>) primaryKey);
+                primaryKeyValuesList.add((List<BytesRef>) primaryKey);
             }
         }
 
-        for (List<String> primaryKeyValues : primaryKeyValuesList) {
+        for (List<BytesRef> primaryKeyValues : primaryKeyValuesList) {
             context.addIdAndRouting(primaryKeyValues, context.whereClause().clusteredBy().orNull());
         }
     }

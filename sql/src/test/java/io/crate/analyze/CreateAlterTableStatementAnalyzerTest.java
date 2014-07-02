@@ -33,6 +33,7 @@ import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -690,7 +691,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         AlterTableAnalysis analysis = (AlterTableAnalysis) analyze(
                 "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(true));
-        assertThat(analysis.partitionName().get(), is(new PartitionName("parted", Arrays.asList("1395874800000"))));
+        assertThat(analysis.partitionName().get(), is(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")))));
     }
 
     @Test(expected = IllegalArgumentException.class)

@@ -37,14 +37,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 public class PartitionName implements Streamable {
 
     private static final Base32 BASE32 = new Base32(true);
-    private static final Pattern PADDING_PATTERN = Pattern.compile("=");
+    private static final Joiner DOT_JOINER = Joiner.on(".");
 
-    private final List<String> values;
+    private final List<BytesRef> values;
     private String tableName;
 
     private String partitionName;
@@ -60,13 +59,13 @@ public class PartitionName implements Streamable {
         }
     };
 
-    public PartitionName(String tableName, List<String> values) {
+    public PartitionName(String tableName, List<BytesRef> values) {
         this.tableName = tableName;
         this.values = values;
     }
 
     private PartitionName(String tableName) {
-        this(tableName, new ArrayList<String>());
+        this(tableName, new ArrayList<BytesRef>());
     }
 
     public boolean isValid() {
@@ -82,7 +81,7 @@ public class PartitionName implements Streamable {
             if (value == null) {
                 values.add(null);
             } else {
-                values.add(value.utf8ToString());
+                values.add(value);
             }
         }
     }
@@ -91,9 +90,8 @@ public class PartitionName implements Streamable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(tableName);
         out.writeVInt(values.size());
-        for (String value : values) {
-            StringType.INSTANCE.streamer().writeValueTo(out,
-                    value == null ? null : new BytesRef(value));
+        for (BytesRef value : values) {
+            StringType.INSTANCE.streamer().writeValueTo(out, value);
         }
     }
 
@@ -110,13 +108,13 @@ public class PartitionName implements Streamable {
             if (value == null) {
                 values.add(null);
             } else {
-                values.add(value.utf8ToString());
+                values.add(value);
             }
         }
     }
 
     @Nullable
-    public static String encodeIdent(List<String> values) {
+    public static String encodeIdent(List<BytesRef> values) {
         if (values.size() == 0) {
             return null;
         }
@@ -124,9 +122,8 @@ public class PartitionName implements Streamable {
         BytesStreamOutput out = new BytesStreamOutput();
         try {
             out.writeVInt(values.size());
-            for (String value : values) {
-                StringType.INSTANCE.streamer().writeValueTo(out,
-                        value == null ? null : new BytesRef(value));
+            for (BytesRef value : values) {
+                StringType.INSTANCE.streamer().writeValueTo(out, value);
             }
             out.close();
         } catch (IOException e) {
@@ -134,7 +131,11 @@ public class PartitionName implements Streamable {
         }
         String identBase32 = BASE32.encodeAsString(out.bytes().toBytes()).toLowerCase(Locale.ROOT);
         // decode doesn't need padding, remove it
-        return PADDING_PATTERN.matcher(identBase32).replaceAll("");
+        int idx = identBase32.indexOf('=');
+        if (idx > -1) {
+            return identBase32.substring(0, idx);
+        }
+        return identBase32;
     }
 
     @Nullable
@@ -144,7 +145,7 @@ public class PartitionName implements Streamable {
 
     public String stringValue() {
         if (partitionName == null) {
-            partitionName = Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, ident());
+            partitionName = DOT_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, ident());
         }
         return partitionName;
     }
@@ -162,7 +163,7 @@ public class PartitionName implements Streamable {
         return stringValue();
     }
 
-    public List<String> values() {
+    public List<BytesRef> values() {
         return values;
     }
 

@@ -33,6 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
@@ -58,11 +59,11 @@ public abstract class AbstractIndexWriterProjector implements Projector {
     private final List<ColumnIdent> primaryKeys;
     private final List<Input<?>> partitionedByInputs;
     private final BulkShardProcessor bulkShardProcessor;
-    private final Function<Input<?>, String> inputToString = new Function<Input<?>, String>() {
+    private final Function<Input<?>, BytesRef> inputToBytesRef = new Function<Input<?>, BytesRef>() {
                 @Nullable
                 @Override
-                public String apply(Input<?> input) {
-                    return BytesRefs.toString(input.value());
+                public BytesRef apply(Input<?> input) {
+                    return BytesRefs.toBytesRef(input.value());
                 }
             };
     private Projector downstream;
@@ -135,7 +136,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
     public Id getId() {
         return new Id(
                 primaryKeys,
-                Lists.transform(idInputs, inputToString),
+                Lists.transform(idInputs, inputToBytesRef),
                 routingIdent.orNull(),
                 true
         );
@@ -180,7 +181,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
     private String getIndexName() {
         if (partitionedByInputs.size() > 0) {
             return new PartitionName(tableName,
-                    Lists.transform(partitionedByInputs, inputToString)).stringValue();
+                    Lists.transform(partitionedByInputs, inputToBytesRef)).stringValue();
         } else {
             return tableName;
         }

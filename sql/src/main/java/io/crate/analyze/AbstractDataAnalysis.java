@@ -35,6 +35,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -514,11 +515,11 @@ public abstract class AbstractDataAnalysis extends Analysis {
      *
      * @param primaryKeyValues
      */
-    public void addIdAndRouting(List<String> primaryKeyValues, String clusteredByValue) {
+    public void addIdAndRouting(List<BytesRef> primaryKeyValues, String clusteredByValue) {
         addIdAndRouting(false, primaryKeyValues, clusteredByValue);
     }
 
-    protected void addIdAndRouting(Boolean create, List<String> primaryKeyValues, String clusteredByValue) {
+    protected void addIdAndRouting(Boolean create, List<BytesRef> primaryKeyValues, String clusteredByValue) {
 
         ColumnIdent clusteredBy = table().clusteredBy();
         Id id = new Id(table().primaryKey(), primaryKeyValues, clusteredBy == null ? null : clusteredBy, create);
