@@ -45,8 +45,12 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -65,8 +69,12 @@ public class ProjectionToProjectorVisitorTest {
     private FunctionInfo countInfo;
     private FunctionInfo avgInfo;
 
+    @Mock(answer = Answers.RETURNS_MOCKS)
+    ThreadPool threadPool;
+
     @Before
     public void prepare() {
+        MockitoAnnotations.initMocks(this);
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>());
         Injector injector = new ModulesBuilder()
                 .add(new AggregationImplModule())
@@ -81,6 +89,7 @@ public class ProjectionToProjectorVisitorTest {
         ImplementationSymbolVisitor symbolvisitor =
                 new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
         visitor = new ProjectionToProjectorVisitor(
+                threadPool,
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportShardBulkAction.class),

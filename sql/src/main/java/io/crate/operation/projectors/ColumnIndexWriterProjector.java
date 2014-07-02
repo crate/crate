@@ -33,6 +33,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -48,7 +49,8 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
     private final List<Input<?>> columnInputs;
     private final List<ColumnIdent> columnIdents;
 
-    protected ColumnIndexWriterProjector(ClusterService clusterService,
+    protected ColumnIndexWriterProjector(ThreadPool threadPool,
+                                         ClusterService clusterService,
                                          Settings settings,
                                          TransportShardBulkAction transportShardBulkAction,
                                          TransportCreateIndexAction transportCreateIndexAction,
@@ -62,9 +64,10 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          List<Input<?>> columnInputs,
                                          CollectExpression<?>[] collectExpressions,
                                          @Nullable Integer bulkActions) {
-        super(clusterService, settings, transportShardBulkAction, transportCreateIndexAction,
-                tableName, primaryKeys, idInputs, partitionedByInputs,
-                routingIdent, routingInput, collectExpressions, bulkActions);
+        super(threadPool, clusterService, settings, transportShardBulkAction,
+                transportCreateIndexAction, tableName, primaryKeys, idInputs,
+                partitionedByInputs, routingIdent, routingInput, collectExpressions,
+                bulkActions);
         assert columnIdents.size() == columnInputs.size();
         this.columnIdents = columnIdents;
         this.columnInputs = columnInputs;

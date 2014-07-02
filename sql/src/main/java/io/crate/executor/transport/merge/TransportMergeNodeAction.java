@@ -71,7 +71,7 @@ public class TransportMergeNodeAction {
                                     TransportService transportService,
                                     ReferenceResolver referenceResolver,
                                     Functions functions,
-                                    ThreadPool threadPool,
+                                    final ThreadPool threadPool,
                                     StatsTables statsTables) {
         this.transportService = transportService;
         this.clusterService = clusterService;
@@ -86,6 +86,7 @@ public class TransportMergeNodeAction {
             @Override
             public DownstreamOperation create(MergeNode node) {
                 return new MergeOperation(
+                        threadPool,
                         clusterService,
                         settings,
                         transportShardBulkAction,

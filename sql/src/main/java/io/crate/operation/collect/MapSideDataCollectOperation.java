@@ -123,6 +123,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         this.fileInputSymbolVisitor =
                 new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
         this.projectorVisitor = new ProjectionToProjectorVisitor(
+                threadPool,
                 clusterService,
                 settings,
                 transportShardBulkAction,
