@@ -67,6 +67,8 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_NESTED_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_NESTED_PARTITIONED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name()))
+                    .thenReturn(DEEPLY_NESTED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -295,6 +297,66 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                         new MapBuilder<String, Object>().put("name", "Prosser").map(),
                 }
         );
+    }
+
+    @Test(expected = ColumnValidationException.class)
+    public void testInsertInvalidObjectArrayParameter1() throws Exception {
+        analyze("insert into users (id, friends) values(?, ?)",
+                new Object[]{0, new Map[]{
+                        new HashMap<String, Object>() {{
+                            put("id", "Jeltz");
+                        }}
+                }
+                });
+    }
+
+    @Test(expected = ColumnValidationException.class)
+    public void testInsertInvalidObjectArrayParameter2() throws Exception {
+        analyze("insert into users (id, friends) values(?, ?)",
+                new Object[]{0, new Map[]{
+                        new HashMap<String, Object>() {{
+                            put("id", 1L);
+                            put("groups", "a");
+                        }}
+                }
+                });
+    }
+
+    @Test(expected = ColumnValidationException.class)
+    public void testInsertInvalidObjectArrayInObject() throws Exception {
+        analyze("insert into deeply_nested (details) " +
+                "values (" +
+                "  {awesome=true, arguments=[1,2,3]}" +
+                ")");
+    }
+
+    @Test(expected = ColumnValidationException.class)
+    public void testInsertInvalidObjectArrayFieldInObjectArray() throws Exception {
+        analyze("insert into deeply_nested (tags) " +
+                "values (" +
+                "  [" +
+                "    {name='right', metadata=[{id=1}, {id=2}]}," +
+                "    {name='wrong', metadata=[{id='foo'}]}" +
+                "  ]" +
+                ")");
+    }
+
+    @Test
+    public void testInsertNestedObjectLiteral() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis) analyze(
+                "insert into deeply_nested (tags) " +
+                        "values ([" +
+                        "           {\"name\"='cool', \"metadata\"=[{\"id\"=0}, {\"id\"=1}]}, " +
+                        "           {\"name\"='fancy', \"metadata\"=[{\"id\"='2'}, {\"id\"=3}]}" +
+                        "         ])");
+        assertThat(analysis.sourceMaps().size(), is(1));
+        Object[] arrayValue = (Object[])analysis.sourceMaps().get(0).get("tags");
+        assertThat(arrayValue.length, is(2));
+        assertThat(arrayValue[0], instanceOf(Map.class));
+        assertThat((String)((Map<String, Object>)arrayValue[0]).get("name"), is("cool"));
+        assertThat((String)((Map<String, Object>)arrayValue[1]).get("name"), is("fancy"));
+        assertThat(Arrays.toString((Object[])((Map<String, Object>)arrayValue[0]).get("metadata")), is("[{id=0}, {id=1}]"));
+        assertThat(Arrays.toString((Object[])((Map<String, Object>)arrayValue[1]).get("metadata")), is("[{id=2}, {id=3}]"));
     }
 
     @Test
