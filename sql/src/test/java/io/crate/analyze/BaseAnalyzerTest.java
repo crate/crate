@@ -166,6 +166,21 @@ public class BaseAnalyzerTest {
             .add("amount", DataTypes.DOUBLE, null)
             .add("timestamp", DataTypes.TIMESTAMP, null)
             .build();
+    static final TableIdent DEEPLY_NESTED_TABLE_IDENT = new TableIdent(null, "deeply_nested");
+    static final TableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
+            DEEPLY_NESTED_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("details", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("details", DataTypes.BOOLEAN, Arrays.asList("awesome"))
+            .add("details", DataTypes.OBJECT, Arrays.asList("stuff"), ReferenceInfo.ObjectType.DYNAMIC)
+            .add("details", DataTypes.STRING, Arrays.asList("stuff", "name"))
+            .add("details", new ArrayType(DataTypes.OBJECT), Arrays.asList("arguments"))
+            .add("details", DataTypes.DOUBLE, Arrays.asList("arguments", "quality"))
+            .add("details", DataTypes.STRING, Arrays.asList("arguments", "name"))
+            .add("tags", new ArrayType(DataTypes.OBJECT), null)
+            .add("tags", DataTypes.STRING, Arrays.asList("name"))
+            .add("tags", new ArrayType(DataTypes.OBJECT), Arrays.asList("metadata"))
+            .add("tags", DataTypes.LONG, Arrays.asList("metadata", "id"))
+            .build();
 
     static final TableIdent TEST_DOC_LOCATIONS_TABLE_IDENT = new TableIdent(null, "locations");
     static final TableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, RowGranularity.DOC, shardRouting)

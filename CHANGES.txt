@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: improve input validation for objects and object arrays
+
  - fix: avoid failed execution of ``DROP TABLE`` on partitioned table
    to leave unrecoverable inconsistent state behind
 

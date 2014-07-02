@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.TimestampFormat;
@@ -56,7 +55,6 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.*;
 
 import static com.google.common.collect.Maps.newHashMap;
@@ -761,8 +759,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureGreen();
 
-        ImmutableMap<String, ? extends Serializable> obj1 = ImmutableMap.of("name", "foo", "age", 1);
-        ImmutableMap<String, ? extends Serializable> obj2 = ImmutableMap.of("name", "bar", "age", 2);
+        Map<String, Object> obj1 = new MapBuilder<String, Object>().put("name", "foo").put("age", 1).map();
+        Map<String, Object> obj2 = new MapBuilder<String, Object>().put("name", "bar").put("age", 2).map();
 
         Object[] args = new Object[]{1, new Object[]{obj1, obj2}};
         execute("insert into t1 (id, objects) values (?, ?)", args);
