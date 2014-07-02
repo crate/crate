@@ -20,6 +20,7 @@
  */
 package io.crate.operation.reference.sys;
 
+import com.google.common.base.Joiner;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.metadata.GlobalReferenceResolver;
@@ -47,6 +48,8 @@ import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.monitor.fs.FsStats;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.jvm.JvmStats;
+import org.elasticsearch.monitor.network.NetworkService;
+import org.elasticsearch.monitor.network.NetworkStats;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.node.service.NodeService;
@@ -59,6 +62,8 @@ import java.util.Arrays;
 import java.util.Map;
 
 import static junit.framework.Assert.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -118,6 +123,19 @@ public class TestSysNodesExpressions {
             when(node.getId()).thenReturn("node-id-1");
             when(node.getName()).thenReturn("node 1");
             when(node.address()).thenReturn(transportAddress);
+
+
+            NetworkStats.Tcp tcp = mock(NetworkStats.Tcp.class, new Answer<Long>() {
+                @Override
+                public Long answer(InvocationOnMock invocation) throws Throwable {
+                    return 42L;
+                }
+            });
+            NetworkStats networkStats = mock(NetworkStats.class);
+            when(networkStats.tcp()).thenReturn(tcp);
+            NetworkService networkService = mock(NetworkService.class);
+            when(networkService.stats()).thenReturn(networkStats);
+            bind(NetworkService.class).toInstance(networkService);
 
             FsStats fsStats = mock(FsStats.class);
             when(nodeStats.getFs()).thenReturn(fsStats);
@@ -182,28 +200,28 @@ public class TestSysNodesExpressions {
     public void testLoad() throws Exception {
 
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
-        SysObjectReference<Double> load = (SysObjectReference<Double>) resolver.getImplementation(ident);
+        SysObjectReference load = (SysObjectReference) resolver.getImplementation(ident);
 
-        Map<String, Double> v = load.value();
+        Map<String, Object> v = load.value();
         assertNull(v.get("something"));
-        assertEquals(new Double(1), v.get("1"));
-        assertEquals(new Double(5), v.get("5"));
-        assertEquals(new Double(15), v.get("15"));
+        assertEquals(1D, v.get("1"));
+        assertEquals(5D, v.get("5"));
+        assertEquals(15D, v.get("15"));
 
-        Input<Double> ci = load.getChildImplementation("1");
-        assertEquals(new Double(1), ci.value());
+        Input ci = load.getChildImplementation("1");
+        assertEquals(1D, ci.value());
         ci = load.getChildImplementation("5");
-        assertEquals(new Double(5), ci.value());
+        assertEquals(5D, ci.value());
         ci = load.getChildImplementation("15");
-        assertEquals(new Double(15), ci.value());
+        assertEquals(15D, ci.value());
     }
 
     @Test
     public void testWindowsLoad() throws Exception {
         onWindows = true;
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
-        SysObjectReference<Double> load = (SysObjectReference<Double>) resolver.getImplementation(ident);
-        Map<String, Double> windowsValue = load.value();
+        SysObjectReference load = (SysObjectReference) resolver.getImplementation(ident);
+        Map<String, Object> windowsValue = load.value();
         assertNull(windowsValue.get("1"));
         assertNull(windowsValue.get("5"));
         assertNull(windowsValue.get("10"));
@@ -237,18 +255,18 @@ public class TestSysNodesExpressions {
     public void testPorts() throws Exception {
 
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "port");
-        SysObjectReference<Integer> port = (SysObjectReference<Integer>) resolver.getImplementation(ident);
+        SysObjectReference port = (SysObjectReference) resolver.getImplementation(ident);
 
-        Map<String, Integer> v = port.value();
-        assertEquals(new Integer(44200), v.get("http"));
-        assertEquals(new Integer(44300), v.get("transport"));
+        Map<String, Object> v = port.value();
+        assertEquals(44200, v.get("http"));
+        assertEquals(44300, v.get("transport"));
     }
 
     @Test
     public void testMemory() throws Exception {
 
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "mem");
-        SysObjectReference<Object> mem = (SysObjectReference<Object>) resolver.getImplementation(ident);
+        SysObjectReference mem = (SysObjectReference) resolver.getImplementation(ident);
 
         Map<String, Object> v = mem.value();
 
@@ -263,7 +281,7 @@ public class TestSysNodesExpressions {
     public void testHeap() throws Exception {
 
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "heap");
-        SysObjectReference<Object> heap = (SysObjectReference<Object>) resolver.getImplementation(ident);
+        SysObjectReference heap = (SysObjectReference) resolver.getImplementation(ident);
 
         Map<String, Object> v = heap.value();
 
@@ -276,7 +294,7 @@ public class TestSysNodesExpressions {
     public void testFs() throws Exception {
 
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "fs");
-        SysObjectReference<Object> fs = (SysObjectReference<Object>) resolver.getImplementation(ident);
+        SysObjectReference fs = (SysObjectReference) resolver.getImplementation(ident);
 
         Map<String, Object> v = fs.value();
 
@@ -292,13 +310,39 @@ public class TestSysNodesExpressions {
     public void testVersion() throws Exception {
 
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version");
-        SysObjectReference<Object> version = (SysObjectReference<Object>) resolver.getImplementation(ident);
+        SysObjectReference version = (SysObjectReference) resolver.getImplementation(ident);
 
         Map<String, Object> v = version.value();
         assertEquals(Version.CURRENT.number(), v.get("number"));
         assertEquals(Build.CURRENT.hash(), v.get("build_hash"));
-        assertEquals(Version.CURRENT.snapshot, (Boolean)v.get("build_snapshot"));
+        assertEquals(Version.CURRENT.snapshot, v.get("build_snapshot"));
 
+    }
+
+    @Test
+    public void testNetwork() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "network");
+        SysObjectReference networkRef = (SysObjectReference) resolver.getImplementation(ident);
+
+        Map<String, Object> networkStats = networkRef.value();
+        assertThat(Joiner.on(", ").withKeyValueSeparator("=").join(networkStats),
+                is("tcp={" +
+                        "packets={sent=42, rst_sent=42, received=42, retransmitted=42, errors_received=42}, " +
+                        "connections={accepted=42, dropped=42, initiated=42, embryonic_dropped=42, curr_established=42}" +
+                   "}"));
+    }
+
+    @Test
+    public void testNetworkTCP() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "network", Arrays.asList("tcp"));
+        SysObjectReference tcpRef = (SysObjectReference) resolver.getImplementation(ident);
+
+        Map<String, Object> tcpStats = tcpRef.value();
+
+        assertThat(tcpStats, instanceOf(Map.class));
+        assertThat(Joiner.on(", ").withKeyValueSeparator("=").join(tcpStats),
+                is("packets={sent=42, rst_sent=42, received=42, retransmitted=42, errors_received=42}, " +
+                        "connections={accepted=42, dropped=42, initiated=42, embryonic_dropped=42, curr_established=42}"));
     }
 
 }

@@ -28,20 +28,20 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class SysObjectReference<ChildType> extends SysExpression<Map<String, ChildType>>
+public abstract class SysObjectReference extends SysExpression<Map<String, Object>>
         implements ReferenceImplementation {
 
-    protected final Map<String, SysExpression<ChildType>> childImplementations = new HashMap<>();
+    protected final Map<String, SysExpression> childImplementations = new HashMap<>();
 
     @Override
-    public SysExpression<ChildType> getChildImplementation(String name) {
+    public SysExpression getChildImplementation(String name) {
         return childImplementations.get(name);
     }
 
     @Override
-    public Map<String, ChildType> value() {
-        Map<String, ChildType> map = new HashMap<>();
-        for (Map.Entry<String, SysExpression<ChildType>> e : childImplementations.entrySet()) {
+    public Map<String,Object> value() {
+        Map<String, Object> map = new HashMap<>();
+        for (Map.Entry<String, SysExpression> e : childImplementations.entrySet()) {
             map.put(e.getKey(), e.getValue().value());
         }
         return Collections.unmodifiableMap(map);

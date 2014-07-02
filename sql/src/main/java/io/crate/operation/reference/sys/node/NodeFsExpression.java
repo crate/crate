@@ -28,7 +28,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.fs.FsStats;
 import org.elasticsearch.node.service.NodeService;
 
-public class NodeFsExpression extends SysNodeObjectReference<Object> {
+public class NodeFsExpression extends SysNodeObjectReference {
 
     public static final String NAME = "fs";
 

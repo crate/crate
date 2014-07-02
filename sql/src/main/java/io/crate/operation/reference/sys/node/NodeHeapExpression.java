@@ -27,7 +27,7 @@ import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.jvm.JvmService;
 
-public class NodeHeapExpression extends SysNodeObjectReference<Object> {
+public class NodeHeapExpression extends SysNodeObjectReference {
 
     abstract class HeapExpression extends SysNodeExpression<Object> {
         HeapExpression(String name) {

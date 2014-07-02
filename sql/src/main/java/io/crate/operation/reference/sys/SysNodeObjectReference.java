@@ -5,7 +5,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.common.Preconditions;
 
-public class SysNodeObjectReference<ChildType> extends SysObjectReference<ChildType> {
+public class SysNodeObjectReference extends SysObjectReference {
 
     private final ReferenceInfo info;
 
