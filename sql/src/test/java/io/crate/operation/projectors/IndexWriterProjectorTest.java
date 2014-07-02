@@ -33,6 +33,7 @@ import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -55,6 +56,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         CollectExpression[] collectExpressions = new CollectExpression[]{ idInput, sourceInput };
 
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
+                cluster().getInstance(ThreadPool.class),
                 cluster().getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 cluster().getInstance(TransportShardBulkAction.class),

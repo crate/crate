@@ -37,11 +37,13 @@ import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.*;
 
 public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projector> {
 
+    private final ThreadPool threadPool;
     private final ClusterService clusterService;
     private final Settings settings;
     private final TransportShardBulkAction transportShardBulkAction;
@@ -53,12 +55,14 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         return process(projection, null);
     }
 
-    public ProjectionToProjectorVisitor(ClusterService clusterService,
+    public ProjectionToProjectorVisitor(ThreadPool threadPool,
+                                        ClusterService clusterService,
                                         Settings settings,
                                         TransportShardBulkAction transportShardBulkAction,
                                         TransportCreateIndexAction transportCreateIndexAction,
                                         ImplementationSymbolVisitor symbolVisitor,
             EvaluatingNormalizer normalizer) {
+        this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.settings = settings;
         this.transportShardBulkAction = transportShardBulkAction;
@@ -67,12 +71,14 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         this.normalizer = normalizer;
     }
 
-    public ProjectionToProjectorVisitor(ClusterService clusterService,
+    public ProjectionToProjectorVisitor(ThreadPool threadPool,
+                                        ClusterService clusterService,
                                         Settings settings,
                                         TransportShardBulkAction transportShardBulkAction,
                                         TransportCreateIndexAction transportCreateIndexAction,
                                         ImplementationSymbolVisitor symbolVisitor) {
-        this(clusterService, settings, transportShardBulkAction, transportCreateIndexAction, symbolVisitor,
+        this(threadPool, clusterService, settings, transportShardBulkAction,
+                transportCreateIndexAction, symbolVisitor,
                 new EvaluatingNormalizer(
                         symbolVisitor.functions(),
                         symbolVisitor.rowGranularity(),
@@ -212,6 +218,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
         Input<?> clusteredBy = symbolVisitor.process(projection.clusteredBy(), symbolContext);
         return new IndexWriterProjector(
+                threadPool,
                 clusterService,
                 settings,
                 transportShardBulkAction,
