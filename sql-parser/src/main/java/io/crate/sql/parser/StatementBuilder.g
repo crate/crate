@@ -811,7 +811,7 @@ objectLiteral returns [ObjectLiteral value]
     : ^(OBJECT_LITERAL objectAttributes) { $value = new ObjectLiteral($objectAttributes.value); }
     ;
 
-// track down duplicated to throw correct errors
+// track down duplicates to throw correct errors
 objectAttributes returns [Multimap<String, Expression> value = LinkedListMultimap.<String, Expression>create()]
     : ( ^(KEY_VALUE key=ident val=expr) { $value.put($key.value, $val.value); } )*
     ;

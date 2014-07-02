@@ -76,16 +76,16 @@ class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
     }
 
     @Override
-    public Object visitArrayLiteral(ArrayLiteral node, Object[] context) {
-        List<Object> array = new ArrayList<>();
-        for (Expression element : node.values()) {
-            array.add(element.accept(this, context));
+    public Object[] visitArrayLiteral(ArrayLiteral node, Object[] context) {
+        Object[] array = new Object[node.values().size()];
+        for (int i = 0; i< node.values().size(); i++) {
+            array[i] = node.values().get(i).accept(this, context);
         }
         return array;
     }
 
     @Override
-    public Object visitObjectLiteral(ObjectLiteral node, Object[] context) {
+    public Map<String, Object> visitObjectLiteral(ObjectLiteral node, Object[] context) {
         Map<String, Object> object = new HashMap<>();
         for (Map.Entry<String, Expression> entry : node.values().entries()) {
             if (object.put(entry.getKey(), entry.getValue().accept(this, context)) != null) {

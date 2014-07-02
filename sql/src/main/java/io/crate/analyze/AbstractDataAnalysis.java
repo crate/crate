@@ -21,6 +21,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.*;
@@ -35,6 +36,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -362,11 +364,20 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
             // 3. if reference is of type object - do special validation
             if (reference.info().type() == DataTypes.OBJECT) {
-                Map<String, Object> value = (Map<String, Object>) (normalized).value();
+                Map<String, Object> value = (Map<String, Object>) normalized.value();
                 if (value == null) {
                     return Literal.NULL;
                 }
                 normalized = Literal.newLiteral(normalizeObjectValue(value, reference.info()));
+            } else if (isObjectArray(reference.info().type())) {
+                Object[] value = (Object[]) normalized.value();
+                if (value == null) {
+                    return Literal.NULL;
+                }
+                normalized = Literal.newLiteral(
+                        reference.info().type(),
+                        normalizeObjectArrayValue(value, reference.info())
+                );
             }
         } catch (ClassCastException | NumberFormatException e) {
             throw new ColumnValidationException(
@@ -377,6 +388,10 @@ public abstract class AbstractDataAnalysis extends Analysis {
                     ));
         }
         return normalized;
+    }
+
+    private boolean isObjectArray(DataType type) {
+        return type.id() == ArrayType.ID && ((ArrayType)type).innerType().id() == ObjectType.ID;
     }
 
     /**
@@ -429,9 +444,19 @@ public abstract class AbstractDataAnalysis extends Analysis {
             }
             if (nestedInfo.type() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
                 value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo));
+            } else if (isObjectArray(nestedInfo.type()) && entry.getValue() instanceof Object[]) {
+                value.put(entry.getKey(), normalizeObjectArrayValue((Object[])entry.getValue(), nestedInfo));
             } else {
                 value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), nestedInfo));
             }
+        }
+        return value;
+    }
+
+    private Object[] normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo) {
+        for (Object arrayItem : value) {
+            Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
+            arrayItem = normalizeObjectValue((Map<String, Object>)arrayItem, arrayInfo);
         }
         return value;
     }
