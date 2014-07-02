@@ -97,6 +97,15 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "retransmitted"));
         register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "errors_received"));
         register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "rst_sent"));
+        register("os", DataTypes.OBJECT, null);
+        register("os", DataTypes.LONG, ImmutableList.of("uptime"));
+        register("os", DataTypes.TIMESTAMP, ImmutableList.of("timestamp"));
+        register("os", DataTypes.OBJECT, ImmutableList.of("cpu"));
+        register("os", DataTypes.SHORT, ImmutableList.of("cpu", "system"));
+        register("os", DataTypes.SHORT, ImmutableList.of("cpu", "user"));
+        register("os", DataTypes.SHORT, ImmutableList.of("cpu", "idle"));
+        register("os", DataTypes.SHORT, ImmutableList.of("cpu", "used"));
+        register("os", DataTypes.SHORT, ImmutableList.of("cpu", "stolen"));
     }
 
     @Inject
