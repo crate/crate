@@ -600,7 +600,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select name from sys.nodes where id in ('jalla', 'kelle')");
         assertFalse(analysis.noMatch());
         assertEquals(2, analysis.ids().size());
-        assertEquals(ImmutableList.of("jalla", "kelle"), analysis.ids());
+        assertThat(analysis.ids(), Matchers.containsInAnyOrder("jalla", "kelle"));
     }
 
     @Test
@@ -608,8 +608,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle') and partition_ident=''");
         assertEquals(2, analysis.ids().size());
         // base64 encoded versions of Streamable of ["doc","jalla","1"] and ["doc","kelle","1"]
-        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="), analysis.ids());
-        assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="), analysis.routingValues());
+
+        assertThat(analysis.ids(), Matchers.containsInAnyOrder("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="));
+        assertThat(analysis.routingValues(), Matchers.containsInAnyOrder("BANkb2MFamFsbGEBMQA=", "BANkb2MFa2VsbGUBMQA="));
     }
 
     @Test

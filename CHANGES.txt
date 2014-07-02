@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated elasticsearch to 1.2.1
+
  - fix: improve input validation for objects and object arrays
 
  - fix: avoid failed execution of ``DROP TABLE`` on partitioned table

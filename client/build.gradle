@@ -17,8 +17,8 @@ dependencies {
         exclude group: 'org.apache.lucene'
     }
     // needed by ES Version class
-    compile 'org.apache.lucene:lucene-core:4.7.1'
-    compile 'org.apache.lucene:lucene-analyzers-common:4.7.1'
+    compile 'org.apache.lucene:lucene-core:4.8.1'
+    compile 'org.apache.lucene:lucene-analyzers-common:4.8.1'
 
     compile files(project(':core').sourceSets.shared.output.classesDir)
     compile files(project(':sql').sourceSets.shared.output.classesDir)

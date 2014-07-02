@@ -74,14 +74,14 @@ public class DocTableInfoBuilder {
             docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.name(), templateName);
             createdFromTemplate = true;
             try {
-                concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
+                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.name());
             } catch(IndexMissingException e) {
                 // no partition created yet
                 concreteIndices = new String[]{};
             }
         } else {
             try {
-                concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
+                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.name());
                 docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
             } catch (IndexMissingException ex) {
                 throw new TableUnknownException(ident.name(), ex);

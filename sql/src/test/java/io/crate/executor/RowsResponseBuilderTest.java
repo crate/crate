@@ -28,6 +28,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -43,8 +44,7 @@ public class RowsResponseBuilderTest {
 
     @Test
     public void testBuildResponseSetString() throws Exception {
-        boolean convertBytesRef = true;
-        RowsResponseBuilder rrb = new RowsResponseBuilder(convertBytesRef);
+        RowsResponseBuilder rrb = new RowsResponseBuilder(true);
 
         String[] outputNames = new String[] { "col" };
         DataType[] dataTypes = new DataType[] { new SetType(DataTypes.STRING) };
@@ -54,13 +54,13 @@ public class RowsResponseBuilderTest {
 
         rows[0][0] = refs;
         SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L, false);
-        assertThat(commaJoiner.join((String[])response.rows()[0][0]), is("foo, bar"));
+        String[] strings = (String[]) response.rows()[0][0];
+        assertThat(strings, Matchers.arrayContainingInAnyOrder("foo", "bar"));
     }
 
     @Test
     public void testBuildResponseArrayString() throws Exception {
-        boolean convertBytesRef = true;
-        RowsResponseBuilder rrb = new RowsResponseBuilder(convertBytesRef);
+        RowsResponseBuilder rrb = new RowsResponseBuilder(true);
 
         String[] outputNames = new String[] { "col" };
         DataType[] dataTypes = new DataType[] { new ArrayType(DataTypes.STRING) };

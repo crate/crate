@@ -199,7 +199,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         try {
             searchContext.searcher().search(query, this);
         } finally {
-            searchContext.release();
+            searchContext.close();
             SearchContext.removeCurrent();
             downstream.upstreamFinished();
         }

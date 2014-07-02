@@ -105,12 +105,14 @@ arguments and returns a formatted string::
 
 ::
 
-    cr> select format('%tY', date) from locations group by format('%tY', date);
+    cr> select format('%tY', date) from locations
+    ... group by format('%tY', date)
+    ... order by 1;
     +---------------------+
     | format('%tY', date) |
     +---------------------+
-    | 2013                |
-    | 1979                |
+    |                1979 |
+    |                2013 |
     +---------------------+
     SELECT 2 rows in set (... sec)
 

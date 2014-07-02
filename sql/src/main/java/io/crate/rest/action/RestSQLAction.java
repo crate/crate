@@ -33,11 +33,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
 
-import java.io.IOException;
-
-import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
-import static org.elasticsearch.rest.action.support.RestXContentBuilder.restContentBuilder;
-
 public class RestSQLAction extends BaseRestHandler {
 
     @Inject
@@ -51,40 +46,25 @@ public class RestSQLAction extends BaseRestHandler {
     public void handleRequest(final RestRequest request, final RestChannel channel) {
 
         final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
-        try {
-            if (request.hasContent()) {
-                SQLXContentSourceContext context = new SQLXContentSourceContext();
-                SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
-                parser.parseSource(request.content());
-                requestBuilder.stmt(context.stmt());
-                requestBuilder.args(context.args());
-                requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
-            } else {
-                throw new ElasticsearchException("missing request body");
-            }
-        } catch (Exception e) {
-            logger.debug("failed to parse sql request", e);
-
-            try {
-                XContentBuilder builder = restContentBuilder(request);
-                channel.sendResponse(new XContentRestResponse(request, BAD_REQUEST, builder.startObject().field("error",
-                        e.getMessage()).endObject()));
-            } catch (IOException e1) {
-                logger.error("Failed to send failure response", e1);
-            }
-            return;
+        if (request.hasContent()) {
+            SQLXContentSourceContext context = new SQLXContentSourceContext();
+            SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
+            parser.parseSource(request.content());
+            requestBuilder.stmt(context.stmt());
+            requestBuilder.args(context.args());
+            requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
+        } else {
+            throw new ElasticsearchException("missing request body");
         }
         requestBuilder.execute(new ActionListener<SQLResponse>() {
+
             @Override
             public void onResponse(SQLResponse response) {
-
                 try {
-                    XContentBuilder builder = restContentBuilder(request);
+                    XContentBuilder builder = channel.newBuilder();
                     response.toXContent(builder, request);
-                    // TODO: implement shard counts on response to set status properly
-                    channel.sendResponse(new XContentRestResponse(request, RestStatus.OK, builder));
-                } catch (Exception e) {
-                    logger.debug("failed to execute SQL (building response)", e);
+                    channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+                } catch (Throwable e) {
                     onFailure(e);
                 }
             }
@@ -92,12 +72,11 @@ public class RestSQLAction extends BaseRestHandler {
             @Override
             public void onFailure(Throwable e) {
                 try {
-                    channel.sendResponse(new CrateThrowableRestResponse(request, e));
-                } catch (IOException e1) {
-                    logger.error("Failed to send failure response", e1);
+                    channel.sendResponse(new CrateThrowableRestResponse(channel, e));
+                } catch (Throwable e1) {
+                    logger.error("failed to send failure response", e1);
                 }
             }
         });
     }
-
 }

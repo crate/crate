@@ -224,7 +224,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id, byte_field, short_field, integer_field, long_field, " +
                 "float_field, double_field, boolean_field, string_field, timestamp_field," +
                 "object_field) values (?,?,?,?,?,?,?,?,?,?,?)", new Object[]{
-                    0, 0, 0, 0, 0, 0.0, 1.0, false, "", "1970-01-01", new HashMap<String, Object>(){{ put("inner", "1970-01-01"); }}
+                    0, 0, 0, 0, 0, 0.0, 1.0f, false, "", "1970-01-01", new HashMap<String, Object>(){{ put("inner", "1970-01-01"); }}
                 });
         execute("update t1 set " +
                 "byte_field=?," +
@@ -254,7 +254,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         assertEquals(-32768, response.rows()[0][2]);
         assertEquals(0x7fffffff, response.rows()[0][3]);
         assertEquals(0x8000000000000000L, response.rows()[0][4]);
-        assertEquals(1.0, response.rows()[0][5]);
+        assertEquals(1.0f, ((Number) response.rows()[0][5]).floatValue(), 0.01f);
         assertEquals(Math.PI, response.rows()[0][6]);
         assertEquals(true, response.rows()[0][7]);
         assertEquals("a string", response.rows()[0][8]);

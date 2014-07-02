@@ -67,7 +67,7 @@ public class CrateRestFilter extends RestFilter {
             filterChain.continueProcessing(request, channel);
         } else {
             channel.sendResponse(
-                    new StringRestResponse(
+                    new BytesRestResponse(
                             BAD_REQUEST,
                             String.format(Locale.ENGLISH,
                                     "No handler found for uri [%s] and method [%s]",

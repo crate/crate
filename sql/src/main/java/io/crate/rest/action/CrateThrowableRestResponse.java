@@ -23,29 +23,40 @@ package io.crate.rest.action;
 
 import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.rest.XContentRestResponse;
+import org.elasticsearch.rest.*;
 
 import java.io.IOException;
 
 import static org.elasticsearch.ExceptionsHelper.detailedMessage;
-import static org.elasticsearch.rest.action.support.RestXContentBuilder.restContentBuilder;
 
 
-public class CrateThrowableRestResponse extends XContentRestResponse {
+public class CrateThrowableRestResponse extends RestResponse {
 
-    public CrateThrowableRestResponse(RestRequest request, Throwable t) throws IOException {
-        this(request, ((t instanceof ElasticsearchException) ? ((ElasticsearchException) t).status() : RestStatus.INTERNAL_SERVER_ERROR), t);
+    private final RestStatus status;
+    private final boolean contentThreadSafe;
+    private final BytesReference content;
+    private final String contentType;
+
+    public CrateThrowableRestResponse(RestChannel channel, Throwable t) throws IOException {
+        status = (t instanceof ElasticsearchException) ?
+                ((ElasticsearchException) t).status() :
+                RestStatus.INTERNAL_SERVER_ERROR;
+        if (channel.request().method() == RestRequest.Method.HEAD) {
+            this.content = BytesArray.EMPTY;
+            this.contentType = BytesRestResponse.TEXT_CONTENT_TYPE;
+        } else {
+            XContentBuilder builder = convert(channel, t);
+            this.content = builder.bytes();
+            this.contentType = builder.contentType().restContentType();
+        }
+        this.contentThreadSafe = true;
     }
 
-    public CrateThrowableRestResponse(RestRequest request, RestStatus status, Throwable t) throws IOException {
-        super(request, status, convert(request, t));
-    }
-
-    private static XContentBuilder convert(RestRequest request, Throwable t) throws IOException {
-        XContentBuilder builder = restContentBuilder(request).startObject()
+    private static XContentBuilder convert(RestChannel channel, Throwable t) throws IOException {
+        XContentBuilder builder = channel.newBuilder().startObject()
             .startObject("error");
 
         SQLActionException sqlActionException = null;
@@ -59,7 +70,7 @@ public class CrateThrowableRestResponse extends XContentRestResponse {
 
         builder.endObject();
 
-        if (t != null && request.paramAsBoolean("error_trace", false)
+        if (t != null && channel.request().paramAsBoolean("error_trace", false)
                 && sqlActionException != null) {
             builder.field("error_trace", sqlActionException.stackTrace());
         }
@@ -67,20 +78,24 @@ public class CrateThrowableRestResponse extends XContentRestResponse {
         return builder;
     }
 
-    private static void buildThrowable(Throwable t, XContentBuilder builder) throws IOException {
-        builder.field("message", t.getMessage());
-        for (StackTraceElement stElement : t.getStackTrace()) {
-            builder.startObject("at")
-                    .field("class", stElement.getClassName())
-                    .field("method", stElement.getMethodName());
-            if (stElement.getFileName() != null) {
-                builder.field("file", stElement.getFileName());
-            }
-            if (stElement.getLineNumber() >= 0) {
-                builder.field("line", stElement.getLineNumber());
-            }
-            builder.endObject();
-        }
+    @Override
+    public String contentType() {
+        return contentType;
+    }
+
+    @Override
+    public boolean contentThreadSafe() {
+        return contentThreadSafe;
+    }
+
+    @Override
+    public BytesReference content() {
+        return content;
+    }
+
+    @Override
+    public RestStatus status() {
+        return status;
     }
 }
 

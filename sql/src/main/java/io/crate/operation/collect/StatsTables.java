@@ -28,7 +28,6 @@ import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
-import jsr166e.ConcurrentHashMapV8;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
@@ -38,6 +37,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -50,8 +50,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @ThreadSafe
 public class StatsTables {
 
-    protected final Map<UUID, JobContext> jobsTable = new ConcurrentHashMapV8<>();
-    protected final Map<UUID, OperationContext> operationsTable = new ConcurrentHashMapV8<>();
+    protected final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
+    protected final Map<UUID, OperationContext> operationsTable = new ConcurrentHashMap<>();
     protected final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>();
     protected final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>();
     private final static NoopQueue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();

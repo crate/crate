@@ -138,8 +138,7 @@ public class ESGetTask implements Task<Object[][]> {
                     @Override
                     public Object extract(GetResponse response) {
                         assert response.getSourceAsMap() != null;
-                        Object value = response.getSourceAsMap().get(field);
-                        return value;
+                        return response.getSourceAsMap().get(field);
                     }
                 };
             }

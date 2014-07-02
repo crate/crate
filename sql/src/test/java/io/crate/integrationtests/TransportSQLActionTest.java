@@ -626,7 +626,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(true, response.rows()[0][0]);
         assertEquals(1378849903000L, response.rows()[0][1]);
         assertEquals(1.79769313486231570e+308, response.rows()[0][2]);
-        assertEquals(3.402, response.rows()[0][3]);
+        assertEquals(3.402f, ((Number) response.rows()[0][3]).floatValue(), 0.002f);
         assertEquals(2147483647, response.rows()[0][4]);
         assertEquals(9223372036854775807L, response.rows()[0][5]);
         assertEquals(32767, response.rows()[0][6]);
@@ -635,7 +635,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(true, response.rows()[1][0]);
         assertEquals(1378849903000L, response.rows()[1][1]);
         assertEquals(1.79769313486231570e+308, response.rows()[1][2]);
-        assertEquals(3.402, response.rows()[1][3]);
+        assertEquals(3.402f, ((Number) response.rows()[1][3]).floatValue(), 0.002f);
         assertEquals(2147483647, response.rows()[1][4]);
         assertEquals(9223372036854775807L, response.rows()[1][5]);
         assertEquals(32767, response.rows()[1][6]);
@@ -829,9 +829,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(((List<Double>) response.rows()[0][2]).get(0), is(1.79769313486231570e+308));
         assertThat(((List<Double>) response.rows()[0][2]).get(1), is(1.69769313486231570e+308));
 
-        assertThat(((List<Double>) response.rows()[0][3]).get(0), is(3.402));
-        assertThat(((List<Double>) response.rows()[0][3]).get(1), is(3.403));
-        assertThat(((List<Double>) response.rows()[0][3]).get(2), nullValue());
+
+        assertEquals(3.402f, ((Number) ((List) response.rows()[0][3]).get(0)).floatValue(), 0.002f);
+        assertEquals(3.403f, ((Number) ((List) response.rows()[0][3]).get(1)).floatValue(), 0.002f);
+        assertThat(((List<Float>) response.rows()[0][3]).get(2), nullValue());
 
         assertThat(((List<Integer>) response.rows()[0][4]).get(0), is(2147483647));
         assertThat(((List<Integer>) response.rows()[0][4]).get(1), is(234583));
@@ -1663,7 +1664,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.version.created\":\"1010299\"" +
+                "\"index.version.created\":\"1020199\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -1690,7 +1691,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"0\"," +
-                "\"index.version.created\":\"1010299\"" +
+                "\"index.version.created\":\"1020199\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
 
@@ -1700,7 +1701,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"5000\"," +
-                "\"index.version.created\":\"1010299\"" +
+                "\"index.version.created\":\"1020199\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedSetSettings, getIndexSettings("test"), false);
 
@@ -1710,7 +1711,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"1000\"," +
-                "\"index.version.created\":\"1010299\"" +
+                "\"index.version.created\":\"1020199\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedResetSettings, getIndexSettings("test"), false);
     }
@@ -1820,7 +1821,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"2\"," +
                 "\"index.number_of_shards\":\"10\"," +
-                "\"index.version.created\":\"1010299\"" +
+                "\"index.version.created\":\"1020199\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));

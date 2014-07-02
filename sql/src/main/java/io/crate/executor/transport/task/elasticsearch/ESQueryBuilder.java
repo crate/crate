@@ -578,7 +578,7 @@ public class ESQueryBuilder {
                 }
                 assert fieldName != null;
                 assert point != null;
-                context.builder.field(fieldName, point);
+                context.builder.field(fieldName, (Object) point);
             }
 
             private void handleValueSymbol(Context context,
