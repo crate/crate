@@ -91,4 +91,64 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         assertThat(queues.length, greaterThanOrEqualTo(1));
         assertThat((Integer) queues[0], greaterThanOrEqualTo(0));
     }
+
+    @Test
+    public void testNetwork() throws Exception {
+        SQLResponse response = executor.exec("select network from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+
+        Map<String, Object> network = (Map<String, Object>)response.rows()[0][0];
+        assertThat(network, hasKey("tcp"));
+        Map<String, Object> tcp = (Map<String, Object>)network.get("tcp");
+        assertNetworkTCP(tcp);
+
+
+        response = executor.exec("select network['tcp'] from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+        tcp = (Map<String, Object>)response.rows()[0][0];
+        assertNetworkTCP(tcp);
+    }
+
+    private void assertNetworkTCP(Map<String, Object> tcp) {
+        assertThat(tcp.keySet().size(), is(2));
+        assertThat(tcp.keySet(), hasItems("packets", "connections"));
+
+        Map<String, Object> connections = (Map<String, Object>)tcp.get("connections");
+        assertThat(connections.keySet().size(), is(5));
+        assertThat(connections.keySet(), hasItems("initiated", "accepted", "curr_established", "dropped", "embryonic_dropped"));
+
+        Map<String, Object> packets = (Map<String, Object>)tcp.get("packets");
+        assertThat(packets.keySet().size(), is(5));
+        assertThat(packets.keySet(), hasItems("sent", "received", "errors_received", "retransmitted", "rst_sent"));
+    }
+
+    @Test
+    public void testNetworkTcpConnectionFields() throws Exception {
+        SQLResponse response = executor.exec("select " +
+                "network['tcp']['connections']['initiated'], " +
+                "network['tcp']['connections']['accepted'], " +
+                "network['tcp']['connections']['curr_established']," +
+                "network['tcp']['connections']['dropped']," +
+                "network['tcp']['connections']['embryonic_dropped']" +
+                " from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+        for (int i=0; i< response.cols().length; i++) {
+            assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
+        }
+    }
+
+    @Test
+    public void testNetworkTcpPacketsFields() throws Exception {
+        SQLResponse response = executor.exec("select " +
+                "network['tcp']['packets']['sent'], " +
+                "network['tcp']['packets']['received'], " +
+                "network['tcp']['packets']['retransmitted'], " +
+                "network['tcp']['packets']['errors_received'], " +
+                "network['tcp']['packets']['rst_sent'] " +
+                "from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+        for (int i=0; i< response.cols().length; i++) {
+            assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
+        }
+    }
 }

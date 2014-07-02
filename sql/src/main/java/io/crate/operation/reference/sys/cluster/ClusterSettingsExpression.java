@@ -31,7 +31,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 
-public class ClusterSettingsExpression extends SysClusterObjectReference<Object> {
+public class ClusterSettingsExpression extends SysClusterObjectReference {
 
     public static final String NAME = "settings";
 

@@ -31,7 +31,7 @@ import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.node.service.NodeService;
 
 
-public class NodePortExpression extends SysNodeObjectReference<Integer> {
+public class NodePortExpression extends SysNodeObjectReference {
 
     public static final String NAME = "port";
 

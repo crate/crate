@@ -19,28 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.sys;
+package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import org.elasticsearch.common.Preconditions;
+import io.crate.operation.reference.sys.SysNodeObjectReference;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.monitor.network.NetworkService;
 
-public abstract class SysNodeArrayObjectReference extends SysArrayObjectReference {
+public class NodeNetworkExpression extends SysNodeObjectReference {
 
-    private final ReferenceInfo info;
+    public static final String NAME = "network";
 
-    protected SysNodeArrayObjectReference(String name) {
-        this(new ColumnIdent(name));
+    @Inject
+    public NodeNetworkExpression(NetworkService networkService) {
+        super(NAME);
+        childImplementations.put(NodeNetworkTCPExpression.NAME,
+                new NodeNetworkTCPExpression(networkService));
     }
 
-    protected SysNodeArrayObjectReference(ColumnIdent ident) {
-        info = SysNodesTableInfo.INFOS.get(ident);
-        Preconditions.checkNotNull(info, "info");
-    }
 
-    @Override
-    public ReferenceInfo info() {
-        return info;
-    }
 }

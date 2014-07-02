@@ -25,7 +25,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 
-public class SysClusterObjectReference<ChildType> extends SysObjectReference<ChildType> {
+public class SysClusterObjectReference extends SysObjectReference {
 
     private final ReferenceInfo info;
 

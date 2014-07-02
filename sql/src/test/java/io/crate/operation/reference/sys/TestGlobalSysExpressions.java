@@ -123,11 +123,11 @@ public class TestGlobalSysExpressions {
     @Test
     public void testChildImplementationLookup() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
-        SysObjectReference<Double> load = (SysObjectReference<Double>) resolver.getImplementation(ident);
+        SysObjectReference load = (SysObjectReference) resolver.getImplementation(ident);
         assertEquals(LOAD_INFO, load.info());
 
-        Input<Double> ci = load.getChildImplementation("1");
-        assertEquals(new Double(1), ci.value());
+        Input ci = load.getChildImplementation("1");
+        assertEquals(1D, ci.value());
 
         ident = LOAD1_INFO.ident();
         SysExpression<Double> l1 = (SysExpression<Double>) resolver.getImplementation(ident);
@@ -137,7 +137,7 @@ public class TestGlobalSysExpressions {
     @Test
     public void testClusterSettings() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysClusterTableInfo.IDENT, ClusterSettingsExpression.NAME);
-        SysObjectReference<Object> settingsExpression = (SysObjectReference<Object>) resolver.getImplementation(ident);
+        SysObjectReference settingsExpression = (SysObjectReference) resolver.getImplementation(ident);
 
         Map<String, Object> settings = settingsExpression.value();
         assertEquals(CrateSettings.JOBS_LOG_SIZE.defaultValue(),
