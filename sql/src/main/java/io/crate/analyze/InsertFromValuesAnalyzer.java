@@ -35,10 +35,7 @@ import io.crate.sql.tree.ValuesList;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromValuesAnalysis> {
 
@@ -62,7 +59,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
         String routingValue = null;
 
         if (node.values().size() != context.columns().size()) {
-            throw new IllegalArgumentException("incorrect number of values");
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Invalid number of values: Got %d columns specified but %d values",
+                    context.columns().size(), node.values().size()));
         }
 
         if (context.table().isPartitioned()) {
