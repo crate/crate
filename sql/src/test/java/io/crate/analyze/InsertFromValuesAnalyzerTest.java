@@ -343,7 +343,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertNestedObjectLiteral() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze(
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze(
                 "insert into deeply_nested (tags) " +
                         "values ([" +
                         "           {\"name\"='cool', \"metadata\"=[{\"id\"=0}, {\"id\"=1}]}, " +
