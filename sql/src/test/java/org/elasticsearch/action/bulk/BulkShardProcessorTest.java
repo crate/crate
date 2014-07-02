@@ -31,6 +31,7 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,6 +58,9 @@ public class BulkShardProcessorTest {
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
 
+    @Mock(answer = Answers.RETURNS_MOCKS)
+    ThreadPool threadPool;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -69,6 +73,7 @@ public class BulkShardProcessorTest {
 
         TransportShardBulkAction transportShardBulkAction = mock(TransportShardBulkAction.class);
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+                threadPool,
                 clusterService,
                 ImmutableSettings.EMPTY,
                 transportShardBulkAction,
@@ -105,6 +110,7 @@ public class BulkShardProcessorTest {
         TransportShardBulkAction transportShardBulkAction = mock(TransportShardBulkAction.class);
 
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+                threadPool,
                 clusterService,
                 ImmutableSettings.EMPTY,
                 transportShardBulkAction,

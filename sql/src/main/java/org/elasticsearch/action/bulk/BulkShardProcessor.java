@@ -25,10 +25,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import jsr166e.LongAdder;
-import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.AutoCreateIndex;
@@ -37,9 +36,11 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -56,6 +57,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class BulkShardProcessor {
 
+    private final static AtomicInteger currentDelay = new AtomicInteger(0);
+
     private final ClusterService clusterService;
     private final TransportShardBulkAction transportShardBulkAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
@@ -64,25 +67,27 @@ public class BulkShardProcessor {
     private final Map<ShardId, List<BulkItemRequest>> requestsByShard = new HashMap<>();
     private final AutoCreateIndex autoCreateIndex;
     private int counter;
-    private AtomicInteger activeRetries = new AtomicInteger(0);
     private final Semaphore semaphore = new Semaphore(1);
     private final SettableFuture<Long> result;
     private final LongAdder rowsInserted = new LongAdder();
     private final AtomicInteger pending = new AtomicInteger(0);
+    private final AtomicInteger activeRetries = new AtomicInteger(0);
+    private final AtomicInteger blockedAdds = new AtomicInteger(0);
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private volatile boolean closed = false;
-    private final AtomicInteger pendingCreateIndexRequests = new AtomicInteger(0);
     private final Set<String> indicesCreated = new HashSet<>();
-    private final Object createIndexLock = new Object();
+    private final ThreadPool threadPool;
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
-    public BulkShardProcessor(ClusterService clusterService,
+    public BulkShardProcessor(ThreadPool threadPool,
+                              ClusterService clusterService,
                               Settings settings,
                               TransportShardBulkAction transportShardBulkAction,
                               TransportCreateIndexAction transportCreateIndexAction,
                               boolean autoCreateIndices,
                               int bulkSize) {
+        this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.transportShardBulkAction = transportShardBulkAction;
         this.transportCreateIndexAction = transportCreateIndexAction;
@@ -95,7 +100,7 @@ public class BulkShardProcessor {
 
     public boolean add(String indexName, BytesReference source, String id, @Nullable String routing) {
         pending.incrementAndGet();
-        blockIfRetriesActive("add");
+        blockIfRetriesActive();
         Throwable throwable = failure.get();
         if (throwable != null) {
             result.setException(throwable);
@@ -103,11 +108,10 @@ public class BulkShardProcessor {
         }
 
         if (autoCreateIndices) {
-            createIndexIfRequired(indexName, source, id, routing);
-        } else {
-            partitionRequestByShard(indexName, source, id, routing);
-            executeIfNeeded();
+            createIndexIfRequired(indexName);
         }
+        partitionRequestByShard(indexName, source, id, routing);
+        executeIfNeeded();
         return true;
     }
 
@@ -135,10 +139,11 @@ public class BulkShardProcessor {
         counter++;
     }
 
-    private void blockIfRetriesActive(String context) {
+    private void blockIfRetriesActive() {
         if (activeRetries.get() > 0) {
             try {
-                trace(String.format("%s, acquiring semaphore", context));
+                trace(String.format("add with active retries, acquiring semaphore: %s", semaphore));
+                blockedAdds.getAndIncrement();
                 semaphore.acquire();
             } catch (InterruptedException e) {
                 Thread.interrupted();
@@ -181,13 +186,14 @@ public class BulkShardProcessor {
     }
 
     private void executeIfNeeded() {
-        if ( (closed || counter >= bulkSize) && pendingCreateIndexRequests.get() == 0) {
+        if (closed || counter >= bulkSize) {
             executeRequests();
         }
     }
 
     private synchronized void executeRequests() {
-        for (Map.Entry<ShardId, List<BulkItemRequest>> entry : requestsByShard.entrySet()) {
+        for (Iterator<Map.Entry<ShardId, List<BulkItemRequest>>> it = requestsByShard.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<ShardId, List<BulkItemRequest>> entry = it.next();
             ShardId shardId= entry.getKey();
             List<BulkItemRequest> items = entry.getValue();
             BulkShardRequest bulkShardRequest = new BulkShardRequest(
@@ -197,13 +203,12 @@ public class BulkShardProcessor {
                     items.toArray(new BulkItemRequest[items.size()]));
 
             execute(bulkShardRequest);
+            it.remove();
         }
         counter = 0;
-        requestsByShard.clear();
     }
 
     private void execute(BulkShardRequest bulkShardRequest) {
-        blockIfRetriesActive("execute single request");
         trace(String.format("execute shard request %d", bulkShardRequest.shardId()));
         transportShardBulkAction.execute(bulkShardRequest, new ResponseListener(bulkShardRequest));
     }
@@ -213,62 +218,64 @@ public class BulkShardProcessor {
         executeWithRetry(originalRequest);
     }
 
-    private void executeWithRetry(BulkShardRequest request) {
-        if (activeRetries.getAndIncrement() > 0) {
+    private void executeWithRetry(final BulkShardRequest request) {
+        activeRetries.getAndIncrement();
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+        }
+        threadPool.schedule(TimeValue.timeValueMillis(currentDelay.getAndIncrement() * 10),
+                ThreadPool.Names.SAME, new Runnable() {
+                    @Override
+                    public void run() {
+                        transportShardBulkAction.execute(request, new RetryResponseListener(request));
+                    }
+                });
+    }
+
+    private void createIndexIfRequired(final String indexName) {
+        if (!indicesCreated.contains(indexName) || autoCreateIndex.shouldAutoCreate(indexName, clusterService.state())) {
             try {
-                trace("doRetry but other retries are pending.. semaphore acquire");
-                semaphore.acquire();
-            } catch (InterruptedException e) {
-                Thread.interrupted();
+                transportCreateIndexAction.execute(new CreateIndexRequest(indexName).cause("bulkShardProcessor")).actionGet();
+                indicesCreated.add(indexName);
+            } catch (ElasticsearchException e) {
+                if (e instanceof IndexAlreadyExistsException) {
+                    // copy from with multiple readers might attempt to create the index
+                    // multiple times
+                    // can be ignored.
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("copy from index {}", e.getMessage());
+                    }
+                    indicesCreated.add(indexName);
+                } else {
+                    setFailure(e);
+                }
             }
         }
-        transportShardBulkAction.execute(request, new RetryResponseListener(request));
     }
 
-    private void createIndexIfRequired(final String indexName, final BytesReference source, final String id, final String routing) {
-
-        if (!indexCreated(indexName) || autoCreateIndex.shouldAutoCreate(indexName, clusterService.state())) {
-            pendingCreateIndexRequests.incrementAndGet();
-            transportCreateIndexAction.execute(new CreateIndexRequest(indexName).cause("bulkShardProcessor"),
-                    new ActionListener<CreateIndexResponse>() {
-                        @Override
-                        public void onResponse(CreateIndexResponse createIndexResponse) {
-                            onCreatedOrExistsAlready();
-                        }
-
-                        @Override
-                        public void onFailure(Throwable e) {
-                            e = ExceptionsHelper.unwrapCause(e);
-                            if (e instanceof IndexAlreadyExistsException) {
-                                // copy from with multiple readers might attempt to create the index
-                                // multiple times
-                                // can be ignored.
-                                logger.debug("copy from index {}", e.getMessage());
-                                onCreatedOrExistsAlready();
-                            } else {
-                                setFailure(e);
-                            }
-                        }
-
-                        private void onCreatedOrExistsAlready() {
-                            synchronized (createIndexLock) {
-                                indicesCreated.add(indexName);
-                            }
-                            partitionRequestByShard(indexName, source, id, routing);
-                            if (pendingCreateIndexRequests.decrementAndGet() == 0) {
-                                executeIfNeeded();
-                            }
-                        }
-                    });
-        } else {
-            partitionRequestByShard(indexName, source, id, routing);
-            executeIfNeeded();
+    private void processResponse(BulkShardResponse bulkShardResponse) {
+        trace("execute response");
+        int successes = 0;
+        for (BulkItemResponse itemResponse : bulkShardResponse.getResponses()) {
+            if (itemResponse.isFailed()) {
+                setFailure(new RuntimeException(itemResponse.getFailureMessage()));
+            } else {
+                successes++;
+            }
         }
+        rowsInserted.add(successes);
+        setResultIfDone(successes);
     }
 
-    private boolean indexCreated(String indexName) {
-        synchronized (createIndexLock) {
-            return indicesCreated.contains(indexName);
+    private void processFailure(Throwable e, BulkShardRequest bulkShardRequest) {
+        trace("execute failure");
+        if (e instanceof EsRejectedExecutionException) {
+            logger.warn("{}, retrying", e.getMessage());
+            doRetry(bulkShardRequest);
+        } else {
+            setFailure(e);
         }
     }
 
@@ -282,28 +289,20 @@ public class BulkShardProcessor {
 
         @Override
         public void onResponse(BulkShardResponse bulkShardResponse) {
-            trace("execute response");
-            int successes = 0;
-            for (BulkItemResponse itemResponse : bulkShardResponse.getResponses()) {
-                if (itemResponse.isFailed()) {
-                    setFailure(new RuntimeException(itemResponse.getFailureMessage()));
-                } else {
-                    successes++;
-                }
+            if (blockedAdds.get() > 0) {
+                blockedAdds.decrementAndGet();
+                semaphore.release();
             }
-            rowsInserted.add(successes);
-            setResultIfDone(successes);
+            processResponse(bulkShardResponse);
         }
 
         @Override
         public void onFailure(Throwable e) {
-            trace("execute failure");
-            if (e instanceof EsRejectedExecutionException) {
-                logger.warn("{}, retrying", e.getMessage());
-                doRetry(bulkShardRequest);
-            } else {
-                setFailure(e);
+            if (blockedAdds.get() > 0) {
+                blockedAdds.decrementAndGet();
+                semaphore.release();
             }
+            processFailure(e, bulkShardRequest);
         }
     }
 
@@ -322,18 +321,22 @@ public class BulkShardProcessor {
 
         @Override
         public void onResponse(BulkShardResponse bulkShardResponse) {
-            activeRetries.decrementAndGet();
-            semaphore.release();
             trace("BulkShardProcessor retry success");
-            super.onResponse(bulkShardResponse);
+            if (activeRetries.decrementAndGet() == 0) {
+                currentDelay.set(0);
+            }
+            semaphore.release();
+            processResponse(bulkShardResponse);
         }
 
         @Override
         public void onFailure(Throwable e) {
-            activeRetries.decrementAndGet();
-            semaphore.release();
             trace("BulkShardProcessor retry failure");
-            super.onFailure(e);
+            if (activeRetries.decrementAndGet() == 0) {
+                currentDelay.set(0);
+            }
+            semaphore.release();
+            processFailure(e, bulkShardRequest);
         }
     }
 }

@@ -45,6 +45,7 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -103,6 +104,7 @@ public class MergeOperationTest {
         ));
 
         MergeOperation mergeOperation = new MergeOperation(
+                mock(ThreadPool.class),
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportShardBulkAction.class),
@@ -139,6 +141,7 @@ public class MergeOperationTest {
                 groupProjection
         ));
         MergeOperation mergeOperation = new MergeOperation(
+                mock(ThreadPool.class),
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
                 mock(TransportShardBulkAction.class),

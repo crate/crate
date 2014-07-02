@@ -22,6 +22,7 @@
 package io.crate;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.Tuple;
 import org.junit.Test;
 
@@ -36,11 +37,11 @@ public class PartitionNameTest {
 
     @Test
     public void testSingleColumn() throws Exception {
-        PartitionName partitionName = new PartitionName("test", ImmutableList.of("1"));
+        PartitionName partitionName = new PartitionName("test", ImmutableList.of(new BytesRef("1")));
 
         assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(1));
-        assertEquals(ImmutableList.of("1"), partitionName.values());
+        assertEquals(ImmutableList.of(new BytesRef("1")), partitionName.values());
 
         PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
         assertEquals(partitionName.values(), partitionName1.values());
@@ -48,17 +49,17 @@ public class PartitionNameTest {
 
     @Test
     public void testWithoutValue() throws Exception {
-        PartitionName partitionName = new PartitionName("test", ImmutableList.<String>of());
+        PartitionName partitionName = new PartitionName("test", ImmutableList.<BytesRef>of());
         assertFalse(partitionName.isValid());
     }
 
     @Test
     public void testMultipleColumns() throws Exception {
-        PartitionName partitionName = new PartitionName("test", ImmutableList.of("1", "foo"));
+        PartitionName partitionName = new PartitionName("test", ImmutableList.of(new BytesRef("1"), new BytesRef("foo")));
 
         assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(2));
-        assertEquals(ImmutableList.of("1", "foo"), partitionName.values());
+        assertEquals(ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), partitionName.values());
 
         PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
         assertEquals(partitionName.values(), partitionName1.values());
@@ -66,7 +67,7 @@ public class PartitionNameTest {
 
     @Test
     public void testNull() throws Exception {
-        PartitionName partitionName = new PartitionName("test", new ArrayList<String>(){{add(null);}});
+        PartitionName partitionName = new PartitionName("test", new ArrayList<BytesRef>(){{add(null);}});
 
         assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(1));
@@ -78,11 +79,11 @@ public class PartitionNameTest {
 
     @Test
     public void testEmptyStringValue() throws Exception {
-        PartitionName partitionName = new PartitionName("test", ImmutableList.of(""));
+        PartitionName partitionName = new PartitionName("test", ImmutableList.of(new BytesRef("")));
 
         assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(1));
-        assertEquals(ImmutableList.of(""), partitionName.values());
+        assertEquals(ImmutableList.of(new BytesRef("")), partitionName.values());
 
         PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
         assertEquals(partitionName.values(), partitionName1.values());
@@ -125,22 +126,22 @@ public class PartitionNameTest {
     @Test
     public void testSplit() throws Exception {
         Tuple<String, String> tableNameValues = PartitionName.split(
-                new PartitionName("t", Arrays.asList("a", "b")).stringValue());
+                new PartitionName("t", Arrays.asList(new BytesRef("a"), new BytesRef("b"))).stringValue());
         assertThat(tableNameValues.v1(), is("t"));
         assertThat(tableNameValues.v2(), is("081620j2"));
 
         tableNameValues = PartitionName.split(
-                new PartitionName("t", Arrays.asList(null, "b")).stringValue());
+                new PartitionName("t", Arrays.asList(null, new BytesRef("b"))).stringValue());
         assertThat(tableNameValues.v1(), is("t"));
         assertThat(tableNameValues.v2(), is("08004og"));
 
         tableNameValues = PartitionName.split(
-                new PartitionName("t",  new ArrayList<String>() {{ add(null); }}).stringValue());
+                new PartitionName("t",  new ArrayList<BytesRef>() {{ add(null); }}).stringValue());
         assertThat(tableNameValues.v1(), is("t"));
         assertThat(tableNameValues.v2(), is("0400"));
 
         tableNameValues = PartitionName.split(
-                new PartitionName("t", Arrays.asList("hoschi")).stringValue());
+                new PartitionName("t", Arrays.asList(new BytesRef("hoschi"))).stringValue());
         assertThat(tableNameValues.v1(), is("t"));
         assertThat(tableNameValues.v2(), is("043mgrrjcdk6i"));
 

@@ -27,6 +27,8 @@ import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.information.InformationSchemaInfo;
 import org.apache.lucene.util.BytesRef;
 
+import java.util.Map;
+
 public abstract class InformationTablePartitionsExpression<T>
         extends InformationCollectorExpression<TablePartitionInfo, T> {
 
@@ -50,9 +52,9 @@ public abstract class InformationTablePartitionsExpression<T>
                     return new BytesRef(row.partitionIdent());
                 }
             })
-            .add(new InformationTablePartitionsExpression<Object>("values") {
+            .add(new InformationTablePartitionsExpression<Map<String, Object>>("values") {
                 @Override
-                public Object value() {
+                public Map<String, Object> value() {
                     return row.values();
                 }
             })

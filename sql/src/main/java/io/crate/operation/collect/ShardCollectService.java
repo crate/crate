@@ -51,6 +51,7 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.threadpool.ThreadPool;
 
 public class ShardCollectService {
 
@@ -71,7 +72,8 @@ public class ShardCollectService {
     private final BlobIndices blobIndices;
 
     @Inject
-    public ShardCollectService(ClusterService clusterService,
+    public ShardCollectService(ThreadPool threadPool,
+                               ClusterService clusterService,
                                Settings settings,
                                TransportShardBulkAction transportShardBulkAction,
                                TransportCreateIndexAction transportCreateIndexAction,
@@ -115,6 +117,7 @@ public class ShardCollectService {
                 (isBlobShard ? blobShardReferenceResolver : referenceResolver)
         );
         this.projectorVisitor = new ProjectionToProjectorVisitor(
+                threadPool,
                 clusterService,
                 settings,
                 transportShardBulkAction,
