@@ -67,11 +67,11 @@ public class IndexWriterProjector implements Projector {
     private final String[] excludes;
     private final BulkShardProcessor bulkShardProcessor;
     private Projector downstream;
-    private final Function<Input<?>, String> inputToString = new Function<Input<?>, String>() {
+    private final Function<Input<?>, BytesRef> inputToBytesRef = new Function<Input<?>, BytesRef>() {
         @Nullable
         @Override
-        public String apply(Input<?> input) {
-            return BytesRefs.toString(input.value());
+        public BytesRef apply(Input<?> input) {
+            return BytesRefs.toBytesRef(input.value());
         }
     };
     public IndexWriterProjector(ClusterService clusterService,
@@ -158,7 +158,7 @@ public class IndexWriterProjector implements Projector {
     public Id getId(String clusteredByValue) {
         return new Id(
                 primaryKeys,
-                Lists.transform(idInputs, inputToString),
+                Lists.transform(idInputs, inputToBytesRef),
                 ColumnIdent.fromPath(clusteredByValue),
                 true
         );
@@ -203,7 +203,7 @@ public class IndexWriterProjector implements Projector {
     private String getIndexName() {
         if (partitionedByInputs.size() > 0) {
             return new PartitionName(tableName,
-                    Lists.transform(partitionedByInputs, inputToString)).stringValue();
+                    Lists.transform(partitionedByInputs, inputToBytesRef)).stringValue();
         } else {
             return tableName;
         }

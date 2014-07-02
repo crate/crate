@@ -172,9 +172,9 @@ public class PlannerTest {
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
                     .addPartitions(
-                            new PartitionName("parted", new ArrayList<String>(){{add(null);}}).stringValue(),
-                            new PartitionName("parted", Arrays.asList("0")).stringValue(),
-                            new PartitionName("parted", Arrays.asList("123")).stringValue()
+                            new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue(),
+                            new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue(),
+                            new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()
                             )
                     .addPrimaryKey("id")
                     .addPrimaryKey("date")
@@ -321,7 +321,7 @@ public class PlannerTest {
         assertThat(node, instanceOf(ESGetNode.class));
         ESGetNode getNode = (ESGetNode) node;
         assertThat(getNode.index(),
-                is(new PartitionName("parted", Arrays.asList("0")).stringValue()));
+                is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue()));
         assertEquals(DataTypes.STRING, getNode.outputTypes().get(0));
         assertEquals(DataTypes.TIMESTAMP, getNode.outputTypes().get(1));
     }
@@ -514,7 +514,7 @@ public class PlannerTest {
         ESSearchNode searchNode = (ESSearchNode) planNode;
 
         assertThat(searchNode.indices(), arrayContaining(
-                new PartitionName("parted", Arrays.asList("123")).stringValue()));
+                new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()));
         assertThat(searchNode.outputTypes().size(), is(3));
         assertTrue(searchNode.whereClause().hasQuery());
         assertThat(searchNode.partitionBy().size(), is(1));

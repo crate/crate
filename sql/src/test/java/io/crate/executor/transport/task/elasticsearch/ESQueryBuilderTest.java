@@ -404,7 +404,7 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testSelect_excludePartitionedColumns() throws Exception {
-        PartitionName partitionName = new PartitionName(characters.name(), Arrays.asList("0.5"));
+        PartitionName partitionName = new PartitionName(characters.name(), Arrays.asList(new BytesRef("0.5")));
         ESSearchNode searchNode = new ESSearchNode(
                 new String[]{partitionName.stringValue()},
                 ImmutableList.<Symbol>of(name_ref, weight_ref),

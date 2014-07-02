@@ -28,6 +28,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.*;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,17 +36,17 @@ import java.util.List;
 
 public class Id implements Streamable {
 
-    private final List<String> values = new ArrayList<>();
+    private final List<BytesRef> values = new ArrayList<>();
 
-    public Id(List<ColumnIdent> primaryKeys, List<String> primaryKeyValues,
+    public Id(List<ColumnIdent> primaryKeys, List<BytesRef> primaryKeyValues,
               ColumnIdent clusteredBy) {
         this(primaryKeys, primaryKeyValues, clusteredBy, true);
     }
 
-    public Id(List<ColumnIdent> primaryKeys, List<String> primaryKeyValues,
+    public Id(List<ColumnIdent> primaryKeys, List<BytesRef> primaryKeyValues,
               ColumnIdent clusteredBy, boolean create) {
         if (primaryKeys.size() == 1 && primaryKeys.get(0).name().equals("_id") && create) {
-            values.add(Strings.randomBase64UUID());
+            values.add(new BytesRef(Strings.randomBase64UUID()));
         } else {
             if (primaryKeys.size() != primaryKeyValues.size()) {
                 // Primary key count does not match, cannot compute id
@@ -55,7 +56,7 @@ public class Id implements Streamable {
                 return;
             }
             for (int i=0; i<primaryKeys.size(); i++)  {
-                String primaryKeyValue = primaryKeyValues.get(i);
+                BytesRef primaryKeyValue = primaryKeyValues.get(i);
                 if (primaryKeyValue == null) {
                     // Missing primary key value, cannot compute id
                     return;
@@ -81,15 +82,15 @@ public class Id implements Streamable {
     public void readFrom(StreamInput in) throws IOException {
         int size = in.readVInt();
         for (int i=0; i < size; i++) {
-            values.add(in.readBytesRef().utf8ToString());
+            values.add(in.readBytesRef());
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(values.size());
-        for (String value : values) {
-            out.writeBytesRef(new BytesRef(value));
+        for (BytesRef value : values) {
+            out.writeBytesRef(value);
         }
     }
 
@@ -113,7 +114,7 @@ public class Id implements Streamable {
         if (values.size() == 0) {
             return null;
         } else if (values.size() == 1) {
-            return values.get(0);
+            return BytesRefs.toString(values.get(0));
         }
         BytesReference bytesReference = bytes();
         if (bytes() == null) {
@@ -127,7 +128,7 @@ public class Id implements Streamable {
         return stringValue();
     }
 
-    public List<String> values() {
+    public List<BytesRef> values() {
         return values;
     }
 

@@ -38,6 +38,7 @@ import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.ValuesList;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -146,7 +147,7 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
     @Override
     public Symbol visitValuesList(ValuesList node, InsertAnalysis context) {
 
-        List<String> primaryKeyValues = new ArrayList<>(context.table().primaryKey().size());
+        List<BytesRef> primaryKeyValues = new ArrayList<>(context.table().primaryKey().size());
         Map<String, Object> sourceMap = new HashMap<>(node.values().size());
         String routingValue = null;
 
@@ -227,14 +228,14 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
         return null;
     }
 
-    private void addPrimaryKeyValue(int index, Object value, List<String> primaryKeyValues) {
+    private void addPrimaryKeyValue(int index, Object value, List<BytesRef> primaryKeyValues) {
         if (value == null) {
             throw new IllegalArgumentException("Primary key value must not be NULL");
         }
         if (primaryKeyValues.size() > index) {
-            primaryKeyValues.add(index, value.toString());
+            primaryKeyValues.add(index, BytesRefs.toBytesRef(value));
         } else {
-            primaryKeyValues.add(value.toString());
+            primaryKeyValues.add(BytesRefs.toBytesRef(value));
         }
     }
 

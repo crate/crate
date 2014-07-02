@@ -517,7 +517,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 .put("id", 0L)
                 .put("name", "Trillian")
                 .map();
-        PartitionName partitionName = new PartitionName("parted", Arrays.asList("13959981214861"));
+        PartitionName partitionName = new PartitionName("parted", Arrays.asList(new BytesRef("13959981214861")));
         ESIndexNode indexNode = new ESIndexNode(
                 new String[]{partitionName.stringValue()},
                 Arrays.asList(sourceMap),
