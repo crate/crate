@@ -383,7 +383,8 @@ public abstract class AbstractDataAnalysis extends Analysis {
         } catch (ClassCastException | NumberFormatException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
-                    SymbolFormatter.format("\"%s\" has a type that can't be implicitly cast to that of \"%s\"",
+                    SymbolFormatter.format(
+                            "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" + reference.valueType().getName() + ")",
                             inputValue,
                             reference
                     ));

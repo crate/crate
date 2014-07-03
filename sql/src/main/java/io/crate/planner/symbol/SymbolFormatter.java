@@ -72,7 +72,7 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
                 symbol.info().ident().name(), argJoiner.join(symbol.info().ident().argumentTypes()));
     }
 
-     @Override
+    @Override
     public String visitReference(Reference symbol, Void context) {
         StringBuilder builder = new StringBuilder();
         String schema = symbol.info().ident().tableIdent().schema();
@@ -94,6 +94,10 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
         return formatValue(symbol.value());
     }
 
+    @Override
+    public String visitParameter(Parameter symbol, Void context) {
+        return formatValue(symbol.value());
+    }
 
     private String formatValue(Object value) {
         return formatValue(value, new StringBuilder()).toString();
