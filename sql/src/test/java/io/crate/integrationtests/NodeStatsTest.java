@@ -182,7 +182,11 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSysNodesProcess() throws Exception {
-        SQLResponse response = executor.exec("select process['open_file_descriptors'] from sys.nodes limit 1");
-        assertThat((Long) response.rows()[0][0], greaterThanOrEqualTo(-1L));
+        SQLResponse response = executor.exec("select process['open_file_descriptors'], " +
+                "process['max_open_file_descriptors'] " +
+                "from sys.nodes limit 1");
+        for (int i = 0; i < response.cols().length; i++) {
+            assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
+        }
     }
 }

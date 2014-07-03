@@ -32,6 +32,7 @@ import io.crate.operation.Input;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import junit.framework.Assert;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsNodes;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -56,6 +57,7 @@ import org.elasticsearch.monitor.network.NetworkService;
 import org.elasticsearch.monitor.network.NetworkStats;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
+import org.elasticsearch.monitor.process.ProcessInfo;
 import org.elasticsearch.monitor.process.ProcessStats;
 import org.elasticsearch.node.service.NodeService;
 import org.junit.Before;
@@ -117,8 +119,6 @@ public class TestSysNodesExpressions {
             when(nodeStats.getHostname()).thenReturn("localhost");
 
             DiscoveryNode node = mock(DiscoveryNode.class);
-            TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
-
             when(nodeStats.getNode()).thenReturn(node);
 
             when(nodeStats.getOs()).thenReturn(osStats);
@@ -132,13 +132,21 @@ public class TestSysNodesExpressions {
 
             ProcessStats processStats = mock(ProcessStats.class);
             when(nodeStats.getProcess()).thenReturn(processStats);
-            when(processStats.openFileDescriptors()).thenReturn(42L);
+            when(processStats.getOpenFileDescriptors()).thenReturn(42L);
+
+            NodeInfo nodeInfo = mock(NodeInfo.class);
+            when(nodeService.info()).thenReturn(nodeInfo);
+
+            ProcessInfo processInfo = mock(ProcessInfo.class);
+            when(nodeInfo.getProcess()).thenReturn(processInfo);
+            when(processInfo.getMaxFileDescriptors()).thenReturn(1000L);
 
             Discovery discovery = mock(Discovery.class);
             bind(Discovery.class).toInstance(discovery);
             when(discovery.localNode()).thenReturn(node);
             when(node.getId()).thenReturn("node-id-1");
             when(node.getName()).thenReturn("node 1");
+            TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
             when(node.address()).thenReturn(transportAddress);
 
 
@@ -385,7 +393,8 @@ public class TestSysNodesExpressions {
         SysObjectReference processRef = (SysObjectReference)resolver.getImplementation(ident);
 
         Map<String, Object> v = processRef.value();
-        assertEquals(42L, (v.get("open_file_descriptors")));
+        assertEquals(42L, (long) v.get("open_file_descriptors"));
+        assertEquals(1000L, (long) v.get("max_open_file_descriptors"));
     }
 
 }
