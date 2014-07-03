@@ -24,9 +24,12 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
+import org.apache.commons.collections.map.UnmodifiableMap;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -147,8 +150,33 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
                 "network['tcp']['packets']['rst_sent'] " +
                 "from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
-        for (int i=0; i< response.cols().length; i++) {
+        for (int i = 0; i < response.cols().length; i++) {
             assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
         }
+    }
+
+    @Test
+    public void testSysNodesOs() throws Exception {
+        SQLResponse response = executor.exec("select os from sys.nodes limit 1");
+        Map results = (Map) response.rows()[0][0];
+        assertThat(response.rowCount(), is(1L));
+
+        assertThat((Long) results.get("timestamp"), greaterThan(0L));
+        assertThat((Long) results.get("uptime"), greaterThan(0L));
+
+        assertThat((Short) ((Map) results.get("cpu")).get("system"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("system"), lessThanOrEqualTo((short) 100));
+
+        assertThat((Short) ((Map) results.get("cpu")).get("user"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("user"), lessThanOrEqualTo((short) 100));
+
+        assertThat((Short) ((Map) results.get("cpu")).get("used"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("used"), lessThanOrEqualTo((short) 100));
+
+        assertThat((Short) ((Map) results.get("cpu")).get("idle"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("idle"), lessThanOrEqualTo((short) 100));
+
+        assertThat((Short) ((Map) results.get("cpu")).get("stolen"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("stolen"), lessThanOrEqualTo((short) 100));
     }
 }

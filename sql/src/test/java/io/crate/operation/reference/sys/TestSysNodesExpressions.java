@@ -30,9 +30,12 @@ import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
+import junit.framework.Assert;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
+import org.elasticsearch.action.admin.cluster.stats.ClusterStatsNodes;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -42,6 +45,7 @@ import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServer;
@@ -58,8 +62,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.util.Arrays;
-import java.util.Map;
+import java.util.*;
 
 import static junit.framework.Assert.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -116,6 +119,15 @@ public class TestSysNodesExpressions {
             TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
 
             when(nodeStats.getNode()).thenReturn(node);
+
+            when(nodeStats.getOs()).thenReturn(osStats);
+            when(osStats.uptime()).thenReturn(new TimeValue(3600000));
+            OsStats.Cpu cpu = mock(OsStats.Cpu.class);
+            when(osStats.cpu()).thenReturn(cpu);
+            when(cpu.sys()).thenReturn((short) 2);
+            when(cpu.user()).thenReturn((short) 4);
+            when(cpu.idle()).thenReturn((short) 94);
+            when(cpu.stolen()).thenReturn((short) 10);
 
             Discovery discovery = mock(Discovery.class);
             bind(Discovery.class).toInstance(discovery);
@@ -343,6 +355,24 @@ public class TestSysNodesExpressions {
         assertThat(Joiner.on(", ").withKeyValueSeparator("=").join(tcpStats),
                 is("packets={sent=42, rst_sent=42, received=42, retransmitted=42, errors_received=42}, " +
                         "connections={accepted=42, dropped=42, initiated=42, embryonic_dropped=42, curr_established=42}"));
+    }
+
+    @Test
+    public void testCpu() throws Exception {
+
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "os");
+        SysObjectReference os = (SysObjectReference)resolver.getImplementation(ident);
+
+        Map<String, Object> v = os.value();
+        assertEquals(3600000L, v.get("uptime"));
+
+        Map<String, Short> cpuObj = new HashMap<>(5);
+        cpuObj.put("system", (short) 2);
+        cpuObj.put("user", (short) 4);
+        cpuObj.put("idle", (short) 94);
+        cpuObj.put("used", (short) 6);
+        cpuObj.put("stolen", (short) 10);
+        assertEquals(cpuObj, v.get("cpu"));
     }
 
 }
