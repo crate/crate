@@ -640,10 +640,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         short ordinal_position = 1;
         assertEquals(ordinal_position++, response.rows()[0][1]);
 
-        assertEquals("stuff.first_name", response.rows()[1][0]);
+        assertEquals("stuff['first_name']", response.rows()[1][0]);
         assertEquals(ordinal_position++, response.rows()[1][1]);
 
-        assertEquals("stuff.last_name", response.rows()[2][0]);
+        assertEquals("stuff['last_name']", response.rows()[2][0]);
         assertEquals(ordinal_position++, response.rows()[2][1]);
 
         assertEquals("title", response.rows()[3][0]);
@@ -664,13 +664,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ordinal_position = 1;
         assertEquals(ordinal_position++, response.rows()[0][1]);
 
-        assertEquals("stuff.first_name", response.rows()[1][0]);
+        assertEquals("stuff['first_name']", response.rows()[1][0]);
         assertEquals(ordinal_position++, response.rows()[1][1]);
 
-        assertEquals("stuff.last_name", response.rows()[2][0]);
+        assertEquals("stuff['last_name']", response.rows()[2][0]);
         assertEquals(ordinal_position++, response.rows()[2][1]);
 
-        assertEquals("stuff.middle_name", response.rows()[3][0]);
+        assertEquals("stuff['middle_name']", response.rows()[3][0]);
         assertEquals(ordinal_position++, response.rows()[3][1]);
 
 
@@ -694,10 +694,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("stuff", response.rows()[0][0]);
         assertEquals(ordinal_position++, response.rows()[0][1]);
 
-        assertEquals("stuff.first_name", response.rows()[1][0]);
+        assertEquals("stuff['first_name']", response.rows()[1][0]);
         assertEquals(ordinal_position++, response.rows()[1][1]);
 
-        assertEquals("stuff.last_name", response.rows()[2][0]);
+        assertEquals("stuff['last_name']", response.rows()[2][0]);
         assertEquals(ordinal_position++, response.rows()[2][1]);
 
         assertEquals("title", response.rows()[3][0]);
@@ -718,10 +718,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("stuff", response.rows()[0][0]);
         assertEquals(ordinal_position++, response.rows()[0][1]);
 
-        assertEquals("stuff.first_name", response.rows()[1][0]);
+        assertEquals("stuff['first_name']", response.rows()[1][0]);
         assertEquals(ordinal_position++, response.rows()[1][1]);
 
-        assertEquals("stuff.last_name", response.rows()[2][0]);
+        assertEquals("stuff['last_name']", response.rows()[2][0]);
         assertEquals(ordinal_position++, response.rows()[2][1]);
 
         assertEquals("title", response.rows()[3][0]);
@@ -879,8 +879,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(4L));
 
         String expected = "data_points| data| object\n" +
-                "data_points| data.somelongroute| long\n" +
-                "data_points| data.somestringroute| string\n" +
+                "data_points| data['somelongroute']| long\n" +
+                "data_points| data['somestringroute']| string\n" +
                 "data_points| day| string\n";
         assertEquals(expected, TestingHelpers.printedTable(response.rows()));
     }

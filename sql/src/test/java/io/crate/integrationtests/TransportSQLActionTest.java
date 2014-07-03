@@ -4119,7 +4119,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         for (Object[] row : response.rows()) {
             fqColumnNames.add((String) row[2]);
         }
-        assertThat(fqColumnNames, Matchers.contains("o", "o.x", "o.y"));
+        assertThat(fqColumnNames, Matchers.contains("o", "o['x']", "o['y']"));
     }
 
     @Test
