@@ -108,6 +108,7 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("os", DataTypes.SHORT, ImmutableList.of("cpu", "stolen"));
         register("process", DataTypes.OBJECT, null);
         register("process", DataTypes.LONG, ImmutableList.of("open_file_descriptors"));
+        register("process", DataTypes.LONG, ImmutableList.of("max_open_file_descriptors"));
     }
 
     @Inject
