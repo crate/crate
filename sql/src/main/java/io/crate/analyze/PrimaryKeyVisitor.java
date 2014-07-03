@@ -38,6 +38,7 @@ import io.crate.operation.operator.InOperator;
 import io.crate.operation.operator.OrOperator;
 import io.crate.planner.symbol.*;
 import io.crate.types.*;
+import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -117,9 +118,9 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         }
 
         @Nullable
-        public String clusteredBy() {
+        public BytesRef clusteredBy() {
             if (clusteredBy != null) {
-                return StringValueSymbolVisitor.INSTANCE.process(clusteredBy);
+                return BytesRefValueSymbolVisitor.INSTANCE.process(clusteredBy);
             }
             return null;
         }
@@ -416,7 +417,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
         Set<Literal> partitions = context.currentBucket.partitions;
         for (PartitionName partitionName : context.table.partitions()) {
-            String leftValue = partitionName.values().get(idx);
+            BytesRef leftValue = partitionName.values().get(idx);
             Literal left = null;
             if (leftValue != null && dataType != DataTypes.NULL) {
                 left = Literal.newLiteral(dataType, dataType.value(leftValue));

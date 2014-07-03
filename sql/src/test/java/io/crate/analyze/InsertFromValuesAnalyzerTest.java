@@ -35,6 +35,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -381,7 +382,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0),
-                is(new Id(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList("1", "4"), new ColumnIdent("o.b")).stringValue()));
+                is(new Id(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b")).stringValue()));
     }
 
     @Test
@@ -390,7 +391,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{1, new MapBuilder<String, Object>().put("b", 4).map()});
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0),
-                is(new Id(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList("1", "4"), new ColumnIdent("o.b")).stringValue()));
+                is(new Id(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b")).stringValue()));
     }
 
     @Test( expected = IllegalArgumentException.class)
@@ -408,7 +409,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into nested_pk (o, id) values (?, ?)",
                 new Object[]{new MapBuilder<String, Object>().put("b", 4).map(), 1});
         assertThat(analysis.ids().get(0),
-                is(new Id(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList("1", "4"), new ColumnIdent("o.b")).stringValue()));
+                is(new Id(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("o.b")), Arrays.asList(new BytesRef("1"), new BytesRef("4")), new ColumnIdent("o.b")).stringValue()));
 
     }
 
@@ -460,9 +461,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                         3, "Zaphod", null
                 });
         assertThat(analysis.partitions(), contains(
-                new PartitionName("parted", Arrays.asList("13963670051500")).stringValue(),
-                new PartitionName("parted", Arrays.asList("0")).stringValue(),
-                new PartitionName("parted", new ArrayList<String>() {{
+                new PartitionName("parted", Arrays.asList(new BytesRef("13963670051500"))).stringValue(),
+                new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue(),
+                new PartitionName("parted", new ArrayList<BytesRef>() {{
                     add(null);
                 }}).stringValue()
         ));
@@ -493,8 +494,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                         2, "2014-05-21", new MapBuilder<String, Object>().put("name", "Arthur").map()
                 });
         assertThat(analysis.partitions(), contains(
-                new PartitionName("nested_parted", Arrays.asList("0", "Zaphod")).stringValue(),
-                new PartitionName("nested_parted", Arrays.asList("1400630400000", "Arthur")).stringValue()
+                new PartitionName("nested_parted", Arrays.asList(new BytesRef("0"), new BytesRef("Zaphod"))).stringValue(),
+                new PartitionName("nested_parted", Arrays.asList(new BytesRef("1400630400000"), new BytesRef("Arthur"))).stringValue()
 
         ));
         assertThat(analysis.sourceMaps().size(), is(2));

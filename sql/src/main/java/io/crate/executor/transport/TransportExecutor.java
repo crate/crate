@@ -54,6 +54,7 @@ import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.TransportBulkAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.action.count.TransportCountAction;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
@@ -62,10 +63,9 @@ import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.update.TransportUpdateAction;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.List;
@@ -78,10 +78,12 @@ public class TransportExecutor implements Executor {
     private final Visitor visitor;
     private final ThreadPool threadPool;
 
+    private final Settings settings;
     private final ClusterService clusterService;
     private final TransportSearchAction transportSearchAction;
     private final TransportCollectNodeAction transportCollectNodeAction;
     private final TransportMergeNodeAction transportMergeNodeAction;
+    private final TransportShardBulkAction transportShardBulkAction;
     private final TransportGetAction transportGetAction;
     private final TransportMultiGetAction transportMultiGetAction;
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
@@ -97,10 +99,10 @@ public class TransportExecutor implements Executor {
     private final TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction;
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
-    private final Provider<Client> clientProvider;
 
     @Inject
-    public TransportExecutor(Provider<Client> clientProvider,
+    public TransportExecutor(Settings settings,
+                             TransportShardBulkAction transportShardBulkAction,
                              TransportSearchAction transportSearchAction,
                              TransportCollectNodeAction transportCollectNodeAction,
                              TransportMergeNodeAction transportMergeNodeAction,
@@ -123,6 +125,8 @@ public class TransportExecutor implements Executor {
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
                              StatsTables statsTables,
                              ClusterService clusterService) {
+        this.settings = settings;
+        this.transportShardBulkAction = transportShardBulkAction;
         this.transportGetAction = transportGetAction;
         this.transportMultiGetAction = transportMultiGetAction;
         this.transportCollectNodeAction = transportCollectNodeAction;
@@ -139,7 +143,6 @@ public class TransportExecutor implements Executor {
         this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.transportDeleteIndexTemplateAction = transportDeleteIndexTemplateAction;
-        this.clientProvider = clientProvider;
 
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
@@ -160,6 +163,7 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public List<ListenableFuture<Object[][]>> execute(Job job) {
         assert job.tasks().size() > 0;
 
@@ -199,7 +203,10 @@ public class TransportExecutor implements Executor {
             if (node.executionNodes().isEmpty()) {
                 context.addTask(new LocalMergeTask(
                         threadPool,
-                        clientProvider,
+                        clusterService,
+                        settings,
+                        transportShardBulkAction,
+                        transportCreateIndexAction,
                         new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
                         node,
                         statsTables));

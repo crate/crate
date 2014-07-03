@@ -25,6 +25,7 @@ import io.crate.PartitionName;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Reference;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.search.SearchHit;
 
 import javax.annotation.Nullable;
@@ -106,7 +107,7 @@ public abstract class ESFieldExtractor {
         private final Reference reference;
         private final List<ReferenceInfo> partitionedByInfos;
         private final int valueIdx;
-        private final Map<String, List<String>> cache;
+        private final Map<String, List<BytesRef>> cache;
 
         public PartitionedByColumnExtractor(Reference reference, List<ReferenceInfo> partitionedByInfos) {
             this.reference = reference;
@@ -118,12 +119,12 @@ public abstract class ESFieldExtractor {
         @Override
         public Object extract(SearchHit hit) {
             try {
-                List<String> values = cache.get(hit.index());
+                List<BytesRef> values = cache.get(hit.index());
                 if (values == null) {
                     values = PartitionName
                             .fromStringSafe(hit.index()).values();
                 }
-                String value = values.get(valueIdx);
+                BytesRef value = values.get(valueIdx);
                 if (value == null) {
                     return null;
                 }

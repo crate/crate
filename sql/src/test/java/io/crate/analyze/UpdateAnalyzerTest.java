@@ -41,6 +41,7 @@ import io.crate.planner.symbol.*;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import junit.framework.Assert;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -298,7 +299,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.whereClause().hasQuery(), is(false));
         assertThat(analysis.whereClause().noMatch(), is(false));
         assertEquals(ImmutableList.of(
-                        new PartitionName("parted", Arrays.asList("1395874800000")).stringValue()),
+                        new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()),
                 analysis.whereClause().partitions()
         );
     }

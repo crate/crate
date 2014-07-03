@@ -19,42 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.partitioned;
+package io.crate.planner.symbol;
 
-import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.shard.ShardReferenceImplementation;
-import io.crate.operation.Input;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
-public class PartitionedColumnExpression implements Input, ShardReferenceImplementation {
+public class BytesRefValueSymbolVisitor extends SymbolVisitor<Void, BytesRef> {
 
-    private final ReferenceInfo info;
-    private final Object value;
+    public static final BytesRefValueSymbolVisitor INSTANCE = new BytesRefValueSymbolVisitor();
 
-    public PartitionedColumnExpression(ReferenceInfo info, BytesRef stringValue) {
-        this.info = info;
-        if (stringValue == null) {
-            this.value = null;
-        } else {
-            this.value = info.type().value(stringValue);
-        }
+    private BytesRefValueSymbolVisitor() {
+    }
+
+    public BytesRef process(Symbol symbol) {
+        return process(symbol, null);
     }
 
     @Override
-    public ReferenceInfo info() {
-        return info;
+    protected BytesRef visitSymbol(Symbol symbol, Void context) {
+        throw new UnsupportedOperationException(
+                SymbolFormatter.format("Unable to get string value from symbol: %s", symbol));
     }
 
     @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        // only primitive values allowed, no child implementations possible
-        return null;
+    public BytesRef visitParameter(Parameter symbol, Void context) {
+        return BytesRefs.toBytesRef(symbol.value());
     }
 
-
     @Override
-    public Object value() {
-        return value;
+    public BytesRef visitLiteral(Literal symbol, Void context) {
+        return BytesRefs.toBytesRef(symbol.value());
     }
 }

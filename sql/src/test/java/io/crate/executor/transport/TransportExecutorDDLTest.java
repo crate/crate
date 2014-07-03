@@ -35,6 +35,7 @@ import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -132,7 +133,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithOrphanedPartitions() throws Exception {
-        String partitionName = new PartitionName("test", Arrays.asList("foo")).stringValue();
+        String partitionName = new PartitionName("test", Arrays.asList(new BytesRef("foo"))).stringValue();
         client().admin().indices().prepareCreate(partitionName)
                 .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
                 .setSettings(TEST_SETTINGS)
@@ -165,7 +166,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithOrphanedAlias() throws Exception {
-        String partitionName = new PartitionName("test", Arrays.asList("foo")).stringValue();
+        String partitionName = new PartitionName("test", Arrays.asList(new BytesRef("foo"))).stringValue();
         client().admin().indices().prepareCreate(partitionName)
                 .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
                 .setSettings(TEST_SETTINGS)

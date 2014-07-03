@@ -28,6 +28,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -59,7 +60,7 @@ public class PartitionPropertiesAnalyzer {
                 partitionProperties.size()
         );
         Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties, parameters);
-        String[] values = new String[properties.size()];
+        BytesRef[] values = new BytesRef[properties.size()];
 
         for (Map.Entry<ColumnIdent, Object> entry : properties.entrySet()) {
             Object value = entry.getValue();
@@ -68,7 +69,7 @@ public class PartitionPropertiesAnalyzer {
             try {
                 ReferenceInfo referenceInfo = tableInfo.partitionedByColumns().get(idx);
                 Object converted = referenceInfo.type().value(value);
-                values[idx] = converted == null ? null : DataTypes.STRING.value(converted).utf8ToString();
+                values[idx] = converted == null ? null : DataTypes.STRING.value(converted);
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(
                         String.format("\"%s\" is no known partition column", entry.getKey().fqn()));

@@ -173,9 +173,9 @@ public class PlannerTest {
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
                     .addPartitions(
-                            new PartitionName("parted", new ArrayList<String>(){{add(null);}}).stringValue(),
-                            new PartitionName("parted", Arrays.asList("0")).stringValue(),
-                            new PartitionName("parted", Arrays.asList("123")).stringValue()
+                            new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue(),
+                            new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue(),
+                            new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()
                             )
                     .addPrimaryKey("id")
                     .addPrimaryKey("date")
@@ -322,7 +322,7 @@ public class PlannerTest {
         assertThat(node, instanceOf(ESGetNode.class));
         ESGetNode getNode = (ESGetNode) node;
         assertThat(getNode.index(),
-                is(new PartitionName("parted", Arrays.asList("0")).stringValue()));
+                is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue()));
         assertEquals(DataTypes.STRING, getNode.outputTypes().get(0));
         assertEquals(DataTypes.TIMESTAMP, getNode.outputTypes().get(1));
     }
@@ -515,7 +515,7 @@ public class PlannerTest {
         ESSearchNode searchNode = (ESSearchNode) planNode;
 
         assertThat(searchNode.indices(), arrayContaining(
-                new PartitionName("parted", Arrays.asList("123")).stringValue()));
+                new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()));
         assertThat(searchNode.outputTypes().size(), is(3));
         assertTrue(searchNode.whereClause().hasQuery());
         assertThat(searchNode.partitionBy().size(), is(1));
@@ -784,13 +784,12 @@ public class PlannerTest {
 
     @Test
     public void testCopyFromPlanWithParameters() throws Exception {
-        Plan plan = plan("copy users from '/path/to/file.ext' with (concurrency=8, bulk_size=30, compression='gzip', shared=true)");
+        Plan plan = plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(FileUriCollectNode.class));
         FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
         SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectNode.projections().get(0);
-        assertThat(indexWriterProjection.concurrency(), is(8));
         assertThat(indexWriterProjection.bulkActions(), is(30));
         assertThat(collectNode.compression(), is("gzip"));
         assertThat(collectNode.sharedStorage(), is(true));
@@ -827,7 +826,7 @@ public class PlannerTest {
 
     @Test (expected = IllegalArgumentException.class)
     public void testCopyFromPlanWithInvalidParameters() throws Exception {
-        plan("copy users from '/path/to/file.ext' with (concurrency=-28)");
+        plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
     }
 
     @Test

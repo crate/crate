@@ -934,9 +934,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectFromPartitionedTable() throws Exception {
-        String partition1 = new PartitionName("parted", Arrays.asList("1395874800000")).stringValue();
-        String partition2 = new PartitionName("parted", Arrays.asList("1395961200000")).stringValue();
-        String partition3 = new PartitionName("parted", new ArrayList<String>(){{add(null);}}).stringValue();
+        String partition1 = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue();
+        String partition2 = new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue();
+        String partition3 = new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue();
 
         SelectAnalysis analysis = (SelectAnalysis)analyze("select id, name from parted where date = 1395874800000");
         assertEquals(ImmutableList.of(partition1), analysis.whereClause().partitions());

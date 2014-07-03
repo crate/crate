@@ -33,8 +33,11 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.StringType;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,24 +46,46 @@ import java.util.Map;
 
 public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projector> {
 
+    private final ThreadPool threadPool;
+    private final ClusterService clusterService;
+    private final Settings settings;
+    private final TransportShardBulkAction transportShardBulkAction;
+    private final TransportCreateIndexAction transportCreateIndexAction;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final EvaluatingNormalizer normalizer;
-    private final Provider<Client> clientProvider;
 
     public Projector process(Projection projection) {
         return process(projection, null);
     }
 
-    public ProjectionToProjectorVisitor(Provider<Client> clientProvider, ImplementationSymbolVisitor symbolVisitor,
+    public ProjectionToProjectorVisitor(ThreadPool threadPool,
+                                        ClusterService clusterService,
+                                        Settings settings,
+                                        TransportShardBulkAction transportShardBulkAction,
+                                        TransportCreateIndexAction transportCreateIndexAction,
+                                        ImplementationSymbolVisitor symbolVisitor,
             EvaluatingNormalizer normalizer) {
-        this.clientProvider = clientProvider;
+        this.threadPool = threadPool;
+        this.clusterService = clusterService;
+        this.settings = settings;
+        this.transportShardBulkAction = transportShardBulkAction;
+        this.transportCreateIndexAction = transportCreateIndexAction;
         this.symbolVisitor = symbolVisitor;
         this.normalizer = normalizer;
     }
 
-    public ProjectionToProjectorVisitor(Provider<Client> clientProvider, ImplementationSymbolVisitor symbolVisitor) {
-        this(clientProvider, symbolVisitor, new EvaluatingNormalizer(
-                symbolVisitor.functions(), symbolVisitor.rowGranularity(), symbolVisitor.referenceResolver()));
+    public ProjectionToProjectorVisitor(ThreadPool threadPool,
+                                        ClusterService clusterService,
+                                        Settings settings,
+                                        TransportShardBulkAction transportShardBulkAction,
+                                        TransportCreateIndexAction transportCreateIndexAction,
+                                        ImplementationSymbolVisitor symbolVisitor) {
+        this(threadPool, clusterService, settings, transportShardBulkAction,
+                transportCreateIndexAction, symbolVisitor,
+                new EvaluatingNormalizer(
+                        symbolVisitor.functions(),
+                        symbolVisitor.rowGranularity(),
+                        symbolVisitor.referenceResolver()));
     }
 
     @Override
@@ -114,12 +139,11 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         for (Aggregation aggregation : projection.values()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
-        Projector groupProjector = new GroupingProjector(
+        return new GroupingProjector(
                 keyInputs,
                 ImmutableList.copyOf(symbolContext.collectExpressions()),
                 symbolContext.aggregations()
         );
-        return groupProjector;
     }
 
     @Override
@@ -128,10 +152,9 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         for (Aggregation aggregation : projection.aggregations()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
-        Projector aggregationProjector = new AggregationProjector(
+        return new AggregationProjector(
                 symbolContext.collectExpressions(),
                 symbolContext.aggregations());
-        return aggregationProjector;
     }
 
     @Override
@@ -201,7 +224,11 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
             clusteredBy = symbolVisitor.process(projection.clusteredBy(), symbolContext);
         }
         return new IndexWriterProjector(
-                clientProvider.get(),
+                threadPool,
+                clusterService,
+                settings,
+                transportShardBulkAction,
+                transportCreateIndexAction,
                 projection.tableName(),
                 projection.primaryKeys(),
                 idInputs,
@@ -211,7 +238,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 sourceInput,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 projection.bulkActions(),
-                projection.concurrency(),
                 projection.includes(),
                 projection.excludes()
         );
@@ -237,7 +263,11 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
             columnInputs.add(symbolVisitor.process(columnSymbol, symbolContext));
         }
         return new ColumnIndexWriterProjector(
-                clientProvider.get(),
+                threadPool,
+                clusterService,
+                settings,
+                transportShardBulkAction,
+                transportCreateIndexAction,
                 projection.tableName(),
                 projection.primaryKeys(),
                 idInputs,
@@ -247,8 +277,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 projection.columnIdents(),
                 columnInputs,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
-                projection.bulkActions(),
-                projection.concurrency()
+                projection.bulkActions()
         );
     }
 }

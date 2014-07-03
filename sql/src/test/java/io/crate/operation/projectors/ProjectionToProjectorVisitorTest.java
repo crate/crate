@@ -37,13 +37,20 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -62,8 +69,12 @@ public class ProjectionToProjectorVisitorTest {
     private FunctionInfo countInfo;
     private FunctionInfo avgInfo;
 
+    @Mock(answer = Answers.RETURNS_MOCKS)
+    ThreadPool threadPool;
+
     @Before
     public void prepare() {
+        MockitoAnnotations.initMocks(this);
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>());
         Injector injector = new ModulesBuilder()
                 .add(new AggregationImplModule())
@@ -75,10 +86,15 @@ public class ProjectionToProjectorVisitorTest {
                 })
                 .createInjector();
         Functions functions = injector.getInstance(Functions.class);
-        Provider<Client> clientProvider = injector.getProvider(Client.class);
         ImplementationSymbolVisitor symbolvisitor =
                 new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
-        visitor = new ProjectionToProjectorVisitor(clientProvider, symbolvisitor);
+        visitor = new ProjectionToProjectorVisitor(
+                threadPool,
+                mock(ClusterService.class),
+                ImmutableSettings.EMPTY,
+                mock(TransportShardBulkAction.class),
+                mock(TransportCreateIndexAction.class),
+                symbolvisitor);
 
         countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING)), DataTypes.LONG);
         avgInfo = new FunctionInfo(new FunctionIdent(AverageAggregation.NAME, Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.DOUBLE);
