@@ -56,6 +56,7 @@ import org.elasticsearch.monitor.network.NetworkService;
 import org.elasticsearch.monitor.network.NetworkStats;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
+import org.elasticsearch.monitor.process.ProcessStats;
 import org.elasticsearch.node.service.NodeService;
 import org.junit.Before;
 import org.junit.Test;
@@ -128,6 +129,10 @@ public class TestSysNodesExpressions {
             when(cpu.user()).thenReturn((short) 4);
             when(cpu.idle()).thenReturn((short) 94);
             when(cpu.stolen()).thenReturn((short) 10);
+
+            ProcessStats processStats = mock(ProcessStats.class);
+            when(nodeStats.getProcess()).thenReturn(processStats);
+            when(processStats.openFileDescriptors()).thenReturn(42L);
 
             Discovery discovery = mock(Discovery.class);
             bind(Discovery.class).toInstance(discovery);
@@ -341,7 +346,7 @@ public class TestSysNodesExpressions {
                 is("tcp={" +
                         "packets={sent=42, rst_sent=42, received=42, retransmitted=42, errors_received=42}, " +
                         "connections={accepted=42, dropped=42, initiated=42, embryonic_dropped=42, curr_established=42}" +
-                   "}"));
+                        "}"));
     }
 
     @Test
@@ -359,7 +364,6 @@ public class TestSysNodesExpressions {
 
     @Test
     public void testCpu() throws Exception {
-
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "os");
         SysObjectReference os = (SysObjectReference)resolver.getImplementation(ident);
 
@@ -373,6 +377,15 @@ public class TestSysNodesExpressions {
         cpuObj.put("used", (short) 6);
         cpuObj.put("stolen", (short) 10);
         assertEquals(cpuObj, v.get("cpu"));
+    }
+
+    @Test
+    public void testProcess() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "process");
+        SysObjectReference processRef = (SysObjectReference)resolver.getImplementation(ident);
+
+        Map<String, Object> v = processRef.value();
+        assertEquals(42L, (v.get("open_file_descriptors")));
     }
 
 }

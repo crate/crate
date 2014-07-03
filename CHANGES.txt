@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - implemented sys.nodes['process'] expressions
+
  - implemented sys.nodes['os'] expressions to show uptime and cpu utilization
 
  - implemented sys.nodes['network'] expressions to show tcp network stats

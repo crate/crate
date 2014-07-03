@@ -179,4 +179,10 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         assertThat((Short) ((Map) results.get("cpu")).get("stolen"), greaterThanOrEqualTo((short) 0));
         assertThat((Short) ((Map) results.get("cpu")).get("stolen"), lessThanOrEqualTo((short) 100));
     }
+
+    @Test
+    public void testSysNodesProcess() throws Exception {
+        SQLResponse response = executor.exec("select process['open_file_descriptors'] from sys.nodes limit 1");
+        assertThat((Long) response.rows()[0][0], greaterThanOrEqualTo(-1L));
+    }
 }
