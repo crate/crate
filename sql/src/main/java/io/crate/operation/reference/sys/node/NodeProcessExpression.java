@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.monitor.process.ProcessInfo;
 import org.elasticsearch.monitor.process.ProcessStats;
 import org.elasticsearch.node.service.NodeService;
 
@@ -37,18 +38,37 @@ public class NodeProcessExpression extends SysNodeObjectReference {
     }
 
     public static final String OPEN_FILE_DESCRIPTORS = "open_file_descriptors";
+    public static final String MAX_OPEN_FILE_DESCRIPTORS = "max_open_file_descriptors";
+
+    private final NodeService nodeService;
 
     @Inject
     protected NodeProcessExpression(final NodeService nodeService) {
         super(NAME);
+        this.nodeService = nodeService;
+        addChildImplementations();
+    }
+
+    private void addChildImplementations() {
         childImplementations.put(OPEN_FILE_DESCRIPTORS, new ProcessExpression(OPEN_FILE_DESCRIPTORS) {
             @Override
             public Long value() {
-                ProcessStats process = nodeService.stats().getProcess();
-                if (process != null) {
-                    return process.getOpenFileDescriptors();
+                ProcessStats processStats = nodeService.stats().getProcess();
+                if (processStats != null) {
+                    return processStats.getOpenFileDescriptors();
                 } else { return -1L; }
             }
         });
+        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new ProcessExpression(MAX_OPEN_FILE_DESCRIPTORS) {
+            @Override
+            public Long value() {
+                ProcessInfo processInfo = nodeService.info().getProcess();
+                if (processInfo != null) {
+                    return processInfo.getMaxFileDescriptors();
+                } else { return -1L; }
+            }
+        });
+
     }
+
 }
