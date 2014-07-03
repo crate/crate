@@ -83,6 +83,20 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("thread_pools", LongType.INSTANCE, ImmutableList.of("completed"));
         register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("threads"));
         register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("queue"));
+        register("network", DataTypes.OBJECT, null);
+        register("network", DataTypes.OBJECT, ImmutableList.of("tcp"));
+        register("network", DataTypes.OBJECT, ImmutableList.of("tcp", "connections"));
+        register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "initiated"));
+        register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "accepted"));
+        register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "curr_established"));
+        register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "dropped"));
+        register("network", DataTypes.LONG, ImmutableList.of("tcp", "connections", "embryonic_dropped"));
+        register("network", DataTypes.OBJECT, ImmutableList.of("tcp", "packets"));
+        register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "sent"));
+        register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "received"));
+        register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "retransmitted"));
+        register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "errors_received"));
+        register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "rst_sent"));
     }
 
     @Inject

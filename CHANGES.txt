@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - implemented sys.nodes['network'] expressions to show tcp network stats
+
  - fix: improve input validation for objects and object arrays
 
  - fix: avoid failed execution of ``DROP TABLE`` on partitioned table

@@ -25,7 +25,7 @@ import io.crate.operation.reference.sys.SysNodeArrayObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
 
-public class NodeThreadPoolsExpression extends SysNodeArrayObjectReference<Object> {
+public class NodeThreadPoolsExpression extends SysNodeArrayObjectReference {
 
     public static final String NAME = "thread_pools";
 
