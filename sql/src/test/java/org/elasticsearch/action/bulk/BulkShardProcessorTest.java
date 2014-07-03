@@ -107,7 +107,7 @@ public class BulkShardProcessorTest {
         mockShard(operationRouting, 2);
         mockShard(operationRouting, 3);
         when(clusterService.operationRouting()).thenReturn(operationRouting);
-        TransportShardBulkAction transportShardBulkAction = mock(TransportShardBulkAction.class);
+        final TransportShardBulkAction transportShardBulkAction = mock(TransportShardBulkAction.class);
 
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 threadPool,
@@ -124,7 +124,7 @@ public class BulkShardProcessorTest {
                 any(BulkShardRequest.class),
                 bulkShardResponseListener.capture());
 
-        ActionListener<BulkShardResponse> listener = bulkShardResponseListener.getValue();
+        final ActionListener<BulkShardResponse> listener = bulkShardResponseListener.getValue();
 
         listener.onFailure(new EsRejectedExecutionException());
 
@@ -147,6 +147,27 @@ public class BulkShardProcessorTest {
             }
         });
         latch.await();
+        assertTrue(hadBlocked.get());
+
+        hadBlocked.set(false);
+        hasBlocked.set(true);
+        final CountDownLatch latch2 = new CountDownLatch(1);
+        final ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(2);
+        scheduledExecutorService2.execute(new Runnable() {
+            @Override
+            public void run() {
+                scheduledExecutorService.schedule(new Runnable() {
+                    @Override
+                    public void run() {
+                        hadBlocked.set(hasBlocked.get());
+                        latch2.countDown();
+                    }
+                }, 10, TimeUnit.MILLISECONDS);
+                listener.onFailure(new EsRejectedExecutionException());
+                hasBlocked.set(false);
+            }
+        });
+        latch2.await();
         assertTrue(hadBlocked.get());
     }
 

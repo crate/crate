@@ -57,8 +57,6 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class BulkShardProcessor {
 
-    private final static AtomicInteger currentDelay = new AtomicInteger(0);
-
     private final ClusterService clusterService;
     private final TransportShardBulkAction transportShardBulkAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
@@ -68,11 +66,13 @@ public class BulkShardProcessor {
     private final AutoCreateIndex autoCreateIndex;
     private int counter;
     private final Semaphore semaphore = new Semaphore(1);
+    private final Semaphore semaphoreAdd = new Semaphore(1);
     private final SettableFuture<Long> result;
     private final LongAdder rowsInserted = new LongAdder();
     private final AtomicInteger pending = new AtomicInteger(0);
     private final AtomicInteger activeRetries = new AtomicInteger(0);
     private final AtomicInteger blockedAdds = new AtomicInteger(0);
+    private final AtomicInteger currentDelay = new AtomicInteger(0);
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private volatile boolean closed = false;
     private final Set<String> indicesCreated = new HashSet<>();
@@ -142,9 +142,9 @@ public class BulkShardProcessor {
     private void blockIfRetriesActive() {
         if (activeRetries.get() > 0) {
             try {
-                trace(String.format("add with active retries, acquiring semaphore: %s", semaphore));
+                trace(String.format("add with active retries, acquiring semaphore: %s", semaphoreAdd));
                 blockedAdds.getAndIncrement();
-                semaphore.acquire();
+                semaphoreAdd.acquire();
             } catch (InterruptedException e) {
                 Thread.interrupted();
             }
@@ -213,17 +213,25 @@ public class BulkShardProcessor {
         transportShardBulkAction.execute(bulkShardRequest, new ResponseListener(bulkShardRequest));
     }
 
-    private void doRetry(BulkShardRequest originalRequest) {
+    private void doRetry(final BulkShardRequest request, boolean repeatingRetry) {
         trace("doRetry");
-        executeWithRetry(originalRequest);
-    }
-
-    private void executeWithRetry(final BulkShardRequest request) {
-        activeRetries.getAndIncrement();
-        try {
-            semaphore.acquire();
-        } catch (InterruptedException e) {
-            Thread.interrupted();
+        if (!repeatingRetry) {
+            if (blockedAdds.get() == 0 && activeRetries.getAndIncrement() == 0) {
+                // first active retry, acquire add permit, so adds will be blocked
+                try {
+                    trace(String.format("doRetry - acquiring add semaphore: %s", semaphoreAdd));
+                    semaphoreAdd.acquire();
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                }
+            }
+            try {
+                // fresh retry from an add() failure, acquire (2nd retry will block)
+                trace(String.format("doRetry - acquiring retry semaphore: %s", semaphore));
+                semaphore.acquire();
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+            }
         }
         threadPool.schedule(TimeValue.timeValueMillis(currentDelay.getAndIncrement() * 10),
                 ThreadPool.Names.SAME, new Runnable() {
@@ -269,11 +277,11 @@ public class BulkShardProcessor {
         setResultIfDone(successes);
     }
 
-    private void processFailure(Throwable e, BulkShardRequest bulkShardRequest) {
+    private void processFailure(Throwable e, BulkShardRequest bulkShardRequest, boolean wasRetry) {
         trace("execute failure");
         if (e instanceof EsRejectedExecutionException) {
             logger.warn("{}, retrying", e.getMessage());
-            doRetry(bulkShardRequest);
+            doRetry(bulkShardRequest, wasRetry);
         } else {
             setFailure(e);
         }
@@ -289,27 +297,19 @@ public class BulkShardProcessor {
 
         @Override
         public void onResponse(BulkShardResponse bulkShardResponse) {
-            if (blockedAdds.get() > 0) {
-                blockedAdds.decrementAndGet();
-                semaphore.release();
-            }
             processResponse(bulkShardResponse);
         }
 
         @Override
         public void onFailure(Throwable e) {
-            if (blockedAdds.get() > 0) {
-                blockedAdds.decrementAndGet();
-                semaphore.release();
-            }
-            processFailure(e, bulkShardRequest);
+            processFailure(e, bulkShardRequest, false);
         }
     }
 
     private void trace(String message) {
         if (logger.isTraceEnabled()) {
-            logger.trace("BulkShardProcessor: pending: {}; active retries: {} - {}",
-                    pending.get(), activeRetries.get(), message);
+            logger.trace("BulkShardProcessor: pending: {}; active retries: {}; blocked adds: {}; retry delay: {} - {}",
+                    pending.get(), activeRetries.get(), blockedAdds.get(), currentDelay.get(), message);
         }
     }
 
@@ -323,20 +323,32 @@ public class BulkShardProcessor {
         public void onResponse(BulkShardResponse bulkShardResponse) {
             trace("BulkShardProcessor retry success");
             if (activeRetries.decrementAndGet() == 0) {
+                // no active retry, reset the delay
                 currentDelay.set(0);
+                int blocked = blockedAdds.get();
+                if (blocked > 0) {
+                    // release all permits
+                    blockedAdds.set(0);
+                    semaphoreAdd.release(blocked + 1);
+                    trace(String.format("retry success - released add semaphore: %s", semaphoreAdd));
+                } else {
+                    // release the add permit which was done by the first retry
+                    semaphoreAdd.release();
+                }
+            } else {
+                // decrease the delay for other active retries
+                currentDelay.decrementAndGet();
             }
+            // release permit done by this retry
             semaphore.release();
+            trace(String.format("retry success - released retry semaphore: %s", semaphore));
             processResponse(bulkShardResponse);
         }
 
         @Override
         public void onFailure(Throwable e) {
             trace("BulkShardProcessor retry failure");
-            if (activeRetries.decrementAndGet() == 0) {
-                currentDelay.set(0);
-            }
-            semaphore.release();
-            processFailure(e, bulkShardRequest);
+            processFailure(e, bulkShardRequest, true);
         }
     }
 }
