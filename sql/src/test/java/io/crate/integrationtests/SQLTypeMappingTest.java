@@ -224,7 +224,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id, byte_field, short_field, integer_field, long_field, " +
                 "float_field, double_field, boolean_field, string_field, timestamp_field," +
                 "object_field) values (?,?,?,?,?,?,?,?,?,?,?)", new Object[]{
-                    0, 0, 0, 0, 0, 0.0, 1.0f, false, "", "1970-01-01", new HashMap<String, Object>(){{ put("inner", "1970-01-01"); }}
+                    0, 0, 0, 0, 0, 0.0f, 1.0, false, "", "1970-01-01", new HashMap<String, Object>(){{ put("inner", "1970-01-01"); }}
                 });
         execute("update t1 set " +
                 "byte_field=?," +
@@ -240,7 +240,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 "ip_field=?" +
                 "where id=0", new Object[]{
                     Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE,
-                    1.0, Math.PI, true, "a string", "2013-11-20",
+                    1.0f, Math.PI, true, "a string", "2013-11-20",
                     new HashMap<String, Object>() {{put("inner", "2013-11-20");}}, "127.0.0.1"
         });
         refresh();

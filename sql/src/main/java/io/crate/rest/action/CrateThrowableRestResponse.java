@@ -36,7 +36,6 @@ import static org.elasticsearch.ExceptionsHelper.detailedMessage;
 public class CrateThrowableRestResponse extends RestResponse {
 
     private final RestStatus status;
-    private final boolean contentThreadSafe;
     private final BytesReference content;
     private final String contentType;
 
@@ -52,7 +51,6 @@ public class CrateThrowableRestResponse extends RestResponse {
             this.content = builder.bytes();
             this.contentType = builder.contentType().restContentType();
         }
-        this.contentThreadSafe = true;
     }
 
     private static XContentBuilder convert(RestChannel channel, Throwable t) throws IOException {
@@ -85,7 +83,7 @@ public class CrateThrowableRestResponse extends RestResponse {
 
     @Override
     public boolean contentThreadSafe() {
-        return contentThreadSafe;
+        return true;
     }
 
     @Override

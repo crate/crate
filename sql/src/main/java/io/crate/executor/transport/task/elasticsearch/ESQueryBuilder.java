@@ -568,17 +568,17 @@ public class ESQueryBuilder {
                 assert functionSymbol.arguments().size() == 2;
                 assert functionSymbol.info().ident().name().equals(DistanceFunction.NAME);
                 String fieldName = null;
-                Double[] point = null;
+                Object point = null;
                 for (Symbol distanceArgument : functionSymbol.arguments()) {
                     if (distanceArgument instanceof Reference) {
                         fieldName = ((Reference)distanceArgument).info().ident().columnIdent().fqn();
                     } else if (distanceArgument.symbolType().isValueSymbol()) {
-                        point = (Double[]) ((Input) distanceArgument).value();
+                        point = ((Input) distanceArgument).value();
                     }
                 }
                 assert fieldName != null;
                 assert point != null;
-                context.builder.field(fieldName, (Object) point);
+                context.builder.field(fieldName, point);
             }
 
             private void handleValueSymbol(Context context,

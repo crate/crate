@@ -43,7 +43,7 @@ public class RestSQLAction extends BaseRestHandler {
     }
 
     @Override
-    public void handleRequest(final RestRequest request, final RestChannel channel) {
+    public void handleRequest(final RestRequest request, final RestChannel channel) throws Exception {
 
         final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
         if (request.hasContent()) {
