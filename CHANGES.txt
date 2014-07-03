@@ -5,8 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: ``copy from`` will now throttle and retry if there are failures due to
-   full thread pool queues.
+2014/07/03 0.39.1
+=================
+
+ - fix: ``COPY FROM`` will now throttle and retry if there are failures due to
+   full thread pool queues
    The ``concurrency`` option has also been removed.
 
  - fix: improve input validation for objects and object arrays
@@ -14,10 +17,10 @@ Unreleased
  - fix: avoid failed execution of ``DROP TABLE`` on partitioned table
    to leave unrecoverable inconsistent state behind
 
- - fix: columns referenced by positional arguments in a ORDER BY or
-   GROUP BY clause are now validated for their data types.
+ - fix: columns referenced by positional arguments in a ``ORDER BY`` or
+   ``GROUP BY`` clause are now validated for their data types
 
- - fixed wrong geo_point definition in documentation
+ - fix: revised incorrect documentation about geo_point definition
 
  - fix: if partitioned tables exists, information_schema queries did
    not work properly
@@ -28,7 +31,7 @@ Unreleased
       commands passed via stdin
 
  - fix: with a very large number of shards, queries on ``sys.shards`` could
-   overflow the threadpools.
+   overflow the threadpools
 
  - updated crate-admin to 0.8.4 with includes following changes
 
@@ -39,7 +42,7 @@ Unreleased
     - fix: include initializing shards in calculation for underreplicated shards
 
  - fix: creating a table with arrays as primary key now correctly results in an
-   error as it is not supported.
+   error as it is not supported
 
 2014/06/16 0.39.0
 =================
