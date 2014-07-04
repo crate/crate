@@ -216,7 +216,8 @@ public class BulkShardProcessor {
     private void doRetry(final BulkShardRequest request, boolean repeatingRetry) {
         trace("doRetry");
         if (!repeatingRetry) {
-            if (blockedAdds.get() == 0 && activeRetries.getAndIncrement() == 0) {
+            int currentActiveRetries = activeRetries.getAndIncrement();
+            if (blockedAdds.get() == 0 && currentActiveRetries == 0) {
                 // first active retry, acquire add permit, so adds will be blocked
                 try {
                     trace(String.format("doRetry - acquiring add semaphore: %s", semaphoreAdd));
@@ -277,11 +278,11 @@ public class BulkShardProcessor {
         setResultIfDone(successes);
     }
 
-    private void processFailure(Throwable e, BulkShardRequest bulkShardRequest, boolean wasRetry) {
+    private void processFailure(Throwable e, BulkShardRequest bulkShardRequest, boolean repeatingRetry) {
         trace("execute failure");
         if (e instanceof EsRejectedExecutionException) {
             logger.warn("{}, retrying", e.getMessage());
-            doRetry(bulkShardRequest, wasRetry);
+            doRetry(bulkShardRequest, repeatingRetry);
         } else {
             setFailure(e);
         }
