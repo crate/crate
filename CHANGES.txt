@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+- fix: revised ``COPY FROM`` retry logic (race conditions)
+
 2014/07/03 0.39.1
 =================
 
