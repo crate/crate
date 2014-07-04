@@ -21,25 +21,16 @@
 
 package io.crate.operation.reference.sys;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysClusterTableInfo;
+import java.util.ArrayList;
+import java.util.List;
 
-public abstract class SysClusterObjectReference extends SysObjectReference {
+public abstract class SysStaticObjectArrayReference extends SysObjectArrayReference {
 
-    private final ReferenceInfo info;
-
-    protected SysClusterObjectReference(String name) {
-        this(new ColumnIdent(name));
-    }
-
-    protected SysClusterObjectReference(ColumnIdent ident) {
-        info = SysClusterTableInfo.INFOS.get(ident);
-        assert info != null;
-    }
+    protected final List<SysObjectReference> childImplementations = new ArrayList<>();
 
     @Override
-    public ReferenceInfo info() {
-        return info;
+    protected List<SysObjectReference> getChildImplementations() {
+        return childImplementations;
     }
+
 }

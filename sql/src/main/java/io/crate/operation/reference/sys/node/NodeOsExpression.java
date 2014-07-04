@@ -23,52 +23,47 @@ package io.crate.operation.reference.sys.node;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.sys.SysExpression;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.monitor.jvm.JvmService;
+import org.elasticsearch.node.service.NodeService;
 
-public class NodeHeapExpression extends SysNodeObjectReference {
 
-    abstract class HeapExpression extends SysNodeExpression<Object> {
-        HeapExpression(String name) {
-            super(new ColumnIdent(NAME, ImmutableList.of(name)));
-        }
+public class NodeOsExpression extends SysNodeObjectReference {
+
+    public static final String NAME = "os";
+
+    abstract class OsExpression extends SysNodeExpression<Object> {
+        OsExpression(String name) { super(new ColumnIdent(NAME, ImmutableList.of(name))); }
     }
 
-    public static final String NAME = "heap";
+    public static final String UPTIME = "uptime";
+    public static final String TIMESTAMP = "timestamp";
 
-    public static final String MAX = "max";
-    public static final String FREE = "free";
-    public static final String USED = "used";
-
-    private final JvmService jvmService;
+    private final NodeService nodeService;
 
     @Inject
-    public NodeHeapExpression(JvmService jvmService) {
-        super(NAME);
-        this.jvmService = jvmService;
+    public NodeOsExpression(NodeService nodeService) {
+        super(new ColumnIdent(NAME));
+        this.nodeService = nodeService;
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(FREE, new HeapExpression(FREE) {
+        childImplementations.put(UPTIME, new OsExpression(UPTIME) {
             @Override
             public Long value() {
-                return jvmService.stats().mem().getHeapMax().bytes() - jvmService.stats().mem().getHeapUsed().bytes();
+                return nodeService.stats().getOs().uptime().millis();
             }
         });
-        childImplementations.put(USED, new HeapExpression(USED) {
+        childImplementations.put(TIMESTAMP, new OsExpression(TIMESTAMP) {
             @Override
             public Long value() {
-                return jvmService.stats().mem().getHeapUsed().bytes();
+                return System.currentTimeMillis();
             }
         });
-        childImplementations.put(MAX, new HeapExpression(MAX) {
-            @Override
-            public Long value() {
-                return jvmService.stats().mem().getHeapMax().bytes();
-            }
-        });
+        childImplementations.put(NodeOsCpuExpression.NAME,
+                (SysExpression) new NodeOsCpuExpression(nodeService));
     }
 
 }
