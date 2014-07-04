@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-class NodeFsTotalExpression extends SysNodeObjectReference {
+public class NodeFsTotalExpression extends SysNodeObjectReference {
 
     public static final String NAME = "total";
 
@@ -112,6 +112,8 @@ class NodeFsTotalExpression extends SysNodeObjectReference {
             } catch (SigarException e) {
                 logger.warn("error getting filesystem totals", e);
             }
+        } else {
+            logger.trace("sigar not available");
         }
         totals.put(SIZE, size);
         totals.put(USED, used);

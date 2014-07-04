@@ -4303,5 +4303,4 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into t2 (p) (select p from t)");
         assertThat(response.rowCount(), is(1L));
     }
-
 }

@@ -63,7 +63,6 @@ import org.elasticsearch.node.service.NodeService;
 import org.hyperic.sigar.*;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -181,6 +180,7 @@ public class TestSysNodesExpressions {
             when(nodeEnv.nodeDataLocations()).thenReturn(dataLocations);
             bind(NodeEnvironment.class).toInstance(nodeEnv);
 
+            Sigar sigar = mock(Sigar.class);
             SigarService sigarService = mock(SigarService.class);
             when(sigarService.sigarAvailable()).then(new Answer<Boolean>() {
                 @Override
@@ -188,8 +188,6 @@ public class TestSysNodesExpressions {
                     return sigarAvailable;
                 }
             });
-            Sigar sigar = Mockito.spy(new Sigar());
-            FileSystemMap map = mock(FileSystemMap.class);
 
             FileSystem fsFoo = mock(FileSystem.class);
             when(fsFoo.getDevName()).thenReturn("/dev/sda1");
@@ -199,6 +197,7 @@ public class TestSysNodesExpressions {
             when(fsBar.getDevName()).thenReturn("/dev/sda2");
             when(fsBar.getDirName()).thenReturn("/bar");
 
+            FileSystemMap map = mock(FileSystemMap.class);
             when(map.getMountPoint("/foo")).thenReturn(fsFoo);
             when(map.getMountPoint("/bar")).thenReturn(fsBar);
             FileSystemUsage usage = mock(FileSystemUsage.class, new Answer<Long>() {
@@ -210,14 +209,19 @@ public class TestSysNodesExpressions {
 
             try {
                 when(sigar.getFileSystemList()).thenReturn(new FileSystem[]{fsFoo, fsBar});
-                doReturn(map).when(sigar).getFileSystemMap();
-                doReturn(usage).when(sigar).getFileSystemUsage(anyString());
+                when(sigar.getFileSystemMap()).thenReturn(map);
+                when(sigar.getFileSystemUsage(anyString())).thenReturn(usage);
                 assertThat(sigar.getFileSystemUsage("/"), is(usage));
             } catch (SigarException e) {
                 e.printStackTrace();
             }
             when(sigarService.sigar()).thenReturn(sigar);
             bind(SigarService.class).toInstance(sigarService);
+            try {
+                assertThat(sigarService.sigar().getFileSystemMap(), is(map));
+            } catch (SigarException e) {
+                e.printStackTrace();
+            }
 
             HttpServer httpServer = mock(HttpServer.class);
             HttpInfo httpInfo = mock(HttpInfo.class);
@@ -252,7 +256,6 @@ public class TestSysNodesExpressions {
                 new SysNodeExpressionModule()
         ).createInjector();
         resolver = injector.getInstance(ReferenceResolver.class);
-
     }
 
     @Test
