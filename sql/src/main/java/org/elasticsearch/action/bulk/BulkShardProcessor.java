@@ -44,9 +44,12 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Processor to do Bulk Inserts, similar to {@link org.elasticsearch.action.bulk.BulkProcessor}
@@ -62,11 +65,11 @@ public class BulkShardProcessor {
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final boolean autoCreateIndices;
     private final int bulkSize;
-    private final Map<ShardId, List<BulkItemRequest>> requestsByShard = new HashMap<>();
+    private final ConcurrentHashMap<ShardId, List<BulkItemRequest>> requestsByShard = new ConcurrentHashMap<>();
     private final AutoCreateIndex autoCreateIndex;
-    private int counter;
-    private final Semaphore semaphore = new Semaphore(1);
-    private final Semaphore semaphoreAdd = new Semaphore(1);
+    private final AtomicInteger counter = new AtomicInteger(0);
+    private final Semaphore semaphore = new Semaphore(1, true);
+    private final Semaphore semaphoreAdd = new Semaphore(1, true);
     private final SettableFuture<Long> result;
     private final LongAdder rowsInserted = new LongAdder();
     private final AtomicInteger pending = new AtomicInteger(0);
@@ -77,6 +80,8 @@ public class BulkShardProcessor {
     private volatile boolean closed = false;
     private final Set<String> indicesCreated = new HashSet<>();
     private final ThreadPool threadPool;
+    private final ReentrantReadWriteLock executeLock = new ReentrantReadWriteLock(true);
+    private final Lock executeLockW = executeLock.writeLock();
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
@@ -93,7 +98,6 @@ public class BulkShardProcessor {
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.autoCreateIndices = autoCreateIndices;
         this.bulkSize = bulkSize;
-        counter = 0;
         result = SettableFuture.create();
         autoCreateIndex = new AutoCreateIndex(settings);
     }
@@ -115,7 +119,7 @@ public class BulkShardProcessor {
         return true;
     }
 
-    private synchronized void partitionRequestByShard(String indexName, BytesReference source, String id, String routing) {
+    private void partitionRequestByShard(String indexName, BytesReference source, String id, String routing) {
         ShardId shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 indexName,
@@ -124,26 +128,31 @@ public class BulkShardProcessor {
                 routing
         ).shardId();
 
-        List<BulkItemRequest> items = requestsByShard.get(shardId);
-        if (items == null) {
-            items = new ArrayList<>();
-            requestsByShard.put(shardId, items);
-        }
         IndexRequest indexRequest = new IndexRequest(indexName, Constants.DEFAULT_MAPPING_TYPE, id);
         if (routing != null) {
             indexRequest.routing(routing);
         }
         indexRequest.source(source, false);
         indexRequest.timestamp(Long.toString(System.currentTimeMillis()));
-        items.add(new BulkItemRequest(counter, indexRequest));
-        counter++;
+
+        executeLockW.lock();
+        List<BulkItemRequest> items = requestsByShard.get(shardId);
+        if (items == null) {
+            items = Collections.synchronizedList(new ArrayList<BulkItemRequest>());
+            List<BulkItemRequest> items_existing = requestsByShard.put(shardId, items);
+            if (items_existing != null) {
+                items = items_existing;
+            }
+        }
+        items.add(new BulkItemRequest(counter.getAndIncrement(), indexRequest));
+        executeLockW.unlock();
     }
 
     private void blockIfRetriesActive() {
         if (activeRetries.get() > 0) {
+            blockedAdds.getAndIncrement();
             try {
                 trace(String.format("add with active retries, acquiring semaphore: %s", semaphoreAdd));
-                blockedAdds.getAndIncrement();
                 semaphoreAdd.acquire();
             } catch (InterruptedException e) {
                 Thread.interrupted();
@@ -156,8 +165,9 @@ public class BulkShardProcessor {
     }
 
     public void close() {
+        trace("close");
         closed = true;
-        executeIfNeeded();
+        executeRequests();
         if (pending.get() == 0) {
             setResult();
         }
@@ -186,12 +196,13 @@ public class BulkShardProcessor {
     }
 
     private void executeIfNeeded() {
-        if (closed || counter >= bulkSize) {
+        if (closed || counter.get() >= bulkSize) {
             executeRequests();
         }
     }
 
-    private synchronized void executeRequests() {
+    private void executeRequests() {
+        executeLockW.lock();
         for (Iterator<Map.Entry<ShardId, List<BulkItemRequest>>> it = requestsByShard.entrySet().iterator(); it.hasNext();) {
             Map.Entry<ShardId, List<BulkItemRequest>> entry = it.next();
             ShardId shardId= entry.getKey();
@@ -205,7 +216,8 @@ public class BulkShardProcessor {
             execute(bulkShardRequest);
             it.remove();
         }
-        counter = 0;
+        counter.set(0);
+        executeLockW.unlock();
     }
 
     private void execute(BulkShardRequest bulkShardRequest) {
@@ -217,7 +229,8 @@ public class BulkShardProcessor {
         trace("doRetry");
         if (!repeatingRetry) {
             int currentActiveRetries = activeRetries.getAndIncrement();
-            if (blockedAdds.get() == 0 && currentActiveRetries == 0) {
+            int currentBlocked = blockedAdds.get();
+            if (currentBlocked == 0 && currentActiveRetries == 0) {
                 // first active retry, acquire add permit, so adds will be blocked
                 try {
                     trace(String.format("doRetry - acquiring add semaphore: %s", semaphoreAdd));
