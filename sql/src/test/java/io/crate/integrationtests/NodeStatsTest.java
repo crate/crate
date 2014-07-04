@@ -24,12 +24,9 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
-import org.apache.commons.collections.map.UnmodifiableMap;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -188,5 +185,41 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         for (int i = 0; i < response.cols().length; i++) {
             assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
         }
+    }
+
+    @Test
+    public void testFs() throws Exception {
+        SQLResponse response = executor.exec("select fs from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], instanceOf(Map.class));
+        Map<String, Object> fs = (Map<String, Object>)response.rows()[0][0];
+        assertThat(fs.keySet().size(), is(3));
+        assertThat(fs.keySet(), hasItems("total", "disks", "data"));
+
+        Map<String, Object> total = (Map<String, Object>) fs.get("total");
+        assertThat(total.keySet(), hasItems("size", "used", "available", "reads", "writes",
+                "bytes_written", "bytes_read"));
+        for (Object val : total.values()) {
+            assertThat((Long)val, greaterThanOrEqualTo(-1L));
+        }
+
+        Object[] disks = (Object[])fs.get("disks");
+        assertThat(disks.length, greaterThanOrEqualTo(1));
+        Map<String, Object> someDisk = (Map<String, Object>)disks[0];
+        assertThat(someDisk.keySet().size(), is(8));
+        assertThat(someDisk.keySet(), hasItems("dev", "size", "used", "available",
+                "reads", "writes", "bytes_read", "bytes_written"));
+        for (Map.Entry<String, Object> entry : someDisk.entrySet()) {
+            if (!entry.getKey().equals("dev")) {
+                assertThat((Long)entry.getValue(), greaterThanOrEqualTo(-1L));
+            }
+        }
+
+        Object[] data = (Object[])fs.get("data");
+        // only one data path configured in test mode
+        assertThat(data.length, is(1));
+        Map<String, Object> someData = (Map<String, Object>)data[0];
+        assertThat(someData.keySet().size(), is(2));
+        assertThat(someData.keySet(), hasItems("dev", "path"));
     }
 }

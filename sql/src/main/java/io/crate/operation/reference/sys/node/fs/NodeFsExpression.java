@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -14,34 +14,29 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  *
- * However, if you have executed another commercial license agreement
+ * However, if you have executed any another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.sys.node;
+package io.crate.operation.reference.sys.node.fs;
 
-import io.crate.operation.reference.sys.SysNodeStaticObjectArrayReference;
+import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.monitor.sigar.SigarService;
 
-public class NodeThreadPoolsExpression extends SysNodeStaticObjectArrayReference {
+public class NodeFsExpression extends SysNodeObjectReference {
 
-    public static final String NAME = "thread_pools";
-
-    private final ThreadPool threadPool;
+    public static final String NAME = "fs";
 
     @Inject
-    protected NodeThreadPoolsExpression(ThreadPool threadPool) {
+    public NodeFsExpression(SigarService sigarService,
+                            NodeEnvironment nodeEnvironment) {
         super(NAME);
-        this.threadPool = threadPool;
-        addChildImplementations();
-    }
-
-    private void addChildImplementations() {
-        for (ThreadPool.Info info : threadPool.info()) {
-            childImplementations.add(new NodeThreadPoolExpression(threadPool, info.getName()));
-        }
+        childImplementations.put(NodeFsTotalExpression.NAME, new NodeFsTotalExpression(sigarService));
+        childImplementations.put(NodeFsDisksExpression.NAME, new NodeFsDisksExpression(sigarService));
+        childImplementations.put(NodeFsDataExpression.NAME, new NodeFsDataExpression(sigarService, nodeEnvironment));
     }
 
 }

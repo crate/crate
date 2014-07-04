@@ -30,7 +30,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
 
     public static final String NAME = "tcp";
 
-   public NodeNetworkTCPExpression(NetworkService networkService) {
+    public NodeNetworkTCPExpression(NetworkService networkService) {
         super(new ColumnIdent(NodeNetworkExpression.NAME, ImmutableList.of(NAME)));
         childImplementations.put(TCPConnectionsExpression.NAME, new TCPConnectionsExpression(networkService));
         childImplementations.put(TCPPacketsExpression.NAME, new TCPPacketsExpression(networkService));

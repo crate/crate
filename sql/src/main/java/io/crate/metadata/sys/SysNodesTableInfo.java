@@ -46,6 +46,8 @@ public class SysNodesTableInfo extends SysTableInfo {
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     static {
+        DataType objectArrayType = new ArrayType(DataTypes.OBJECT);
+
         register("id", DataTypes.STRING, null);
         register("name", DataTypes.STRING, null);
         register("hostname", DataTypes.STRING, null);
@@ -65,17 +67,11 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("heap", DataTypes.LONG, ImmutableList.of("free"));
         register("heap", DataTypes.LONG, ImmutableList.of("used"));
         register("heap", DataTypes.LONG, ImmutableList.of("max"));
-        register("fs", DataTypes.OBJECT, null);
-        register("fs", DataTypes.LONG, ImmutableList.of("total"));
-        register("fs", DataTypes.LONG, ImmutableList.of("free"));
-        register("fs", DataTypes.LONG, ImmutableList.of("used"));
-        register("fs", DataTypes.DOUBLE, ImmutableList.of("free_percent"));
-        register("fs", DataTypes.DOUBLE, ImmutableList.of("used_percent"));
         register("version", DataTypes.OBJECT, null);
         register("version", StringType.INSTANCE, ImmutableList.of("number"));
         register("version", StringType.INSTANCE, ImmutableList.of("build_hash"));
         register("version", DataTypes.BOOLEAN, ImmutableList.of("build_snapshot"));
-        register("thread_pools", new ArrayType(DataTypes.OBJECT), null);
+        register("thread_pools", objectArrayType, null);
         register("thread_pools", StringType.INSTANCE, ImmutableList.of("name"));
         register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("active"));
         register("thread_pools", LongType.INSTANCE, ImmutableList.of("rejected"));
@@ -83,6 +79,7 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("thread_pools", LongType.INSTANCE, ImmutableList.of("completed"));
         register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("threads"));
         register("thread_pools", IntegerType.INSTANCE, ImmutableList.of("queue"));
+
         register("network", DataTypes.OBJECT, null);
         register("network", DataTypes.OBJECT, ImmutableList.of("tcp"));
         register("network", DataTypes.OBJECT, ImmutableList.of("tcp", "connections"));
@@ -97,6 +94,7 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "retransmitted"));
         register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "errors_received"));
         register("network", DataTypes.LONG, ImmutableList.of("tcp", "packets", "rst_sent"));
+
         register("os", DataTypes.OBJECT, null);
         register("os", DataTypes.LONG, ImmutableList.of("uptime"));
         register("os", DataTypes.TIMESTAMP, ImmutableList.of("timestamp"));
@@ -109,6 +107,30 @@ public class SysNodesTableInfo extends SysTableInfo {
         register("process", DataTypes.OBJECT, null);
         register("process", DataTypes.LONG, ImmutableList.of("open_file_descriptors"));
         register("process", DataTypes.LONG, ImmutableList.of("max_open_file_descriptors"));
+
+        register("fs", DataTypes.OBJECT, null);
+        register("fs", DataTypes.OBJECT, ImmutableList.of("total"));
+        register("fs", DataTypes.LONG, ImmutableList.of("total", "size"));
+        register("fs", DataTypes.LONG, ImmutableList.of("total", "used"));
+        register("fs", DataTypes.LONG, ImmutableList.of("total", "available"));
+        register("fs", DataTypes.LONG, ImmutableList.of("total", "reads"));
+        register("fs", DataTypes.LONG, ImmutableList.of("total", "bytes_read"));
+        register("fs", DataTypes.LONG, ImmutableList.of("total", "writes"));
+        register("fs", DataTypes.LONG, ImmutableList.of("total", "bytes_written"));
+
+        register("fs", objectArrayType, ImmutableList.of("disks"));
+        register("fs", DataTypes.STRING, ImmutableList.of("disks", "dev"));
+        register("fs", DataTypes.LONG, ImmutableList.of("disks", "size"));
+        register("fs", DataTypes.LONG, ImmutableList.of("disks", "used"));
+        register("fs", DataTypes.LONG, ImmutableList.of("disks", "available"));
+        register("fs", DataTypes.LONG, ImmutableList.of("disks", "reads"));
+        register("fs", DataTypes.LONG, ImmutableList.of("disks", "bytes_read"));
+        register("fs", DataTypes.LONG, ImmutableList.of("disks", "writes"));
+        register("fs", DataTypes.LONG, ImmutableList.of("disks", "bytes_written"));
+
+        register("fs", objectArrayType, ImmutableList.of("data"));
+        register("fs", DataTypes.STRING, ImmutableList.of("data", "dev"));
+        register("fs", DataTypes.STRING, ImmutableList.of("data", "path"));
     }
 
     @Inject

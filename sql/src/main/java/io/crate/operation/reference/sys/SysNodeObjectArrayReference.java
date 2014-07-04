@@ -23,19 +23,20 @@ package io.crate.operation.reference.sys;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysClusterTableInfo;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import org.elasticsearch.common.Preconditions;
 
-public abstract class SysClusterObjectReference extends SysObjectReference {
+public abstract class SysNodeObjectArrayReference extends SysObjectArrayReference {
 
     private final ReferenceInfo info;
 
-    protected SysClusterObjectReference(String name) {
+    protected SysNodeObjectArrayReference(String name) {
         this(new ColumnIdent(name));
     }
 
-    protected SysClusterObjectReference(ColumnIdent ident) {
-        info = SysClusterTableInfo.INFOS.get(ident);
-        assert info != null;
+    protected SysNodeObjectArrayReference(ColumnIdent ident) {
+        info = SysNodesTableInfo.INFOS.get(ident);
+        Preconditions.checkNotNull(info, "info");
     }
 
     @Override
