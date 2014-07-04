@@ -16,8 +16,6 @@ Unreleased
 
  - implemented sys.nodes.network expressions to show tcp network stats
 
- - implemented sys.nodes.network expressions to show tcp network stats
-
  - updated elasticsearch to 1.2.1
 
  - added insert by query support
