@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - changed output of colum names in information schema to subscript notation
+
  - implemented sys.nodes['process'] expressions
 
  - implemented sys.nodes['os'] expressions to show uptime and cpu utilization
