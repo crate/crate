@@ -21,6 +21,7 @@
 package io.crate.operation.reference.sys;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.metadata.GlobalReferenceResolver;
@@ -30,13 +31,11 @@ import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
-import junit.framework.Assert;
+import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
-import org.elasticsearch.action.admin.cluster.stats.ClusterStatsNodes;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -48,9 +47,9 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.discovery.Discovery;
+import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServer;
-import org.elasticsearch.monitor.fs.FsStats;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.network.NetworkService;
@@ -59,20 +58,26 @@ import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.monitor.process.ProcessInfo;
 import org.elasticsearch.monitor.process.ProcessStats;
+import org.elasticsearch.monitor.sigar.SigarService;
 import org.elasticsearch.node.service.NodeService;
+import org.hyperic.sigar.*;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.util.*;
+import java.io.File;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import static junit.framework.Assert.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class TestSysNodesExpressions {
 
@@ -80,6 +85,8 @@ public class TestSysNodesExpressions {
     private ReferenceResolver resolver;
 
     private boolean onWindows = false;
+    private boolean sigarAvailable = true;
+    private boolean isDataNode = true;
 
     class TestModule extends AbstractModule {
 
@@ -149,7 +156,6 @@ public class TestSysNodesExpressions {
             TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
             when(node.address()).thenReturn(transportAddress);
 
-
             NetworkStats.Tcp tcp = mock(NetworkStats.Tcp.class, new Answer<Long>() {
                 @Override
                 public Long answer(InvocationOnMock invocation) throws Throwable {
@@ -162,29 +168,57 @@ public class TestSysNodesExpressions {
             when(networkService.stats()).thenReturn(networkStats);
             bind(NetworkService.class).toInstance(networkService);
 
-            FsStats fsStats = mock(FsStats.class);
-            when(nodeStats.getFs()).thenReturn(fsStats);
+            bind(NodeService.class).toInstance(nodeService);
 
-            FsStats.Info fsInfo = mock(FsStats.Info.class);
-
-            ByteSizeValue byteSizeValueFree = mock(ByteSizeValue.class);
-            when(byteSizeValueFree.bytes()).thenReturn(12345342234L);
-
-            ByteSizeValue byteSizeValueTotal = mock(ByteSizeValue.class);
-            when(byteSizeValueTotal.bytes()).thenReturn(42345342234L);
-
-            when(fsInfo.getFree()).thenReturn(byteSizeValueFree);
-            when(fsInfo.getTotal()).thenReturn(byteSizeValueTotal);
-
-            final FsStats.Info[] infos = new FsStats.Info[]{fsInfo, fsInfo};
-            when(fsStats.iterator()).then(new Answer<Object>() {
+            NodeEnvironment nodeEnv = mock(NodeEnvironment.class);
+            File[] dataLocations = new File[]{ new File("/foo"), new File("/bar") };
+            when(nodeEnv.hasNodeFile()).then(new Answer<Boolean>() {
                 @Override
-                public Object answer(InvocationOnMock invocation) throws Throwable {
-                    return Arrays.asList(infos).iterator();
+                public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                    return isDataNode;
+                }
+            });
+            when(nodeEnv.nodeDataLocations()).thenReturn(dataLocations);
+            bind(NodeEnvironment.class).toInstance(nodeEnv);
+
+            SigarService sigarService = mock(SigarService.class);
+            when(sigarService.sigarAvailable()).then(new Answer<Boolean>() {
+                @Override
+                public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                    return sigarAvailable;
+                }
+            });
+            Sigar sigar = Mockito.spy(new Sigar());
+            FileSystemMap map = mock(FileSystemMap.class);
+
+            FileSystem fsFoo = mock(FileSystem.class);
+            when(fsFoo.getDevName()).thenReturn("/dev/sda1");
+            when(fsFoo.getDirName()).thenReturn("/foo");
+
+            FileSystem fsBar = mock(FileSystem.class);
+            when(fsBar.getDevName()).thenReturn("/dev/sda2");
+            when(fsBar.getDirName()).thenReturn("/bar");
+
+            when(map.getMountPoint("/foo")).thenReturn(fsFoo);
+            when(map.getMountPoint("/bar")).thenReturn(fsBar);
+            FileSystemUsage usage = mock(FileSystemUsage.class, new Answer<Long>() {
+                @Override
+                public Long answer(InvocationOnMock invocation) throws Throwable {
+                    return 42L;
                 }
             });
 
-            bind(NodeService.class).toInstance(nodeService);
+            try {
+                when(sigar.getFileSystemList()).thenReturn(new FileSystem[]{fsFoo, fsBar});
+                doReturn(map).when(sigar).getFileSystemMap();
+                doReturn(usage).when(sigar).getFileSystemUsage(anyString());
+                assertThat(sigar.getFileSystemUsage("/"), is(usage));
+            } catch (SigarException e) {
+                e.printStackTrace();
+            }
+            when(sigarService.sigar()).thenReturn(sigar);
+            bind(SigarService.class).toInstance(sigarService);
+
             HttpServer httpServer = mock(HttpServer.class);
             HttpInfo httpInfo = mock(HttpInfo.class);
             BoundTransportAddress boundTransportAddress = new BoundTransportAddress(
@@ -317,19 +351,67 @@ public class TestSysNodesExpressions {
 
     @Test
     public void testFs() throws Exception {
-
-        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "fs");
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME);
         SysObjectReference fs = (SysObjectReference) resolver.getImplementation(ident);
 
+        Joiner.MapJoiner mapJoiner = Joiner.on(", ").withKeyValueSeparator(":");
         Map<String, Object> v = fs.value();
+        Map<String, Object> total = (Map<String, Object>) v.get("total");
+        assertThat(mapJoiner.join(total),
+                is("reads:84, bytes_written:84, bytes_read:84, available:86016, " +
+                        "writes:84, used:84, size:86016"));
+        Object[] disks = (Object[]) v.get("disks");
+        assertThat(disks.length, is(2));
+        Map<String, Object> disk0 = (Map<String, Object>) disks[0];
+        assertThat((String)disk0.get("dev"), is("/dev/sda1"));
+        assertThat((Long)disk0.get("size"), is(42L*1024));
 
-        assertEquals(84690684468L, v.get("total"));
-        assertEquals(24690684468L, v.get("free"));
-        assertEquals(60000000000L, v.get("used"));
+        Map<String, Object> disk1 = (Map<String, Object>) disks[1];
+        assertThat((String)disk1.get("dev"), is("/dev/sda2"));
+        assertThat((Long)disk0.get("used"), is(42L));
 
-        assertEquals(29.15395550655783, v.get("free_percent"));
-        assertEquals(70.84604449344218, v.get("used_percent"));
+        Object[] data = (Object[]) v.get("data");
+        assertThat(data.length, is(2));
+        assertThat((String)((Map<String, Object>)data[0]).get("dev"), is("/dev/sda1"));
+        assertThat((String)((Map<String, Object>)data[0]).get("path"), is("/foo"));
+
+        assertThat((String)((Map<String, Object>)data[1]).get("dev"), is("/dev/sda2"));
+        assertThat((String)((Map<String, Object>)data[1]).get("path"), is("/bar"));
+
     }
+
+    @Test
+    public void testFsWithoutSigar() throws Exception {
+        sigarAvailable = false;
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME);
+        SysObjectReference fs = (SysObjectReference) resolver.getImplementation(ident);
+
+        Joiner.MapJoiner mapJoiner = Joiner.on(", ").withKeyValueSeparator(":");
+        Map<String, Object> v = fs.value();
+        Map<String, Object> total = (Map<String, Object>) v.get("total");
+
+        assertThat(mapJoiner.join(total),
+                is("reads:-1, bytes_written:-1, bytes_read:-1, available:-1, " +
+                        "writes:-1, used:-1, size:-1"));
+        Object[] disks = (Object[]) v.get("disks");
+        assertThat(disks.length, is(0));
+
+        Object[] data = (Object[]) v.get("data");
+        assertThat(data.length, is(0));
+        sigarAvailable = true;
+    }
+
+    @Test
+    public void testFsDataOnNonDataNode() throws Exception {
+        isDataNode = false;
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME,
+                ImmutableList.of("data"));
+        SysObjectArrayReference fs = (SysObjectArrayReference) resolver.getImplementation(ident);
+        assertThat(fs.value().length, is(0));
+        isDataNode = true;
+    }
+
+
 
     @Test
     public void testVersion() throws Exception {
@@ -370,6 +452,7 @@ public class TestSysNodesExpressions {
                         "connections={accepted=42, dropped=42, initiated=42, embryonic_dropped=42, curr_established=42}"));
     }
 
+
     @Test
     public void testCpu() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "os");
@@ -396,5 +479,4 @@ public class TestSysNodesExpressions {
         assertEquals(42L, (long) v.get("open_file_descriptors"));
         assertEquals(1000L, (long) v.get("max_open_file_descriptors"));
     }
-
 }

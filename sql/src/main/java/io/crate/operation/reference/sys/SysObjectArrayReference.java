@@ -28,15 +28,17 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
-public abstract class SysArrayObjectReference extends SysExpression<List<Map<String, Object>>>
+public abstract class SysObjectArrayReference extends SysExpression<Object[]>
         implements ReferenceImplementation {
 
-    protected final List<SysObjectReference> childImplementations = new ArrayList<>();
+    protected abstract List<SysObjectReference> getChildImplementations();
 
     @Override
     public SysExpression<Object[]> getChildImplementation(String name) {
+        List<SysObjectReference> childImplementations = getChildImplementations();
         final Object[] values = new Object[childImplementations.size()];
         ReferenceInfo info = null;
         int i = 0;
@@ -49,23 +51,30 @@ public abstract class SysArrayObjectReference extends SysExpression<List<Map<Str
                 values[i++] = child.value();
             }
         }
-        final ReferenceInfo infoFinal = info;
-        return new SysExpression<Object[]>() {
-            @Override
-            public Object[] value() {
-                return values;
-            }
+        if (info == null) {
+            return null;
+        } else {
+            final ReferenceInfo infoFinal = info;
+            return new SysExpression<Object[]>() {
+                @Override
+                public Object[] value() {
+                    return values;
+                }
 
-            @Override
-            public ReferenceInfo info() {
-                return infoFinal;
-            }
-        };
+                @Override
+                public ReferenceInfo info() {
+                    return infoFinal;
+                }
+            };
+        }
+
     }
 
     @Override
-    public List<Map<String, Object>> value() {
-        List<Map<String, Object>> list = new ArrayList<>(childImplementations.size());
+    public Object[] value() {
+        List<SysObjectReference> childImplementations = getChildImplementations();
+        Object[] values = new Object[childImplementations.size()];
+        int i = 0;
         for (SysObjectReference expression : childImplementations) {
             Map<String, Object> map = Maps.transformValues(expression.childImplementations, new Function<SysExpression, Object>() {
                 @Nullable
@@ -74,8 +83,8 @@ public abstract class SysArrayObjectReference extends SysExpression<List<Map<Str
                     return input.value();
                 }
             });
-            list.add(map);
+            values[i++] = map;
         }
-        return Collections.unmodifiableList(list);
+        return values;
     }
 }

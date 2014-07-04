@@ -5,13 +5,16 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - changed sys.nodes.fs column to contain stats about all mounted disks,
+   total disk stats and node data path locations
+
  - changed output of colum names in information schema to subscript notation
 
- - implemented sys.nodes['process'] expressions
+ - implemented sys.nodes.process expressions
 
- - implemented sys.nodes['os'] expressions to show uptime and cpu utilization
+ - implemented sys.nodes.os expressions to show uptime and cpu utilization
 
- - implemented sys.nodes['network'] expressions to show tcp network stats
+ - implemented sys.nodes.network expressions to show tcp network stats
 
  - implemented sys.nodes.network expressions to show tcp network stats
 

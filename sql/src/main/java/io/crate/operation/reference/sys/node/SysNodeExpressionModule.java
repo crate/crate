@@ -26,6 +26,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
