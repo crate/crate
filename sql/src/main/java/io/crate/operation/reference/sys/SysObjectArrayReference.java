@@ -28,54 +28,63 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
-public abstract class SysArrayObjectReference<ChildType> extends SysExpression<List<Map<String, ChildType>>>
+public abstract class SysObjectArrayReference extends SysExpression<Object[]>
         implements ReferenceImplementation {
 
-    protected final List<SysObjectReference<ChildType>> childImplementations = new ArrayList<>();
+    protected abstract List<SysObjectReference> getChildImplementations();
 
     @Override
-    public SysExpression<List<ChildType>> getChildImplementation(String name) {
-        final List<ChildType> list = new ArrayList<>(childImplementations.size());
+    public SysExpression<Object[]> getChildImplementation(String name) {
+        List<SysObjectReference> childImplementations = getChildImplementations();
+        final Object[] values = new Object[childImplementations.size()];
         ReferenceInfo info = null;
-        for (SysObjectReference<ChildType> sysObjectReference : childImplementations) {
-            SysExpression<ChildType> child = sysObjectReference.getChildImplementation(name);
+        int i = 0;
+        for (SysObjectReference sysObjectReference : childImplementations) {
+            SysExpression<?> child = sysObjectReference.getChildImplementation(name);
             if (child != null) {
                 if (info == null) {
                     info = child.info();
                 }
-                list.add(child.value());
+                values[i++] = child.value();
             }
         }
-        final ReferenceInfo infoFinal = info;
-        SysExpression<List<ChildType>> sysExpression = new SysExpression<List<ChildType>>() {
-            @Override
-            public List<ChildType> value() {
-                return Collections.unmodifiableList(list);
-            }
+        if (info == null) {
+            return null;
+        } else {
+            final ReferenceInfo infoFinal = info;
+            return new SysExpression<Object[]>() {
+                @Override
+                public Object[] value() {
+                    return values;
+                }
 
-            @Override
-            public ReferenceInfo info() {
-                return infoFinal;
-            }
-        };
-        return sysExpression;
+                @Override
+                public ReferenceInfo info() {
+                    return infoFinal;
+                }
+            };
+        }
+
     }
 
     @Override
-    public List<Map<String, ChildType>> value() {
-        List<Map<String, ChildType>> list = new ArrayList<>(childImplementations.size());
-        for (SysObjectReference<ChildType> expression : childImplementations) {
-            Map<String, ChildType> map = Maps.transformValues(expression.childImplementations, new Function<SysExpression<ChildType>, ChildType>() {
+    public Object[] value() {
+        List<SysObjectReference> childImplementations = getChildImplementations();
+        Object[] values = new Object[childImplementations.size()];
+        int i = 0;
+        for (SysObjectReference expression : childImplementations) {
+            Map<String, Object> map = Maps.transformValues(expression.childImplementations, new Function<SysExpression, Object>() {
                 @Nullable
                 @Override
-                public ChildType apply(@Nullable SysExpression<ChildType> input) {
+                public Object apply(@Nullable SysExpression input) {
                     return input.value();
                 }
             });
-            list.add(map);
+            values[i++] = map;
         }
-        return Collections.unmodifiableList(list);
+        return values;
     }
 }

@@ -25,50 +25,50 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.monitor.jvm.JvmService;
+import org.elasticsearch.monitor.process.ProcessInfo;
+import org.elasticsearch.monitor.process.ProcessStats;
+import org.elasticsearch.node.service.NodeService;
 
-public class NodeHeapExpression extends SysNodeObjectReference {
+public class NodeProcessExpression extends SysNodeObjectReference {
 
-    abstract class HeapExpression extends SysNodeExpression<Object> {
-        HeapExpression(String name) {
-            super(new ColumnIdent(NAME, ImmutableList.of(name)));
-        }
+    public static final String NAME = "process";
+
+    abstract class ProcessExpression extends SysNodeExpression<Long> {
+        ProcessExpression(String name) { super(new ColumnIdent(NAME, ImmutableList.of(name))); }
     }
 
-    public static final String NAME = "heap";
+    public static final String OPEN_FILE_DESCRIPTORS = "open_file_descriptors";
+    public static final String MAX_OPEN_FILE_DESCRIPTORS = "max_open_file_descriptors";
 
-    public static final String MAX = "max";
-    public static final String FREE = "free";
-    public static final String USED = "used";
-
-    private final JvmService jvmService;
+    private final NodeService nodeService;
 
     @Inject
-    public NodeHeapExpression(JvmService jvmService) {
+    protected NodeProcessExpression(final NodeService nodeService) {
         super(NAME);
-        this.jvmService = jvmService;
+        this.nodeService = nodeService;
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(FREE, new HeapExpression(FREE) {
+        childImplementations.put(OPEN_FILE_DESCRIPTORS, new ProcessExpression(OPEN_FILE_DESCRIPTORS) {
             @Override
             public Long value() {
-                return jvmService.stats().mem().getHeapMax().bytes() - jvmService.stats().mem().getHeapUsed().bytes();
+                ProcessStats processStats = nodeService.stats().getProcess();
+                if (processStats != null) {
+                    return processStats.getOpenFileDescriptors();
+                } else { return -1L; }
             }
         });
-        childImplementations.put(USED, new HeapExpression(USED) {
+        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new ProcessExpression(MAX_OPEN_FILE_DESCRIPTORS) {
             @Override
             public Long value() {
-                return jvmService.stats().mem().getHeapUsed().bytes();
+                ProcessInfo processInfo = nodeService.info().getProcess();
+                if (processInfo != null) {
+                    return processInfo.getMaxFileDescriptors();
+                } else { return -1L; }
             }
         });
-        childImplementations.put(MAX, new HeapExpression(MAX) {
-            @Override
-            public Long value() {
-                return jvmService.stats().mem().getHeapMax().bytes();
-            }
-        });
+
     }
 
 }

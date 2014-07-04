@@ -51,7 +51,7 @@ public abstract class InformationColumnsExpression<T>
             .add(new InformationColumnsExpression<BytesRef>("column_name") {
                 @Override
                 public BytesRef value() {
-                    return new BytesRef(row.info.ident().columnIdent().fqn());
+                    return new BytesRef(row.info.ident().columnIdent().sqlFqn());
                 }
             })
             .add(new InformationColumnsExpression<Short>("ordinal_position") {

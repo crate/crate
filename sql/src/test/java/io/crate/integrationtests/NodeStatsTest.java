@@ -91,4 +91,135 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         assertThat(queues.length, greaterThanOrEqualTo(1));
         assertThat((Integer) queues[0], greaterThanOrEqualTo(0));
     }
+
+    @Test
+    public void testNetwork() throws Exception {
+        SQLResponse response = executor.exec("select network from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+
+        Map<String, Object> network = (Map<String, Object>)response.rows()[0][0];
+        assertThat(network, hasKey("tcp"));
+        Map<String, Object> tcp = (Map<String, Object>)network.get("tcp");
+        assertNetworkTCP(tcp);
+
+
+        response = executor.exec("select network['tcp'] from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+        tcp = (Map<String, Object>)response.rows()[0][0];
+        assertNetworkTCP(tcp);
+    }
+
+    private void assertNetworkTCP(Map<String, Object> tcp) {
+        assertThat(tcp.keySet().size(), is(2));
+        assertThat(tcp.keySet(), hasItems("packets", "connections"));
+
+        Map<String, Object> connections = (Map<String, Object>)tcp.get("connections");
+        assertThat(connections.keySet().size(), is(5));
+        assertThat(connections.keySet(), hasItems("initiated", "accepted", "curr_established", "dropped", "embryonic_dropped"));
+
+        Map<String, Object> packets = (Map<String, Object>)tcp.get("packets");
+        assertThat(packets.keySet().size(), is(5));
+        assertThat(packets.keySet(), hasItems("sent", "received", "errors_received", "retransmitted", "rst_sent"));
+    }
+
+    @Test
+    public void testNetworkTcpConnectionFields() throws Exception {
+        SQLResponse response = executor.exec("select " +
+                "network['tcp']['connections']['initiated'], " +
+                "network['tcp']['connections']['accepted'], " +
+                "network['tcp']['connections']['curr_established']," +
+                "network['tcp']['connections']['dropped']," +
+                "network['tcp']['connections']['embryonic_dropped']" +
+                " from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+        for (int i=0; i< response.cols().length; i++) {
+            assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
+        }
+    }
+
+    @Test
+    public void testNetworkTcpPacketsFields() throws Exception {
+        SQLResponse response = executor.exec("select " +
+                "network['tcp']['packets']['sent'], " +
+                "network['tcp']['packets']['received'], " +
+                "network['tcp']['packets']['retransmitted'], " +
+                "network['tcp']['packets']['errors_received'], " +
+                "network['tcp']['packets']['rst_sent'] " +
+                "from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+        for (int i = 0; i < response.cols().length; i++) {
+            assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
+        }
+    }
+
+    @Test
+    public void testSysNodesOs() throws Exception {
+        SQLResponse response = executor.exec("select os from sys.nodes limit 1");
+        Map results = (Map) response.rows()[0][0];
+        assertThat(response.rowCount(), is(1L));
+
+        assertThat((Long) results.get("timestamp"), greaterThan(0L));
+        assertThat((Long) results.get("uptime"), greaterThan(0L));
+
+        assertThat((Short) ((Map) results.get("cpu")).get("system"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("system"), lessThanOrEqualTo((short) 100));
+
+        assertThat((Short) ((Map) results.get("cpu")).get("user"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("user"), lessThanOrEqualTo((short) 100));
+
+        assertThat((Short) ((Map) results.get("cpu")).get("used"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("used"), lessThanOrEqualTo((short) 100));
+
+        assertThat((Short) ((Map) results.get("cpu")).get("idle"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("idle"), lessThanOrEqualTo((short) 100));
+
+        assertThat((Short) ((Map) results.get("cpu")).get("stolen"), greaterThanOrEqualTo((short) 0));
+        assertThat((Short) ((Map) results.get("cpu")).get("stolen"), lessThanOrEqualTo((short) 100));
+    }
+
+    @Test
+    public void testSysNodesProcess() throws Exception {
+        SQLResponse response = executor.exec("select process['open_file_descriptors'], " +
+                "process['max_open_file_descriptors'] " +
+                "from sys.nodes limit 1");
+        for (int i = 0; i < response.cols().length; i++) {
+            assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
+        }
+    }
+
+    @Test
+    public void testFs() throws Exception {
+        SQLResponse response = executor.exec("select fs from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], instanceOf(Map.class));
+        Map<String, Object> fs = (Map<String, Object>)response.rows()[0][0];
+        assertThat(fs.keySet().size(), is(3));
+        assertThat(fs.keySet(), hasItems("total", "disks", "data"));
+
+        Map<String, Object> total = (Map<String, Object>) fs.get("total");
+        assertThat(total.keySet(), hasItems("size", "used", "available", "reads", "writes",
+                "bytes_written", "bytes_read"));
+        for (Object val : total.values()) {
+            assertThat((Long)val, greaterThanOrEqualTo(-1L));
+        }
+
+        Object[] disks = (Object[])fs.get("disks");
+        assertThat(disks.length, greaterThanOrEqualTo(1));
+        Map<String, Object> someDisk = (Map<String, Object>)disks[0];
+        assertThat(someDisk.keySet().size(), is(8));
+        assertThat(someDisk.keySet(), hasItems("dev", "size", "used", "available",
+                "reads", "writes", "bytes_read", "bytes_written"));
+        for (Map.Entry<String, Object> entry : someDisk.entrySet()) {
+            if (!entry.getKey().equals("dev")) {
+                assertThat((Long)entry.getValue(), greaterThanOrEqualTo(-1L));
+            }
+        }
+
+        Object[] data = (Object[])fs.get("data");
+        // only one data path configured in test mode
+        assertThat(data.length, is(1));
+        Map<String, Object> someData = (Map<String, Object>)data[0];
+        assertThat(someData.keySet().size(), is(2));
+        assertThat(someData.keySet(), hasItems("dev", "path"));
+    }
 }

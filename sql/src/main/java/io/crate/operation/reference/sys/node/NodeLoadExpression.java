@@ -27,7 +27,7 @@ import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.os.OsService;
 
-public class NodeLoadExpression extends SysNodeObjectReference<Double> {
+public class NodeLoadExpression extends SysNodeObjectReference {
 
     public static final String NAME = "load";
 

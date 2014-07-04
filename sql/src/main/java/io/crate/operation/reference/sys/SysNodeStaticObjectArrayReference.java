@@ -26,15 +26,19 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.common.Preconditions;
 
-public abstract class SysNodeArrayObjectReference<ChildType> extends SysArrayObjectReference<ChildType> {
+/**
+ * abstract class for object arrays in sys.nodes table
+ * whose elements are static
+ */
+public abstract class SysNodeStaticObjectArrayReference extends SysStaticObjectArrayReference {
 
     private final ReferenceInfo info;
 
-    protected SysNodeArrayObjectReference(String name) {
+    protected SysNodeStaticObjectArrayReference(String name) {
         this(new ColumnIdent(name));
     }
 
-    protected SysNodeArrayObjectReference(ColumnIdent ident) {
+    protected SysNodeStaticObjectArrayReference(ColumnIdent ident) {
         info = SysNodesTableInfo.INFOS.get(ident);
         Preconditions.checkNotNull(info, "info");
     }

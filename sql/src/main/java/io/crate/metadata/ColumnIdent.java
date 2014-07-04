@@ -49,6 +49,8 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         }
     };
 
+    private static final Ordering<Iterable<String>> ordering = Ordering.<String>natural().lexicographical();
+
     private String name;
     private List<String> path;
 
@@ -192,7 +194,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
     public int compareTo(ColumnIdent o) {
         return ComparisonChain.start()
                 .compare(name, o.name)
-                .compare(path, o.path, Ordering.<String>natural().lexicographical())
+                .compare(path, o.path, ordering)
                 .result();
     }
 

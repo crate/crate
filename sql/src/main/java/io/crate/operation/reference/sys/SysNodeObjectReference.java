@@ -3,9 +3,10 @@ package io.crate.operation.reference.sys;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.operation.reference.sys.node.SysNodeExpression;
 import org.elasticsearch.common.Preconditions;
 
-public class SysNodeObjectReference<ChildType> extends SysObjectReference<ChildType> {
+public abstract class SysNodeObjectReference extends SysObjectReference {
 
     private final ReferenceInfo info;
 
@@ -21,5 +22,12 @@ public class SysNodeObjectReference<ChildType> extends SysObjectReference<ChildT
     @Override
     public ReferenceInfo info() {
         return info;
+    }
+
+    protected abstract class ChildExpression<T> extends SysNodeExpression<T> {
+
+        protected ChildExpression(String name) {
+            super(ColumnIdent.getChild(SysNodeObjectReference.this.info.ident().columnIdent(), name));
+        }
     }
 }

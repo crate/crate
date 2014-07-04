@@ -41,6 +41,7 @@ public class SerializationTests {
         UUID transferId = UUID.randomUUID();
 
         PutChunkReplicaRequest requestOut = new PutChunkReplicaRequest();
+        requestOut.index("foo");
         requestOut.transferId = transferId;
         requestOut.currentPos = 10;
         requestOut.isLast = false;
@@ -57,5 +58,6 @@ public class SerializationTests {
         assertEquals(requestOut.isLast, requestIn.isLast);
         assertEquals(requestOut.content, requestIn.content);
         assertEquals(requestOut.transferId, requestIn.transferId);
+        assertEquals(requestOut.index(), requestIn.index());
     }
 }
