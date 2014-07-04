@@ -85,6 +85,7 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
         replicaRequest.currentPos = request.currentPos();
         replicaRequest.content = request.content();
         replicaRequest.isLast = request.isLast();
+        replicaRequest.index(request.index());
         return new PrimaryResponse<PutChunkResponse, PutChunkReplicaRequest>(replicaRequest, response, null);
     }
 
