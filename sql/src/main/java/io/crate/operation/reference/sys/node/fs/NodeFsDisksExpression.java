@@ -106,7 +106,7 @@ class NodeFsDisksExpression extends SysNodeObjectArrayReference {
             childImplementations.put(USED, new ChildExpression<Long>(USED) {
                 @Override
                 public Long value() {
-                    return usage.getUsed();
+                    return usage.getUsed()*1024;
                 }
             });
             childImplementations.put(AVAILABLE, new ChildExpression<Long>(AVAILABLE) {
