@@ -5,6 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.9.0 which contains following changes
+
+    - use new sys.nodes.fs expression in order to
+      calculate disk utilization of data disks correctly
+
  - fix: return used disk space in bytes
 
  - changed sys.nodes.fs column to contain stats about all mounted disks,
