@@ -58,8 +58,7 @@ public class BulkShardProcessorTest {
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
 
-    @Mock(answer = Answers.RETURNS_MOCKS)
-    ThreadPool threadPool;
+    ThreadPool threadPool = new ThreadPool();
 
     @Before
     public void setUp() throws Exception {
@@ -127,6 +126,8 @@ public class BulkShardProcessorTest {
         final ActionListener<BulkShardResponse> listener = bulkShardResponseListener.getValue();
 
         listener.onFailure(new EsRejectedExecutionException());
+        // wait, failure retry lock is done in decoupled thread
+        Thread.sleep(1);
 
         final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
         final AtomicBoolean hadBlocked = new AtomicBoolean(false);
@@ -147,27 +148,6 @@ public class BulkShardProcessorTest {
             }
         });
         latch.await();
-        assertTrue(hadBlocked.get());
-
-        hadBlocked.set(false);
-        hasBlocked.set(true);
-        final CountDownLatch latch2 = new CountDownLatch(1);
-        final ScheduledExecutorService scheduledExecutorService2 = Executors.newScheduledThreadPool(2);
-        scheduledExecutorService2.execute(new Runnable() {
-            @Override
-            public void run() {
-                scheduledExecutorService.schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        hadBlocked.set(hasBlocked.get());
-                        latch2.countDown();
-                    }
-                }, 10, TimeUnit.MILLISECONDS);
-                listener.onFailure(new EsRejectedExecutionException());
-                hasBlocked.set(false);
-            }
-        });
-        latch2.await();
         assertTrue(hadBlocked.get());
     }
 
