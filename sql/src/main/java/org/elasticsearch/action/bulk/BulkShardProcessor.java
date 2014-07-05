@@ -24,6 +24,7 @@ package org.elasticsearch.action.bulk;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.exceptions.Exceptions;
 import jsr166e.LongAdder;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
@@ -44,12 +45,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Processor to do Bulk Inserts, similar to {@link org.elasticsearch.action.bulk.BulkProcessor}
@@ -65,23 +63,19 @@ public class BulkShardProcessor {
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final boolean autoCreateIndices;
     private final int bulkSize;
-    private final ConcurrentHashMap<ShardId, List<BulkItemRequest>> requestsByShard = new ConcurrentHashMap<>();
+    private final HashMap<ShardId, List<BulkItemRequest>> requestsByShard = new HashMap<>();
     private final AutoCreateIndex autoCreateIndex;
     private final AtomicInteger counter = new AtomicInteger(0);
-    private final Semaphore semaphore = new Semaphore(1, true);
-    private final Semaphore semaphoreAdd = new Semaphore(1, true);
     private final SettableFuture<Long> result;
     private final LongAdder rowsInserted = new LongAdder();
     private final AtomicInteger pending = new AtomicInteger(0);
-    private final AtomicInteger activeRetries = new AtomicInteger(0);
-    private final AtomicInteger blockedAdds = new AtomicInteger(0);
     private final AtomicInteger currentDelay = new AtomicInteger(0);
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private volatile boolean closed = false;
     private final Set<String> indicesCreated = new HashSet<>();
     private final ThreadPool threadPool;
-    private final ReentrantReadWriteLock executeLock = new ReentrantReadWriteLock(true);
-    private final Lock executeLockW = executeLock.writeLock();
+    private final ReadWriteLock retryLock = new ReadWriteLock();
+    private final Semaphore executeLock = new Semaphore(1);
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
@@ -104,7 +98,6 @@ public class BulkShardProcessor {
 
     public boolean add(String indexName, BytesReference source, String id, @Nullable String routing) {
         pending.incrementAndGet();
-        blockIfRetriesActive();
         Throwable throwable = failure.get();
         if (throwable != null) {
             result.setException(throwable);
@@ -114,6 +107,14 @@ public class BulkShardProcessor {
         if (autoCreateIndices) {
             createIndexIfRequired(indexName);
         }
+
+        // will only block if retries/writer are active
+        try {
+            retryLock.readLock();
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+        }
+
         partitionRequestByShard(indexName, source, id, routing);
         executeIfNeeded();
         return true;
@@ -135,29 +136,18 @@ public class BulkShardProcessor {
         indexRequest.source(source, false);
         indexRequest.timestamp(Long.toString(System.currentTimeMillis()));
 
-        executeLockW.lock();
+        try {
+            executeLock.acquire();
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+        }
         List<BulkItemRequest> items = requestsByShard.get(shardId);
         if (items == null) {
-            items = Collections.synchronizedList(new ArrayList<BulkItemRequest>());
-            List<BulkItemRequest> items_existing = requestsByShard.put(shardId, items);
-            if (items_existing != null) {
-                items = items_existing;
-            }
+            items = new ArrayList<>();
+            requestsByShard.put(shardId, items);
         }
         items.add(new BulkItemRequest(counter.getAndIncrement(), indexRequest));
-        executeLockW.unlock();
-    }
-
-    private void blockIfRetriesActive() {
-        if (activeRetries.get() > 0) {
-            blockedAdds.getAndIncrement();
-            try {
-                trace(String.format("add with active retries, acquiring semaphore: %s", semaphoreAdd));
-                semaphoreAdd.acquire();
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-            }
-        }
+        executeLock.release();
     }
 
     public ListenableFuture<Long> result() {
@@ -202,7 +192,11 @@ public class BulkShardProcessor {
     }
 
     private void executeRequests() {
-        executeLockW.lock();
+        try {
+            executeLock.acquire();
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+        }
         for (Iterator<Map.Entry<ShardId, List<BulkItemRequest>>> it = requestsByShard.entrySet().iterator(); it.hasNext();) {
             Map.Entry<ShardId, List<BulkItemRequest>> entry = it.next();
             ShardId shardId= entry.getKey();
@@ -217,7 +211,7 @@ public class BulkShardProcessor {
             it.remove();
         }
         counter.set(0);
-        executeLockW.unlock();
+        executeLock.release();
     }
 
     private void execute(BulkShardRequest bulkShardRequest) {
@@ -225,32 +219,21 @@ public class BulkShardProcessor {
         transportShardBulkAction.execute(bulkShardRequest, new ResponseListener(bulkShardRequest));
     }
 
-    private void doRetry(final BulkShardRequest request, boolean repeatingRetry) {
+    private void doRetry(final BulkShardRequest request, final boolean repeatingRetry) {
         trace("doRetry");
-        if (!repeatingRetry) {
-            int currentActiveRetries = activeRetries.getAndIncrement();
-            int currentBlocked = blockedAdds.get();
-            if (currentBlocked == 0 && currentActiveRetries == 0) {
-                // first active retry, acquire add permit, so adds will be blocked
-                try {
-                    trace(String.format("doRetry - acquiring add semaphore: %s", semaphoreAdd));
-                    semaphoreAdd.acquire();
-                } catch (InterruptedException e) {
-                    Thread.interrupted();
-                }
-            }
-            try {
-                // fresh retry from an add() failure, acquire (2nd retry will block)
-                trace(String.format("doRetry - acquiring retry semaphore: %s", semaphore));
-                semaphore.acquire();
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-            }
-        }
-        threadPool.schedule(TimeValue.timeValueMillis(currentDelay.getAndIncrement() * 10),
-                ThreadPool.Names.SAME, new Runnable() {
+
+        threadPool.schedule(TimeValue.timeValueMillis(currentDelay.incrementAndGet()),
+                ThreadPool.Names.GENERIC, new Runnable() {
                     @Override
                     public void run() {
+                        if (!repeatingRetry) {
+                            // will block if other retries/writer are active
+                            try {
+                                retryLock.writeLock();
+                            } catch (InterruptedException e) {
+                                Thread.interrupted();
+                            }
+                        }
                         transportShardBulkAction.execute(request, new RetryResponseListener(request));
                     }
                 });
@@ -293,10 +276,19 @@ public class BulkShardProcessor {
 
     private void processFailure(Throwable e, BulkShardRequest bulkShardRequest, boolean repeatingRetry) {
         trace("execute failure");
+        e = Exceptions.unwrap(e);
         if (e instanceof EsRejectedExecutionException) {
             logger.warn("{}, retrying", e.getMessage());
             doRetry(bulkShardRequest, repeatingRetry);
         } else {
+            if (repeatingRetry) {
+                // release failed retry
+                try {
+                    retryLock.writeUnlock();
+                } catch (InterruptedException ex) {
+                    Thread.interrupted();
+                }
+            }
             setFailure(e);
         }
     }
@@ -322,8 +314,8 @@ public class BulkShardProcessor {
 
     private void trace(String message) {
         if (logger.isTraceEnabled()) {
-            logger.trace("BulkShardProcessor: pending: {}; active retries: {}; blocked adds: {}; retry delay: {} - {}",
-                    pending.get(), activeRetries.get(), blockedAdds.get(), currentDelay.get(), message);
+            logger.trace("BulkShardProcessor: pending: {}; active retries: {} - {}",
+                    pending.get(), retryLock.activeWriters(), message);
         }
     }
 
@@ -336,26 +328,12 @@ public class BulkShardProcessor {
         @Override
         public void onResponse(BulkShardResponse bulkShardResponse) {
             trace("BulkShardProcessor retry success");
-            if (activeRetries.decrementAndGet() == 0) {
-                // no active retry, reset the delay
-                currentDelay.set(0);
-                int blocked = blockedAdds.get();
-                if (blocked > 0) {
-                    // release all permits
-                    blockedAdds.set(0);
-                    semaphoreAdd.release(blocked + 1);
-                    trace(String.format("retry success - released add semaphore: %s", semaphoreAdd));
-                } else {
-                    // release the add permit which was done by the first retry
-                    semaphoreAdd.release();
-                }
-            } else {
-                // decrease the delay for other active retries
-                currentDelay.decrementAndGet();
+            currentDelay.set(0);
+            try {
+                retryLock.writeUnlock();
+            } catch (InterruptedException e) {
+                Thread.interrupted();
             }
-            // release permit done by this retry
-            semaphore.release();
-            trace(String.format("retry success - released retry semaphore: %s", semaphore));
             processResponse(bulkShardResponse);
         }
 
@@ -365,4 +343,61 @@ public class BulkShardProcessor {
             processFailure(e, bulkShardRequest, true);
         }
     }
+
+    /**
+     * A {@link Semaphore} based read/write lock allowing multiple readers,
+     * no reader will block others, and only 1 active writer. Writers take
+     * precedence over readers, a writer will block all readers.
+     * Compared to a {@link ReadWriteLock}, no lock is owned by a thread.
+     */
+    class ReadWriteLock {
+        private final Semaphore readLock = new Semaphore(1, true);
+        private final Semaphore writeLock = new Semaphore(1, true);
+        private final AtomicInteger activeWriters = new AtomicInteger(0);
+        private final AtomicInteger waitingReaders = new AtomicInteger(0);
+
+        public ReadWriteLock() {
+        }
+
+        public void writeLock() throws InterruptedException {
+            activeWriters.getAndIncrement();
+            writeLock.acquire();
+            // check readLock permits to prevent deadlocks
+            if (activeWriters.get() == 1 && readLock.availablePermits() == 1) {
+                // draining read permits, so all reads will block
+                readLock.drainPermits();
+            }
+        }
+
+        public void writeUnlock() throws InterruptedException {
+            if (activeWriters.decrementAndGet() == 0) {
+                // unlock all readers
+                readLock.release(waitingReaders.getAndSet(0)+1);
+            }
+            writeLock.release();
+        }
+
+        public void readLock() throws InterruptedException {
+            // only acquire permit if writers are active
+            if(activeWriters.get() > 0) {
+                waitingReaders.getAndIncrement();
+                readLock.acquire();
+            }
+        }
+
+        public void readUnlock() {
+            // does nothing, writeUnlock() will unlock all readers
+            throw new UnsupportedOperationException();
+        }
+
+        public int activeWriters() {
+            return activeWriters.get();
+        }
+
+        public int waitingReaders() {
+            return waitingReaders.get();
+        }
+
+    }
+
 }
