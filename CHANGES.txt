@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/07/06 0.39.2
+=================
+
  - fix: concurrent issues at ``COPY FROM`` retry logic
 
 2014/07/03 0.39.1
