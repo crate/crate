@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -60,7 +61,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
@@ -70,7 +71,8 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
     private final CollectServiceResolver collectServiceResolver;
     private final ProjectionToProjectorVisitor projectorVisitor;
-    private final Executor executor;
+    private final ThreadPoolExecutor executor;
+    private final int poolSize;
     private ESLogger logger = Loggers.getLogger(getClass());
 
     private static class SimpleShardCollectFuture extends ShardCollectFuture {
@@ -110,7 +112,8 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                                        IndicesService indicesService,
                                        ThreadPool threadPool,
                                        CollectServiceResolver collectServiceResolver) {
-        executor = threadPool.executor(ThreadPool.Names.SEARCH);
+        executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
+        poolSize = executor.getPoolSize();
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
@@ -299,13 +302,30 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
             });
         } else {
             // start shardCollectors
-            for (final CrateCollector shardCollector : shardCollectors) {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        doCollect(result, shardCollector);
-                    }
-                });
+
+            int availableThreads = Math.max(poolSize - executor.getActiveCount(), 2);
+            if (availableThreads < shardCollectors.size()) {
+                Iterable<List<CrateCollector>> partition = Iterables.partition(
+                        shardCollectors, shardCollectors.size() / availableThreads);
+                for (final List<CrateCollector> collectors : partition) {
+                    executor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            for (CrateCollector collector : collectors) {
+                                doCollect(result, collector);
+                            }
+                        }
+                    });
+                }
+            } else {
+                for (final CrateCollector shardCollector : shardCollectors) {
+                    executor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            doCollect(result, shardCollector);
+                        }
+                    });
+                }
             }
         }
 
