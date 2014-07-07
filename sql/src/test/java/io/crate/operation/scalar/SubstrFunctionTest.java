@@ -74,6 +74,16 @@ public class SubstrFunctionTest {
                 ImmutableList.<Symbol>of(Literal.newLiteral(str), Literal.newLiteral(startIndex), Literal.newLiteral(count)));
     }
 
+    private Function substr(String str, Literal from) {
+        return new Function(funcA.info(),
+                ImmutableList.<Symbol>of(Literal.newLiteral(str), from));
+    }
+
+    private Function substr(String str, Literal from, Literal count) {
+        return new Function(funcB.info(),
+                ImmutableList.<Symbol>of(Literal.newLiteral(str), from, count));
+    }
+
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
@@ -109,7 +119,27 @@ public class SubstrFunctionTest {
         function = substr("cratedata", 10L, -1L);
         result = funcB.normalizeSymbol(function);
         assertLiteralSymbol(result, "");
+    }
 
+    @Test
+    public void testNullLiteralFrom() throws Exception {
+        Function function = substr("cratedata", Literal.NULL);
+        Symbol result = funcA.normalizeSymbol(function);
+        assertLiteralSymbol(result, null, DataTypes.NULL);
+    }
+
+    @Test
+    public void testNullLiteralCount() throws Exception {
+        Function function = substr("cratedata", Literal.newLiteral(1), Literal.NULL);
+        Symbol result = funcB.normalizeSymbol(function);
+        assertLiteralSymbol(result, null, DataTypes.NULL);
+    }
+
+    @Test
+    public void testNullLiteralFromCount() throws Exception {
+        Function function = substr("cratedata", Literal.NULL, Literal.NULL);
+        Symbol result = funcB.normalizeSymbol(function);
+        assertLiteralSymbol(result, null, DataTypes.NULL);
     }
 
     @Test
@@ -194,7 +224,6 @@ public class SubstrFunctionTest {
 
         BytesRef result = format.evaluate(arg1, arg2, arg3);
         assertThat(result.utf8ToString(), is("crate"));
-
     }
 
     @Test
@@ -208,27 +237,27 @@ public class SubstrFunctionTest {
         Function function = createFunction(SubstrFunction.NAME, DataTypes.STRING, args);
         Scalar<BytesRef, Object> format = (Scalar<BytesRef, Object>) functions.get(function.info().ident());
 
-        Input<Object> arg1 = new Input<Object>() {
-            @Override
-            public Object value() {
-                return new BytesRef("cratedata");
-            }
-        };
-        Input<Object> arg2 = new Input<Object>() {
-            @Override
-            public Object value() {
-                return 1;
-            }
-        };
-        Input<Object> arg3 = new Input<Object>() {
-            @Override
-            public Object value() {
-                return 5;
-            }
-        };
-        BytesRef result = format.evaluate(arg1, arg2, arg3);
-        assertThat(result.utf8ToString(), is("crate"));
+        BytesRef resultBytesRef = format.evaluate(generateInputs(new BytesRef("cratedata"), 1, 5));
+        assertThat(resultBytesRef.utf8ToString(), is("crate"));
 
+        BytesRef resultString = format.evaluate(generateInputs("cratedata", 1, 5));
+        assertThat(resultString.utf8ToString(), is("crate"));
+    }
+
+    private Input[] generateInputs(Object i1, int offset, int lenght) {
+        return new Input[] {new ObjectInput(i1), new ObjectInput(offset), new ObjectInput(lenght)};
+    }
+
+    private static class ObjectInput implements Input<Object> {
+        final Object value;
+        public ObjectInput(Object value) {
+            this.value = value;
+        }
+
+        @Override
+        public Object value() {
+            return value;
+        }
     }
 
     @Test
@@ -257,5 +286,6 @@ public class SubstrFunctionTest {
         Symbol symbol = func.normalizeSymbol(function);
         assertNull(((Literal) symbol).value());
     }
+
 }
 

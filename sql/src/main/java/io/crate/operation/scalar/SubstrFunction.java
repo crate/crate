@@ -67,33 +67,81 @@ public class SubstrFunction implements Scalar<BytesRef, Object>, DynamicFunction
             return null;
         }
         if (args.length == 3) {
-            return evaluate(BytesRefs.toString(val),
+            return evaluate(BytesRefs.toBytesRef(val),
                     ((Number) args[1].value()).intValue(),
                     ((Number) args[2].value()).intValue());
 
         }
-        return evaluate(BytesRefs.toString(val), ((Number) args[1].value()).intValue());
+        return evaluate(BytesRefs.toBytesRef(val), ((Number) args[1].value()).intValue());
     }
 
-    private static BytesRef evaluate(@Nonnull String inputStr, int beginIdx) {
+    private static BytesRef evaluate(@Nonnull BytesRef inputStr, int beginIdx) {
         final int startPos = Math.max(0, beginIdx - 1);
-        if (startPos > inputStr.length() - 1) {
+        if (startPos > inputStr.length - 1) {
             return EMPTY_BYTES_REF;
         }
-        int endPos = inputStr.length();
-        return new BytesRef(inputStr.substring(startPos, endPos));
+        int endPos = inputStr.length;
+        return substring(inputStr, startPos, endPos);
     }
 
-    private static BytesRef evaluate(@Nonnull String inputStr, int beginIdx, int len) {
+    private static BytesRef evaluate(@Nonnull BytesRef inputStr, int beginIdx, int len) {
         final int startPos = Math.max(0, beginIdx - 1);
-        if (startPos > inputStr.length() - 1) {
+        if (startPos > inputStr.length - 1) {
             return EMPTY_BYTES_REF;
         }
-        int endPos = inputStr.length();
+        int endPos = inputStr.length;
         if (startPos + len < endPos) {
             endPos = startPos + len;
         }
-        return new BytesRef(inputStr.substring(startPos, endPos));
+        return substring(inputStr, startPos, endPos);
+    }
+
+    public static BytesRef substring(BytesRef utf8, int begin, int end) {
+        BytesRef utf8copy = BytesRef.deepCopyOf(utf8);
+        int pos = utf8copy.offset;
+        final int limit = pos + utf8copy.length;
+        final byte[] bytes = utf8copy.bytes;
+        int posBegin = pos;
+
+        int codePointCount = 0;
+        for (; pos < limit; codePointCount++) {
+            if (codePointCount == begin) {
+                posBegin = pos;
+            }
+            if (codePointCount == end) {
+                break;
+            }
+
+            int v = bytes[pos] & 0xFF;
+            if (v <   /* 0xxx xxxx */ 0x80) {
+                pos += 1;
+                continue;
+            }
+            if (v >=  /* 110x xxxx */ 0xc0) {
+                if (v < /* 111x xxxx */ 0xe0) {
+                    pos += 2;
+                    continue;
+                }
+                if (v < /* 1111 xxxx */ 0xf0) {
+                    pos += 3;
+                    continue;
+                }
+                if (v < /* 1111 1xxx */ 0xf8) {
+                    pos += 4;
+                    continue;
+                }
+                // fallthrough, consider 5 and 6 byte sequences invalid.
+            }
+
+            // Anything not covered above is invalid UTF8.
+            throw new IllegalArgumentException("substr: invalid UTF8 string found.");
+        }
+
+        // Check if we didn't go over the limit on the last character.
+        if (pos > limit) throw new IllegalArgumentException();
+        utf8copy.offset = posBegin;
+        utf8copy.length = pos - posBegin;
+        return utf8copy;
     }
 
     @Override
@@ -109,18 +157,22 @@ public class SubstrFunction implements Scalar<BytesRef, Object>, DynamicFunction
         }
 
         final Object inputValue = ((Input) input).value();
-        if (inputValue == null) {
+        final Object beginIdxValue = ((Input) beginIdx).value();
+        if (inputValue == null || beginIdxValue == null) {
             return Literal.NULL;
         }
         if (size == 3) {
+            if (((Input)symbol.arguments().get(2)).value() == null) {
+                return Literal.NULL;
+            }
             return Literal.newLiteral(
-                    evaluate(BytesRefs.toString(inputValue),
+                    evaluate(BytesRefs.toBytesRef(inputValue),
                     ((Number) ((Input) beginIdx).value()).intValue(),
                     ((Number) ((Input) symbol.arguments().get(2)).value()).intValue()));
         }
         return Literal.newLiteral(evaluate(
-                        BytesRefs.toString(inputValue),
-                        ((Number) ((Input) beginIdx).value()).intValue()));
+                BytesRefs.toBytesRef(inputValue),
+                ((Number) ((Input) beginIdx).value()).intValue()));
     }
 
     private static boolean anyNonLiterals(Symbol input, Symbol beginIdx, List<Symbol> arguments) {
