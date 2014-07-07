@@ -22,6 +22,9 @@
 package io.crate.action.sql;
 
 import com.google.common.base.Objects;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -70,6 +73,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final DDLAnalysisDispatcher dispatcher;
     private final StatsTables statsTables;
 
+    private final LoadingCache<String, Statement> statementCache = CacheBuilder.newBuilder()
+            .maximumSize(500)
+            .build(
+                    new CacheLoader<String, Statement>() {
+                        @Override
+                        public Statement load(@Nonnull String key) throws Exception {
+                            return SqlParser.createStatement(key);
+                        }
+                    }
+            );
+
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
             Analyzer analyzer,
@@ -92,7 +106,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         logger.debug("{}", request);
 
         try {
-            Statement statement = SqlParser.createStatement(request.stmt());
+            Statement statement = statementCache.get(request.stmt());
             Analysis analysis = analyzer.analyze(statement, request.args());
 
             if (analysis.isData()) {
