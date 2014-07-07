@@ -27,16 +27,22 @@ import org.elasticsearch.common.Base64;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.*;
+import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Id implements Streamable {
+public class Id {
 
-    private final List<BytesRef> values = new ArrayList<>();
+    private final List<BytesRef> values;
+
+    // used to avoid bytesRef/string conversion if there is just one primary key used for IndexRequests
+    private String singleStringValue = null;
 
     public Id(List<ColumnIdent> primaryKeys, List<BytesRef> primaryKeyValues,
               ColumnIdent clusteredBy) {
@@ -45,9 +51,11 @@ public class Id implements Streamable {
 
     public Id(List<ColumnIdent> primaryKeys, List<BytesRef> primaryKeyValues,
               ColumnIdent clusteredBy, boolean create) {
+        values = new ArrayList<>(primaryKeys.size());
         if (primaryKeys.size() == 1 && primaryKeys.get(0).name().equals("_id") && create) {
-            values.add(new BytesRef(Strings.randomBase64UUID()));
+            singleStringValue = Strings.randomBase64UUID();
         } else {
+            singleStringValue = null;
             if (primaryKeys.size() != primaryKeyValues.size()) {
                 // Primary key count does not match, cannot compute id
                 if (create) {
@@ -72,36 +80,33 @@ public class Id implements Streamable {
     }
 
     private Id() {
+        values = new ArrayList<>();
+        singleStringValue = null;
     }
 
     public boolean isValid() {
-        return values.size() > 0;
+        return values.size() > 0 || singleStringValue != null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    private void decodeValues(StreamInput in) throws IOException {
         int size = in.readVInt();
         for (int i=0; i < size; i++) {
             values.add(in.readBytesRef());
         }
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
+    private void encodeValues(StreamOutput out) throws IOException {
         out.writeVInt(values.size());
         for (BytesRef value : values) {
             out.writeBytesRef(value);
         }
     }
 
-    @Nullable
-    public BytesReference bytes() {
-        if (values.size() == 0) {
-            return null;
-        }
+    private BytesReference bytes() {
+        assert values.size() > 0;
         BytesStreamOutput out = new BytesStreamOutput();
         try {
-            writeTo(out);
+            encodeValues(out);
             out.close();
         } catch (IOException e) {
             //
@@ -111,16 +116,15 @@ public class Id implements Streamable {
 
     @Nullable
     public String stringValue() {
+        if (singleStringValue != null) {
+            return singleStringValue;
+        }
         if (values.size() == 0) {
             return null;
         } else if (values.size() == 1) {
             return BytesRefs.toString(values.get(0));
         }
-        BytesReference bytesReference = bytes();
-        if (bytes() == null) {
-            return null;
-        }
-        return Base64.encodeBytes(bytesReference.toBytes());
+        return Base64.encodeBytes(bytes().toBytes());
     }
 
     @Nullable
@@ -129,6 +133,10 @@ public class Id implements Streamable {
     }
 
     public List<BytesRef> values() {
+        if (singleStringValue != null && values.size() == 0) {
+            // convert singleStringValue lazy..
+            values.add(new BytesRef(singleStringValue));
+        }
         return values;
     }
 
@@ -137,8 +145,6 @@ public class Id implements Streamable {
      * WARNING: Using this method with non-base64 encoded string input results in unpredictable
      * id values!
      *
-     * @param base64encodedString
-     * @return
      * @throws IOException
      */
     public static Id fromString(String base64encodedString) throws IOException {
@@ -146,8 +152,7 @@ public class Id implements Streamable {
         byte[] inputBytes = Base64.decode(base64encodedString);
         BytesStreamInput in = new BytesStreamInput(inputBytes, true);
         Id id = new Id();
-        id.readFrom(in);
+        id.decodeValues(in);
         return id;
     }
-
 }
