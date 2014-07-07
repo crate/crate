@@ -52,7 +52,7 @@ public class GroupingProjectorTest {
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
         GroupingProjector projector = new GroupingProjector(
                 keys,
-                ImmutableList.<CollectExpression<?>>of(),
+                new CollectExpression[0],
                 aggregations
         );
         CollectingProjector collectingProjector = new CollectingProjector();

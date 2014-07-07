@@ -136,7 +136,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         }
         return new GroupingProjector(
                 keyInputs,
-                ImmutableList.copyOf(symbolContext.collectExpressions()),
+                symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 symbolContext.aggregations()
         );
     }

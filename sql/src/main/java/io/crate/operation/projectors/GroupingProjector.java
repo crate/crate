@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class GroupingProjector implements Projector {
 
-    private final List<CollectExpression<?>> collectExpressions;
+    private final CollectExpression[] collectExpressions;
 
     private final Grouper grouper;
 
@@ -43,7 +43,7 @@ public class GroupingProjector implements Projector {
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
     public GroupingProjector(List<Input<?>> keyInputs,
-                             List<CollectExpression<?>> collectExpressions,
+                             CollectExpression[] collectExpressions,
                              AggregationContext[] aggregations) {
         this.collectExpressions = collectExpressions;
 
@@ -159,23 +159,23 @@ public class GroupingProjector implements Projector {
     private class SingleKeyGrouper implements Grouper {
 
         private final Map<Object, AggregationState[]> result;
-        private final List<CollectExpression<?>> collectExpressions;
         private final AggregationCollector[] aggregationCollectors;
         private final Input keyInput;
+        private final CollectExpression[] collectExpressions;
 
         public SingleKeyGrouper(Input keyInput,
-                                List<CollectExpression<?>> collectExpressions,
+                                CollectExpression[] collectExpressions,
                                 AggregationCollector[] aggregationCollectors) {
+            this.collectExpressions = collectExpressions;
             this.result = new HashMap<>();
             this.keyInput = keyInput;
-            this.collectExpressions = collectExpressions;
             this.aggregationCollectors = aggregationCollectors;
         }
 
         @Override
         public boolean setNextRow(Object... row) {
             for (CollectExpression collectExpression : collectExpressions) {
-                collectExpression.setNextRow(row);
+               collectExpression.setNextRow(row);
             }
 
             Object key = keyInput.value();
@@ -233,14 +233,14 @@ public class GroupingProjector implements Projector {
 
         private final AggregationCollector[] aggregationCollectors;
         private final Map<List<Object>, AggregationState[]> result;
-        private final List<CollectExpression<?>> collectExpressions;
         private final List<Input<?>> keyInputs;
+        private final CollectExpression[] collectExpressions;
 
         public ManyKeyGrouper(List<Input<?>> keyInputs,
-                              List<CollectExpression<?>> collectExpressions,
+                              CollectExpression[] collectExpressions,
                               AggregationCollector[] aggregationCollectors) {
-            this.result = new HashMap<>();
             this.collectExpressions = collectExpressions;
+            this.result = new HashMap<>();
             this.keyInputs = keyInputs;
             this.aggregationCollectors = aggregationCollectors;
         }
