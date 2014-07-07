@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: apply proper quoting to crash arguments when used as ``bin/crash``
+
 2014/07/06 0.39.2
 =================
 
