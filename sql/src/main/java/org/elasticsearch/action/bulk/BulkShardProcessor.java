@@ -37,15 +37,16 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -73,20 +74,18 @@ public class BulkShardProcessor {
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private volatile boolean closed = false;
     private final Set<String> indicesCreated = new HashSet<>();
-    private final ThreadPool threadPool;
     private final ReadWriteLock retryLock = new ReadWriteLock();
     private final Semaphore executeLock = new Semaphore(1);
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
-    public BulkShardProcessor(ThreadPool threadPool,
-                              ClusterService clusterService,
+    public BulkShardProcessor(ClusterService clusterService,
                               Settings settings,
                               TransportShardBulkAction transportShardBulkAction,
                               TransportCreateIndexAction transportCreateIndexAction,
                               boolean autoCreateIndices,
                               int bulkSize) {
-        this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.transportShardBulkAction = transportShardBulkAction;
         this.transportCreateIndexAction = transportCreateIndexAction;
@@ -221,22 +220,29 @@ public class BulkShardProcessor {
 
     private void doRetry(final BulkShardRequest request, final boolean repeatingRetry) {
         trace("doRetry");
-
-        threadPool.schedule(TimeValue.timeValueMillis(currentDelay.incrementAndGet()),
-                ThreadPool.Names.GENERIC, new Runnable() {
-                    @Override
-                    public void run() {
-                        if (!repeatingRetry) {
+        if (repeatingRetry) {
+            try {
+                Thread.sleep(currentDelay.incrementAndGet());
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+            }
+            transportShardBulkAction.execute(request, new RetryResponseListener(request));
+        } else {
+            // new retries will be spawned in new thread because they can block
+            scheduledExecutorService.schedule(
+                    new Runnable() {
+                        @Override
+                        public void run() {
                             // will block if other retries/writer are active
                             try {
                                 retryLock.writeLock();
                             } catch (InterruptedException e) {
                                 Thread.interrupted();
                             }
+                            transportShardBulkAction.execute(request, new RetryResponseListener(request));
                         }
-                        transportShardBulkAction.execute(request, new RetryResponseListener(request));
-                    }
-                });
+                    }, currentDelay.getAndIncrement(), TimeUnit.MILLISECONDS);
+        }
     }
 
     private void createIndexIfRequired(final String indexName) {
@@ -360,13 +366,12 @@ public class BulkShardProcessor {
         }
 
         public void writeLock() throws InterruptedException {
-            activeWriters.getAndIncrement();
-            writeLock.acquire();
             // check readLock permits to prevent deadlocks
-            if (activeWriters.get() == 1 && readLock.availablePermits() == 1) {
+            if (activeWriters.getAndIncrement() == 0 && readLock.availablePermits() == 1) {
                 // draining read permits, so all reads will block
                 readLock.drainPermits();
             }
+            writeLock.acquire();
         }
 
         public void writeUnlock() throws InterruptedException {

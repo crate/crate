@@ -32,7 +32,6 @@ import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -47,15 +46,13 @@ public class MergeOperation implements DownstreamOperation {
 
     private AtomicBoolean wantMore = new AtomicBoolean(true);
 
-    public MergeOperation(ThreadPool threadPool,
-                          ClusterService clusterService,
+    public MergeOperation(ClusterService clusterService,
                           Settings settings,
                           TransportShardBulkAction transportShardBulkAction,
                           TransportCreateIndexAction transportCreateIndexAction,
                           ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode) {
         projectorChain = new FlatProjectorChain(mergeNode.projections(),
                 new ProjectionToProjectorVisitor(
-                        threadPool,
                         clusterService,
                         settings,
                         transportShardBulkAction,

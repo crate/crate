@@ -36,7 +36,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -52,8 +51,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
     private final @Nullable String[] includes;
     private final @Nullable String[] excludes;
 
-    public IndexWriterProjector(ThreadPool threadPool,
-                                ClusterService clusterService,
+    public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
                                 TransportShardBulkAction transportShardBulkAction,
                                 TransportCreateIndexAction transportCreateIndexAction,
@@ -68,7 +66,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable Integer bulkActions,
                                 @Nullable String[] includes,
                                 @Nullable String[] excludes) {
-        super(threadPool, clusterService, settings, transportShardBulkAction,
+        super(clusterService, settings, transportShardBulkAction,
                 transportCreateIndexAction, tableName, primaryKeys, idInputs, partitionedByInputs,
                 routingIdent, routingInput,
                 collectExpressions, bulkActions);

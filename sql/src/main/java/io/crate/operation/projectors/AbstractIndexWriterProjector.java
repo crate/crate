@@ -41,7 +41,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -69,8 +68,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
             };
     private Projector downstream;
 
-    protected AbstractIndexWriterProjector(ThreadPool threadPool,
-                                           ClusterService clusterService,
+    protected AbstractIndexWriterProjector(ClusterService clusterService,
                                            Settings settings,
                                            TransportShardBulkAction transportShardBulkAction,
                                            TransportCreateIndexAction transportCreateIndexAction,
@@ -90,7 +88,6 @@ public abstract class AbstractIndexWriterProjector implements Projector {
         this.routingInput = Optional.<Input<?>>fromNullable(routingInput);
         this.partitionedByInputs = partitionedByInputs;
         this.bulkShardProcessor = new BulkShardProcessor(
-                threadPool,
                 clusterService,
                 settings,
                 transportShardBulkAction,
