@@ -371,7 +371,7 @@ public class TestSysNodesExpressions {
 
         Map<String, Object> disk1 = (Map<String, Object>) disks[1];
         assertThat((String)disk1.get("dev"), is("/dev/sda2"));
-        assertThat((Long)disk0.get("used"), is(42L));
+        assertThat((Long)disk0.get("used"), is(42L*1024));
 
         Object[] data = (Object[]) v.get("data");
         assertThat(data.length, is(2));
