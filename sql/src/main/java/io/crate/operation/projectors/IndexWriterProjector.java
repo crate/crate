@@ -44,7 +44,6 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -76,8 +75,7 @@ public class IndexWriterProjector implements Projector {
         }
     };
 
-    public IndexWriterProjector(ThreadPool threadPool,
-                                ClusterService clusterService,
+    public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
                                 TransportShardBulkAction transportShardBulkAction,
                                 TransportCreateIndexAction transportCreateIndexAction,
@@ -101,7 +99,6 @@ public class IndexWriterProjector implements Projector {
         this.includes = includes;
         this.excludes = excludes;
         this.bulkShardProcessor = new BulkShardProcessor(
-                threadPool,
                 clusterService,
                 settings,
                 transportShardBulkAction,

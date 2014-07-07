@@ -86,7 +86,6 @@ public class TransportMergeNodeAction {
             @Override
             public DownstreamOperation create(MergeNode node) {
                 return new MergeOperation(
-                        threadPool,
                         clusterService,
                         settings,
                         transportShardBulkAction,

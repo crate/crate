@@ -31,7 +31,6 @@ import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,9 +51,6 @@ public class IndexWriterProjectorUnitTest {
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
 
-    @Mock(answer = Answers.RETURNS_MOCKS)
-    ThreadPool threadPool;
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -74,7 +70,6 @@ public class IndexWriterProjectorUnitTest {
         CollectExpression[] collectExpressions = new CollectExpression[]{ idInput, sourceInput };
 
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
-                threadPool,
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportShardBulkAction.class),
@@ -109,7 +104,6 @@ public class IndexWriterProjectorUnitTest {
         InputCollectExpression<Object> routingInput = new InputCollectExpression<>(0);
         CollectExpression[] collectExpressions = new CollectExpression[]{ idInput, sourceInput, routingInput };
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
-                threadPool,
                 clusterService,
                 ImmutableSettings.EMPTY,
                 mock(TransportShardBulkAction.class),
