@@ -36,7 +36,7 @@ import org.hyperic.sigar.SigarException;
 import java.util.ArrayList;
 import java.util.List;
 
-class NodeFsDisksExpression extends SysNodeObjectArrayReference {
+public class NodeFsDisksExpression extends SysNodeObjectArrayReference {
 
     public static final String NAME = "disks";
     private final ESLogger logger = Loggers.getLogger(getClass());
@@ -64,6 +64,7 @@ class NodeFsDisksExpression extends SysNodeObjectArrayReference {
             }
 
         } else {
+            logger.trace("sigar not available");
             diskRefs = ImmutableList.of();
         }
         return diskRefs;

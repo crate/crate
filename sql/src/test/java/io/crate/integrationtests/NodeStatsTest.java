@@ -36,6 +36,10 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     private static SQLTransportExecutor executor;
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     @Before
     public void before() throws Exception {
         executor = SQLTransportExecutor.create(ClassLifecycleIntegrationTest.GLOBAL_CLUSTER);

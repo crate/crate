@@ -23,22 +23,19 @@ package io.crate.operation.reference.sys.node.fs;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
-import io.crate.operation.reference.sys.SysNodeObjectArrayReference;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
+import io.crate.operation.reference.sys.SysNodeStaticObjectArrayReference;
 import io.crate.operation.reference.sys.SysObjectReference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.sigar.SigarService;
 import org.hyperic.sigar.FileSystem;
-import org.hyperic.sigar.FileSystemMap;
-import org.hyperic.sigar.SigarException;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
-class NodeFsDataExpression extends SysNodeObjectArrayReference {
+public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
 
     public static final String NAME = "data";
 
@@ -55,31 +52,40 @@ class NodeFsDataExpression extends SysNodeObjectArrayReference {
 
     @Override
     protected List<SysObjectReference> getChildImplementations() {
-        List<SysObjectReference> dataRefs;
+        if (childImplementations.isEmpty()) {
+            addChildImplementations();
+        }
+        return super.getChildImplementations();
+    }
+
+    private void addChildImplementations() {
         if (sigarService.sigarAvailable() && nodeEnvironment.hasNodeFile()) {
-            dataRefs = new ArrayList<>(
-                    nodeEnvironment.nodeDataLocations().length
-            );
             try {
-                FileSystemMap fileSystemMap = sigarService.sigar().getFileSystemMap();
+                FileSystem[] fsList = sigarService.sigar().getFileSystemList();
                 for (File dataLocation : nodeEnvironment.nodeDataLocations()) {
-                    FileSystem fs = fileSystemMap.getMountPoint(dataLocation.getAbsolutePath());
-                    if (fs != null) {
-                        dataRefs.add(new NodeFsDataChildExpression(
-                                fs.getDevName(),
-                                dataLocation.getAbsolutePath()
-                        ));
+                    FileSystem winner = null;
+                    String absDataLocation = dataLocation.getCanonicalPath();
+                    for (FileSystem fs : fsList) {
+                        if (absDataLocation.startsWith(fs.getDirName())
+                                && (winner == null || winner.getDirName().length() < fs.getDirName().length())) {
+                            winner = fs;
+                        }
                     }
+                    childImplementations.add(new NodeFsDataChildExpression(
+                            winner != null ? winner.getDevName() : null,
+                            absDataLocation
+                    ));
                 }
-            } catch (SigarException e) {
-                logger.warn("error getting filesystem map", e);
-                return ImmutableList.of();
+            } catch (Exception e) {
+                logger.warn("error getting fs['data'] expression", e);
             }
         } else {
-            dataRefs = ImmutableList.of();
+            if (logger.isTraceEnabled()) {
+                logger.trace(sigarService.sigarAvailable() ? "no data node" : "sigar not available");
+            }
         }
-        return dataRefs;
     }
+
 
     private class NodeFsDataChildExpression extends SysNodeObjectReference {
 
