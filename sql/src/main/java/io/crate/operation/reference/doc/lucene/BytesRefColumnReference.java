@@ -54,7 +54,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
     @Override
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getBytesValues(true);
+        values = indexFieldData.load(context).getBytesValues(false);
     }
 
     @Override
