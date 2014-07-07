@@ -42,7 +42,7 @@ public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFie
             case 0:
                 return null;
             case 1:
-                return ((Long)values.nextValue()).intValue();
+                return (int)values.nextValue();
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
