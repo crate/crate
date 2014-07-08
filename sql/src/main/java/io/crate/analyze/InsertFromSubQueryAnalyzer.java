@@ -47,8 +47,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
         process(node.subQuery(), context);
 
         // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
-        if (!context.subQueryAnalysis().hasGroupBy()
-                && (context.subQueryAnalysis().isLimited() || context.subQueryAnalysis().isSorted())) {
+        if (context.subQueryAnalysis().isLimited() || context.subQueryAnalysis().isSorted()) {
             throw new UnsupportedFeatureException("Using limit, offset or order by is not" +
                     "supported on insert using a sub-query");
         }

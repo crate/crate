@@ -836,7 +836,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 contextBuilder.aggregations()));
 
         boolean topNDone = false;
-        if (analysis.isLimited() || contextBuilder.aggregationsWrappedInScalar) {
+        if (analysis.isLimited()) {
             topNDone = true;
             TopNProjection topN = new TopNProjection(
                     Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
@@ -847,8 +847,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             );
             topN.outputs(contextBuilder.outputs());
             projectionsBuilder.add(topN);
-        }
-        if (!analysis.isLimited()) {
+        } else {
             projectionsBuilder.add(writerProjection);
         }
 

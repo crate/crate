@@ -919,7 +919,7 @@ public class PlannerTest {
         assertThat(iterator.hasNext(), is(false));
     }
 
-    @Test
+    @Test (expected = UnsupportedFeatureException.class)
     public void testInsertFromSubQueryDistributedGroupByWithLimit() throws Exception {
         Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name order by name limit 10)");
         Iterator<PlanNode> iterator = plan.iterator();
@@ -946,7 +946,7 @@ public class PlannerTest {
 
     @Test
     public void testInsertFromSubQueryDistributedGroupByWithoutLimit() throws Exception {
-        Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name order by name)");
+        Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(CollectNode.class));
@@ -954,9 +954,9 @@ public class PlannerTest {
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
         MergeNode mergeNode = (MergeNode)planNode;
-        assertThat(mergeNode.projections().size(), is(3));
-        assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(2);
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)mergeNode.projections().get(1);
         assertThat(projection.primaryKeys().size(), is(1));
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.columnIdents().size(), is(2));
