@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/07/08 0.39.3
+=================
+
  - fix: ``COPY FROM`` could result in a deadlock on high concurrency
 
  - fix: apply proper quoting to crash arguments when used as ``bin/crash``
