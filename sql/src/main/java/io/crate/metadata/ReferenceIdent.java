@@ -86,7 +86,9 @@ public class ReferenceIdent implements Comparable<ReferenceIdent>, Streamable {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(tableIdent, columnIdent);
+        int result = tableIdent.hashCode();
+        result = 31 * result + columnIdent.hashCode();
+        return result;
     }
 
     @Override

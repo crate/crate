@@ -89,7 +89,9 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(schema, name);
+        int result = schema != null ? schema.hashCode() : 0;
+        result = 31 * result + name.hashCode();
+        return result;
     }
 
     @Override

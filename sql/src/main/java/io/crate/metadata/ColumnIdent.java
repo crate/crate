@@ -179,7 +179,9 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, path);
+        int result = name.hashCode();
+        result = 31 * result + (path != null ? path.hashCode() : 0);
+        return result;
     }
 
     @Override
