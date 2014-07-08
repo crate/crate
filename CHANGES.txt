@@ -5,8 +5,6 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: ``COPY FROM`` could result in a deadlock on high concurrency
-
  - performance improved of scalar function 'substr'
 
  - updated crate-admin to 0.9.0 which contains following changes
@@ -38,6 +36,13 @@ Unreleased
  - it is now possible to use `is null` on columns of any data type.
 
  - added support for ``alter table add column``
+
+2014/07/08 0.39.3
+=================
+
+ - fix: ``COPY FROM`` could result in a deadlock on high concurrency
+
+ - fix: apply proper quoting to crash arguments when used as ``bin/crash``
 
 2014/07/06 0.39.2
 =================
