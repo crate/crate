@@ -57,6 +57,7 @@ public class TransportMergeNodeAction {
     private final DistributedRequestContextManager contextManager;
 
     public final static String mergeRowsAction = "crate/sql/node/merge/add_rows";
+    public final static String failAction = "crate/sql/node/merge/fail";
     private final static String startMergeAction = "crate/sql/node/merge/start";
     private final TransportService transportService;
     private final ClusterService clusterService;
@@ -97,6 +98,7 @@ public class TransportMergeNodeAction {
         }, functions, statsTables);
 
         transportService.registerHandler(startMergeAction, new StartMergeHandler());
+        transportService.registerHandler(failAction, new FailureHandler(contextManager));
         transportService.registerHandler(mergeRowsAction, new DistributedResultRequestHandler(contextManager));
     }
 
@@ -263,7 +265,7 @@ public class TransportMergeNodeAction {
 
         @Override
         public String executor() {
-            return executorName();
+            return ThreadPool.Names.GENERIC;
         }
     }
 }

@@ -29,6 +29,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.Streamer;
+import io.crate.executor.transport.distributed.DistributedFailureRequest;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
@@ -46,6 +47,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportResponseHandler;
@@ -138,7 +140,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
             }
         }
 
-        private void sendRequest(DistributedResultRequest request, final DiscoveryNode node) {
+        private void sendRequest(final DistributedResultRequest request, final DiscoveryNode node) {
             transportService.submitRequest(
                 node,
                 TransportMergeNodeAction.mergeRowsAction, // NOTICE: hard coded transport action, should be delivered by collectNode
@@ -160,18 +162,51 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
 
                     @Override
                     public void handleException(TransportException exp) {
-                        logger.error("[{}] Exception sending distributing collect request to {}",
-                                exp,
-                                jobId.toString(),
-                                node.id());
-                        setException(exp.getCause());
+                        Throwable cause = exp.getCause();
+                        if (cause instanceof EsRejectedExecutionException) {
+                            sendFailure(request.contextId(), node);
+                        } else {
+                            logger.error("[{}] Exception sending distributing collect request to {}",
+                                    exp, jobId, node.id());
+                            setException(cause);
+                        }
                     }
 
                     @Override
                     public String executor() {
-                        return ThreadPool.Names.SEARCH;
+                        return ThreadPool.Names.SAME;
                     }
                 }
+            );
+        }
+
+        private void sendFailure(UUID contextId, final DiscoveryNode node) {
+            transportService.submitRequest(
+                    node,
+                    TransportMergeNodeAction.failAction,
+                    new DistributedFailureRequest(contextId),
+                    new BaseTransportResponseHandler<DistributedResultResponse>() {
+                        @Override
+                        public DistributedResultResponse newInstance() {
+                            return new DistributedResultResponse();
+                        }
+
+                        @Override
+                        public void handleResponse(DistributedResultResponse response) {
+                        }
+
+                        @Override
+                        public void handleException(TransportException exp) {
+                            logger.error("[{}] Exception sending distributing collect failure to {}",
+                                    exp, jobId, node.id());
+                            setException(exp.getCause());
+                        }
+
+                        @Override
+                        public String executor() {
+                            return ThreadPool.Names.SAME;
+                        }
+                    }
             );
         }
     }

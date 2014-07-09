@@ -25,13 +25,13 @@ import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.Streamer;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
 import io.crate.operation.DownstreamOperationFactory;
 import io.crate.operation.collect.StatsTables;
-import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import io.crate.Streamer;
+import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
@@ -39,6 +39,7 @@ import org.elasticsearch.common.io.stream.HandlesStreamInput;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
@@ -182,7 +183,7 @@ public class DistributedRequestContextManager {
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 listener.onFailure(t);
             }
         });
@@ -222,6 +223,17 @@ public class DistributedRequestContextManager {
         }
         assert rows != null;
         ctx.add(rows);
+    }
+
+    public void setFailure(UUID contextId) {
+        synchronized (lock) {
+            DownstreamOperationContext downstreamOperationContext = activeMergeOperations.get(contextId);
+            if (downstreamOperationContext == null) {
+                unreadFailures.add(contextId);
+            } else {
+                downstreamOperationContext.addFailure(null);
+            }
+        }
     }
 
     public interface DoneCallback {

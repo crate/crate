@@ -114,7 +114,7 @@ public class TransportCollectNodeAction {
             } else {
                 collectResult = localDataCollector.collect(node);
             }
-        } catch (Exception e){
+        } catch (Throwable e){
             logger.error("Error when creating result futures", e);
             collectResponse.onFailure(e);
             statsTables.operationFinished(operationId, Exceptions.messageOf(e));

@@ -61,6 +61,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -288,7 +289,24 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
 
         // start the projection
         projectorChain.startProjections();
+        try {
+            runCollectThreaded(collectNode, result, shardCollectors);
+        } catch (RejectedExecutionException e) {
+            // on distributing collects the merge nodes need to be informed about the failure
+            // so they can clean up their context
+            result.shardFailure(e);
+        }
 
+        if (logger.isTraceEnabled()) {
+            logger.trace("started {} shardCollectors", numShards);
+        }
+
+        return result;
+    }
+
+    private void runCollectThreaded(CollectNode collectNode,
+                                    final ShardCollectFuture result,
+                                    final List<CrateCollector> shardCollectors) throws RejectedExecutionException {
         if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
             // run sequential to prevent sys.shards queries from using too many threads
             // and overflowing the threadpool queues
@@ -301,8 +319,6 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                 }
             });
         } else {
-            // start shardCollectors
-
             int availableThreads = Math.max(poolSize - executor.getActiveCount(), 2);
             if (availableThreads < shardCollectors.size()) {
                 Iterable<List<CrateCollector>> partition = Iterables.partition(
@@ -328,12 +344,6 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                 }
             }
         }
-
-        if (logger.isTraceEnabled()) {
-            logger.trace("started {} shardCollectors", numShards);
-        }
-
-        return result;
     }
 
 

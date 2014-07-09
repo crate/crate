@@ -8,6 +8,9 @@ Unreleased
  - ``COPY FROM`` / ``COPY TO``: allow importing from and exporting
    to s3 without access credentials (only to / from public resources)
 
+ - fix: improved the clean up of distributed query execution if some part of
+   the operations couldn't be executed due to resource exhaustions
+
  - performance improved of scalar function 'substr'
 
  - updated crate-admin to 0.9.0 which contains following changes
