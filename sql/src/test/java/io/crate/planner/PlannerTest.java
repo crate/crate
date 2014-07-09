@@ -22,7 +22,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
@@ -908,13 +907,9 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(MergeNode.class));
         MergeNode mergeNode = (MergeNode)planNode;
 
-        assertThat(mergeNode.projections().size(), is(3));
-        TopNProjection projection = (TopNProjection)mergeNode.projections().get(1);
-        assertThat(projection.isOrdered(), is(false));
-        assertThat(projection.limit(), is(TopN.NO_LIMIT));
-        assertThat(projection.offset(), is(TopN.NO_OFFSET));
-        assertThat(projection.outputs().size(), is(2));
-        assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
 
         assertThat(iterator.hasNext(), is(false));
     }

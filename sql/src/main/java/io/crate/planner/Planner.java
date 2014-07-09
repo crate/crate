@@ -708,22 +708,21 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         // handler
         groupProjection =
             new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        int limit;
-        if (ignoreSorting) {
-            limit = TopN.NO_LIMIT; // select all the things
-        } else {
-            limit = Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT);
-        }
-        TopNProjection topN = new TopNProjection(
-                limit,
-                analysis.offset(),
-                contextBuilder.orderBy(),
-                analysis.reverseFlags(),
-                analysis.nullsFirst()
-        );
-        topN.outputs(contextBuilder.outputs());
+
         ImmutableList.Builder<Projection> builder = ImmutableList.<Projection>builder()
-                .add(groupProjection, topN);
+                .add(groupProjection);
+
+        if (!ignoreSorting) {
+            TopNProjection topN = new TopNProjection(
+                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    analysis.offset(),
+                    contextBuilder.orderBy(),
+                    analysis.reverseFlags(),
+                    analysis.nullsFirst()
+            );
+            topN.outputs(contextBuilder.outputs());
+            builder.add(topN);
+        }
         if (context.indexWriterProjection.isPresent()) {
             builder.add(context.indexWriterProjection.get());
         }
