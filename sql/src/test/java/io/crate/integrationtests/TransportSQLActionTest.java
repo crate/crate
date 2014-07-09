@@ -1665,7 +1665,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.version.created\":\"1020199\"" +
+                "\"index.version.created\":\"1020299\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -1692,7 +1692,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"0\"," +
-                "\"index.version.created\":\"1020199\"" +
+                "\"index.version.created\":\"1020299\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
 
@@ -1702,7 +1702,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"5000\"," +
-                "\"index.version.created\":\"1020199\"" +
+                "\"index.version.created\":\"1020299\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedSetSettings, getIndexSettings("test"), false);
 
@@ -1712,7 +1712,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"1000\"," +
-                "\"index.version.created\":\"1020199\"" +
+                "\"index.version.created\":\"1020299\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedResetSettings, getIndexSettings("test"), false);
     }
@@ -1822,7 +1822,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"2\"," +
                 "\"index.number_of_shards\":\"10\"," +
-                "\"index.version.created\":\"1020199\"" +
+                "\"index.version.created\":\"1020299\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));

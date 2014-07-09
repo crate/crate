@@ -33,11 +33,10 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.service.IndexService;
-import org.elasticsearch.indices.fielddata.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.fielddata.breaker.DummyCircuitBreakerService;
+import org.elasticsearch.indices.fielddata.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
+import org.elasticsearch.test.index.service.StubIndexService;
 import org.junit.After;
 import org.junit.Before;
 import org.mockito.Matchers;
@@ -55,10 +54,8 @@ public abstract class DocLevelExpressionsTest {
 
     @Before
     public void prepare() throws Exception {
-        CircuitBreakerService circuitBreakerService = new DummyCircuitBreakerService();
-        ifd = new IndexFieldDataService(new Index("test"), circuitBreakerService);
-        IndexService indexService = mock(IndexService.class);
-        ifd.setIndexService(indexService);
+        ifd = new IndexFieldDataService(new Index("test"), new NoneCircuitBreakerService());
+        ifd.setIndexService(new StubIndexService(null));
 
         MapperService mapperService = mock(MapperService.class);
         FieldMapper fieldMapper = mock(FieldMapper.class);
@@ -73,8 +70,9 @@ public abstract class DocLevelExpressionsTest {
                         .setMergePolicy(new LogByteSizeMergePolicy()));
 
         insertValues(writer);
-        AtomicReader reader = SlowCompositeReaderWrapper.wrap(DirectoryReader.open(writer, true));
-        readerContext = reader.getContext();
+
+        DirectoryReader directoryReader = DirectoryReader.open(writer, true);
+        readerContext = directoryReader.leaves().get(0);
         fieldData.load(readerContext);
 
         ShardSearchRequest request = new ShardSearchRequest();
