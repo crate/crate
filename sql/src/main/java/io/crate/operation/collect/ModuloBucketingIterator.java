@@ -21,6 +21,9 @@
 
 package io.crate.operation.collect;
 
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.StringHelper;
+
 import javax.annotation.Nullable;
 
 public class ModuloBucketingIterator extends BucketingIterator {
@@ -37,11 +40,24 @@ public class ModuloBucketingIterator extends BucketingIterator {
         if (row == null || row.length == 0 || row[0] == null) {
             return 0;
         } else {
-            int hash = row[0].hashCode();
+            int hash = hashCode(row[0]);
             if (hash == Integer.MIN_VALUE) {
                 hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
             }
             return Math.abs(hash) % numBuckets;
         }
+    }
+
+
+    private static int hashCode(Object value) {
+        if (value instanceof BytesRef) {
+            // since lucene 4.8
+            // BytesRef.hashCode() uses a random seed across different jvm
+            // which causes the hashCode / routing to be different on each node
+            // this breaks the group by redistribution logic - need to use a fixed seed here
+            // to be consistent.
+            return StringHelper.murmurhash3_x86_32(((BytesRef) value), 1);
+        }
+        return value.hashCode();
     }
 }
