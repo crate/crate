@@ -60,7 +60,6 @@ public class InternalCrateClient {
         return execute(SQLAction.INSTANCE, request);
     }
 
-
     protected <Request extends ActionRequest, Response extends ActionResponse,
             RequestBuilder extends ActionRequestBuilder<Request, Response,
                     RequestBuilder>> ActionFuture<Response> execute(final Action<Request,
@@ -74,6 +73,25 @@ public class InternalCrateClient {
                         return proxy.execute(node, request);
                     }
                 });
+    }
+
+    public void sql(final SQLRequest request, final ActionListener<SQLResponse> listener) {
+        execute(SQLAction.INSTANCE, request, listener);
+    }
+
+    protected <Request extends ActionRequest, Response extends ActionResponse,
+            RequestBuilder extends ActionRequestBuilder<Request, Response,
+                    RequestBuilder>> void execute(final Action<Request,
+            Response, RequestBuilder> action, final Request request, final ActionListener<Response> listener) {
+        final TransportActionNodeProxy<Request, Response> proxy = actions.get(action);
+        nodesService.execute(
+            new TransportClientNodesService.NodeListenerCallback<Response>() {
+                @Override
+                public void doWithNode(DiscoveryNode node, ActionListener<Response> listener) throws
+                        ElasticsearchException {
+                    proxy.execute(node, request, listener);
+                }
+            }, listener);
     }
 
     public void addTransportAddress(TransportAddress transportAddress) {

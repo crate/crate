@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterNameModule;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.compress.CompressorFactory;
@@ -107,6 +108,14 @@ public class CrateClient {
 
     public ActionFuture<SQLResponse> sql(SQLRequest request) {
         return internalClient.sql(request);
+    }
+
+    public void sql(String stmt, ActionListener<SQLResponse> listener) {
+        sql(new SQLRequest(stmt), listener);
+    }
+
+    public void sql(SQLRequest request, ActionListener<SQLResponse> listener) {
+        internalClient.sql(request, listener);
     }
 
     public Settings settings() {
