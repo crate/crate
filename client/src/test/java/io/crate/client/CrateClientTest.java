@@ -21,6 +21,7 @@
 
 package io.crate.client;
 
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
@@ -34,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.startsWith;
@@ -81,8 +83,14 @@ public class CrateClientTest extends CrateIntegrationTest {
 
     @Test
     public void testAsyncRequest() throws Exception {
+        client().prepareIndex("test", "default", "1")
+                .setRefresh(true)
+                .setSource("{}")
+                .execute()
+                .actionGet();
 
         // In practice use ActionListener onResponse and onFailure to create a Promise instead
+        final SettableFuture future = SettableFuture.<Boolean>create();
         ActionListener<SQLResponse> listener = new ActionListener<SQLResponse>() {
             @Override
             public void onResponse(SQLResponse r) {
@@ -92,15 +100,19 @@ public class CrateClientTest extends CrateIntegrationTest {
 
                 assertThat(r.columnTypes(), is(new DataType[0]));
 
-                System.out.println(Arrays.toString(r.cols()));
+                future.set(true);
             }
             @Override
             public void onFailure(Throwable e) {
-                fail("failed async request");
+                future.set(true);
+                fail(e.getMessage());
             }
         };
 
         client.sql("select \"_id\" from test", listener);
+
+        // this will block until timeout is thrown if listener is not called
+        assertThat((Boolean)future.get(1L, TimeUnit.SECONDS), is(true));
     }
 
     @Test
