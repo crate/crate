@@ -24,6 +24,7 @@ package io.crate.executor.transport.task;
 import com.google.common.base.Joiner;
 import io.crate.Constants;
 import io.crate.PartitionName;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.TaskExecutionException;
 import io.crate.planner.node.ddl.CreateTableNode;
 import org.elasticsearch.action.ActionListener;
@@ -96,7 +97,7 @@ public class CreateTableTask extends AbstractChainedTask<Object[][]> {
 
                 @Override
                 public void onFailure(Throwable e) {
-                    result.setException(e);
+                    setException(e);
                 }
             });
         } else {
@@ -111,9 +112,21 @@ public class CreateTableTask extends AbstractChainedTask<Object[][]> {
 
                 @Override
                 public void onFailure(Throwable e) {
-                    result.setException(e);
+                    setException(e);
                 }
             });
+        }
+    }
+
+    private void setException(Throwable e) {
+        e = Exceptions.unwrap(e);
+        String message = e.getMessage();
+        if (message.equals("mapping [default]") && e.getCause() != null) {
+            // this is a generic mapping parse exception,
+            // the cause has usually a better more detailed error message
+            result.setException(e.getCause());
+        } else {
+            result.setException(e);
         }
     }
 
