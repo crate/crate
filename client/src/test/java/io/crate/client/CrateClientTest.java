@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.types.DataType;
 import io.crate.types.StringType;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.transport.TransportService;
@@ -76,6 +77,30 @@ public class CrateClientTest extends CrateIntegrationTest {
             System.out.println(Arrays.toString(row));
         }
 
+    }
+
+    @Test
+    public void testAsyncRequest() throws Exception {
+
+        // In practice use ActionListener onResponse and onFailure to create a Promise instead
+        ActionListener<SQLResponse> listener = new ActionListener<SQLResponse>() {
+            @Override
+            public void onResponse(SQLResponse r) {
+                assertEquals(1, r.rows().length);
+                assertEquals("_id", r.cols()[0]);
+                assertEquals("1", r.rows()[0][0]);
+
+                assertThat(r.columnTypes(), is(new DataType[0]));
+
+                System.out.println(Arrays.toString(r.cols()));
+            }
+            @Override
+            public void onFailure(Throwable e) {
+                fail("failed async request");
+            }
+        };
+
+        client.sql("select \"_id\" from test", listener);
     }
 
     @Test
