@@ -66,23 +66,6 @@ public class FileReadingCollector implements CrateCollector {
         }
     };
 
-    private static final Map<String, FileInputFactory> builtInFileInputFactories =
-            ImmutableMap.<String, FileInputFactory>of(
-                    "s3", new FileInputFactory() {
-                        @Override
-                        public FileInput create() throws IOException {
-                            return new S3FileInput();
-                        }
-                    },
-                    "file", new FileInputFactory() {
-
-                        @Override
-                        public FileInput create() throws IOException {
-                            return new LocalFsFileInput();
-                        }
-                    }
-    );
-
     public enum FileFormat {
         JSON
     }
@@ -112,7 +95,21 @@ public class FileReadingCollector implements CrateCollector {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.inputs = inputs;
         this.collectorExpressions = collectorExpressions;
-        this.fileInputFactoryMap = new HashMap<>(builtInFileInputFactories);
+        this.fileInputFactoryMap = new HashMap<>(ImmutableMap.<String, FileInputFactory>of(
+                "s3", new FileInputFactory() {
+                    @Override
+                    public FileInput create() throws IOException {
+                        return new S3FileInput();
+                    }
+                },
+                "file", new FileInputFactory() {
+
+                    @Override
+                    public FileInput create() throws IOException {
+                        return new LocalFsFileInput();
+                    }
+                }
+        ));
         this.fileInputFactoryMap.putAll(additionalFileInputFactories);
         this.shared = shared;
         this.numReaders = numReaders;
