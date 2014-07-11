@@ -21,8 +21,6 @@ Unreleased
     - use new sys.nodes.fs expression in order to
       calculate disk utilization of data disks correctly
 
- - fix: return used disk space in bytes
-
  - changed sys.nodes.fs column to contain stats about all mounted disks,
    total disk stats and node data path locations
 
