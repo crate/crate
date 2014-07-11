@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/07/11 0.40.0
+=================
+
  - ``COPY FROM`` / ``COPY TO``: allow importing from and exporting
    to s3 without access credentials (only to / from public resources)
 
