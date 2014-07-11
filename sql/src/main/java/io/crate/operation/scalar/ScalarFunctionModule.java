@@ -66,5 +66,7 @@ public class ScalarFunctionModule extends AbstractModule {
         WithinFunction.register(this);
 
         CastFunction.register(this);
+
+        RandomFunction.register(this);
     }
 }
