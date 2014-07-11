@@ -55,7 +55,12 @@ public class RandomFunctionTest {
     @Test
     public void testEvaluateRandom() {
         assertThat(random.evaluate(new Input[0]).doubleValue(),
-                is(allOf(greaterThanOrEqualTo(o0.0), lessThan(1.0))));
+                is(allOf(greaterThanOrEqualTo(0.0), lessThan(1.0))));
+    }
+
+    @Test
+    public void testNormalizeSymbol() {
+
     }
 
 }

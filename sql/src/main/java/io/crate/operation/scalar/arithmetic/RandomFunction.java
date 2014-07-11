@@ -38,15 +38,14 @@ public class RandomFunction implements Scalar<Number, Void> {
 
     public static final String NAME = "random";
 
-    protected final FunctionInfo info;
+    protected final static FunctionInfo info = new FunctionInfo(
+                                                    new FunctionIdent(NAME, Collections.EMPTY_LIST),
+                                                    DataTypes.DOUBLE);
 
     private Random random = new Random();
 
     public static void register(ScalarFunctionModule module){
-        module.register(new RandomFunction(new FunctionInfo(
-                new FunctionIdent(NAME, Collections.EMPTY_LIST),
-                                  DataTypes.DOUBLE)
-        ));
+        module.register(new RandomFunction());
     }
 
     @Override
@@ -55,9 +54,6 @@ public class RandomFunction implements Scalar<Number, Void> {
         return symbol;
     }
 
-    public RandomFunction(FunctionInfo info) {
-        this.info = info;
-    }
 
     @Override
     public FunctionInfo info() {
@@ -65,9 +61,9 @@ public class RandomFunction implements Scalar<Number, Void> {
     }
 
     @Override
-    public Number evaluate(Input[] args) {
+    public Double evaluate(Input[] args) {
         assert args.length == 0;
-        return (Number)this.random.nextDouble();
+        return this.random.nextDouble();
     }
 
 }
