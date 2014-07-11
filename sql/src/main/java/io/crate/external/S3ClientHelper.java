@@ -21,16 +21,16 @@
 
 package io.crate.external;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.auth.*;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.net.URI;
@@ -39,7 +39,22 @@ import java.net.URI;
 public class S3ClientHelper {
 
     private final static AWSCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER_CHAIN =
-            new DefaultAWSCredentialsProviderChain();
+            new AWSCredentialsProviderChain(
+                    new EnvironmentVariableCredentialsProvider(),
+                    new SystemPropertiesCredentialsProvider(),
+                    new InstanceProfileCredentialsProvider()) {
+
+                        private AWSCredentials ANONYMOUS_CREDENTIALS = new AnonymousAWSCredentials();
+
+                        public AWSCredentials getCredentials() {
+                            try {
+                                return super.getCredentials();
+                            } catch (AmazonClientException ace) {
+                                // allow for anonymous access
+                                return ANONYMOUS_CREDENTIALS;
+                            }
+                        }
+                    };
 
     // TODO: use HTTPS and fix certificate issue
     private final static ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration().withProtocol(Protocol.HTTP);
@@ -47,7 +62,7 @@ public class S3ClientHelper {
 
     private final IntObjectMap<AmazonS3> clientMap = new IntObjectOpenHashMap<>(1);
 
-    protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
+    protected AmazonS3 initClient(@Nullable String accessKey, @Nullable String secretKey) throws IOException {
         if (accessKey == null || secretKey == null) {
             return new AmazonS3Client(DEFAULT_CREDENTIALS_PROVIDER_CHAIN, CLIENT_CONFIGURATION);
         }
@@ -79,7 +94,7 @@ public class S3ClientHelper {
         return client(accessKey, secretKey);
     }
 
-    private AmazonS3 client(String accessKey, String secretKey) throws IOException {
+    private AmazonS3 client(@Nullable String accessKey, @Nullable String secretKey) throws IOException {
         int hash = hash(accessKey, secretKey);
         AmazonS3 client = clientMap.get(hash);
         if (client == null) {
@@ -89,7 +104,7 @@ public class S3ClientHelper {
         return client;
     }
 
-    private static int hash(String accessKey, String secretKey) {
+    private static int hash(@Nullable String accessKey, @Nullable String secretKey) {
         return 31 * (accessKey == null ? 1 : accessKey.hashCode()) + (secretKey == null ? 1 : secretKey.hashCode());
     }
 }

@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - ``COPY FROM`` / ``COPY TO``: allow importing from and exporting
+   to s3 without access credentials (only to / from public resources)
+
  - performance improved of scalar function 'substr'
 
  - updated crate-admin to 0.9.0 which contains following changes

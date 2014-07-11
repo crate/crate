@@ -21,11 +21,16 @@
 
 package io.crate.external;
 
+import com.amazonaws.services.s3.AmazonS3;
 import org.junit.Test;
 
 import java.net.URI;
+import java.net.URL;
+import java.util.Date;
 
 import static junit.framework.Assert.assertNotNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class S3ClientHelperTest {
 
@@ -52,5 +57,24 @@ public class S3ClientHelperTest {
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
         s3ClientHelper.client(new URI("s3://fo/o:inv%2Falid@baz"));
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNoCredentials() throws Exception {
+        AmazonS3 s3Client = s3ClientHelper.client(new URI("s3://host/path/to/file"));
+
+        // use this method without accessing the internet
+        // should throw
+        //     IllegalArgumentException: Access key cannot be null.
+        // in BasicAWSCredentials
+        s3Client.generatePresignedUrl("bucket", "key", new Date());
+    }
+
+    @Test
+    public void testWithCredentials() throws Exception {
+        AmazonS3 s3Client = s3ClientHelper.client(new URI("s3://user:password@host/path"));
+        URL url = s3Client.generatePresignedUrl("bucket", "key", new Date(0L));
+        assertThat(url.toString(), is("http://bucket.s3.amazonaws.com/key?Expires=0&AWSAccessKeyId=user&Signature=o5V2voSQbVEErsUXId6SssCq9OY%3D"));
+    }
+
 
 }

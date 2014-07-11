@@ -59,13 +59,16 @@ Can be used to access buckets on the Amazon AWS S3 Service:
 
 .. code-block:: text
 
-    s3://[<accesskey>:<secretkey>]@<bucketname>/<path>
+    s3://[<accesskey>:<secretkey>@]<bucketname>/<path>
 
 If the accesskey and secret key is ommited an attempt to load the credentials
 from the environment or java settings is made.
 
 Environment Variables - AWS_ACCESS_KEY_ID and AWS_SECRET_KEY
 Java System Properties - aws.accessKeyId and aws.secretKey
+
+If no credentials are set the s3 client will operate in anonymous mode, see
+`AWS Java Documentation`_.
 
 Using a s3 URI will set the ``shared`` option implicitly.
 
@@ -157,5 +160,7 @@ compression
 The default value is ``null``. Can be set to ``gzip`` to read gzipped files.
 
 .. _`AWS documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
+
+.. _`AWS Java Documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
 
 .. _`RFC2396`: http://www.ietf.org/rfc/rfc2396.txt
