@@ -245,3 +245,12 @@ long::
     |         30 |
     +------------+
     SELECT 1 row in set (... sec)
+
+random() returns double
+-----------------------
+
+The ``random`` function returns a random value in the range 0.0 <= X < 1.0
+
+..note::
+
+    All random values within the same row will be equal.
