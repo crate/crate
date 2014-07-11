@@ -68,5 +68,6 @@ public class ScalarFunctionModule extends AbstractModule {
         CastFunction.register(this);
 
         RoundFunction.register(this);
+        CeilFunction.register(this);
     }
 }

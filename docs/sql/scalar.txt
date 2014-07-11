@@ -206,7 +206,6 @@ casting from strings to geo point and geo shapes::
 This function can always be used within a ``WHERE`` clause.
 
 
-
 Fulltext Search Functions
 =========================
 
@@ -264,8 +263,12 @@ returned::
 For more information, please refer to :ref:`sql_dml_fulltext_search`.
 
 
+Mathematical Functions
+======================
+
+
 round(number) returns long or integer
-=====================================
+-------------------------------------
 
 If the input is of type double or long the result is the closest long to the
 argument, with ties rounding up.
@@ -281,4 +284,22 @@ See below for an example::
     +-------------+
     |          42 |
     +-------------+
+    SELECT 1 row in set (... sec)
+
+
+ceil(number) returns long or integer
+------------------------------------
+
+Returns the smallest integer or long value that is not less than the argument.
+
+Return value will be of type integer if the input value is an integer or float.
+If the input value is of type long or double the return value will be of type
+long::
+
+    cr> select ceil(29.9) from sys.cluster;
+    +------------+
+    | ceil(29.9) |
+    +------------+
+    |         30 |
+    +------------+
     SELECT 1 row in set (... sec)
