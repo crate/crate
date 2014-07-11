@@ -206,6 +206,7 @@ casting from strings to geo point and geo shapes::
 This function can always be used within a ``WHERE`` clause.
 
 
+
 Fulltext Search Functions
 =========================
 
@@ -261,3 +262,23 @@ returned::
     SELECT 3 rows in set (... sec)
 
 For more information, please refer to :ref:`sql_dml_fulltext_search`.
+
+
+round(number) returns long or integer
+=====================================
+
+If the input is of type double or long the result is the closest long to the
+argument, with ties rounding up.
+
+If the input is of type float or integer the result is the closest integer to
+the argument, with ties rounding up.
+
+See below for an example::
+
+    cr> select round(42.2) from sys.cluster;
+    +-------------+
+    | round(42.2) |
+    +-------------+
+    |          42 |
+    +-------------+
+    SELECT 1 row in set (... sec)
