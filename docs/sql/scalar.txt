@@ -193,3 +193,23 @@ casting from strings to geo point and geo shapes::
     SELECT 1 row in set (... sec)
 
 This function can always be used within a ``WHERE`` clause.
+
+
+round(number) returns long or integer
+=====================================
+
+If the input is of type double or long the result is the closest long to the
+argument, with ties rounding up.
+
+If the input is of type float or integer the result is the closest integer to
+the argument, with ties rounding up.
+
+See below for an example::
+
+    cr> select round(42.2) from sys.cluster;
+    +-------------+
+    | round(42.2) |
+    +-------------+
+    |          42 |
+    +-------------+
+    SELECT 1 row in set (... sec)
