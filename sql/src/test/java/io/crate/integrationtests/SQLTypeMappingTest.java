@@ -34,6 +34,7 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
@@ -52,7 +53,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     private void setUpSimple(int numShards) throws IOException {
-        String stmt = String.format("create table t1 (" +
+        String stmt = String.format(Locale.ENGLISH, "create table t1 (" +
                 " id integer primary key," +
                 " string_field string," +
                 " boolean_field boolean," +
