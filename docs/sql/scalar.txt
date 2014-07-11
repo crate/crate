@@ -193,3 +193,24 @@ casting from strings to geo point and geo shapes::
     SELECT 1 row in set (... sec)
 
 This function can always be used within a ``WHERE`` clause.
+
+random() returns double
+=======================
+
+The ``random`` functions returns a random value in the range 0.0 <= X < 1.0
+
+See below for an example::
+
+    cr> select random() from sys.cluster;
+    +----------------+
+    |       random() |
+    +----------------+
+    | ...            |
+    +----------------+
+    SELECT 1 row in set (... sec)
+
+This function can always be used within a ``WHERE`` clause.
+
+..note::
+
+    All random values in a row will be equal.
