@@ -18,10 +18,68 @@ Scalar functions return a single data value (not a table).
 
 See below for a list of available scalar functions.
 
+
+Generic Functions
+=================
+
+format('format_string', parameter, [ parameter , ... ]) returns string
+----------------------------------------------------------------------
+
+The ``format`` function takes a format string and a variable number of
+arguments and returns a formatted string::
+
+    cr> select format('%s.%s', schema_name, table_name) from sys.shards
+    ... where table_name = 'locations'
+    ... limit 1;
+    +------------------------------------------+
+    | format('%s.%s', schema_name, table_name) |
+    +------------------------------------------+
+    | doc.locations                            |
+    +------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select format('%tY', date) from locations
+    ... group by format('%tY', date)
+    ... order by 1;
+    +---------------------+
+    | format('%tY', date) |
+    +---------------------+
+    |                1979 |
+    |                2013 |
+    +---------------------+
+    SELECT 2 rows in set (... sec)
+
+For details about the format string syntax see `formatter`_
+
+.. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
+
+substr('string', from, [ count ]) returns string
+------------------------------------------------
+
+The ``substr`` function extracts a substring from a given string
+starting at character ``from``. It takes an optional argument ``count``
+which defines the length of the substring::
+
+    cr> select substr(name, 3, 2) from sys.nodes
+    ... limit 1;
+    +--------------------+
+    | substr(name, 3, 2) |
+    +--------------------+
+    | at                 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
+
+Date/Time Functions
+===================
+
 .. _scalar-date-trunc:
 
 date_trunc('interval', ['timezone',] timestamp) returns timestamp
-=================================================================
+-----------------------------------------------------------------
 
 The ``date_trunc`` function truncates a timestamp to a given interval
 for a specific timezone.
@@ -87,58 +145,11 @@ If the time zone is not specified, truncation is based on UTC time::
 
 .. _`Joda-Time`: http://www.joda.org/joda-time/
 
-format('format_string', parameter, [ parameter , ... ]) returns string
-======================================================================
-
-The ``format`` function takes a format string and a variable number of
-arguments and returns a formatted string::
-
-    cr> select format('%s.%s', schema_name, table_name) from sys.shards
-    ... where table_name = 'locations'
-    ... limit 1;
-    +------------------------------------------+
-    | format('%s.%s', schema_name, table_name) |
-    +------------------------------------------+
-    | doc.locations                            |
-    +------------------------------------------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> select format('%tY', date) from locations
-    ... group by format('%tY', date)
-    ... order by 1;
-    +---------------------+
-    | format('%tY', date) |
-    +---------------------+
-    |                1979 |
-    |                2013 |
-    +---------------------+
-    SELECT 2 rows in set (... sec)
-
-For details about the format string syntax see `formatter`_
-
-.. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
-
-substr('string', from, [ count ]) returns string
-================================================
-
-The ``substr`` function extracts a substring from a given string
-starting at character ``from``. It takes an optional argument ``count``
-which defines the length of the substring::
-
-    cr> select substr(name, 3, 2) from sys.nodes
-    ... limit 1;
-    +--------------------+
-    | substr(name, 3, 2) |
-    +--------------------+
-    | at                 |
-    +--------------------+
-    SELECT 1 row in set (... sec)
-
+Geo Functions
+=============
 
 distance(geo_point1, geo_point2) returns double
-===============================================
+-----------------------------------------------
 
 The ``distance`` function can be used to calculate the distance between two
 points on earth.
@@ -167,13 +178,13 @@ the other argument must be a column reference.
     is used as part of the result column list has a different precision than
     what is stored inside the index which is utilized if the distance function
     is part of a WHERE clause.
-    
+
     For example if `select distance(...)` returns 0.0 an equality check with
     `where distance(...) = 0` might not yield anything at all due to the
     precision difference.
 
 within(shape1, shape2) returns boolean
-======================================
+--------------------------------------
 
 The ``within`` function returns true if ``shape1`` is within ``shape2``. If
 that is not the case false is returned.
@@ -195,8 +206,11 @@ casting from strings to geo point and geo shapes::
 This function can always be used within a ``WHERE`` clause.
 
 
+Mathematical Functions
+======================
+
 round(number) returns long or integer
-=====================================
+-------------------------------------
 
 If the input is of type double or long the result is the closest long to the
 argument, with ties rounding up.
@@ -212,4 +226,22 @@ See below for an example::
     +-------------+
     |          42 |
     +-------------+
+    SELECT 1 row in set (... sec)
+
+
+ceil(number) returns long or integer
+------------------------------------
+
+Returns the smallest integer or long value that is not less than the argument.
+
+Return value will be of type integer if the input value is an integer or float.
+If the input value is of type long or double the return value will be of type
+long::
+
+    cr> select ceil(29.9) from sys.cluster;
+    +------------+
+    | ceil(29.9) |
+    +------------+
+    |         30 |
+    +------------+
     SELECT 1 row in set (... sec)
