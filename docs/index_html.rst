@@ -1,3 +1,4 @@
+===========
 First Steps
 ===========
 
@@ -15,9 +16,9 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   hello
    installation
    configuration
+   hello
    sql/index
    blob
    udc
