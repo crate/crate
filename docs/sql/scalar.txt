@@ -274,7 +274,6 @@ See below for an example::
     +-------------+
     SELECT 1 row in set (... sec)
 
-
 abs(number)
 -----------
 
@@ -288,4 +287,18 @@ Example::
     +------------------+--------+--------------+
     |      214748.0998 |      0 |       214748 |
     +------------------+--------+--------------+
+
+sqrt(number) returns double
+---------------------------
+
+Returns the square root of the argument.
+
+See below for an example::
+
+    cr> select sqrt(25.0) from sys.cluster;
+    +------------+
+    | sqrt(25.0) |
+    +------------+
+    |        5.0 |
+    +------------+
     SELECT 1 row in set (... sec)
