@@ -15,7 +15,7 @@ in it along with the according default value.
 The location of the config file can be specified upon startup like
 this::
 
-  sh$ ./bin/crate -Des.config=/path/to/config.yml
+    sh$ ./bin/crate -Des.config=/path/to/config.yml
 
 Any option can be configured either by the config file or as system
 property. If using system properties the required prefix 'es.' will be
@@ -24,14 +24,14 @@ ignored.
 For example, configuring the cluster name by using system properties
 will work this way::
 
- sh$ ./bin/crate -Des.cluster.name=cluster
+    sh$ ./bin/crate -Des.cluster.name=cluster
 
 .. highlight:: yaml
 
 This is exactly the same as setting the cluster name in the config
 file::
 
- cluster.name = cluster
+    cluster.name = cluster
 
 Settings will get applied in the following order where the latter one
 will overwrite the prior one:
