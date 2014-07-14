@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added the intersection function
+
 2014/07/11 0.40.0
 =================
 

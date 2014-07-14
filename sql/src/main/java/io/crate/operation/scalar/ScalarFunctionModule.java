@@ -66,5 +66,6 @@ public class ScalarFunctionModule extends AbstractModule {
         WithinFunction.register(this);
 
         CastFunction.register(this);
+        IntersectFunction.register(this);
     }
 }
