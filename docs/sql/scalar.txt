@@ -273,3 +273,19 @@ See below for an example::
     |          29 |
     +-------------+
     SELECT 1 row in set (... sec)
+
+
+abs(number)
+-----------
+
+Returns the absolute value of the given number in the datatype of the given number::
+
+Example::
+
+    cr> select abs(214748.0998), abs(0), abs(-214748) from sys.cluster;
+    +------------------+--------+--------------+
+    | abs(214748.0998) | abs(0) | abs(-214748) |
+    +------------------+--------+--------------+
+    |      214748.0998 |      0 |       214748 |
+    +------------------+--------+--------------+
+    SELECT 1 row in set (... sec)
