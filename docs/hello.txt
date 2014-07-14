@@ -9,7 +9,6 @@ This tutorial uses the ``crash`` command-line SQL_ shell shipped with
 the Crate distribution.
 ::
 
-    sh$ cd crate
     sh$ ./bin/crash
 
 .. highlight:: psql
