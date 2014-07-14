@@ -312,3 +312,39 @@ The ``random`` function returns a random value in the range 0.0 <= X < 1.0
 ..note::
 
     All random values within the same row will be equal.
+
+
+floor(number) returns long or integer
+-------------------------------------
+
+Returns the largest integer or long value that is not greater than the argument.
+
+Return value will be an integer if the input value is an integer or a float.
+If the input value is of type long or double the return value will be of type long.
+
+See below for an example::
+
+    
+    cr> select floor(29.9) from sys.cluster;
+    +-------------+
+    | floor(29.9) |
+    +-------------+
+    |          29 |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
+abs(number)
+-----------
+
+Returns the absolute value of the given number in the datatype of the given number::
+
+Example::
+
+    cr> select abs(214748.0998), abs(0), abs(-214748) from sys.cluster;
+    +------------------+--------+--------------+
+    | abs(214748.0998) | abs(0) | abs(-214748) |
+    +------------------+--------+--------------+
+    |      214748.0998 |      0 |       214748 |
+    +------------------+--------+--------------+
+    SELECT 1 row in set (... sec)
