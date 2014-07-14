@@ -119,7 +119,7 @@ public class SquareRootFunctionTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testInvalidType() throws Exception {
-       evaluate(0, DataTypes.STRING);
+        functions.get(new FunctionIdent(SquareRootFunction.NAME,Arrays.<DataType>asList(DataTypes.STRING) ));
     }
 
     @Test
