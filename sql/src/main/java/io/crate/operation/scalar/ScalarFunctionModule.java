@@ -72,5 +72,6 @@ public class ScalarFunctionModule extends AbstractModule {
         RandomFunction.register(this);
         FloorFunction.register(this);
         AbsFunction.register(this);
+        SquareRootFunction.register(this);
     }
 }
