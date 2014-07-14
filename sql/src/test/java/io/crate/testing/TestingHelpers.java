@@ -155,6 +155,10 @@ public class TestingHelpers {
         assertThat((T)((Literal) symbol).value(), is(expectedValue));
     }
 
+    public static void assertNullLiteral(Symbol symbol) {
+        assertLiteral(symbol, null, DataTypes.NULL);
+    }
+
     public static void assertLiteralSymbol(Symbol symbol, Object expectedValue, DataType type) {
         assertThat(symbol, instanceOf(Literal.class));
         assertEquals(type, ((Literal)symbol).valueType());
