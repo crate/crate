@@ -148,6 +148,10 @@ public class TestingHelpers {
         assertLiteral(symbol, expectedValue, DataTypes.DOUBLE);
     }
 
+    public static void assertLiteralSymbol(Symbol symbol, Float expectedValue) {
+        assertLiteral(symbol, expectedValue, DataTypes.FLOAT);
+    }
+
     @SuppressWarnings("unchecked")
     private static <T> void assertLiteral(Symbol symbol, T expectedValue, DataType type) {
         assertThat(symbol, instanceOf(Literal.class));
