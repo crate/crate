@@ -45,6 +45,10 @@ import static org.junit.Assert.assertThat;
 
 public class AbsFunctionTest {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     private Functions functions;
 
     @Before
@@ -99,13 +103,15 @@ public class AbsFunctionTest {
     @Test
     public void testNormalizeValueSymbol() throws Exception {
         Number posVal;
+        Number zeroVal;
         Number negVal;
         for (DataType type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             posVal = (Number)type.value(1);
             TestingHelpers.assertLiteralSymbol(normalize(posVal, type),
                     type.value(1), type);
 
-            TestingHelpers.assertLiteralSymbol(normalize(0, type),
+            zeroVal = (Number)type.value(0);
+            TestingHelpers.assertLiteralSymbol(normalize(zeroVal, type),
                     type.value(0), type);
 
             negVal = (Number)type.value(-1);
