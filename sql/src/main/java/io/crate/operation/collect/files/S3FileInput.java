@@ -36,6 +36,8 @@ import java.util.List;
 
 public class S3FileInput implements FileInput {
 
+    private AmazonS3 client; // to prevent early GC during getObjectContent() in getStream()
+
     final S3ClientHelper clientBuilder;
 
     public S3FileInput() {
@@ -49,7 +51,9 @@ public class S3FileInput implements FileInput {
     @Override
     public List<URI> listUris(URI uri, Predicate<URI> uriPredicate) throws IOException {
         String bucketName = uri.getHost();
-        AmazonS3 client = clientBuilder.client(uri);
+        if (client == null) {
+            client = clientBuilder.client(uri);
+        }
         String prefix = uri.getPath().length() > 1 ? uri.getPath().substring(1) : "";
         ObjectListing list = client.listObjects(bucketName, prefix);
         List<URI> uris = new ArrayList<>();
@@ -69,8 +73,11 @@ public class S3FileInput implements FileInput {
 
     @Override
     public InputStream getStream(URI uri) throws IOException {
-        AmazonS3 client = clientBuilder.client(uri);
+        if (client == null) {
+            client = clientBuilder.client(uri);
+        }
         S3Object object = client.getObject(uri.getHost(), uri.getPath().substring(1));
+
         if (object != null) {
             return object.getObjectContent();
         }

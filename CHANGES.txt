@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: prevent early GC of AmazonS3Client which caused
+   premature end of response body in ``COPY FROM``
+
 2014/07/11 0.40.0
 =================
 
