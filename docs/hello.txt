@@ -1,11 +1,18 @@
-.. highlight:: psql
+.. highlight:: sh
 
 ===========
 Hello Crate
 ===========
 
 To get started let's have a quick look on how Crate Data can be used.
-This tutorial uses the `crash` command-line SQL_ shell shipped with Crate.
+This tutorial uses the ``crash`` command-line SQL_ shell shipped with
+the Crate distribution.
+::
+
+    sh$ cd crate
+    sh$ ./bin/crash
+
+.. highlight:: psql
 
 First lets connect to a running node::
 
@@ -19,7 +26,7 @@ First lets connect to a running node::
 
 
 In this guide we want to create a database for Twitter_ tweets. Let's create
-the table `tweets` with all columns we need.
+the table ``tweets`` with all columns we need.
 In order to keep this tutorial simple, we'll just inserting the user_id instead of a complete
 user object::
 
@@ -54,6 +61,11 @@ Looking up only Ford's tweets::
     SELECT 1 row in set (... sec)
 
 
+.. seealso::
+
+ :doc:`Installation <installation>`
+
 .. _SQL: https://en.wikipedia.org/wiki/SQL
+
 .. _Twitter: https://twitter.com
 
