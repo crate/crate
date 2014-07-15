@@ -50,7 +50,7 @@ public class DigestBlob {
     private AtomicLong headSize;
     private MessageDigest md;
     private long chunks;
-    private CountDownLatch headCatchedupLatch;
+    private CountDownLatch headCatchedUpLatch;
     private static final ESLogger logger = Loggers.getLogger(DigestBlob.class);
 
     public DigestBlob(BlobContainer container, String digest, UUID transferId) {
@@ -192,7 +192,7 @@ public class DigestBlob {
         }
         headSize.addAndGet(written);
         if (headSize.get() == headLength) {
-            headCatchedupLatch.countDown();
+            headCatchedUpLatch.countDown();
         }
     }
 
@@ -216,7 +216,7 @@ public class DigestBlob {
             digestBlob.headFileChannel = new FileOutputStream(digestBlob.file, false).getChannel();
             digestBlob.headLength = currentPos;
             digestBlob.headSize = new AtomicLong();
-            digestBlob.headCatchedupLatch = new CountDownLatch(1);
+            digestBlob.headCatchedUpLatch = new CountDownLatch(1);
 
             RandomAccessFile raf = new RandomAccessFile(digestBlob.file, "rw");
             raf.setLength(currentPos);
@@ -237,11 +237,11 @@ public class DigestBlob {
             return;
         }
 
-        assert headCatchedupLatch != null;
+        assert headCatchedUpLatch != null;
         try {
-            headCatchedupLatch.await();
+            headCatchedUpLatch.await();
         } catch (InterruptedException e) {
-            // pass
+            Thread.interrupted();
         }
     }
 }

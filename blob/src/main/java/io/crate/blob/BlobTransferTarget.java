@@ -31,10 +31,14 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -44,22 +48,36 @@ public class BlobTransferTarget extends AbstractComponent {
         ConcurrentCollections.newConcurrentMap();
 
     private final BlobIndices blobIndices;
+    private final ThreadPool threadPool;
     private final TransportService transportService;
     private final ClusterService clusterService;
     private CountDownLatch getHeadRequestLatch;
     private SettableFuture<CountDownLatch> getHeadRequestLatchFuture;
-    private final ConcurrentLinkedQueue activePutHeadChunkTransfers;
+    private final ConcurrentLinkedQueue<UUID> activePutHeadChunkTransfers;
     private CountDownLatch activePutHeadChunkTransfersLatch;
+    private volatile boolean recoveryActive = false;
+    private final Object lock = new Object();
+    private final List<UUID> finishedUploads = new ArrayList<>();
+    private final TimeValue STATE_REMOVAL_DELAY;
 
     @Inject
     public BlobTransferTarget(Settings settings, BlobIndices blobIndices,
-                              TransportService transportService, ClusterService clusterService) {
+                              ThreadPool threadPool,
+                              TransportService transportService,
+                              ClusterService clusterService) {
         super(settings);
+        String property = System.getProperty("tests.short_timeouts");
+        if (property == null) {
+            STATE_REMOVAL_DELAY = new TimeValue(40, TimeUnit.SECONDS);
+        } else {
+            STATE_REMOVAL_DELAY = new TimeValue(2, TimeUnit.SECONDS);
+        }
         this.blobIndices = blobIndices;
+        this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.getHeadRequestLatchFuture = SettableFuture.create();
-        this.activePutHeadChunkTransfers = new ConcurrentLinkedQueue();
+        this.activePutHeadChunkTransfers = new ConcurrentLinkedQueue<>();
     }
 
     public BlobTransferStatus getActiveTransfer(UUID transferId) {
@@ -144,9 +162,7 @@ public class BlobTransferTarget extends AbstractComponent {
         BlobShard blobShard;
         try {
             blobShard = blobIndices.blobShardFuture(transferInfoResponse.index, shardId).get();
-        } catch (InterruptedException e) {
-            throw new TransferRestoreException("failure loading blobShard", request.transferId, e);
-        } catch (ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             throw new TransferRestoreException("failure loading blobShard", request.transferId, e);
         }
 
@@ -191,12 +207,59 @@ public class BlobTransferTarget extends AbstractComponent {
             } catch (DigestMismatchException e) {
                 response.status(RemoteDigestBlob.Status.MISMATCH);
             } finally {
-                activeTransfers.remove(status.transferId());
+                removeTransferAfterRecovery(status.transferId());
             }
             logger.debug("transfer finished digest:{} status:{} size:{} chunks:{}",
                 status.transferId(), response.status(), response.size(), digestBlob.chunks());
         } else {
             response.status(RemoteDigestBlob.Status.PARTIAL);
+        }
+    }
+
+    private void removeTransferAfterRecovery(UUID transferId) {
+        boolean toSchedule = false;
+        synchronized (lock) {
+            if (recoveryActive) {
+                /**
+                 * the recovery target node might request the transfer context. So it is
+                 * necessary to keep the state until the recovery is done.
+                 */
+                finishedUploads.add(transferId);
+            } else {
+                toSchedule = true;
+            }
+        }
+        if (toSchedule) {
+            logger.info("finished transfer {}, removing state", transferId);
+
+            /**
+             * there might be a race condition that the recoveryActive flag is still false although a
+             * recovery has been started.
+             *
+             * delay the state removal a bit and re-check the recoveryActive flag in order to not remove
+             * states which might still be needed.
+             */
+            threadPool.schedule(STATE_REMOVAL_DELAY, ThreadPool.Names.GENERIC, new StateRemoval(transferId));
+        }
+    }
+
+    private class StateRemoval implements Runnable {
+
+        private final UUID transferId;
+
+        private StateRemoval(UUID transferId) {
+            this.transferId = transferId;
+        }
+
+        @Override
+        public void run() {
+            synchronized (lock) {
+                if (recoveryActive) {
+                    finishedUploads.add(transferId);
+                } else {
+                    activeTransfers.remove(transferId);
+                }
+            }
         }
     }
 
@@ -223,14 +286,12 @@ public class BlobTransferTarget extends AbstractComponent {
      * The number of GetHeadRequests that are expected is  set when
      * {@link #createActiveTransfersSnapshot()} is called
      *
-     * @param num
-     * @param timeUnit
      */
     public void waitForGetHeadRequests(int num, TimeUnit timeUnit) {
         try {
             getHeadRequestLatch.await(num, timeUnit);
         } catch (InterruptedException e) {
-            // pass
+            Thread.interrupted();
         }
     }
 
@@ -238,7 +299,7 @@ public class BlobTransferTarget extends AbstractComponent {
         try {
             activePutHeadChunkTransfersLatch.await();
         } catch (InterruptedException e) {
-            // pass
+            Thread.interrupted();
         }
     }
 
@@ -252,9 +313,7 @@ public class BlobTransferTarget extends AbstractComponent {
                 getHeadRequestLatch = getHeadRequestLatchFuture.get();
                 activePutHeadChunkTransfers.add(transferId);
                 getHeadRequestLatch.countDown();
-            } catch (InterruptedException e) {
-                logger.error("can't retrieve getHeadRequestLatch", e);
-            } catch (ExecutionException e) {
+            } catch (InterruptedException | ExecutionException e) {
                 logger.error("can't retrieve getHeadRequestLatch", e);
             }
         }
@@ -268,6 +327,20 @@ public class BlobTransferTarget extends AbstractComponent {
         activePutHeadChunkTransfers.remove(transferId);
         if (activePutHeadChunkTransfersLatch != null) {
             activePutHeadChunkTransfersLatch.countDown();
+        }
+    }
+
+    public void startRecovery() {
+        recoveryActive = true;
+    }
+
+    public void stopRecovery() {
+        synchronized (lock) {
+            recoveryActive = false;
+            for (UUID finishedUpload : finishedUploads) {
+                logger.info("finished transfer and recovery for {}, removing state", finishedUpload);
+                activeTransfers.remove(finishedUpload);
+            }
         }
     }
 }

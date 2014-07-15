@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: there was a possible race condition that could occur during blob
+   relocation.
+
  - fix: fetch all keys from buckets with more than 1000 files
    for import from S3
 

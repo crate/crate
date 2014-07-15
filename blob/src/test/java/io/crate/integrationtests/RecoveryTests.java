@@ -65,6 +65,7 @@ public class RecoveryTests extends CrateIntegrationTest {
     private AtomicInteger timeBetweenChunks = new AtomicInteger();
 
     static {
+        System.setProperty("tests.short_timeouts", "true");
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
 
         Logger logger;
@@ -87,7 +88,6 @@ public class RecoveryTests extends CrateIntegrationTest {
         consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
         logger.addAppender(consoleAppender);
     }
-
 
     private byte[] getDigest(String content) {
         try {
@@ -118,6 +118,7 @@ public class RecoveryTests extends CrateIntegrationTest {
                 try {
                     Thread.sleep(timeBetweenChunks.get());
                 } catch (InterruptedException ex) {
+                    Thread.interrupted();
                 }
                 bytes = new BytesArray(new byte[]{contentBytes[i]});
                 client.execute(PutChunkAction.INSTANCE,
@@ -162,7 +163,6 @@ public class RecoveryTests extends CrateIntegrationTest {
 
         logger.trace("--> starting [node2] ...");
         final String node2 = cluster().startNode();
-
         ensureGreen();
 
         final AtomicLong idGenerator = new AtomicLong();
