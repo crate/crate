@@ -4303,4 +4303,23 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into t2 (p) (select p from t)");
         assertThat(response.rowCount(), is(1L));
     }
+
+    @Test
+    public void testMathFunctionNullArguments() throws Exception {
+        testMathFunction("round(null)");
+        testMathFunction("ceil(null)");
+        testMathFunction("floor(null)");
+        testMathFunction("abs(null)");
+        testMathFunction("sqrt(null)");
+        testMathFunction("log(null)");
+        testMathFunction("log(null, 1)");
+        testMathFunction("log(1, null)");
+        testMathFunction("log(null, null)");
+        testMathFunction("ln(null)");
+    }
+
+    public void testMathFunction(String function) {
+        assertNull(execute("select " + function + " from sys.cluster").rows()[0][0]);
+    }
+
 }
