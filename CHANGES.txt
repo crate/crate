@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/07/15 0.40.1
+=================
+
  - fix: expose close() in crate client
 
  - fix: make timeout of ``insert by query`` request configurable
