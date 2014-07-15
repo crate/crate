@@ -21,6 +21,7 @@
 
 package io.crate.operation.scalar.arithmetic;
 
+import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -33,10 +34,15 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.Arrays;
+import java.util.Set;
 
 public abstract class LogFunction implements Scalar<Number,Number> {
 
     public static final String NAME = "log";
+    private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()
+            .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
+            .add(DataTypes.NULL)
+            .build();
 
     protected final FunctionInfo info;
 
@@ -74,8 +80,8 @@ public abstract class LogFunction implements Scalar<Number,Number> {
 
         protected static void registerLogBaseFunctions(ScalarFunctionModule module) {
             // log(baseType, valueType) : double
-            for (DataType baseType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-                for (DataType valueType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            for (DataType baseType : ALLOWED_TYPES) {
+                for (DataType valueType : ALLOWED_TYPES) {
                     FunctionInfo info = new FunctionInfo(
                             new FunctionIdent(
                                     NAME,
@@ -124,7 +130,7 @@ public abstract class LogFunction implements Scalar<Number,Number> {
 
         protected static void registerLog10Functions(ScalarFunctionModule module) {
             // log(dataType) : double
-            for (DataType dt : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
                 module.register(new Log10Function(info));
             }
@@ -164,7 +170,7 @@ public abstract class LogFunction implements Scalar<Number,Number> {
 
         protected static void registerLnFunctions(ScalarFunctionModule module) {
             // ln(dataType) : double
-            for (DataType dt : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(LnFunction.NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
                 module.register(new LnFunction(info));
             }
