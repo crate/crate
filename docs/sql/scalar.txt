@@ -209,23 +209,17 @@ This function can always be used within a ``WHERE`` clause.
 Mathematical Functions
 ======================
 
-round(number) returns long or integer
--------------------------------------
+abs(number)
+-----------
 
-If the input is of type double or long the result is the closest long to the
-argument, with ties rounding up.
+Returns the absolute value of the given number in the datatype of the given number::
 
-If the input is of type float or integer the result is the closest integer to
-the argument, with ties rounding up.
-
-See below for an example::
-
-    cr> select round(42.2) from sys.cluster;
-    +-------------+
-    | round(42.2) |
-    +-------------+
-    |          42 |
-    +-------------+
+    cr> select abs(214748.0998), abs(0), abs(-214748) from sys.cluster;
+    +------------------+--------+--------------+
+    | abs(214748.0998) | abs(0) | abs(-214748) |
+    +------------------+--------+--------------+
+    |      214748.0998 |      0 |       214748 |
+    +------------------+--------+--------------+
     SELECT 1 row in set (... sec)
 
 
@@ -246,14 +240,6 @@ long::
     +------------+
     SELECT 1 row in set (... sec)
 
-random() returns double
------------------------
-
-The ``random`` function returns a random value in the range 0.0 <= X < 1.0
-
-..note::
-
-    All random values within the same row will be equal.
 
 floor(number) returns long or integer
 -------------------------------------
@@ -273,33 +259,28 @@ See below for an example::
     +-------------+
     SELECT 1 row in set (... sec)
 
-abs(number)
------------
 
-Returns the absolute value of the given number in the datatype of the given number::
+ln(number) returns double
+-------------------------
 
-    cr> select abs(214748.0998), abs(0), abs(-214748) from sys.cluster;
-    +------------------+--------+--------------+
-    | abs(214748.0998) | abs(0) | abs(-214748) |
-    +------------------+--------+--------------+
-    |      214748.0998 |      0 |       214748 |
-    +------------------+--------+--------------+
-    SELECT 1 row in set (... sec)
-
-sqrt(number) returns double
----------------------------
-
-Returns the square root of the argument.
+Returns the natural logarithm of given ``number``.
 
 See below for an example::
 
-    cr> select sqrt(25.0) from sys.cluster;
-    +------------+
-    | sqrt(25.0) |
-    +------------+
-    |        5.0 |
-    +------------+
+    cr> SELECT ln(1) FROM sys.cluster;
+    +-------+
+    | ln(1) |
+    +-------+
+    |   0.0 |
+    +-------+
     SELECT 1 row in set (... sec)
+
+.. note::
+
+    An error is returned for arguments which lead to undefined or illegal
+    results. E.g. ln(0) results in ``minus infinity``, and therefore, an
+    error is returned.
+
 
 log(b : number, x : number) returns double
 ------------------------------------------
@@ -335,23 +316,49 @@ The first argument (``b``) is optional. If not present, base 10 is used::
     The same is true for arguments which lead to a ``division by zero``, as
     e.g. log(1, 10) does.
 
-ln(number) returns double
-------------------------------------------
 
-Returns the natural logarithm of given ``number``.
+random() returns double
+-----------------------
 
-See below for an example::
-
-    cr> SELECT ln(1) FROM sys.cluster;
-    +-------+
-    | ln(1) |
-    +-------+
-    |   0.0 |
-    +-------+
-    SELECT 1 row in set (... sec)
+The ``random`` function returns a random value in the range 0.0 <= X < 1.0.
 
 .. note::
 
-    An error is returned for arguments which lead to undefined or illegal
-    results. E.g. ln(0) results in ``minus infinity``, and therefore, an
-    error is returned.
+    All random values within the same row will be equal.
+
+
+round(number) returns long or integer
+-------------------------------------
+
+If the input is of type double or long the result is the closest long to the
+argument, with ties rounding up.
+
+If the input is of type float or integer the result is the closest integer to
+the argument, with ties rounding up.
+
+See below for an example::
+
+    cr> select round(42.2) from sys.cluster;
+    +-------------+
+    | round(42.2) |
+    +-------------+
+    |          42 |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
+sqrt(number) returns double
+---------------------------
+
+Returns the square root of the argument.
+
+See below for an example::
+
+    cr> select sqrt(25.0) from sys.cluster;
+    +------------+
+    | sqrt(25.0) |
+    +------------+
+    |        5.0 |
+    +------------+
+    SELECT 1 row in set (... sec)
+
