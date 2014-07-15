@@ -42,6 +42,7 @@ public abstract class FloorFunction implements Scalar<Number, Number> {
         module.register(new FloatFloorFunction());
         module.register(new NoopFloorFunction(DataTypes.LONG));
         module.register(new NoopFloorFunction(DataTypes.INTEGER));
+        module.register(new NoopFloorFunction(DataTypes.NULL));
     }
 
     @Override
