@@ -36,6 +36,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.startsWith;
@@ -82,7 +83,7 @@ public class CrateClientTest extends CrateIntegrationTest {
     }
 
     @Test
-    public void testAsyncRequest() throws Exception {
+    public void testAsyncRequest() throws Throwable {
         client().prepareIndex("test", "default", "1")
                 .setRefresh(true)
                 .setSource("{}")
@@ -90,29 +91,39 @@ public class CrateClientTest extends CrateIntegrationTest {
                 .actionGet();
 
         // In practice use ActionListener onResponse and onFailure to create a Promise instead
-        final SettableFuture future = SettableFuture.<Boolean>create();
+        final SettableFuture<Boolean> future = SettableFuture.create();
+        final AtomicReference<Throwable> assertionError = new AtomicReference<>();
+
         ActionListener<SQLResponse> listener = new ActionListener<SQLResponse>() {
             @Override
             public void onResponse(SQLResponse r) {
-                assertEquals(1, r.rows().length);
-                assertEquals("_id", r.cols()[0]);
-                assertEquals("1", r.rows()[0][0]);
+                try {
+                    assertEquals(1, r.rows().length);
+                    assertEquals("_id", r.cols()[0]);
+                    assertEquals("1", r.rows()[0][0]);
 
-                assertThat(r.columnTypes(), is(new DataType[0]));
+                    assertThat(r.columnTypes(), is(new DataType[0]));
+                } catch (AssertionError e) {
+                    assertionError.set(e);
+                } finally {
+                    future.set(true);
+                }
 
-                future.set(true);
             }
             @Override
             public void onFailure(Throwable e) {
                 future.set(true);
-                fail(e.getMessage());
+                assertionError.set(e);
             }
         };
-
         client.sql("select \"_id\" from test", listener);
 
         // this will block until timeout is thrown if listener is not called
-        assertThat((Boolean)future.get(1L, TimeUnit.SECONDS), is(true));
+        assertThat(future.get(5L, TimeUnit.SECONDS), is(true));
+        Throwable error = assertionError.get();
+        if (error != null) {
+            throw error;
+        }
     }
 
     @Test
