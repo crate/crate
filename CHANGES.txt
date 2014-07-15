@@ -5,6 +5,17 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - implemented the following scalar functions:
+      abs(x),
+      ceil(x),
+      floor(x),
+      ln(x),
+      log(x),
+      log(b,x),
+      random(),
+      round(x),
+      sqrt(x)
+
  - retry fetching objects from s3 if a connection error occures
 
 2014/07/15 0.40.1

@@ -22,6 +22,7 @@
 package io.crate.operation.scalar.arithmetic;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -32,10 +33,15 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+import java.util.Set;
 
 public abstract class SquareRootFunction implements Scalar<Number, Number> {
 
     public static final String NAME = "sqrt";
+    private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()
+            .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
+            .add(DataTypes.NULL)
+            .build();
 
     private final FunctionInfo info;
 
@@ -84,8 +90,10 @@ public abstract class SquareRootFunction implements Scalar<Number, Number> {
 
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() == 1);
-            Preconditions.checkArgument(DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(dataTypes.get(0)));
+            Preconditions.checkArgument(dataTypes.size() == 1,
+                    "invalid size of arguments, 1 expected");
+            Preconditions.checkArgument(ALLOWED_TYPES.contains(dataTypes.get(0)),
+                    "invalid datatype for %s function", NAME);
             return new DoubleSquareRootFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.DOUBLE));
         }
     }
