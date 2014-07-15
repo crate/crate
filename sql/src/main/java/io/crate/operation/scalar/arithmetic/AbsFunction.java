@@ -23,7 +23,7 @@ package io.crate.operation.scalar.arithmetic;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -39,7 +39,10 @@ import java.util.Set;
 public class AbsFunction implements Scalar<Number, Number> {
 
     public static final String NAME = "abs";
-    private static final Set<DataType> ALLOWED_TYPES = Sets.newHashSet(DataTypes.NUMERIC_PRIMITIVE_TYPES);
+    private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()
+            .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
+            .add(DataTypes.NULL)
+            .build();
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
