@@ -37,6 +37,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -77,6 +78,7 @@ public class BulkShardProcessor {
     private final ReadWriteLock retryLock = new ReadWriteLock();
     private final Semaphore executeLock = new Semaphore(1);
     private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    private final TimeValue requestTimeout;
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
@@ -93,6 +95,7 @@ public class BulkShardProcessor {
         this.bulkSize = bulkSize;
         result = SettableFuture.create();
         autoCreateIndex = new AutoCreateIndex(settings);
+        requestTimeout = settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT);
     }
 
     public boolean add(String indexName, BytesReference source, String id, @Nullable String routing) {
@@ -205,7 +208,7 @@ public class BulkShardProcessor {
                     shardId.id(),
                     false,
                     items.toArray(new BulkItemRequest[items.size()]));
-
+            bulkShardRequest.timeout(requestTimeout);
             execute(bulkShardRequest);
             it.remove();
         }
