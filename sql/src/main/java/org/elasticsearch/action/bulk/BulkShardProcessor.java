@@ -137,7 +137,6 @@ public class BulkShardProcessor {
         }
         indexRequest.source(source, false);
         indexRequest.timestamp(Long.toString(System.currentTimeMillis()));
-        indexRequest.timeout(requestTimeout);
 
         try {
             executeLock.acquire();
@@ -209,7 +208,7 @@ public class BulkShardProcessor {
                     shardId.id(),
                     false,
                     items.toArray(new BulkItemRequest[items.size()]));
-
+            bulkShardRequest.timeout(requestTimeout);
             execute(bulkShardRequest);
             it.remove();
         }
