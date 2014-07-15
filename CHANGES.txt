@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: fetch all keys from buckets with more than 1000 files
+   for import from S3
+
 2014/07/11 0.40.0
 =================
 
