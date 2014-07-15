@@ -55,6 +55,7 @@ public class BlobRecoveryHandler {
     private final RecoverySettings recoverySettings;
     private final InternalIndexShard shard;
     private final BlobTransferTarget blobTransferTarget;
+    private final int GET_HEAD_TIMEOUT;
 
     public BlobRecoveryHandler(TransportService transportService,
                                RecoverySettings recoverySettings,
@@ -68,6 +69,12 @@ public class BlobRecoveryHandler {
         this.transportService = transportService;
         this.blobTransferTarget = blobTransferTarget;
         this.shard = shard;
+        String property = System.getProperty("tests.short_timeouts");
+        if (property == null) {
+            GET_HEAD_TIMEOUT = 30;
+        } else {
+            GET_HEAD_TIMEOUT = 2;
+        }
     }
 
     private Set<BytesArray> getExistingDigestsFromTarget(byte prefix) {
@@ -96,6 +103,7 @@ public class BlobRecoveryHandler {
         logger.debug("[{}][{}] recovery [phase1] to {}: start",
             request.shardId().index().name(), request.shardId().id(), request.targetNode().getName());
         StopWatch stopWatch = new StopWatch().start();
+        blobTransferTarget.startRecovery();
         blobTransferTarget.createActiveTransfersSnapshot();
         sendStartRecoveryRequest();
 
@@ -106,8 +114,9 @@ public class BlobRecoveryHandler {
             throw new ElasticsearchException("blob recovery phase1 failed", ex);
         }
 
-        if (lastException.get() != null) {
-            throw lastException.get();
+        Exception exception = lastException.get();
+        if (exception != null) {
+            throw exception;
         }
 
         /**
@@ -123,7 +132,7 @@ public class BlobRecoveryHandler {
          *      Source Node sets transferTakenOver
          */
 
-        blobTransferTarget.waitForGetHeadRequests(30, TimeUnit.SECONDS);
+        blobTransferTarget.waitForGetHeadRequests(GET_HEAD_TIMEOUT, TimeUnit.SECONDS);
         blobTransferTarget.createActivePutHeadChunkTransfersSnapshot();
 
         /**
@@ -133,6 +142,7 @@ public class BlobRecoveryHandler {
         blobTransferTarget.waitUntilPutHeadChunksAreFinished();
         sendFinalizeRecoveryRequest();
 
+        blobTransferTarget.stopRecovery();
         stopWatch.stop();
         logger.debug("[{}][{}] recovery [phase1] to {}: took [{}]",
             request.shardId().index().name(), request.shardId().id(), request.targetNode().getName(),

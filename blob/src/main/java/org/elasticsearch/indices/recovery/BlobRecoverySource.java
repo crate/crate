@@ -78,20 +78,18 @@ public class BlobRecoverySource extends AbstractComponent {
     private final TimeValue internalActionLongTimeout;
     private final BlobTransferTarget blobTransferTarget;
     private final BlobIndices blobIndices;
-    private final ThreadPool threadPool;
 
 
     @Inject
     public BlobRecoverySource(Settings settings, TransportService transportService, IndicesService indicesService,
                               RecoverySettings recoverySettings, ClusterService clusterService,
-                              BlobTransferTarget blobTransferTarget, BlobIndices blobIndices, ThreadPool threadPool) {
+                              BlobTransferTarget blobTransferTarget, BlobIndices blobIndices) {
         super(settings);
         this.transportService = transportService;
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.blobTransferTarget = blobTransferTarget;
         this.blobIndices = blobIndices;
-        this.threadPool = threadPool;
 
         this.recoverySettings = recoverySettings;
         this.internalActionTimeout = componentSettings.getAsTime("internal_action_timeout", TimeValue.timeValueMinutes(15));
@@ -130,7 +128,7 @@ public class BlobRecoverySource extends AbstractComponent {
 
         final BlobRecoveryHandler blobRecoveryHandler;
 
-        if (blobIndices.isBlobIndex(shard.shardId().getIndex())) {
+        if (BlobIndices.isBlobIndex(shard.shardId().getIndex())) {
             blobRecoveryHandler = new BlobRecoveryHandler(
                 transportService, recoverySettings, blobTransferTarget, blobIndices, shard, request);
         } else {
