@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - retry fetching objects from s3 if a connection error occures
+
 2014/07/15 0.40.1
 =================
 
