@@ -288,6 +288,11 @@
 #
 # discovery.zen.ping.unicast.hosts: ["host1", "host2:port"]
 
+# Ping configuration
+#
+# discovery.zen.fd.ping_timeout: 30s
+# discovery.zen.fd.ping_retries: 3
+# discovery.zen.fd.ping_interval: 1s
 
 ################################## Slow Log ##################################
 
@@ -326,6 +331,11 @@
 #
 #crate.planner.optimize_pk_queries: true
 
+
+# An insert from subquery can take an enormous amount of time and ressources of
+# your cluster. To execute such queries more failsafe even with slower hardware
+# increase this timeout
+#insert_by_query.request_timeout: 1m
 
 ################################### UDC ###################################
 

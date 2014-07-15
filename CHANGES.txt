@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: make timeout of ``insert by query`` request configurable
+   as ``insert_by_query.request_timeout``
+
  - fix: there was a possible race condition that could occur during blob
    relocation.
 
