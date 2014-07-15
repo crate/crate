@@ -97,4 +97,8 @@ public class InternalCrateClient {
     public void addTransportAddress(TransportAddress transportAddress) {
         nodesService.addTransportAddresses(transportAddress);
     }
+
+    public void close() {
+        nodesService.close();
+    }
 }
