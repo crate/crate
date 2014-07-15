@@ -122,4 +122,7 @@ public class CrateClient {
         return settings;
     }
 
+    public void close() {
+        internalClient.close();
+    }
 }
