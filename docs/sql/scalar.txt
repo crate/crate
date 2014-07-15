@@ -265,7 +265,6 @@ If the input value is of type long or double the return value will be of type lo
 
 See below for an example::
 
-    
     cr> select floor(29.9) from sys.cluster;
     +-------------+
     | floor(29.9) |
@@ -279,14 +278,13 @@ abs(number)
 
 Returns the absolute value of the given number in the datatype of the given number::
 
-Example::
-
     cr> select abs(214748.0998), abs(0), abs(-214748) from sys.cluster;
     +------------------+--------+--------------+
     | abs(214748.0998) | abs(0) | abs(-214748) |
     +------------------+--------+--------------+
     |      214748.0998 |      0 |       214748 |
     +------------------+--------+--------------+
+    SELECT 1 row in set (... sec)
 
 sqrt(number) returns double
 ---------------------------
@@ -302,3 +300,58 @@ See below for an example::
     |        5.0 |
     +------------+
     SELECT 1 row in set (... sec)
+
+log(b : number, x : number) returns double
+------------------------------------------
+
+Returns the logarithm of given ``x`` to base ``b``.
+
+See below for an example, which essentially is the same as above::
+
+    cr> SELECT log(10, 100) FROM sys.cluster;
+    +--------------+
+    | log(10, 100) |
+    +--------------+
+    |          2.0 |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+The first argument (``b``) is optional. If not present, base 10 is used::
+
+    cr> SELECT log(100) FROM sys.cluster;
+    +----------+
+    | log(100) |
+    +----------+
+    |      2.0 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+.. note::
+
+    An error is returned for arguments which lead to undefined or illegal
+    results. E.g. log(0) results in ``minus infinity``, and therefore, an
+    error is returned.
+
+    The same is true for arguments which lead to a ``division by zero``, as
+    e.g. log(1, 10) does.
+
+ln(number) returns double
+------------------------------------------
+
+Returns the natural logarithm of given ``number``.
+
+See below for an example::
+
+    cr> SELECT ln(1) FROM sys.cluster;
+    +-------+
+    | ln(1) |
+    +-------+
+    |   0.0 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+.. note::
+
+    An error is returned for arguments which lead to undefined or illegal
+    results. E.g. ln(0) results in ``minus infinity``, and therefore, an
+    error is returned.
