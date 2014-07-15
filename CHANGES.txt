@@ -9,6 +9,8 @@ Unreleased
 
  - improved substr function to not copy underlying byte array
 
+ - retry fetching objects from s3 if a connection error occures
+
 2014/07/15 0.40.1
 =================
 
