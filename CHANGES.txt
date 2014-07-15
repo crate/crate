@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: fetch all keys from buckets with more than 1000 files
+   for import from S3
+
  - fix: prevent early GC of AmazonS3Client which caused
    premature end of response body in ``COPY FROM``
 
