@@ -4322,4 +4322,36 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertNull(execute("select " + function + " from sys.cluster").rows()[0][0]);
     }
 
+    @Test
+    public void testSelectWhereArithmeticScalar() throws Exception {
+        execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into t (d) values (?), (?), (?)", new Object[] { 1.3d, 1.6d, 2.2d });
+        execute("refresh table t");
+
+        execute("select * from t where round(d) < 2");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select * from t where ceil(d) < 3");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select floor(d) from t where floor(d) = 2");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(2L));
+
+        execute("insert into t (d, i) values (?, ?)", new Object[] { -0.2, 10 });
+        execute("refresh table t");
+
+        execute("select abs(d) from t where abs(d) = 0.2");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Double)response.rows()[0][0], is(0.2));
+
+        execute("select ln(i) from t where ln(i) = 2.302585092994046");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Double)response.rows()[0][0], is(2.302585092994046));
+
+        execute("select log(i, 100) from t where log(i, 100) = 0.5");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Double)response.rows()[0][0], is(0.5));
+    }
 }

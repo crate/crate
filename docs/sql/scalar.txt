@@ -209,6 +209,8 @@ This function can always be used within a ``WHERE`` clause.
 Mathematical Functions
 ======================
 
+All mathematical functions can be used within a ``WHERE`` clause.
+
 abs(number)
 -----------
 
