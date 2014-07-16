@@ -28,9 +28,7 @@ import io.crate.planner.symbol.*;
 import io.crate.types.BooleanType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -190,5 +188,19 @@ public class WhereClause implements Streamable {
             helper.add("query", query);
         }
         return helper.toString();
+    }
+
+    /**
+     * Create a deep copy of this class by serialize/un-serialize
+     *
+     * @return
+     */
+    public WhereClause deepCopy() throws IOException {
+        BytesStreamOutput out = new BytesStreamOutput();
+        writeTo(out);
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        WhereClause whereClause = new WhereClause();
+        whereClause.readFrom(in);
+        return whereClause;
     }
 }

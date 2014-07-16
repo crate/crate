@@ -37,7 +37,10 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.node.ddl.*;
+import io.crate.planner.node.ddl.CreateTableNode;
+import io.crate.planner.node.ddl.DropTableNode;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
@@ -560,8 +563,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     private void ESSearch(SelectAnalysis analysis, Plan plan, Context context) {
         // this is an es query
         // this only supports INFOS as order by
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                .searchOutput(analysis.outputSymbols());
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
         final Predicate<Symbol> symbolIsReference = new Predicate<Symbol>() {
             @Override
             public boolean apply(@Nullable Symbol input) {
@@ -573,6 +575,14 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 || context.indexWriterProjection.isPresent();
         List<Symbol> searchSymbols;
         if (needsProjection) {
+            // we must create a deep copy of the where clause because Reference instances inside
+            // will be replaced with InputColumn instances by the context builder
+            try {
+                analysis.whereClause(analysis.whereClause().deepCopy());
+            } catch (IOException e) {
+                throw new RuntimeException("Error happened while copying where clause", e);
+            }
+            contextBuilder.searchOutput(analysis.outputSymbols());
             searchSymbols = contextBuilder.toCollect();
         } else {
             searchSymbols = analysis.outputSymbols();
