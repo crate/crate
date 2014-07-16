@@ -21,8 +21,10 @@
 
 package io.crate.operation.reference.doc.lucene;
 
+import io.crate.core.StringUtils;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
@@ -39,8 +41,9 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
     public LuceneCollectorExpression<?> getImplementation(ReferenceInfo referenceInfo) {
         assert referenceInfo.granularity() == RowGranularity.DOC;
 
-        if (RawCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())){
-            if (referenceInfo.ident().columnIdent().isColumn()){
+        ColumnIdent columnIdent = referenceInfo.ident().columnIdent();
+        if (RawCollectorExpression.COLUMN_NAME.equals(columnIdent.name())){
+            if (columnIdent.isColumn()){
                 return new RawCollectorExpression();
             } else {
                 // TODO: implement an Object source expression which may support subscripts
@@ -48,8 +51,10 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
                         String.format("_source expression does not support subscripts %s",
                         referenceInfo.ident().columnIdent().fqn()));
             }
-        } else if (DocCollectorExpression.COLUMN_NAME.equals(referenceInfo.ident().columnIdent().name())) {
+        } else if (DocCollectorExpression.COLUMN_NAME.equals(columnIdent.name())) {
             return DocCollectorExpression.create(referenceInfo);
+        } else if (TokenCountCollectorExpression.BASE_NAME.equals(columnIdent.name())) {
+            return new TokenCountCollectorExpression(StringUtils.PATH_JOINER.join(columnIdent.path()));
         }
 
         String colName = referenceInfo.ident().columnIdent().fqn();

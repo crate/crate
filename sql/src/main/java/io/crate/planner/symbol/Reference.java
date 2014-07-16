@@ -46,6 +46,7 @@ public class Reference extends DataTypeSymbol {
         this.info = info;
     }
 
+
     public Reference() {
 
     }

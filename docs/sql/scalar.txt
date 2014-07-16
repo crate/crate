@@ -167,7 +167,7 @@ the other argument must be a column reference.
     is used as part of the result column list has a different precision than
     what is stored inside the index which is utilized if the distance function
     is part of a WHERE clause.
-    
+
     For example if `select distance(...)` returns 0.0 an equality check with
     `where distance(...) = 0` might not yield anything at all due to the
     precision difference.
@@ -209,3 +209,24 @@ Example::
     +--------------------------------------+
     SELECT 1 row in set (... sec)
 
+
+token_count(value) returns integer
+==================================
+
+This method returns the number of tokens the given value contains.
+
+If the value is an array or set, the token count will be the number of items
+the array or set contains::
+
+    cr> select token_count([10, 20, 20, 30]) from sys.cluster;
+    +----------------------------+
+    | token_count([10,20,20,30]) |
+    +----------------------------+
+    |                          4 |
+    +----------------------------+
+    SELECT 1 row in set (... sec)
+
+If the argument is a column reference instead of a literal the function behaves
+a bit different. It will utilize the lucene index to determine the token count.
+This means that duplicates aren't counted and if the column has been indexed
+using a fulltext analyzer the number of terms in the index will be returned.
