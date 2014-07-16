@@ -282,22 +282,22 @@ See below for an example::
     error is returned.
 
 
-log(b : number, x : number) returns double
+log(x : number, b : number) returns double
 ------------------------------------------
 
 Returns the logarithm of given ``x`` to base ``b``.
 
 See below for an example, which essentially is the same as above::
 
-    cr> SELECT log(10, 100) FROM sys.cluster;
+    cr> SELECT log(100, 10) FROM sys.cluster;
     +--------------+
-    | log(10, 100) |
+    | log(100, 10) |
     +--------------+
     |          2.0 |
     +--------------+
     SELECT 1 row in set (... sec)
 
-The first argument (``b``) is optional. If not present, base 10 is used::
+The second argument (``b``) is optional. If not present, base 10 is used::
 
     cr> SELECT log(100) FROM sys.cluster;
     +----------+
@@ -314,7 +314,7 @@ The first argument (``b``) is optional. If not present, base 10 is used::
     error is returned.
 
     The same is true for arguments which lead to a ``division by zero``, as
-    e.g. log(1, 10) does.
+    e.g. log(10, 1) does.
 
 
 random() returns double

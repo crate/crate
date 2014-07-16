@@ -124,7 +124,7 @@ public class LogFunctionTest {
         TestingHelpers.assertLiteralSymbol(normalizeLn(1, DataTypes.INTEGER), 0.0);
         TestingHelpers.assertLiteralSymbol(normalizeLn(null, DataTypes.DOUBLE), null, DataTypes.DOUBLE);
 
-        // test log(b, x) ... explicit base
+        // test log(x, b) ... explicit base
         TestingHelpers.assertLiteralSymbol(normalizeLog(10.0, DataTypes.DOUBLE, 10.0, DataTypes.DOUBLE), 1.0);
         TestingHelpers.assertLiteralSymbol(normalizeLog(10f, DataTypes.FLOAT, 10.0, DataTypes.DOUBLE), 1.0);
         TestingHelpers.assertLiteralSymbol(normalizeLog(10.0, DataTypes.DOUBLE, 10.0f, DataTypes.FLOAT), 1.0);
@@ -171,7 +171,7 @@ public class LogFunctionTest {
     @Test(expected = IllegalArgumentException.class)
     public void testNormalizeLogDivisionByZero() throws Exception {
         // division by zero
-        normalizeLog(1.0, DataTypes.DOUBLE, 10.0, DataTypes.DOUBLE);
+        normalizeLog(10.0, DataTypes.DOUBLE, 1.0, DataTypes.DOUBLE);
     }
 
     @Test
@@ -219,11 +219,11 @@ public class LogFunctionTest {
 
     @Test
     public void testEvaluateLogBase() throws Exception {
-        assertThat((Double) evaluateLog((short) 10, DataTypes.SHORT, 100, DataTypes.INTEGER), is(2.0));
-        assertThat((Double) evaluateLog(10f, DataTypes.FLOAT, 100.0, DataTypes.DOUBLE), is(2.0));
-        assertThat((Double) evaluateLog(10L, DataTypes.LONG, 100f, DataTypes.FLOAT), is(2.0));
-        assertThat((Double) evaluateLog(10, DataTypes.INTEGER, 100L, DataTypes.LONG), is(2.0));
-        assertThat((Double) evaluateLog(10.0f, DataTypes.FLOAT, (short) 100, DataTypes.SHORT), is(2.0));
+        assertThat((Double) evaluateLog((short) 10, DataTypes.SHORT, 100, DataTypes.INTEGER), is(0.5));
+        assertThat((Double) evaluateLog(10f, DataTypes.FLOAT, 100.0, DataTypes.DOUBLE), is(0.5));
+        assertThat((Double) evaluateLog(10L, DataTypes.LONG, 100f, DataTypes.FLOAT), is(0.5));
+        assertThat((Double) evaluateLog(10, DataTypes.INTEGER, 100L, DataTypes.LONG), is(0.5));
+        assertThat((Double) evaluateLog(10.0f, DataTypes.FLOAT, (short) 100, DataTypes.SHORT), is(0.5));
 
         assertThat(evaluateLog(null, DataTypes.DOUBLE, (short) 10, DataTypes.SHORT), nullValue());
         assertThat(evaluateLog(10.0, DataTypes.DOUBLE, null, DataTypes.DOUBLE), nullValue());
