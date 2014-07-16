@@ -81,16 +81,10 @@ public class LogFunctionTest {
         );
     }
 
-    private Symbol normalizeLog(Number value, DataType valueType, Number base, DataType baseType) {
-        LogFunction function = getFunction(LogFunction.NAME, valueType, baseType);
+    private Symbol normalizeLog(Number base, DataType baseType, Number value, DataType valueType) {
+        LogFunction function = getFunction(LogFunction.NAME, baseType, valueType);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(valueType, value), Literal.newLiteral(baseType, base))));
-    }
-
-    private Symbol normalizeLog(Object value, DataType valueType, Object base, DataType baseType) {
-        LogFunction function = getFunction(LogFunction.NAME, valueType, baseType);
-        return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(valueType, value), Literal.newLiteral(baseType, base))));
+                Arrays.<Symbol>asList(Literal.newLiteral(baseType, base), Literal.newLiteral(valueType, value))));
     }
 
     private Number evaluateLog(Number value, DataType valueType) {
@@ -101,10 +95,10 @@ public class LogFunctionTest {
         return getFunction(LogFunction.LnFunction.NAME, valueType).evaluate((Input) Literal.newLiteral(valueType, value));
     }
 
-    private Number evaluateLog(Number value, DataType valueType, Number base, DataType baseType) {
-        return getFunction(LogFunction.NAME, valueType, baseType).evaluate(
-                (Input) Literal.newLiteral(valueType, value),
-                (Input) Literal.newLiteral(baseType, base)
+    private Number evaluateLog(Number base, DataType baseType, Number value, DataType valueType) {
+        return getFunction(LogFunction.NAME, baseType, valueType).evaluate(
+                (Input) Literal.newLiteral(baseType, base),
+                (Input) Literal.newLiteral(valueType, value)
         );
     }
 
