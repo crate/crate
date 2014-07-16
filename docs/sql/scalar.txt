@@ -266,6 +266,8 @@ For more information, please refer to :ref:`sql_dml_fulltext_search`.
 Mathematical Functions
 ======================
 
+All mathematical functions can be used within a ``WHERE`` clause.
+
 abs(number)
 -----------
 

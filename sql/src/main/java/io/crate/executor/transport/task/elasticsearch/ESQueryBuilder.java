@@ -39,6 +39,8 @@ import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.MatchFunction;
+import io.crate.operation.scalar.arithmetic.*;
+import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
@@ -408,6 +410,13 @@ public class ESQueryBuilder {
             innerFunctions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
                     .put(DistanceFunction.NAME, new DistanceConverter())
                     .put(WithinFunction.NAME, new WithinConverter())
+                    .put(RoundFunction.NAME, new NumericScalarConverter(RoundFunction.NAME))
+                    .put(CeilFunction.NAME, new NumericScalarConverter(CeilFunction.NAME))
+                    .put(FloorFunction.NAME, new NumericScalarConverter(FloorFunction.NAME))
+                    .put(SquareRootFunction.NAME, new NumericScalarConverter(SquareRootFunction.NAME))
+                    .put(LogFunction.LnFunction.NAME, new NumericScalarConverter(LogFunction.LnFunction.NAME))
+                    .put(LogFunction.NAME, new NumericScalarConverter(LogFunction.NAME))
+                    .put(AbsFunction.NAME, new NumericScalarConverter(AbsFunction.NAME))
                     .build();
         }
 
@@ -421,6 +430,95 @@ public class ESQueryBuilder {
             public abstract boolean convert(T function, Context context) throws IOException;
         }
 
+        static abstract class ScalarConverter extends Converter<Function> {
+
+            protected abstract String scriptName();
+
+            protected String scalarName() {
+                return null;
+            }
+
+            @Override
+            public boolean convert(Function function, Context context) throws IOException {
+                assert function.arguments().size() == 2;
+
+                context.builder.startObject(Fields.FILTERED);
+                context.builder.startObject(Fields.QUERY)
+                        .startObject(Fields.MATCH_ALL).endObject()
+                        .endObject();
+                context.builder.startObject(Fields.FILTER)
+                        .startObject("script");
+                context.builder.field("script", scriptName());
+                context.builder.field("lang", "native");
+
+                String functionName = function.info().ident().name();
+                Symbol valueSymbol;
+                Symbol functionSymbol = function.arguments().get(0);
+                if (functionSymbol.symbolType().isValueSymbol()) {
+                    valueSymbol = functionSymbol;
+                    functionSymbol = function.arguments().get(1);
+                    if (functionSymbol.symbolType() != SymbolType.FUNCTION) {
+                        throw new IllegalArgumentException("Can't compare two scalar functions");
+                    }
+                } else {
+                    valueSymbol = function.arguments().get(1);
+                    if (!valueSymbol.symbolType().isValueSymbol()) {
+                        throw new IllegalArgumentException("Can't compare two scalar functions");
+                    }
+                }
+
+                assert functionSymbol instanceof Function;
+                Symbol firstArgument = ((Function)functionSymbol).arguments().get(0);
+                assert firstArgument instanceof Reference;
+
+                context.builder.startObject("params");
+                if (scalarName() != null) {
+                    context.builder.field("scalar_name", scalarName());
+                }
+                context.builder.field("field_name",
+                        ((Reference)firstArgument).info().ident().columnIdent().fqn());
+                context.builder.field("field_type",
+                        ((Reference)firstArgument).info().type());
+                context.builder.field("op", functionName);
+                context.builder.field("value", ((Literal)valueSymbol).value());
+
+                // add possible function arguments
+                if (((Function)functionSymbol).arguments().size() > 1) {
+                    context.builder.startArray("args");
+                    for (int i = 1; i < ((Function)functionSymbol).arguments().size(); i++) {
+                        Symbol symbol = ((Function)functionSymbol).arguments().get(i);
+                        context.builder.value(((Literal)symbol).value());
+                    }
+                    context.builder.endArray();
+                }
+                context.builder.endObject();
+
+                context.builder.endObject(); // script
+                context.builder.endObject(); // filter
+                context.builder.endObject(); // filtered
+                return true;
+            }
+
+        }
+
+        class NumericScalarConverter extends ScalarConverter {
+
+            private final String scalarName;
+
+            NumericScalarConverter(String scalarName) {
+                this.scalarName = scalarName;
+            }
+
+            @Override
+            protected String scriptName() {
+                return NumericScalarSearchScript.NAME;
+            }
+
+            @Override
+            protected String scalarName() {
+                return scalarName;
+            }
+        }
 
         class WithinConverter extends Converter<Function> {
 
@@ -916,10 +1014,14 @@ public class ESQueryBuilder {
                 if (!convert(converter, function, context)) {
                     for (Symbol symbol : function.arguments()) {
                         if (symbol.symbolType() == SymbolType.FUNCTION) {
-                            converter = innerFunctions.get(((Function) symbol).info().ident().name());
+                            String functionName = ((Function) symbol).info().ident().name();
+                            converter = innerFunctions.get(functionName);
                             if (converter != null) {
                                 convert(converter, function, context);
                                 return null;
+                            } else {
+                                throw new UnsupportedOperationException(
+                                        String.format("Function %s() not supported in WHERE clause", functionName));
                             }
                         }
                     }
