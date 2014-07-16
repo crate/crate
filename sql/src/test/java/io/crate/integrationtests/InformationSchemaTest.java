@@ -44,8 +44,8 @@ import static org.hamcrest.Matchers.is;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
-    static Joiner dotJoiner = Joiner.on('.');
-    static Joiner commaJoiner = Joiner.on(", ");
+    final static Joiner dotJoiner = Joiner.on('.');
+    final static Joiner commaJoiner = Joiner.on(", ");
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

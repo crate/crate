@@ -8,6 +8,7 @@ import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
 import java.util.*;
@@ -140,6 +141,14 @@ public class Literal<ReturnType>
     }
 
     @Override
+    public String toString() {
+        return "Literal{" +
+                "value=" + BytesRefs.toString(value) +
+                ", type=" + type +
+                '}';
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public void readFrom(StreamInput in) throws IOException {
         type = DataTypes.fromStream(in);
@@ -198,7 +207,7 @@ public class Literal<ReturnType>
     public static Literal toLiteral(Symbol symbol, DataType type) throws IllegalArgumentException {
         switch (symbol.symbolType()) {
             case PARAMETER:
-                return Literal.newLiteral(type, type.value(((Parameter)symbol).value()));
+                return Literal.newLiteral(type, type.value(((Parameter) symbol).value()));
             case LITERAL:
                 Literal literal = (Literal)symbol;
                 if (literal.valueType().equals(type)) {

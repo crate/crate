@@ -29,6 +29,7 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType;
@@ -39,10 +40,10 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
     private FulltextAnalyzerResolver ftResolver;
 
     private enum RoutineType {
-        ANALYZER(CustomType.ANALYZER.getName().toUpperCase()),
-        CHAR_FILTER(CustomType.CHAR_FILTER.getName().toUpperCase()),
+        ANALYZER(CustomType.ANALYZER.getName().toUpperCase(Locale.ENGLISH)),
+        CHAR_FILTER(CustomType.CHAR_FILTER.getName().toUpperCase(Locale.ENGLISH)),
         TOKEN_FILTER("TOKEN_FILTER"),
-        TOKENIZER(CustomType.TOKENIZER.getName().toUpperCase()),
+        TOKENIZER(CustomType.TOKENIZER.getName().toUpperCase(Locale.ENGLISH)),
         FUNCTION("FUNCTION")
         ;
         private String name;
