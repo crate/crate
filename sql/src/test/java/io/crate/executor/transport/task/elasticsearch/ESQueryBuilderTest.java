@@ -34,6 +34,8 @@ import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.MatchFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.arithmetic.LogFunction;
+import io.crate.operation.scalar.arithmetic.RoundFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.RowGranularity;
@@ -54,7 +56,9 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.*;
@@ -94,6 +98,8 @@ public class ESQueryBuilderTest {
         return Arrays.asList(type, type);
     }
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -693,4 +699,70 @@ public class ESQueryBuilderTest {
         );
         generator.convert(new WhereClause(eqFunction));
     }
+
+    @Test
+    public void testWhereNumericScalar() throws Exception {
+        Function scalarFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(RoundFunction.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE)),
+                        DataTypes.LONG),
+                Arrays.<Symbol>asList(createReference("price", DataTypes.DOUBLE))
+        );
+        Function whereClause = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                        DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(scalarFunction, Literal.newLiteral(20.0d))
+        );
+
+        xcontentAssert(whereClause,
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"round\",\"field_name\":\"price\",\"field_type\":\"double\",\"op\":\"op_=\",\"value\":20.0}}}}}}");
+    }
+
+    @Test
+    public void testWhereNumericScalarWithArguments() throws Exception {
+        Function scalarFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(LogFunction.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.INTEGER)),
+                        DataTypes.LONG),
+                Arrays.<Symbol>asList(
+                        createReference("price", DataTypes.DOUBLE),
+                        Literal.newLiteral(DataTypes.INTEGER, 100)
+                        )
+        );
+        Function whereClause = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                        DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(scalarFunction, Literal.newLiteral(20.0))
+        );
+
+        xcontentAssert(whereClause,
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"log\",\"field_name\":\"price\",\"field_type\":\"double\",\"op\":\"op_=\",\"value\":20.0,\"args\":[100]}}}}}}");
+    }
+
+    @Test
+    public void testWhereNumericScalarEqNumericScalar() throws Exception {
+        /**
+         * round(a) = round(b) isn't supported
+         */
+        Function scalarFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(RoundFunction.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE)),
+                        DataTypes.LONG),
+                Arrays.<Symbol>asList(createReference("price", DataTypes.DOUBLE))
+        );
+        Function whereClause = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                        DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(scalarFunction, scalarFunction)
+        );
+
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Can't compare two scalar functions");
+        generator.convert(new WhereClause(whereClause));
+    }
+
 }
