@@ -87,12 +87,6 @@ public class LogFunctionTest {
                 Arrays.<Symbol>asList(Literal.newLiteral(valueType, value), Literal.newLiteral(baseType, base))));
     }
 
-    private Symbol normalizeLog(Object value, DataType valueType, Object base, DataType baseType) {
-        LogFunction function = getFunction(LogFunction.NAME, valueType, baseType);
-        return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(valueType, value), Literal.newLiteral(baseType, base))));
-    }
-
     private Number evaluateLog(Number value, DataType valueType) {
         return getFunction(LogFunction.NAME, valueType).evaluate((Input) Literal.newLiteral(valueType, value));
     }
@@ -196,12 +190,12 @@ public class LogFunctionTest {
         assertThat(normalized, Matchers.sameInstance(function));
 
         LogFunction logBase = getFunction(LogFunction.NAME, DataTypes.DOUBLE, DataTypes.LONG);
-        function = new Function(logBase.info(), Arrays.<Symbol>asList(Literal.newLiteral(10L), dB));
+        function = new Function(logBase.info(), Arrays.<Symbol>asList(dB, Literal.newLiteral(10L)));
         normalized = (Function) logBase.normalizeSymbol(function);
         assertThat(normalized, Matchers.sameInstance(function));
 
         Reference base = TestingHelpers.createReference("base", DataTypes.INTEGER);
-        function = new Function(logBase.info(), Arrays.<Symbol>asList(base, dB));
+        function = new Function(logBase.info(), Arrays.<Symbol>asList(dB, base));
         normalized = (Function) logBase.normalizeSymbol(function);
         assertThat(normalized, Matchers.sameInstance(function));
     }
