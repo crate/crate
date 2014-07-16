@@ -79,13 +79,13 @@ public abstract class LogFunction implements Scalar<Number,Number> {
     static class LogBaseFunction extends LogFunction {
 
         protected static void registerLogBaseFunctions(ScalarFunctionModule module) {
-            // log(baseType, valueType) : double
+            // log(valueType, baseType) : double
             for (DataType baseType : ALLOWED_TYPES) {
                 for (DataType valueType : ALLOWED_TYPES) {
                     FunctionInfo info = new FunctionInfo(
                             new FunctionIdent(
                                     NAME,
-                                    Arrays.asList(baseType, valueType)
+                                    Arrays.asList(valueType, baseType)
                             ),
                             DataTypes.DOUBLE
                     );
@@ -115,13 +115,13 @@ public abstract class LogFunction implements Scalar<Number,Number> {
             if (args[0].value() == null || args[1].value() == null) {
                 return null;
             }
-            double base = args[0].value().doubleValue();
-            double value = args[1].value().doubleValue();
+            double value = args[0].value().doubleValue();
+            double base = args[1].value().doubleValue();
             double baseResult = Math.log(base);
             if (baseResult == 0) {
-                throw new IllegalArgumentException("log(b, x): given 'base' would result in a division by zero.");
+                throw new IllegalArgumentException("log(x, b): given 'base' would result in a division by zero.");
             }
-            return validateResult(Math.log(value) / baseResult, "log(b, x)");
+            return validateResult(Math.log(value) / baseResult, "log(x, b)");
         }
 
     }
