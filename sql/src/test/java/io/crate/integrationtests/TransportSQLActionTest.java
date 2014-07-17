@@ -4293,7 +4293,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertFormQueryWithGeoType() throws Exception {
+    public void testInsertFromQueryWithGeoType() throws Exception {
         execute("create table t (p geo_point) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (p) values (?)", new Object[] { new Double[] {10.d, 10.d} });
@@ -4302,5 +4302,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into t2 (p) (select p from t)");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testTwoSubStrOnSameColumn() throws Exception {
+        this.setup.groupBySetup();
+        execute("select name, substr(name, 4, 3), substr(name, 3, 4) from sys.nodes order by name");
+        assertThat((String)response.rows()[0][0], is("node_0"));
+        assertThat((String)response.rows()[0][1], is("e_0"));
+        assertThat((String)response.rows()[0][2], is("de_0"));
+        assertThat((String)response.rows()[1][0], is("node_1"));
+        assertThat((String)response.rows()[1][1], is("e_1"));
+        assertThat((String)response.rows()[1][2], is("de_1"));
+
     }
 }
