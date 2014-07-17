@@ -105,6 +105,16 @@ using parameter substitution::
 
     SQLRequest request = new SQLRequest(stmt, args).actionGet();
 
+To bulk insert data you need to make use of multiple rows in the
+INSERT statement like and provide an object array of arguments
+with the length of
+``number of inserted records * number of columns``::
+
+    String stmt = "INSERT INTO foo (id, name) VALUES (?, ?), (?, ?)";
+    Object[] args = new Object[]{1, "bar", 2, "baz"};
+
+    SQLRequest request = new SQLRequest(stmt, args).actionGet();
+
 
 Data Type Mapping
 =================
