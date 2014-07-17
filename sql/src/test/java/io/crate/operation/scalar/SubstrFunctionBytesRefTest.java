@@ -32,6 +32,9 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
 public class SubstrFunctionBytesRefTest {
@@ -86,6 +89,16 @@ public class SubstrFunctionBytesRefTest {
             assertEquals(strings[i], bytesRefs[i].utf8ToString());
             assertEquals(strings[i].substring(10, 80), SubstrFunction.substring(bytesRefs[i], 10, 80).utf8ToString());
         }
+    }
+
+    @Test
+    public void testNoCopy() throws Exception {
+        BytesRef ref = new BytesRef("i do not want to be copied!");
+        BytesRef sub1 = SubstrFunction.substring(ref, 0, 10);
+        BytesRef sub2 = SubstrFunction.substring(ref, 5, 14);
+        assertThat(sub1.utf8ToString(), is("i do not w"));
+        assertThat(sub2.utf8ToString(), is("not want "));
+        assertThat(ref.bytes, allOf(is(sub2.bytes), is(sub1.bytes)));
     }
 
 }
