@@ -26,7 +26,7 @@ import io.crate.test.integration.DoctestClusterTestCase;
 import org.junit.Test;
 
 
-@CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.SUITE)
+@CrateIntegrationTest.ClusterScope(numNodes = 1, scope = CrateIntegrationTest.Scope.GLOBAL)
 public class RestSQLActionDoctestTest extends DoctestClusterTestCase {
 
     @Test
