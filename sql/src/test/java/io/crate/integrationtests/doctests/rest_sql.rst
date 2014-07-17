@@ -19,9 +19,9 @@ Issue a request without a body::
         "error_trace": null
     }
 
-Issue a request with invalid SQL::
+Issue a request with invalid data payload::
 
-    >>> data = {'stmt': 'select foo from table bla'}
+    >>> data = {'foo': 'bar'}
     >>> res = post('/_sql?error_trace', data=data)
     >>> print res
     HTTP Error 400: Bad Request
@@ -30,7 +30,7 @@ Issue a request with invalid SQL::
     {
         "error": {
             "code": 4000,
-            "message": "SQLActionException[line 1:17: no viable alternative at input 'table']"
+            "message": "SQLActionException[Failed to parse source [{\"foo\": \"bar\"}]]"
         },
-        "error_trace": "io.crate.exceptions.SQLParseException: line 1:17: no viable alternative at input 'table'\n\tat ..."
+        "error_trace": "io.crate.exceptions.SQLParseException: Failed to parse source [{\"foo\": \"bar\"}]\n\tat ..."
     }
