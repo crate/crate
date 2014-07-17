@@ -97,10 +97,9 @@ public class SubstrFunction implements Scalar<BytesRef, Object>, DynamicFunction
     }
 
     public static BytesRef substring(BytesRef utf8, int begin, int end) {
-        BytesRef utf8copy = BytesRef.deepCopyOf(utf8);
-        int pos = utf8copy.offset;
-        final int limit = pos + utf8copy.length;
-        final byte[] bytes = utf8copy.bytes;
+        int pos = utf8.offset;
+        final int limit = pos + utf8.length;
+        final byte[] bytes = utf8.bytes;
         int posBegin = pos;
 
         int codePointCount = 0;
@@ -139,9 +138,7 @@ public class SubstrFunction implements Scalar<BytesRef, Object>, DynamicFunction
 
         // Check if we didn't go over the limit on the last character.
         if (pos > limit) throw new IllegalArgumentException();
-        utf8copy.offset = posBegin;
-        utf8copy.length = pos - posBegin;
-        return utf8copy;
+        return new BytesRef(bytes, posBegin, pos - posBegin);
     }
 
     @Override
