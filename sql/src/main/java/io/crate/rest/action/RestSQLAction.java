@@ -21,17 +21,21 @@
 
 package io.crate.rest.action;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequestBuilder;
 import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
-import org.elasticsearch.ElasticsearchException;
+import io.crate.exceptions.SQLParseException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 public class RestSQLAction extends BaseRestHandler {
 
@@ -49,12 +53,20 @@ public class RestSQLAction extends BaseRestHandler {
         if (request.hasContent()) {
             SQLXContentSourceContext context = new SQLXContentSourceContext();
             SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
-            parser.parseSource(request.content());
+            try {
+                parser.parseSource(request.content());
+            } catch (SQLParseException e) {
+                StringWriter stackTrace = new StringWriter();
+                e.printStackTrace(new PrintWriter(stackTrace));
+                channel.sendResponse(new CrateThrowableRestResponse(channel,
+                        new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, stackTrace.toString())));
+            }
             requestBuilder.stmt(context.stmt());
             requestBuilder.args(context.args());
             requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
         } else {
-            throw new ElasticsearchException("missing request body");
+            channel.sendResponse(new CrateThrowableRestResponse(channel,
+                    new SQLActionException("missing request body", 4000, RestStatus.BAD_REQUEST, null)));
         }
         requestBuilder.execute(new ActionListener<SQLResponse>() {
 
