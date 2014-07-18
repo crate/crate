@@ -5,6 +5,12 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crash to 0.9.14 which includes the following changes
+
+    - fix: correctly apply ``-v`` switch to increase verbosity
+
+    - update crate-python to version 0.10.6
+
  - made ``bin/crash`` posix compatible
 
  - improved substr function to not copy underlying byte array
