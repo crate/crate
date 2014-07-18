@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - made ``bin/crash`` posix compatible
+
  - improved substr function to not copy underlying byte array
 
 2014/07/15 0.40.1
