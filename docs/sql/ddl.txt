@@ -66,6 +66,9 @@ Or using a alternate syntax::
 Data Types
 ==========
 
+Data type names are reserved words and need to be escaped
+when used as column names.
+
 boolean
 -------
 
@@ -110,6 +113,28 @@ Example::
     ...   sixth_column byte
     ... );
     CREATE OK (... sec)
+
+ip
+--
+
+The ``ip`` type can be used to store a 4-byte IPv4 IP address which
+maps to a string and is stored as ``long`` internally::
+
+    cr> create table my_table_ips (
+    ...   fqdn string,
+    ...   ip_addr ip
+    ... );
+    CREATE OK (... sec)
+
+::
+
+    cr> insert into my_table_ips (fqdn, ip_addr) values ('localhost', '127.0.0.1');
+    INSERT OK, 1 row affected (... sec)
+
+::
+
+    cr> insert into my_table_ips (fqdn, ip_addr) values ('localhost', 'not.a.real.ip');
+    SQLActionException[failed to parse [ip_addr]]
 
 timestamp
 ---------
