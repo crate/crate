@@ -117,8 +117,9 @@ Example::
 ip
 --
 
-The ``ip`` type can be used to store a 4-byte IPv4 IP address which
-maps to a string and is stored as ``long`` internally::
+The ``ip`` type allows to store an IPv4 address by inserting its
+string representation. Internally it maps to a ``long`` allowing expected
+sorting, filtering, and aggregation.
 
     cr> create table my_table_ips (
     ...   fqdn string,
