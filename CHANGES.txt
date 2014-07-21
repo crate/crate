@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/07/21 0.40.2
+=================
+
  - updated crash to 0.9.14 which includes the following changes
 
     - fix: correctly apply ``-v`` switch to increase verbosity
