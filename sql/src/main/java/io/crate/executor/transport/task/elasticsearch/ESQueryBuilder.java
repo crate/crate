@@ -29,9 +29,11 @@ import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+import io.crate.action.sql.SQLResponse;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.operator.*;
@@ -426,8 +428,8 @@ public class ESQueryBuilder {
                     context.builder.field("missing", sortOrder.missing());
                     context.builder.field("field_name",
                             referenceSymbol.info().ident().columnIdent().fqn());
-                    context.builder.field("field_type",
-                            referenceSymbol.info().type());
+                    context.builder.field("type");
+                    SQLResponse.toXContentNestedDataType(context.builder, referenceSymbol.info().type());
 
                     // add possible function arguments
                     if (function.arguments().size() > 1) {
@@ -595,18 +597,19 @@ public class ESQueryBuilder {
                     }
                 }
 
-                assert functionSymbol instanceof Function;
-                Symbol firstArgument = ((Function)functionSymbol).arguments().get(0);
-                assert firstArgument instanceof Reference;
-
                 context.builder.startObject("params");
                 if (scalarName() != null) {
                     context.builder.field("scalar_name", scalarName());
                 }
-                context.builder.field("field_name",
-                        ((Reference)firstArgument).info().ident().columnIdent().fqn());
-                context.builder.field("field_type",
-                        ((Reference)firstArgument).info().type());
+
+                assert functionSymbol instanceof Function;
+                Symbol firstArgument = ((Function)functionSymbol).arguments().get(0);
+                assert firstArgument instanceof Reference;
+
+                ReferenceInfo info = ((Reference) firstArgument).info();
+                context.builder.field("field_name", info.ident().columnIdent().fqn());
+                context.builder.field("type");
+                SQLResponse.toXContentNestedDataType(context.builder, info.type());
                 context.builder.field("op", functionName);
                 context.builder.field("value", ((Literal)valueSymbol).value());
 
@@ -626,7 +629,6 @@ public class ESQueryBuilder {
                 context.builder.endObject(); // filtered
                 return true;
             }
-
         }
 
         class NumericScalarConverter extends ScalarConverter {

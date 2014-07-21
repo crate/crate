@@ -92,16 +92,26 @@ public class DataTypes {
         .put(ObjectType.ID, OBJECT)
         .put(GeoPointType.ID, GEO_POINT)
         .put(GeoShapeType.ID, GEO_SHAPE)
-        .put(ArrayType.ID, new DataTypeFactory() {
+        .put(ArrayType.ID, new CollectionTypeFactory() {
             @Override
             public DataType<?> create() {
                 return new ArrayType();
             }
+
+            @Override
+            public DataType<?> create(DataType innerType) {
+                return new ArrayType(innerType);
+            }
         })
-        .put(SetType.ID, new DataTypeFactory() {
+        .put(SetType.ID, new CollectionTypeFactory() {
             @Override
             public DataType<?> create() {
                 return new SetType();
+            }
+
+            @Override
+            public DataType<?> create(DataType innerType) {
+                return new SetType(innerType);
             }
         }).build();
 
@@ -233,5 +243,15 @@ public class DataTypes {
             throw new IllegalArgumentException("Cannot find data type of name " + name);
         }
         return dataType;
+    }
+
+    public static DataType ofJsonObject(Object type) {
+        if (type instanceof List) {
+            int idCollectionType = (Integer) ((List) type).get(0);
+            int idInnerType = (Integer) ((List) type).get(1);
+            return ((CollectionTypeFactory) typeRegistry.get(idCollectionType)).create(ofJsonObject(idInnerType));
+        }
+        assert type instanceof Integer;
+        return typeRegistry.get(type).create();
     }
 }

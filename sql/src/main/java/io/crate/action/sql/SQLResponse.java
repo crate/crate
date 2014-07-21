@@ -110,7 +110,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
         return builder;
     }
 
-    private void toXContentNestedDataType(XContentBuilder builder, DataType dataType) throws IOException {
+    public static void toXContentNestedDataType(XContentBuilder builder, DataType dataType) throws IOException {
         if (dataType instanceof CollectionType) {
             builder.startArray();
             builder.value(dataType.id());
