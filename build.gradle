@@ -2,6 +2,9 @@ allprojects {
     apply plugin: 'idea'
     apply plugin: 'findbugs'
     apply plugin: 'jacoco'
+    jacoco {
+        toolVersion = "0.7.1.201405082137"
+    }
 
     group = 'io.crate'
     repositories {
