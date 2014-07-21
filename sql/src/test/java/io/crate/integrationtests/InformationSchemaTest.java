@@ -656,7 +656,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                     put("last_name", "Adams");
                 }}
         });
-        refresh();
+        execute("refresh table t4");
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(5, response.rowCount());
