@@ -60,11 +60,11 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
             throw new ScriptException("Missing the field_name parameter");
         }
 
-        String fieldTypeName = XContentMapValues.nodeStringValue(params.get("field_type"), null);
-        if (fieldTypeName == null) {
-            throw new ScriptException("Missing the field_type parameter");
+        Object type = params.get("type");
+        if (type == null) {
+            throw new ScriptException("Missing the type parameter");
         }
-        fieldType = DataTypes.ofName(fieldTypeName);
+        fieldType = DataTypes.ofJsonObject(type);
         if (fieldType.id() >= ShortType.ID && fieldType.id() <= TimestampType.ID) {
             fieldType = LongType.INSTANCE;
         } else if (fieldType.id() >= DoubleType.ID && fieldType.id() <= FloatType.ID) {

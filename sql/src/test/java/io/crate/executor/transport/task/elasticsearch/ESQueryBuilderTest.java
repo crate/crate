@@ -644,7 +644,7 @@ public class ESQueryBuilderTest {
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
         assertThat(actual, is(
-                "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}},\"sort\":[{\"_script\":{\"script\":\"numeric_scalar_sort\",\"lang\":\"native\",\"type\":\"number\",\"order\":\"asc\",\"params\":{\"scalar_name\":\"round\",\"missing\":\"_last\",\"field_name\":\"price\",\"field_type\":\"double\"}}}],\"from\":0,\"size\":10000}"));
+                "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}},\"sort\":[{\"_script\":{\"script\":\"numeric_scalar_sort\",\"lang\":\"native\",\"type\":\"number\",\"order\":\"asc\",\"params\":{\"scalar_name\":\"round\",\"missing\":\"_last\",\"field_name\":\"price\",\"type\":6}}}],\"from\":0,\"size\":10000}"));
     }
 
     @Test
@@ -740,7 +740,7 @@ public class ESQueryBuilderTest {
         );
 
         xcontentAssert(whereClause,
-                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"round\",\"field_name\":\"price\",\"field_type\":\"double\",\"op\":\"op_=\",\"value\":20.0}}}}}}");
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"round\",\"field_name\":\"price\",\"type\":6,\"op\":\"op_=\",\"value\":20.0}}}}}}");
     }
 
     @Test
@@ -762,7 +762,7 @@ public class ESQueryBuilderTest {
         );
 
         xcontentAssert(whereClause,
-                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"log\",\"field_name\":\"price\",\"field_type\":\"double\",\"op\":\"op_=\",\"value\":20.0,\"args\":[100]}}}}}}");
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"log\",\"field_name\":\"price\",\"type\":6,\"op\":\"op_=\",\"value\":20.0,\"args\":[100]}}}}}}");
     }
 
     @Test
