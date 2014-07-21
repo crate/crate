@@ -50,6 +50,11 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
         this.functions = functions;
     }
 
+    @SuppressWarnings("unchecked")
+    private static <T> T extract(Map<String, Object> map, String key) {
+        return (T) map.get(key);
+    }
+
     protected void prepare(@Nullable Map<String, Object> params) {
         if (params == null) {
             throw new ScriptException("Parameter required");
@@ -60,16 +65,11 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
             throw new ScriptException("Missing the field_name parameter");
         }
 
-        String fieldTypeName = XContentMapValues.nodeStringValue(params.get("field_type"), null);
-        if (fieldTypeName == null) {
+        Object type = extract(params, "type");
+        if (type == null) {
             throw new ScriptException("Missing the field_type parameter");
         }
-        fieldType = DataTypes.ofName(fieldTypeName);
-        if (fieldType.id() >= ShortType.ID && fieldType.id() <= TimestampType.ID) {
-            fieldType = LongType.INSTANCE;
-        } else if (fieldType.id() >= DoubleType.ID && fieldType.id() <= FloatType.ID) {
-            fieldType = DoubleType.INSTANCE;
-        }
+        fieldType = DataTypes.ofJsonObject(type);
 
         List<DataType> argumentTypes = null;
         if (params.containsKey("args") && XContentMapValues.isArray(params.get("args"))) {
