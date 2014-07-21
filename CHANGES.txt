@@ -5,6 +5,12 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crash to 0.9.14 which includes the following changes
+
+    - fix: correctly apply ``-v`` switch to increase verbosity
+
+    - update crate-python to version 0.10.6
+
  - retry fetching objects from s3 if a connection error occures
 
 2014/07/15 0.40.1
