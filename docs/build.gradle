@@ -1,5 +1,3 @@
-
-def textOut = file("$projectDir/out/text")
 def crateDist = file("$projectDir/tmp/crate/")
 
 
@@ -35,6 +33,14 @@ task itest (type:Exec){
 itest.dependsOn(unpackDistTar, buildout)
 
 task clean << {
-    delete textOut
-    delete crateDist
+    FileCollection toDelete = files(crateDist,
+        "$projectDir/out/text",
+        "$projectDir/out/html",
+        "$projectDir/parts",
+        "$projectDir/.installed.cfg",
+        "$projectDir/bin",
+        "$projectDir/develop-eggs")
+    toDelete.each {File file ->
+        delete file
+    }
 }
