@@ -616,7 +616,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 return;
             }
 
-            assert right.symbolType().isValueSymbol();
+            assert right instanceof DataTypeSymbol || right instanceof Parameter;
             try {
                 left = DataTypeSymbol.toDataTypeSymbol(left, leftType);
                 right = DataTypeSymbol.toDataTypeSymbol(right, leftType);

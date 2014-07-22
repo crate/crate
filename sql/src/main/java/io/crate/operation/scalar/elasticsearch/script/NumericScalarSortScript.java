@@ -21,23 +21,15 @@
 
 package io.crate.operation.scalar.elasticsearch.script;
 
-import com.google.common.collect.Lists;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
-import io.crate.planner.symbol.Literal;
-import io.crate.types.DataType;
-import io.crate.types.DoubleType;
-import io.crate.types.LongType;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
+import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.script.AbstractSearchScript;
 import org.elasticsearch.script.ExecutableScript;
 import org.elasticsearch.script.ScriptException;
 import org.elasticsearch.script.ScriptModule;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Map;
 
 public class NumericScalarSortScript extends AbstractSearchScript {
@@ -50,11 +42,26 @@ public class NumericScalarSortScript extends AbstractSearchScript {
 
     public static class Factory extends AbstractScalarScriptFactory {
 
-        protected String scalarName;
-
         @Inject
         public Factory(Functions functions) {
             super(functions);
+        }
+
+        @Override
+        protected Context prepare(@Nullable Map<String, Object> params) {
+            if (params == null) {
+                throw new ScriptException("Parameter required");
+            }
+            Object scalar = params.get("scalar");
+            if (scalar == null || !(scalar instanceof Map)) {
+                throw new ScriptException("invalid sort scalar format");
+            }
+            WrappedArgument arg = getArgument((Map<String, Object>)scalar);
+            // first argument should be the scalar
+            if (!(arg instanceof ScalarArgument)) {
+                throw new ScriptException("no scalar used in sort script!");
+            }
+            return new Context((ScalarArgument) arg);
         }
 
         /**
@@ -65,76 +72,36 @@ public class NumericScalarSortScript extends AbstractSearchScript {
          */
         @Override
         public ExecutableScript newScript(@Nullable Map<String, Object> params) {
-            scalarName = params == null ? null : (String)params.get("scalar_name");
-            if (scalarName == null) {
-                throw new ScriptException("Missing the scalar_name parameter");
-            }
+            Context ctx = prepare(params);
 
-            prepare(params);
+            String missing = XContentMapValues.nodeStringValue(params.get("missing"), null);
 
-            String missing = (String)params.get("missing");
-
-            return new NumericScalarSortScript(fieldName, fieldType, function, arguments, missing);
-        }
-
-        @Override
-        protected String functionName() {
-            return scalarName;
+            return new NumericScalarSortScript(ctx.function, missing);
         }
     }
 
-    protected final String fieldName;
-    private final DataType fieldType;
-    private final Scalar function;
-    @Nullable
-    private final List<Input> arguments;
+    private final AbstractScalarScriptFactory.ScalarArgument function;
     @Nullable
     private final String missing;
 
-    public NumericScalarSortScript(String fieldName, DataType fieldType,
-                                   Scalar function, @Nullable List<Input> arguments,
+    public NumericScalarSortScript(AbstractScalarScriptFactory.ScalarArgument function,
                                    String missing) {
-        this.fieldName = fieldName;
-        this.fieldType = fieldType;
         this.function = function;
-        this.arguments = arguments;
         this.missing = missing;
     }
 
     @Override
     public Object run() {
-        ScriptDocValues docValue = (ScriptDocValues) doc().get(fieldName);
+        Object returnValue = this.function.evaluate(doc());
 
-        if (docValue != null && !docValue.isEmpty()) {
-            return evaluateScalar(docValue);
-        }
-        if (missing != null && missing.equals("_first")) {
-            return Double.MIN_VALUE;
+        if (returnValue == null) {
+            if (missing != null && missing.equals("_first")) {
+                return Double.MIN_VALUE;
+            } else {
+                return Double.MAX_VALUE;
+            }
         } else {
-            return Double.MAX_VALUE;
+            return returnValue;
         }
     }
-
-    protected Object evaluateScalar(ScriptDocValues docValue) {
-        Double fieldValue = null;
-        if (fieldType.id() == LongType.ID) {
-            fieldValue = ((Long) (((ScriptDocValues.Longs) docValue).getValue())).doubleValue();
-        } else if (fieldType.id() == DoubleType.ID) {
-            fieldValue = ((ScriptDocValues.Doubles) docValue).getValue();
-        }
-        if (fieldValue == null) {
-            throw new ScriptException(
-                    String.format("Field data type not supported by %s()", function.info().ident().name()));
-        }
-        Object functionReturn;
-        if (arguments == null) {
-            functionReturn = function.evaluate((Input) Literal.newLiteral(fieldValue));
-        } else {
-            List<Input> functionArguments = Lists.newArrayList(arguments);
-            functionArguments.add(0, Literal.newLiteral(fieldValue));
-            functionReturn = function.evaluate(functionArguments.toArray(new Literal[functionArguments.size()]));
-        }
-        return functionReturn;
-    }
-
 }
