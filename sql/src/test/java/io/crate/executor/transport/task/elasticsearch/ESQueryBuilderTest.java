@@ -624,6 +624,30 @@ public class ESQueryBuilderTest {
     }
 
     @Test
+    public void testConvertESSearchNodeWithOrderByScalar() throws Exception {
+        Function scalarFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(RoundFunction.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE)),
+                        DataTypes.LONG),
+                Arrays.<Symbol>asList(createReference("price", DataTypes.DOUBLE))
+        );
+        ESSearchNode searchNode = new ESSearchNode(
+                new String[]{characters.name()},
+                ImmutableList.<Symbol>of(name_ref),
+                ImmutableList.<Symbol>of(scalarFunction),
+                new boolean[] { false },
+                new Boolean[] { null },
+                null,
+                null,
+                WhereClause.MATCH_ALL,
+                null);
+        BytesReference reference = generator.convert(searchNode);
+        String actual = reference.toUtf8();
+        assertThat(actual, is(
+                "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}},\"sort\":[{\"_script\":{\"script\":\"numeric_scalar_sort\",\"lang\":\"native\",\"type\":\"number\",\"order\":\"asc\",\"params\":{\"scalar_name\":\"round\",\"missing\":\"_last\",\"field_name\":\"price\",\"field_type\":\"double\"}}}],\"from\":0,\"size\":10000}"));
+    }
+
+    @Test
     public void testWhereClauseWithWithinPolygonQuery() throws Exception {
         Function withinFunction = createFunction(
                 WithinFunction.NAME,
@@ -716,7 +740,7 @@ public class ESQueryBuilderTest {
         );
 
         xcontentAssert(whereClause,
-                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"round\",\"field_name\":\"price\",\"field_type\":\"double\",\"op\":\"op_=\",\"value\":20.0}}}}}}");
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"round\",\"field_name\":\"price\",\"field_type\":\"double\",\"op\":\"op_=\",\"value\":20.0}}}}}}");
     }
 
     @Test
@@ -738,7 +762,7 @@ public class ESQueryBuilderTest {
         );
 
         xcontentAssert(whereClause,
-                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"log\",\"field_name\":\"price\",\"field_type\":\"double\",\"op\":\"op_=\",\"value\":20.0,\"args\":[100]}}}}}}");
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"log\",\"field_name\":\"price\",\"field_type\":\"double\",\"op\":\"op_=\",\"value\":20.0,\"args\":[100]}}}}}}");
     }
 
     @Test
