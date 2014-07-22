@@ -4443,7 +4443,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testScalarInOrderByTwoReferences() throws Exception {
+    public void testScalarInOrderByAndSelect() throws Exception {
         execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into t (i, l, d) values (1, 2, 90.5), (-1, 4, 90.5), (193384, 31234594433, 99.0)");
