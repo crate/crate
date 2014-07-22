@@ -582,6 +582,22 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             } catch (IOException e) {
                 throw new RuntimeException("Error happened while copying where clause", e);
             }
+            List<Symbol> sortSymbols = analysis.sortSymbols();
+
+            // do the same for sortsymbols if we have a function there
+            if (sortSymbols != null && !Iterables.all(sortSymbols, symbolIsReference)) {
+                try {
+                    for (int i = 0; i < sortSymbols.size(); i++) {
+                        Symbol sortSymbol = sortSymbols.get(i);
+                        if (sortSymbol.symbolType() == SymbolType.FUNCTION) {
+                            sortSymbols.set(i, sortSymbol.deepCopy());
+                        }
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException("Error happened while copying order by", e);
+                }
+            }
+
             contextBuilder.searchOutput(analysis.outputSymbols());
             searchSymbols = contextBuilder.toCollect();
         } else {

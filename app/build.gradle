@@ -158,7 +158,7 @@ def extractTopfolder(File src, String trg){
 }
 
 task downloadPlugins << {
-    dest = download(
+    def dest = download(
             "https://cdn.crate.io/downloads/releases/crate-admin-${plugin_crateadmin_version}.tar.gz",
             "crate-admin-${plugin_crateadmin_version}.tar.gz"
     )
