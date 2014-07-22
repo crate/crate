@@ -4366,6 +4366,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select log(i, 100) from t where log(i, 100) = 0.5");
         assertThat(response.rowCount(), is(1L));
         assertThat((Double)response.rows()[0][0], is(0.5));
+
+        execute("select round(d), count(*) from t where abs(d) > 1 group by 1 order by 1");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Long)response.rows()[0][0], is(1L));
+        assertThat((Long)response.rows()[0][1], is(1L));
+        assertThat((Long)response.rows()[1][0], is(2L));
+        assertThat((Long)response.rows()[1][1], is(2L));
     }
 
     @Test
