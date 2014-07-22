@@ -22,9 +22,7 @@
 package io.crate.planner.symbol;
 
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.*;
 
 import java.io.IOException;
 
@@ -53,5 +51,12 @@ public abstract class Symbol implements Streamable {
         symbol.readFrom(in);
 
         return symbol;
+    }
+
+    public Symbol deepCopy() throws IOException {
+        BytesStreamOutput out = new BytesStreamOutput();
+        Symbol.toStream(this, out);
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        return Symbol.fromStream(in);
     }
 }
