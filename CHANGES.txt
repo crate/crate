@@ -5,11 +5,14 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - replaced SQLAction python doctest with java integration test
+
  - updated incorrect options in crate usage information
 
  - updated crate-admin to 0.9.1 which includes following changes
 
     - fix: do not append limit to insert by query statement
+
 
 2014/07/21 0.40.2
 =================
