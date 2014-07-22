@@ -4402,4 +4402,56 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(5L));
         assertThat((Integer)response.rows()[0][0], is(5));
     }
+
+    @Test
+    public void testSelectWhereArithmeticScalarTwoReferences() throws Exception {
+        execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (d, i) values (?, ?), (?, ?), (?, ?)", new Object[] {
+                1.3d, 1,
+                1.6d, 2,
+                2.2d, 9,
+                -3.4, 6 });
+        execute("refresh table t");
+
+        execute("select i from t where round(d) = i order by i");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((Integer)response.rows()[1][0], is(2));
+    }
+
+    @Test
+    public void testSelectWhereArithmeticScalarTwoReferenceArgs() throws Exception {
+        execute("create table t (x long, base long) clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (x, base) values (?, ?), (?, ?), (?, ?)", new Object[] {
+                144L, 12L, // 2
+                65536L, 2L, // 16
+                9L, 3L, // 2
+                700L, 3L // 5.9630...
+        });
+        execute("refresh table t");
+
+        execute("select x, base, log(x, base) from t where log(x, base) = 2.0 order by x");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((Integer)response.rows()[0][0], is(9));
+        assertThat((Integer)response.rows()[0][1], is(3));
+        assertThat((Double)response.rows()[0][2], is(2.0));
+        assertThat((Integer)response.rows()[1][0], is(144));
+        assertThat((Integer)response.rows()[1][1], is(12));
+        assertThat((Double)response.rows()[1][2], is(2.0));
+    }
+
+    @Test
+    public void testScalarInOrderByTwoReferences() throws Exception {
+        execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (i, l, d) values (1, 2, 99.0), (-1, 4, 99), (193384, 31234594433, 99.0)");
+        execute("insert into t (i, l, d) values (1, 2, 99.0), (-1, 4, 99.0)");
+        refresh();
+        execute("select l, log(d,l) from t order by l, log(d,l)");
+
+    }
 }
+
+

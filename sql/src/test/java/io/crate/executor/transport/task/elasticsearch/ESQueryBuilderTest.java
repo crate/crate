@@ -644,7 +644,13 @@ public class ESQueryBuilderTest {
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
         assertThat(actual, is(
-                "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}},\"sort\":[{\"_script\":{\"script\":\"numeric_scalar_sort\",\"lang\":\"native\",\"type\":\"number\",\"order\":\"asc\",\"params\":{\"scalar_name\":\"round\",\"missing\":\"_last\",\"field_name\":\"price\",\"field_type\":\"double\"}}}],\"from\":0,\"size\":10000}"));
+                "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}}," +
+                        "\"sort\":[{\"_script\":{\"script\":\"numeric_scalar_sort\"," +
+                        "\"lang\":\"native\",\"type\":\"number\",\"order\":\"asc\"," +
+                        "\"params\":{\"missing\":\"_last\",\"scalar\":" +
+                        "{\"scalar_name\":\"round\",\"type\":10,\"args\":[" +
+                        "{\"field_name\":\"price\",\"type\":6}]}}}}]," +
+                        "\"from\":0,\"size\":10000}"));
     }
 
     @Test
@@ -740,7 +746,12 @@ public class ESQueryBuilderTest {
         );
 
         xcontentAssert(whereClause,
-                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"round\",\"field_name\":\"price\",\"field_type\":\"double\",\"op\":\"op_=\",\"value\":20.0}}}}}}");
+                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}}," +
+                        "\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\"," +
+                        "\"lang\":\"native\",\"params\":" +
+                        "{\"op\":\"op_=\",\"args\":[{\"scalar_name\":\"round\"," +
+                        "\"type\":10,\"args\":[{\"field_name\":\"price\",\"type\":6}]}," +
+                        "{\"value\":20.0,\"type\":6}]}}}}}}");
     }
 
     @Test
@@ -761,8 +772,42 @@ public class ESQueryBuilderTest {
                 Arrays.<Symbol>asList(scalarFunction, Literal.newLiteral(20.0))
         );
 
-        xcontentAssert(whereClause,
-                "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}},\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\",\"lang\":\"native\",\"params\":{\"scalar_name\":\"log\",\"field_name\":\"price\",\"field_type\":\"double\",\"op\":\"op_=\",\"value\":20.0,\"args\":[100]}}}}}}");
+        xcontentAssert(whereClause, "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}}," +
+                "\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\"," +
+                "\"lang\":\"native\",\"params\":" +
+                "{\"op\":\"op_=\",\"args\":[{\"scalar_name\":\"log\"," +
+                "\"type\":10,\"args\":[" +
+                "{\"field_name\":\"price\",\"type\":6}," +
+                "{\"value\":100,\"type\":9}" +
+                "]},{\"value\":20.0,\"type\":6}]}}}}}}");
+    }
+
+    @Test
+    public void testWhereNumericScalarWithArgumentsTwoReferences() throws Exception {
+        Function scalarFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(LogFunction.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.INTEGER)),
+                        DataTypes.LONG),
+                Arrays.<Symbol>asList(
+                        createReference("price", DataTypes.DOUBLE),
+                        createReference("base", DataTypes.INTEGER)
+                )
+        );
+        Function whereClause = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                        DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(scalarFunction, Literal.newLiteral(20.0))
+        );
+
+        xcontentAssert(whereClause, "{\"query\":{\"filtered\":{\"query\":{\"match_all\":{}}," +
+                "\"filter\":{\"script\":{\"script\":\"numeric_scalar_search\"," +
+                "\"lang\":\"native\",\"params\":" +
+                "{\"op\":\"op_=\",\"args\":[{\"scalar_name\":\"log\"," +
+                "\"type\":10,\"args\":[" +
+                "{\"field_name\":\"price\",\"type\":6}," +
+                "{\"field_name\":\"base\",\"type\":9}" +
+                "]},{\"value\":20.0,\"type\":6}]}}}}}}");
     }
 
     @Test
@@ -786,6 +831,32 @@ public class ESQueryBuilderTest {
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Can't compare two scalar functions");
+        generator.convert(new WhereClause(whereClause));
+    }
+
+    @Test
+    public void testNestedScalar() throws Exception {
+        /**
+         * round(round(a) isn't supported
+         */
+        Function scalarFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(RoundFunction.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE)),
+                        DataTypes.LONG),
+                Arrays.<Symbol>asList(new Function(
+                        new FunctionInfo(
+                                new FunctionIdent(RoundFunction.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE)),
+                                DataTypes.LONG),
+                        Arrays.<Symbol>asList(createReference("price", DataTypes.DOUBLE))))
+        );
+        Function whereClause = new Function(
+                new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE, DataTypes.DOUBLE)),
+                        DataTypes.BOOLEAN),
+                Arrays.<Symbol>asList(scalarFunction, Literal.newLiteral(DataTypes.INTEGER, 100))
+        );
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Nested scalar functions are not supported");
         generator.convert(new WhereClause(whereClause));
     }
 

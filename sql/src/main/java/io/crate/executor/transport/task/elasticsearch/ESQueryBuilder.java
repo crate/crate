@@ -29,11 +29,9 @@ import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-import io.crate.action.sql.SQLResponse;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.operator.*;
@@ -41,7 +39,6 @@ import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.MatchFunction;
-import io.crate.operation.scalar.TokenCountFunction;
 import io.crate.operation.scalar.arithmetic.*;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSortScript;
@@ -269,15 +266,16 @@ public class ESQueryBuilder {
         private final ImmutableMap<String, Converter<? extends Symbol>> functions;
 
         OrderBySymbolVisitor() {
+            NumericScalarConverter numericScalarConverter = new NumericScalarConverter();
             functions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
                     .put(DistanceFunction.NAME, new DistanceConverter())
-                    .put(RoundFunction.NAME, new NumericScalarConverter(RoundFunction.NAME))
-                    .put(CeilFunction.NAME, new NumericScalarConverter(CeilFunction.NAME))
-                    .put(FloorFunction.NAME, new NumericScalarConverter(FloorFunction.NAME))
-                    .put(SquareRootFunction.NAME, new NumericScalarConverter(SquareRootFunction.NAME))
-                    .put(LogFunction.LnFunction.NAME, new NumericScalarConverter(LogFunction.LnFunction.NAME))
-                    .put(LogFunction.NAME, new NumericScalarConverter(LogFunction.NAME))
-                    .put(AbsFunction.NAME, new NumericScalarConverter(AbsFunction.NAME))
+                    .put(RoundFunction.NAME, numericScalarConverter)
+                    .put(CeilFunction.NAME, numericScalarConverter)
+                    .put(FloorFunction.NAME, numericScalarConverter)
+                    .put(SquareRootFunction.NAME, numericScalarConverter)
+                    .put(LogFunction.LnFunction.NAME, numericScalarConverter)
+                    .put(LogFunction.NAME, numericScalarConverter)
+                    .put(AbsFunction.NAME, numericScalarConverter)
                     .build();
 
         }
@@ -394,13 +392,12 @@ public class ESQueryBuilder {
 
         abstract class ScalarConverter extends Converter<Function> {
 
+            private  ScalarScriptArgSymbolVisitor argumentVisitor = new ScalarScriptArgSymbolVisitor();
+
             protected abstract String scriptName();
 
             protected abstract String scriptType();
 
-            protected String scalarName() {
-                return null;
-            }
 
             @Override
             public boolean convert(Function function, OrderByContext context) throws IOException {
@@ -410,42 +407,23 @@ public class ESQueryBuilder {
                             "Can't use \"%s\" in the ORDER BY clause. " +
                                     "Requires column reference as first argument.", function));
                 }
-                Reference referenceSymbol = (Reference)function.arguments().get(0);
-
                 SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
                 try {
-                    context.builder.startObject()
-                            .startObject("_script")
-                            .field("script", scriptName())
+                    context.builder.startObject().startObject("_script");
+                    context.builder.field("script", scriptName())
                             .field("lang", "native")
                             .field("type", scriptType())
                             .field("order", sortOrder.order());
 
 
                     context.builder.startObject("params");
-                    if (scalarName() != null) {
-                        context.builder.field("scalar_name", scalarName());
-                    }
                     context.builder.field("missing", sortOrder.missing());
-                    context.builder.field("field_name",
-                            referenceSymbol.info().ident().columnIdent().fqn());
-                    context.builder.field("field_type",
-                            referenceSymbol.info().type());
+                    context.builder.field("scalar");
+                    argumentVisitor.process(function, context.builder);
 
-                    // add possible function arguments
-                    if (function.arguments().size() > 1) {
-                        context.builder.startArray("args");
-                        for (int i = 1; i < function.arguments().size(); i++) {
-                            Symbol symbol = function.arguments().get(i);
-                            context.builder.value(((Literal)symbol).value());
-                        }
-                        context.builder.endArray();
-                    }
-                    context.builder.endObject();
-
-
-                    context.builder.endObject();
-                    context.builder.endObject();
+                    context.builder.endObject() // params
+                        .endObject() // _script
+                        .endObject();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -456,20 +434,9 @@ public class ESQueryBuilder {
 
         class NumericScalarConverter extends ScalarConverter {
 
-            private final String scalarName;
-
-            NumericScalarConverter(String scalarName) {
-                this.scalarName = scalarName;
-            }
-
             @Override
             protected String scriptName() {
                 return NumericScalarSortScript.NAME;
-            }
-
-            @Override
-            protected String scalarName() {
-                return scalarName;
             }
 
             @Override
@@ -537,18 +504,17 @@ public class ESQueryBuilder {
                     .put(WithinFunction.NAME, new WithinConverter())
                     .build();
 
-
+            NumericScalarConverter numericScalarConverter = new NumericScalarConverter();
             innerFunctions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
                     .put(DistanceFunction.NAME, new DistanceConverter())
                     .put(WithinFunction.NAME, new WithinConverter())
-                    .put(RoundFunction.NAME, new NumericScalarConverter(RoundFunction.NAME))
-                    .put(CeilFunction.NAME, new NumericScalarConverter(CeilFunction.NAME))
-                    .put(FloorFunction.NAME, new NumericScalarConverter(FloorFunction.NAME))
-                    .put(SquareRootFunction.NAME, new NumericScalarConverter(SquareRootFunction.NAME))
-                    .put(LogFunction.LnFunction.NAME, new NumericScalarConverter(LogFunction.LnFunction.NAME))
-                    .put(LogFunction.NAME, new NumericScalarConverter(LogFunction.NAME))
-                    .put(AbsFunction.NAME, new NumericScalarConverter(AbsFunction.NAME))
-                    .put(TokenCountFunction.NAME, new NumericScalarConverter(TokenCountFunction.NAME))
+                    .put(RoundFunction.NAME, numericScalarConverter)
+                    .put(CeilFunction.NAME, numericScalarConverter)
+                    .put(FloorFunction.NAME, numericScalarConverter)
+                    .put(SquareRootFunction.NAME, numericScalarConverter)
+                    .put(LogFunction.LnFunction.NAME, numericScalarConverter)
+                    .put(LogFunction.NAME, numericScalarConverter)
+                    .put(AbsFunction.NAME, numericScalarConverter)
                     .build();
         }
 
@@ -564,11 +530,9 @@ public class ESQueryBuilder {
 
         static abstract class ScalarConverter extends Converter<Function> {
 
-            protected abstract String scriptName();
+            static ScalarScriptArgSymbolVisitor argumentVisitor = new ScalarScriptArgSymbolVisitor();
 
-            protected String scalarName() {
-                return null;
-            }
+            protected abstract String scriptName();
 
             @Override
             public boolean convert(Function function, Context context) throws IOException {
@@ -584,8 +548,8 @@ public class ESQueryBuilder {
                 context.builder.field("lang", "native");
 
                 String functionName = function.info().ident().name();
-                Symbol valueSymbol;
                 Symbol functionSymbol = function.arguments().get(0);
+                Symbol valueSymbol = function.arguments().get(1);
                 if (functionSymbol.symbolType().isValueSymbol()) {
                     valueSymbol = functionSymbol;
                     functionSymbol = function.arguments().get(1);
@@ -593,38 +557,30 @@ public class ESQueryBuilder {
                         throw new IllegalArgumentException("Can't compare two scalar functions");
                     }
                 } else {
-                    valueSymbol = function.arguments().get(1);
-                    if (!valueSymbol.symbolType().isValueSymbol()) {
+                    if (function.arguments().get(1).symbolType() == SymbolType.FUNCTION) {
                         throw new IllegalArgumentException("Can't compare two scalar functions");
+                    }
+                }
+                assert functionSymbol instanceof Function;
+                for (Symbol argument : ((Function) functionSymbol).arguments()) {
+                    if (argument.symbolType().equals(SymbolType.FUNCTION)) {
+                        throw new IllegalArgumentException("Nested scalar functions are not supported");
                     }
                 }
 
                 context.builder.startObject("params");
-                if (scalarName() != null) {
-                    context.builder.field("scalar_name", scalarName());
-                }
 
-                assert functionSymbol instanceof Function;
                 Symbol firstArgument = ((Function)functionSymbol).arguments().get(0);
                 assert firstArgument instanceof Reference;
 
-                ReferenceInfo info = ((Reference) firstArgument).info();
-                context.builder.field("field_name", info.ident().columnIdent().fqn());
-                context.builder.field("type");
-                SQLResponse.toXContentNestedDataType(context.builder, info.type());
                 context.builder.field("op", functionName);
-                context.builder.field("value", ((Literal)valueSymbol).value());
 
-                // add possible function arguments
-                if (((Function)functionSymbol).arguments().size() > 1) {
-                    context.builder.startArray("args");
-                    for (int i = 1; i < ((Function)functionSymbol).arguments().size(); i++) {
-                        Symbol symbol = ((Function)functionSymbol).arguments().get(i);
-                        context.builder.value(((Literal)symbol).value());
-                    }
-                    context.builder.endArray();
-                }
-                context.builder.endObject();
+                context.builder.startArray("args");
+                argumentVisitor.process(functionSymbol, context.builder);
+                argumentVisitor.process(valueSymbol, context.builder);
+                context.builder.endArray();
+
+                context.builder.endObject(); // params
 
                 context.builder.endObject(); // script
                 context.builder.endObject(); // filter
@@ -635,20 +591,9 @@ public class ESQueryBuilder {
 
         class NumericScalarConverter extends ScalarConverter {
 
-            private final String scalarName;
-
-            NumericScalarConverter(String scalarName) {
-                this.scalarName = scalarName;
-            }
-
             @Override
             protected String scriptName() {
                 return NumericScalarSearchScript.NAME;
-            }
-
-            @Override
-            protected String scalarName() {
-                return scalarName;
             }
         }
 

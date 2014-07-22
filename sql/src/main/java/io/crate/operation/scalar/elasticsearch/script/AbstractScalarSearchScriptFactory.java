@@ -25,42 +25,75 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.operator.Operator;
-import io.crate.planner.symbol.Literal;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.script.ScriptException;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public abstract class AbstractScalarSearchScriptFactory extends AbstractScalarScriptFactory {
-
-    protected Operator operator;
-    protected Literal valueLiteral;
 
     protected AbstractScalarSearchScriptFactory(Functions functions) {
         super(functions);
     }
 
+    protected static class SearchContext extends Context {
+        public final Operator operator;
+        public final ImmutableList<WrappedArgument> operatorArgs;
+
+        protected SearchContext(ScalarArgument function,
+                                Operator operator,
+                                List<WrappedArgument> operatorArgs) {
+            super(function);
+            this.operator = operator;
+            this.operatorArgs = ImmutableList.copyOf(operatorArgs);
+        }
+    }
+
     @Override
-    protected void prepare(@Nullable Map<String, Object> params) {
-        super.prepare(params);
+    protected Context prepare(@Nullable Map<String, Object> params) {
+        if (params == null) {
+            throw new ScriptException("Parameter required");
+        }
 
         String operatorName = XContentMapValues.nodeStringValue(params.get("op"), null);
         if (operatorName == null) {
             throw new ScriptException("Missing the op parameter");
         }
 
-        if (params.containsKey("value")) {
-            Number value = XContentMapValues.nodeDoubleValue(params.get("value"));
-            valueLiteral = Literal.newLiteral(value.doubleValue());
-        } else {
-            throw new ScriptException("Missing the value parameter");
+        // extract operator arguments
+        if (!params.containsKey("args") || !XContentMapValues.isArray(params.get("args"))) {
+            throw new ScriptException(String.format(Locale.ENGLISH, "No parameters given for operator %s", operatorName));
+        }
+        List args = (List)params.get("args");
+        List<WrappedArgument> operatorArgs = new ArrayList<>(args.size());
+        List<DataType> operatorArgTypes = new ArrayList<>(args.size());
+        for (Object arg : args) {
+            assert arg instanceof Map;
+            WrappedArgument argument = getArgument((Map<String, Object>)arg);
+            operatorArgs.add(argument);
+            // TODO: use real types from argument here
+            operatorArgTypes.add(DataTypes.DOUBLE);
         }
 
-        FunctionIdent operatorIdent = new FunctionIdent(operatorName, ImmutableList.of(fieldType, fieldType));
-        operator = (Operator)functions.get(operatorIdent);
+        // first argument should be the scalar
+        if (!(operatorArgs.get(0) instanceof ScalarArgument)) {
+            throw new ScriptException("first argument in search script no scalar!");
+        }
+        ScalarArgument function = ((ScalarArgument) operatorArgs.get(0));
+
+        // resolve operator
+        FunctionIdent operatorIdent = new FunctionIdent(operatorName, operatorArgTypes);
+        Operator operator = (Operator)functions.get(operatorIdent);
         if (operator == null) {
             throw new ScriptException(String.format("Cannot resolve operator with ident %s", operatorIdent));
         }
+
+        return new SearchContext(function, operator, operatorArgs);
     }
 }
