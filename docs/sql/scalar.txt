@@ -18,10 +18,68 @@ Scalar functions return a single data value (not a table).
 
 See below for a list of available scalar functions.
 
+
+Generic Functions
+=================
+
+format('format_string', parameter, [ parameter , ... ]) returns string
+----------------------------------------------------------------------
+
+The ``format`` function takes a format string and a variable number of
+arguments and returns a formatted string::
+
+    cr> select format('%s.%s', schema_name, table_name) from sys.shards
+    ... where table_name = 'locations'
+    ... limit 1;
+    +------------------------------------------+
+    | format('%s.%s', schema_name, table_name) |
+    +------------------------------------------+
+    | doc.locations                            |
+    +------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select format('%tY', date) from locations
+    ... group by format('%tY', date)
+    ... order by 1;
+    +---------------------+
+    | format('%tY', date) |
+    +---------------------+
+    |                1979 |
+    |                2013 |
+    +---------------------+
+    SELECT 2 rows in set (... sec)
+
+For details about the format string syntax see `formatter`_
+
+.. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
+
+substr('string', from, [ count ]) returns string
+------------------------------------------------
+
+The ``substr`` function extracts a substring from a given string
+starting at character ``from``. It takes an optional argument ``count``
+which defines the length of the substring::
+
+    cr> select substr(name, 3, 2) from sys.nodes
+    ... limit 1;
+    +--------------------+
+    | substr(name, 3, 2) |
+    +--------------------+
+    | at                 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
+
+Date/Time Functions
+===================
+
 .. _scalar-date-trunc:
 
 date_trunc('interval', ['timezone',] timestamp) returns timestamp
-=================================================================
+-----------------------------------------------------------------
 
 The ``date_trunc`` function truncates a timestamp to a given interval
 for a specific timezone.
@@ -87,58 +145,11 @@ If the time zone is not specified, truncation is based on UTC time::
 
 .. _`Joda-Time`: http://www.joda.org/joda-time/
 
-format('format_string', parameter, [ parameter , ... ]) returns string
-======================================================================
-
-The ``format`` function takes a format string and a variable number of
-arguments and returns a formatted string::
-
-    cr> select format('%s.%s', schema_name, table_name) from sys.shards
-    ... where table_name = 'locations'
-    ... limit 1;
-    +------------------------------------------+
-    | format('%s.%s', schema_name, table_name) |
-    +------------------------------------------+
-    | doc.locations                            |
-    +------------------------------------------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> select format('%tY', date) from locations
-    ... group by format('%tY', date)
-    ... order by 1;
-    +---------------------+
-    | format('%tY', date) |
-    +---------------------+
-    |                1979 |
-    |                2013 |
-    +---------------------+
-    SELECT 2 rows in set (... sec)
-
-For details about the format string syntax see `formatter`_
-
-.. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
-
-substr('string', from, [ count ]) returns string
-================================================
-
-The ``substr`` function extracts a substring from a given string
-starting at character ``from``. It takes an optional argument ``count``
-which defines the length of the substring::
-
-    cr> select substr(name, 3, 2) from sys.nodes
-    ... limit 1;
-    +--------------------+
-    | substr(name, 3, 2) |
-    +--------------------+
-    | at                 |
-    +--------------------+
-    SELECT 1 row in set (... sec)
-
+Geo Functions
+=============
 
 distance(geo_point1, geo_point2) returns double
-===============================================
+-----------------------------------------------
 
 The ``distance`` function can be used to calculate the distance between two
 points on earth.
@@ -167,13 +178,13 @@ the other argument must be a column reference.
     is used as part of the result column list has a different precision than
     what is stored inside the index which is utilized if the distance function
     is part of a WHERE clause.
-    
+
     For example if `select distance(...)` returns 0.0 an equality check with
     `where distance(...) = 0` might not yield anything at all due to the
     precision difference.
 
 within(shape1, shape2) returns boolean
-======================================
+--------------------------------------
 
 The ``within`` function returns true if ``shape1`` is within ``shape2``. If
 that is not the case false is returned.
@@ -193,3 +204,60 @@ casting from strings to geo point and geo shapes::
     SELECT 1 row in set (... sec)
 
 This function can always be used within a ``WHERE`` clause.
+
+
+Fulltext Search Functions
+=========================
+
+match(columnName, queryTerm) returns boolean
+--------------------------------------------
+
+The MATCH function performs a fulltext search on a column. In order to use fulltext
+searches on a column, a :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>`
+must be created on the related column. See :ref:`fulltext-indices` for details::
+
+    cr> select name from locations where match(name_description_ft, 'time');
+    +-----------+
+    | name      |
+    +-----------+
+    | Altair    |
+    | Bartledan |
+    +-----------+
+    SELECT 2 rows in set (... sec)
+
+To get the match score of the fulltext search, an internal system column
+:ref:`_score <sql_ddl_system_column_score>` can be selected.
+The higher the score value, the more relevant is the row::
+
+    cr> select name, \"_score\" from locations where match(name_description_ft, 'time');
+    +-----------+------------+
+    | name      |     _score |
+    +-----------+------------+
+    | Altair    | 0.56319076 |
+    | Bartledan | 0.4590714  |
+    +-----------+------------+
+    SELECT 2 rows in set (... sec)
+
+.. note::
+
+    The `_score` is a relative and not an absolute value. It just sets a row
+    in relation to the other ones. 
+
+The string used for a fulltext search is analyzed the same way as the indexed
+values and the resulting tokens are compared to the already indexed tokens.
+The tokens used for search are combined using the ``OR`` operator, so only
+one of the resulting tokens has to match to include a row.
+The more terms the search string contains, usually the more results will be
+returned::
+
+    cr> select name from locations where match(name_description_ft, 'time quordlepleen');
+    +-----------+
+    | name      |
+    +-----------+
+    | Aldebaran |
+    | Altair    |
+    | Bartledan |
+    +-----------+
+    SELECT 3 rows in set (... sec)
+
+For more information, please refer to :ref:`sql_dml_fulltext_search`.

@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added documentation for match function
+
  - replaced SQLAction python doctest with java integration test
 
  - updated incorrect options in crate usage information
