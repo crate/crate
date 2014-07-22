@@ -41,6 +41,7 @@ import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.MatchFunction;
 import io.crate.operation.scalar.arithmetic.*;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
+import io.crate.operation.scalar.elasticsearch.script.NumericScalarSortScript;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
@@ -262,6 +263,22 @@ public class ESQueryBuilder {
 
     static class OrderBySymbolVisitor extends SymbolVisitor<OrderByContext, Void> {
 
+        private final ImmutableMap<String, Converter<? extends Symbol>> functions;
+
+        OrderBySymbolVisitor() {
+            functions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
+                    .put(DistanceFunction.NAME, new DistanceConverter())
+                    .put(RoundFunction.NAME, new NumericScalarConverter(RoundFunction.NAME))
+                    .put(CeilFunction.NAME, new NumericScalarConverter(CeilFunction.NAME))
+                    .put(FloorFunction.NAME, new NumericScalarConverter(FloorFunction.NAME))
+                    .put(SquareRootFunction.NAME, new NumericScalarConverter(SquareRootFunction.NAME))
+                    .put(LogFunction.LnFunction.NAME, new NumericScalarConverter(LogFunction.LnFunction.NAME))
+                    .put(LogFunction.NAME, new NumericScalarConverter(LogFunction.NAME))
+                    .put(AbsFunction.NAME, new NumericScalarConverter(AbsFunction.NAME))
+                    .build();
+
+        }
+
         @Override
         protected Void visitSymbol(Symbol symbol, OrderByContext context) {
             throw new IllegalArgumentException(SymbolFormatter.format(
@@ -287,26 +304,11 @@ public class ESQueryBuilder {
         }
 
         @Override
-        public Void visitFunction(Function symbol, OrderByContext context) {
-            if (symbol.info().ident().name().equals(DistanceFunction.NAME)) {
-                Symbol referenceSymbol = symbol.arguments().get(0);
-                Symbol valueSymbol = symbol.arguments().get(1);
-
-                if (referenceSymbol.symbolType() != SymbolType.REFERENCE || !(valueSymbol instanceof Input)) {
-                    throw new IllegalArgumentException(SymbolFormatter.format(
-                            "Can't use \"%s\" in the ORDER BY clause. " +
-                            "Requires one column reference and one literal, in that order.", symbol));
-                }
-
-                SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
-                Reference reference = (Reference) referenceSymbol;
-                Input input = (Input) valueSymbol;
+        public Void visitFunction(Function function, OrderByContext context) {
+            Converter converter = functions.get(function.info().ident().name());
+            if (converter != null) {
                 try {
-                    context.builder.startObject().startObject("_geo_distance")
-                            .field(reference.info().ident().columnIdent().fqn(), input.value())
-                            .field("order", sortOrder.order())
-                            .endObject()
-                            .endObject();
+                    converter.convert(function, context);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -314,7 +316,7 @@ public class ESQueryBuilder {
                 return null;
             } else {
                 context.idx++;
-                return visitSymbol(symbol, context);
+                return visitSymbol(function, context);
             }
         }
 
@@ -347,6 +349,132 @@ public class ESQueryBuilder {
                 return missing;
             }
         }
+
+        static abstract class Converter<T extends Symbol> {
+
+            /**
+             * function that writes the xContent onto the context.
+             * May abort early by returning false if it can't convert the argument.
+             * Concrete implementation must not write to the context if it returns false.
+             */
+            public abstract boolean convert(T function, OrderByContext context) throws IOException;
+        }
+
+        class DistanceConverter extends Converter<Function> {
+
+            @Override
+            public boolean convert(Function function, OrderByContext context) throws IOException {
+                Symbol referenceSymbol = function.arguments().get(0);
+                Symbol valueSymbol = function.arguments().get(1);
+
+                if (referenceSymbol.symbolType() != SymbolType.REFERENCE || !(valueSymbol instanceof Input)) {
+                    throw new IllegalArgumentException(SymbolFormatter.format(
+                            "Can't use \"%s\" in the ORDER BY clause. " +
+                                    "Requires one column reference and one literal, in that order.", function));
+                }
+
+                SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
+                Reference reference = (Reference) referenceSymbol;
+                Input input = (Input) valueSymbol;
+                try {
+                    context.builder.startObject().startObject("_geo_distance")
+                            .field(reference.info().ident().columnIdent().fqn(), input.value())
+                            .field("order", sortOrder.order())
+                            .endObject()
+                            .endObject();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return true;
+            }
+        }
+
+        abstract class ScalarConverter extends Converter<Function> {
+
+            protected abstract String scriptName();
+
+            protected abstract String scriptType();
+
+            protected String scalarName() {
+                return null;
+            }
+
+            @Override
+            public boolean convert(Function function, OrderByContext context) throws IOException {
+                assert function.arguments().size() > 0;
+                if (function.arguments().get(0).symbolType() != SymbolType.REFERENCE) {
+                    throw new IllegalArgumentException(SymbolFormatter.format(
+                            "Can't use \"%s\" in the ORDER BY clause. " +
+                                    "Requires column reference as first argument.", function));
+                }
+                Reference referenceSymbol = (Reference)function.arguments().get(0);
+
+                SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
+                try {
+                    context.builder.startObject()
+                            .startObject("_script")
+                            .field("script", scriptName())
+                            .field("lang", "native")
+                            .field("type", scriptType())
+                            .field("order", sortOrder.order());
+
+
+                    context.builder.startObject("params");
+                    if (scalarName() != null) {
+                        context.builder.field("scalar_name", scalarName());
+                    }
+                    context.builder.field("missing", sortOrder.missing());
+                    context.builder.field("field_name",
+                            referenceSymbol.info().ident().columnIdent().fqn());
+                    context.builder.field("field_type",
+                            referenceSymbol.info().type());
+
+                    // add possible function arguments
+                    if (function.arguments().size() > 1) {
+                        context.builder.startArray("args");
+                        for (int i = 1; i < function.arguments().size(); i++) {
+                            Symbol symbol = function.arguments().get(i);
+                            context.builder.value(((Literal)symbol).value());
+                        }
+                        context.builder.endArray();
+                    }
+                    context.builder.endObject();
+
+
+                    context.builder.endObject();
+                    context.builder.endObject();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return true;
+            }
+
+        }
+
+        class NumericScalarConverter extends ScalarConverter {
+
+            private final String scalarName;
+
+            NumericScalarConverter(String scalarName) {
+                this.scalarName = scalarName;
+            }
+
+            @Override
+            protected String scriptName() {
+                return NumericScalarSortScript.NAME;
+            }
+
+            @Override
+            protected String scalarName() {
+                return scalarName;
+            }
+
+            @Override
+            protected String scriptType() {
+                return "number";
+            }
+        }
+
     }
 
     static class Context {

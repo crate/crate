@@ -26,7 +26,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
-import io.crate.operation.operator.Operator;
 import io.crate.planner.symbol.Literal;
 import io.crate.types.*;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
@@ -45,8 +44,6 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
     protected String fieldName;
     protected DataType fieldType;
     protected Scalar function;
-    protected Operator operator;
-    protected Literal valueLiteral;
     protected List<Input> arguments;
 
     public AbstractScalarScriptFactory(Functions functions) {
@@ -74,18 +71,6 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
             fieldType = DoubleType.INSTANCE;
         }
 
-        String operatorName = XContentMapValues.nodeStringValue(params.get("op"), null);
-        if (operatorName == null) {
-            throw new ScriptException("Missing the op parameter");
-        }
-
-        if (params.containsKey("value")) {
-            Number value = XContentMapValues.nodeDoubleValue(params.get("value"));
-            valueLiteral = Literal.newLiteral(value.doubleValue());
-        } else {
-            throw new ScriptException("Missing the value parameter");
-        }
-
         List<DataType> argumentTypes = null;
         if (params.containsKey("args") && XContentMapValues.isArray(params.get("args"))) {
             List args = (List)params.get("args");
@@ -98,11 +83,6 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
             }
         }
 
-        FunctionIdent operatorIdent = new FunctionIdent(operatorName, ImmutableList.of(fieldType, fieldType));
-        operator = (Operator)functions.get(operatorIdent);
-        if (operator == null) {
-            throw new ScriptException(String.format("Cannot resolve operator with ident %s", operatorIdent));
-        }
         FunctionIdent functionIdent;
         if (argumentTypes == null) {
             functionIdent = new FunctionIdent(functionName(), ImmutableList.of(fieldType));

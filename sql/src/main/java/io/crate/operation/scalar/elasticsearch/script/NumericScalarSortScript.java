@@ -21,16 +21,17 @@
 
 package io.crate.operation.scalar.elasticsearch.script;
 
+import com.google.common.collect.Lists;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
-import io.crate.operation.operator.Operator;
 import io.crate.planner.symbol.Literal;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
+import io.crate.types.LongType;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.fielddata.ScriptDocValues;
+import org.elasticsearch.script.AbstractSearchScript;
 import org.elasticsearch.script.ExecutableScript;
 import org.elasticsearch.script.ScriptException;
 import org.elasticsearch.script.ScriptModule;
@@ -39,15 +40,15 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public class NumericScalarSearchScript extends NumericScalarSortScript {
+public class NumericScalarSortScript extends AbstractSearchScript {
 
-    public static final String NAME = "numeric_scalar_search";
+    public static final String NAME = "numeric_scalar_sort";
 
     public static void register(ScriptModule module) {
         module.registerScript(NAME, Factory.class);
     }
 
-    public static class Factory extends AbstractScalarSearchScriptFactory {
+    public static class Factory extends AbstractScalarScriptFactory {
 
         protected String scalarName;
 
@@ -64,15 +65,16 @@ public class NumericScalarSearchScript extends NumericScalarSortScript {
          */
         @Override
         public ExecutableScript newScript(@Nullable Map<String, Object> params) {
-            scalarName = params == null ? null : XContentMapValues.nodeStringValue(params.get("scalar_name"), null);
+            scalarName = params == null ? null : (String)params.get("scalar_name");
             if (scalarName == null) {
                 throw new ScriptException("Missing the scalar_name parameter");
             }
 
             prepare(params);
 
-            return new NumericScalarSearchScript(fieldName, fieldType,
-                    function, arguments, valueLiteral, operator);
+            String missing = (String)params.get("missing");
+
+            return new NumericScalarSortScript(fieldName, fieldType, function, arguments, missing);
         }
 
         @Override
@@ -81,15 +83,22 @@ public class NumericScalarSearchScript extends NumericScalarSortScript {
         }
     }
 
-    private final Operator operator;
-    private final Literal value;
+    protected final String fieldName;
+    private final DataType fieldType;
+    private final Scalar function;
+    @Nullable
+    private final List<Input> arguments;
+    @Nullable
+    private final String missing;
 
-    public NumericScalarSearchScript(String fieldName, DataType fieldType,
-                                     Scalar function, @Nullable List<Input> arguments,
-                                     Literal value, Operator operator) {
-        super(fieldName, fieldType, function, arguments, null);
-        this.value = value;
-        this.operator = operator;
+    public NumericScalarSortScript(String fieldName, DataType fieldType,
+                                   Scalar function, @Nullable List<Input> arguments,
+                                   String missing) {
+        this.fieldName = fieldName;
+        this.fieldType = fieldType;
+        this.function = function;
+        this.arguments = arguments;
+        this.missing = missing;
     }
 
     @Override
@@ -97,11 +106,35 @@ public class NumericScalarSearchScript extends NumericScalarSortScript {
         ScriptDocValues docValue = (ScriptDocValues) doc().get(fieldName);
 
         if (docValue != null && !docValue.isEmpty()) {
-            Object functionReturn = evaluateScalar(docValue);
-            Literal left = Literal.newLiteral(DoubleType.INSTANCE.value(functionReturn));
-            return operator.evaluate(left, value);
+            return evaluateScalar(docValue);
         }
-        return false;
+        if (missing != null && missing.equals("_first")) {
+            return Double.MIN_VALUE;
+        } else {
+            return Double.MAX_VALUE;
+        }
+    }
+
+    protected Object evaluateScalar(ScriptDocValues docValue) {
+        Double fieldValue = null;
+        if (fieldType.id() == LongType.ID) {
+            fieldValue = ((Long) (((ScriptDocValues.Longs) docValue).getValue())).doubleValue();
+        } else if (fieldType.id() == DoubleType.ID) {
+            fieldValue = ((ScriptDocValues.Doubles) docValue).getValue();
+        }
+        if (fieldValue == null) {
+            throw new ScriptException(
+                    String.format("Field data type not supported by %s()", function.info().ident().name()));
+        }
+        Object functionReturn;
+        if (arguments == null) {
+            functionReturn = function.evaluate((Input) Literal.newLiteral(fieldValue));
+        } else {
+            List<Input> functionArguments = Lists.newArrayList(arguments);
+            functionArguments.add(0, Literal.newLiteral(fieldValue));
+            functionReturn = function.evaluate(functionArguments.toArray(new Literal[functionArguments.size()]));
+        }
+        return functionReturn;
     }
 
 }

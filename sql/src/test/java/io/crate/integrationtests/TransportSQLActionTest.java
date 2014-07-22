@@ -4338,7 +4338,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereArithmeticScalar() throws Exception {
         execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
+        ensureGreen();
         execute("insert into t (d) values (?), (?), (?)", new Object[] { 1.3d, 1.6d, 2.2d });
         execute("refresh table t");
 
@@ -4366,5 +4366,40 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select log(i, 100) from t where log(i, 100) = 0.5");
         assertThat(response.rowCount(), is(1L));
         assertThat((Double)response.rows()[0][0], is(0.5));
+    }
+
+    @Test
+    public void testSelectOrderByArithmeticScalar() throws Exception {
+        execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (d) values (?), (?), (?)", new Object[] { 1.3d, 1.6d, 2.2d });
+        execute("refresh table t");
+
+        execute("select * from t order by round(d)");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((Double)response.rows()[0][0], is(1.3d));
+
+        execute("select * from t order by ceil(d), d");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((Double)response.rows()[0][0], is(1.3d));
+
+        execute("select * from t order by floor(d), d");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((Double)response.rows()[0][0], is(1.3d));
+
+        execute("insert into t (d, i) values (?, ?), (?, ?)", new Object[] { -0.2, 10, 0.1, 5 });
+        execute("refresh table t");
+
+        execute("select * from t order by abs(d)");
+        assertThat(response.rowCount(), is(5L));
+        assertThat((Double)response.rows()[0][0], is(0.1));
+
+        execute("select i from t order by ln(i)");
+        assertThat(response.rowCount(), is(5L));
+        assertThat((Integer)response.rows()[0][0], is(5));
+
+        execute("select i from t order by log(i, 100)");
+        assertThat(response.rowCount(), is(5L));
+        assertThat((Integer)response.rows()[0][0], is(5));
     }
 }
