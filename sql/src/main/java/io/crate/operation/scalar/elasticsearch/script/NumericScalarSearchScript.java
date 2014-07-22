@@ -21,19 +21,15 @@
 
 package io.crate.operation.scalar.elasticsearch.script;
 
+import io.crate.types.DataTypes;
+import org.elasticsearch.script.ScriptModule;
+
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.operator.Operator;
 import io.crate.planner.symbol.Literal;
-import io.crate.types.DataType;
-import io.crate.types.DoubleType;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.script.ExecutableScript;
-import org.elasticsearch.script.ScriptException;
-import org.elasticsearch.script.ScriptModule;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -49,8 +45,6 @@ public class NumericScalarSearchScript extends NumericScalarSortScript {
 
     public static class Factory extends AbstractScalarSearchScriptFactory {
 
-        protected String scalarName;
-
         @Inject
         public Factory(Functions functions) {
             super(functions);
@@ -64,44 +58,36 @@ public class NumericScalarSearchScript extends NumericScalarSortScript {
          */
         @Override
         public ExecutableScript newScript(@Nullable Map<String, Object> params) {
-            scalarName = params == null ? null : XContentMapValues.nodeStringValue(params.get("scalar_name"), null);
-            if (scalarName == null) {
-                throw new ScriptException("Missing the scalar_name parameter");
-            }
-
-            prepare(params);
-
-            return new NumericScalarSearchScript(fieldName, fieldType,
-                    function, arguments, valueLiteral, operator);
-        }
-
-        @Override
-        protected String functionName() {
-            return scalarName;
+            SearchContext ctx = (SearchContext) prepare(params);
+            return new NumericScalarSearchScript(
+                    ctx.operator,
+                    ctx.function,
+                    ctx.operatorArgs);
         }
     }
 
     private final Operator operator;
-    private final Literal value;
+    private final List<AbstractScalarScriptFactory.WrappedArgument> operatorArgs;
 
-    public NumericScalarSearchScript(String fieldName, DataType fieldType,
-                                     Scalar function, @Nullable List<Input> arguments,
-                                     Literal value, Operator operator) {
-        super(fieldName, fieldType, function, arguments, null);
-        this.value = value;
+    public NumericScalarSearchScript(Operator operator,
+                                     AbstractScalarScriptFactory.ScalarArgument function,
+                                     List<AbstractScalarScriptFactory.WrappedArgument> operatorArgs) {
+        super(function, null);
         this.operator = operator;
+        this.operatorArgs = operatorArgs;
     }
 
     @Override
     public Object run() {
-        ScriptDocValues docValue = (ScriptDocValues) doc().get(fieldName);
-
-        if (docValue != null && !docValue.isEmpty()) {
-            Object functionReturn = evaluateScalar(docValue);
-            Literal left = Literal.newLiteral(DoubleType.INSTANCE.value(functionReturn));
-            return operator.evaluate(left, value);
+        Input[] operatorArgInputs = new Input[operatorArgs.size()];
+        for (int i = 0; i < operatorArgs.size(); i++) {
+            AbstractScalarScriptFactory.WrappedArgument operatorArg = operatorArgs.get(i);
+            // TODO: use real type from argument here
+            operatorArgInputs[i] = Literal.newLiteral(
+                    DataTypes.DOUBLE,
+                    DataTypes.DOUBLE.value(operatorArg.evaluate(doc())));
         }
-        return false;
+        return operator.evaluate(operatorArgInputs);
     }
 
 }
