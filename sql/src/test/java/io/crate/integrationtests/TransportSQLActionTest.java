@@ -4443,14 +4443,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testScalarInOrderByTwoReferences() throws Exception {
+    public void testScalarInOrderByAndSelect() throws Exception {
         execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into t (i, l, d) values (1, 2, 99.0), (-1, 4, 99), (193384, 31234594433, 99.0)");
         execute("insert into t (i, l, d) values (1, 2, 99.0), (-1, 4, 99.0)");
         refresh();
         execute("select l, log(d,l) from t order by l, log(d,l)");
-
+        assertThat(response.rowCount(), is(5L));
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("2| 6.6293566200796095\n" +
+                   "2| 6.6293566200796095\n" +
+                   "4| 3.3146783100398047\n" +
+                   "4| 3.3146783100398047\n" +
+                   "31234594433| 0.19015764044502392\n"));
     }
 }
 
