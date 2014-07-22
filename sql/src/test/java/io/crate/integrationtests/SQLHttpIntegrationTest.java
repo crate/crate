@@ -21,17 +21,32 @@
 
 package io.crate.integrationtests;
 
-import io.crate.test.integration.CrateIntegrationTest;
-import io.crate.test.integration.DoctestClusterTestCase;
-import org.junit.Test;
 
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
-@CrateIntegrationTest.ClusterScope(numNodes = 1, scope = CrateIntegrationTest.Scope.GLOBAL)
-public class RestSQLActionDoctestTest extends DoctestClusterTestCase {
+import java.io.IOException;
 
-    @Test
-    public void testRestAction() throws Exception {
-        execDocFile("doctests/rest_sql.rst", getClass());
+public class SQLHttpIntegrationTest extends SQLTransportIntegrationTest {
+
+    protected CloseableHttpClient httpClient = HttpClients.createDefault();
+
+    protected CloseableHttpResponse post(String body) throws IOException {
+        HttpPost httpPost = new HttpPost("http://localhost:44200/_sql?error_trace");
+
+        if(body != null){
+            StringEntity bodyEntity = new StringEntity(body);
+            httpPost.setEntity(bodyEntity);
+        }
+        CloseableHttpResponse response = httpClient.execute(httpPost);
+        return response;
+    }
+
+    protected CloseableHttpResponse post() throws IOException {
+        return post(null);
     }
 
 }

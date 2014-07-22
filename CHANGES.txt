@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - replaced SQLAction python doctest with java integration test
+
 2014/07/21 0.40.2
 =================
 
