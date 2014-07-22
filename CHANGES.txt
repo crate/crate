@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.9.1 which includes following changes
+
+    - fix: do not append limit to insert by query statement
+
 2014/07/21 0.40.2
 =================
 
