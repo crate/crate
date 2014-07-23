@@ -103,8 +103,8 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     public void testFromQueryWithSubQueryColumns() throws Exception {
         InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
                 analyze("insert into users (" +
-                        "  select id, other_id, name, details, awesome, counters, " +
-                        "       friends, tags " +
+                        "  select id, other_id, name, text, no_index, details, " +
+                        "      awesome, counters, friends, tags " +
                         "  from users " +
                         "  where name = 'Trillian'" +
                         ")");

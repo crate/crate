@@ -159,21 +159,25 @@ public class DocIndexMetaData {
     }
 
     private void add(ColumnIdent column, DataType type) {
-        add(column, type, ReferenceInfo.ObjectType.DYNAMIC, false);
+        add(column, type, ReferenceInfo.ObjectType.DYNAMIC, ReferenceInfo.IndexType.NOT_ANALYZED, false);
     }
 
     private void addPartitioned(ColumnIdent column, DataType type) {
-        add(column, type, ReferenceInfo.ObjectType.DYNAMIC, true);
+        add(column, type, ReferenceInfo.ObjectType.DYNAMIC, ReferenceInfo.IndexType.NOT_ANALYZED, true);
+    }
+
+    private void add(ColumnIdent column, DataType type, ReferenceInfo.IndexType indexType) {
+        add(column, type, ReferenceInfo.ObjectType.DYNAMIC, indexType, false);
     }
 
     private void add(ColumnIdent column, DataType type, ReferenceInfo.ObjectType objectType,
-                     boolean partitioned) {
+                     ReferenceInfo.IndexType indexType, boolean partitioned) {
         // don't include indices in the column references
         if (indicesMap.keySet().contains(column.name())) {
             return;
         }
 
-        ReferenceInfo info = newInfo(column, type, objectType);
+        ReferenceInfo info = newInfo(column, type, objectType, indexType);
         if (info.ident().isColumn()) {
             columnsBuilder.add(info);
         }
@@ -183,12 +187,15 @@ public class DocIndexMetaData {
         }
     }
 
-    private ReferenceInfo newInfo(ColumnIdent column, DataType type, ReferenceInfo.ObjectType objectType) {
+    private ReferenceInfo newInfo(ColumnIdent column, DataType type,
+                                  ReferenceInfo.ObjectType objectType,
+                                  ReferenceInfo.IndexType indexType) {
         RowGranularity granularity = RowGranularity.DOC;
         if (partitionedBy.contains(column)) {
             granularity = RowGranularity.SHARD;
         }
-        return new ReferenceInfo(new ReferenceIdent(ident, column), granularity, type, objectType);
+        return new ReferenceInfo(new ReferenceIdent(ident, column), granularity, type,
+                objectType, indexType);
     }
 
     /**
@@ -219,6 +226,23 @@ public class DocIndexMetaData {
             type = new ArrayType(type);
         }
         return type;
+    }
+
+    private ReferenceInfo.IndexType getColumnIndexType(String columnName,
+                                                       Map<String, Object> columnProperties) {
+        String indexType = (String) columnProperties.get("index");
+        String analyzerName = (String) columnProperties.get("analyzer");
+        if (indexType != null) {
+            if (indexType.equals(ReferenceInfo.IndexType.NOT_ANALYZED.toString())) {
+                return ReferenceInfo.IndexType.NOT_ANALYZED;
+            } else if (indexType.equals(ReferenceInfo.IndexType.NO.toString())) {
+                return ReferenceInfo.IndexType.NO;
+            } else if (indexType.equals(ReferenceInfo.IndexType.ANALYZED.toString())
+                    && analyzerName != null && !analyzerName.equals("keyword")) {
+                return ReferenceInfo.IndexType.ANALYZED;
+            }
+        }
+        return ReferenceInfo.IndexType.NOT_ANALYZED;
     }
 
     /**
@@ -301,6 +325,7 @@ public class DocIndexMetaData {
         for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
             Map<String, Object> columnProperties = (Map) columnEntry.getValue();
             DataType columnDataType = getColumnDataType(columnEntry.getKey(), columnIdent, columnProperties);
+            ReferenceInfo.IndexType columnIndexType = getColumnIndexType(columnEntry.getKey(), columnProperties);
 
             if (columnDataType == DataTypes.OBJECT
                     || ( columnDataType.id() == ArrayType.ID
@@ -308,7 +333,7 @@ public class DocIndexMetaData {
                 ReferenceInfo.ObjectType objectType =
                         ReferenceInfo.ObjectType.of(columnProperties.get("dynamic"));
                 ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
-                add(newIdent, columnDataType, objectType, false);
+                add(newIdent, columnDataType, objectType, ReferenceInfo.IndexType.NO, false);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -316,7 +341,7 @@ public class DocIndexMetaData {
                 }
             } else if (columnDataType != DataTypes.NOT_SUPPORTED) {
                 ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
-                add(newIdent, columnDataType);
+                add(newIdent, columnDataType, columnIndexType);
             }
         }
     }

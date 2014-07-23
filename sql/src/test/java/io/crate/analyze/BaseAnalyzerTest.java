@@ -72,6 +72,8 @@ public class BaseAnalyzerTest {
             .add("id", DataTypes.LONG, null)
             .add("other_id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
+            .add("text", DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED)
+            .add("no_index", DataTypes.STRING, null, ReferenceInfo.IndexType.NO)
             .add("details", DataTypes.OBJECT, null)
             .add("awesome", DataTypes.BOOLEAN, null)
             .add("counters", new ArrayType(DataTypes.LONG), null)

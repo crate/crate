@@ -43,6 +43,7 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;
     private List<Symbol> sortSymbols;
+    protected boolean selectFromFieldCache = false;
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
 

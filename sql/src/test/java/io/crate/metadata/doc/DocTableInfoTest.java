@@ -55,7 +55,8 @@ public class DocTableInfoTest {
                 foobarIdent,
                 RowGranularity.DOC,
                 DataTypes.OBJECT,
-                ReferenceInfo.ObjectType.STRICT
+                ReferenceInfo.ObjectType.STRICT,
+                ReferenceInfo.IndexType.NOT_ANALYZED
         );
 
         ImmutableMap<ColumnIdent, ReferenceInfo> references = ImmutableMap.<ColumnIdent, ReferenceInfo>builder()

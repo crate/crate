@@ -41,6 +41,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     private final static AggregationSearcher aggregationSearcher = new AggregationSearcher();
     private final static SortSymbolValidator sortSymbolValidator = new SortSymbolValidator();
     private final static GroupBySymbolValidator groupBySymbolValidator = new GroupBySymbolValidator();
+    private final static SelectSymbolValidator selectSymbolVisitor = new SelectSymbolValidator();
 
     @Override
     protected Symbol visitSelect(Select node, SelectAnalysis context) {
@@ -120,7 +121,17 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             processWhereClause(node.getWhere().get(), context);
         }
 
+        if (!node.getGroupBy().isEmpty()) {
+            context.selectFromFieldCache = true;
+        }
+
         process(node.getSelect(), context);
+
+        // validate select symbols
+        for (Symbol symbol : context.outputSymbols()) {
+            selectSymbolVisitor.process(symbol, new SelectSymbolValidator.SelectContext(context.selectFromFieldCache));
+        }
+
 
         if (!node.getGroupBy().isEmpty()) {
             analyzeGroupBy(node.getGroupBy(), context);
@@ -357,6 +368,14 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                                 SymbolFormatter.format(symbol),
                                 symbol.valueType())
                 );
+            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
+                throw new UnsupportedOperationException(
+                        String.format("Cannot ORDER BY '%s': sorting on analyzed/fulltext columns is not possible",
+                                SymbolFormatter.format(symbol)));
+            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
+                throw new UnsupportedOperationException(
+                        String.format("Cannot ORDER BY '%s': sorting on non-indexed columns is not possible",
+                                SymbolFormatter.format(symbol)));
             }
             return null;
         }
@@ -382,6 +401,14 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                         String.format("Cannot GROUP BY '%s': invalid data type '%s'",
                                 SymbolFormatter.format(symbol),
                                 symbol.valueType()));
+            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
+                throw new IllegalArgumentException(
+                        String.format("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible",
+                                SymbolFormatter.format(symbol)));
+            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
+                throw new IllegalArgumentException(
+                        String.format("Cannot GROUP BY '%s': grouping on non-indexed columns is not possible",
+                                SymbolFormatter.format(symbol)));
             }
             return null;
         }
@@ -400,6 +427,53 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                     String.format("Cannot GROUP BY for '%s'", SymbolFormatter.format(symbol))
             );
         }
+    }
+
+    static class SelectSymbolValidator extends SymbolVisitor<SelectSymbolValidator.SelectContext, Void> {
+
+        static class SelectContext {
+            private boolean selectFromFieldCache;
+
+            public SelectContext(boolean selectFromFieldCache) {
+                this.selectFromFieldCache = selectFromFieldCache;
+            }
+        }
+
+
+        @Override
+        public Void visitReference(Reference symbol, SelectContext context) {
+            if (context.selectFromFieldCache) {
+                if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
+                    throw new IllegalArgumentException(
+                            String.format("Cannot select analyzed column '%s' " +
+                                            "within grouping or aggregations",
+                                    SymbolFormatter.format(symbol)));
+                } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
+                    throw new IllegalArgumentException(
+                            String.format("Cannot select non-indexed column '%s' " +
+                                            "within grouping or aggregations",
+                                    SymbolFormatter.format(symbol)));
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitFunction(Function symbol, SelectContext context) {
+            if (symbol.info().isAggregate()) {
+                context.selectFromFieldCache = true;
+            }
+            for (Symbol arg : symbol.arguments()) {
+                process(arg, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitSymbol(Symbol symbol, SelectContext context) {
+            return null;
+        }
+
     }
 
 }

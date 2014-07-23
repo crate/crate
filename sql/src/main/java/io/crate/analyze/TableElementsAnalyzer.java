@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class TableElementsAnalyzer {
+
 
     private final static InnerTableElementsAnalyzer analyzer = new InnerTableElementsAnalyzer();
 
@@ -193,9 +195,9 @@ public class TableElementsAnalyzer {
             if (node.indexMethod().equalsIgnoreCase("fulltext")) {
                 setAnalyzer(node.properties(), context);
             } else if (node.indexMethod().equalsIgnoreCase("plain")) {
-                context.analyzedColumnDefinition.index("not_analyzed");
+                context.analyzedColumnDefinition.index(ReferenceInfo.IndexType.NOT_ANALYZED.toString());
             } else if (node.indexMethod().equalsIgnoreCase("OFF")) {
-                context.analyzedColumnDefinition.index("no");
+                context.analyzedColumnDefinition.index(ReferenceInfo.IndexType.NO.toString());
             } else {
                 throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "Invalid index method \"%s\"", node.indexMethod()));
@@ -220,7 +222,7 @@ public class TableElementsAnalyzer {
         }
 
         private void setAnalyzer(GenericProperties properties, ColumnDefinitionContext context) {
-            context.analyzedColumnDefinition.index("analyzed");
+            context.analyzedColumnDefinition.index(ReferenceInfo.IndexType.ANALYZED.toString());
 
             Expression analyzerExpression = properties.get("analyzer");
             if (analyzerExpression == null) {

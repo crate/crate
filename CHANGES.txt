@@ -5,6 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: ORDER BY using non-indexed (index off) column do fail silently
+
+ - fix: grouping or global aggregation using non-indexed (index off)
+   or analyzed (fulltext) column throws misleading exception
+
  - added documentation for match function
 
  - replaced SQLAction python doctest with java integration test

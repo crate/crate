@@ -235,6 +235,7 @@ public class DocIndexMetaDataTest {
 
         assertThat(columns.get(0).ident().columnIdent().name(), is("content"));
         assertEquals(DataTypes.STRING, columns.get(0).type());
+        assertEquals(ReferenceInfo.IndexType.ANALYZED, columns.get(0).indexType());
         assertThat(columns.get(0).ident().tableIdent().name(), is("test1"));
 
         ImmutableList<ReferenceInfo> references = ImmutableList.<ReferenceInfo>copyOf(md.references().values());
@@ -242,6 +243,10 @@ public class DocIndexMetaDataTest {
 
         ReferenceInfo birthday = md.references().get(new ColumnIdent("person", "birthday"));
         assertEquals(DataTypes.TIMESTAMP, birthday.type());
+        assertEquals(ReferenceInfo.IndexType.NOT_ANALYZED, birthday.indexType());
+
+        ReferenceInfo title = md.references().get(new ColumnIdent("title"));
+        assertEquals(ReferenceInfo.IndexType.NO, title.indexType());
 
         List<String> fqns = Lists.transform(references, new Function<ReferenceInfo, String>() {
             @Nullable
