@@ -51,7 +51,8 @@ public class InformationTableInfo extends AbstractTableInfo {
         }
 
         public Builder add(String column, DataType type, List<String> path, ReferenceInfo.ObjectType objectType) {
-            ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path), RowGranularity.DOC, type, objectType);
+            ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path),
+                    RowGranularity.DOC, type, objectType, ReferenceInfo.IndexType.NOT_ANALYZED);
             if (info.ident().isColumn()) {
                 columns.add(info);
             }

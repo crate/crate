@@ -92,20 +92,26 @@ public class TestingTableInfo extends AbstractTableInfo {
             return add(column, type, path, ReferenceInfo.ObjectType.DYNAMIC);
         }
         public Builder add(String column, DataType type, List<String> path, ReferenceInfo.ObjectType objectType) {
-            return add(column, type, path, objectType, false);
+            return add(column, type, path, objectType, ReferenceInfo.IndexType.NOT_ANALYZED, false);
+        }
+        public Builder add(String column, DataType type, List<String> path, ReferenceInfo.IndexType indexType) {
+            return add(column, type, path, ReferenceInfo.ObjectType.DYNAMIC, indexType, false);
         }
         public Builder add(String column, DataType type, List<String> path,
                            boolean partitionBy) {
-            return add(column, type, path, ReferenceInfo.ObjectType.DYNAMIC, partitionBy);
+            return add(column, type, path, ReferenceInfo.ObjectType.DYNAMIC,
+                    ReferenceInfo.IndexType.NOT_ANALYZED, partitionBy);
         }
 
         public Builder add(String column, DataType type, List<String> path,
-                           ReferenceInfo.ObjectType objectType, boolean partitionBy) {
+                           ReferenceInfo.ObjectType objectType, ReferenceInfo.IndexType indexType,
+                           boolean partitionBy) {
             RowGranularity rowGranularity = granularity;
             if (partitionBy) {
                 rowGranularity = RowGranularity.SHARD;
             }
-            ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path), rowGranularity, type, objectType);
+            ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path),
+                    rowGranularity, type, objectType, indexType);
             if (info.ident().isColumn()) {
                 columns.add(info);
             }

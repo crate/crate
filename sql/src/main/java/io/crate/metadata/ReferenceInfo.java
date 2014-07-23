@@ -42,6 +42,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         private DataType type;
         private ObjectType objectType = ObjectType.DYNAMIC; // reflects default value of objects
         private RowGranularity granularity;
+        private IndexType indexType = IndexType.NOT_ANALYZED; // reflects default behaviour
 
         public Builder type(DataType type) {
             this.type = type;
@@ -83,11 +84,19 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
             return this;
         }
 
+        public void indexType(IndexType indexType) {
+            this.indexType = indexType;
+        }
+
+        public IndexType indexType() {
+            return indexType;
+        }
+
         public ReferenceInfo build() {
             Preconditions.checkNotNull(ident);
             Preconditions.checkNotNull(granularity);
             Preconditions.checkNotNull(type);
-            return new ReferenceInfo(ident, granularity, type, objectType);
+            return new ReferenceInfo(ident, granularity, type, objectType, indexType);
         }
     }
 
@@ -118,10 +127,22 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         }
     }
 
+    public static enum IndexType {
+        ANALYZED,
+        NOT_ANALYZED,
+        NO;
+
+        public String toString() {
+            return name().toLowerCase();
+        }
+    }
+
+
     private ReferenceIdent ident;
     private DataType type;
     private ObjectType objectType = ObjectType.DYNAMIC;
     private RowGranularity granularity;
+    private IndexType indexType = IndexType.NOT_ANALYZED;
 
     public ReferenceInfo() {
 
@@ -130,17 +151,19 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
     public ReferenceInfo(ReferenceIdent ident,
                          RowGranularity granularity,
                          DataType type) {
-        this(ident, granularity, type, ObjectType.DYNAMIC);
+        this(ident, granularity, type, ObjectType.DYNAMIC, IndexType.NOT_ANALYZED);
     }
 
     public ReferenceInfo(ReferenceIdent ident,
                          RowGranularity granularity,
                          DataType type,
-                         ObjectType objectType) {
+                         ObjectType objectType,
+                         IndexType indexType) {
         this.ident = ident;
         this.type = type;
         this.granularity = granularity;
         this.objectType = objectType;
+        this.indexType = indexType;
     }
 
     public ReferenceIdent ident() {
@@ -159,6 +182,10 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         return objectType;
     }
 
+    public IndexType indexType() {
+        return indexType;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -169,6 +196,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         if (granularity != that.granularity) return false;
         if (ident != null ? !ident.equals(that.ident) : that.ident != null) return false;
         if (objectType.ordinal() != that.objectType.ordinal()) { return false; }
+        if (indexType.ordinal() != that.indexType.ordinal()) { return false; }
         if (type != null ? !type.equals(that.type) : that.type != null) return false;
 
         return true;
@@ -176,7 +204,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(granularity, ident, type, objectType);
+        return Objects.hashCode(granularity, ident, type, objectType, indexType);
     }
 
     @Override
@@ -188,6 +216,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         if (type.equals(DataTypes.OBJECT)) {
             helper.add("object type", objectType.name());
         }
+        helper.add("index type", indexType.toString());
         return helper.toString();
     }
 
@@ -198,6 +227,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
                 .compare(ident, o.ident)
                 .compare(type, o.type)
                 .compare(objectType.ordinal(), o.objectType.ordinal())
+                .compare(indexType.ordinal(), o.indexType.ordinal())
                 .result();
     }
 
@@ -209,6 +239,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         granularity = RowGranularity.fromStream(in);
 
         objectType = ObjectType.values()[in.readVInt()];
+        indexType = IndexType.values()[in.readVInt()];
     }
 
     @Override
@@ -218,6 +249,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         RowGranularity.toStream(granularity, out);
 
         out.writeVInt(objectType.ordinal());
+        out.writeVInt(indexType.ordinal());
     }
 
     public static Builder builder() {

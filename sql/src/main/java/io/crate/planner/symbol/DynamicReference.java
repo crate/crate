@@ -48,12 +48,14 @@ public class DynamicReference extends Reference {
 
     public void valueType(DataType dataType) {
         assert this.info != null;
-        this.info = new ReferenceInfo(info.ident(), info.granularity(), dataType, info.objectType());
+        this.info = new ReferenceInfo(info.ident(), info.granularity(), dataType,
+                info.objectType(), info.indexType());
     }
 
     public void objectType(ReferenceInfo.ObjectType objectType) {
         assert this.info != null;
-        this.info = new ReferenceInfo(info.ident(), info.granularity(), info.type(), objectType);
+        this.info = new ReferenceInfo(info.ident(), info.granularity(), info.type(),
+                objectType, info.indexType());
     }
 
     @Override
