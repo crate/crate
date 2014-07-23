@@ -47,10 +47,14 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
     }
 
     public FunctionInfo(FunctionIdent ident, DataType returnType, boolean isAggregate) {
+        this(ident, returnType, isAggregate, true);
+    }
+
+    public FunctionInfo(FunctionIdent ident, DataType returnType, boolean isAggregate, boolean deterministic) {
         this.ident = ident;
         this.returnType = returnType;
         this.isAggregate = isAggregate;
-        this.deterministic = true;
+        this.deterministic = deterministic;
     }
 
     public FunctionIdent ident() {
@@ -58,7 +62,6 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
     }
 
     public boolean isAggregate() {
-
         return isAggregate;
     }
 
@@ -67,6 +70,10 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
         return returnType;
     }
 
+    /**
+     * return true if this function returns the same results given the same arguments.
+     * Same arguments includes the same column for the same table with the same data.
+     */
     public boolean isDeterministic() {
         return deterministic;
     }
@@ -81,14 +88,15 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
         }
 
         FunctionInfo o = (FunctionInfo) obj;
-        return Objects.equal(isAggregate, o.isAggregate) &&
+        return deterministic &&
+                Objects.equal(isAggregate, o.isAggregate) &&
                 Objects.equal(ident, o.ident) &&
                 Objects.equal(returnType, o.returnType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(isAggregate, ident, returnType);
+        return Objects.hashCode(isAggregate, ident, returnType, (deterministic ? true : Math.random()));
     }
 
     @Override

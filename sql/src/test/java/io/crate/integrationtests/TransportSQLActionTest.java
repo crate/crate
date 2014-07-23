@@ -4465,6 +4465,61 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                    "4| 3.249922943541603\n" +
                    "31234594433| 0.19015764044502392\n"));
     }
+
+    @Test
+    public void testSelectRandomTwoTimes() throws Exception {
+        execute("select random(), random() from sys.cluster limit 1");
+        assertThat(response.rows()[0][0], is(not(response.rows()[0][1])));
+
+        this.setup.groupBySetup();
+        execute("select random(), random() from characters limit 1");
+        assertThat(response.rows()[0][0], is(not(response.rows()[0][1])));
+    }
+
+    @Test
+    public void testSelectArithmeticOperatorInWhereClause() throws Exception {
+        execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (i, l, d) values (1, 2, 90.5), (2, 5, 90.5), (193384, 31234594433, 99.0), (10, 21, 99.0), (-1, 4, 99.0)");
+        refresh();
+
+        execute("select i from t where i%2 = 0 order by i");
+        assertThat(response.rowCount(), is(3L));
+
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n10\n193384\n"));
+
+        execute("select l from t where i * -1 > 0");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("4\n"));
+
+        execute("select l from t where i * 2 = l");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+
+        execute("select i%3, sum(l) from t where i+1 > 2 group by i%3 order by sum(l)");
+        assertThat(response.rowCount(), is(2L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "2| 5.0\n" +
+                "1| 3.1234594454E10\n"));
+    }
+
+    @Test
+    public void testSelectArithMetricOperatorInOrderBy() throws Exception {
+        execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (i, l, d) values (1, 2, 90.5), (2, 5, 90.5), (193384, 31234594433, 99.0), (10, 21, 99.0), (-1, 4, 99.0)");
+        refresh();
+
+        execute("select i, i%3 from t order by i%3, l");
+        assertThat(response.rowCount(), is(5L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "-1| -1\n" +
+                "1| 1\n" +
+                "10| 1\n" +
+                "193384| 1\n" +
+                "2| 2\n"));
+    }
+
 }
 
 

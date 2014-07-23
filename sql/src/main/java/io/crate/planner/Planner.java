@@ -68,6 +68,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
     static final PlannerReferenceExtractor referenceExtractor = new PlannerReferenceExtractor();
+    static final PlannerFunctionArgumentCopier functionArgumentCopier = new PlannerFunctionArgumentCopier();
+
     private final ClusterService clusterService;
     private AggregationProjection localMergeProjection;
 
@@ -575,27 +577,16 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 || context.indexWriterProjection.isPresent();
         List<Symbol> searchSymbols;
         if (needsProjection) {
-            // we must create a deep copy of the where clause because Reference instances inside
-            // will be replaced with InputColumn instances by the context builder
-            try {
-                analysis.whereClause(analysis.whereClause().deepCopy());
-            } catch (IOException e) {
-                throw new RuntimeException("Error happened while copying where clause", e);
+            // we must create a deep copy of references if they are function arguments
+            // or they will be replaced with InputColumn instances by the context builder
+            if (analysis.whereClause().hasQuery()) {
+               analysis.whereClause(functionArgumentCopier.process(analysis.whereClause().query()));
             }
             List<Symbol> sortSymbols = analysis.sortSymbols();
 
             // do the same for sortsymbols if we have a function there
             if (sortSymbols != null && !Iterables.all(sortSymbols, symbolIsReference)) {
-                try {
-                    for (int i = 0; i < sortSymbols.size(); i++) {
-                        Symbol sortSymbol = sortSymbols.get(i);
-                        if (sortSymbol.symbolType() == SymbolType.FUNCTION) {
-                            sortSymbols.set(i, sortSymbol.deepCopy());
-                        }
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeException("Error happened while copying order by", e);
-                }
+                functionArgumentCopier.process(sortSymbols);
             }
 
             contextBuilder.searchOutput(analysis.outputSymbols());

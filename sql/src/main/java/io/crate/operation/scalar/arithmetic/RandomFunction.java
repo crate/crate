@@ -40,7 +40,7 @@ public class RandomFunction implements Scalar<Double, Void> {
 
     protected final static FunctionInfo info = new FunctionInfo(
                                                     new FunctionIdent(NAME, Collections.EMPTY_LIST),
-                                                    DataTypes.DOUBLE);
+                                                    DataTypes.DOUBLE, false, false);
 
     private final Random random = new Random();
 
