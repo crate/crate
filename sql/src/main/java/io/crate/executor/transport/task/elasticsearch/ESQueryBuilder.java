@@ -276,6 +276,12 @@ public class ESQueryBuilder {
                     .put(LogFunction.LnFunction.NAME, numericScalarConverter)
                     .put(LogFunction.NAME, numericScalarConverter)
                     .put(AbsFunction.NAME, numericScalarConverter)
+                    .put(RandomFunction.NAME, numericScalarConverter)
+                    .put(AddFunction.NAME, numericScalarConverter)
+                    .put(SubtractFunction.NAME, numericScalarConverter)
+                    .put(MultiplyFunction.NAME, numericScalarConverter)
+                    .put(DivideFunction.NAME, numericScalarConverter)
+                    .put(ModulusFunction.NAME, numericScalarConverter)
                     .build();
 
         }
@@ -401,8 +407,8 @@ public class ESQueryBuilder {
 
             @Override
             public boolean convert(Function function, OrderByContext context) throws IOException {
-                assert function.arguments().size() > 0;
-                if (function.arguments().get(0).symbolType() != SymbolType.REFERENCE) {
+
+                if (!function.arguments().isEmpty() && function.arguments().get(0).symbolType() != SymbolType.REFERENCE) {
                     throw new IllegalArgumentException(SymbolFormatter.format(
                             "Can't use \"%s\" in the ORDER BY clause. " +
                                     "Requires column reference as first argument.", function));
@@ -516,6 +522,12 @@ public class ESQueryBuilder {
                     .put(LogFunction.LnFunction.NAME, numericScalarConverter)
                     .put(LogFunction.NAME, numericScalarConverter)
                     .put(AbsFunction.NAME, numericScalarConverter)
+                    .put(RandomFunction.NAME, numericScalarConverter)
+                    .put(AddFunction.NAME, numericScalarConverter)
+                    .put(SubtractFunction.NAME, numericScalarConverter)
+                    .put(MultiplyFunction.NAME, numericScalarConverter)
+                    .put(DivideFunction.NAME, numericScalarConverter)
+                    .put(ModulusFunction.NAME, numericScalarConverter)
                     .build();
         }
 
@@ -571,8 +583,9 @@ public class ESQueryBuilder {
 
                 context.builder.startObject("params");
 
-                Symbol firstArgument = ((Function)functionSymbol).arguments().get(0);
-                assert firstArgument instanceof Reference;
+                if (!((Function)functionSymbol).arguments().isEmpty()) {
+                    assert ((Function) functionSymbol).arguments().get(0) instanceof Reference;
+                }
 
                 context.builder.field("op", functionName);
 

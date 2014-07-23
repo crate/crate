@@ -387,7 +387,7 @@ The ``random`` function returns a random value in the range 0.0 <= X < 1.0.
 
 .. note::
 
-    All random values within the same row will be equal.
+    Every call to ``random`` will yield a new random number.
 
 
 round(number) returns long or integer

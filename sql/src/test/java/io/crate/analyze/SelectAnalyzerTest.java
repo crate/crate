@@ -111,8 +111,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         @Override
         protected void bindFunctions() {
             super.bindFunctions();
-            functionBinder.addBinding(ABS_FUNCTION_INFO.ident())
-                    .toInstance(new AbsFunction());
             functionBinder.addBinding(YEAR_FUNCTION_INFO.ident()).toInstance(new YearFunction());
         }
     }
