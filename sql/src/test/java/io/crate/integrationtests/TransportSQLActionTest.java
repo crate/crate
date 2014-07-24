@@ -4520,6 +4520,32 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "2| 2\n"));
     }
 
+    @Test
+    public void testSelectFailingSearchScript() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
+
+        execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (i, l, d) values (1, 2, 90.5)");
+        refresh();
+
+        execute("select log(d, l) from t where log(d, -1) >= 0");
+    }
+
+    @Test
+    public void testSelectGroupByFailingSearchScript() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
+
+        execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (i, l, d) values (1, 2, 90.5)");
+        refresh();
+
+        execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)");
+    }
+
 }
 
 

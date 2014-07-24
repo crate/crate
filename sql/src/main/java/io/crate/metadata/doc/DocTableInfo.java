@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.FailedShardsException;
+import io.crate.exceptions.UnavailableShardsException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -163,7 +163,7 @@ public class DocTableInfo implements TableInfo {
     private void processShardRouting(Map<String, Map<String, Set<Integer>>> locations, ShardRouting shardRouting, ShardId shardId) {
         String node;
         if (shardRouting == null) {
-            throw new FailedShardsException(shardId);
+            throw new UnavailableShardsException(shardId);
         }
         node = shardRouting.currentNodeId();
         Map<String, Set<Integer>> nodeMap = locations.get(node);

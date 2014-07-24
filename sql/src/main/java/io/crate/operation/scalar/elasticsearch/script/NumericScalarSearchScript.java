@@ -21,15 +21,13 @@
 
 package io.crate.operation.scalar.elasticsearch.script;
 
-import io.crate.types.DataTypes;
-import org.elasticsearch.script.ScriptModule;
-
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.operator.Operator;
 import io.crate.planner.symbol.Literal;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.script.ExecutableScript;
+import org.elasticsearch.script.ScriptModule;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -78,14 +76,13 @@ public class NumericScalarSearchScript extends NumericScalarSortScript {
     }
 
     @Override
-    public Object run() {
+    public Object doRun() {
         Input[] operatorArgInputs = new Input[operatorArgs.size()];
         for (int i = 0; i < operatorArgs.size(); i++) {
             AbstractScalarScriptFactory.WrappedArgument operatorArg = operatorArgs.get(i);
-            // TODO: use real type from argument here
             operatorArgInputs[i] = Literal.newLiteral(
-                    DataTypes.DOUBLE,
-                    DataTypes.DOUBLE.value(operatorArg.evaluate(doc())));
+                    operatorArg.getType(),
+                    operatorArg.getType().value(operatorArg.evaluate(doc())));
         }
         return operator.evaluate(operatorArgInputs);
     }

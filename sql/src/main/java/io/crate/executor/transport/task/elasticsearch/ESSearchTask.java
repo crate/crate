@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.FailedShardsException;
@@ -31,6 +32,7 @@ import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
@@ -152,6 +154,8 @@ public class ESSearchTask implements Task<Object[][]> {
         private final ESFieldExtractor[] extractor;
         private final int numColumns;
 
+        private final ESLogger logger = Loggers.getLogger(getClass());
+
         public SearchResponseListener(SettableFuture<Object[][]> result,
                                       ESFieldExtractor[] extractor,
                                       int numColumns) {
@@ -182,7 +186,13 @@ public class ESSearchTask implements Task<Object[][]> {
 
         @Override
         public void onFailure(Throwable e) {
-            result.setException(e);
+            if (e instanceof SearchPhaseExecutionException) {
+                logger.error("Error executing SELECT statement", e);
+                result.setException(
+                        Throwables.getRootCause(((SearchPhaseExecutionException) e).shardFailures()[0].failure()));
+            } else {
+                result.setException(e);
+            }
         }
     }
 

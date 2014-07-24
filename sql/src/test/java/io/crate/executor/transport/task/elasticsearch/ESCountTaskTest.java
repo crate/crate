@@ -45,7 +45,7 @@ public class ESCountTaskTest {
     @Test
     public void testCountResponseOnShardFailures() throws Throwable {
         expectedException.expect(FailedShardsException.class);
-        expectedException.expectMessage("the shard 2 is not available");
+        expectedException.expectMessage("query failed on shard 2 of table dummy");
 
         SettableFuture<Object[][]> result = SettableFuture.create();
         ESCountTask.CountResponseListener listener = new ESCountTask.CountResponseListener(result);
