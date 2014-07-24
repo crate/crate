@@ -24,7 +24,6 @@ package io.crate.operation.scalar.elasticsearch.script;
 import io.crate.metadata.Functions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.script.AbstractSearchScript;
 import org.elasticsearch.script.ExecutableScript;
 import org.elasticsearch.script.ScriptException;
 import org.elasticsearch.script.ScriptModule;
@@ -32,7 +31,7 @@ import org.elasticsearch.script.ScriptModule;
 import javax.annotation.Nullable;
 import java.util.Map;
 
-public class NumericScalarSortScript extends AbstractSearchScript {
+public class NumericScalarSortScript extends AbstractCatchingSearchScript {
 
     public static final String NAME = "numeric_scalar_sort";
 
@@ -91,7 +90,7 @@ public class NumericScalarSortScript extends AbstractSearchScript {
     }
 
     @Override
-    public Object run() {
+    public Object doRun() {
         Object returnValue = this.function.evaluate(doc());
 
         if (returnValue == null) {

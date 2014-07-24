@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -4518,6 +4519,34 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "10| 1\n" +
                 "193384| 1\n" +
                 "2| 2\n"));
+    }
+
+    @Test
+    public void testSelectFailingSearchScript() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
+
+        execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (i, l, d) values (1, 2, 90.5)");
+        refresh();
+
+        execute("select log(d, l) from t where log(d, -1) >= 0");
+    }
+
+    @Test
+    @Repeat(iterations=100)
+    public void testSelectGroupByFailingSearchScript() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
+
+        execute("create table t (i integer, l long, d double) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (i, l, d) values (1, 2, 90.5), (0, 4, 100)");
+        execute("refresh table t");
+
+        execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)");
+
     }
 
 }
