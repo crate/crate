@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+
+2014/07/28 0.40.3
+=================
+
  - fix: ORDER BY using non-indexed (index off) column do fail silently
 
  - fix: grouping or global aggregation using non-indexed (index off)
