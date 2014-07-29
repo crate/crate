@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+- fix: composite index must only work with `string` typed columns,
+  also defining it using the `plain` method must result in `keyword` analyzer
+
 - fix: using non-equality comparison of a partition column within
   `AND` expressions results in empty row set
 

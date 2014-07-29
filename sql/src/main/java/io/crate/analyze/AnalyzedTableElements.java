@@ -37,6 +37,7 @@ public class AnalyzedTableElements {
     List<AnalyzedColumnDefinition> partitionedByColumns = new ArrayList<>();
     List<AnalyzedColumnDefinition> columns = new ArrayList<>();
     Set<ColumnIdent> columnIdents = new HashSet<>();
+    Map<ColumnIdent, String> columnTypes = new HashMap<>();
     List<String> primaryKeys;
     List<List<String>> partitionedBy;
 
@@ -109,6 +110,7 @@ public class AnalyzedTableElements {
         }
 
         columnIdents.add(column.ident());
+        columnTypes.put(column.ident(), column.dataType());
         for (AnalyzedColumnDefinition child : column.children()) {
             expandColumn(child);
         }
@@ -138,6 +140,7 @@ public class AnalyzedTableElements {
         }
         columnIdents.add(analyzedColumnDefinition.ident());
         columns.add(analyzedColumnDefinition);
+        columnTypes.put(analyzedColumnDefinition.ident(), analyzedColumnDefinition.dataType());
     }
 
     public Settings settings() {
@@ -183,6 +186,9 @@ public class AnalyzedTableElements {
             ColumnIdent columnIdent = ColumnIdent.fromPath(entry.getKey());
             if (!columnIdents.contains(columnIdent)) {
                 throw new ColumnUnknownException(columnIdent.sqlFqn());
+            }
+            if (!columnTypes.get(columnIdent).equalsIgnoreCase("string")) {
+                throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
             }
         }
     }
