@@ -2,6 +2,12 @@
 Changes for Crate Data
 ======================
 
+Unreleased
+==========
+
+- fix: using non-equality comparison of a partition column within
+  `AND` expressions results in empty row set
+
 2014/07/29 0.41.0
 =================
 
