@@ -193,7 +193,7 @@ public class TableElementsAnalyzer {
         @Override
         public Void visitIndexColumnConstraint(IndexColumnConstraint node, ColumnDefinitionContext context) {
             if (node.indexMethod().equalsIgnoreCase("fulltext")) {
-                setAnalyzer(node.properties(), context);
+                setAnalyzer(node.properties(), context, node.indexMethod());
             } else if (node.indexMethod().equalsIgnoreCase("plain")) {
                 context.analyzedColumnDefinition.index(ReferenceInfo.IndexType.NOT_ANALYZED.toString());
             } else if (node.indexMethod().equalsIgnoreCase("OFF")) {
@@ -212,7 +212,7 @@ public class TableElementsAnalyzer {
             context.analyzedColumnDefinition.dataType("string");
             context.analyzedColumnDefinition.name(node.ident());
 
-            setAnalyzer(node.properties(), context);
+            setAnalyzer(node.properties(), context, node.method());
 
             for (Expression expression : node.columns()) {
                 String expressionName = ExpressionToStringVisitor.convert(expression, context.parameters);
@@ -221,12 +221,17 @@ public class TableElementsAnalyzer {
             return null;
         }
 
-        private void setAnalyzer(GenericProperties properties, ColumnDefinitionContext context) {
+        private void setAnalyzer(GenericProperties properties, ColumnDefinitionContext context,
+                                 String indexMethod) {
             context.analyzedColumnDefinition.index(ReferenceInfo.IndexType.ANALYZED.toString());
 
             Expression analyzerExpression = properties.get("analyzer");
             if (analyzerExpression == null) {
-                context.analyzedColumnDefinition.analyzer("standard");
+                if (indexMethod.equals("plain")) {
+                    context.analyzedColumnDefinition.analyzer("keyword");
+                } else {
+                    context.analyzedColumnDefinition.analyzer("standard");
+                }
                 return;
             }
             if (analyzerExpression instanceof ArrayLiteral) {

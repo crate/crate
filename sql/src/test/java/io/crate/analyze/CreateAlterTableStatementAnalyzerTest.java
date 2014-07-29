@@ -36,7 +36,9 @@ import io.crate.operation.operator.OperatorModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -50,6 +52,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
@@ -202,7 +207,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         Map<String, Object> details = (Map<String, Object>)mappingProperties.get("details");
 
         assertThat((String)details.get("type"), is("object"));
-        assertThat((String)details.get("dynamic"), is("strict"));
+        assertThat((String) details.get("dynamic"), is("strict"));
     }
 
     @Test
@@ -327,6 +332,37 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithPlainIndexColumn() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
+                "create table foo (id integer primary key, content string, INDEX content_ft using plain (content))");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        Map<String, Object> contentMapping = (Map<String, Object>)mappingProperties.get("content");
+
+        assertThat((String)contentMapping.get("index"), is("not_analyzed"));
+        assertThat(((List<String>)contentMapping.get("copy_to")).get(0), is("content_ft"));
+
+        Map<String, Object> ft_mapping = (Map<String, Object>)mappingProperties.get("content_ft");
+        assertThat((String)ft_mapping.get("index"), is("analyzed"));
+        assertThat((String) ft_mapping.get("analyzer"), is("keyword"));
+    }
+
+    @Test
+    public void testCreateTableWithIndexColumnOverNonString() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("INDEX definition only support 'string' typed source columns");
+        analyze("create table foo (id integer, id2 integer, INDEX id_ft using fulltext (id, id2))");
+    }
+
+    @Test
+    public void testCreateTableWithIndexColumnOverNonString2() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("INDEX definition only support 'string' typed source columns");
+        analyze("create table foo (id integer, name string, INDEX id_ft using fulltext (id, name))");
+   }
+
+    @Test
     public void testChangeNumberOfReplicas() throws Exception {
         AlterTableAnalysis analysis =
                 (AlterTableAnalysis)analyze("alter table users set (number_of_replicas=2)");
@@ -403,8 +439,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "    nested float," +
                 "    nested_object object as (id byte)" +
                 "  ))," +
-                "  obj object as ( date timestamp )," +
-                "  index ft using fulltext(name, obj['date']) with (analyzer='standard')" +
+                "  obj object as ( content string )," +
+                "  index ft using fulltext(name, obj['content']) with (analyzer='standard')" +
                 ")");
         assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("id")));
         assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("name")));
@@ -413,11 +449,11 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr.nested")));
         assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr.nested_object.id")));
         assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj")));
-        assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj.date")));
+        assertTrue(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj.content")));
 
         assertFalse(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr.nested.wrong")));
         assertFalse(analysis.hasColumnDefinition(ColumnIdent.fromPath("ft")));
-        assertFalse(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj.date.ft")));
+        assertFalse(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj.content.ft")));
     }
 
     @Test
