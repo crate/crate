@@ -12,9 +12,11 @@ Scalar functions return a single data value (not a table).
     Scalar functions aren't available in all query clauses. For example if a
     regular (non-system table) is queried the WHERE clause may not contain any
     scalar functions unless otherwise described in a function description below.
+    While some scalar functions are supported within a WHERE clause, comparing
+    two scalar functions is never supported.
 
-    In addition, the ORDER BY clause also may not contain any scalar functions
-    unless GROUP BY is also present in the statement.
+    In addition, the ORDER BY clause also may not contain any nested
+    scalar functions unless GROUP BY is also present in the statement.
 
 See below for a list of available scalar functions.
 
@@ -261,3 +263,165 @@ returned::
     SELECT 3 rows in set (... sec)
 
 For more information, please refer to :ref:`sql_dml_fulltext_search`.
+
+
+Mathematical Functions
+======================
+
+All mathematical functions can be used within ``WHERE`` and
+``ORDER BY`` clauses.
+
+abs(number)
+-----------
+
+Returns the absolute value of the given number in the datatype of the given number::
+
+    cr> select abs(214748.0998), abs(0), abs(-214748) from sys.cluster;
+    +------------------+--------+--------------+
+    | abs(214748.0998) | abs(0) | abs(-214748) |
+    +------------------+--------+--------------+
+    |      214748.0998 |      0 |       214748 |
+    +------------------+--------+--------------+
+    SELECT 1 row in set (... sec)
+
+
+ceil(number) returns long or integer
+------------------------------------
+
+Returns the smallest integer or long value that is not less than the argument.
+
+Return value will be of type integer if the input value is an integer or float.
+If the input value is of type long or double the return value will be of type
+long::
+
+    cr> select ceil(29.9) from sys.cluster;
+    +------------+
+    | ceil(29.9) |
+    +------------+
+    |         30 |
+    +------------+
+    SELECT 1 row in set (... sec)
+
+
+
+floor(number) returns long or integer
+-------------------------------------
+
+Returns the largest integer or long value that is not greater than the argument.
+
+Return value will be an integer if the input value is an integer or a float.
+If the input value is of type long or double the return value will be of type long.
+
+See below for an example::
+
+    cr> select floor(29.9) from sys.cluster;
+    +-------------+
+    | floor(29.9) |
+    +-------------+
+    |          29 |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
+ln(number) returns double
+-------------------------
+
+Returns the natural logarithm of given ``number``.
+
+See below for an example::
+
+    cr> SELECT ln(1) FROM sys.cluster;
+    +-------+
+    | ln(1) |
+    +-------+
+    |   0.0 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+.. note::
+
+    An error is returned for arguments which lead to undefined or illegal
+    results. E.g. ln(0) results in ``minus infinity``, and therefore, an
+    error is returned.
+
+
+log(x : number, b : number) returns double
+------------------------------------------
+
+Returns the logarithm of given ``x`` to base ``b``.
+
+See below for an example, which essentially is the same as above::
+
+    cr> SELECT log(100, 10) FROM sys.cluster;
+    +--------------+
+    | log(100, 10) |
+    +--------------+
+    |          2.0 |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+The second argument (``b``) is optional. If not present, base 10 is used::
+
+    cr> SELECT log(100) FROM sys.cluster;
+    +----------+
+    | log(100) |
+    +----------+
+    |      2.0 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+.. note::
+
+    An error is returned for arguments which lead to undefined or illegal
+    results. E.g. log(0) results in ``minus infinity``, and therefore, an
+    error is returned.
+
+    The same is true for arguments which lead to a ``division by zero``, as
+    e.g. log(10, 1) does.
+
+
+random() returns double
+-----------------------
+
+The ``random`` function returns a random value in the range 0.0 <= X < 1.0.
+
+.. note::
+
+    Every call to ``random`` will yield a new random number.
+
+
+round(number) returns long or integer
+-------------------------------------
+
+If the input is of type double or long the result is the closest long to the
+argument, with ties rounding up.
+
+If the input is of type float or integer the result is the closest integer to
+the argument, with ties rounding up.
+
+See below for an example::
+
+    cr> select round(42.2) from sys.cluster;
+    +-------------+
+    | round(42.2) |
+    +-------------+
+    |          42 |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
+sqrt(number) returns double
+---------------------------
+
+Returns the square root of the argument.
+
+See below for an example::
+
+    cr> select sqrt(25.0) from sys.cluster;
+    +------------+
+    | sqrt(25.0) |
+    +------------+
+    |        5.0 |
+    +------------+
+    SELECT 1 row in set (... sec)
+

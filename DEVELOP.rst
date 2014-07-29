@@ -180,6 +180,10 @@ this::
 
   $ ./gradlew test -PtestForks=5
 
+To run a single test pass the test.single argument::
+
+  $ ./gradlew test -Dtest.single='YourTestClass'
+
 Test Coverage
 --------------
 

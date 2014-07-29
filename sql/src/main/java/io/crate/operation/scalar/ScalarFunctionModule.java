@@ -66,5 +66,13 @@ public class ScalarFunctionModule extends AbstractModule {
         WithinFunction.register(this);
 
         CastFunction.register(this);
+
+        RoundFunction.register(this);
+        CeilFunction.register(this);
+        RandomFunction.register(this);
+        AbsFunction.register(this);
+        FloorFunction.register(this);
+        SquareRootFunction.register(this);
+        LogFunction.register(this);
     }
 }

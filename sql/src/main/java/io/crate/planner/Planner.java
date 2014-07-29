@@ -37,7 +37,10 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.node.ddl.*;
+import io.crate.planner.node.ddl.CreateTableNode;
+import io.crate.planner.node.ddl.DropTableNode;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
@@ -65,6 +68,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
     static final PlannerReferenceExtractor referenceExtractor = new PlannerReferenceExtractor();
+    static final PlannerFunctionArgumentCopier functionArgumentCopier = new PlannerFunctionArgumentCopier();
+
     private final ClusterService clusterService;
     private AggregationProjection localMergeProjection;
 
@@ -560,8 +565,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     private void ESSearch(SelectAnalysis analysis, Plan plan, Context context) {
         // this is an es query
         // this only supports INFOS as order by
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                .searchOutput(analysis.outputSymbols());
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
         final Predicate<Symbol> symbolIsReference = new Predicate<Symbol>() {
             @Override
             public boolean apply(@Nullable Symbol input) {
@@ -573,6 +577,19 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 || context.indexWriterProjection.isPresent();
         List<Symbol> searchSymbols;
         if (needsProjection) {
+            // we must create a deep copy of references if they are function arguments
+            // or they will be replaced with InputColumn instances by the context builder
+            if (analysis.whereClause().hasQuery()) {
+               analysis.whereClause(functionArgumentCopier.process(analysis.whereClause().query()));
+            }
+            List<Symbol> sortSymbols = analysis.sortSymbols();
+
+            // do the same for sortsymbols if we have a function there
+            if (sortSymbols != null && !Iterables.all(sortSymbols, symbolIsReference)) {
+                functionArgumentCopier.process(sortSymbols);
+            }
+
+            contextBuilder.searchOutput(analysis.outputSymbols());
             searchSymbols = contextBuilder.toCollect();
         } else {
             searchSymbols = analysis.outputSymbols();

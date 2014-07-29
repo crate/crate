@@ -23,36 +23,45 @@ package io.crate.exceptions;
 
 import com.google.common.base.Joiner;
 import org.elasticsearch.action.ShardOperationFailedException;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class FailedShardsException extends RuntimeException implements CrateException {
+public class UnavailableShardsException extends RuntimeException implements CrateException {
 
-    public FailedShardsException(ShardOperationFailedException[] shardFailures) {
+    public UnavailableShardsException(ShardOperationFailedException[] shardFailures) {
         super(genMessage(shardFailures));
     }
 
-    public FailedShardsException(ShardOperationFailedException[] shardFailures, Throwable original) {
-        super(genMessage(shardFailures), original);
+    public UnavailableShardsException(ShardId shardId) {
+        super(genMessage(shardId));
+    }
+
+    private static String genMessage(ShardId shardId) {
+        return String.format("the shard %s of table %s is not available",
+            shardId.getId(), shardId.getIndex());
     }
 
     private static String genMessage(ShardOperationFailedException[] shardFailures) {
         StringBuilder sb;
 
         if (shardFailures.length == 1) {
-            sb = new StringBuilder("query failed on shard ");
+            sb = new StringBuilder("the shard ");
         } else {
-            sb = new StringBuilder("query failed on shards ");
+            sb = new StringBuilder("the shards ");
         }
 
         List<Integer> shardIds = new ArrayList<>(shardFailures.length);
         for (ShardOperationFailedException shardFailure : shardFailures) {
             shardIds.add(shardFailure.shardId());
         }
-        sb.append(Joiner.on(",").join(shardIds))
-          .append(" of table ").append(shardFailures[0].index());
-
+        sb.append(Joiner.on(",").join(shardIds));
+        if (shardFailures.length == 1) {
+            sb.append(" is not available");
+        } else {
+            sb.append(" are not available");
+        }
         return sb.toString();
     }
 

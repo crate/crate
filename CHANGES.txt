@@ -5,6 +5,16 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - implemented the following scalar functions:
+      abs(x),
+      ceil(x),
+      floor(x),
+      ln(x),
+      log(x),
+      log(b,x),
+      random(),
+      round(x),
+      sqrt(x)
 
 2014/07/28 0.40.3
 =================

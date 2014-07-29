@@ -231,4 +231,6 @@ Currently the defined error codes are:
     5001  The execution of one or more tasks failed.
     ----- ---------------------------------------------------------------------
     5002  one or more shards are not available.
+    ----- ---------------------------------------------------------------------
+    5003  the query failed on one or more shards
     ===== =====================================================================

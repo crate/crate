@@ -39,6 +39,9 @@ import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.MatchFunction;
+import io.crate.operation.scalar.arithmetic.*;
+import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
+import io.crate.operation.scalar.elasticsearch.script.NumericScalarSortScript;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
@@ -260,6 +263,29 @@ public class ESQueryBuilder {
 
     static class OrderBySymbolVisitor extends SymbolVisitor<OrderByContext, Void> {
 
+        private final ImmutableMap<String, Converter<? extends Symbol>> functions;
+
+        OrderBySymbolVisitor() {
+            NumericScalarConverter numericScalarConverter = new NumericScalarConverter();
+            functions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
+                    .put(DistanceFunction.NAME, new DistanceConverter())
+                    .put(RoundFunction.NAME, numericScalarConverter)
+                    .put(CeilFunction.NAME, numericScalarConverter)
+                    .put(FloorFunction.NAME, numericScalarConverter)
+                    .put(SquareRootFunction.NAME, numericScalarConverter)
+                    .put(LogFunction.LnFunction.NAME, numericScalarConverter)
+                    .put(LogFunction.NAME, numericScalarConverter)
+                    .put(AbsFunction.NAME, numericScalarConverter)
+                    .put(RandomFunction.NAME, numericScalarConverter)
+                    .put(AddFunction.NAME, numericScalarConverter)
+                    .put(SubtractFunction.NAME, numericScalarConverter)
+                    .put(MultiplyFunction.NAME, numericScalarConverter)
+                    .put(DivideFunction.NAME, numericScalarConverter)
+                    .put(ModulusFunction.NAME, numericScalarConverter)
+                    .build();
+
+        }
+
         @Override
         protected Void visitSymbol(Symbol symbol, OrderByContext context) {
             throw new IllegalArgumentException(SymbolFormatter.format(
@@ -285,26 +311,11 @@ public class ESQueryBuilder {
         }
 
         @Override
-        public Void visitFunction(Function symbol, OrderByContext context) {
-            if (symbol.info().ident().name().equals(DistanceFunction.NAME)) {
-                Symbol referenceSymbol = symbol.arguments().get(0);
-                Symbol valueSymbol = symbol.arguments().get(1);
-
-                if (referenceSymbol.symbolType() != SymbolType.REFERENCE || !(valueSymbol instanceof Input)) {
-                    throw new IllegalArgumentException(SymbolFormatter.format(
-                            "Can't use \"%s\" in the ORDER BY clause. " +
-                            "Requires one column reference and one literal, in that order.", symbol));
-                }
-
-                SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
-                Reference reference = (Reference) referenceSymbol;
-                Input input = (Input) valueSymbol;
+        public Void visitFunction(Function function, OrderByContext context) {
+            Converter converter = functions.get(function.info().ident().name());
+            if (converter != null) {
                 try {
-                    context.builder.startObject().startObject("_geo_distance")
-                            .field(reference.info().ident().columnIdent().fqn(), input.value())
-                            .field("order", sortOrder.order())
-                            .endObject()
-                            .endObject();
+                    converter.convert(function, context);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -312,7 +323,7 @@ public class ESQueryBuilder {
                 return null;
             } else {
                 context.idx++;
-                return visitSymbol(symbol, context);
+                return visitSymbol(function, context);
             }
         }
 
@@ -345,6 +356,102 @@ public class ESQueryBuilder {
                 return missing;
             }
         }
+
+        static abstract class Converter<T extends Symbol> {
+
+            /**
+             * function that writes the xContent onto the context.
+             * May abort early by returning false if it can't convert the argument.
+             * Concrete implementation must not write to the context if it returns false.
+             */
+            public abstract boolean convert(T function, OrderByContext context) throws IOException;
+        }
+
+        class DistanceConverter extends Converter<Function> {
+
+            @Override
+            public boolean convert(Function function, OrderByContext context) throws IOException {
+                Symbol referenceSymbol = function.arguments().get(0);
+                Symbol valueSymbol = function.arguments().get(1);
+
+                if (referenceSymbol.symbolType() != SymbolType.REFERENCE || !(valueSymbol instanceof Input)) {
+                    throw new IllegalArgumentException(SymbolFormatter.format(
+                            "Can't use \"%s\" in the ORDER BY clause. " +
+                                    "Requires one column reference and one literal, in that order.", function));
+                }
+
+                SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
+                Reference reference = (Reference) referenceSymbol;
+                Input input = (Input) valueSymbol;
+                try {
+                    context.builder.startObject().startObject("_geo_distance")
+                            .field(reference.info().ident().columnIdent().fqn(), input.value())
+                            .field("order", sortOrder.order())
+                            .endObject()
+                            .endObject();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return true;
+            }
+        }
+
+        abstract class ScalarConverter extends Converter<Function> {
+
+            private  ScalarScriptArgSymbolVisitor argumentVisitor = new ScalarScriptArgSymbolVisitor();
+
+            protected abstract String scriptName();
+
+            protected abstract String scriptType();
+
+
+            @Override
+            public boolean convert(Function function, OrderByContext context) throws IOException {
+
+                if (!function.arguments().isEmpty() && function.arguments().get(0).symbolType() != SymbolType.REFERENCE) {
+                    throw new IllegalArgumentException(SymbolFormatter.format(
+                            "Can't use \"%s\" in the ORDER BY clause. " +
+                                    "Requires column reference as first argument.", function));
+                }
+                SortOrder sortOrder = new SortOrder(context.reverseFlag(), context.nullFirst());
+                try {
+                    context.builder.startObject().startObject("_script");
+                    context.builder.field("script", scriptName())
+                            .field("lang", "native")
+                            .field("type", scriptType())
+                            .field("order", sortOrder.order());
+
+
+                    context.builder.startObject("params");
+                    context.builder.field("missing", sortOrder.missing());
+
+                    context.builder.field("scalar");
+                    argumentVisitor.process(function, context.builder);
+
+                    context.builder.endObject() // params
+                        .endObject() // _script
+                        .endObject();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return true;
+            }
+
+        }
+
+        class NumericScalarConverter extends ScalarConverter {
+
+            @Override
+            protected String scriptName() {
+                return NumericScalarSortScript.NAME;
+            }
+
+            @Override
+            protected String scriptType() {
+                return "number";
+            }
+        }
+
     }
 
     static class Context {
@@ -404,10 +511,23 @@ public class ESQueryBuilder {
                     .put(WithinFunction.NAME, new WithinConverter())
                     .build();
 
-
+            NumericScalarConverter numericScalarConverter = new NumericScalarConverter();
             innerFunctions = ImmutableMap.<String, Converter<? extends Symbol>>builder()
                     .put(DistanceFunction.NAME, new DistanceConverter())
                     .put(WithinFunction.NAME, new WithinConverter())
+                    .put(RoundFunction.NAME, numericScalarConverter)
+                    .put(CeilFunction.NAME, numericScalarConverter)
+                    .put(FloorFunction.NAME, numericScalarConverter)
+                    .put(SquareRootFunction.NAME, numericScalarConverter)
+                    .put(LogFunction.LnFunction.NAME, numericScalarConverter)
+                    .put(LogFunction.NAME, numericScalarConverter)
+                    .put(AbsFunction.NAME, numericScalarConverter)
+                    .put(RandomFunction.NAME, numericScalarConverter)
+                    .put(AddFunction.NAME, numericScalarConverter)
+                    .put(SubtractFunction.NAME, numericScalarConverter)
+                    .put(MultiplyFunction.NAME, numericScalarConverter)
+                    .put(DivideFunction.NAME, numericScalarConverter)
+                    .put(ModulusFunction.NAME, numericScalarConverter)
                     .build();
         }
 
@@ -421,6 +541,75 @@ public class ESQueryBuilder {
             public abstract boolean convert(T function, Context context) throws IOException;
         }
 
+        static abstract class ScalarConverter extends Converter<Function> {
+
+            static ScalarScriptArgSymbolVisitor argumentVisitor = new ScalarScriptArgSymbolVisitor();
+
+            protected abstract String scriptName();
+
+            @Override
+            public boolean convert(Function function, Context context) throws IOException {
+                assert function.arguments().size() == 2;
+
+                context.builder.startObject(Fields.FILTERED);
+                context.builder.startObject(Fields.QUERY)
+                        .startObject(Fields.MATCH_ALL).endObject()
+                        .endObject();
+                context.builder.startObject(Fields.FILTER)
+                        .startObject("script");
+                context.builder.field("script", scriptName());
+                context.builder.field("lang", "native");
+
+                String functionName = function.info().ident().name();
+                Symbol functionSymbol = function.arguments().get(0);
+                Symbol valueSymbol = function.arguments().get(1);
+                if (functionSymbol.symbolType().isValueSymbol()) {
+                    valueSymbol = functionSymbol;
+                    functionSymbol = function.arguments().get(1);
+                    if (functionSymbol.symbolType() != SymbolType.FUNCTION) {
+                        throw new IllegalArgumentException("Can't compare two scalar functions");
+                    }
+                } else {
+                    if (function.arguments().get(1).symbolType() == SymbolType.FUNCTION) {
+                        throw new IllegalArgumentException("Can't compare two scalar functions");
+                    }
+                }
+                assert functionSymbol instanceof Function;
+                for (Symbol argument : ((Function) functionSymbol).arguments()) {
+                    if (argument.symbolType().equals(SymbolType.FUNCTION)) {
+                        throw new IllegalArgumentException("Nested scalar functions are not supported");
+                    }
+                }
+
+                context.builder.startObject("params");
+
+                if (!((Function)functionSymbol).arguments().isEmpty()) {
+                    assert ((Function) functionSymbol).arguments().get(0) instanceof Reference;
+                }
+
+                context.builder.field("op", functionName);
+
+                context.builder.startArray("args");
+                argumentVisitor.process(functionSymbol, context.builder);
+                argumentVisitor.process(valueSymbol, context.builder);
+                context.builder.endArray();
+
+                context.builder.endObject(); // params
+
+                context.builder.endObject(); // script
+                context.builder.endObject(); // filter
+                context.builder.endObject(); // filtered
+                return true;
+            }
+        }
+
+        class NumericScalarConverter extends ScalarConverter {
+
+            @Override
+            protected String scriptName() {
+                return NumericScalarSearchScript.NAME;
+            }
+        }
 
         class WithinConverter extends Converter<Function> {
 
@@ -916,10 +1105,14 @@ public class ESQueryBuilder {
                 if (!convert(converter, function, context)) {
                     for (Symbol symbol : function.arguments()) {
                         if (symbol.symbolType() == SymbolType.FUNCTION) {
-                            converter = innerFunctions.get(((Function) symbol).info().ident().name());
+                            String functionName = ((Function) symbol).info().ident().name();
+                            converter = innerFunctions.get(functionName);
                             if (converter != null) {
                                 convert(converter, function, context);
                                 return null;
+                            } else {
+                                throw new UnsupportedOperationException(
+                                        String.format("Function %s() not supported in WHERE clause", functionName));
                             }
                         }
                     }

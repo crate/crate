@@ -1083,12 +1083,12 @@ public class PlannerTest {
 
     @Test (expected = UnsupportedFeatureException.class)
     public void testInsertFromSubQueryWithOffset() throws Exception {
-        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users offset 10)");
+        plan("insert into users (date, id, name) (select date, id, name from users offset 10)");
     }
 
     @Test (expected = UnsupportedFeatureException.class)
     public void testInsertFromSubQueryWithOrderBy() throws Exception {
-        Plan plan = plan("insert into users (date, id, name) (select date, id, name from users order by id)");
+        plan("insert into users (date, id, name) (select date, id, name from users order by id)");
     }
 
     @Test
