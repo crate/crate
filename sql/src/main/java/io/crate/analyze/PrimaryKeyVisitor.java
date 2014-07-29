@@ -358,10 +358,9 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     }
 
     private boolean setPartitionedBy(Context context, Literal right, int idx, FunctionIdent functionIdent) {
-        boolean matched = false;
         if (context.currentBucket.partitionColumnParts[idx] == null) {
             context.currentBucket.partitionColumnParts[idx] = right;
-            matched = evaluatePartitionedBy(context, right, idx, functionIdent);
+            return evaluatePartitionedBy(context, right, idx, functionIdent);
         } else if (!context.currentBucket.partitionColumnParts[idx].equals(right)) {
             if (context.currentBucket.partitionColumnParts[idx].valueType().id() == SetType.ID) {
                 Set intersection = generateIntersection(
@@ -373,6 +372,8 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                             intersection);
                     return false; // matched
                 }
+            } else if (!PK_COMPARISONS.contains(functionIdent.name())) {
+                return evaluatePartitionedBy(context, right, idx, functionIdent);
             }
             /**
              * if we get to this point we've had something like
@@ -384,7 +385,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
              */
             context.noMatch = true;
         }
-        return matched;
+        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -505,7 +506,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                             || (argumentsProcessed > 0 && !context.hasPartitionedColumn
                             && partitionByIdx >= 0)) {
                         throw new UnsupportedFeatureException("Using a partitioned column and a " +
-                                "normal column inside an OR clause is currently not supported");
+                                "normal column inside an OR clause is not supported");
                     }
                 }
             }

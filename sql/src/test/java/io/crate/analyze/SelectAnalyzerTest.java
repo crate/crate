@@ -1001,6 +1001,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertTrue(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
 
+        analysis = (SelectAnalysis)analyze("select id, name from parted where 1395874700000 < date and date < 1395961200001");
+        assertThat(analysis.whereClause().partitions(), containsInAnyOrder(partition1, partition2));
+        assertFalse(analysis.whereClause().hasQuery());
+        assertFalse(analysis.noMatch());
     }
 
     @Test
