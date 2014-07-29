@@ -2,8 +2,8 @@
 Changes for Crate Data
 ======================
 
-Unreleased
-==========
+2014/07/29 0.41.0
+=================
 
  - implemented the following scalar functions:
       abs(x),
