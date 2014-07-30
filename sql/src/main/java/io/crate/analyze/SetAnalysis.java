@@ -29,6 +29,7 @@ import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.Map;
 
 public class SetAnalysis extends Analysis {
@@ -75,17 +76,22 @@ public class SetAnalysis extends Analysis {
 
     @Override
     public void table(TableIdent tableIdent) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "table() not supported on %s", getClass().getSimpleName())
+        );
     }
 
     @Override
     public TableInfo table() {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "table() not supported on %s", getClass().getSimpleName()));
     }
 
     @Override
     public SchemaInfo schema() {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "schema() not supported on %s", getClass().getSimpleName())
+        );
     }
 
     @Override

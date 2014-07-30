@@ -32,6 +32,7 @@ import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSet
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public class ESClusterUpdateSettingsTask implements Task<Object[][]> {
 
@@ -84,7 +85,9 @@ public class ESClusterUpdateSettingsTask implements Task<Object[][]> {
 
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
+                        getClass().getSimpleName()));
     }
 
 }

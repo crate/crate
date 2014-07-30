@@ -28,6 +28,7 @@ import io.crate.planner.node.dml.ESUpdateNode;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public abstract class AbstractESUpdateTask implements Task<Object[][]> {
 
@@ -48,6 +49,8 @@ public abstract class AbstractESUpdateTask implements Task<Object[][]> {
 
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
+                        getClass().getSimpleName()));
     }
 }

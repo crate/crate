@@ -21,18 +21,19 @@
 
 package io.crate.sql;
 
-import io.crate.sql.tree.*;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import io.crate.sql.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
+import static com.google.common.collect.Iterables.transform;
 import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.SqlFormatter.orderByFormatterFunction;
-import static com.google.common.collect.Iterables.transform;
 
 public final class ExpressionFormatter
 {
@@ -62,7 +63,7 @@ public final class ExpressionFormatter
         @Override
         protected String visitNode(Node node, Void context)
         {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "cannot handle node '%s'", node.toString()));
         }
 
         @Override

@@ -232,7 +232,9 @@ public class ESGetTask implements Task<Object[][]> {
 
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
+                        getClass().getSimpleName()));
     }
 
     static class Context {
