@@ -71,6 +71,7 @@ public class DataTypes {
     public final static ImmutableList<DataType> NUMERIC_PRIMITIVE_TYPES = ImmutableList.<DataType>of(
             DOUBLE,
             FLOAT,
+            BYTE,
             SHORT,
             INTEGER,
             LONG

@@ -42,6 +42,8 @@ public abstract class CeilFunction implements Scalar<Number, Number> {
         module.register(new FloatCeilFunction());
         module.register(new NoopCeilFunction(DataTypes.LONG));
         module.register(new NoopCeilFunction(DataTypes.INTEGER));
+        module.register(new NoopCeilFunction(DataTypes.SHORT));
+        module.register(new NoopCeilFunction(DataTypes.BYTE));
         module.register(new NoopCeilFunction(DataTypes.NULL));
     }
 
@@ -65,7 +67,7 @@ public abstract class CeilFunction implements Scalar<Number, Number> {
             if (value == null) {
                 return null;
             }
-            return ((Double) Math.ceil((Double) value)).longValue();
+            return ((Double) Math.ceil(((Number) value).doubleValue())).longValue();
         }
 
         @Override
@@ -85,7 +87,7 @@ public abstract class CeilFunction implements Scalar<Number, Number> {
             if (value == null) {
                 return null;
             }
-            return ((Double) Math.ceil((Float) value)).intValue();
+            return ((Double) Math.ceil(((Number) value).doubleValue())).intValue();
         }
 
         @Override

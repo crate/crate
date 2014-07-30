@@ -1108,4 +1108,5 @@ public class PlannerTest {
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
     }
+
 }
