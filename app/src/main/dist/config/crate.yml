@@ -366,3 +366,10 @@
 
 # enable/disable elasticsearch HTTP REST API
 # es.api.enabled: false
+
+###################################### Blob ####################################
+
+# Path to directory where to store blob data allocated for this node.
+# By default blobs will be stored under the same path as normal data.
+#
+# path.blobs: /path/to/blobs

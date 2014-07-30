@@ -22,12 +22,11 @@
 package io.crate.blob.v2;
 
 import io.crate.blob.BlobContainer;
-import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.BlobEnvironment;
 import io.crate.blob.stats.BlobStats;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.shard.AbstractIndexShardComponent;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
@@ -41,12 +40,11 @@ public class BlobShard extends AbstractIndexShardComponent {
 
     @Inject
     protected BlobShard(ShardId shardId, Settings indexSettings,
-            BlobTransferTarget transferTarget,
-            NodeEnvironment nodeEnvironment,
-            IndexShard indexShard) {
+                        BlobEnvironment blobEnvironment,
+                        IndexShard indexShard) {
         super(shardId, indexSettings);
         this.indexShard = indexShard;
-        File blobDir = new File(nodeEnvironment.shardLocations(shardId)[0], "blobs");
+        File blobDir = blobDir(blobEnvironment);
         logger.info("creating BlobContainer at {}", blobDir);
         this.blobContainer = new BlobContainer(blobDir);
     }
@@ -82,5 +80,15 @@ public class BlobShard extends AbstractIndexShardComponent {
         });
 
         return stats;
+    }
+
+    private File blobDir(BlobEnvironment blobEnvironment) {
+        if (indexSettings.get(BlobEnvironment.SETTING_PATH_BLOBS) != null) {
+            File blobPath = new File(indexSettings.get(BlobEnvironment.SETTING_PATH_BLOBS));
+            blobEnvironment.validateBlobsPath(blobPath);
+            return blobEnvironment.shardLocations(shardId, blobPath);
+        } else {
+            return blobEnvironment.shardLocations(shardId);
+        }
     }
 }
