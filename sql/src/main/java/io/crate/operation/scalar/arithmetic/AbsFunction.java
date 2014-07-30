@@ -88,7 +88,7 @@ public class AbsFunction implements Scalar<Number, Number> {
             Preconditions.checkArgument(dataTypes.size() == 1,
                     "invalid size of arguments, 1 expected");
             Preconditions.checkArgument(ALLOWED_TYPES.contains(dataTypes.get(0)),
-                    "invalid datatype for %s function", NAME);
+                    "invalid datatype %s for %s function", dataTypes.get(0).toString(), NAME);
             return new AbsFunction(dataTypes.get(0));
         }
     }

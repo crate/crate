@@ -41,6 +41,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Map;
 
+import static io.crate.operation.scalar.elasticsearch.script.AbstractScalarScriptFactory.ScalarArgument;
 import static io.crate.operation.scalar.elasticsearch.script.AbstractScalarSearchScriptFactory.SearchContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -103,7 +104,7 @@ public class ScalarScriptTest {
         assertThat(ctx.operatorArgs.get(0),
                 is((AbstractScalarScriptFactory.WrappedArgument)ctx.function));
         assertThat(ctx.operatorArgs.get(0).getType(), is((DataType)DataTypes.DOUBLE));
-        assertThat(((AbstractScalarScriptFactory.ScalarArgument)ctx.operatorArgs.get(0)).args.get(0),
+        assertThat(((ScalarArgument)ctx.operatorArgs.get(0)).args.get(0),
                 is((AbstractScalarScriptFactory.WrappedArgument)new AbstractScalarScriptFactory.ReferenceArgument("bla", DataTypes.DOUBLE)));
     }
 
@@ -133,5 +134,36 @@ public class ScalarScriptTest {
                 .map();
 
         prepareScriptParams(params);
+    }
+
+    @Test
+    public void testPrepareFloatArgumentsTurnedToDouble() throws Exception {
+        Map<String, Object> params = new MapBuilder<String, Object>()
+                .put("op", EqOperator.NAME)
+                .put("args", ImmutableList.of(
+                        new MapBuilder<String, Object>()
+                                .put("scalar_name", "round")
+                                .put("args", ImmutableList.of(
+                                        new MapBuilder<String, Object>()
+                                                .put("field_name", "bla")
+                                                .put("type", DataTypes.FLOAT.id())
+                                                .map()
+                                ))
+                                .put("type", DataTypes.INTEGER.id())
+                                .map(),
+                        new MapBuilder<String, Object>()
+                                .put("value", 12.0)
+                                .put("type", DataTypes.FLOAT.id())
+                                .map()
+                ))
+                .map();
+
+        SearchContext ctx = prepareScriptParams(params);
+        assertThat(ctx.operatorArgs.size(), is(2));
+        AbstractScalarScriptFactory.WrappedArgument arg1 = ctx.operatorArgs.get(0);
+        assertThat(arg1, instanceOf(ScalarArgument.class));
+        ScalarArgument scalarArg1 = (ScalarArgument) arg1;
+        assertThat(scalarArg1.getType(), is((DataType)DataTypes.LONG));
+        assertThat(scalarArg1.args.get(0).getType(), is((DataType)DataTypes.DOUBLE));
     }
 }
