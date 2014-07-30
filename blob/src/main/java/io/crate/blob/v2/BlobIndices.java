@@ -27,6 +27,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.blob.BlobEnvironment;
 import io.crate.blob.BlobShardFuture;
 import io.crate.core.NumberOfReplicas;
 import org.elasticsearch.action.ActionListener;
@@ -39,20 +40,28 @@ import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 
+import java.io.File;
 import java.util.List;
 
-public class BlobIndices extends AbstractComponent {
+public class BlobIndices extends AbstractComponent implements ClusterStateListener {
 
     public static final String SETTING_BLOBS_ENABLED = "index.blobs.enabled";
     public static final String INDEX_PREFIX = ".blob_";
@@ -67,6 +76,7 @@ public class BlobIndices extends AbstractComponent {
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final IndicesService indicesService;
     private final IndicesLifecycle indicesLifecycle;
+    private final BlobEnvironment blobEnvironment;
 
     public static final Predicate<String> indicesFilter = new Predicate<String>() {
         @Override
@@ -95,13 +105,17 @@ public class BlobIndices extends AbstractComponent {
                        TransportDeleteIndexAction transportDeleteIndexAction,
                        TransportUpdateSettingsAction transportUpdateSettingsAction,
                        IndicesService indicesService,
-                       IndicesLifecycle indicesLifecycle) {
+                       IndicesLifecycle indicesLifecycle,
+                       BlobEnvironment blobEnvironment,
+                       ClusterService clusterService) {
         super(settings);
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportUpdateSettingsAction = transportUpdateSettingsAction;
         this.indicesService = indicesService;
         this.indicesLifecycle = indicesLifecycle;
+        this.blobEnvironment = blobEnvironment;
+        clusterService.addLast(this);
     }
 
     public BlobShard blobShardSafe(ShardId shardId) {
@@ -170,7 +184,7 @@ public class BlobIndices extends AbstractComponent {
         return result;
     }
 
-    public ListenableFuture<Void> dropBlobTable(String tableName) {
+    public ListenableFuture<Void> dropBlobTable(final String tableName) {
         final SettableFuture<Void> result = SettableFuture.create();
         transportDeleteIndexAction.execute(new DeleteIndexRequest(fullIndexName(tableName)), new ActionListener<DeleteIndexResponse>() {
             @Override
@@ -269,6 +283,36 @@ public class BlobIndices extends AbstractComponent {
             return indexName;
         }
         return indexName.substring(INDEX_PREFIX.length());
+    }
+
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        if (event.state().blocks().disableStatePersistence()) {
+            return;
+        }
+
+        MetaData currentMetaData = event.previousState().metaData();
+        MetaData newMetaData = event.state().metaData();
+
+        // delete blob indices that were there before, but are deleted now
+        if (currentMetaData != null) {
+            // only delete indices when we already received a state (currentMetaData != null)
+            for (IndexMetaData current : currentMetaData) {
+                if (!newMetaData.hasIndex(current.index())) {
+                    if (isBlobIndex(current.index()) && blobEnvironment.blobsPath() != null) {
+                        // remove index blob path
+                        File indexLocation = blobEnvironment.indexLocation(new Index(current.index()));
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("[{}] Deleting blob index directory '{}'",
+                                    current.index(), indexLocation.getAbsolutePath());
+                        }
+                        if (indexLocation.exists()) {
+                            FileSystemUtils.deleteRecursively(indexLocation);
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }
