@@ -67,7 +67,7 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
                 @Override
                 public Long load(@Nonnull String key) throws Exception {
                     // actually not needed if only queried with getAll()
-                    throw new UnsupportedOperationException();
+                    throw new UnsupportedOperationException("load not supported on sys.nodes.fs.total cache");
                 }
 
                 @Override

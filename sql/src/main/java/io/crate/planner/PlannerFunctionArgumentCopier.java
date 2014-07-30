@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import com.google.common.collect.Lists;
 import io.crate.planner.symbol.*;
 
 import java.io.IOException;
@@ -53,7 +54,7 @@ public class PlannerFunctionArgumentCopier extends SymbolVisitor<Void, Symbol> {
     @Override
     public Symbol visitFunction(Function symbol, Void context) {
         boolean needsCopy = false;
-        List<Symbol> arguments = symbol.arguments();
+        List<Symbol> arguments = Lists.newArrayList(symbol.arguments());
         for (int i = 0; i < arguments.size(); i++) {
             Symbol argument = arguments.get(i);
             arguments.set(i, process(argument, null));

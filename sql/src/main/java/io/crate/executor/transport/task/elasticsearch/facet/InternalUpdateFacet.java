@@ -31,6 +31,7 @@ import org.elasticsearch.search.facet.Facet;
 import org.elasticsearch.search.facet.InternalFacet;
 
 import java.io.IOException;
+import java.util.Locale;
 
 public class InternalUpdateFacet extends InternalFacet implements UpdateFacet {
 
@@ -114,7 +115,8 @@ public class InternalUpdateFacet extends InternalFacet implements UpdateFacet {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         // at this point we do not support xcontent output
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "toXContent not supported on %s", getClass().getSimpleName()));
     }
 
     public static InternalUpdateFacet readMapReduceFacet(StreamInput in) throws IOException {

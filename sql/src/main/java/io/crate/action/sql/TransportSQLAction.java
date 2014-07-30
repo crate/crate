@@ -249,7 +249,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
             return new SQLParseException(e.getMessage(), (Exception)e);
         } else if (e instanceof UnsupportedOperationException) {
-            return new UnsupportedFeatureException(e.getMessage());
+            return new UnsupportedFeatureException(e.getMessage(), (Exception)e);
         } else if (e instanceof DocumentAlreadyExistsException) {
             return new DuplicateKeyException(
                     "A document with the same primary key exists already", e);
