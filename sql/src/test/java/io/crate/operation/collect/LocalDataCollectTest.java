@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.WhereClause;
+import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
@@ -211,7 +212,9 @@ public class LocalDataCollectTest {
                     mock(TransportDeleteIndexAction.class),
                     mock(TransportUpdateSettingsAction.class),
                     indicesService,
-                    mock(IndicesLifecycle.class)
+                    mock(IndicesLifecycle.class),
+                    mock(BlobEnvironment.class),
+                    clusterService
             );
             bind(BlobIndices.class).toInstance(blobIndices);
 

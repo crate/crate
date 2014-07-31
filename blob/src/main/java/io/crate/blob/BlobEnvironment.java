@@ -21,6 +21,7 @@
 
 package io.crate.blob;
 
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.FileSystemUtils;
@@ -39,14 +40,18 @@ public class BlobEnvironment {
 
     private final Settings settings;
     private final NodeEnvironment nodeEnvironment;
+    private final ClusterName clusterName;
 
     @Nullable
     private File blobsPath;
 
     @Inject
-    public BlobEnvironment(Settings settings, NodeEnvironment nodeEnvironment) {
+    public BlobEnvironment(Settings settings,
+                           NodeEnvironment nodeEnvironment,
+                           ClusterName clusterName) {
         this.settings = settings;
         this.nodeEnvironment = nodeEnvironment;
+        this.clusterName = clusterName;
     }
 
     @Nullable
@@ -59,6 +64,12 @@ public class BlobEnvironment {
         this.blobsPath = blobPath;
     }
 
+    /**
+     * Return the index location respecting global blobs data path value
+     *
+     * @param index
+     * @return
+     */
     public File indexLocation(Index index) {
         if (blobsPath == null) {
             return nodeEnvironment.indexLocations(index)[0];
@@ -66,27 +77,52 @@ public class BlobEnvironment {
         return indexLocation(index, blobsPath);
     }
 
-    public File indexLocation(Index index, File blobsPath) {
+    /**
+     * Return the index location according to the given base path
+     *
+     * @param index
+     * @param path
+     * @return
+     */
+    public File indexLocation(Index index, File path) {
         File indexLocation = nodeEnvironment.indexLocations(index)[0];
         String dataPath = settings.getAsArray("path.data")[0];
         String indexLocationSuffix = indexLocation.getAbsolutePath().substring(dataPath.length());
-        return new File(blobsPath, indexLocationSuffix);
+        return new File(path, indexLocationSuffix);
     }
 
-    public File shardLocations(ShardId shardId) {
+    /**
+     * Return the shard location respecting global blobs data path value
+     *
+     * @param shardId
+     * @return
+     */
+    public File shardLocation(ShardId shardId) {
         if (blobsPath == null) {
             return nodeEnvironment.shardLocations(shardId)[0];
         }
-        return shardLocations(shardId, blobsPath);
+        return shardLocation(shardId, blobsPath);
     }
 
-    public File shardLocations(ShardId shardId, File blobsPath) {
+    /**
+     * Return the shard location according to the given base path
+     *
+     * @param shardId
+     * @param path
+     * @return
+     */
+    public File shardLocation(ShardId shardId, File path) {
         File shardLocation = nodeEnvironment.shardLocations(shardId)[0];
         String dataPath = settings.getAsArray("path.data")[0];
         String shardLocationSuffix = shardLocation.getAbsolutePath().substring(dataPath.length());
-        return new File(new File(blobsPath, shardLocationSuffix), "blobs");
+        return new File(new File(path, shardLocationSuffix), "blobs");
     }
 
+    /**
+     * Validates a given blobs data path
+     *
+     * @param blobsPath
+     */
     public void validateBlobsPath(File blobsPath) {
         if (blobsPath.exists()) {
             if (blobsPath.isFile()) {
@@ -104,4 +140,39 @@ public class BlobEnvironment {
             }
         }
     }
+
+    /**
+     * Check if a given blob data path contains no indices and non crate related path
+     *
+     * @param root
+     * @return
+     */
+    public boolean isCustomBlobPathEmpty(File root) {
+        if (root != null && root.exists()) {
+            if (root.isDirectory()) {
+                File[] children = root.listFiles();
+                if (children != null) {
+                    boolean empty = true;
+                    for (File aChildren : children) {
+                        if (aChildren.isDirectory()
+                                && aChildren.getName().equals("nodes")) {
+                            for (File nodeFolder : aChildren.listFiles()) {
+                                if (nodeFolder.isDirectory()
+                                        && new File(nodeFolder, "indices").list().length > 0) {
+                                    empty = false;
+                                }
+                            }
+                        } else if (aChildren.getName().equals(clusterName.value())) {
+                            empty = isCustomBlobPathEmpty(aChildren);
+                        } else {
+                            return false;
+                        }
+                    }
+                    return empty;
+                }
+            }
+        }
+        return false;
+    }
+
 }

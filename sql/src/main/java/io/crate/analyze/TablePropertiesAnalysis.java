@@ -48,22 +48,27 @@ public class TablePropertiesAnalysis {
                     .put(REFRESH_INTERVAL, new RefreshIntervalSettingApplier())
                     .build();
 
-    public static Settings propertiesToSettings(GenericProperties properties, Object[] parameters) {
+    protected ImmutableMap<String, SettingsApplier> supportedProperties() {
+        return supportedProperties;
+    }
+
+    public Settings propertiesToSettings(GenericProperties properties, Object[] parameters) {
         return propertiesToSettings(properties, parameters, false);
     }
 
-    public static Settings propertiesToSettings(GenericProperties properties, Object[] parameters, boolean withDefaults) {
+    public Settings propertiesToSettings(GenericProperties properties, Object[] parameters, boolean withDefaults) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         if (withDefaults) {
-            for (SettingsApplier defaultSetting : supportedProperties.values()) {
+            for (SettingsApplier defaultSetting : supportedProperties().values()) {
                 builder.put(defaultSetting.getDefault());
             }
         }
         for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
-            SettingsApplier settingsApplier = supportedProperties.get(normalizeKey(entry.getKey()));
+            SettingsApplier settingsApplier = supportedProperties().get(normalizeKey(entry.getKey()));
             if (settingsApplier == null) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "TABLES don't have the \"%s\" property", entry.getKey()));
+                        String.format(Locale.ENGLISH, "Invalid property \"%s\" passed to [ALTER | CREATE] TABLE statement",
+                                entry.getKey()));
             }
 
             settingsApplier.apply(builder, parameters, entry.getValue());
@@ -72,10 +77,10 @@ public class TablePropertiesAnalysis {
         return builder.build();
     }
 
-    public static Settings getDefault(String property) {
+    public Settings getDefault(String property) {
         String normalizedKey = normalizeKey(property);
 
-        Preconditions.checkArgument(supportedProperties.containsKey(normalizedKey),
+        Preconditions.checkArgument(supportedProperties().containsKey(normalizedKey),
                 "TABLE doesn't have a property \"%s\"", property);
 
         return supportedProperties.get(normalizedKey).getDefault();
@@ -88,8 +93,15 @@ public class TablePropertiesAnalysis {
         return property;
     }
 
+    public static String denormalizeKey(String property) {
+        if (property.startsWith("index.")) {
+            return property.substring("index.".length());
+        }
+        return property;
+    }
 
-    private static class NumberOfReplicasSettingApplier implements SettingsApplier {
+
+    protected static class NumberOfReplicasSettingApplier implements SettingsApplier {
 
         private static final Settings DEFAULT = ImmutableSettings.builder()
                 .put(NUMBER_OF_REPLICAS, 1)
@@ -101,7 +113,7 @@ public class TablePropertiesAnalysis {
                           Object[] parameters,
                           Expression expression) {
             Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
-                    String.format("array literal not allowed for \"%s\"", NUMBER_OF_REPLICAS));
+                    String.format("array literal not allowed for \"%s\"", denormalizeKey(NUMBER_OF_REPLICAS)));
 
             NumberOfReplicas numberOfReplicas;
             try {
@@ -133,14 +145,14 @@ public class TablePropertiesAnalysis {
                           Object[] parameters,
                           Expression expression) {
             Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
-                    String.format("array literal not allowed for \"%s\"", NUMBER_OF_REPLICAS));
+                    String.format("array literal not allowed for \"%s\"", denormalizeKey(NUMBER_OF_REPLICAS)));
 
             Number refreshIntervalValue;
             try {
                 refreshIntervalValue = ExpressionToNumberVisitor.convert(expression, parameters);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid value for argument '"
-                        + REFRESH_INTERVAL + "'", e);
+                        + denormalizeKey(REFRESH_INTERVAL) + "'", e);
             }
             settingsBuilder.put(REFRESH_INTERVAL, refreshIntervalValue.toString());
         }

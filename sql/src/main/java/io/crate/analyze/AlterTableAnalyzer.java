@@ -28,6 +28,8 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 
 public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTableAnalysis> {
 
+    private static final TablePropertiesAnalysis tablePropertiesAnalysis = new TablePropertiesAnalysis();
+
     @Override
     public Void visitColumnDefinition(ColumnDefinition node, AlterTableAnalysis context) {
         if (node.ident().startsWith("_")) {
@@ -44,11 +46,11 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
         if (node.genericProperties().isPresent()) {
             GenericProperties properties = node.genericProperties().get();
             context.settings(
-                    TablePropertiesAnalysis.propertiesToSettings(properties, context.parameters()));
+                    tablePropertiesAnalysis.propertiesToSettings(properties, context.parameters()));
         } else if (!node.resetProperties().isEmpty()) {
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (String property : node.resetProperties()) {
-                builder.put(TablePropertiesAnalysis.getDefault(property));
+                builder.put(tablePropertiesAnalysis.getDefault(property));
             }
             context.settings(builder.build());
         }

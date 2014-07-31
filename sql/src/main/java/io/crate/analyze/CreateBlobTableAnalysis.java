@@ -21,17 +21,17 @@
 
 package io.crate.analyze;
 
-import io.crate.core.NumberOfReplicas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-
-import javax.annotation.Nullable;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 public class CreateBlobTableAnalysis extends AbstractDDLAnalysis {
 
-    private NumberOfReplicas numberOfReplicas;
-    private Integer numberOfShards;
+    private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
+
+    private Settings builtSettings;
 
     public CreateBlobTableAnalysis(Object[] parameters) {
         super(parameters);
@@ -55,22 +55,15 @@ public class CreateBlobTableAnalysis extends AbstractDDLAnalysis {
         return tableIdent.name();
     }
 
-    public void numberOfReplicas(NumberOfReplicas numberOfReplicas) {
-        this.numberOfReplicas = numberOfReplicas;
+    public ImmutableSettings.Builder indexSettingsBuilder() {
+        return indexSettingsBuilder;
     }
 
-    @Nullable
-    public NumberOfReplicas numberOfReplicas() {
-        return numberOfReplicas;
-    }
-
-    public void numberOfShards(Integer numberOfShards) {
-        this.numberOfShards = numberOfShards;
-    }
-
-    @Nullable
-    public Integer numberOfShards() {
-        return numberOfShards;
+    public Settings indexSettings() {
+        if (builtSettings == null) {
+            builtSettings = indexSettingsBuilder.build();
+        }
+        return builtSettings;
     }
 
     @Override

@@ -22,8 +22,10 @@
 package io.crate.integrationtests;
 
 import io.crate.blob.v2.BlobIndices;
-import io.crate.core.NumberOfReplicas;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -64,7 +66,11 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testTableNameBlobTable() throws Exception {
         BlobIndices blobIndices = cluster().getInstance(BlobIndices.class);
-        blobIndices.createBlobTable("blobs", new NumberOfReplicas(1), 1).get();
+        Settings indexSettings = ImmutableSettings.builder()
+                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
+                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
+                .build();
+        blobIndices.createBlobTable("blobs", indexSettings).get();
         ensureGreen();
 
         execute("select * from sys.shards where table_name = 'blobs'");

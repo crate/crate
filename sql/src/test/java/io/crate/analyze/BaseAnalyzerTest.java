@@ -194,6 +194,10 @@ public class BaseAnalyzerTest {
             .add("loc", DataTypes.GEO_POINT, null)
             .build();
 
+    static final TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent(null, "myblobs");
+    static final TableInfo TEST_BLOB_TABLE_TABLE_INFO = TestingTableInfo.builder(TEST_BLOB_TABLE_IDENT, RowGranularity.DOC, shardRouting)
+            .build();
+
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.<DataType>asList(DataTypes.LONG)),
             DataTypes.LONG);

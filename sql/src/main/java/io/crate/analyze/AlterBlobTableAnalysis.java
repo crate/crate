@@ -21,20 +21,23 @@
 
 package io.crate.analyze;
 
-import io.crate.core.NumberOfReplicas;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
 
+    private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
+
+    private Settings builtSettings;
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
     private SchemaInfo schemaInfo;
-    private NumberOfReplicas numberOfReplicas;
 
     public AlterBlobTableAnalysis(Object[] parameters, ReferenceInfos referenceInfos) {
         super(parameters);
@@ -70,16 +73,19 @@ public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
 
     }
 
+    public ImmutableSettings.Builder indexSettingsBuilder() {
+        return indexSettingsBuilder;
+    }
+
+    public Settings indexSettings() {
+        if (builtSettings == null) {
+            builtSettings = indexSettingsBuilder.build();
+        }
+        return builtSettings;
+    }
+
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
         return analysisVisitor.visitAlterBlobTableAnalysis(this, context);
-    }
-
-    public NumberOfReplicas numberOfReplicas() {
-        return numberOfReplicas;
-    }
-
-    public void numberOfReplicas(NumberOfReplicas numberOfReplicas) {
-        this.numberOfReplicas = numberOfReplicas;
     }
 }
