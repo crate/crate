@@ -127,8 +127,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         return wrapRowCountFuture(
                 blobIndices.createBlobTable(
                         analysis.tableName(),
-                        analysis.numberOfReplicas(),
-                        analysis.numberOfShards()
+                        analysis.indexSettings()
                 ),
                 1L
         );
@@ -298,7 +297,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     @Override
     public ListenableFuture<Long> visitAlterBlobTableAnalysis(AlterBlobTableAnalysis analysis, Void context) {
         return wrapRowCountFuture(
-                blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.numberOfReplicas()),
+                blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.indexSettings()),
                 1L);
     }
 

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.MetaDataModule;
@@ -28,8 +29,11 @@ import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +44,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
@@ -52,6 +59,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(TEST_BLOB_TABLE_TABLE_INFO);
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -84,10 +92,9 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
                 "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.tableIdent().schema(), is("blob"));
-        assertThat(analysis.numberOfShards(), is(10));
-        assert analysis.numberOfReplicas() != null;
-        assertThat(analysis.numberOfReplicas().esSettingValue(), is("0-all"));
+        assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
+        assertThat(analysis.indexSettings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(10));
+        assertThat(analysis.indexSettings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
     }
 
     @Test
@@ -96,9 +103,40 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
                 "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.numberOfShards(), is(10));
-        assert analysis.numberOfReplicas() != null;
-        assertThat(analysis.numberOfReplicas().esSettingValue(), is("0-all"));
+        assertThat(analysis.indexSettings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(10));
+        assertThat(analysis.indexSettings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+    }
+
+    @Test
+    public void testCreateBlobTableWithPath() {
+        CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
+                "create blob table screenshots with (path='/tmp/crate_blob_data')");
+
+        assertThat(analysis.tableIdent().name(), is("screenshots"));
+        assertThat(analysis.indexSettings().get(BlobIndices.SETTING_BLOBS_PATH), is("/tmp/crate_blob_data"));
+    }
+
+    @Test
+    public void testCreateBlobTableWithPathParameter() {
+        CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
+                "create blob table screenshots with (path=?)", new Object[]{"/tmp/crate_blob_data"});
+
+        assertThat(analysis.tableIdent().name(), is("screenshots"));
+        assertThat(analysis.indexSettings().get(BlobIndices.SETTING_BLOBS_PATH), is("/tmp/crate_blob_data"));
+    }
+
+    @Test
+    public void testCreateBlobTableWithPathInvalidType() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'path'");
+        analyze("create blob table screenshots with (path=1)");
+    }
+
+    @Test
+    public void testCreateBlobTableWithPathInvalidParameter() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'path'");
+        analyze("create blob table screenshots with (path=?)", new Object[]{ 1 });
     }
 
     @Test(expected = InvalidTableNameException.class)
@@ -127,5 +165,25 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     @Test (expected = TableUnknownException.class)
     public void testDropBlobTableThatDoesNotExist() {
         analyze("drop blob table unknown");
+    }
+
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testAlterBlobTableWithInvalidProperty() throws Exception {
+        analyze("alter blob table myblobs set (foobar='2')");
+    }
+
+    @Test
+    public void testAlterBlobTableWithReplicas() throws Exception {
+        AlterBlobTableAnalysis analysis = (AlterBlobTableAnalysis)analyze("alter blob table myblobs set (number_of_replicas=2)");
+        assertThat(analysis.table().ident().name(), is("myblobs"));
+        assertThat(analysis.indexSettings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
+    }
+
+    @Test
+    public void testAlterBlobTableWithPath() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid property \"path\" passed to [ALTER | CREATE] TABLE statement");
+        analyze("alter blob table myblobs set (path=1)");
     }
 }

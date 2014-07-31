@@ -21,36 +21,32 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.GenericProperties;
-
-import java.util.List;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnalysis> {
+
+    private static final TablePropertiesAnalysis tablePropertiesAnalysis = new AlterBlobTablePropertiesAnalysis();
 
     @Override
     public Void visitAlterBlobTable(AlterBlobTable node, AlterBlobTableAnalysis context) {
         context.table(tableToIdent(node.table()));
 
-
         if (node.genericProperties().isPresent()) {
-            updateProperties(context, node.genericProperties().get());
-        } else {
-            resetPropertiesValidation(context, node.resetProperties());
+            GenericProperties properties = node.genericProperties().get();
+            Settings settings =
+                    tablePropertiesAnalysis.propertiesToSettings(properties, context.parameters());
+            context.indexSettingsBuilder().put(settings);
+        } else if (!node.resetProperties().isEmpty()) {
+            ImmutableSettings.Builder builder = ImmutableSettings.builder();
+            for (String property : node.resetProperties()) {
+                builder.put(tablePropertiesAnalysis.getDefault(property));
+            }
+            context.indexSettingsBuilder().put(builder.build());
         }
 
         return null;
-    }
-
-    private void resetPropertiesValidation(AlterBlobTableAnalysis context, List<String> properties) {
-        Preconditions.checkArgument(properties.size() == 1, "Blob tables currently have only 1 property");
-        String propertyName = properties.get(1);
-        Preconditions.checkArgument(propertyName.equalsIgnoreCase("number_of_replicas"),
-                "the only supported parameter on blob tables it \"number_of_replicas\"");
-    }
-
-    private void updateProperties(AlterBlobTableAnalysis context, GenericProperties genericProperties) {
-        context.numberOfReplicas(extractNumberOfReplicas(genericProperties, context.parameters()));
     }
 }

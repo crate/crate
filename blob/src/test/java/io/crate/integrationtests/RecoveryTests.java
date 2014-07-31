@@ -28,16 +28,18 @@ import io.crate.blob.StartBlobRequest;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
-import io.crate.core.NumberOfReplicas;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
@@ -159,7 +161,11 @@ public class RecoveryTests extends CrateIntegrationTest {
         BlobIndices blobIndices = cluster().getInstance(BlobIndices.class, node1);
 
         logger.trace("--> creating test index ...");
-        blobIndices.createBlobTable("test", new NumberOfReplicas(0), 1).get();
+        Settings indexSettings = ImmutableSettings.builder()
+                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
+                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
+                .build();
+        blobIndices.createBlobTable("test", indexSettings).get();
 
         logger.trace("--> starting [node2] ...");
         final String node2 = cluster().startNode();
