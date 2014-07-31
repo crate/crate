@@ -1,5 +1,7 @@
 .. highlight:: sh
 
+.. _configuration:
+
 =============
 Configuration
 =============
