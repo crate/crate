@@ -74,6 +74,11 @@ The same query using question marks as placeholders looks like this::
       "duration" : ...
     }
 
+.. note::
+
+    With some queries the row count is not ascertainable. In this cases
+    rowcount is -1.
+
 Column Types
 ============
 

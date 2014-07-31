@@ -70,7 +70,7 @@ public class SQLResponseTest extends TestCase {
         });
         //System.out.println(json(r));
         JSONAssert.assertEquals(
-                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"duration\":-1}",
+                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":-1, \"duration\":-1}",
                 json(r), true);
     }
 
@@ -82,8 +82,9 @@ public class SQLResponseTest extends TestCase {
                 new Object[]{"one", "two"},
                 new Object[]{"three", "four"},
         });
+        // If no rowcount is set, -1 is returned
         JSONAssert.assertEquals(
-                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"duration\":-1}",
+                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":-1,\"duration\":-1}",
                 json(r), true);
 
         r.rowCount(2L);

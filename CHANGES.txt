@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+- fix: always return rowcount, even when it's not ascertenaible.
+  In this cases -1 is returned.
+
 - fix: composite index must only work with `string` typed columns,
   also defining it using the `plain` method must result in `keyword` analyzer
 
