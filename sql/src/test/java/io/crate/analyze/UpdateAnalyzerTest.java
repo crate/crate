@@ -43,7 +43,9 @@ import io.crate.types.DataTypes;
 import junit.framework.Assert;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -59,6 +61,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class UpdateAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
 
     private static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
     private static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
@@ -130,6 +136,23 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         analyze("update sys.nodes set fs=?", new Object[]{new HashMap<String, Object>(){{
             put("free", 0);
         }}});
+    }
+
+    @Test
+    public void testNumericTypeOutOfRange() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for shorts: short value out of range: -100000");
+
+        analyze("update users set shorts=-100000");
+    }
+
+
+    @Test
+    public void testNumericOutOfRangeFromFunction() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for bytes: byte value out of range: 1234");
+
+        analyze("update users set bytes=abs(-1234)");
     }
 
     @Test
@@ -246,8 +269,11 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertLiteralSymbol(((Function)analysis.whereClause().query()).arguments().get(1), 9L);
     }
 
-    @Test( expected = IllegalArgumentException.class )
+
     public void testUpdateWithWrongParameters() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for name: cannot cast {} to string");
+
         analyze("update users set name=?, friends=? where other_id=?",
                 new Object[]{
                         new HashMap<String, Object>(),

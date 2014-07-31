@@ -26,6 +26,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Literal;
@@ -82,8 +83,12 @@ public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysi
 
         // it's something that we can normalize to a literal
         Symbol value = process(node.expression(), context);
-        Literal updateValue = context.normalizeInputForReference(value, reference);
-
+        Literal updateValue;
+        try {
+            updateValue = context.normalizeInputForReference(value, reference);
+        } catch(IllegalArgumentException|UnsupportedOperationException e) {
+            throw new ColumnValidationException(ident.fqn(), e);
+        }
         // check for primary keys
         for (ColumnIdent primaryKeyIdent : Iterables.filter(context.table().primaryKey(), new Predicate<ColumnIdent>() {
             @Override

@@ -61,6 +61,11 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
         if (value instanceof BytesRef) {
             return Integer.parseInt(((BytesRef)value).utf8ToString());
         }
+
+        long longVal = ((Number)value).longValue();
+        if (longVal < Integer.MIN_VALUE || Integer.MAX_VALUE < longVal) {
+            throw new IllegalArgumentException("integer value out of range: " + longVal);
+        }
         return ((Number)value).intValue();
     }
 
@@ -68,6 +73,7 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     public int compareValueTo(Integer val1, Integer val2) {
         return Integer.compare(val1, val2);
     }
+
 
     @Override
     public Integer readValueFrom(StreamInput in) throws IOException {
@@ -80,20 +86,6 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
         if (v != null) {
             out.writeInt(((Number) v).intValue());
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof DataType)) return false;
-
-        DataType that = (DataType) o;
-        return (ID == that.id());
-    }
-
-    @Override
-    public int hashCode() {
-        return ID;
     }
 
     @Override
