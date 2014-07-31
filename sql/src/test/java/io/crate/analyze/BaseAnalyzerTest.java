@@ -81,6 +81,10 @@ public class BaseAnalyzerTest {
             .add("friends", DataTypes.LONG, Arrays.asList("id"))
             .add("friends", new ArrayType(DataTypes.STRING), Arrays.asList("groups"))
             .add("tags", new ArrayType(DataTypes.STRING), null)
+            .add("bytes", DataTypes.BYTE, null)
+            .add("shorts", DataTypes.SHORT, null)
+            .add("ints", DataTypes.INTEGER, null)
+            .add("floats", DataTypes.FLOAT, null)
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();

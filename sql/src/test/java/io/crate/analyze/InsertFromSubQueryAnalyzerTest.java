@@ -104,7 +104,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
                 analyze("insert into users (" +
                         "  select id, other_id, name, text, no_index, details, " +
-                        "      awesome, counters, friends, tags " +
+                        "      awesome, counters, friends, tags, bytes, shorts, ints, floats " +
                         "  from users " +
                         "  where name = 'Trillian'" +
                         ")");

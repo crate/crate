@@ -38,7 +38,9 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
@@ -49,6 +51,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
     private static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
@@ -143,6 +148,15 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     public void testInsertWithWrongType() throws Exception {
         analyze("insert into users (name, id) values (1, 'Trillian')");
     }
+
+    @Test
+    public void testInsertWithNumericTypeOutOfRange() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for bytes: byte value out of range: 1234");
+
+        analyze("insert into users (name, id, bytes) values ('Trillian', 4, 1234)");
+    }
+
 
     @Test(expected = ValidationException.class)
     public void testInsertWithWrongParameterType() throws Exception {
