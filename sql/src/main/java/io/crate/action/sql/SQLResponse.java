@@ -102,9 +102,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
             }
         }
         builder.endArray();
-        if (hasRowCount()) {
-            builder.field(Fields.ROWCOUNT, rowCount());
-        }
+        builder.field(Fields.ROWCOUNT, rowCount());
         builder.field(Fields.DURATION, duration());
 
         return builder;
