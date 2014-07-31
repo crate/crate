@@ -22,6 +22,7 @@
 package io.crate;
 
 import io.crate.blob.BlobEnvironment;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -59,7 +60,7 @@ public class BlobEnvironmentTest {
                 .put("path.data", dataPath.toAbsolutePath()).build();
         Environment environment = new Environment(settings);
         NodeEnvironment nodeEnvironment = new NodeEnvironment(settings, environment);
-        blobEnvironment = new BlobEnvironment(settings, nodeEnvironment);
+        blobEnvironment = new BlobEnvironment(settings, nodeEnvironment, new ClusterName("test"));
     }
 
     @After
@@ -75,7 +76,7 @@ public class BlobEnvironmentTest {
     @Test
     public void testShardLocation() throws Exception {
         File blobsPath = new File("/tmp/crate_blobs");
-        File shardLocation = blobEnvironment.shardLocations(new ShardId(".blob_test", 0), blobsPath);
+        File shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0), blobsPath);
         assertThat(shardLocation.getAbsolutePath().substring(0, blobsPath.getAbsolutePath().length()),
                 is(blobsPath.getAbsolutePath()));
     }

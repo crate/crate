@@ -21,12 +21,15 @@
 
 package io.crate.analyze;
 
-import io.crate.core.NumberOfReplicas;
+import io.crate.Constants;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.settings.Settings;
 
 public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalysis> {
 
+    private static final TablePropertiesAnalysis tablePropertiesAnalysis = new CreateBlobTablePropertiesAnalysis();
 
     @Override
     public Void visitCreateBlobTable(CreateBlobTable node, CreateBlobTableAnalysis context) {
@@ -34,17 +37,20 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
 
         if (node.clusteredBy().isPresent()) {
             ClusteredBy clusteredBy = node.clusteredBy().get();
-            Integer numShards = clusteredBy.numberOfShards().orNull();
-            if (numShards != null && numShards < 1) {
+            int numShards = clusteredBy.numberOfShards().or(Constants.DEFAULT_NUM_SHARDS);
+            if (numShards < 1) {
                 throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
             }
-            context.numberOfShards(numShards);
+            context.indexSettingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
         }
 
+
+        // apply default in case it is not specified in the genericProperties,
+        // if it is it will get overwritten afterwards.
         if (node.genericProperties().isPresent()) {
-            NumberOfReplicas numberOfReplicas =
-                    extractNumberOfReplicas(node.genericProperties().get(), context.parameters());
-            context.numberOfReplicas(numberOfReplicas);
+            Settings settings =
+                    tablePropertiesAnalysis.propertiesToSettings(node.genericProperties().get(), context.parameters(), true);
+            context.indexSettingsBuilder().put(settings);
         }
 
         return null;

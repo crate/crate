@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.WhereClause;
+import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
@@ -156,7 +157,9 @@ public class DistributingCollectTest {
                     mock(TransportDeleteIndexAction.class),
                     mock(TransportUpdateSettingsAction.class),
                     indicesService,
-                    mock(IndicesLifecycle.class)
+                    mock(IndicesLifecycle.class),
+                    mock(BlobEnvironment.class),
+                    clusterService
             );
             bind(BlobIndices.class).toInstance(blobIndices);
 

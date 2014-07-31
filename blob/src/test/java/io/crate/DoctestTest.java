@@ -22,10 +22,10 @@
 package io.crate;
 
 import io.crate.blob.v2.BlobIndices;
-import io.crate.core.NumberOfReplicas;
 import io.crate.rest.CrateRestFilter;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.DoctestClusterTestCase;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -47,8 +47,12 @@ public class DoctestTest extends DoctestClusterTestCase {
 
         BlobIndices blobIndices = cluster().getInstance(BlobIndices.class);
 
-        blobIndices.createBlobTable("test", new NumberOfReplicas(0), 2).get();
-        blobIndices.createBlobTable("test_blobs2", new NumberOfReplicas(0), 2).get();
+        Settings indexSettings = ImmutableSettings.builder()
+                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
+                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
+                .build();
+        blobIndices.createBlobTable("test", indexSettings).get();
+        blobIndices.createBlobTable("test_blobs2", indexSettings).get();
 
         client().admin().indices().prepareCreate("test_no_blobs")
             .setSettings(

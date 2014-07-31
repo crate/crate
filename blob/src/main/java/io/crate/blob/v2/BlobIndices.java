@@ -22,14 +22,12 @@
 package io.crate.blob.v2;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.BlobShardFuture;
-import io.crate.core.NumberOfReplicas;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -45,7 +43,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
@@ -64,12 +61,8 @@ import java.util.List;
 public class BlobIndices extends AbstractComponent implements ClusterStateListener {
 
     public static final String SETTING_BLOBS_ENABLED = "index.blobs.enabled";
+    public static final String SETTING_BLOBS_PATH = "index.blobs.path";
     public static final String INDEX_PREFIX = ".blob_";
-
-    private static final String NUMBER_OF_REPLICAS = "number_of_replicas";
-    private static final String AUTO_EXPAND_REPLICAS = "auto_expand_replicas";
-    private static final int DEFAULT_NUMBER_OF_SHARDS = 5;
-    private static final int DEFAULT_NUMBER_OF_REPLICAS = 1;
 
     private final TransportUpdateSettingsAction transportUpdateSettingsAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
@@ -116,6 +109,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         this.indicesLifecycle = indicesLifecycle;
         this.blobEnvironment = blobEnvironment;
         clusterService.addLast(this);
+        logger.setLevel("debug");
     }
 
     public BlobShard blobShardSafe(ShardId shardId) {
@@ -126,21 +120,12 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
      * can be used to alter the number of replicas.
      *
      * @param tableName name of the blob table
-     * @param numberOfReplicas new number of replicas or null if it should be set to the default
+     * @param indexSettings updated index settings
      */
-    public ListenableFuture<Void> alterBlobTable(String tableName, @Nullable NumberOfReplicas numberOfReplicas) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
-        builder.put(AUTO_EXPAND_REPLICAS, false); // deactivate - might be changing to fixed value
-
-        if (numberOfReplicas == null) {
-            builder.put(NUMBER_OF_REPLICAS, DEFAULT_NUMBER_OF_REPLICAS);
-        } else {
-            builder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
-        }
-
+    public ListenableFuture<Void> alterBlobTable(String tableName, Settings indexSettings) {
         final SettableFuture<Void> result = SettableFuture.create();
         transportUpdateSettingsAction.execute(
-                new UpdateSettingsRequest(builder.build(), fullIndexName(tableName)),
+                new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)),
                 new ActionListener<UpdateSettingsResponse>() {
                     @Override
                     public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
@@ -157,16 +142,10 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     }
 
     public ListenableFuture<Void> createBlobTable(String tableName,
-                                                  @Nullable NumberOfReplicas numberOfReplicas,
-                                                  @Nullable Integer numberOfShards) {
+                                                  Settings indexSettings) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        builder.put(indexSettings);
         builder.put(SETTING_BLOBS_ENABLED, true);
-        builder.put("number_of_shards", Objects.firstNonNull(numberOfShards, DEFAULT_NUMBER_OF_SHARDS));
-        if (numberOfReplicas == null) {
-            builder.put(NUMBER_OF_REPLICAS, DEFAULT_NUMBER_OF_REPLICAS);
-        } else {
-            builder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
-        }
 
         final SettableFuture<Void> result = SettableFuture.create();
         transportCreateIndexAction.execute(new CreateIndexRequest(fullIndexName(tableName), builder.build()), new ActionListener<CreateIndexResponse>() {
@@ -299,15 +278,30 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
             // only delete indices when we already received a state (currentMetaData != null)
             for (IndexMetaData current : currentMetaData) {
                 if (!newMetaData.hasIndex(current.index())) {
-                    if (isBlobIndex(current.index()) && blobEnvironment.blobsPath() != null) {
-                        // remove index blob path
-                        File indexLocation = blobEnvironment.indexLocation(new Index(current.index()));
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("[{}] Deleting blob index directory '{}'",
-                                    current.index(), indexLocation.getAbsolutePath());
+                    if (isBlobIndex(current.index())) {
+                        File indexLocation = null;
+                        File indexBlobsPath = null;
+                        if (current.settings().get(BlobIndices.SETTING_BLOBS_PATH) != null) {
+                            indexBlobsPath = new File(current.settings().get(BlobIndices.SETTING_BLOBS_PATH));
+                            indexLocation = blobEnvironment.indexLocation(new Index(current.index()), indexBlobsPath);
+                        } else if (blobEnvironment.blobsPath() != null) {
+                            indexLocation = blobEnvironment.indexLocation(new Index(current.index()));
                         }
-                        if (indexLocation.exists()) {
-                            FileSystemUtils.deleteRecursively(indexLocation);
+                        if (indexLocation != null) {
+                            // delete index blob path
+                            if (indexLocation.exists()) {
+                                logger.debug("[{}] Deleting blob index directory '{}'",
+                                        current.index(), indexLocation.getAbsolutePath());
+                                FileSystemUtils.deleteRecursively(indexLocation);
+                            }
+
+                            // check if custom index blobs path is empty, if so delete whole path
+                            if (indexBlobsPath != null
+                                    && blobEnvironment.isCustomBlobPathEmpty(indexBlobsPath)) {
+                                logger.debug("[{}] Empty per table defined blobs path found, deleting {}",
+                                        current.index(), indexBlobsPath.getAbsolutePath());
+                                FileSystemUtils.deleteRecursively(indexBlobsPath);
+                            }
                         }
                     }
                 }
