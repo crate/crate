@@ -62,8 +62,8 @@ public class ByteType extends DataType<Byte> implements DataTypeFactory, Streame
             return Byte.parseByte(((BytesRef)value).utf8ToString());
         }
         Integer val = ((Number)value).intValue();
-        if (val < Byte.MIN_VALUE || val > Byte.MAX_VALUE) {
-            throw new IllegalArgumentException("invalid byte value " + val);
+        if (val < Byte.MIN_VALUE || Byte.MAX_VALUE < val) {
+            throw new IllegalArgumentException("byte value out of range: " + val);
         }
         return val.byteValue();
     }
