@@ -35,7 +35,11 @@ public class Version {
 
 
     public static final boolean SNAPSHOT = false;
+<<<<<<< HEAD
     public static final Version CURRENT = new Version(410099, SNAPSHOT, org.elasticsearch.Version.V_1_2_2);
+=======
+    public static final Version CURRENT = new Version(400499, SNAPSHOT, org.elasticsearch.Version.V_1_2_2);
+>>>>>>> 0.40
 
     static {
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +

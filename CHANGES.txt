@@ -5,15 +5,6 @@ Changes for Crate Data
 Unreleased
 ==========
 
-- fix: always return rowcount, even when it's not ascertenaible.
-  In this cases -1 is returned.
-
-- fix: composite index must only work with `string` typed columns,
-  also defining it using the `plain` method must result in `keyword` analyzer
-
-- fix: using non-equality comparison of a partition column within
-  `AND` expressions results in empty row set
-
 2014/07/29 0.41.0
 =================
 
@@ -27,6 +18,18 @@ Unreleased
       random(),
       round(x),
       sqrt(x)
+
+2014/08/01 0.40.4
+=================
+
+- fix: always return rowcount, even when it's not ascertenaible.
+  In this cases -1 is returned.
+
+- fix: composite index must only work with `string` typed columns,
+  also defining it using the `plain` method must result in `keyword` analyzer
+
+- fix: using non-equality comparison of a partition column within
+  `AND` expressions results in empty row set
 
 2014/07/28 0.40.3
 =================
