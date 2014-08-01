@@ -30,6 +30,7 @@ buildscript {
 }
 
 test {
+    jvmArgs "-XX:MaxPermSize=512m"
     testLogging {
         // show standard out and standard error of the test JVM(s) on the console
         showStandardStreams = true
