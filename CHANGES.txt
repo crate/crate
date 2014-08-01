@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/08/01 0.40.4
+=================
+
 - fix: always return rowcount, even when it's not ascertenaible.
   In this cases -1 is returned.
 
