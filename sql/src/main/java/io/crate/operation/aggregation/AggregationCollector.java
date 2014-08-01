@@ -25,6 +25,8 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.RowCollector;
 import io.crate.planner.symbol.Aggregation;
 
+import java.util.Locale;
+
 public class AggregationCollector implements RowCollector {
 
     private final Input[] inputs;
@@ -49,7 +51,7 @@ public class AggregationCollector implements RowCollector {
             case FINAL:
                 throw new UnsupportedOperationException("Can't start from FINAL");
             default:
-                throw new UnsupportedOperationException();
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "invalid from step %s", a.fromStep().name()));
         }
 
         switch (a.toStep()) {
@@ -62,7 +64,7 @@ public class AggregationCollector implements RowCollector {
                 toImpl = new ToFinal();
                 break;
             default:
-                throw new UnsupportedOperationException();
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "invalid to step %s", a.toStep().name()));
         }
 
         this.inputs = inputs;

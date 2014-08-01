@@ -253,7 +253,7 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
             throw new ScriptException(String.format(Locale.ENGLISH, "Could not extract %s parameter", name));
         }
         DataType dataType = DataTypes.ofJsonObject(type);
-        if (dataType.id() >= ShortType.ID && dataType.id() <= TimestampType.ID) {
+        if (dataType.id() == ByteType.ID || (dataType.id() >= ShortType.ID && dataType.id() <= TimestampType.ID)) {
             dataType = LongType.INSTANCE;
         } else if (dataType.id() >= DoubleType.ID && dataType.id() <= FloatType.ID) {
             dataType = DoubleType.INSTANCE;

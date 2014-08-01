@@ -40,35 +40,75 @@ public class TypeConversionTest {
         }
 
         for (Integer shortVal : Iterables.toIterable(integers(
-                (int) Short.MIN_VALUE, (int) Short.MAX_VALUE))) {
+                (int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE))) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
                 t.value(shortVal.shortValue());
             }
         }
 
-        for (Integer intValue : Iterables.toIterable(integers())) {
+        for (Integer intValue : Iterables.toIterable(integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE))) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.INTEGER.id())) {
                 t.value(intValue);
             }
         }
 
-        for (Long longValue : Iterables.toIterable(longs())) {
+        for (Long longValue : Iterables.toIterable(longs((long) Byte.MIN_VALUE, (long) Byte.MAX_VALUE))) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.LONG.id())) {
                 t.value(longValue);
             }
         }
 
-        for (Double floatVal : Iterables.toIterable(doubles((double)Float.MIN_VALUE, (double)Float.MAX_VALUE))) {
+        for (Double floatVal : Iterables.toIterable(doubles((double)Byte.MIN_VALUE, (double)Byte.MAX_VALUE))) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.FLOAT.id())) {
                 t.value(floatVal.floatValue());
             }
         }
 
-        for (Double doubleVal : Iterables.toIterable(doubles())) {
+        for (Double doubleVal : Iterables.toIterable(doubles((double) Byte.MIN_VALUE, (double) Byte.MAX_VALUE))) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.DOUBLE.id())) {
                 t.value(doubleVal);
             }
         }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testByteOutOfRangeNegative() throws Exception {
+        DataTypes.BYTE.value(-129);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testByteOutOfRangePositive() throws Exception {
+        DataTypes.BYTE.value(129);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testShortOutOfRangePositive() throws Exception {
+        DataTypes.SHORT.value(Integer.MAX_VALUE);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testShortOutOfRangeNegative() throws Exception {
+        DataTypes.SHORT.value(Integer.MIN_VALUE);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testIntOutOfRangePositive() throws Exception {
+        DataTypes.INTEGER.value(Long.MAX_VALUE);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testIntOutOfRangeNegative() throws Exception {
+        DataTypes.INTEGER.value(Long.MIN_VALUE);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFloatOutOfRangePositive() throws Exception {
+        DataTypes.FLOAT.value(Double.MAX_VALUE);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFloatOutOfRangenegative() throws Exception {
+        DataTypes.FLOAT.value(-Double.MAX_VALUE);
     }
 
     @Test

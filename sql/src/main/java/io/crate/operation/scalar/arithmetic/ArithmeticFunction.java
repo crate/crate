@@ -82,8 +82,10 @@ abstract class ArithmeticFunction implements Scalar<Number, Number> {
         Preconditions.checkArgument(dataTypes.size() == 2);
         DataType leftType = dataTypes.get(0);
         DataType rightType = dataTypes.get(1);
-        Preconditions.checkArgument(ALLOWED_TYPES.contains(leftType));
-        Preconditions.checkArgument(ALLOWED_TYPES.contains(rightType));
+        Preconditions.checkArgument(ALLOWED_TYPES.contains(leftType),
+                "invalid type %s of left argument", leftType.toString());
+        Preconditions.checkArgument(ALLOWED_TYPES.contains(rightType),
+                "invalid type %s of right argument", leftType.toString());
     }
 
     protected static boolean containsTypesWithDecimal(List<DataType> dataTypes) {

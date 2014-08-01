@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -4535,7 +4534,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @Repeat(iterations=100)
     public void testSelectGroupByFailingSearchScript() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
@@ -4546,7 +4544,47 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)");
+    }
 
+    @Test
+    public void testNumericScriptOnAllTypes() throws Exception {
+        // this test validates that no exception is thrown
+        execute("create table t (b byte, s short, i integer, l long, f float, d double, t timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (b, s, i, l, f, d, t) values (1, 2, 3, 4, 5.7, 6.3, '2014-07-30')");
+        refresh();
+
+        String[] functionCalls = new String[]{
+                "abs(%s)",
+                "ceil(%s)",
+                "floor(%s)",
+                "ln(%s)",
+                "log(%s)",
+                "log(%s, 2)",
+                "random()",
+                "round(%s)",
+                "sqrt(%s)"
+        };
+
+        for (String functionCall : functionCalls) {
+            String byteCall = String.format(Locale.ENGLISH, functionCall, "b");
+            execute(String.format(Locale.ENGLISH, "select %s, b from t where %s < 2", byteCall, byteCall));
+
+            String shortCall = String.format(Locale.ENGLISH, functionCall, "s");
+            execute(String.format(Locale.ENGLISH, "select %s, s from t where %s < 2", shortCall, shortCall));
+
+            String intCall = String.format(Locale.ENGLISH, functionCall, "i");
+            execute(String.format(Locale.ENGLISH, "select %s, i from t where %s < 2", intCall, intCall));
+
+            String longCall = String.format(Locale.ENGLISH, functionCall, "l");
+            execute(String.format(Locale.ENGLISH, "select %s, l from t where %s < 2", longCall, longCall));
+
+            String floatCall = String.format(Locale.ENGLISH, functionCall, "f");
+            execute(String.format(Locale.ENGLISH, "select %s, f from t where %s < 2", floatCall, floatCall));
+
+            String doubleCall = String.format(Locale.ENGLISH, functionCall, "d");
+            execute(String.format(Locale.ENGLISH, "select %s, d from t where %s < 2", doubleCall, doubleCall));
+        }
     }
 
 }

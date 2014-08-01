@@ -42,6 +42,8 @@ public abstract class RoundFunction implements Scalar<Number, Number> {
         module.register(new DoubleRoundFunction());
         module.register(new NoopRoundFunction(DataTypes.LONG));
         module.register(new NoopRoundFunction(DataTypes.INTEGER));
+        module.register(new NoopRoundFunction(DataTypes.SHORT));
+        module.register(new NoopRoundFunction(DataTypes.BYTE));
         module.register(new NoopRoundFunction(DataTypes.NULL));
     }
 
@@ -72,7 +74,7 @@ public abstract class RoundFunction implements Scalar<Number, Number> {
             if (value == null) {
                 return null;
             }
-            return Math.round(((Float) value));
+            return Math.round(((Number) value).floatValue());
         }
     }
 
@@ -92,7 +94,7 @@ public abstract class RoundFunction implements Scalar<Number, Number> {
             if (value == null) {
                 return null;
             }
-            return Math.round(((Double) value));
+            return Math.round(((Number) value).doubleValue());
         }
     }
 
