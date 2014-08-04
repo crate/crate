@@ -60,8 +60,8 @@ import java.util.List;
 
 public class BlobIndices extends AbstractComponent implements ClusterStateListener {
 
-    public static final String SETTING_BLOBS_ENABLED = "index.blobs.enabled";
-    public static final String SETTING_BLOBS_PATH = "index.blobs.path";
+    public static final String SETTING_INDEX_BLOBS_ENABLED = "index.blobs.enabled";
+    public static final String SETTING_INDEX_BLOBS_PATH = "index.blobs.path";
     public static final String INDEX_PREFIX = ".blob_";
 
     private final TransportUpdateSettingsAction transportUpdateSettingsAction;
@@ -145,7 +145,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
                                                   Settings indexSettings) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         builder.put(indexSettings);
-        builder.put(SETTING_BLOBS_ENABLED, true);
+        builder.put(SETTING_INDEX_BLOBS_ENABLED, true);
 
         final SettableFuture<Void> result = SettableFuture.create();
         transportCreateIndexAction.execute(new CreateIndexRequest(fullIndexName(tableName), builder.build()), new ActionListener<CreateIndexResponse>() {
@@ -281,8 +281,8 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
                     if (isBlobIndex(current.index())) {
                         File indexLocation = null;
                         File indexBlobsPath = null;
-                        if (current.settings().get(BlobIndices.SETTING_BLOBS_PATH) != null) {
-                            indexBlobsPath = new File(current.settings().get(BlobIndices.SETTING_BLOBS_PATH));
+                        if (current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH) != null) {
+                            indexBlobsPath = new File(current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH));
                             indexLocation = blobEnvironment.indexLocation(new Index(current.index()), indexBlobsPath);
                         } else if (blobEnvironment.blobsPath() != null) {
                             indexLocation = blobEnvironment.indexLocation(new Index(current.index()));

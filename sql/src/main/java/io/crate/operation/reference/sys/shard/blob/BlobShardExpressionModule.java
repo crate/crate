@@ -48,7 +48,7 @@ public class BlobShardExpressionModule extends AbstractModule {
     protected void configure() {
         MapBinder<ReferenceIdent, BlobShardReferenceImplementation> binder = MapBinder
                 .newMapBinder(binder(), ReferenceIdent.class, BlobShardReferenceImplementation.class);
-        if (settings. getAsBoolean(BlobIndices.SETTING_BLOBS_ENABLED, false)){
+        if (settings.getAsBoolean(BlobIndices.SETTING_INDEX_BLOBS_ENABLED, false)){
 
             Map<ColumnIdent, ReferenceInfo> infos = SysShardsTableInfo.INFOS;
             binder.addBinding(infos.get(new ColumnIdent(BlobShardIdExpression.NAME)).ident()).to(BlobShardIdExpression.class).asEagerSingleton();

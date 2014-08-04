@@ -86,7 +86,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
         transportServiceLogger.setLevel(previousLevel);
 
         // validate the optional blob path setting
-        String globalBlobPathPrefix = settings.get(BlobEnvironment.SETTING_PATH_BLOBS);
+        String globalBlobPathPrefix = settings.get(BlobEnvironment.SETTING_BLOBS_PATH);
         if (globalBlobPathPrefix != null) {
             blobEnvironment.blobsPath(new File(globalBlobPathPrefix));
         }

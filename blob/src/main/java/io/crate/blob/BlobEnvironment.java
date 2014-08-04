@@ -36,7 +36,7 @@ import java.util.Locale;
 
 public class BlobEnvironment {
 
-    public static final String SETTING_PATH_BLOBS = "path.blobs";
+    public static final String SETTING_BLOBS_PATH = "blobs.path";
 
     private final Settings settings;
     private final NodeEnvironment nodeEnvironment;
