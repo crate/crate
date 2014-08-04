@@ -14,7 +14,7 @@ Synopsis
 
     COPY table_ident [ PARTITION ( partition_column = value [ , ... ] ) ]
                      [ ( column [ , ...] ) ]
-                     TO [DIRECTORY] { output_uri }
+                     TO [DIRECTORY] output_uri
                      [ WITH ( copy_parameter [= value] [, ... ] ) ]
 
 Description
