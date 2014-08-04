@@ -25,7 +25,7 @@ import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 
 /**
- * evaluatable function implementation
+ * evaluable function implementation
  * @param <ReturnType> the class of the returned value
  */
 public interface Scalar<ReturnType, InputType> extends FunctionImplementation<Function> {

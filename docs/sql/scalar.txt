@@ -208,63 +208,6 @@ casting from strings to geo point and geo shapes::
 This function can always be used within a ``WHERE`` clause.
 
 
-Fulltext Search Functions
-=========================
-
-match(columnName, queryTerm) returns boolean
---------------------------------------------
-
-The MATCH function performs a fulltext search on a column. In order to use fulltext
-searches on a column, a :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>`
-must be created on the related column. See :ref:`fulltext-indices` for details::
-
-    cr> select name from locations where match(name_description_ft, 'time');
-    +-----------+
-    | name      |
-    +-----------+
-    | Altair    |
-    | Bartledan |
-    +-----------+
-    SELECT 2 rows in set (... sec)
-
-To get the match score of the fulltext search, an internal system column
-:ref:`_score <sql_ddl_system_column_score>` can be selected.
-The higher the score value, the more relevant is the row::
-
-    cr> select name, \"_score\" from locations where match(name_description_ft, 'time');
-    +-----------+------------+
-    | name      |     _score |
-    +-----------+------------+
-    | Altair    | 0.56319076 |
-    | Bartledan | 0.4590714  |
-    +-----------+------------+
-    SELECT 2 rows in set (... sec)
-
-.. note::
-
-    The `_score` is a relative and not an absolute value. It just sets a row
-    in relation to the other ones. 
-
-The string used for a fulltext search is analyzed the same way as the indexed
-values and the resulting tokens are compared to the already indexed tokens.
-The tokens used for search are combined using the ``OR`` operator, so only
-one of the resulting tokens has to match to include a row.
-The more terms the search string contains, usually the more results will be
-returned::
-
-    cr> select name from locations where match(name_description_ft, 'time quordlepleen');
-    +-----------+
-    | name      |
-    +-----------+
-    | Aldebaran |
-    | Altair    |
-    | Bartledan |
-    +-----------+
-    SELECT 3 rows in set (... sec)
-
-For more information, please refer to :ref:`sql_dml_fulltext_search`.
-
-
 Mathematical Functions
 ======================
 
