@@ -59,7 +59,7 @@ See :ref:`ref-create-blob-table` for details.
 
 Creating a blob table with a custom blob data path::
 
-    sh$ crash -c "create blob table myblobs clustered into 3 shards with (path='/tmp/crate_blob_data')" # doctest: +SKIP
+    sh$ crash -c "create blob table myblobs clustered into 3 shards with (blobs_path='/tmp/crate_blob_data')" # doctest: +SKIP
     CREATE OK (... sec)
 
 
