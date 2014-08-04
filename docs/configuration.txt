@@ -41,10 +41,11 @@ will overwrite the prior one:
  1. internal defaults
  2. system properties
  3. options from config file
+ 4. command-line properties
 
 
 Hosts
------
+=====
 
 Per default Crate Data will bind itself to the ``0.0.0.0`` address.
 If you want to change this behaviour, adjust the ``network.host`` setting.
@@ -66,7 +67,7 @@ This resolves to the ip address of this interface. With ``_eth0:ipv{4,6}_`` you 
  an ipv6 or ipv4 address.
 
 Ports
------
+=====
 
 Per default Crate Data will listen to the first free port in the range of ``4200-4300`` for HTTP Requests.
 If there is no crate process already running on that machine, it will usually be ``4200``.
@@ -79,7 +80,7 @@ in the range of ``4300-4400``.
 You can change the TCP port range by adjusting the ``transport.tcp.port`` setting.
 
 Logging
--------
+=======
 
 Crate Data comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
 configuration by using YAML to configure it. The logging configuration
@@ -116,6 +117,24 @@ And here is a snippet of the generated properties ready for use with log4j. You 
 
    ...
 
+Environment variables
+=====================
+
+.. _env-crate-home:
+
+CRATE_HOME
+----------
+
+Specifies the home directory of the installation, it is used to find
+default file paths like e.g. ``config/crate.yml`` or the default data
+directory location. This variable is usally defined at the
+by-distribution shipped start-up script. In most cases it is the
+parent directory of the directory containing the ``bin/crate`` executable.
+
+:CRATE_HOME: Home directory of Crate Data installation. Used to refer
+             to default config files, data locations, log files, etc.
+             All configured relative paths will use this directory as
+             a parent.
 
 .. _YAML: http://en.wikipedia.org/wiki/YAML
 
