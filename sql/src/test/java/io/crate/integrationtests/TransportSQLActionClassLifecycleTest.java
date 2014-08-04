@@ -24,12 +24,10 @@ package io.crate.integrationtests;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.action.sql.TransportSQLAction;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.logging.Loggers;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -54,7 +52,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-        Loggers.getLogger(TransportSQLAction.class).setLevel("TRACE");
     }
 
     @Rule

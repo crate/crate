@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.action.sql.SQLRequestBuilder;
 import io.crate.action.sql.SQLResponse;
-import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.test.integration.CrateIntegrationTest;
@@ -37,7 +36,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -52,7 +50,6 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-        Loggers.getLogger(TransportSQLAction.class).setLevel("TRACE");
     }
 
     protected SQLTransportExecutor sqlExecutor = new SQLTransportExecutor(
