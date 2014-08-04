@@ -21,27 +21,27 @@ settings like the number of shards or number of replicas::
 
     cr> select * from information_schema.tables
     ... where table_name not like 'my_table%' order by schema_name asc, table_name asc;
-    +--------------------+-------------------+------------------+--------------------+--------------+----------------+
-    | schema_name        | table_name        | number_of_shards | number_of_replicas | clustered_by | partitioned_by |
-    +--------------------+-------------------+------------------+--------------------+--------------+----------------+
-    | blob               | myblobs           |                3 |                  1 | digest       | NULL           |
-    | doc                | documents         |                5 |                  1 | _id          | NULL           |
-    | doc                | locations         |                2 |                  0 | id           | NULL           |
-    | doc                | partitioned_table |                5 |                  1 | _id          | ["date"]      |
-    | doc                | quotes            |                2 |                  0 | id           | NULL           |
-    | information_schema | columns           |                1 |                  0 | NULL         | NULL           |
-    | information_schema | routines          |                1 |                  0 | NULL         | NULL           |
-    | information_schema | table_constraints |                1 |                  0 | NULL         | NULL           |
-    | information_schema | table_partitions  |                1 |                  0 | NULL         | NULL           |
-    | information_schema | tables            |                1 |                  0 | NULL         | NULL           |
-    | sys                | cluster           |                1 |                  0 | NULL         | NULL           |
-    | sys                | jobs              |                1 |                  0 | NULL         | NULL           |
-    | sys                | jobs_log          |                1 |                  0 | NULL         | NULL           |
-    | sys                | nodes             |                1 |                  0 | NULL         | NULL           |
-    | sys                | operations        |                1 |                  0 | NULL         | NULL           |
-    | sys                | operations_log    |                1 |                  0 | NULL         | NULL           |
-    | sys                | shards            |                1 |                  0 | NULL         | NULL           |
-    +--------------------+-------------------+------------------+--------------------+--------------+----------------+
+    +--------------------+-------------------+------------------+--------------------+--------------+----------------+--------...-+
+    | schema_name        | table_name        | number_of_shards | number_of_replicas | clustered_by | partitioned_by | blobs_path |
+    +--------------------+-------------------+------------------+--------------------+--------------+----------------+--------...-+
+    | blob               | myblobs           |                3 |                  1 | digest       | NULL           | ...        |
+    | doc                | documents         |                5 |                  1 | _id          | NULL           | NULL       |
+    | doc                | locations         |                2 |                  0 | id           | NULL           | NULL       |
+    | doc                | partitioned_table |                5 |                  1 | _id          | ["date"]       | NULL       |
+    | doc                | quotes            |                2 |                  0 | id           | NULL           | NULL       |
+    | information_schema | columns           |                1 |                  0 | NULL         | NULL           | NULL       |
+    | information_schema | routines          |                1 |                  0 | NULL         | NULL           | NULL       |
+    | information_schema | table_constraints |                1 |                  0 | NULL         | NULL           | NULL       |
+    | information_schema | table_partitions  |                1 |                  0 | NULL         | NULL           | NULL       |
+    | information_schema | tables            |                1 |                  0 | NULL         | NULL           | NULL       |
+    | sys                | cluster           |                1 |                  0 | NULL         | NULL           | NULL       |
+    | sys                | jobs              |                1 |                  0 | NULL         | NULL           | NULL       |
+    | sys                | jobs_log          |                1 |                  0 | NULL         | NULL           | NULL       |
+    | sys                | nodes             |                1 |                  0 | NULL         | NULL           | NULL       |
+    | sys                | operations        |                1 |                  0 | NULL         | NULL           | NULL       |
+    | sys                | operations_log    |                1 |                  0 | NULL         | NULL           | NULL       |
+    | sys                | shards            |                1 |                  0 | NULL         | NULL           | NULL       |
+    +--------------------+-------------------+------------------+--------------------+--------------+----------------+--------...-+
     SELECT 17 rows in set (... sec)
 
 

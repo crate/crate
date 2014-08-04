@@ -40,7 +40,8 @@ public class BlobTableInfoTest {
             "dummy",
             null,
             5,
-            new BytesRef("0"));
+            new BytesRef("0"),
+            new BytesRef("/tmp/blobs_path"));
 
     @Test
     public void testGetColumnInfo() throws Exception {

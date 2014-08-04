@@ -42,6 +42,7 @@ public class InformationSchemaInfo implements SchemaInfo {
             .add("number_of_replicas", DataTypes.STRING, null)
             .add("clustered_by", DataTypes.STRING, null)
             .add("partitioned_by", new ArrayType(DataTypes.STRING), null)
+            .add("blobs_path", DataTypes.STRING, null)
             .addPrimaryKey("schema_name")
             .addPrimaryKey("table_name")
             .build();

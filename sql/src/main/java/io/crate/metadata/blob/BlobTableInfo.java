@@ -51,11 +51,12 @@ public class BlobTableInfo implements TableInfo {
     private final ClusterService clusterService;
     private final String index;
     private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
+    private final BytesRef blobsPath;
 
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
+
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(
             new ColumnIdent("digest"));
-
     private final static List<Tuple<String, DataType>> staticColumns = ImmutableList.<Tuple<String,DataType>>builder()
                 .add(new Tuple<String, DataType>("digest", DataTypes.STRING))
                 .add(new Tuple<String, DataType>("last_modified", DataTypes.TIMESTAMP))
@@ -65,12 +66,14 @@ public class BlobTableInfo implements TableInfo {
                         String index,
                         ClusterService clusterService,
                         int numberOfShards,
-                        BytesRef numberOfReplicas) {
+                        BytesRef numberOfReplicas,
+                        BytesRef blobsPath) {
         this.ident = ident;
         this.index = index;
         this.clusterService = clusterService;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
+        this.blobsPath = blobsPath;
 
         registerStaticColumns();
     }
@@ -210,6 +213,10 @@ public class BlobTableInfo implements TableInfo {
             }
             INFOS.put(info.ident().columnIdent(), info);
         }
+    }
+
+    public BytesRef blobsPath() {
+        return blobsPath;
     }
 
 }

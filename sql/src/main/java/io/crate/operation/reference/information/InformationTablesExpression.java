@@ -24,6 +24,7 @@ package io.crate.operation.reference.information;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -84,6 +85,15 @@ public abstract class InformationTablesExpression<T>
                 @Override
                 public BytesRef value() {
                     return row.numberOfReplicas();
+                }
+            })
+            .add(new InformationTablesExpression<BytesRef>("blobs_path") {
+                @Override
+                public BytesRef value() {
+                    if (row instanceof BlobTableInfo) {
+                        return ((BlobTableInfo)row).blobsPath();
+                    }
+                    return null;
                 }
             })
             .build();

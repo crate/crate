@@ -21,16 +21,20 @@
 
 package io.crate.metadata.blob;
 
+import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocIndexMetaData;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
 
+import java.io.File;
 import java.io.IOException;
 
 public class BlobTableInfoBuilder {
@@ -38,12 +42,19 @@ public class BlobTableInfoBuilder {
     private final TableIdent ident;
     private final MetaData metaData;
     private final ClusterService clusterService;
+    private final BlobEnvironment blobEnvironment;
     private String[] concreteIndices;
+    private final Settings settings;
 
-    public BlobTableInfoBuilder(TableIdent ident, ClusterService clusterService) {
+    public BlobTableInfoBuilder(TableIdent ident,
+                                ClusterService clusterService,
+                                BlobEnvironment blobEnvironment,
+                                Settings settings) {
         this.clusterService = clusterService;
+        this.blobEnvironment = blobEnvironment;
         this.metaData = clusterService.state().metaData();
         this.ident = ident;
+        this.settings = settings;
     }
 
     public DocIndexMetaData docIndexMetaData() {
@@ -71,7 +82,28 @@ public class BlobTableInfoBuilder {
     public BlobTableInfo build() {
         DocIndexMetaData md = docIndexMetaData();
         return new BlobTableInfo(ident,
-                concreteIndices[0], clusterService, md.numberOfShards(), md.numberOfReplicas());
+                concreteIndices[0],
+                clusterService,
+                md.numberOfShards(),
+                md.numberOfReplicas(),
+                blobsPath(md));
+    }
+
+    private BytesRef blobsPath(DocIndexMetaData md) {
+        BytesRef blobsPath;
+        String blobsPathStr = metaData.index(md.concreteIndexName())
+                .settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
+        if (blobsPathStr != null) {
+            blobsPath = new BytesRef(blobsPathStr);
+        } else {
+            File path = blobEnvironment.blobsPath();
+            if (path != null) {
+                blobsPath = new BytesRef(path.getPath());
+            } else {
+                blobsPath = new BytesRef(settings.get("path.data"));
+            }
+        }
+        return blobsPath;
     }
 
 }

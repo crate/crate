@@ -84,18 +84,18 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.tables order by schema_name, table_name");
         assertEquals(12L, response.rowCount());
 
-        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, "0", null, null});
-        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "routines", 1, "0", null, null});
-        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "table_constraints", 1, "0", null, null});
-        assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "table_partitions", 1, "0", null, null});
-        assertArrayEquals(response.rows()[4], new Object[]{"information_schema", "tables", 1, "0", null, null});
-        assertArrayEquals(response.rows()[5], new Object[]{"sys", "cluster", 1, "0", null, null});
-        assertArrayEquals(response.rows()[6], new Object[]{"sys", "jobs", 1, "0", null, null});
-        assertArrayEquals(response.rows()[7], new Object[]{"sys", "jobs_log", 1, "0", null, null});
-        assertArrayEquals(response.rows()[8], new Object[]{"sys", "nodes", 1, "0", null, null});
-        assertArrayEquals(response.rows()[9], new Object[]{"sys", "operations", 1, "0", null, null});
-        assertArrayEquals(response.rows()[10], new Object[]{"sys", "operations_log", 1, "0", null, null});
-        assertArrayEquals(response.rows()[11], new Object[]{"sys", "shards", 1, "0", null, null});
+        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "routines", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "table_constraints", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "table_partitions", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[4], new Object[]{"information_schema", "tables", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[5], new Object[]{"sys", "cluster", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[6], new Object[]{"sys", "jobs", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[7], new Object[]{"sys", "jobs_log", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[8], new Object[]{"sys", "nodes", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[9], new Object[]{"sys", "operations", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[10], new Object[]{"sys", "operations_log", 1, "0", null, null, null});
+        assertArrayEquals(response.rows()[11], new Object[]{"sys", "shards", 1, "0", null, null, null});
     }
 
     @Test
@@ -202,16 +202,17 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where schema_name='blob'");
         assertEquals(0L, response.rowCount());
 
-        execute("create blob table test");
+        execute("create blob table test with (blobs_path='/tmp/blobs_path')");
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
-                "clustered_by from INFORMATION_SCHEMA.Tables where schema_name='blob' ");
+                "clustered_by, blobs_path from INFORMATION_SCHEMA.Tables where schema_name='blob' ");
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
         assertEquals(5, response.rows()[0][1]);
         assertEquals("1", response.rows()[0][2]);
         assertEquals("digest", response.rows()[0][3]);
+        assertEquals("/tmp/blobs_path", response.rows()[0][4]);
     }
 
     @Test
@@ -406,7 +407,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(132L, response.rowCount());
+        assertEquals(133L, response.rowCount());
     }
 
     @Test

@@ -50,11 +50,11 @@ recognizable as partitioned table by a non null ``partitioned_by`` column::
 
     cr> SELECT * FROM information_schema.tables
     ... WHERE table_name='parted_table';
-    +-------------+--------------+------------------+--------------------+--------------+----------------+
-    | schema_name | table_name   | number_of_shards | number_of_replicas | clustered_by | partitioned_by |
-    +-------------+--------------+------------------+--------------------+--------------+----------------+
-    | doc         | parted_table |                4 |                  1 | title        | ["day"]        |
-    +-------------+--------------+------------------+--------------------+--------------+----------------+
+    +-------------+--------------+------------------+--------------------+--------------+----------------+------------+
+    | schema_name | table_name   | number_of_shards | number_of_replicas | clustered_by | partitioned_by | blobs_path |
+    +-------------+--------------+------------------+--------------------+--------------+----------------+------------+
+    | doc         | parted_table |                4 |                  1 | title        | ["day"]        | NULL       |
+    +-------------+--------------+------------------+--------------------+--------------+----------------+------------+
     SELECT 1 row in set (... sec)
 
 ::
