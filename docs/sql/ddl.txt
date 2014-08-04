@@ -63,6 +63,9 @@ Or using a alternate syntax::
     ... );
     CREATE OK (... sec)
 
+
+.. _sql_ddl_datatypes:
+
 Data Types
 ==========
 

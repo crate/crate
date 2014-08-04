@@ -1,0 +1,171 @@
+.. highlight:: psql
+.. _predicates:
+
+==========
+Predicates
+==========
+
+Predicates are expressions that evaluate to boolean and can be used in the following places:
+
+ * in the :ref:`sql_dml_where_clause`
+
+
+While scalar functions that evaluate to boolean can be used in place of a predicate,
+a predicate cannot be used everywhere, e.g. in the result columns of a select statement.
+The semantics of a predicate usually differ from function semantics.
+
+e.g. A function is resolved by its name and the type of its arguments.
+A reference can be interchanged with the value it evaluates to (given as a literal)
+in a function argument and the function resolves to the same value.
+Predicates can bear different semantics, e.g. enforce the usage of a column reference.
+
+
+.. _predicates_is_null:
+
+Is Null
+=======
+
+Synopsis
+--------
+
+::
+
+    expr IS NULL
+
+Description
+-----------
+
+Returns ``TRUE`` if ``expr`` evaluates to ``NULL``.
+Given a column reference it returns ``TRUE`` if the field contains ``NULL``
+or is missing.
+
+Use this predicate to check for ``NULL`` values as SQL's three-valued logic
+does always return ``NULL`` when comparing ``NULL``.
+
+Parameters
+----------
+
+:expr: expression of one of the supported :ref:`sql_ddl_datatypes` supported by crate.
+
+Examples
+--------
+
+::
+
+    cr> select name from locations where race is null;
+
+    cr> select count(*) from locations where date_trunc('year', date) is null;
+
+
+
+.. _predicates_not_null:
+
+Is Not Null
+===========
+
+Synopsis
+--------
+
+::
+
+    expr IS NOT NULL
+
+Description
+-----------
+
+Returns ``TRUE`` if ``expr`` does not evaluate to ``NULL``.
+Additionally, for column references it returns ``FALSE`` if the column does not exist.
+
+Use this predicate to check for non-``NULL`` values as SQL's three-valued logic
+does always return ``NULL`` when comparing ``NULL``.
+
+Paramaters
+----------
+
+:expr: expression of one of the supported :ref:`sql_ddl_datatypes` supported by crate.
+
+Examples
+--------
+
+::
+
+    cr> select name from locations where race['interests'] is not null;
+
+    cr> select count(*) from locations where planet is not null;
+
+
+
+.. _predicates_match:
+
+Match
+=====
+
+Perform a fulltext search.
+
+Synopsis
+--------
+
+::
+
+    MATCH ( column_reference, search_string )
+
+Description
+-----------
+
+The MATCH predicate performs a fulltext search on the column referenced by ``column_reference``.
+
+In order to use fulltext searches on a column, a :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>`
+must be created on the related column. See :ref:`fulltext-indices` for details.
+
+The MATCH predicate takes the ``search_string`` and analyzes it
+with the same analyzer configured on ``column_reference``.
+The resulting tokens are matched against the already indexed tokens at ``column_reference``.
+If any of the ``search_string`` tokens is contained in the ``column_reference`` tokens, this
+predicate returns ``TRUE``.
+
+Without explicit ordering using ``ORDER BY`` the results are sorted by relevance.
+
+To get the relevance of a fulltext match, an internal system column
+:ref:`_score <sql_ddl_system_column_score>` can be selected.
+It is no absolute value, only relative to the other rows.
+The higher the score value, the more relevant is the row::
+
+    cr> select name, _score from locations where match(name_description_ft, 'time');
+    +-----------+------------+
+    | name      |     _score |
+    +-----------+------------+
+    | Altair    | 0.56319076 |
+    | Bartledan | 0.4590714  |
+    +-----------+------------+
+    SELECT 2 rows in set (... sec)
+
+
+For more information, please refer to :ref:`sql_dml_fulltext_search`.
+
+Parameters
+----------
+
+:column_reference: The name of an index column or an existing column that is of type ``string`` and is indexed.
+ By default every column is indexed but only the raw data is stored.
+ So matching against a ``string`` column without a fulltext index is equivalent to using the ``=`` operator.
+ To perform real fulltext searches using a :ref:`sql_ddl_index_fulltext` is mandatory.
+
+:search_string: This string is analyzed the same way as the indexed
+ values and the resulting tokens are compared to the already indexed tokens.
+ The tokens used for search are combined using the ``OR`` operator, so only
+ one of the resulting tokens has to match to include a row.
+
+Examples
+--------
+
+::
+
+    cr> select name from locations where match(name_description_ft, 'time quordlepleen');
+    +-----------+
+    | name      |
+    +-----------+
+    | Aldebaran |
+    | Altair    |
+    | Bartledan |
+    +-----------+
+    SELECT 3 rows in set (... sec)

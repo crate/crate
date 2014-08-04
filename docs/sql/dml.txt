@@ -66,6 +66,9 @@ duplicate rows are removed from the result set::
     +---------------+
     SELECT 3 rows in set (... sec)
 
+
+.. _sql_dml_where_clause:
+
 Where Clause
 ------------
 
@@ -79,12 +82,15 @@ A simple where clause example using an equality operator::
     +---------------------------------------...--------------------------------------+
     SELECT 1 row in set (... sec)
 
-Usual comparison operators to be used in filters are available for
+Comparison Operators
+....................
+
+Usual comparison operators to be used in the where clause are available for
 all simple data types:
 
-    ================  ===========================================================
+    ================  =================================
     Operator          Description
-    ================  ===========================================================
+    ================  =================================
     <                 less than
     >                 greater than
     <=                less than or equal to
@@ -92,33 +98,8 @@ all simple data types:
     =                 equal
     <>                not equal
     !=                not equal - same as <>
-    is not null       field is not null and not missing
-    is null           field is null or missing
-    like              matches a part of the given value (see :ref:`sql_dml_like`)
-    <operator> ANY    applies the ``<operator>`` on an array and returns ``true``
-                      if any comparison matches; ``false`` otherwise. The result
-                      of ANY is ``NULL`` if either the left-hand side or the
-                      right-hand side is null. The result is also null, if no
-                      ``true`` comparison is obtained and any element of the
-                      array is null. All operators are supported except 'is not
-                      null' and 'is null'. Comparing objects, or arrays
-                      of type object is not supported (see
-                      :ref:`sql_dml_any_array`).
-    <operator> SOME   synonym for ``<operator> ANY``
-    ================  ===========================================================
-
-.. note::
-
-  The field 'name' used for the request above is defined as
-  'not_analyzed' in the schema. For an 'analyzed' field the result may
-  differ depending on the used Analyzer/Tokenizer.
-
-
-.. note::
-
-    Not all operators can utilize the index efficiently. For example ``is
-    null`` can't use the index at all and will therefore performe worse than
-    other operators.
+    like              matches a part of the given value
+    ================  =================================
 
 For strings a lexicographical comparison is performed based on the
 Lucene TermRangeQuery::
@@ -160,6 +141,29 @@ For a detailed explanation of the supported ISO date formats please refer to the
 For custom date types, or defined date formats in the object mapping
 the corresponding format should be used for a comparison. Otherwise
 the operation may fail.
+
+
+Predicates
+..........
+
+The following predicates extend the range of possible conditions to use in the where clause.
+For detailed descriptions see the :ref:`predicates` section.
+
+    ==========================  ===========================================================
+    Predicate                   Description
+    ==========================  ===========================================================
+    :ref:`predicates_not_null`  field is not null and not missing
+    :ref:`predicates_is_null`   field is null or missing
+    :ref:`predicates_match`     Perform a fulltext search on a column.
+                                See :ref:`sql_dml_fulltext_search` for usage.
+    ==========================  ===========================================================
+
+
+.. note::
+
+    Not all predicates can utilize the index efficiently. For example ``is
+    null`` can't use the index at all and will therefor perform worse than
+    other operators.
 
 .. _sql_dml_like:
 
@@ -675,7 +679,7 @@ In order to use fulltext searches on columns, one must create a
 :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>` on the related column
 upfront on table creation, see :ref:`fulltext-indices` for details.
 
-A fulltext search is done using the ``match(columnName, queryTerm)`` helper function::
+A fulltext search is done using the :ref:`predicates_match` predicate::
 
     cr> select name from locations where match(name_description_ft, 'time');
     +-----------+
@@ -686,8 +690,9 @@ A fulltext search is done using the ``match(columnName, queryTerm)`` helper func
     +-----------+
     SELECT 2 rows in set (... sec)
 
-In order to get the match score of the fulltext search, an internal system column
-:ref:`_score <sql_ddl_system_column_score>` can be selected::
+It returns ``TRUE`` for rows which match the search string. To get more detailed
+information about the quality of a match, the :ref:`_score <sql_ddl_system_column_score>`
+can be selected::
 
     cr> select name, \"_score\"
     ... from locations where match(name_description_ft, 'time');
@@ -699,9 +704,8 @@ In order to get the match score of the fulltext search, an internal system colum
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
-The results of a ``match(...)`` query are sorted by :ref:`_score <sql_ddl_system_column_score>`
-in a descending order by default.
-Of course it is possible to change it to use an ascending order instead::
+The results of a query using MATCH are sorted by :ref:`_score <sql_ddl_system_column_score>`
+in a descending order by default. Of course it is possible to change it to use an ascending order instead::
 
     cr> select name, \"_score\"
     ... from locations where match(name_description_ft, 'time')
@@ -716,7 +720,9 @@ Of course it is possible to change it to use an ascending order instead::
 
 .. note::
 
-  The terms used for a fulltext search are analyzed by an ``OR`` operator.
+    The `_score` is a relative and not an absolute value. It just sets a row
+    in relation to the other ones.
+
 
 Negative search
 ...............
