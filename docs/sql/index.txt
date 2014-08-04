@@ -16,6 +16,7 @@ see :doc:`sql`. For general information about SQL please refer to
    aggregation
    scalar
    arithmetic
+   predicates
    occ
    partitioned_tables
    rest
