@@ -110,7 +110,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateBlobTableWithPath() {
         CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
-                "create blob table screenshots with (path='/tmp/crate_blob_data')");
+                "create blob table screenshots with (blobs_path='/tmp/crate_blob_data')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
         assertThat(analysis.indexSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
@@ -119,7 +119,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateBlobTableWithPathParameter() {
         CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
-                "create blob table screenshots with (path=?)", new Object[]{"/tmp/crate_blob_data"});
+                "create blob table screenshots with (blobs_path=?)", new Object[]{"/tmp/crate_blob_data"});
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
         assertThat(analysis.indexSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
@@ -128,15 +128,15 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateBlobTableWithPathInvalidType() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'path'");
-        analyze("create blob table screenshots with (path=1)");
+        expectedException.expectMessage("Invalid value for argument 'blobs_path'");
+        analyze("create blob table screenshots with (blobs_path=1)");
     }
 
     @Test
     public void testCreateBlobTableWithPathInvalidParameter() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'path'");
-        analyze("create blob table screenshots with (path=?)", new Object[]{ 1 });
+        expectedException.expectMessage("Invalid value for argument 'blobs_path'");
+        analyze("create blob table screenshots with (blobs_path=?)", new Object[]{ 1 });
     }
 
     @Test(expected = InvalidTableNameException.class)
@@ -183,7 +183,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAlterBlobTableWithPath() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid property \"path\" passed to [ALTER | CREATE] TABLE statement");
-        analyze("alter blob table myblobs set (path=1)");
+        expectedException.expectMessage("Invalid property \"blobs_path\" passed to [ALTER | CREATE] TABLE statement");
+        analyze("alter blob table myblobs set (blobs_path=1)");
     }
 }

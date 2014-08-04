@@ -32,10 +32,10 @@ import java.util.Locale;
 public class CreateBlobTablePropertiesAnalysis extends TablePropertiesAnalysis {
 
     /**
-     * This var is used internally here only! The public property is "path".
+     * This var is used internally here only! The public property is "blobs_path".
      * The ES index setting property is defined at BlobIndices.SETTING_INDEX_BLOBS_PATH
      */
-    private static final String PROPERTIES_PATH = "index.path";
+    private static final String PROPERTIES_PATH = "index.blobs_path";
 
     private static final ImmutableMap<String, SettingsApplier> supportedProperties =
             ImmutableMap.<String, SettingsApplier>builder()
