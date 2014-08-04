@@ -33,7 +33,7 @@ public class CreateBlobTablePropertiesAnalysis extends TablePropertiesAnalysis {
 
     /**
      * This var is used internally here only! The public property is "path".
-     * The ES index setting property is defined at BlobIndices.SETTING_BLOBS_PATH
+     * The ES index setting property is defined at BlobIndices.SETTING_INDEX_BLOBS_PATH
      */
     private static final String PROPERTIES_PATH = "index.path";
 
@@ -62,7 +62,7 @@ public class CreateBlobTablePropertiesAnalysis extends TablePropertiesAnalysis {
                         String.format(Locale.ENGLISH, "Invalid value for argument '%s'",
                                 denormalizeKey(PROPERTIES_PATH)), e);
             }
-            settingsBuilder.put(BlobIndices.SETTING_BLOBS_PATH, blobPath);
+            settingsBuilder.put(BlobIndices.SETTING_INDEX_BLOBS_PATH, blobPath);
         }
 
         @Override

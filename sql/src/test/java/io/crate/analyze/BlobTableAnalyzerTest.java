@@ -113,7 +113,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
                 "create blob table screenshots with (path='/tmp/crate_blob_data')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.indexSettings().get(BlobIndices.SETTING_BLOBS_PATH), is("/tmp/crate_blob_data"));
+        assertThat(analysis.indexSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
     }
 
     @Test
@@ -122,7 +122,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
                 "create blob table screenshots with (path=?)", new Object[]{"/tmp/crate_blob_data"});
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.indexSettings().get(BlobIndices.SETTING_BLOBS_PATH), is("/tmp/crate_blob_data"));
+        assertThat(analysis.indexSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
     }
 
     @Test

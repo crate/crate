@@ -371,5 +371,6 @@
 
 # Path to directory where to store blob data allocated for this node.
 # By default blobs will be stored under the same path as normal data.
+# A relative path value is relative to CRATE_HOME.
 #
-# path.blobs: /path/to/blobs
+# blobs.path: /path/to/blobs

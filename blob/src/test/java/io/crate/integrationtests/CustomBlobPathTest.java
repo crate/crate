@@ -48,7 +48,7 @@ public class CustomBlobPathTest extends CrateIntegrationTest {
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
-        builder.put(BlobEnvironment.SETTING_PATH_BLOBS, globalBlobPath.getAbsolutePath());
+        builder.put(BlobEnvironment.SETTING_BLOBS_PATH, globalBlobPath.getAbsolutePath());
         return builder.build();
     }
 
@@ -96,7 +96,7 @@ public class CustomBlobPathTest extends CrateIntegrationTest {
         Settings indexSettings = ImmutableSettings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
-                .put(BlobIndices.SETTING_BLOBS_PATH, tempBlobPath.getAbsolutePath())
+                .put(BlobIndices.SETTING_INDEX_BLOBS_PATH, tempBlobPath.getAbsolutePath())
                 .build();
         blobIndices.createBlobTable("test", indexSettings).get();
         ensureGreen();

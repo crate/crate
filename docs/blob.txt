@@ -32,6 +32,7 @@ on a large cheap spinning disk.
 The custom blob data path can be set either globally by config or
 while creating a blob table. The path can be either absolute or relative
 and must be creatable/writable by the user Crate Data is running as.
+A relative path value is relative to CRATE_HOME.
 
 Blob data will be stored under this path with the same directory
 layout like normal data.::
@@ -44,7 +45,7 @@ Global by config
 Just uncomment or add following entry at the crate config in order to
 define a custom path globally for all blob tables::
 
-  path.blobs: /path/to/blob/data
+  blobs.path: /path/to/blob/data
 
 Also see :ref:`configuration`.
 
