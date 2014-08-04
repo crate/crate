@@ -25,7 +25,7 @@ Custom location for storing blob data
 =====================================
 
 It is possible to define a custom directory path for storing blob
-data which can be completly different than the normal data path.
+data which can be completely different than the normal data path.
 Best use case for this is storing normal data on a fast SSD and blob data
 on a large cheap spinning disk.
 
