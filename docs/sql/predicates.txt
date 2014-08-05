@@ -52,10 +52,32 @@ Examples
 
 ::
 
-    cr> select name from locations where race is null;
+    cr> select name from locations where race is null order by name;
+    +------------------------------------+
+    | name                               |
+    +------------------------------------+
+    |                                    |
+    | Aldebaran                          |
+    | Algol                              |
+    | Allosimanius Syneca                |
+    | Alpha Centauri                     |
+    | Altair                             |
+    | Argabuthon                         |
+    | Arkintoofle Minor                  |
+    | Galactic Sector QQ7 Active J Gamma |
+    | North West Ripple                  |
+    | Outer Eastern Rim                  |
+    | NULL                               |
+    +------------------------------------+
+    SELECT 12 rows in set (... sec)
 
-    cr> select count(*) from locations where date_trunc('year', date) is null;
-
+    cr> select count(*) from locations where name is null;
+    +----------+
+    | count(*) |
+    +----------+
+    |        1 |
+    +----------+
+    SELECT 1 row in set (... sec)
 
 
 .. _predicates_not_null:
@@ -90,9 +112,20 @@ Examples
 ::
 
     cr> select name from locations where race['interests'] is not null;
+    +-----------+
+    | name      |
+    +-----------+
+    | Bartledan |
+    +-----------+
+    SELECT 1 row in set (... sec)
 
-    cr> select count(*) from locations where planet is not null;
-
+    cr> select count(*) from locations where name is not null;
+    +----------+
+    | count(*) |
+    +----------+
+    |       12 |
+    +----------+
+    SELECT 1 row in set (... sec)
 
 
 .. _predicates_match:
