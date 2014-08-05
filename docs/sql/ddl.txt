@@ -666,6 +666,8 @@ Of course defining a custom analyzer is possible here too::
     CREATE OK (... sec)
 
 
+.. _sql-ddl-composite-index:
+
 Defining a composite index
 ..........................
 
