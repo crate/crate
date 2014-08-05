@@ -182,4 +182,9 @@ public abstract class AbstractStatementAnalyzer<R extends Object, T extends Anal
     public R visitInputReference(InputReference node, T context) {
         return visitNode(node, context);
     }
+
+    @Override
+    public R visitMatchPredicate(MatchPredicate node, T context) {
+        return visitNode(node, context);
+    }
 }

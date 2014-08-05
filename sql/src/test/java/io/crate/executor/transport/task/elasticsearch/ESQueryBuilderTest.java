@@ -32,7 +32,7 @@ import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.scalar.MatchFunction;
+import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.LogFunction;
 import io.crate.operation.scalar.arithmetic.RoundFunction;
@@ -261,7 +261,7 @@ public class ESQueryBuilderTest {
     @Test
     public void testWhereReferenceMatchString() throws Exception {
         FunctionIdent functionIdent = new FunctionIdent(
-                MatchFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING));
+                MatchPredicate.NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING));
         FunctionImplementation matchImpl = functions.get(functionIdent);
         Function match = new Function(matchImpl.info(),
                 Arrays.<Symbol>asList(name_ref, Literal.newLiteral("arthur")));

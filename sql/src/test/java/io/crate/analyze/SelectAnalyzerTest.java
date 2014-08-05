@@ -43,6 +43,7 @@ import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
 import io.crate.operation.scalar.CollectionCountFunction;
+import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
@@ -1345,7 +1346,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     private void testDistanceOrderBy(String stmt) throws Exception{
         SelectAnalysis analysis = (SelectAnalysis) analyze(stmt);
         assertTrue(analysis.isSorted());
-        assertEquals(DistanceFunction.NAME, ((Function)analysis.sortSymbols().get(0)).info().ident().name());
+        assertEquals(DistanceFunction.NAME, ((Function) analysis.sortSymbols().get(0)).info().ident().name());
     }
 
     @Test
@@ -1403,9 +1404,22 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testMatchOnDynamicColumn() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: match(null, string)");
+        expectedException.expectMessage("invalid MATCH predicate");
 
         analyze("select * from users where match(me_not_exizzt, 'Arthur Dent')");
+    }
+
+    @Test
+    public void testSelectWhereMatchPredicate() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where match (text, 'awesome')");
+        assertThat(analysis.whereClause().hasQuery(), is(true));
+        Function query = (Function)analysis.whereClause().query();
+        assertThat(query.info().ident().name(), is(MatchPredicate.NAME));
+        assertThat(query.arguments().size(), is(2));
+        assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
+        assertThat(((Reference) query.arguments().get(0)).info().ident().columnIdent().fqn(), is("text"));
+        assertThat(query.arguments().get(1), instanceOf(Literal.class));
+        assertThat(((Literal<?>) query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
     }
 
 }

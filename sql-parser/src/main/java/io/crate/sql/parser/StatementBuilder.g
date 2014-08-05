@@ -528,6 +528,7 @@ predicate returns [Expression value]
     | ^(IS_NOT_NULL expr)                 { $value = new IsNotNullPredicate($expr.value); }
     | ^(IN v=expr list=expr)              { $value = new InPredicate($v.value, $list.value); }
     | ^(EXISTS q=query)                   { $value = new ExistsPredicate($q.value); }
+    | ^(MATCH e=expr v=expr)            { $value = new MatchPredicate($e.value, $v.value); }
     ;
 
 caseExpression returns [Expression value]

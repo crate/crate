@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.scalar;
+package io.crate.operation.predicate;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
@@ -32,22 +32,22 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 
 /**
- * The match function is oly used to generate lucene queries from.
+ * The match predicate is only used to generate lucene queries from.
   */
-public class MatchFunction implements FunctionImplementation<Function> {
+public class MatchPredicate implements FunctionImplementation<Function> {
 
     public static final String NAME = "match";
 
-    public static void register(ScalarFunctionModule module) {
-        FunctionIdent functionIdent = new FunctionIdent(MatchFunction.NAME,
-                ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING));
-        module.register(new MatchFunction(new FunctionInfo(functionIdent, DataTypes.BOOLEAN)));
+
+    public static void register(PredicateModule module) {
+        FunctionIdent functionIdent = new FunctionIdent(MatchPredicate.NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING));
+        module.register(new MatchPredicate(new FunctionInfo(functionIdent, DataTypes.BOOLEAN)));
     }
 
     private final FunctionInfo info;
 
     @Inject
-    public MatchFunction(FunctionInfo info) {
+    public MatchPredicate(FunctionInfo info) {
         this.info = info;
     }
 
@@ -60,4 +60,5 @@ public class MatchFunction implements FunctionImplementation<Function> {
     public Symbol normalizeSymbol(Function function) {
         return function;
     }
+
 }
