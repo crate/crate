@@ -116,6 +116,7 @@ tokens {
     ARRAY_LITERAL;
     OBJECT_LITERAL;
     KEY_VALUE;
+    MATCH;
 }
 
 @header {
@@ -409,7 +410,8 @@ booleanPrimary
     ;
 
 predicate
-    : (predicatePrimary -> predicatePrimary)
+    : (MATCH) => MATCH '(' e=predicatePrimary ',' s=predicatePrimary ')' -> ^(MATCH $e $s)
+      | ((predicatePrimary -> predicatePrimary)
       ( cmpOp quant=setCmpQuantifier '(' e=predicatePrimary ')'       -> ^(ARRAY_CMP $predicate cmpOp $quant $e)
       | (LIKE setCmpQuantifier) => LIKE quant=setCmpQuantifier '(' e=predicatePrimary ')' (ESCAPE x=predicatePrimary)?          -> ^(ARRAY_LIKE $predicate $quant $e $x?)
       | LIKE e=predicatePrimary (ESCAPE x=predicatePrimary)?          -> ^(LIKE $predicate $e $x?)
@@ -424,7 +426,7 @@ predicate
       | IS NOT NULL                                                   -> ^(IS_NOT_NULL $predicate)
       | IN inList                                                     -> ^(IN $predicate inList)
       | NOT IN inList                                                 -> ^(NOT ^(IN $predicate inList))
-      )*
+      )*)
     ;
 
 predicatePrimary
@@ -1153,6 +1155,8 @@ PARTITIONED: 'PARTITIONED';
 
 TRANSIENT: 'TRANSIENT';
 PERSISTENT: 'PERSISTENT';
+
+MATCH: 'MATCH';
 
 
 EQ  : '=';

@@ -45,5 +45,6 @@ public class PredicateModule extends AbstractModule {
         resolverBinder = MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
         IsNullPredicate.register(this);
         NotPredicate.register(this);
+        MatchPredicate.register(this);
     }
 }

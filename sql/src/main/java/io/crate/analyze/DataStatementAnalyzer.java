@@ -34,11 +34,12 @@ import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
-import io.crate.operation.predicate.NotPredicate;
+import io.crate.operation.predicate.*;
 import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.IsNullPredicate;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 
@@ -555,6 +556,36 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     public Symbol visitParameterExpression(ParameterExpression node, T context) {
         return new Parameter(context.parameterAt(node.index()));
     }
+
+    @Override
+    public Symbol visitMatchPredicate(io.crate.sql.tree.MatchPredicate node, T context) {
+        Symbol expressionSymbol = process(node.reference(), context);
+        if (! (expressionSymbol instanceof Reference)) {
+            throw new UnsupportedOperationException("MATCH (reference, value): reference must be a reference");
+        }
+        DataType expressionType = ((Reference)expressionSymbol).valueType();
+
+        Symbol valueSymbol = process(node.value(), context);
+        // handle possible parameter for value
+        // try implicit conversion
+        if (valueSymbol instanceof Parameter) {
+            try {
+                valueSymbol = context.normalizeInputForType(valueSymbol, StringType.INSTANCE);
+            } catch (IllegalArgumentException|UnsupportedOperationException e) {
+                throw new UnsupportedOperationException("MATCH (expression, value): value couldn't be implicitly casted to string. Try to explicitly cast to string.");
+            }
+        }
+
+        FunctionInfo functionInfo;
+        try {
+            FunctionIdent functionIdent = new FunctionIdent(io.crate.operation.predicate.MatchPredicate.NAME, Arrays.asList(expressionType, DataTypes.STRING));
+            functionInfo = context.getFunctionInfo(functionIdent);
+        } catch (UnsupportedOperationException e) {
+            throw new UnsupportedOperationException("invalid MATCH predicate", e);
+        }
+        return context.allocateFunction(functionInfo, Arrays.asList(expressionSymbol, valueSymbol));
+    }
+
 
     private static class Comparison {
 
