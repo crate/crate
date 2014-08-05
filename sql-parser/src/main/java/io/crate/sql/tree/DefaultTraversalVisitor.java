@@ -433,4 +433,13 @@ public abstract class DefaultTraversalVisitor<R, C>
         process(node.table(), context);
         return null;
     }
+
+    @Override
+    public R visitMatchPredicate(MatchPredicate node, C context)
+    {
+        process(node.reference(), context);
+        process(node.value(), context);
+
+        return null;
+    }
 }

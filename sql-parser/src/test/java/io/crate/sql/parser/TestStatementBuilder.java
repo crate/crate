@@ -308,6 +308,11 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testPredicates() throws Exception {
+        printStatement("select * from foo where match(a, 'abc')");
+    }
+
+    @Test
     public void testCast() throws Exception {
         printStatement("select cast(y as integer) from foo");
     }

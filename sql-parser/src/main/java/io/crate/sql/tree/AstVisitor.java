@@ -572,4 +572,10 @@ public abstract class AstVisitor<R, C>
     public R visitInsertFromSubquery(InsertFromSubquery node, C context) {
         return visitInsert(node, context);
     }
+
+    public R visitMatchPredicate(MatchPredicate node, C context)
+    {
+        return visitExpression(node, context);
+    }
+
 }

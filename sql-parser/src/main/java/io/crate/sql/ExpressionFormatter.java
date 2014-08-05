@@ -366,6 +366,12 @@ public final class ExpressionFormatter
         }
 
         @Override
+        public String visitMatchPredicate(MatchPredicate node, Void context)
+        {
+            return "MATCH (" + process(node.reference(), context) + ", " + process(node.value(), context) + ")";
+        }
+
+        @Override
         protected String visitAllColumns(AllColumns node, Void context)
         {
             if (node.getPrefix().isPresent()) {

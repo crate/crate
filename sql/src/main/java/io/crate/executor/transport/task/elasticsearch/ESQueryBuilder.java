@@ -38,7 +38,7 @@ import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
-import io.crate.operation.scalar.MatchFunction;
+import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.scalar.arithmetic.*;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSortScript;
@@ -498,7 +498,7 @@ public class ESQueryBuilder {
                     .put(LikeOperator.NAME, new LikeConverter())
                     .put(IsNullPredicate.NAME, new IsNullConverter())
                     .put(NotPredicate.NAME, new NotConverter())
-                    .put(MatchFunction.NAME, new MatchConverter())
+                    .put(MatchPredicate.NAME, new MatchConverter())
                     .put(InOperator.NAME, new InConverter())
                     .put(AnyEqOperator.NAME, eqConverter)
                     .put(AnyNeqOperator.NAME, new AnyNeqConverter())
