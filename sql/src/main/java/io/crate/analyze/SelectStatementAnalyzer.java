@@ -344,6 +344,12 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                                     symbol.valueType())
                     );
                 }
+
+                if (symbol.info().type() == FunctionInfo.Type.PREDICATE) {
+                    throw new UnsupportedOperationException(String.format(
+                            "%s predicate cannot be used in an ORDER BY clause", symbol.info().ident().name()));
+                }
+
                 for (Symbol arg : symbol.arguments()) {
                     process(arg, context);
                 }
@@ -417,10 +423,19 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         @Override
         public Void visitFunction(Function symbol, Void context) {
-             if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
-                 throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
-             }
-             return null;
+            switch (symbol.info().type()) {
+                case SCALAR:
+                    break;
+                case AGGREGATE:
+                    throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
+                case PREDICATE:
+                    throw new UnsupportedOperationException(String.format(
+                            "%s predicate cannot be used in a GROUP BY clause", symbol.info().ident().name()));
+                default:
+                    throw new UnsupportedOperationException(
+                            String.format("FunctionInfo.Type %s not handled", symbol.info().type()));
+            }
+            return null;
          }
 
         @Override
@@ -462,8 +477,18 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         @Override
         public Void visitFunction(Function symbol, SelectContext context) {
-            if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
-                context.selectFromFieldCache = true;
+            switch (symbol.info().type()) {
+                case SCALAR:
+                    break;
+                case AGGREGATE:
+                    context.selectFromFieldCache = true;
+                    break;
+                case PREDICATE:
+                    throw new UnsupportedOperationException(String.format(
+                            "%s predicate cannot be selected", symbol.info().ident().name()));
+                default:
+                    throw new UnsupportedOperationException(String.format(
+                            "FunctionInfo.Type %s not handled", symbol.info().type()));
             }
             for (Symbol arg : symbol.arguments()) {
                 process(arg, context);

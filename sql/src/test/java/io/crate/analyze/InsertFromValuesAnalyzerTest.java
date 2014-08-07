@@ -500,6 +500,13 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testInsertWithMatchPredicateInValues() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("invalid MATCH predicate");
+        analyze("insert into users (id, name) values (1, match(foo, 'bar'))");
+    }
+
+    @Test
     public void testInsertNestedPartitionedColumn() throws Exception {
         InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into nested_parted (id, date, obj)" +
                 "values (?, ?, ?), (?, ?, ?)",
