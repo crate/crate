@@ -178,37 +178,6 @@ partitions. The partitions are introduced when data is inserted where
     +---------------------+-------------+--------------------+--------------------------+
     SELECT 2 rows in set (... sec)
 
-Indices
-=======
-
-.. note:: currently not implemented
-
-This table can be queried to get a list of all defined indices of all columns and their
-definition like index method, expression list and property list.
-Using a :ref:`plain index <sql_ddl_index_plain>` for every column is the default
-behaviour at Crate, so almost all columns are listed as an index as well::
-
-    cr> select * from information_schema.indices
-    ... where table_name not like 'my_table%' order by table_name asc, index_name asc; #doctest: +SKIP
-    +------------+---------------------+----------+---------------------------+------------------+
-    | table_name | index_name          | method   | columns                   | properties       |
-    +------------+---------------------+----------+---------------------------+------------------+
-    | documents  | body                | plain    | [u'body']                 |                  |
-    | documents  | title               | plain    | [u'title']                |                  |
-    | documents  | title_body_ft       | fulltext | [u'body', u'title']       | analyzer=english |
-    | locations  | date                | plain    | [u'date']                 |                  |
-    | locations  | description         | plain    | [u'description']          |                  |
-    | locations  | id                  | plain    | [u'id']                   |                  |
-    | locations  | kind                | plain    | [u'kind']                 |                  |
-    | locations  | name                | plain    | [u'name']                 |                  |
-    | locations  | name_description_ft | fulltext | [u'description', u'name'] | analyzer=english |
-    | locations  | position            | plain    | [u'position']             |                  |
-    | locations  | race                | plain    | [u'race']                 |                  |
-    | quotes     | id                  | plain    | [u'id']                   |                  |
-    | quotes     | quote               | plain    | [u'quote']                |                  |
-    +------------+---------------------+----------+---------------------------+------------------+
-    SELECT 13 rows in set (... sec)
-
 
 Routines
 ========
