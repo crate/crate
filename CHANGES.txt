@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - remove documentation about information_schema.indices (which is not
+   implemented).
+
  - improved error handling if illegal arguments are used in COPY FROM or COPY
    TO statements.
 
