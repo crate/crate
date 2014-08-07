@@ -31,7 +31,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.indices.IndexMissingException;
 
 import java.io.File;
@@ -43,18 +43,18 @@ public class BlobTableInfoBuilder {
     private final MetaData metaData;
     private final ClusterService clusterService;
     private final BlobEnvironment blobEnvironment;
+    private final Environment environment;
     private String[] concreteIndices;
-    private final Settings settings;
 
     public BlobTableInfoBuilder(TableIdent ident,
                                 ClusterService clusterService,
                                 BlobEnvironment blobEnvironment,
-                                Settings settings) {
+                                Environment environment) {
         this.clusterService = clusterService;
         this.blobEnvironment = blobEnvironment;
+        this.environment = environment;
         this.metaData = clusterService.state().metaData();
         this.ident = ident;
-        this.settings = settings;
     }
 
     public DocIndexMetaData docIndexMetaData() {
@@ -100,7 +100,8 @@ public class BlobTableInfoBuilder {
             if (path != null) {
                 blobsPath = new BytesRef(path.getPath());
             } else {
-                blobsPath = new BytesRef(settings.get("path.data"));
+                File[] dataFiles = environment.dataFiles();
+                blobsPath = new BytesRef(dataFiles[0].getAbsolutePath());
             }
         }
         return blobsPath;

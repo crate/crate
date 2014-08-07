@@ -36,7 +36,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -50,7 +50,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private final ClusterService clusterService;
     private final BlobEnvironment blobEnvironment;
-    private final Settings settings;
+    private final Environment environment;
 
     private final LoadingCache<String, BlobTableInfo> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)
@@ -68,10 +68,10 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     @Inject
     public BlobSchemaInfo(ClusterService clusterService,
                           BlobEnvironment blobEnvironment,
-                          Settings settings) {
+                          Environment environment) {
         this.clusterService = clusterService;
         this.blobEnvironment = blobEnvironment;
-        this.settings = settings;
+        this.environment = environment;
         clusterService.add(this);
         tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
@@ -84,7 +84,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private BlobTableInfo innerGetTableInfo(String name) {
         BlobTableInfoBuilder builder = new BlobTableInfoBuilder(
-                new TableIdent(NAME, name), clusterService, blobEnvironment, settings);
+                new TableIdent(NAME, name), clusterService, blobEnvironment, environment);
         return builder.build();
     }
 
