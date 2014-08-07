@@ -46,7 +46,7 @@ public class SymbolFormatterTest {
     @Test
     public void testFormatFunction() throws Exception {
         Function f = new Function(new FunctionInfo(
-                new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.DOUBLE)), DataTypes.DOUBLE, false),
+                new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.DOUBLE)), DataTypes.DOUBLE),
                 Arrays.<Symbol>asList(Literal.newLiteral("bar"), Literal.newLiteral(3.4)));
         assertFormat(f, "foo(string, double)");
     }
@@ -54,7 +54,7 @@ public class SymbolFormatterTest {
     @Test
     public void testFormatFunctionWithoutArgs() throws Exception {
         Function f = new Function(new FunctionInfo(
-                new FunctionIdent("baz", ImmutableList.<DataType>of()), DataTypes.DOUBLE, false),
+                new FunctionIdent("baz", ImmutableList.<DataType>of()), DataTypes.DOUBLE),
                 ImmutableList.<Symbol>of());
         assertFormat(f, "baz()");
     }
@@ -62,7 +62,7 @@ public class SymbolFormatterTest {
     @Test
     public void testSubstrFunction() throws Exception {
         Function f = new Function(new FunctionInfo(
-                new FunctionIdent("substr", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG)), DataTypes.STRING, false),
+                new FunctionIdent("substr", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG)), DataTypes.STRING),
                 Arrays.<Symbol>asList(Literal.newLiteral("foobar"), Literal.newLiteral(4)));
         assertFormat(f, "substr(string, long)");
     }
@@ -70,7 +70,7 @@ public class SymbolFormatterTest {
     @Test
     public void testSubstrFunctionWithLength() throws Exception {
         Function f = new Function(new FunctionInfo(
-                new FunctionIdent("substr", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG, DataTypes.LONG)), DataTypes.STRING, false),
+                new FunctionIdent("substr", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG, DataTypes.LONG)), DataTypes.STRING),
                 Arrays.<Symbol>asList(Literal.newLiteral("foobar"), Literal.newLiteral(4), Literal.newLiteral(1)));
         assertFormat(f, "substr(string, long, long)");
     }
@@ -78,7 +78,7 @@ public class SymbolFormatterTest {
     @Test
     public void testFormatAggregation() throws Exception {
         Aggregation a = new Aggregation(new FunctionInfo(
-                new FunctionIdent("agg", Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.LONG, true
+                new FunctionIdent("agg", Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.LONG, FunctionInfo.Type.AGGREGATE
         ), Arrays.<Symbol>asList(Literal.newLiteral(-127)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL);
 
         assertFormat(a, "agg(integer)");
@@ -152,7 +152,7 @@ public class SymbolFormatterTest {
     @Test
     public void testProcess() throws Exception {
         Function f = new Function(new FunctionInfo(
-                new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.NULL)), DataTypes.DOUBLE, false),
+                new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.NULL)), DataTypes.DOUBLE),
                 Arrays.<Symbol>asList(Literal.newLiteral("bar"), Literal.newLiteral(3.4)));
         assertThat(SymbolFormatter.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo(string, null)"));
     }

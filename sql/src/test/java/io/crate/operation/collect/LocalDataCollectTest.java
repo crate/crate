@@ -124,10 +124,10 @@ public class LocalDataCollectTest {
 
     static class TestFunction implements Scalar<Integer, Object> {
         public static final FunctionIdent ident = new FunctionIdent("twoTimes", Arrays.<DataType>asList(DataTypes.INTEGER));
-        public static final FunctionInfo info = new FunctionInfo(ident, DataTypes.INTEGER, false);
+        public static final FunctionInfo info = new FunctionInfo(ident, DataTypes.INTEGER);
 
         @Override
-        public Integer evaluate(Input<Object>... args) {
+        public Integer evaluate(Input[] args) {
             if (args.length == 0) {
                 return 0;
             }
@@ -396,8 +396,7 @@ public class LocalDataCollectTest {
         Function unknownFunction = new Function(
                 new FunctionInfo(
                         new FunctionIdent("unknown", ImmutableList.<DataType>of()),
-                        DataTypes.BOOLEAN,
-                        false
+                        DataTypes.BOOLEAN
                 ),
                 ImmutableList.<Symbol>of()
         );

@@ -260,7 +260,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         if (existing != null) {
             return existing;
         } else {
-            if (info.isAggregate()){
+            if (info.type() == FunctionInfo.Type.AGGREGATE){
                 hasAggregates = true;
                 sysExpressionsAllowed = true;
             }
@@ -298,7 +298,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * Updates the row granularity of this query if it is higher than the current row granularity.
      *
      * @param granularity the row granularity as seen by a reference
-     * @return
      */
     protected RowGranularity updateRowGranularity(RowGranularity granularity) {
         if (rowGranularity == null || rowGranularity.ordinal() < granularity.ordinal()) {
@@ -484,7 +483,8 @@ public abstract class AbstractDataAnalysis extends Analysis {
             whereClause.normalize(normalizer);
             if (onlyScalarsAllowed && whereClause().hasQuery()){
                 for (Function function : functionSymbols.keySet()) {
-                    if (!function.info().isAggregate() && !(functions.get(function.info().ident()) instanceof Scalar)){
+                    if (function.info().type() != FunctionInfo.Type.AGGREGATE
+                            && !(functions.get(function.info().ident()) instanceof Scalar)){
                         throw new UnsupportedFeatureException(
                                 "function not supported on system tables: " +  function.info().ident());
                     }
@@ -538,8 +538,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     /**
      * Compute an id and adds it, also add routing value
-     *
-     * @param primaryKeyValues
      */
     public void addIdAndRouting(List<BytesRef> primaryKeyValues, String clusteredByValue) {
         addIdAndRouting(false, primaryKeyValues, clusteredByValue);

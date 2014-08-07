@@ -41,10 +41,8 @@ public class SumAggregation extends AggregationFunction<SumAggregation.SumAggSta
 
     public static void register(AggregationImplModule mod) {
         for (DataType t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            mod.register(
-                    new SumAggregation(
-                            new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataTypes.DOUBLE, true))
-            );
+            mod.register(new SumAggregation(new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)),
+                            DataTypes.DOUBLE, FunctionInfo.Type.AGGREGATE)));
         }
 
     }

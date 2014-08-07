@@ -45,8 +45,7 @@ public class AnyEqOperatorTest {
         AnyEqOperator anyEqOperator = new AnyEqOperator(
                 new FunctionInfo(
                         new FunctionIdent("any_=", Arrays.<DataType>asList(new ArrayType(DataTypes.INTEGER), DataTypes.INTEGER)),
-                        DataTypes.BOOLEAN,
-                        false)
+                        DataTypes.BOOLEAN)
         );
         return anyEqOperator.evaluate(new ObjectInput(value), new ObjectInput(arrayExpr));
 
@@ -56,8 +55,7 @@ public class AnyEqOperatorTest {
         AnyEqOperator anyEqOperator = new AnyEqOperator(
                 new FunctionInfo(
                         new FunctionIdent("any_=", Arrays.<DataType>asList(new ArrayType(DataTypes.INTEGER), DataTypes.INTEGER)),
-                        DataTypes.BOOLEAN,
-                        false)
+                        DataTypes.BOOLEAN)
         );
         Function function = new Function(
                 anyEqOperator.info(),

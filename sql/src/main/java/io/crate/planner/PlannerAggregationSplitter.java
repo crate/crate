@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.*;
 
 class PlannerAggregationSplitter extends SymbolVisitor<PlannerContext, Symbol> {
@@ -28,7 +29,7 @@ class PlannerAggregationSplitter extends SymbolVisitor<PlannerContext, Symbol> {
     @Override
     public Symbol visitFunction(Function function, PlannerContext context) {
         Symbol result = function;
-        if (function.info().isAggregate()) {
+        if (function.info().type() == FunctionInfo.Type.AGGREGATE) {
             result = new InputColumn(context.numGroupKeys + context.aggregations.size());
             Aggregation aggregation = new Aggregation(function.info(), function.arguments(),
                     Aggregation.Step.ITER, context.step());
