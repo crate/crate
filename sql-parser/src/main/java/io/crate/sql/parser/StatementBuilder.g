@@ -331,10 +331,9 @@ singleExpression returns [Expression value]
     ;
 
 expr returns [Expression value]
-    : NULL                  { $value = new NullLiteral(); }
+    : parameterOrSimpleLiteral { $value = $parameterOrSimpleLiteral.value; }
     | qname                 { $value = new QualifiedNameReference($qname.value); }
     | subscript             { $value = $subscript.value; }
-    | parameterExpr         { $value = $parameterExpr.value; }
     | functionCall          { $value = $functionCall.value; }
     | arithmeticExpression  { $value = $arithmeticExpression.value; }
     | comparisonExpression  { $value = $comparisonExpression.value; }
@@ -345,11 +344,6 @@ expr returns [Expression value]
     | ^(DATE string)        { $value = new DateLiteral($string.value); }
     | ^(TIME string)        { $value = new TimeLiteral($string.value); }
     | ^(TIMESTAMP string)   { $value = new TimestampLiteral($string.value); }
-    | string                { $value = new StringLiteral($string.value); }
-    | integer               { $value = new LongLiteral($integer.value); }
-    | decimal               { $value = new DoubleLiteral($decimal.value); }
-    | TRUE                  { $value = BooleanLiteral.TRUE_LITERAL; }
-    | FALSE                 { $value = BooleanLiteral.FALSE_LITERAL; }
     | intervalValue         { $value = $intervalValue.value; }
     | predicate             { $value = $predicate.value; }
     | ^(IN_LIST exprList)   { $value = new InListExpression($exprList.value); }
@@ -370,6 +364,16 @@ exprList returns [List<Expression> value = new ArrayList<>()]
 parameterExpr returns [ParameterExpression value]
     : '$' integer { $value = new ParameterExpression(Integer.parseInt($integer.value)); }
     | '?'         { $value = new ParameterExpression(parameterPos++); }
+    ;
+
+parameterOrSimpleLiteral returns [Expression value]
+    : NULL                  { $value = new NullLiteral(); }
+    | parameterExpr         { $value = $parameterExpr.value; }
+    | string                { $value = new StringLiteral($string.value); }
+    | integer               { $value = new LongLiteral($integer.value); }
+    | decimal               { $value = new DoubleLiteral($decimal.value); }
+    | TRUE                  { $value = BooleanLiteral.TRUE_LITERAL; }
+    | FALSE                 { $value = BooleanLiteral.FALSE_LITERAL; }
     ;
 
 subscript returns [SubscriptExpression value]
@@ -402,6 +406,11 @@ ident returns [String value]
 
 string returns [String value]
     : s=STRING { $value = $s.text; }
+    ;
+    
+numberLiteral returns [Literal value]
+    : integer               { $value = new LongLiteral($integer.value); }
+    | decimal               { $value = new DoubleLiteral($decimal.value); }
     ;
 
 integer returns [String value]
@@ -528,7 +537,18 @@ predicate returns [Expression value]
     | ^(IS_NOT_NULL expr)                 { $value = new IsNotNullPredicate($expr.value); }
     | ^(IN v=expr list=expr)              { $value = new InPredicate($v.value, $list.value); }
     | ^(EXISTS q=query)                   { $value = new ExistsPredicate($q.value); }
-    | ^(MATCH e=expr v=expr)            { $value = new MatchPredicate($e.value, $v.value); }
+    | ^(MATCH l=matchPredicateIdentList parameterOrSimpleLiteral ident? genericProperties?) { $value = new MatchPredicate(l.value, $parameterOrSimpleLiteral.value, $ident.value, $genericProperties.value); }
+    ;
+
+matchPredicateIdentList returns [List<MatchPredicateColumnIdent> value = new ArrayList<>()]
+    : ^(MATCH_PREDICATE_IDENT_LIST (matchPredicateIdent { $value.add($matchPredicateIdent.value); } )+ )
+    ;
+
+matchPredicateIdent returns [MatchPredicateColumnIdent value]
+    : ^(MATCH_PREDICATE_IDENT expr parameterOrSimpleLiteral?)
+        {
+            $value = new MatchPredicateColumnIdent($expr.value, $parameterOrSimpleLiteral.value);
+        }
     ;
 
 caseExpression returns [Expression value]
