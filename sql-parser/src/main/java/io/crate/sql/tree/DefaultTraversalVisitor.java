@@ -437,7 +437,10 @@ public abstract class DefaultTraversalVisitor<R, C>
     @Override
     public R visitMatchPredicate(MatchPredicate node, C context)
     {
-        process(node.reference(), context);
+        for (MatchPredicateColumnIdent columnIdent : node.idents()) {
+            process(columnIdent.columnIdent(), context);
+            process(columnIdent.boost(), context);
+        }
         process(node.value(), context);
 
         return null;

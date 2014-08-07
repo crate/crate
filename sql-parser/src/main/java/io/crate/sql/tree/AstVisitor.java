@@ -578,4 +578,9 @@ public abstract class AstVisitor<R, C>
         return visitExpression(node, context);
     }
 
+    public R visitMatchPredicateColumnIdent(MatchPredicateColumnIdent node, C context)
+    {
+        return visitExpression(node, context);
+    }
+
 }

@@ -34,12 +34,11 @@ import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
-import io.crate.operation.predicate.*;
+import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
-import io.crate.sql.tree.IsNullPredicate;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 
@@ -558,8 +557,9 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     }
 
     @Override
-    public Symbol visitMatchPredicate(io.crate.sql.tree.MatchPredicate node, T context) {
-        Symbol expressionSymbol = process(node.reference(), context);
+    public Symbol visitMatchPredicate(MatchPredicate node, T context) {
+        // TODO: process multiple idents and ident boost
+        Symbol expressionSymbol = process(node.idents().get(0).columnIdent(), context);
         if (! (expressionSymbol instanceof Reference)) {
             throw new UnsupportedOperationException("MATCH (reference, value): reference must be a reference");
         }

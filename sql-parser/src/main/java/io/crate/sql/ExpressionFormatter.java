@@ -368,7 +368,49 @@ public final class ExpressionFormatter
         @Override
         public String visitMatchPredicate(MatchPredicate node, Void context)
         {
-            return "MATCH (" + process(node.reference(), context) + ", " + process(node.value(), context) + ")";
+            StringBuilder builder = new StringBuilder();
+            builder.append("MATCH (");
+            if (node.idents().size() == 1) {
+                builder.append(process(node.idents().get(0).columnIdent(), context));
+            } else {
+                builder.append("(");
+                builder.append(Joiner.on(", ").join(transform(node.idents(), new Function<MatchPredicateColumnIdent, Object>() {
+                    @Override
+                    public Object apply(MatchPredicateColumnIdent input) {
+                        String column = process(input.columnIdent(), null);
+                        if (!(input.boost() instanceof NullLiteral)) {
+                            column = column + " " + input.boost().toString();
+                        }
+                        return column;
+                    }
+                })));
+                builder.append(")");
+            }
+            builder.append(", ").append(process(node.value(), context));
+            builder.append(")");
+            if (node.matchType() != null) {
+                builder.append(" USING ").append(node.matchType()).append(" ");
+                if (node.properties().properties().size() > 0) {
+                    builder.append(process(node.properties(), context));
+                }
+            }
+            return builder.toString();
+        }
+
+        @Override
+        public String visitGenericProperties(GenericProperties node, Void context) {
+            StringBuilder builder = new StringBuilder().append(" WITH (");
+            String properties = Joiner.on(", ").join(transform(node.properties().entrySet(), new Function<Map.Entry<String, Expression>, Object>()
+            {
+                @Override
+                public Object apply(Map.Entry<String, Expression> input)
+                {
+                    return input.getKey() + "=" + process(input.getValue(), null);
+                }
+            }));
+            builder.append(properties);
+            builder.append(")");
+            return builder.toString();
         }
 
         @Override

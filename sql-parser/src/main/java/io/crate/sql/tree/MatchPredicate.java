@@ -21,35 +21,51 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 public class MatchPredicate extends Expression {
 
-    private final Expression reference;
+    private final List<MatchPredicateColumnIdent> idents;
     private final Expression value;
+    private final GenericProperties properties;
+    private final String matchType;
 
-    public MatchPredicate(Expression reference, Expression value) {
-        Preconditions.checkNotNull(reference, "reference is null");
+    public MatchPredicate(List<MatchPredicateColumnIdent> idents, Expression value,
+                          @Nullable String matchType, @Nullable GenericProperties properties) {
+        Preconditions.checkArgument(idents.size() > 0, "at least one ident must be given");
         Preconditions.checkNotNull(value, "value is null");
+        Preconditions.checkArgument(value instanceof StringLiteral || value instanceof ParameterExpression, "value is not a string nor a parameter");
 
-
-        this.reference = reference;
+        this.idents = idents;
         this.value = value;
+        this.matchType = matchType;
+        this.properties = Objects.firstNonNull(properties, GenericProperties.EMPTY);
     }
 
-    public Expression reference() {
-        return reference;
+    public List<MatchPredicateColumnIdent> idents() {
+        return idents;
     }
 
-   public Expression value() {
+    public Expression value() {
         return value;
+    }
+
+    @Nullable
+    public String matchType() {
+        return matchType;
+    }
+
+    public GenericProperties properties() {
+        return properties;
     }
 
     @Override
     public int hashCode() {
-        int result = reference.hashCode();
-        result = 31 * result + value().hashCode();
-        return result;
+        return Objects.hashCode(idents, value, matchType, properties);
     }
 
     @Override
@@ -63,15 +79,18 @@ public class MatchPredicate extends Expression {
 
         MatchPredicate that = (MatchPredicate) o;
 
-        if (!reference.equals(that.reference)) {
+        if (!idents.equals(that.idents)) return false;
+        if (!value.equals(that.value)) return false;
+        if (matchType != null && that.matchType == null || matchType == null && that.matchType != null) {
+            return false;
+        } else if (matchType != null && !matchType.equals(that.matchType)) {
             return false;
         }
-        if (!value.equals(that.value)) {
-            return false;
-        }
+        if (!properties.equals(that.properties)) return false;
 
         return true;
     }
+
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
