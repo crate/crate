@@ -13,8 +13,9 @@ Synopsis
 ::
 
     CREATE TABLE table_name ( [
-    { column_name data_type [ column_constraint [ ... ] ] | table_constraint }
-    [, ... ] ] )
+        { column_name data_type [ column_constraint [ ... ] ] | table_constraint }
+        [, ... ] ]
+    )
     [ PARTITIONED BY (column_name [, ...] ) ]
     [ CLUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
     [ WITH ( table_parameter [= value] [, ... ] ) ]

@@ -29,7 +29,8 @@ A simple select::
 If the '*' operator is used, all properties defined in the schema are returned
 for each object::
 
-    cr> select date, description, kind, name, position, race from locations order by id limit 1 offset 1;
+    cr> select date, description, kind, name, position, race
+    ... from locations order by id limit 1 offset 1;
     +--------------+--------------...---+--------+-------------------+----------+------+
     | date         | description        | kind   | name              | position | race |
     +--------------+--------------...---+--------+-------------------+----------+------+
@@ -72,11 +73,11 @@ Where Clause
 A simple where clause example using an equality operator::
 
     cr> select description from locations where id = '1';
-    +-----------------------------------------...-------------------------------------------+
-    | description                                                                           |
-    +-----------------------------------------...-------------------------------------------+
-    | Relative to life on NowWhat, living on a...er by a factor of about seventeen million. |
-    +-----------------------------------------...-------------------------------------------+
+    +-----------------------------------------...--------------------------------------+
+    | description                                                                      |
+    +-----------------------------------------...--------------------------------------+
+    | Relative to life on NowWhat, living on a... a factor of about seventeen million. |
+    +-----------------------------------------...--------------------------------------+
     SELECT 1 row in set (... sec)
 
 Usual comparison operators to be used in filters are available for
@@ -201,7 +202,8 @@ example a more complicated like clause could look like this::
 In order so search for the wildcard characters themselves it is possible to
 escape them using a backslash::
 
-    cr> select description from locations where description like '%\%' order by description asc;
+    cr> select description from locations
+    ... where description like '%\%' order by description asc;
     +-------------------------+
     | description             |
     +-------------------------+
@@ -359,7 +361,8 @@ Select a property of an inner object::
 
 Query for a property of an inner object::
 
-    cr> select name, race['name'] from locations where race['name'] = 'Bartledannians';
+    cr> select name, race['name'] from locations
+    ... where race['name'] = 'Bartledannians';
     +-----------+----------------+
     | name      | race['name']   |
     +-----------+----------------+
@@ -372,7 +375,9 @@ Inserting objects::
 
     cr> insert into locations (id, name, position, kind, race)
     ... values ('DO', 'Dornbirn', 14, 'City', {name='Vorarlberger',
-    ... description='Very nice people with a strange accent', interests=['mountains', 'cheese', 'enzian']});
+    ...     description = 'Very nice people with a strange accent',
+    ...     interests = ['mountains', 'cheese', 'enzian']}
+    ... );
     INSERT OK, 1 row affected (... sec)
 
 .. _sql_dml_object_arrays:
@@ -402,7 +407,11 @@ Example::
 ::
 
     cr> insert into locations (id, name, position, kind, informations)
-    ... values ('B', 'Berlin', 15, 'City', [{evolution_level=6, population=3600001}, {evolution_level=42, population=1}]);
+    ... values (
+    ...   'B', 'Berlin', 15, 'City',
+    ...   [{evolution_level=6, population=3600001},
+    ...   {evolution_level=42, population=1}]
+    ... );
     INSERT OK, 1 row affected (... sec)
 
 ::
@@ -427,7 +436,8 @@ Example::
 Data Aggregation
 ----------------
 
-Crate supports aggregations by using the aggregation functions listed below on ``SELECT`` statements.
+Crate supports aggregations by using the aggregation functions listed
+below on ``SELECT`` statements.
 
 Aggregation works on all the rows that match a query or on
 all matching rows in every distinct *group* of a ``GROUP BY`` statement.
@@ -536,7 +546,8 @@ Some Examples::
 
 ::
 
-    cr> select count(*), kind from locations group by kind order by kind asc;
+    cr> select count(*), kind from locations
+    ... group by kind order by kind asc;
     +----------+-------------+
     | count(*) | kind        |
     +----------+-------------+
@@ -549,7 +560,8 @@ Some Examples::
 
 ::
 
-    cr> select max(position), kind from locations group by kind order by max(position) desc;
+    cr> select max(position), kind from locations
+    ... group by kind order by max(position) desc;
     +---------------+-------------+
     | max(position) | kind        |
     +---------------+-------------+
@@ -562,7 +574,8 @@ Some Examples::
 
 ::
 
-    cr> select min(name), kind from locations group by kind order by min(name) asc;
+    cr> select min(name), kind from locations
+    ... group by kind order by min(name) asc;
     +------------------------------------+-------------+
     | min(name)                          | kind        |
     +------------------------------------+-------------+
@@ -575,7 +588,8 @@ Some Examples::
 
 ::
 
-    cr> select count(*), min(name), kind from locations group by kind order by kind;
+    cr> select count(*), min(name), kind from locations
+    ... group by kind order by kind;
     +----------+------------------------------------+-------------+
     | count(*) | min(name)                          | kind        |
     +----------+------------------------------------+-------------+
@@ -588,7 +602,8 @@ Some Examples::
 
 ::
 
-    cr> select sum(position) as sum_positions, kind from locations group by kind order by sum_positions;
+    cr> select sum(position) as sum_positions, kind from locations
+    ... group by kind order by sum_positions;
     +---------------+-------------+
     | sum_positions | kind        |
     +---------------+-------------+
@@ -610,7 +625,8 @@ that contain duplicate values will be merged together.
 
 This is useful if used in conjunction with aggregation functions::
 
-    cr> select count(*), kind from locations group by kind order by count(*) desc, kind asc;
+    cr> select count(*), kind from locations
+    ... group by kind order by count(*) desc, kind asc;
     +----------+-------------+
     | count(*) | kind        |
     +----------+-------------+
@@ -661,7 +677,8 @@ A fulltext search is done using the ``match(columnName, queryTerm)`` helper func
 In order to get the match score of the fulltext search, an internal system column
 :ref:`_score <sql_ddl_system_column_score>` can be selected::
 
-    cr> select name, \"_score\" from locations where match(name_description_ft, 'time');
+    cr> select name, \"_score\"
+    ... from locations where match(name_description_ft, 'time');
     +-----------+------------+
     | name      | _score     |
     +-----------+------------+
@@ -674,7 +691,8 @@ The results of a ``match(...)`` query are sorted by :ref:`_score <sql_ddl_system
 in a descending order by default.
 Of course it is possible to change it to use an ascending order instead::
 
-    cr> select name, \"_score\" from locations where match(name_description_ft, 'time')
+    cr> select name, \"_score\"
+    ... from locations where match(name_description_ft, 'time')
     ... order by \"_score\" asc;
     +-----------+------------+
     | name      | _score     |
@@ -693,7 +711,9 @@ Negative search
 
 A negative fulltext search can be done using a ``NOT`` clause::
 
-    cr> select name, \"_score\" from locations where not match(name_description_ft, 'time');
+    cr> select name, \"_score\"
+    ... from locations
+    ... where not match(name_description_ft, 'time');
     +------------------------------------+--------+
     | name                               | _score |
     +------------------------------------+--------+
@@ -725,7 +745,8 @@ It is only possible to filter by greater-than or greater-equals operator on the
 
 Anyway let's do it here for demonstration purpose::
 
-    cr> select name, \"_score\" from locations where match(name_description_ft, 'time')
+    cr> select name, \"_score\"
+    ... from locations where match(name_description_ft, 'time')
     ... and \"_score\" > 0.9;
     +--------+------------+
     | name   | _score     |
@@ -757,15 +778,36 @@ Inserting data to ``Crate`` is done by using the SQL ``INSERT`` statement.
 Inserting a row::
 
     cr> insert into locations (id, date, description, kind, name, position)
-    ... values ('14', '2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7);
+    ... values (
+    ...   '14',
+    ...   '2013-09-12T21:43:59.000Z',
+    ...   'Blagulon Kappa is the planet to which the police are native.',
+    ...   'Planet',
+    ...   'Blagulon Kappa',
+    ...   7
+    ... );
     INSERT OK, 1 row affected (... sec)
 
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
 
     cr> insert into locations (id, date, description, kind, name, position) values
-    ... ('16', '2013-09-14T21:43:59.000Z', 'Blagulon Kappa II is the planet to which the police are native.', 'Planet', 'Blagulon Kappa II', 19),
-    ... ('17', '2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10);
+    ... (
+    ...   '16',
+    ...   '2013-09-14T21:43:59.000Z',
+    ...   'Blagulon Kappa II is the planet to which the police are native.',
+    ...   'Planet',
+    ...   'Blagulon Kappa II',
+    ...   19
+    ... ),
+    ... (
+    ...   '17',
+    ...   '2013-09-13T16:43:59.000Z',
+    ...   'Brontitall is a planet with a warm, rich atmosphere and no mountains.',
+    ...   'Planet',
+    ...   'Brontitall',
+    ...   10
+    ... );
     INSERT OK, 2 rows affected (... sec)
 
 Inserting data by query
@@ -792,15 +834,17 @@ Example of changing a field's data type, in this case, changing the
     ...     kind string,
     ...     position short,
     ...     description string
-    ... ) clustered by (id) into 2 shards with (number_of_replicas=0);
+    ... ) clustered by (id) into 2 shards with (number_of_replicas = 0);
     CREATE OK (... sec)
+
+::
 
     cr> insert into locations2 (id, name, date, kind, postition, description)
     ... (
     ...     select id, name, date, kind, position, description
     ...     from locations
     ...     where position < 10
-    ... )
+    ... );
     INSERT OK, 14 rows affected (... sec)
 
 .. Hidden: drop previously created table
@@ -819,7 +863,7 @@ table with data partitioned by year::
     ...     kind string,
     ...     position integer
     ... ) clustered by (id) into 2 shards
-    ... partitioned by (year) with (number_of_replicas=0);
+    ... partitioned by (year) with (number_of_replicas = 0);
     CREATE OK (... sec)
 
 ::
@@ -834,12 +878,13 @@ table with data partitioned by year::
     ...         kind,
     ...         position
     ...     from locations
-    ... )
+    ... );
     INSERT OK, 18 rows affected (... sec)
 
 Resulting partitions of the last insert by query::
 
-    cr> select * from information_schema.table_partitions where table_name = 'locations_parted';
+    cr> select * from information_schema.table_partitions
+    ... where table_name = 'locations_parted';
     +------------------+-------------+-----------------+------------------+
     | table_name       | schema_name | partition_ident | values           |
     +------------------+-------------+-----------------+------------------+
@@ -851,7 +896,7 @@ Resulting partitions of the last insert by query::
 
 .. Hidden: drop previously created table
 
-   cr> drop table locations_parted
+   cr> drop table locations_parted;
     DROP OK (... sec)
 
 .. note::
@@ -866,7 +911,8 @@ Updating data
 In order to update documents in `Crate` the SQL `UPDATE` statement can be
 used::
 
-    cr> update locations set description = 'Updated description' where name = 'Bartledan';
+    cr> update locations set description = 'Updated description'
+    ... where name = 'Bartledan';
     UPDATE OK, 1 row affected (... sec)
 
 Updating nested objects is also supported::
@@ -924,7 +970,7 @@ Currently the only supported data format is JSON, one line is representing one e
 Example JSON data::
 
     {"id": 1, "quote": "Don't panic"}
-    {"id": 2, "quote": "Would it save you a lot of time if I just gave up and went mad now?"}
+    {"id": 2, "quote": "Ford, you're turning into a penguin. Stop it."}
 
 .. note::
 
@@ -951,7 +997,7 @@ An example import from a file URI::
 If all files inside a directory should be imported a ``*`` wildcard has to be
 used::
 
-    cr> copy quotes from '/tmp/import_data/*' with (concurrency=1, bulk_size=4);
+    cr> copy quotes from '/tmp/import_data/*' with (concurrency = 1, bulk_size = 4);
     COPY OK, 3 rows affected (... sec)
 
 This wildcard can also be used to only match certain files::

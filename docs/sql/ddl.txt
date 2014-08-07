@@ -129,12 +129,14 @@ sorting, filtering, and aggregation.
 
 ::
 
-    cr> insert into my_table_ips (fqdn, ip_addr) values ('localhost', '127.0.0.1');
+    cr> insert into my_table_ips (fqdn, ip_addr)
+    ... values ('localhost', '127.0.0.1');
     INSERT OK, 1 row affected (... sec)
 
 ::
 
-    cr> insert into my_table_ips (fqdn, ip_addr) values ('localhost', 'not.a.real.ip');
+    cr> insert into my_table_ips (fqdn, ip_addr)
+    ... values ('localhost', 'not.a.real.ip');
     SQLActionException[failed to parse [ip_addr]]
 
 timestamp
@@ -157,12 +159,14 @@ fractions. Example::
 
 ::
 
-    cr> insert into my_table4 (id, first_column) values (0, '1970-01-01T00:00:00');
+    cr> insert into my_table4 (id, first_column)
+    ... values (0, '1970-01-01T00:00:00');
     INSERT OK, 1 row affected (... sec)
 
 ::
 
-    cr> insert into my_table4 (id, first_column) values (1, '1970-01-01T00:00:00+0100');
+    cr> insert into my_table4 (id, first_column)
+    ... values (1, '1970-01-01T00:00:00+0100');
     INSERT OK, 1 row affected (... sec)
 
 ::
@@ -209,7 +213,7 @@ Create table example::
     cr> create table my_table_geopoint (
     ...   id integer primary key,
     ...   pin geo_point
-    ... ) with (number_of_replicas=0)
+    ... ) with (number_of_replicas = 0)
     CREATE OK (... sec)
 
 object
@@ -483,7 +487,7 @@ Example::
     cr> create table my_table10 (
     ...   first_column int,
     ...   second_column string
-    ... ) with (number_of_replicas=1);
+    ... ) with (number_of_replicas = 1);
     CREATE OK (... sec)
 
 
@@ -631,7 +635,7 @@ Defining the usage of a concrete analyzer is straight forward by
 defining the analyzer as a parameter using the ``WITH`` statement::
 
     cr> create table my_table1d (
-    ...   first_column string INDEX using fulltext with(analyzer='english')
+    ...   first_column string INDEX using fulltext with (analyzer = 'english')
     ... );
     CREATE OK (... sec)
 
@@ -645,7 +649,7 @@ search for both, the exact and analyzed data::
 
     cr> create table my_table1e (
     ...   first_column string,
-    ...   INDEX first_column_ft using fulltext(first_column)
+    ...   INDEX first_column_ft using fulltext (first_column)
     ... );
     CREATE OK (... sec)
 
@@ -653,7 +657,8 @@ Of course defining a custom analyzer is possible here too::
 
     cr> create table my_table1f (
     ...   first_column string,
-    ...   INDEX first_column_ft using fulltext(first_column) with(analyzer='english')
+    ...   INDEX first_column_ft
+    ...     using fulltext(first_column) with (analyzer = 'english')
     ... );
     CREATE OK (... sec)
 
@@ -668,7 +673,8 @@ method::
     cr> create table documents (
     ...   title string,
     ...   body string,
-    ...   INDEX title_body_ft using fulltext(title, body) with(analyzer='english')
+    ...   INDEX title_body_ft
+    ...     using fulltext(title, body) with (analyzer = 'english')
     ... );
     CREATE OK (... sec)
 
@@ -718,7 +724,7 @@ Here is a simple Example::
     ...     lowercase,
     ...     kstem
     ...   ),
-    ...  CHAR_FILTERS (
+    ...   CHAR_FILTERS (
     ...     html_strip,
     ...     mymapping WITH (
     ...       type='mapping',
@@ -748,7 +754,7 @@ Existing Analyzers can be used to create custom Analyzers by means of extending 
 You can extend and parameterize :ref:`builtin-analyzer` like this::
 
     cr> create ANALYZER "german_snowball" extends snowball WITH (
-    ...   language='german'
+    ...   language = 'german'
     ... );
     CREATE OK (... sec)
 
@@ -761,8 +767,8 @@ ommitted will be taken from the extended one.  Example::
 
     cr> create ANALYZER e2 EXTENDS myanalyzer (
     ...     TOKENIZER mypattern WITH (
-    ...       type='pattern',
-    ...       pattern='.*'
+    ...       type = 'pattern',
+    ...       pattern = '.*'
     ...     )
     ... );
     CREATE OK (... sec)
@@ -832,7 +838,8 @@ If only a single partition should be altered, the partition clause can be used.
 
 .. Hidden: creating a partition to alter.
 
-    cr> insert into partitioned_table (id, title, date) values (1, 'The Hitchhikers Guide', '1970-01-01');
+    cr> insert into partitioned_table (id, title, date)
+    ... values (1, 'The Hitchhikers Guide', '1970-01-01');
     INSERT OK, 1 row affected (... sec)
 
     cr> refresh table partitioned_table;
@@ -893,7 +900,7 @@ The crate cluster can be configured at runtime using the ``SET`` and ``RESET`` s
 If used with ``PERSISTENT`` the change will survive a cluster restart, if used with
 ``TRANSIENT`` the value will be restored to default or config file value on a restart::
 
-    cr> SET GLOBAL PERSISTENT collect_stats=false;
+    cr> SET GLOBAL PERSISTENT collect_stats = false;
     SET OK (... sec)
 
 ::
@@ -908,7 +915,8 @@ If used with ``PERSISTENT`` the change will survive a cluster restart, if used w
 
 You can change multiple values at once::
 
-    cr> SET GLOBAL TRANSIENT collect_stats=true, jobs_log_size=1024, operations_log_size=4096;
+    cr> SET GLOBAL TRANSIENT collect_stats = true,
+    ... jobs_log_size = 1024, operations_log_size = 4096;
     SET OK (... sec)
 
 ::

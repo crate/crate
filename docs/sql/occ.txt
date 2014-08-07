@@ -12,10 +12,12 @@ Every new row has an initial version of ``1``. This value is increased by ``1`` 
 
 .. Hidden: update some documents to raise their ``_version`` to 3. formerly done in other tests.::
 
-    cr> update locations set date=0 where name < 'Altair' and kind = 'Star System';
+    cr> update locations set date = 0
+    ... where name < 'Altair' and kind = 'Star System';
     UPDATE OK, 3 rows affected (... sec)
 
-    cr> update locations set date=2 where name < 'Altair' and kind = 'Star System';
+    cr> update locations set date = 2
+    ... where name < 'Altair' and kind = 'Star System';
     UPDATE OK, 3 rows affected (... sec)
 
     cr> refresh table locations;
@@ -23,7 +25,8 @@ Every new row has an initial version of ``1``. This value is increased by ``1`` 
 
 It's possible to fetch the ``_version`` by selecting it::
 
-    cr> select name, id, "_version" from locations where kind = 'Star System' order by name asc;
+    cr> select name, id, "_version" from locations
+    ... where kind = 'Star System' order by name asc;
     +----------------+----+----------+
     | name           | id | _version |
     +----------------+----+----------+
@@ -45,15 +48,18 @@ These ``_version`` values can now be used on updates and deletes.
 Optimistic Update
 =================
 
-Querying for the correct ``_version`` ensures that no concurrent update has taken place::
+Querying for the correct ``_version`` ensures that no concurrent update has
+taken place::
 
-    cr> update locations set description = 'Updated description' where name = 'Algol' and "_version" = 3;
+    cr> update locations set description = 'Updated description'
+    ... where name = 'Algol' and "_version" = 3;
     UPDATE OK, 1 row affected (... sec)
 
-Updating a row with a wrong or outdated version number will not execute the update and results in 0
-affected rows::
+Updating a row with a wrong or outdated version number will not execute the
+update and results in 0 affected rows::
 
-    cr> update locations set description = 'Updated description' where name = 'Algol' and "_version" = 2;
+    cr> update locations set description = 'Updated description'
+    ... where name = 'Algol' and "_version" = 2;
     UPDATE OK, 0 rows affected (... sec)
 
 Optimistic Delete
@@ -68,9 +74,11 @@ Of course the same can be done when deleting a row::
 Known Limitations
 -----------------
 
- - On deletes, this can only be done when using a primary key query (all primary keys have to be
-   included inside the ``WHERE`` clause). For example, the query below is not possible with our
-   used testing data because ``name`` is not declared as a primary key and results in an error::
+ - On deletes, this can only be done when using a primary key query (all
+   primary keys have to be included inside the ``WHERE`` clause). For
+   example, the query below is not possible with our used testing data
+   because ``name`` is not declared as a primary key and results in an
+   error::
 
     cr> delete from locations where name = 'Aldebaran' and "_version" = 3;
     SQLActionException["_version" column is only valid in the WHERE clause if the primary key column is also present]
@@ -78,8 +86,9 @@ Known Limitations
 
 .. note::
 
-  Both, ``DELETE`` and ``UPDATE``, commands will return a row count of 0 if the given required
-  version does not match the actual version of the relevant row.
+  Both, ``DELETE`` and ``UPDATE``, commands will return a row count of 0 if
+  the given required version does not match the actual version of the relevant
+  row.
 
 
 .. _Optimistic Concurrency Control: http://en.wikipedia.org/wiki/Optimistic_concurrency_control

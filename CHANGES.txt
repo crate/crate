@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - improved readability of documentation
+
  - improved formatting of field lists in docs
    by adding docutils configuration to docs build process
 
