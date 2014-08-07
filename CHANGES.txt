@@ -8,7 +8,7 @@ Unreleased
  - blobs can now be stored on different paths than normal tables,
    custom path can be set global and per blob table
 
- - fix: synopsis of COPY TO used a misleading syntax
+ - improved COPY TO documentation.
 
 2014/08/01 0.41.1
 =================

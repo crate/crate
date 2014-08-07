@@ -953,24 +953,22 @@ This wildcard can also be used to only match certain files::
 
 See :ref:`copy_from` for more information.
 
+.. _exporting_data:
+
 Exporting Data
 ==============
 
-Data can be exported using the ``COPY TO`` statement. Data gets
-exported distributed on each node holding data of the table to be
-exported.
+Data can be exported using the ``COPY TO`` statement. Data is exported in a
+distributed way, meaning each node will export its own data.
 
 Replicated data is not exported. So every row of an exported table is
 stored only once.
 
-Every node exports the rows of a table that are currently stored on it.
-
 .. note::
 
- Data is written per shard, so if there is more than one shard of the
- exported table on the same node, the output file will get
- corrupted due to concurrent writes to the same file. The example
- below shows a way to prevent such cases.
+ Data is written per shard. To prevent corrupted exports when more than one
+ shard is allocated on a node, or data is exported to a shared storage system,
+ use the ``DIRECTORY`` keyword (see :ref:`copy_to`).
 
 This example shows how to export a given table into files named after
 the table and shard id with gzip compression::
