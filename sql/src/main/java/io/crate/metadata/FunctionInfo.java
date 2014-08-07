@@ -31,29 +31,36 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 
+
 public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
 
     private FunctionIdent ident;
     private DataType returnType;
-    private boolean isAggregate;
+    private Type type;
     private boolean deterministic;
+
+    public enum Type {
+        SCALAR,
+        AGGREGATE,
+        PREDICATE
+    }
 
     public FunctionInfo() {
 
     }
 
     public FunctionInfo(FunctionIdent ident, DataType returnType) {
-        this(ident, returnType, false);
+        this(ident, returnType, Type.SCALAR);
     }
 
-    public FunctionInfo(FunctionIdent ident, DataType returnType, boolean isAggregate) {
-        this(ident, returnType, isAggregate, true);
+    public FunctionInfo(FunctionIdent ident, DataType returnType, Type type) {
+        this(ident, returnType, type, true);
     }
 
-    public FunctionInfo(FunctionIdent ident, DataType returnType, boolean isAggregate, boolean deterministic) {
+    public FunctionInfo(FunctionIdent ident, DataType returnType, Type type, boolean deterministic) {
         this.ident = ident;
         this.returnType = returnType;
-        this.isAggregate = isAggregate;
+        this.type = type;
         this.deterministic = deterministic;
     }
 
@@ -61,8 +68,8 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
         return ident;
     }
 
-    public boolean isAggregate() {
-        return isAggregate;
+    public Type type() {
+        return type;
     }
 
 
@@ -89,20 +96,20 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
 
         FunctionInfo o = (FunctionInfo) obj;
         return deterministic &&
-                Objects.equal(isAggregate, o.isAggregate) &&
+                Objects.equal(type, o.type) &&
                 Objects.equal(ident, o.ident) &&
                 Objects.equal(returnType, o.returnType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(isAggregate, ident, returnType, (deterministic ? true : Math.random()));
+        return Objects.hashCode(type, ident, returnType, (deterministic ? true : Math.random()));
     }
 
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-                .add("isAggregate", isAggregate)
+                .add("type", type)
                 .add("ident", ident)
                 .add("returnType", returnType)
                 .toString();
@@ -111,7 +118,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
     @Override
     public int compareTo(FunctionInfo o) {
         return ComparisonChain.start()
-                .compareTrueFirst(isAggregate, o.isAggregate)
+                .compare(type, o.type)
                 .compare(ident, o.ident)
                 .compare(returnType, o.returnType)
                 .result();
@@ -123,7 +130,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
         ident.readFrom(in);
 
         returnType = DataTypes.fromStream(in);
-        isAggregate = in.readBoolean();
+        type = Type.values()[in.readVInt()];
         deterministic = in.readBoolean();
     }
 
@@ -131,7 +138,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
     public void writeTo(StreamOutput out) throws IOException {
         ident.writeTo(out);
         DataTypes.toStream(returnType, out);
-        out.writeBoolean(isAggregate);
+        out.writeVInt(type.ordinal());
         out.writeBoolean(deterministic);
     }
 }

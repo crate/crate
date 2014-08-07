@@ -45,7 +45,7 @@ public abstract class MinimumAggregation extends AggregationFunction<MinimumAggr
             mod.register(
                     new MinimumAggregation(
                             new FunctionInfo(new FunctionIdent(NAME,
-                                    ImmutableList.of(dataType)), dataType, true)
+                                    ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE)
                     ) {
                         @Override
                         public MinimumAggState newState() {

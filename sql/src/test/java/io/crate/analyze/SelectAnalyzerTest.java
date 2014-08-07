@@ -251,7 +251,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertFalse(analysis.hasGroupBy());
         assertEquals(1, analysis.outputSymbols().size());
         Function col1 = (Function) analysis.outputSymbols().get(0);
-        assertTrue(col1.info().isAggregate());
+        assertEquals(FunctionInfo.Type.AGGREGATE, col1.info().type());
         assertEquals(AverageAggregation.NAME, col1.info().ident().name());
     }
 
@@ -284,7 +284,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(OrOperator.NAME, whereClause.info().ident().name());
-        assertFalse(whereClause.info().isAggregate());
+        assertFalse(whereClause.info().type() == FunctionInfo.Type.AGGREGATE);
 
         Function left = (Function) whereClause.arguments().get(0);
         assertEquals(EqOperator.NAME, left.info().ident().name());
@@ -313,7 +313,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         });
         Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(OrOperator.NAME, whereClause.info().ident().name());
-        assertFalse(whereClause.info().isAggregate());
+        assertFalse(whereClause.info().type() == FunctionInfo.Type.AGGREGATE);
 
         Function function = (Function) whereClause.arguments().get(0);
         assertEquals(OrOperator.NAME, function.info().ident().name());
@@ -684,7 +684,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> args = collectionCount.arguments();
         assertEquals(1, args.size());
         Function innerFunction = (Function) args.get(0);
-        assertTrue(innerFunction.info().isAggregate());
+        assertTrue(innerFunction.info().type() == FunctionInfo.Type.AGGREGATE);
         assertEquals(innerFunction.info().ident().name(), CollectSetAggregation.NAME);
         List<Symbol> innerArguments = innerFunction.arguments();
         assertThat(innerArguments.get(0), IsInstanceOf.instanceOf(Reference.class));
@@ -1293,7 +1293,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
         assertThat(((Reference)query.arguments().get(0)).info().ident().columnIdent().fqn(), is("tags"));
         assertThat(query.arguments().get(1), instanceOf(Literal.class));
-        assertThat(((Literal<?>)query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
+        assertThat(((Literal<?>) query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
     }
 
     @Test(expected = IllegalArgumentException.class)

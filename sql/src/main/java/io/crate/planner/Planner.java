@@ -676,7 +676,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
 
         Function function = (Function)symbol;
-        return (function.info().isAggregate()
+        return (function.info().type() == FunctionInfo.Type.AGGREGATE
                 && function.arguments().size() == 0
                 && function.info().ident().name().equalsIgnoreCase(CountAggregation.NAME));
     }

@@ -46,7 +46,7 @@ public abstract class MaximumAggregation extends AggregationFunction<MaximumAggr
                     new MaximumAggregation(
                             new FunctionInfo(new FunctionIdent(NAME,
                                     ImmutableList.of(dataType)),
-                                    dataType, true
+                                    dataType, FunctionInfo.Type.AGGREGATE
                             )
                     ) {
                         @Override
