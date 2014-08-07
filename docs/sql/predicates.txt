@@ -133,35 +133,31 @@ Examples
 Match
 =====
 
-Perform a fulltext search.
+Perform a fulltext search on one or multiple columns.
 
 Synopsis
 --------
 
 ::
 
-    MATCH ( column_reference, search_string )
+    MATCH (
+         {  column_ident | ( column_ident [boost]  [, ...] ) }
+     , query_term
+    )  [ using match_type [ with ( match_parameter [= value] [, ... ] ) ] ]
 
 Description
 -----------
 
-The MATCH predicate performs a fulltext search on the column referenced by ``column_reference``.
+The MATCH predicate performs a fulltext search on one or multiple columns
+and supports different matching techniques.
 
 In order to use fulltext searches on a column, a :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>`
 must be created on the related column. See :ref:`fulltext-indices` for details.
 
-The MATCH predicate takes the ``search_string`` and analyzes it
-with the same analyzer configured on ``column_reference``.
-The resulting tokens are matched against the already indexed tokens at ``column_reference``.
-If any of the ``search_string`` tokens is contained in the ``column_reference`` tokens, this
-predicate returns ``TRUE``.
-
-Without explicit ordering using ``ORDER BY`` the results are sorted by relevance.
-
-To get the relevance of a fulltext match, an internal system column
+To get the relevance of a matching row, an internal system column
 :ref:`_score <sql_ddl_system_column_score>` can be selected.
-It is no absolute value, only relative to the other rows.
-The higher the score value, the more relevant is the row::
+It is a numeric value which is not absolute but relative to the other rows.
+The higher the score value, the more relevant the row::
 
     cr> select name, _score from locations where match(name_description_ft, 'time');
     +-----------+------------+
@@ -172,33 +168,154 @@ The higher the score value, the more relevant is the row::
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
+The MATCH predicate in its simplest form performs a fulltext search against a single column.
+It takes the ``query_term`` and analyzes it with the same analyzer configured on ``column_ident``
+if no ``analyzer`` is given in the match parameters.
+The resulting tokens are matched against the already indexed tokens at ``column_ident``.
+If any of the ``query_term`` tokens is contained in the ``column_ident`` tokens,
+MATCH returns ``TRUE``.
 
-For more information, please refer to :ref:`sql_dml_fulltext_search`.
+The MATCH predicate can be also used to perform a fulltext search on multiple
+columns with a single ``query_term``. Using this variant, it is possible to manipulate the relevance of a
+column by referencing it using its ``column_ident`` and the ``boost`` argument.
+Matches on columns with a higher boost result in a higher :ref:`_score <sql_ddl_system_column_score>` value
+for that document.
 
-Parameters
-----------
+How the single ``query_term`` is applied to the variable number of columns
+and how the resulting :ref:`_score <sql_ddl_system_column_score>` is computed
+is determined by the ``match_type`` argument. See :ref:`predicates_match_types`.
 
-:column_reference: The name of an index column or an existing column that is of type ``string`` and is indexed.
- By default every column is indexed but only the raw data is stored.
- So matching against a ``string`` column without a fulltext index is equivalent to using the ``=`` operator.
- To perform real fulltext searches using a :ref:`sql_ddl_index_fulltext` is mandatory.
+Without explicit ordering using ``ORDER BY`` the results are sorted by relevance.
 
-:search_string: This string is analyzed the same way as the indexed
- values and the resulting tokens are compared to the already indexed tokens.
- The tokens used for search are combined using the ``OR`` operator, so only
- one of the resulting tokens has to match to include a row.
+Arguments
+.........
+
+:column_ident: A reference to an index column or an existing column that is of type ``string`` and is indexed.
+               By default every column is indexed but only the raw data is stored.
+               So matching against a ``string`` column without a fulltext index is equivalent to using the ``=`` operator.
+               To perform real fulltext searches using a :ref:`sql_ddl_index_fulltext` is mandatory.
+
+:boost: a column ident can have a boost attached. That is a factor that increases
+        the relevance of a column in respect to the other columns. The default boost
+        is 1.
+
+:query_term: This string is analyzed (using the explicitly given ``analyzer``
+             or the analyzer of the columns to perform the search on)
+             and the resulting tokens are compared to the already indexed ones.
+             The tokens used for search are combined using the ``OR`` operator
+             if not stated otherwise using the ``operator`` option, so only
+             one of the resulting tokens has to match to include a row.
+
+:match_type: Optional. Defaults to ``best_fields``. For details see :ref:`predicates_match_types`.
+
+
+.. _predicates_match_types:
+
+Match Types
+...........
+
+The match type determines how the ``query_term`` is applied and the :ref:`_score <sql_ddl_system_column_score>`
+is created, thus it influences which documents are considered more relevant.
+The default ``match_type`` is ``best_fields``.
+
+:best_fields: Use the :ref:`_score <sql_ddl_system_column_score>` of the column that matched best.
+              For example if a column contains all the tokens of the ``query_term``
+              it is considered more relevant than another column only containing one of them.
+
+              This type is the default, if omitted.
+
+:most_fields: This match type takes the :ref:`_score <sql_ddl_system_column_score>` of every matching column
+              and combines their scores to one by calculating a simple mean.
+
+:cross_fields: This match type analyzes the ``query_term`` into tokens and searches all the tokens
+               of all given columns at once as if they were one big column (given they have the same analyzer).
+               All tokens have to be present in at least one column.
+               So querying for ``foo bar`` should have the tokens ``foo`` in one column and ``bar`` in the same or any other.
+
+:phrase: This match type differs from ``best_fields`` in that it constructs a phrase query from the ``query_term``.
+         A phrase query will only match if the tokens in the columns are in the same order than the
+         analyzed columns from the ``query_term``.
+         So, querying for ``foo bar`` (analyzed tokens: ``foo`` and ``bar``) will only match
+         if one of the columns contains those two token in order.
+
+:phrase_prefix: This match type is roughly the same than ``phrase`` but it allows to match by prefix
+                on the last token of the ``query_term``. For example if your query for ``foo ba``,
+                one of the columns has to contain ``foo`` and a token that starts with ``ba`` in that order.
+                So a column containing ``foo baz`` would match and ``foo bar`` too.
+
+
+Options
+~~~~~~~
+
+The match options further distinguish the way the matching process using a certain match type works.
+Not all options are applicable to all match types. See the options below for details.
+
+:tie_breaker: When using ``best_fields``, ``phrase`` or ``phrase_prefix``
+              the :ref:`_score <sql_ddl_system_column_score>` of every other column
+              will be multiplied with this value and added to the
+              :ref:`_score <sql_ddl_system_column_score>` of the best matching column.
+              Defaults to ``0.0``. Not applicable to match type ``most_fields``
+              as this type is executed as if it had a ``tie_breaker`` of ``1.0``.
+
+:analyzer: The analyzer used to convert the ``query_term`` into tokens.
+
+:operator: Can be ``or`` or ``and``. The default is ``or``. It is used to combine the tokens of the ``query_term``.
+           If ``and`` is used, every token from the ``query_term`` has to match. If ``or`` is used only the number of
+           ``minimum_should_match`` have to match.
+
+:minimum_should_match: The number of tokens from the ``query_term`` to match when ``or`` is used.
+                       Defaults to ``1``.
+
+:fuzziness: can be used to perform fuzzy full text search.
+            On numeric columns use a numeric, on timestamp columns a long indicating milliseconds,
+            on strings use a number indicating the maximum allowed Levenshtein Edit Distance.
+            Use ``prefix_length``, ``fuzzy_rewrite`` and ``max_expansions`` to fine tune the fuzzy matching process.
+
+:max_expansions: When using ``fuzziness`` or ``phrase_prefix`` this options controls
+                 to how many different possible tokens a search token will be expanded.
+                 The ``fuzziness`` controls how big the distance or difference
+                 between the original token and the set of tokens it is expanded to can be.
+                 This option controls how big this set can get.
+
+:prefix_length: When used with ``fuzziness`` option or with ``phrase_prefix``
+                this options controls how long the common prefix of the tokens
+                that are considered as similar (same prefix or fuzziness distance/difference)has to be.
+
+:rewrite: When using ``phrase_prefix`` the prefix query is constructed
+          using all possible terms and rewriting them into another kind of query to compute the score.
+          Possible values are ``constant_score_auto``, ``constant_score_boolean``, ``constant_score_filter``,
+          ``scoring_boolean``,``top_terms_N``, ``top_terms_boost_N``. The ``constant_...`` values
+          can be used together with the ``boost`` option to set a constant :ref:`_score <sql_ddl_system_column_score>`
+          for rows with a matching prefix or fuzzy match.
+
+:fuzzy_rewrite: The same than ``rewrite`` but only applies to queries using ``fuzziness``.
+
+:zero_terms_query: If no tokens are generated analyzing the ``query_term`` then no documents are matched.
+                   If ``all`` is given here, all documents are matched.
+
+:cutoff_frequency: The token frequency is the number of occurences of a token in a column.
+                   This option specifies a minimum token frequency that excludes
+                   matching tokens with a higher frequency from the overall :ref:`_score <sql_ddl_system_column_score>`.
+                   Their :ref:`_score <sql_ddl_system_column_score>` is only included
+                   if another token with a lower frequency also matches.
+                   This can be used to suppress results where only high frequency terms like ``the`` would cause a match.
 
 Examples
---------
+........
+
+.. Todo:
+
+   fill in results
 
 ::
 
-    cr> select name from locations where match(name_description_ft, 'time quordlepleen');
-    +-----------+
-    | name      |
-    +-----------+
-    | Aldebaran |
-    | Altair    |
-    | Bartledan |
-    +-----------+
-    SELECT 3 rows in set (... sec)
+    cr> select name
+    ... from locations
+    ... where match((description, race['name'] 1.5, race['description']), 'human earth');
+
+::
+
+    cr> select name, _score
+    ... from locations
+    ... where match((name 1.5, description 1.2), 'planet sun')
+    ... using most_fields with (tie_breaker=0.3, analyzer='english', fuzziness=2);

@@ -657,8 +657,8 @@ A fulltext search is done using the :ref:`predicates_match` predicate::
     SELECT 2 rows in set (... sec)
 
 It returns ``TRUE`` for rows which match the search string. To get more detailed
-information about the quality of a match, the :ref:`_score <sql_ddl_system_column_score>`
-can be selected::
+information about the quality of a match, the relevance of the row,
+the :ref:`_score <sql_ddl_system_column_score>` can be selected::
 
     cr> select name, \"_score\" from locations where match(name_description_ft, 'time');
     +-----------+------------+
@@ -686,6 +686,36 @@ in a descending order by default. Of course it is possible to change it to use a
 
     The `_score` is a relative and not an absolute value. It just sets a row
     in relation to the other ones.
+
+
+Searching on multiple columns
+.............................
+
+There are two possibilities if a search should span the contents of multiple columns:
+
+* use a composite index column on your table. See :ref:`sql-ddl-composite-index`.
+
+* use the :ref:`predicates_match` predicate on multiple columns.
+
+When querying multiple columns, there are many ways how the resulting match relevance a.k.a.
+:ref:`_score <sql_ddl_system_column_score>` can be computed, that means which documents match and
+in which order. These different techniques are called :ref:`predicates_match_types`.
+
+To increase the relevance of rows where one columns matches extremely well, use ``best_fields``(the default).
+If rows with good matches spread over all searched columns should be more relevant,
+use ``most_fields``. If searching multiple columns as if they were one, use the ``cross_fields`` type.
+For searching of matching phrases (tokens are in the same order)
+use ``phrase`` or ``phrase_prefix``::
+
+    cr> select name, _score from locations
+    ... where match((name, description), 'end of the galaxy');
+
+    cr> select name, _score from locations
+    ... where match((name, description 1.5), 'end of the galaxy') using phrase with (analyzer='english');
+
+
+A vast amount of options exist to fine-tune your fulltext search.
+A detailed reference can be found here :ref:`predicates_match`.
 
 
 Negative search
