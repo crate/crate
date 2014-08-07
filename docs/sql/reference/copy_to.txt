@@ -5,7 +5,7 @@
 COPY TO
 =======
 
-Export Table Contents to files on crate node machines.
+Export table contents to files on crate node machines.
 
 Synopsis
 ========
@@ -34,6 +34,17 @@ line.
 If the ``DIRECTORY`` keyword is given, the uri is treated as a directory path.
 This will generate one or more files in the given directory, named in such a
 way to prevent filename conflicts.
+
+.. note::
+
+ Data is written per shard, so if there is more than one shard of the
+ exported table on the same node, the output file will get
+ corrupted due to concurrent writes to the same file. The same behaviour
+ holds true when Crate Data exports data to shared storage systems such
+ as `Amazon S3`_ or `NFS`_.
+
+ To prevent such cases use the ``DIRECTORY`` keyword. An example is given
+ in :ref:`exporting_data`.
 
 Parameters
 ==========
@@ -124,3 +135,7 @@ Possible values for the ``compression`` setting are:
 :gzip: The exported data is compressed with gzip_.
 
 .. _gzip: http://www.gzip.org/
+
+.. _`Amazon S3`: http://aws.amazon.com/s3/
+
+.. _NFS: http://de.wikipedia.org/wiki/Network_File_System
