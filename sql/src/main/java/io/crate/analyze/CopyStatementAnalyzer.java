@@ -84,14 +84,23 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
     private Settings settingsFromProperties(GenericProperties properties, CopyAnalysis context) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
-            if (entry.getValue() instanceof ArrayLiteral) {
+            String key = entry.getKey();
+            Expression expression = entry.getValue();
+            if (expression instanceof ArrayLiteral) {
                 throw new IllegalArgumentException("Invalid argument(s) passed to parameter");
             }
-            Symbol v = process(entry.getValue(), context);
+            if (expression instanceof QualifiedNameReference) {
+                throw new IllegalArgumentException(String.format(
+                        "Can't use column reference in property assignment \"%s = %s\". Use literals instead.",
+                        key,
+                        ((QualifiedNameReference) expression).getName().toString()));
+            }
+
+            Symbol v = process(expression, context);
             if (!v.symbolType().isValueSymbol()) {
                 throw new UnsupportedFeatureException("Only literals are allowed as parameter values");
             }
-            builder.put(entry.getKey(), StringValueSymbolVisitor.INSTANCE.process(v));
+            builder.put(key, StringValueSymbolVisitor.INSTANCE.process(v));
         }
         return builder.build();
     }

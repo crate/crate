@@ -33,7 +33,9 @@ import io.crate.planner.symbol.Parameter;
 import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,6 +48,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class CopyAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
@@ -164,5 +169,13 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyToFileWithPartitionClause() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted partition (date=0) to '/blah.txt'");
         assertThat(analysis.partitionIdent(), is(PartitionName.encodeIdent(Arrays.asList(new BytesRef("0")))));
+    }
+
+
+    @Test
+    public void testCopyFromWithReferenceAssignedToProperty() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Can't use column reference in property assignment \"compression = gzip\". Use literals instead.");
+        analyze("copy users from '/blah.txt' with (compression = gzip)");
     }
 }
