@@ -36,6 +36,9 @@ import io.crate.operation.operator.OperatorModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.index.settings.IndexSettings;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -60,7 +63,11 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         @Override
         protected void configure() {
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
-            when(fulltextAnalyzerResolver.hasCustomAnalyzer(anyString())).thenReturn(false);
+            when(fulltextAnalyzerResolver.hasCustomAnalyzer("german")).thenReturn(false);
+            when(fulltextAnalyzerResolver.hasCustomAnalyzer("ft_search")).thenReturn(true);
+            ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
+            settingsBuilder.put("search", "foobar");
+            when(fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("ft_search")).thenReturn(settingsBuilder.build());
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
             super.configure();
         }
@@ -307,6 +314,24 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat((String)contentMapping.get("index"), is("analyzed"));
         assertThat((String)contentMapping.get("analyzer"), is("german"));
+    }
+
+    @Test
+    public void textCreateTableWithCustomAnalyzerInNestedColumn() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
+                "create table ft_search (" +
+                    "user object (strict) as (" +
+                        "name string index using fulltext with (analyzer='ft_search') " +
+                    ")"+
+                ")");
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        Map<String, Object> details = (Map<String, Object>)mappingProperties.get("user");
+        Map<String, Object> nameMapping = (Map<String, Object>)((Map<String, Object>) details.get("properties")).get("name");
+
+        assertThat((String) nameMapping.get("index"), is("analyzed"));
+        assertThat((String) nameMapping.get("analyzer"), is("ft_search"));
+
+        assertThat(analysis.indexSettings().get("search"), is("foobar"));
     }
 
     @Test (expected = IllegalArgumentException.class)

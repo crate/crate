@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: it is now allowed to specify a custom fulltext analyzer
+   in a nested column definition
+
  - remove documentation about information_schema.indices (which is not
    implemented).
 

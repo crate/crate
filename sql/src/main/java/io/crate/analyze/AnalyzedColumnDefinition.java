@@ -131,6 +131,14 @@ public class AnalyzedColumnDefinition {
     }
 
     public Settings analyzerSettings() {
+        if (!children().isEmpty()) {
+            ImmutableSettings.Builder builder = ImmutableSettings.builder();
+            builder.put(analyzerSettings);
+            for (AnalyzedColumnDefinition child : children()) {
+                builder.put(child.analyzerSettings());
+            }
+            return builder.build();
+        }
         return analyzerSettings;
     }
 
