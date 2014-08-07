@@ -197,7 +197,10 @@ a ``geo_shape``.
 Below is an example of the within function which makes use of the implicit type
 casting from strings to geo point and geo shapes::
 
-    cr> select within('POINT (10 10)', 'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))') from sys.cluster;
+    cr> select within(
+    ...   'POINT (10 10)',
+    ...   'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
+    ... ) from sys.cluster;
     +--------------------------------------------------------------------+
     | within('POINT (10 10)', 'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))') |
     +--------------------------------------------------------------------+
@@ -231,7 +234,8 @@ To get the match score of the fulltext search, an internal system column
 :ref:`_score <sql_ddl_system_column_score>` can be selected.
 The higher the score value, the more relevant is the row::
 
-    cr> select name, \"_score\" from locations where match(name_description_ft, 'time');
+    cr> select name, \"_score\"
+    ... from locations where match(name_description_ft, 'time');
     +-----------+------------+
     | name      |     _score |
     +-----------+------------+
@@ -243,7 +247,7 @@ The higher the score value, the more relevant is the row::
 .. note::
 
     The `_score` is a relative and not an absolute value. It just sets a row
-    in relation to the other ones. 
+    in relation to the other ones.
 
 The string used for a fulltext search is analyzed the same way as the indexed
 values and the resulting tokens are compared to the already indexed tokens.
@@ -252,7 +256,8 @@ one of the resulting tokens has to match to include a row.
 The more terms the search string contains, usually the more results will be
 returned::
 
-    cr> select name from locations where match(name_description_ft, 'time quordlepleen');
+    cr> select name from locations
+    ... where match(name_description_ft, 'time quordlepleen');
     +-----------+
     | name      |
     +-----------+
