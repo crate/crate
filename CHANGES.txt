@@ -5,7 +5,7 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: synopsis of COPY TO used a misleading syntax
+ - improved COPY TO documentation.
 
 2014/08/01 0.41.1
 =================
