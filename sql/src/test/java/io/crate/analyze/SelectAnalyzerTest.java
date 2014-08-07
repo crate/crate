@@ -1384,6 +1384,27 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testMatchPredicateInResultColumnList() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("match predicate cannot be selected");
+        analyze("select match(foo, 'bar') from users");
+    }
+
+    @Test
+    public void testMatchPredicateInGroupByClause() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("match predicate cannot be used in a GROUP BY clause");
+        analyze("select count(*) from users group by MATCH(foo, 'bar')");
+    }
+
+    @Test
+    public void testMatchPredicateInOrderByClause() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("match predicate cannot be used in an ORDER BY clause");
+        analyze("select name from users order by match(foo, 'bar')");
+    }
+
+    @Test
     public void testSelectWhereMatchPredicate() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where match (text, 'awesome')");
         assertThat(analysis.whereClause().hasQuery(), is(true));

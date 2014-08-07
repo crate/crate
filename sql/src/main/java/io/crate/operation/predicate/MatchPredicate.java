@@ -41,7 +41,7 @@ public class MatchPredicate implements FunctionImplementation<Function> {
     public static void register(PredicateModule module) {
         for (DataType dataType : ImmutableList.<DataType>of(DataTypes.NULL, DataTypes.STRING)) {
             FunctionIdent functionIdent = new FunctionIdent(MatchPredicate.NAME, ImmutableList.of(dataType, DataTypes.STRING));
-            module.register(new MatchPredicate(new FunctionInfo(functionIdent, DataTypes.BOOLEAN)));
+            module.register(new MatchPredicate(new FunctionInfo(functionIdent, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE)));
         }
     }
 
