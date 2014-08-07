@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - improved error handling if illegal arguments are used in COPY FROM or COPY
+   TO statements.
+
  - improved COPY TO documentation.
 
 2014/08/01 0.41.1

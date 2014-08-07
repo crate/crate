@@ -501,6 +501,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
     }
 
     protected ReferenceIdent getReference(QualifiedName name, List<String> path) {
+        Preconditions.checkState(table.ident() != null);
         ReferenceIdent ident;
         List<String> qNameParts = name.getParts();
         switch (qNameParts.size()) {
