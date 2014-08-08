@@ -708,11 +708,26 @@ For searching of matching phrases (tokens are in the same order)
 use ``phrase`` or ``phrase_prefix``::
 
     cr> select name, _score from locations
-    ... where match((name, description), 'end of the galaxy');
+    ... where match((name_description_ft, race['name'] 1.5, kind 0.75), 'end of the galaxy');
+    +-------------------+-------------+
+    | name              |      _score |
+    +-------------------+-------------+
+    | NULL              | 0.96532404  |
+    | Altair            | 0.10617954  |
+    | Aldebaran         | 0.096532404 |
+    | North West Ripple | 0.0929071   |
+    | Outer Eastern Rim | 0.084465854 |
+    +-------------------+-------------+
+    SELECT 5 rows in set (... sec)
 
-    cr> select name, _score from locations
-    ... where match((name, description 1.5), 'end of the galaxy') using phrase with (analyzer='english');
-
+    cr> select name, description, _score from locations
+    ... where match((name_description_ft, race['name'] 1.5, kind 0.75), 'end of the galaxy') using phrase with (analyzer='english', slop=4);
+    +------+-------------------------+------------+
+    | name | description             |     _score |
+    +------+-------------------------+------------+
+    | NULL | The end of the Galaxy.% | 0.96532404 |
+    +------+-------------------------+------------+
+    SELECT 1 row in set (... sec)
 
 A vast amount of options exist to fine-tune your fulltext search.
 A detailed reference can be found here :ref:`predicates_match`.

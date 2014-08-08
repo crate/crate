@@ -35,17 +35,17 @@ import java.util.Map;
 
 public class MatchOptionsAnalysis {
 
-    static Predicate<Object> POSITIVE_NUMBER = new Predicate<Object>() {
+    static final Predicate<Object> POSITIVE_NUMBER = new Predicate<Object>() {
         @Override
         public boolean apply(@Nullable Object input) {
             return input != null && input instanceof Number && ((Number) input).doubleValue() > 0;
         }
     };
-    static Predicate<Object> IS_STRING = Predicates.instanceOf(String.class);
-    static Predicate<Object> IS_NUMBER = Predicates.instanceOf(Number.class);
-    static Predicate<Object> NUMBER_OR_STRING = Predicates.or(IS_STRING, IS_NUMBER);
+    static final Predicate<Object> IS_STRING = Predicates.instanceOf(String.class);
+    static final Predicate<Object> IS_NUMBER = Predicates.instanceOf(Number.class);
+    static final Predicate<Object> NUMBER_OR_STRING = Predicates.or(IS_STRING, IS_NUMBER);
 
-    static Map<String, Predicate<Object>> ALLOWED_SETTINGS = ImmutableMap.<String, Predicate<Object>>builder()
+    static final Map<String, Predicate<Object>> ALLOWED_SETTINGS = ImmutableMap.<String, Predicate<Object>>builder()
             .put("analyzer", IS_STRING)
             .put("boost", POSITIVE_NUMBER)
             .put("cutoff_frequency", POSITIVE_NUMBER)
