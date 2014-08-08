@@ -37,8 +37,8 @@ public class MatchPredicate extends Expression {
     public MatchPredicate(List<MatchPredicateColumnIdent> idents, Expression value,
                           @Nullable String matchType, @Nullable GenericProperties properties) {
         Preconditions.checkArgument(idents.size() > 0, "at least one ident must be given");
-        Preconditions.checkNotNull(value, "value is null");
-        Preconditions.checkArgument(value instanceof StringLiteral || value instanceof ParameterExpression, "value is not a string nor a parameter");
+        Preconditions.checkNotNull(value, "query_term is null");
+        Preconditions.checkArgument(value instanceof StringLiteral || value instanceof ParameterExpression, "query_term is not a string nor a parameter");
 
         this.idents = idents;
         this.value = value;

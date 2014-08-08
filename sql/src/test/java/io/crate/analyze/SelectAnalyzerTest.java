@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
 import io.crate.exceptions.AmbiguousColumnAliasException;
@@ -39,11 +40,11 @@ import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.predicate.IsNullPredicate;
+import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
 import io.crate.operation.scalar.CollectionCountFunction;
-import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
@@ -65,9 +66,7 @@ import org.junit.rules.ExpectedException;
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -1433,7 +1432,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testSelectWhereMatchPredicate() throws Exception {
+    public void testSelectWhereSimpleMatchPredicate() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where match (text, 'awesome')");
         assertThat(analysis.whereClause().hasQuery(), is(true));
         Function query = (Function)analysis.whereClause().query();
@@ -1448,4 +1447,116 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(((Literal<?>) query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
     }
 
+    @Test
+    public void testSelectWhereFullMatchPredicate() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users " +
+                "where match ((name 1.2, text), 'awesome') using best_fields with (analyzer='german')");
+        assertThat(analysis.whereClause().hasQuery(), is(true));
+        Function query = (Function)analysis.whereClause().query();
+        assertThat(query.info().ident().name(), is(MatchPredicate.NAME));
+        assertThat(query.arguments().size(), is(4));
+        assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
+        Literal<Map<String, Object>> idents = (Literal<Map<String, Object>>)query.arguments().get(0);
+
+        assertThat(idents.value().size(), is(2));
+        assertThat((Double)idents.value().get("name"), is(1.2d));
+        assertThat(idents.value().get("text"), is(Matchers.nullValue()));
+
+        assertThat((BytesRef)((Literal)query.arguments().get(1)).value(), is(new BytesRef("awesome")));
+        assertThat((BytesRef)((Literal)query.arguments().get(2)).value(), is(new BytesRef("best_fields")));
+
+        Literal<Map<String, Object>> options = (Literal<Map<String, Object>>)query.arguments().get(3);
+        assertThat(options.value().size(), is(1));
+        assertThat((String)options.value().get("analyzer"), is("german"));
+    }
+
+    @Test
+    public void testWhereFullMatchPredicateNullQuery() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("query_term is not a string nor a parameter");
+        analyze("select * from users " +
+                "where match ((name 1.2, text), null) using best_fields with (analyzer='german')");
+    }
+
+    @Test
+    public void testWhereMatchUnknownType() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid MATCH type 'some_fields'");
+        analyze("select * from users " +
+                "where match ((name 1.2, text), 'awesome') using some_fields");
+    }
+
+    @Test
+    public void testWhereMatchUnknownOption() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("unknown match option 'oh'");
+        analyze("select * from users " +
+                "where match ((name 4.777, text), 'awesome') using cross_fields with (oh='srsly?')");
+    }
+
+    @Test
+    public void testWhereMatchInvalidOptionValue() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid value for option 'zero_terms_query': 12.6");
+        analyze("select * from users " +
+                "where match ((name 4.777, text), 'awesome') using cross_fields with (zero_terms_query=12.6)");
+    }
+
+    private String getMatchType(Function matchFunction) {
+        return ((BytesRef)((Literal)matchFunction.arguments().get(2)).value()).utf8ToString();
+    }
+
+    @Test
+    public void testWhereMatchAllowedTypes() throws Exception {
+        SelectAnalysis best_fields_analysis = (SelectAnalysis) analyze("select * from users " +
+                "where match ((name 1.2, text), 'awesome') using best_fields");
+        SelectAnalysis most_fields_analysis = (SelectAnalysis) analyze("select * from users " +
+                "where match ((name 1.2, text), 'awesome') using most_fields");
+        SelectAnalysis cross_fields_analysis = (SelectAnalysis) analyze("select * from users " +
+                "where match ((name 1.2, text), 'awesome') using cross_fields");
+        SelectAnalysis phrase_analysis = (SelectAnalysis) analyze("select * from users " +
+                "where match ((name 1.2, text), 'awesome') using phrase");
+        SelectAnalysis phrase_prefix_analysis = (SelectAnalysis) analyze("select * from users " +
+                "where match ((name 1.2, text), 'awesome') using phrase_prefix");
+
+
+        assertThat(getMatchType((Function)best_fields_analysis.whereClause.query()),
+                is("best_fields"));
+        assertThat(getMatchType((Function)most_fields_analysis.whereClause.query()),
+                is("most_fields"));
+        assertThat(getMatchType((Function)cross_fields_analysis.whereClause.query()),
+                is("cross_fields"));
+        assertThat(getMatchType((Function)phrase_analysis.whereClause.query()),
+                is("phrase"));
+        assertThat(getMatchType((Function)phrase_prefix_analysis.whereClause.query()),
+                is("phrase_prefix"));
+    }
+
+    @Test
+    public void testWhereMatchAllOptions() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users " +
+                "where match ((name 1.2, text), 'awesome') using best_fields with " +
+                "(" +
+                "  analyzer='german'," +
+                "  boost=4.6," +
+                "  tie_breaker=0.75," +
+                "  operator='or'," +
+                "  minimum_should_match=4," +
+                "  fuzziness=12," +
+                "  max_expansions=3," +
+                "  prefix_length=4," +
+                "  rewrite='constant_score_boolean'," +
+                "  fuzzy_rewrite='top_terms_20'," +
+                "  zero_terms_query='all'," +
+                "  cutoff_frequency=5," +
+                "  slop=3" +
+                ")");
+        Function match = (Function)analysis.whereClause.query();
+        Map<String, Object> options = ((Literal<Map<String, Object>>)match.arguments().get(3)).value();
+        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(options),
+                is("zero_terms_query:all, cutoff_frequency:5, minimum_should_match:4, " +
+                        "rewrite:constant_score_boolean, prefix_length:4, tie_breaker:0.75, " +
+                        "slop:3, analyzer:german, boost:4.6, max_expansions:3, fuzzy_rewrite:top_terms_20, " +
+                        "fuzziness:12, operator:or"));
+    }
 }
