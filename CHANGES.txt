@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - improved formatting of field lists in docs
+   by adding docutils configuration to docs build process
+
  - improved documentation codeblock formatting
 
  - fix: it is now allowed to specify a custom fulltext analyzer
