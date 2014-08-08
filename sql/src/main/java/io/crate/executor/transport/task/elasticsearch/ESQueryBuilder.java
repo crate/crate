@@ -37,8 +37,8 @@ import io.crate.operation.Input;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
-import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.MatchPredicate;
+import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.arithmetic.*;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSortScript;
@@ -823,8 +823,8 @@ public class ESQueryBuilder {
 
             @Nullable
             protected Tuple<String, Object> prepare(Function function) {
-                Preconditions.checkNotNull(function);
-                Preconditions.checkArgument(function.arguments().size() == 2);
+                Preconditions.checkNotNull(function, "given function '%s' is null", function.getClass().getSimpleName());
+                Preconditions.checkArgument(function.arguments().size() == 2, "invalid number of arguments");
 
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
@@ -1018,15 +1018,58 @@ public class ESQueryBuilder {
             }
         }
 
-        class MatchConverter extends CmpConverter {
+        class MatchConverter extends Converter<Function> {
 
             @Override
             public boolean convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> tuple = super.prepare(function);
-                if (tuple == null) {
-                    return false;
+                Preconditions.checkNotNull(function, "given function '%s' is null", function.getClass().getSimpleName());
+                Preconditions.checkArgument(function.arguments().size() == 4, "invalid number of arguments");
+                List<Symbol> arguments = function.arguments();
+                assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT);
+                assert Symbol.isLiteral(arguments.get(1), DataTypes.STRING);
+                assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING);
+                assert Symbol.isLiteral(arguments.get(3), DataTypes.OBJECT);
+
+                Map<String, Object> idents = ((Literal<Map<String, Object>>)arguments.get(0)).value();
+                BytesRef queryString = ((Literal<BytesRef>)arguments.get(1)).value();
+                BytesRef matchType = ((Literal<BytesRef>)arguments.get(2)).value();
+                Map<String, Object> options = ((Literal<Map<String, Object>>)arguments.get(3)).value();
+
+                // validate
+                Preconditions.checkArgument(queryString != null, "cannot use NULL as query term in match predicate");
+
+                String[] columnNames = new String[idents.entrySet().size()];
+                int i = 0;
+                for (Map.Entry<String, Object> entry : idents.entrySet()) {
+                    if (entry.getValue() != null) {
+                        columnNames[i] = String.format("%s^%s", entry.getKey(),
+                                MatchPredicate.BOOST_FORMAT.format(entry.getValue()));
+                    } else {
+                        columnNames[i] = entry.getKey();
+                    }
+                    i++;
                 }
-                context.builder.startObject("match").field(tuple.v1(), tuple.v2()).endObject();
+
+                // build
+                if (columnNames.length == 1 &&
+                        (matchType == null || matchType.utf8ToString().equals(MatchPredicate.DEFAULT_MATCH_TYPE))) {
+                    // legacy match
+                    context.builder.startObject("match")
+                            .field(columnNames[0], queryString.utf8ToString())
+                            .endObject();
+                } else {
+
+                    context.builder.startObject("multi_match")
+                            .field("type", matchType != null ? matchType.utf8ToString() : MatchPredicate.DEFAULT_MATCH_TYPE)
+                            .array("fields", columnNames)
+                            .field("query", queryString.utf8ToString());
+                    if (options != null) {
+                        for (Map.Entry<String, Object> option : options.entrySet()) {
+                            context.builder.field(option.getKey(), option.getValue());
+                        }
+                    }
+                    context.builder.endObject();
+                }
                 return true;
             }
         }

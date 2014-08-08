@@ -30,19 +30,36 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 /**
  * The match predicate is only used to generate lucene queries from.
   */
 public class MatchPredicate implements FunctionImplementation<Function> {
 
+    public static final String DEFAULT_MATCH_TYPE = MultiMatchQueryBuilder.Type.BEST_FIELDS.toString().toLowerCase();
+    public static final DecimalFormat BOOST_FORMAT = new DecimalFormat("#.###", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
     public static final String NAME = "match";
 
+    /**
+     * the match predicate is registered as a regular function
+     * though it is called differently by the parser. We mangle
+     * the arguments and options for the match predicate into
+     * function arguments.
+     *
+     * 1. list of column idents and boost values - object mapping column name to boost value (Double) (values nullable)
+     * 2. query string - string
+     * 3. match_type - string (nullable)
+     * 4. match_type options - object mapping option name to value (Object) (nullable)
+     */
     public static void register(PredicateModule module) {
-        for (DataType dataType : ImmutableList.<DataType>of(DataTypes.NULL, DataTypes.STRING)) {
-            FunctionIdent functionIdent = new FunctionIdent(MatchPredicate.NAME, ImmutableList.of(dataType, DataTypes.STRING));
-            module.register(new MatchPredicate(new FunctionInfo(functionIdent, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE)));
-        }
+        FunctionIdent fullIdent = new FunctionIdent(MatchPredicate.NAME,
+                ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT));
+        module.register(new MatchPredicate(new FunctionInfo(fullIdent, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE)));
     }
 
     private final FunctionInfo info;
