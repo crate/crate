@@ -352,11 +352,8 @@ An object literal can contain zero or more key value pairs
 Some examples::
 
     { "CamelCase"=123, key=['v', 'a', 'l', 'u', 'e'], param=?}
-
     {}
-
     {{},{}}
-
     {"true"=false}
 
 
@@ -405,13 +402,9 @@ type will be inferred by the context in which it occurs, if possible.
 Some Examples::
 
     []
-
     [[], []]
-
     [1, 2, 3, 4, 5, 6, 7, 8]
-
     [null]
-
     ['Zaphod', 'Ford', 'Arthur']
 
 
@@ -715,6 +708,8 @@ over building a token stream used for fulltext search.  For example
 you can use language specific analyzers, tokenizers and token-filters
 to get proper search results for data provided in a certain language.
 
+.. highlight:: psql
+
 Here is a simple Example::
 
     cr> create ANALYZER myanalyzer (
@@ -877,6 +872,8 @@ And now a nested column named ``name`` is added to the ``obj_column``::
     cr> alter table my_table1 add column obj_column['name'] string;
     ALTER OK (... sec)
 
+::
+
     cr> select column_name, data_type from information_schema.columns
     ... where table_name = 'my_table1' and column_name like 'obj_%';
     +--------------------+-----------+
@@ -899,6 +896,8 @@ If used with ``PERSISTENT`` the change will survive a cluster restart, if used w
     cr> SET GLOBAL PERSISTENT collect_stats=false;
     SET OK (... sec)
 
+::
+
     cr> select sys.cluster.settings['collect_stats'] from sys.cluster;
     +---------------------------------------+
     | sys.cluster.settings['collect_stats'] |
@@ -911,6 +910,8 @@ You can change multiple values at once::
 
     cr> SET GLOBAL TRANSIENT collect_stats=true, jobs_log_size=1024, operations_log_size=4096;
     SET OK (... sec)
+
+::
 
     cr> select sys.cluster.settings from sys.cluster;
     +-----------------------------------------------------------------------------+
