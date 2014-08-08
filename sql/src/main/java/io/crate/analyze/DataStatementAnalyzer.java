@@ -41,6 +41,7 @@ import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.collect.MapBuilder;
 
 import java.util.*;
 
@@ -563,7 +564,9 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         if (! (expressionSymbol instanceof Reference)) {
             throw new UnsupportedOperationException("MATCH (reference, value): reference must be a reference");
         }
-        DataType expressionType = ((Reference)expressionSymbol).valueType();
+        // TODO: assert that reference is of type string
+        // TODO: correctly extract ident and score
+        Symbol idents = Literal.newLiteral(new MapBuilder<String, Object>().put(((Reference) expressionSymbol).info().ident().columnIdent().fqn(), null).map());
 
         Symbol valueSymbol = process(node.value(), context);
         // handle possible parameter for value
@@ -578,12 +581,17 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
         FunctionInfo functionInfo;
         try {
-            FunctionIdent functionIdent = new FunctionIdent(io.crate.operation.predicate.MatchPredicate.NAME, Arrays.asList(expressionType, DataTypes.STRING));
+            FunctionIdent functionIdent = new FunctionIdent(io.crate.operation.predicate.MatchPredicate.NAME,
+                    Arrays.<DataType>asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT));
             functionInfo = context.getFunctionInfo(functionIdent);
         } catch (UnsupportedOperationException e) {
             throw new UnsupportedOperationException("invalid MATCH predicate", e);
         }
-        return context.allocateFunction(functionInfo, Arrays.asList(expressionSymbol, valueSymbol));
+        return context.allocateFunction(functionInfo,
+                Arrays.asList(idents,
+                        valueSymbol,
+                        Literal.newLiteral(io.crate.operation.predicate.MatchPredicate.DEFAULT_MATCH_TYPE),
+                        Literal.newLiteral(DataTypes.OBJECT, null)));
     }
 
 
