@@ -1052,7 +1052,8 @@ public class ESQueryBuilder {
 
                 // build
                 if (columnNames.length == 1 &&
-                        (matchType == null || matchType.utf8ToString().equals(MatchPredicate.DEFAULT_MATCH_TYPE))) {
+                        (matchType == null || matchType.utf8ToString().equals(MatchPredicate.DEFAULT_MATCH_TYPE)) &&
+                        (options == null || options.isEmpty())) {
                     // legacy match
                     context.builder.startObject("match")
                             .field(columnNames[0], queryString.utf8ToString())

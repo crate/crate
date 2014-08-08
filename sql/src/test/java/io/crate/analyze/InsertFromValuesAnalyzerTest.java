@@ -503,7 +503,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     public void testInsertWithMatchPredicateInValues() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("invalid MATCH predicate");
-        analyze("insert into users (id, name) values (1, match(foo, 'bar'))");
+        analyze("insert into users (id, name) values (1, match(name, 'bar'))");
     }
 
     @Test
