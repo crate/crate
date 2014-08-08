@@ -252,8 +252,10 @@ Not all options are applicable to all match types. See the options below for det
 
 :analyzer: The analyzer used to convert the ``query_term`` into tokens.
 
-:boost: a value to multiply the resulting :ref:`_score <sql_ddl_system_column_score>` of
-        this query with.
+:boost: This numeric value is multiplied with the resulting :ref:`_score <sql_ddl_system_column_score>` of
+        this ``match`` call. If this ``match`` call is used with other conditions in the where clause
+        a value above ``1.0`` will increase its influence on the overall :ref:`_score <sql_ddl_system_column_score>`
+        of the whole query, a value below ``1.0`` will decrease it.
 
 :cutoff_frequency: The token frequency is the number of occurences of a token in a column.
                    This option specifies a minimum token frequency that excludes
@@ -262,7 +264,7 @@ Not all options are applicable to all match types. See the options below for det
                    if another token with a lower frequency also matches.
                    This can be used to suppress results where only high frequency terms like ``the`` would cause a match.
 
-:fuzziness: can be used to perform fuzzy full text search.
+:fuzziness: Can be used to perform fuzzy full text search.
             On numeric columns use a numeric, on timestamp columns a long indicating milliseconds,
             on strings use a number indicating the maximum allowed Levenshtein Edit Distance.
             Use ``prefix_length``, ``fuzzy_rewrite`` and ``max_expansions`` to fine tune the fuzzy matching process.
@@ -322,11 +324,32 @@ Examples
 
     cr> select name
     ... from locations
-    ... where match((description, race['name'] 1.5, race['description']), 'human earth');
+    ... where match((name_description_ft, race['name'] 1.5, race['description']), 'planet earth');
+    +------------------------------------+
+    | name                               |
+    +------------------------------------+
+    | Alpha Centauri                     |
+    |                                    |
+    | Allosimanius Syneca                |
+    | Bartledan                          |
+    | Galactic Sector QQ7 Active J Gamma |
+    +------------------------------------+
+    SELECT 5 rows in set (... sec)
 
 ::
 
     cr> select name, _score
     ... from locations
-    ... where match((name 1.5, description 1.2), 'planet sun')
+    ... where match((race['name'] 1.5, name_description_ft 1.2), 'planet sun')
     ... using most_fields with (tie_breaker=0.3, analyzer='english', fuzziness=2);
+    +------------------------------------+------------+
+    | name                               |     _score |
+    +------------------------------------+------------+
+    | Allosimanius Syneca                | 0.6604981  |
+    | Galactic Sector QQ7 Active J Gamma | 0.4704613  |
+    | Argabuthon                         | 0.26255143 |
+    |                                    | 0.25220823 |
+    | Bartledan                          | 0.14275678 |
+    | Algol                              | 0.06251224 |
+    +------------------------------------+------------+
+    SELECT 6 rows in set (... sec)
