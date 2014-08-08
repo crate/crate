@@ -237,6 +237,8 @@ contains an element 'netball'::
     +----------------+-----------------------------------------+
     SELECT 1 row in set (... sec)
 
+::
+
     cr> select race['name'], race['interests'] from locations
     ... where '%books%' LIKE ANY(race['interests']);
     +----------------+-----------------------------------------+
@@ -397,12 +399,18 @@ Example::
     +-------------------+---------------------------------------------------------------------------------------+----------------------------+
     SELECT 2 rows in set (... sec)
 
+::
+
     cr> insert into locations (id, name, position, kind, informations)
     ... values ('B', 'Berlin', 15, 'City', [{evolution_level=6, population=3600001}, {evolution_level=42, population=1}]);
     INSERT OK, 1 row affected (... sec)
 
+::
+
     cr> refresh table locations;
     REFRESH OK (... sec)
+
+::
 
     cr> select name from locations where 4 < ANY (informations['evolution_level']);
     +-------------------+
@@ -412,8 +420,6 @@ Example::
     | North West Ripple |
     +-------------------+
     SELECT 2 rows in set (... sec)
-
-
 
 
 .. _sql_dml_aggregation:
@@ -816,6 +822,8 @@ table with data partitioned by year::
     ... partitioned by (year) with (number_of_replicas=0);
     CREATE OK (... sec)
 
+::
+
     cr> insert into locations_parted (id, name, year, date, kind, postition)
     ... (
     ...     select
@@ -831,7 +839,7 @@ table with data partitioned by year::
 
 Resulting partitions of the last insert by query::
 
-    cr> select * from information_schema.table_partitions where table_name = 'locations_parted'
+    cr> select * from information_schema.table_partitions where table_name = 'locations_parted';
     +------------------+-------------+-----------------+------------------+
     | table_name       | schema_name | partition_ident | values           |
     +------------------+-------------+-----------------+------------------+

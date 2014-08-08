@@ -421,7 +421,7 @@ Jobs
 The ``sys.jobs`` table provides an overview over all jobs that are currently
 being executed in the cluster::
 
-    cr> select * from sys.jobs where stmt like 'select * from sys.jobs%'
+    cr> select * from sys.jobs where stmt like 'select * from sys.jobs%';
     +----...-+------------------------------------------------------------------+-...---------+
     | id     | stmt                                                             |     started |
     +----...-+------------------------------------------------------------------+-...---------+
@@ -483,6 +483,8 @@ deactivate the stats tracking. This will also wipe all existing log entries::
 
     cr> set global collect_stats = false;
     SET OK (... sec)
+
+::
 
     cr> select count(*) from sys.jobs_log;
     +----------+
