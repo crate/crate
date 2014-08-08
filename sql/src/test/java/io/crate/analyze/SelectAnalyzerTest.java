@@ -65,7 +65,9 @@ import org.junit.rules.ExpectedException;
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -1263,9 +1265,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(query.info().ident().name(), is("any_like"));
         assertThat(query.arguments().size(), is(2));
         assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
-        assertThat(((Reference)query.arguments().get(0)).info().ident().columnIdent().fqn(), is("tags"));
+        assertThat(((Reference) query.arguments().get(0)).info().ident().columnIdent().fqn(), is("tags"));
         assertThat(query.arguments().get(1), instanceOf(Literal.class));
-        assertThat(((Literal<?>)query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
+        assertThat(((Literal<?>) query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
     }
 
     @Test
@@ -1436,9 +1438,12 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.whereClause().hasQuery(), is(true));
         Function query = (Function)analysis.whereClause().query();
         assertThat(query.info().ident().name(), is(MatchPredicate.NAME));
-        assertThat(query.arguments().size(), is(2));
-        assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
-        assertThat(((Reference) query.arguments().get(0)).info().ident().columnIdent().fqn(), is("text"));
+        assertThat(query.arguments().size(), is(4));
+        assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
+        Literal<Map<String, Object>> idents = (Literal<Map<String, Object>>)query.arguments().get(0);
+
+        assertThat(idents.value().keySet(), hasItem("text"));
+        assertThat(idents.value().get("text"), is(nullValue()));
         assertThat(query.arguments().get(1), instanceOf(Literal.class));
         assertThat(((Literal<?>) query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
     }
