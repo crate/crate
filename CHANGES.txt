@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - improved documentation codeblock formatting
+
  - fix: it is now allowed to specify a custom fulltext analyzer
    in a nested column definition
 
