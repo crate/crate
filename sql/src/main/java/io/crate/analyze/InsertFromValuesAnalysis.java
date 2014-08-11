@@ -24,6 +24,7 @@ package io.crate.analyze;
 import io.crate.PartitionName;
 import io.crate.metadata.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
@@ -34,7 +35,7 @@ import java.util.Map;
 
 public class InsertFromValuesAnalysis extends AbstractInsertAnalysis {
 
-    private final List<Map<String, Object>> sourceMaps = new ArrayList<>();
+    private final List<BytesReference> sourceMaps = new ArrayList<>();
     private final List<Map<String, String>> partitionMaps = new ArrayList<>();
 
     public InsertFromValuesAnalysis(ReferenceInfos referenceInfos,
@@ -94,7 +95,7 @@ public class InsertFromValuesAnalysis extends AbstractInsertAnalysis {
         return partitionValues;
     }
 
-    public List<Map<String, Object>> sourceMaps() {
+    public List<BytesReference> sourceMaps() {
         return sourceMaps;
     }
 
