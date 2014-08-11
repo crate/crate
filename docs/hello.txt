@@ -41,22 +41,31 @@ user object::
 
 Now we are ready for inserting our first tweet::
 
-    cr> insert into tweets values(1394182937, '1', true, 'web', 'Don''t panic', 'Douglas');
+    cr> insert into tweets
+    ... values (1394182937, '1', true, 'web', 'Don''t panic', 'Douglas');
     INSERT OK, 1 row affected (... sec)
 
 And another::
 
-    cr> insert into tweets values(1394182938, '2', true, 'web', 'Time is an illusion. Lunchtime doubly so', 'Ford');
+    cr> insert into tweets
+    ... values (
+    ...     1394182938,
+    ...     '2',
+    ...     true,
+    ...    'web',
+    ...    'Time is an illusion. Lunchtime doubly so',
+    ...    'Ford'
+    ... );
     INSERT OK, 1 row affected (... sec)
 
 Looking up only Ford's tweets::
 
     cr> select * from tweets where id = '2';
-    +------------+----+-----------+--------+------------------------------------------+---------+
-    | created_at | id | retweeted | source | text                                     | user_id |
-    +------------+----+-----------+--------+------------------------------------------+---------+
-    | 1394182938 | 2  | TRUE      | web    | Time is an illusion. Lunchtime doubly so | Ford    |
-    +------------+----+-----------+--------+------------------------------------------+---------+
+    +------------+----+-----------+--------+-------------------------...-+---------+
+    | created_at | id | retweeted | source | text                        | user_id |
+    +------------+----+-----------+--------+-------------------------...-+---------+
+    | 1394182938 | 2  | TRUE      | web    | Time is an illusion. Lun... | Ford    |
+    +------------+----+-----------+--------+-------------------------...-+---------+
     SELECT 1 row in set (... sec)
 
 

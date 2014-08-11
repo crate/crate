@@ -79,7 +79,7 @@ def setUpLocations(test):
           race object(dynamic) as (
             interests array(string)
           ),
-          informations array(object as (
+          information array(object as (
               population long,
               evolution_level short
             )
