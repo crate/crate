@@ -538,8 +538,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     /**
      * Compute an id and adds it, also add routing value
-     *
-     * @param primaryKeyValues
      */
     public void addIdAndRouting(List<BytesRef> primaryKeyValues, String clusteredByValue) {
         addIdAndRouting(false, primaryKeyValues, clusteredByValue);

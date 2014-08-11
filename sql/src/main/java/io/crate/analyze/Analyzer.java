@@ -67,6 +67,8 @@ public class Analyzer {
         final Object[][] bulkParameters;
         DataType[] bulkTypes;
 
+        private int currentIdx = 0;
+
         public ParameterContext(Object[] parameters, Object[][] bulkParameters) {
             this.parameters = parameters;
             if (bulkParameters.length > 0) {
@@ -113,6 +115,17 @@ public class Analyzer {
             for (int i = 0; i < bulkParam.length; i++) {
                 bulkTypes[i] = guessTypeSafe(bulkParam[i]);
             }
+        }
+
+        public void setIdx(int i) {
+            this.currentIdx = i;
+        }
+
+        public Object[] parameters() {
+            if (bulkParameters.length > 0) {
+                return bulkParameters[currentIdx];
+            }
+            return parameters;
         }
     }
 

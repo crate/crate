@@ -517,6 +517,23 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testInsertWithBulkArgs() throws Exception {
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze(
+                "insert into users (id, name) values (?, ?)",
+                new Object[][]{
+                        new Object[]{1, "foo"},
+                        new Object[]{2, "bar"}
+        });
+        assertThat(analysis.sourceMaps().size(), is(2));
+
+        Map<String, Object> args1 = analysis.sourceMaps().get(0);
+        assertThat((Long) args1.get("id"), is(1L));
+
+        Map<String, Object> args2 = analysis.sourceMaps().get(1);
+        assertThat((Long) args2.get("id"), is(2L));
+    }
+
+    @Test
     public void testInsertWithBulkArgsTypeMissMatch() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("argument 1 of bulk arguments contains mixed data types");
@@ -562,7 +579,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         ));
 
         analyze("insert into users (id, name) values (?, ?)", new Object[][]{
-                new Object[] { "foo" },
+                new Object[]{"foo"},
                 new Object[]{new Foo()},
         });
     }
