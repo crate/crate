@@ -45,8 +45,8 @@ public class AddColumnAnalysis extends AbstractDDLAnalysis {
 
     protected AddColumnAnalysis(ReferenceInfos referenceInfos,
                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                Object[] parameters) {
-        super(parameters);
+                                Analyzer.ParameterContext parameterContext) {
+        super(parameterContext);
         this.referenceInfos = referenceInfos;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }

@@ -41,8 +41,8 @@ public class AlterTableAnalysis extends AbstractDDLAnalysis {
     private Optional<PartitionName> partitionName = Optional.absent();
     private SchemaInfo schemaInfo;
 
-    public AlterTableAnalysis(Object[] parameters, ReferenceInfos referenceInfos) {
-        super(parameters);
+    public AlterTableAnalysis(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
+        super(parameterContext);
         this.referenceInfos = referenceInfos;
     }
 

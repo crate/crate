@@ -35,13 +35,13 @@ import java.util.Map;
 public class InsertFromValuesAnalysis extends AbstractInsertAnalysis {
 
     private final List<Map<String, Object>> sourceMaps = new ArrayList<>();
-    private List<Map<String, String>> partitionMaps = new ArrayList<>();
+    private final List<Map<String, String>> partitionMaps = new ArrayList<>();
 
     public InsertFromValuesAnalysis(ReferenceInfos referenceInfos,
                                     Functions functions,
-                                    Object[] parameters,
+                                    Analyzer.ParameterContext parameterContext,
                                     ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameters, referenceResolver);
+        super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 
     @Override
