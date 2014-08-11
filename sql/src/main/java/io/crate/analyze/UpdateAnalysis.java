@@ -37,9 +37,9 @@ public class UpdateAnalysis extends AbstractDataAnalysis {
 
     public UpdateAnalysis(ReferenceInfos referenceInfos,
                           Functions functions,
-                          Object[] parameters,
+                          Analyzer.ParameterContext parameterContext,
                           ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameters, referenceResolver);
+        super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 
     public Map<Reference, Symbol> assignments() {

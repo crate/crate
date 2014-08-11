@@ -42,9 +42,9 @@ public abstract class AbstractInsertAnalysis extends AbstractDataAnalysis {
 
     public AbstractInsertAnalysis(ReferenceInfos referenceInfos,
                                   Functions functions,
-                                  Object[] parameters,
+                                  Analyzer.ParameterContext parameterContext,
                                   ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameters, referenceResolver);
+        super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 
     public List<Reference> columns() {
