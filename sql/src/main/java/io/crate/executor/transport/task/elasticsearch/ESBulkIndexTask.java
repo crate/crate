@@ -21,125 +21,60 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.Futures;
 import io.crate.planner.node.dml.ESIndexNode;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BulkItemResponse;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.bulk.TransportBulkAction;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
+import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ESBulkIndexTask extends AbstractESIndexTask {
 
-    private final static AtomicInteger currentDelay = new AtomicInteger(0);
-    private final TransportBulkAction bulkAction;
-    private final BulkRequest request;
-    private final ActionListener<BulkResponse> listener;
+    private final BulkShardProcessor bulkShardProcessor;
 
-    static class BulkIndexResponseListener implements ActionListener<BulkResponse> {
-
-        private final SettableFuture<Object[][]> result;
-        private final long initialRowsAffected;
-        private final ThreadPool threadPool;
-        private final TransportBulkAction bulkAction;
-        private final BulkRequest request;
-        private final ESLogger logger = Loggers.getLogger(getClass());
-
-        BulkIndexResponseListener(ThreadPool threadPool,
-                                  TransportBulkAction bulkAction,
-                                  BulkRequest request,
-                                  SettableFuture<Object[][]> result,
-                                  long initialRowsAffected) {
-            this.threadPool = threadPool;
-            this.bulkAction = bulkAction;
-            this.request = request;
-            this.result = result;
-            this.initialRowsAffected = initialRowsAffected;
-        }
-
-        @Override
-        public void onResponse(BulkResponse bulkItemResponses) {
-            BulkItemResponse[] responses = bulkItemResponses.getItems();
-            long rowsAffected = initialRowsAffected;
-            IntArrayList toRetry = new IntArrayList();
-            String lastFailure = null;
-
-            for (BulkItemResponse response : responses) {
-                if (!response.isFailed()) {
-                    rowsAffected++;
-                } else if (response.getFailureMessage().startsWith("EsRejectedExecution")) {
-                    toRetry.add(response.getItemId());
-                } else {
-                    lastFailure = response.getFailureMessage();
-                }
-            }
-
-            if (!toRetry.isEmpty()) {
-                logger.debug("%s requests failed due to full queue.. retrying", toRetry.size());
-                final BulkRequest bulkRequest = new BulkRequest();
-                for (IntCursor intCursor : toRetry) {
-                    bulkRequest.add(request.requests().get(intCursor.value));
-                }
-
-                final long currentRowsAffected = rowsAffected;
-                threadPool.schedule(TimeValue.timeValueSeconds(currentDelay.incrementAndGet()),
-                        ThreadPool.Names.SAME, new Runnable() {
-                            @Override
-                            public void run() {
-                                bulkAction.execute(bulkRequest, new BulkIndexResponseListener(
-                                        threadPool,
-                                        bulkAction,
-                                        bulkRequest,
-                                        result,
-                                        currentRowsAffected));
-                            }
-                        });
-            } else if (lastFailure == null) {
-                currentDelay.set(0);
-                result.set(new Object[][]{new Object[]{rowsAffected}});
-            } else {
-                currentDelay.set(0);
-                result.setException(new RuntimeException(lastFailure));
-            }
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            this.result.setException(e);
-        }
-    }
-
-    public ESBulkIndexTask(ThreadPool threadPool,
-                           TransportBulkAction bulkAction,
+    public ESBulkIndexTask(ClusterService clusterService,
+                           Settings settings,
+                           TransportShardBulkAction transportShardBulkAction,
+                           TransportCreateIndexAction transportCreateIndexAction,
                            ESIndexNode node) {
         super(node);
-        this.bulkAction = bulkAction;
 
-        this.request = new BulkRequest();
-        for (int i = 0; i < this.node.sourceMaps().size(); i++) {
-            IndexRequest indexRequest = buildIndexRequest(
-                     // length is 1 if all inserts affect the same table
-                    node.indices()[node.indices().length == 1 ? 0 : i],
-                    node.sourceMaps().get(i),
-                    node.ids().get(i),
-                    node.routingValues().get(i));
-            this.request.add(indexRequest);
-        }
-        this.listener = new BulkIndexResponseListener(threadPool, bulkAction, request, result, 0L);
+        this.bulkShardProcessor = new BulkShardProcessor(clusterService, settings,
+                transportShardBulkAction, transportCreateIndexAction, false, this.node.sourceMaps().size());
     }
 
     @Override
     protected void doStart(List<Object[][]> upstreamResults) {
-        this.bulkAction.execute(request, listener);
+        for(int i=0; i < this.node.sourceMaps().size(); i++){
+
+            try {
+                bulkShardProcessor.add(node.indices()[node.indices().length == 1 ? 0 : i],
+                        XContentFactory.jsonBuilder().map(node.sourceMaps().get(i)).bytes(),
+                        node.ids().get(i),
+                        node.routingValues().get(i)
+                );
+            } catch (IOException e) {
+                result.setException(e);
+            }
+        }
+        bulkShardProcessor.close();
+        Futures.addCallback(bulkShardProcessor.result(), new com.google.common.util.concurrent.FutureCallback<Long>() {
+
+            @Override
+            public void onSuccess(@Nullable Long res) {
+                result.set(new Object[][]{new Object[]{res}});
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                result.setException(t);
+            }
+        });
     }
 }
