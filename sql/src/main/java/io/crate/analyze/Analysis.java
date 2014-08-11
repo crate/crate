@@ -21,18 +21,18 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.Preconditions;
 
 import java.util.List;
 
 public abstract class Analysis {
 
+    private final Analyzer.ParameterContext parameterContext;
     private List<String> outputNames = ImmutableList.of();
-    private final Object[] parameters;
 
     protected String tableAlias;
 
@@ -44,8 +44,8 @@ public abstract class Analysis {
         return tableAlias;
     }
 
-    protected Analysis(Object[] parameters) {
-        this.parameters = parameters;
+    protected Analysis(Analyzer.ParameterContext parameterContext) {
+        this.parameterContext = parameterContext;
     }
 
     public abstract void table(TableIdent tableIdent);
@@ -67,12 +67,12 @@ public abstract class Analysis {
     }
 
     public Object[] parameters() {
-        return parameters;
+        return parameterContext.parameters;
     }
 
     public Object parameterAt(int idx) {
-        Preconditions.checkElementIndex(idx, parameters.length);
-        return parameters[idx];
+        Preconditions.checkElementIndex(idx, parameterContext.parameters.length);
+        return parameterContext.parameters[idx];
     }
 
     public <C, R> R accept(AnalysisVisitor<C,R> analysisVisitor, C context) {
