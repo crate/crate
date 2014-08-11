@@ -48,4 +48,18 @@ public class StringObjectMaps {
         }
         return null;
     }
+
+    public static Object fromMapByPath(Map value, List<String> path) {
+        Map map = value;
+        Object tmp = null;
+        for (String s : path) {
+            tmp = map.get(s);
+            if (tmp instanceof Map) {
+                map = (Map) tmp;
+            } else {
+                break;
+            }
+        }
+        return tmp;
+    }
 }
