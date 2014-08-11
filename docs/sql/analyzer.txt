@@ -48,9 +48,18 @@ with the :ref:`standard-tokenfilter` Token Filter,
 Lowercase all Tokens, uses *NO* stopwords and excludes tokens longer than 255 characters.
 This analyzer uses unicode text segmentation, which is defined by `UAX#29`_.
 
-Example::
+For example, the standard analyzer converts the sentence
 
-    The quick brown fox jumps Over the lAzY DOG. --> quick, brown, fox, jumps, lazy, dog
+::
+
+    The quick brown fox jumps Over the lAzY DOG.
+
+into the following tokens
+
+::
+
+    quick, brown, fox, jumps, lazy, dog
+
 
 Parameters
 ..........

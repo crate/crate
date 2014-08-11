@@ -825,7 +825,7 @@ Updating Properties
 
 The properties of a table can be modified using the `ALTER TABLE` clause::
 
-    cr> alter table my_table1 set (number_of_replicas='0-all');
+    cr> alter table my_table1 set (number_of_replicas = '0-all');
     ALTER OK (... sec)
 
 In order to set a property to its default value use `reset`::

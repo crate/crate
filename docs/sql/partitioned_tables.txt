@@ -48,13 +48,20 @@ Information Schema
 This table shows up in the ``information_schema.tables`` table,
 recognizable as partitioned table by a non null ``partitioned_by`` column::
 
-    cr> SELECT * FROM information_schema.tables
+    cr> SELECT schema_name as schema,
+    ...   table_name,
+    ...   number_of_shards as num_shards,
+    ...   number_of_replicas as num_reps,
+    ...   clustered_by as c_b,
+    ...   partitioned_by as p_b,
+    ...   blobs_path
+    ... FROM information_schema.tables
     ... WHERE table_name='parted_table';
-    +-------------+--------------+------------------+--------------------+--------------+----------------+------------+
-    | schema_name | table_name   | number_of_shards | number_of_replicas | clustered_by | partitioned_by | blobs_path |
-    +-------------+--------------+------------------+--------------------+--------------+----------------+------------+
-    | doc         | parted_table |                4 |                  1 | title        | ["day"]        | NULL       |
-    +-------------+--------------+------------------+--------------------+--------------+----------------+------------+
+    +--------+--------------+------------+----------+-------+---------+------------+
+    | schema | table_name   | num_shards | num_reps | c_b   | p_b     | blobs_path |
+    +--------+--------------+------------+----------+-------+---------+------------+
+    | doc    | parted_table |          4 |        1 | title | ["day"] | NULL       |
+    +--------+--------------+------------+----------+-------+---------+------------+
     SELECT 1 row in set (... sec)
 
 ::
@@ -147,13 +154,13 @@ Updating partitioned tables has one big limitation.
 would involve moving all affected documents which is no
 atomic operation and could lead to inconsistent state::
 
-    cr> UPDATE parted_table set content='now panic!', day = '2014-04-07'
+    cr> UPDATE parted_table set content = 'now panic!', day = '2014-04-07'
     ... WHERE id = 1;
     SQLActionException[Updating a partitioned-by column is currently not supported]
 
 ::
 
-    cr> UPDATE parted_table set content='now panic!'
+    cr> UPDATE parted_table set content = 'now panic!'
     ... WHERE id = 2;
     UPDATE OK, 1 row affected (... sec)
 
@@ -164,12 +171,12 @@ atomic operation and could lead to inconsistent state::
 
 ::
 
-    cr> SELECT * from parted_table WHERE id=2;
-    +------------+---------------+----+------------------------------------------+-------+
-    | content    | day           | id | title                                    | width |
-    +------------+---------------+----+------------------------------------------+-------+
-    | now panic! | 1396915200000 | 2  | Time is an illusion, lunchtime doubly so | 0.7   |
-    +------------+---------------+----+------------------------------------------+-------+
+    cr> SELECT * from parted_table WHERE id = 2;
+    +------------+---------------+----+----------------------------------...-+-------+
+    | content    | day           | id | title                                | width |
+    +------------+---------------+----+----------------------------------...-+-------+
+    | now panic! | 1396915200000 | 2  | Time is an illusion, lunchtime do... | 0.7   |
+    +------------+---------------+----+----------------------------------...-+-------+
     SELECT 1 row in set (... sec)
 
 Delete
@@ -179,7 +186,7 @@ Deleting with a where clause matching all rows of a partition
 will drop the whole partition instead of deleting every
 matching document, which is a lot faster::
 
-    cr> delete from parted_table where day=1396915200000;
+    cr> delete from parted_table where day = 1396915200000;
     DELETE OK, -1 rows affected (... sec)
 
 ::

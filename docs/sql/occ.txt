@@ -81,7 +81,7 @@ Known Limitations
    error::
 
     cr> delete from locations where name = 'Aldebaran' and "_version" = 3;
-    SQLActionException["_version" column is only valid in the WHERE clause if the primary key column is also present]
+    SQLActionException["_version" column is only valid in the WHERE clau...]
 
 
 .. note::

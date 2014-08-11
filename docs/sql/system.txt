@@ -389,14 +389,22 @@ The table schema is as follows:
 
 For example, you can query shards like this::
 
-  cr> select schema_name, table_name, id, partition_ident, num_docs, primary,
-  ...   relocating_node, state, size, orphan_partition
+  cr> select schema_name as schema,
+  ...   table_name as t,
+  ...   id,
+  ...   partition_ident as p_i,
+  ...   num_docs as docs,
+  ...   primary,
+  ...   relocating_node as r_n,
+  ...   state,
+  ...   size,
+  ...   orphan_partition as o_p
   ... from sys.shards where table_name = 'locations' and id = 1;
-  +-------------+------------+----+-----------------+----------+---------+-----------------+---------+------+------------------+
-  | schema_name | table_name | id | partition_ident | num_docs | primary | relocating_node |  state  | size | orphan_partition |
-  +-------------+------------+----+-----------------+----------+---------+-----------------+---------+------+------------------+
-  | doc         | locations  |  1 |                 |        6 | TRUE    | NULL            | STARTED | ...  | FALSE            |
-  +-------------+------------+----+-----------------+----------+---------+-----------------+---------+------+------------------+
+  +--------+-----------+----+-----+------+---------+------+---------+------+-------+
+  | schema | t         | id | p_i | docs | primary | r_n  |  state  | size | o_p   |
+  +--------+-----------+----+-----+------+---------+------+---------+------+-------+
+  | doc    | locations |  1 |     |    6 | TRUE    | NULL | STARTED | ...  | FALSE |
+  +--------+-----------+----+-----+------+---------+------+---------+------+-------+
   SELECT 1 row in set (... sec)
 
 
@@ -422,12 +430,12 @@ Jobs
 The ``sys.jobs`` table provides an overview over all jobs that are currently
 being executed in the cluster::
 
-    cr> select * from sys.jobs where stmt like 'select * from sys.jobs%';
-    +----...-+------------------------------------------------------------------+-...---------+
-    | id     | stmt                                                             |     started |
-    +----...-+------------------------------------------------------------------+-...---------+
-    | ...    | select * from sys.jobs where stmt like 'select * from sys.jobs%' | ...         |
-    +----...-+------------------------------------------------------------------+-...---------+
+    cr> select stmt, started from sys.jobs where stmt like 'sel% from %jobs%';
+    +-----------------------------------------------------------------------+-...-----+
+    | stmt                                                                  | started |
+    +-----------------------------------------------------------------------+-...-----+
+    | select stmt, started from sys.jobs where stmt like 'sel% from %jobs%' | ...     |
+    +-----------------------------------------------------------------------+-...-----+
     SELECT 1 row in set (... sec)
 
 Each request sent to crate that queries data or manipulates data is considered
@@ -467,12 +475,12 @@ table. The ``_log`` tables are bound in size and once a table has reached its
 limit old entries will be discarded as new entries are added::
 
     cr> select * from sys.jobs_log order by ended desc limit 2;
-    +-----...+------------------------...-+-...--------+-...------+-------+
-    | id     | stmt                       |    started |    ended | error |
-    +-----...+------------------------...-+-...--------+-...------+-------+
-    | ...    | select sys.nodes.name, ... | ...        | ...      |  NULL |
-    | ...    | select * from sys.jobs ... | ...        | ...      |  NULL |
-    +-----...+------------------------...-+-...--------+-...------+-------+
+    +-...+------------------------------------...-+-...-----+-...---+-------+
+    | id | stmt                                   | started | ended | error |
+    +-...+------------------------------------...-+-...-----+-...---+-------+
+    | ...| select sys.nodes.name, ...             | ...     | ...   |  NULL |
+    | ...| select stmt, started from sys.jobs ... | ...     | ...   |  NULL |
+    +-...+------------------------------------...-+-...-----+-...---+-------+
     SELECT 2 rows in set (... sec)
 
 See :ref:`ref-set` on how to change the size of the tables.

@@ -29,13 +29,12 @@ A simple select::
 If the '*' operator is used, all properties defined in the schema are returned
 for each object::
 
-    cr> select date, description, kind, name, position, race
-    ... from locations order by id limit 1 offset 1;
-    +--------------+--------------...---+--------+-------------------+----------+------+
-    | date         | description        | kind   | name              | position | race |
-    +--------------+--------------...---+--------+-------------------+----------+------+
-    | 308534400000 | Motivated by ...s. | Planet | Arkintoofle Minor | 3        | NULL |
-    +--------------+--------------...---+--------+-------------------+----------+------+
+    cr> select * from locations order by id limit 1 offset 1;
+    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------+
+    | date   | description      | id | information | kind | name | position | race |
+    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------+
+    | 308... | Motivated by ... | 10 |        NULL | P... | A... | 3        | NULL |
+    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------+
     SELECT 1 row in set (... sec)
 
 Aliases can be used to change the output name of the columns. The table name
@@ -73,11 +72,11 @@ Where Clause
 A simple where clause example using an equality operator::
 
     cr> select description from locations where id = '1';
-    +-----------------------------------------...--------------------------------------+
-    | description                                                                      |
-    +-----------------------------------------...--------------------------------------+
-    | Relative to life on NowWhat, living on a... a factor of about seventeen million. |
-    +-----------------------------------------...--------------------------------------+
+    +---------------------------------------...--------------------------------------+
+    | description                                                                    |
+    +---------------------------------------...--------------------------------------+
+    | Relative to life on NowWhat, living on... a factor of about seventeen million. |
+    +---------------------------------------...--------------------------------------+
     SELECT 1 row in set (... sec)
 
 Usual comparison operators to be used in filters are available for
@@ -391,17 +390,30 @@ using subscript expressions, you can access fields of object arrays.
 As an object array is no object, you won't get the value for a single field, but
 an array of all the values of that field for all objects in that object array.
 
-Example::
+Examples::
 
-    cr> select name, information, information['population'] from locations
+    cr> select name, information['population'] from locations
     ... where information['population'] is not null
     ... order by name;
-    +-------------------+---------------------------------------------------------------------------------------+---------------------------+
-    | name              | information                                                                           | information['population'] |
-    +-------------------+---------------------------------------------------------------------------------------+---------------------------+
-    | North West Ripple | [{"evolution_level": 4, "population": 12}, {"evolution_level": 42, "population": 42}] | [12, 42]                  |
-    | Outer Eastern Rim | [{"evolution_level": 2, "population": 5673745846}]                                    | [5673745846]              |
-    +-------------------+---------------------------------------------------------------------------------------+---------------------------+
+    +-------------------+---------------------------+
+    | name              | information['population'] |
+    +-------------------+---------------------------+
+    | North West Ripple | [12, 42]                  |
+    | Outer Eastern Rim | [5673745846]              |
+    +-------------------+---------------------------+
+    SELECT 2 rows in set (... sec)
+
+::
+
+    cr> select information from locations
+    ... where information['population'] is not null
+    ... order by name;
+    +----------------------------------------------------...-----------------------+
+    | information                                                                  |
+    +----------------------------------------------------...-----------------------+
+    | [{"evolution_level": 4, "population": 12}, {"evolu...": 42, "popul...": 42}] |
+    | [{"evolution_level": 2, "population": 5673745846}]                           |
+    +---------------------------------------------------...------------------------+
     SELECT 2 rows in set (... sec)
 
 ::
@@ -506,7 +518,7 @@ Some Examples::
 
 ::
 
-    cr> select count(*) from locations where kind='Planet';
+    cr> select count(*) from locations where kind = 'Planet';
     +----------+
     | count(*) |
     +----------+
