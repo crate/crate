@@ -55,7 +55,7 @@ public class BulkInsertBenchmark extends BenchmarkBase {
             "(\"countryName\", \"countryCode\", \"isoNumeric\", \"east\", \"north\", \"west\", \"south\"," +
             "\"isoAlpha3\", \"currencyCode\", \"continent\", \"continentName\", \"languages\", \"fipsCode\", \"capital\", \"population\") " +
             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-    public static String BULK_INSERT_SQL_STMT = "INSERT INTO countries " +
+    public static final String BULK_INSERT_SQL_STMT = "INSERT INTO countries " +
             "(\"countryName\", \"countryCode\", \"isoNumeric\", \"east\", \"north\", \"west\", \"south\"," +
             "\"isoAlpha3\", \"currencyCode\", \"continent\", \"continentName\", \"languages\", \"fipsCode\", \"capital\", \"population\") " +
             "VALUES " + Joiner.on(",").join(Collections.nCopies(ROWS, "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"));
@@ -69,6 +69,14 @@ public class BulkInsertBenchmark extends BenchmarkBase {
             }
         }
         return new SQLRequest(BULK_INSERT_SQL_STMT, bulkObjects);
+    }
+
+    private SQLRequest getBulkArgsRequest() {
+        Object[][] bulkArgs = new Object[ROWS][];
+        for (int i = 0; i < ROWS; i++) {
+            bulkArgs[i] = getRandomObject();
+        }
+        return new SQLRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
     }
 
     private Object[] getRandomObject() {
@@ -95,6 +103,12 @@ public class BulkInsertBenchmark extends BenchmarkBase {
     @Test
     public void testBulkInsert() {
         getClient(false).execute(SQLAction.INSTANCE, getBulkRequest()).actionGet();
+    }
+
+    @Test
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    public void testBulkInsertWithBulkArgs() throws Exception {
+        getClient(false).execute(SQLAction.INSTANCE, getBulkArgsRequest()).actionGet();
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
