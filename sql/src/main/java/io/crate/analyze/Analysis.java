@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
@@ -66,13 +65,16 @@ public abstract class Analysis {
         return outputNames;
     }
 
+    public Analyzer.ParameterContext parameterContext() {
+        return parameterContext;
+    }
+
     public Object[] parameters() {
-        return parameterContext.parameters;
+        return parameterContext.parameters();
     }
 
     public Object parameterAt(int idx) {
-        Preconditions.checkElementIndex(idx, parameterContext.parameters.length);
-        return parameterContext.parameters[idx];
+        return parameterContext.parameters()[idx];
     }
 
     public <C, R> R accept(AnalysisVisitor<C,R> analysisVisitor, C context) {
@@ -82,4 +84,5 @@ public abstract class Analysis {
     public boolean isData() {
         return true;
     }
+
 }
