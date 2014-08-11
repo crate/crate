@@ -107,7 +107,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         try {
             Statement statement = statementCache.get(request.stmt());
-            Analysis analysis = analyzer.analyze(statement, request.args());
+            Analysis analysis = analyzer.analyze(statement, request.args(), request.bulkArgs());
 
             if (analysis.isData()) {
                 processWithPlanner(analysis, request, listener);
