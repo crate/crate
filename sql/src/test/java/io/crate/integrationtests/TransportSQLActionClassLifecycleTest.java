@@ -113,7 +113,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response = executor.exec("select _doc from characters order by name desc limit 1");
         assertArrayEquals(new String[]{"_doc"}, response.cols());
         assertEquals(
-                "{details={job=Mathematician}, age=32, name=Trillian, " +
+                "{details={job=Mathematician}, name=Trillian, age=32, " +
                         "birthdate=276912000000, gender=female, race=Human}\n",
                 TestingHelpers.printedTable(response.rows()));
     }
@@ -122,9 +122,8 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testSelectRaw() throws Exception {
         SQLResponse response = executor.exec("select _raw from characters order by name desc limit 1");
         assertEquals(
-                "{\"birthdate\":276912000000,\"gender\":\"female\"," +
-                        "\"details\":{\"job\":\"Mathematician\"}," +
-                        "\"race\":\"Human\",\"name\":\"Trillian\",\"age\":32}\n",
+                "{\"race\":\"Human\",\"gender\":\"female\",\"age\":32,\"birthdate\":276912000000," +
+                        "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}\n",
                 TestingHelpers.printedTable(response.rows()));
     }
 
@@ -133,9 +132,8 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response = executor.exec("select name, _raw from characters " +
                 "group by _raw, name order by name desc limit 1");
         assertEquals(
-                "Trillian| {\"birthdate\":276912000000,\"gender\":\"female\"," +
-                        "\"details\":{\"job\":\"Mathematician\"}," +
-                        "\"race\":\"Human\",\"name\":\"Trillian\",\"age\":32}\n",
+                "Trillian| {\"race\":\"Human\",\"gender\":\"female\",\"age\":32,\"birthdate\":276912000000," +
+                        "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}\n",
                 TestingHelpers.printedTable(response.rows()));
     }
 

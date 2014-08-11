@@ -39,6 +39,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.xcontent.XContentHelper;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -112,9 +113,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(DataTypes.STRING, analysis.columns().get(1).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
-        Map<String, Object> values = analysis.sourceMaps().get(0);
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
         assertThat(values.size(), is(2));
-        assertThat((Long)values.get("id"), is(1L));
+        assertThat((Integer) values.get("id"), is(1));
         assertThat((String)values.get("name"), is("Trillian"));
     }
 
@@ -131,10 +132,10 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(DataTypes.LONG, analysis.columns().get(1).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
-        Map<String, Object> values = analysis.sourceMaps().get(0);
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
         assertThat(values.size(), is(2));
         assertThat((String)values.get("name"), is("Trillian"));
-        assertThat((Long)values.get("id"), is(2L));
+        assertThat((Integer) values.get("id"), is(2));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -178,8 +179,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
         assertEquals(DataTypes.BOOLEAN, analysis.columns().get(2).valueType());
 
-        Map<String, Object> values = analysis.sourceMaps().get(0);
-        assertThat((Long) values.get("id"), is(1L));
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
+        assertThat((Integer) values.get("id"), is(1));
         assertThat((Boolean)values.get("awesome"), is(true));
 
     }
@@ -197,9 +198,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(DataTypes.STRING, analysis.columns().get(1).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
-        Map<String, Object> values = analysis.sourceMaps().get(0);
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
         assertThat(values.size(), is(2));
-        assertThat((Long)values.get("id"), is(1L)); // normalized/evaluated
+        assertThat((Integer) values.get("id"), is(1)); // normalized/evaluated
         assertThat((String)values.get("name"), is("Trillian"));
     }
 
@@ -219,10 +220,10 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(DataTypes.STRING, analysis.columns().get(2).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
-        Map<String, Object> values = analysis.sourceMaps().get(0);
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
         assertThat(values.size(), is(3));
-        assertThat((Long)values.get("id"), is(1L));
-        assertThat((Long)values.get("other_id"), is(1L));
+        assertThat((Integer) values.get("id"), is(1));
+        assertThat((Integer) values.get("other_id"), is(1));
         assertThat((String)values.get("name"), is("Trillian"));
     }
 
@@ -236,9 +237,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(DataTypes.LONG, analysis.columns().get(0).valueType());
 
         assertThat(analysis.sourceMaps().size(), is(1));
-        Map<String, Object> values = analysis.sourceMaps().get(0);
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
         assertThat(values.size(), is(1));
-        assertThat((Long) values.get("id"), is(1L));
+        assertThat((Integer) values.get("id"), is(1));
     }
 
     @Test (expected = UnsupportedOperationException.class)
@@ -266,8 +267,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     public void testNullLiterals() throws Exception {
         InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
                 new Object[]{1, null, null, null});
-        Map<String, Object> values = analysis.sourceMaps().get(0);
-        assertThat((Long) values.get("id"), is(1L));
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
+        assertThat((Integer) values.get("id"), is(1));
         assertNull(values.get("name"));
         assertNull(values.get("awesome"));
         assertNull(values.get("details"));
@@ -279,7 +280,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{1, null, null, new HashMap<String, Object>(){{
                     put("new_col", "new value");
                 }}});
-        Map<String, Object> values = analysis.sourceMaps().get(0);
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
         assertThat(values.get("details"), instanceOf(Map.class));
     }
 
@@ -307,9 +308,10 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                         new HashMap<String, Object>() {{ put("name", "Prosser"); }}
                     }
                 });
-        assertThat((Long)analysis.sourceMaps().get(0).get("id"), is(0L));
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
+        assertThat((Integer) values.get("id"), is(0));
         assertArrayEquals(
-                (Object[]) analysis.sourceMaps().get(0).get("friends"),
+                ((List) values.get("friends")).toArray(),
                 new Object[]{
                         new MapBuilder<String, Object>().put("name", "Jeltz").map(),
                         new MapBuilder<String, Object>().put("name", "Prosser").map(),
@@ -368,22 +370,23 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                         "           {\"name\"='fancy', \"metadata\"=[{\"id\"='2'}, {\"id\"=3}]}" +
                         "         ])");
         assertThat(analysis.sourceMaps().size(), is(1));
-        Object[] arrayValue = (Object[])analysis.sourceMaps().get(0).get("tags");
-        assertThat(arrayValue.length, is(2));
-        assertThat(arrayValue[0], instanceOf(Map.class));
-        assertThat((String)((Map<String, Object>)arrayValue[0]).get("name"), is("cool"));
-        assertThat((String)((Map<String, Object>)arrayValue[1]).get("name"), is("fancy"));
-        assertThat(Arrays.toString((Object[])((Map<String, Object>)arrayValue[0]).get("metadata")), is("[{id=0}, {id=1}]"));
-        assertThat(Arrays.toString((Object[]) ((Map<String, Object>) arrayValue[1]).get("metadata")), is("[{id=2}, {id=3}]"));
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
+        List arrayValue = (List)values.get("tags");
+        assertThat(arrayValue.size(), is(2));
+        assertThat(arrayValue.get(0), instanceOf(Map.class));
+        assertThat((String)((Map)arrayValue.get(0)).get("name"), is("cool"));
+        assertThat((String)((Map)arrayValue.get(1)).get("name"), is("fancy"));
+        assertThat(Arrays.toString(((List)((Map)arrayValue.get(0)).get("metadata")).toArray()), is("[{id=0}, {id=1}]"));
+        assertThat(Arrays.toString(((List)((Map)arrayValue.get(1)).get("metadata")).toArray()), is("[{id=2}, {id=3}]"));
     }
 
     @Test
     public void testInsertEmptyObjectArrayParameter() throws Exception {
         InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze("insert into users (id, friends) values(?, ?)",
                 new Object[]{ 0, new Map[0] });
-        assertThat((Long)analysis.sourceMaps().get(0).get("id"), is(0L));
-        assertThat(((Object[]) analysis.sourceMaps().get(0).get("friends")).length, is(0));
-
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
+        assertThat((Integer)values.get("id"), is(0));
+        assertThat(((List) values.get("friends")).size(), is(0));
     }
 
     @Test (expected = IllegalArgumentException.class)
@@ -435,23 +438,26 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze(
                 "insert into users (id, name, awesome) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{ 99, "Marvin", true, 42, "Deep Thought", false });
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
         assertThat(analysis.sourceMaps().size(), is(2));
 
-        assertThat((Long)analysis.sourceMaps().get(0).get("id"), is(99L));
-        assertThat((String)analysis.sourceMaps().get(0).get("name"), is("Marvin"));
-        assertThat((Boolean)analysis.sourceMaps().get(0).get("awesome"), is(true));
+        assertThat((Integer) values.get("id"), is(99));
+        assertThat((String) values.get("name"), is("Marvin"));
+        assertThat((Boolean) values.get("awesome"), is(true));
 
-        assertThat((Long)analysis.sourceMaps().get(1).get("id"), is(42l));
-        assertThat((String)analysis.sourceMaps().get(1).get("name"), is("Deep Thought"));
-        assertThat((Boolean)analysis.sourceMaps().get(1).get("awesome"), is(false));
+        values = XContentHelper.convertToMap(analysis.sourceMaps().get(1), false).v2();
+        assertThat((Integer) values.get("id"), is(42));
+        assertThat((String) values.get("name"), is("Deep Thought"));
+        assertThat((Boolean) values.get("awesome"), is(false));
     }
 
     @Test
     public void testInsertPartitionedTable() throws Exception {
         InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into parted (id, name, date) " +
                 "values (?, ?, ?)", new Object[]{0, "Trillian", 0L});
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
         assertThat(analysis.sourceMaps().size(), is(1));
-        assertThat(analysis.sourceMaps().get(0).size(), is(2));
+        assertThat(values.size(), is(2));
         assertThat(analysis.columns().size(), is(3));
         assertThat(analysis.partitionMaps().size(), is(1));
         assertThat(analysis.partitionMaps().get(0), hasEntry("date", "0"));
@@ -461,8 +467,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     public void testInsertIntoPartitionedTableOnlyPartitionColumns() throws Exception {
         InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into parted (date) " +
                 "values (?)", new Object[]{0L});
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
         assertThat(analysis.sourceMaps().size(), is(1));
-        assertThat(analysis.sourceMaps().get(0).size(), is(0));
+        assertThat(values.size(), is(0));
         assertThat(analysis.columns().size(), is(1));
         assertThat(analysis.partitionMaps().size(), is(1));
         assertThat(analysis.partitionMaps().get(0), hasEntry("date", "0"));
@@ -485,12 +492,12 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 }}).stringValue()
         ));
         assertThat(analysis.sourceMaps().size(), is(3));
-        assertThat(analysis.sourceMaps().get(0),
-                allOf(hasEntry("name", (Object) "Trillian"), hasEntry("id", (Object) 1)));
-        assertThat(analysis.sourceMaps().get(1),
-                allOf(hasEntry("name", (Object) "Ford"), hasEntry("id", (Object) 2)));
-        assertThat(analysis.sourceMaps().get(2),
-                allOf(hasEntry("name", (Object) "Zaphod"), hasEntry("id", (Object) 3)));
+        Map<String, Object> values = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
+        assertThat(values, allOf(hasEntry("name", (Object) "Trillian"), hasEntry("id", (Object) 1)));
+        values = XContentHelper.convertToMap(analysis.sourceMaps().get(1), false).v2();
+        assertThat(values, allOf(hasEntry("name", (Object) "Ford"), hasEntry("id", (Object) 2)));
+        values = XContentHelper.convertToMap(analysis.sourceMaps().get(2), false).v2();
+        assertThat(values, allOf(hasEntry("name", (Object) "Zaphod"), hasEntry("id", (Object) 3)));
 
         assertThat(analysis.partitionMaps().size(), is(3));
         assertThat(analysis.partitionMaps().get(0),
@@ -527,19 +534,19 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithBulkArgs() throws Exception {
-        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze(
+        InsertFromValuesAnalysis analysis;
+        analysis = (InsertFromValuesAnalysis) analyze(
                 "insert into users (id, name) values (?, ?)",
                 new Object[][]{
                         new Object[]{1, "foo"},
                         new Object[]{2, "bar"}
-        });
+                });
         assertThat(analysis.sourceMaps().size(), is(2));
+        Map<String, Object> args1 = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
+        assertThat((Integer) args1.get("id"), is(1));
 
-        Map<String, Object> args1 = analysis.sourceMaps().get(0);
-        assertThat((Long) args1.get("id"), is(1L));
-
-        Map<String, Object> args2 = analysis.sourceMaps().get(1);
-        assertThat((Long) args2.get("id"), is(2L));
+        Map<String, Object> args2 = XContentHelper.convertToMap(analysis.sourceMaps().get(1), false).v2();
+        assertThat((Integer) args2.get("id"), is(2));
     }
 
     @Test
