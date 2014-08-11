@@ -73,10 +73,6 @@ public abstract class Analysis {
         return parameterContext.parameters();
     }
 
-    public Object parameterAt(int idx) {
-        return parameterContext.parameters()[idx];
-    }
-
     public <C, R> R accept(AnalysisVisitor<C,R> analysisVisitor, C context) {
         return analysisVisitor.visitAnalysis(this, context);
     }

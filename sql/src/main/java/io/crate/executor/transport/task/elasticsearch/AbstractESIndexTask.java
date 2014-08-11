@@ -26,8 +26,7 @@ import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.Nullable;
-
-import java.util.Map;
+import org.elasticsearch.common.bytes.BytesReference;
 
 public abstract class AbstractESIndexTask extends AbstractChainedTask<Object[][]> {
 
@@ -39,12 +38,12 @@ public abstract class AbstractESIndexTask extends AbstractChainedTask<Object[][]
     }
 
     protected IndexRequest buildIndexRequest(String index,
-                                             Map<String, Object> sourceMap,
+                                             BytesReference source,
                                              String id,
                                              @Nullable String routingValue) {
         IndexRequest request = new IndexRequest(index, Constants.DEFAULT_MAPPING_TYPE);
         request.create(true);
-        request.source(sourceMap);
+        request.source(source, false);
         request.id(id);
         request.routing(routingValue);
 

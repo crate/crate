@@ -22,10 +22,10 @@
 package io.crate.planner.node.dml;
 
 import io.crate.planner.node.PlanVisitor;
+import org.elasticsearch.common.bytes.BytesReference;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 
 /**
  * plan node for 1 or more documents to index via ESIndexTask
@@ -35,18 +35,18 @@ public class ESIndexNode extends DMLPlanNode {
 
     private String[] indices;
 
-    private List<Map<String, Object>> sourceMaps;
+    private List<BytesReference> sources;
     private List<String> ids;
     private List<String> routingValues;
 
     public ESIndexNode(String[] indices,
-                       List<Map<String, Object>> sourceMaps,
+                       List<BytesReference> sources,
                        List<String> ids,
                        @Nullable List<String> routingValues) {
         assert indices != null : "no indices";
-        assert indices.length == 1 || indices.length == sourceMaps.size() : "unsupported number of indices";
+        assert indices.length == 1 || indices.length == sources.size() : "unsupported number of indices";
         this.indices = indices;
-        this.sourceMaps = sourceMaps;
+        this.sources = sources;
         this.ids = ids;
         this.routingValues = routingValues;
     }
@@ -55,8 +55,8 @@ public class ESIndexNode extends DMLPlanNode {
         return indices;
     }
 
-    public List<Map<String, Object>> sourceMaps() {
-        return sourceMaps;
+    public List<BytesReference> sourceMaps() {
+        return sources;
     }
 
     public List<String> ids() {
