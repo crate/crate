@@ -32,24 +32,34 @@ import java.util.Arrays;
 
 public class SQLRequest extends ActionRequest<SQLRequest> {
 
+    private final static Object[] EMPTY_ARGS = new Object[0];
+    private final static Object[][] EMPTY_BULK_ARGS = new Object[0][];
 
     private String stmt;
     private Object[] args;
+    private Object[][] bulkArgs;
     private long creationTime;
     private boolean includeTypesOnResponse = false;
+
+    public SQLRequest(String stmt, Object[][] bulkArgs) {
+        this.stmt = stmt;
+        this.args = EMPTY_ARGS;
+        this.bulkArgs = Objects.firstNonNull(bulkArgs, EMPTY_BULK_ARGS);
+    }
 
     public SQLRequest(String stmt, Object[] args) {
         this.stmt = stmt;
         args(args);
+        this.bulkArgs = EMPTY_BULK_ARGS;
         this.creationTime = System.currentTimeMillis();
     }
 
     public SQLRequest(String stmt) {
-        this(stmt, new Object[0]);
+        this(stmt, EMPTY_ARGS);
     }
 
     public SQLRequest() {
-        this(null, new Object[0]);
+        this(null, EMPTY_ARGS);
     }
 
     public String stmt() {
@@ -60,12 +70,12 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         return args;
     }
 
+    public Object[][] bulkArgs() {
+        return bulkArgs;
+    }
+
     public void args(Object[] args) {
-        if (args == null) {
-            this.args = new Object[0];
-        } else {
-            this.args = args;
-        }
+        this.args = Objects.firstNonNull(args, EMPTY_ARGS);
     }
 
     public SQLRequest stmt(String stmt){
@@ -104,6 +114,19 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         for (int i = 0; i < length; i++) {
             args[i] = in.readGenericValue();
         }
+        int bulkArgsLength = in.readVInt();
+        if (bulkArgsLength == 0) {
+            bulkArgs = EMPTY_BULK_ARGS;
+        } else {
+            bulkArgs = new Object[bulkArgsLength][];
+            for (int i = 0; i < bulkArgsLength; i++) {
+                int bulkArgLength = in.readVInt();
+                bulkArgs[i] = new Object[bulkArgLength];
+                for (int j = 0; j < bulkArgLength; j++) {
+                    bulkArgs[i][j] = in.readGenericValue();
+                }
+            }
+        }
         creationTime = in.readVLong();
         includeTypesOnResponse = in.readBoolean();
     }
@@ -115,6 +138,15 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         out.writeVInt(args.length);
         for (int i = 0; i < args.length; i++) {
             out.writeGenericValue(args[i]);
+        }
+        out.writeVInt(bulkArgs.length);
+        for (int i = 0, bulkArgsLength = bulkArgs.length; i < bulkArgsLength; i++) {
+            Object[] bulkArg = bulkArgs[i];
+            out.writeVInt(bulkArg.length);
+            for (int i1 = 0, bulkArgLength = bulkArg.length; i1 < bulkArgLength; i1++) {
+                Object o = bulkArg[i1];
+                out.writeGenericValue(o);
+            }
         }
         out.writeVLong(creationTime);
         out.writeBoolean(includeTypesOnResponse);
