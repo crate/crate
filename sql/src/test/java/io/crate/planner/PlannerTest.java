@@ -44,6 +44,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.xcontent.XContentHelper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -564,12 +565,13 @@ public class PlannerTest {
 
         ESIndexNode indexNode = (ESIndexNode) planNode;
         assertThat(indexNode.sourceMaps().size(), is(1));
-        assertThat(indexNode.sourceMaps().get(0).size(), is(2));
+        Map<String, Object> values = XContentHelper.convertToMap(indexNode.sourceMaps().get(0), false).v2();
+        assertThat(values.size(), is(2));
 
-        assertThat(indexNode.sourceMaps().get(0).keySet(), contains("id", "name"));
+        assertThat(values.keySet(), contains("id", "name"));
 
-        assertThat((Long) indexNode.sourceMaps().get(0).get("id"), is(42L));
-        assertThat((String) indexNode.sourceMaps().get(0).get("name"), is("Deep Thought"));
+        assertThat((Integer) values.get("id"), is(42));
+        assertThat((String) values.get("name"), is("Deep Thought"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.LONG, indexNode.outputTypes().get(0));
@@ -586,15 +588,18 @@ public class PlannerTest {
 
         ESIndexNode indexNode = (ESIndexNode) planNode;
 
+        Map<String, Object> values0 = XContentHelper.convertToMap(indexNode.sourceMaps().get(0), false).v2();
         assertThat(indexNode.sourceMaps().size(), is(2));
-        assertThat(indexNode.sourceMaps().get(0).size(), is(2));
-        assertThat(indexNode.sourceMaps().get(1).size(), is(2));
+        assertThat(values0.size(), is(2));
 
-        assertThat((Long)indexNode.sourceMaps().get(0).get("id"), is(42L));
-        assertThat((String)indexNode.sourceMaps().get(0).get("name"), is("Deep Thought"));
+        Map<String, Object> values1 = XContentHelper.convertToMap(indexNode.sourceMaps().get(1), false).v2();
+        assertThat(values1.size(), is(2));
 
-        assertThat((Long)indexNode.sourceMaps().get(1).get("id"), is(99L));
-        assertThat((String)indexNode.sourceMaps().get(1).get("name"), is("Marvin"));
+        assertThat((Integer) values0.get("id"), is(42));
+        assertThat((String) values0.get("name"), is("Deep Thought"));
+
+        assertThat((Integer) values1.get("id"), is(99));
+        assertThat((String) values1.get("name"), is("Marvin"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.LONG, indexNode.outputTypes().get(0));

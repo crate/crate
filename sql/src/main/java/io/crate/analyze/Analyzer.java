@@ -24,6 +24,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
+import io.crate.planner.symbol.*;
 import io.crate.sql.tree.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -117,15 +118,28 @@ public class Analyzer {
             }
         }
 
-        public void setIdx(int i) {
+        private boolean hasBulkParams() {
+            return bulkParameters.length > 0;
+        }
+
+        public void setBulkIdx(int i) {
             this.currentIdx = i;
         }
 
         public Object[] parameters() {
-            if (bulkParameters.length > 0) {
+            if (hasBulkParams()) {
                 return bulkParameters[currentIdx];
             }
             return parameters;
+        }
+
+        public Symbol getAsSymbol(int index) {
+            if (hasBulkParams()) {
+                // already did a type guess so it is possible to create a literal directly
+                return io.crate.planner.symbol.Literal.newLiteral(
+                        bulkTypes[index], bulkParameters[currentIdx][index]);
+            }
+            return new Parameter(parameters[index]);
         }
     }
 
