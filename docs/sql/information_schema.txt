@@ -52,7 +52,7 @@ This table can be queried to get a list of all available columns of all tables a
 definition like data type and ordinal position inside the table::
 
     cr> select * from information_schema.columns
-    ... where schema_name='doc' and table_name not like 'my_table%'
+    ... where schema_name = 'doc' and table_name not like 'my_table%'
     ... order by table_name asc, column_name asc;
     +-------------+-------------------+---------------------------------+------------------+--------------+
     | schema_name | table_name        | column_name                     | ordinal_position | data_type    |
@@ -84,7 +84,8 @@ definition like data type and ordinal position inside the table::
 You can even query this tables' own columns (attention: this might lead to infinite recursion of your mind, beware!)::
 
     cr> select column_name, data_type, ordinal_position from information_schema.columns
-    ... where schema_name = 'information_schema' and table_name = 'columns' order by ordinal_position asc;
+    ... where schema_name = 'information_schema'
+    ... and table_name = 'columns' order by ordinal_position asc;
     +------------------+-----------+------------------+
     | column_name      | data_type | ordinal_position |
     +------------------+-----------+------------------+
@@ -150,7 +151,8 @@ For further information see :ref:`sql_ddl_partitioned_by`.
 
 .. hide:
 
-    cr> create table a_partitioned_table (id int, content string) partitioned by (content);
+    cr> create table a_partitioned_table (id int, content string)
+    ... partitioned by (content);
     CREATE OK (... sec)
 
 ::

@@ -53,8 +53,8 @@ count(columnName)
 -----------------
 
 In contrast to the :ref:`aggregation-count-star` function
-the ``count`` function used with a column name as parameter will return the number of rows
-with a non-``NULL`` value in that column.
+the ``count`` function used with a column name as parameter will return the
+number of rows with a non-``NULL`` value in that column.
 
 Example::
 
@@ -76,7 +76,8 @@ The `count` aggregation function also supports the `distinct` keyword. This
 keyword changes the behaviour of the function so that it will only count the number
 of distinct values in this column that are not ``NULL``::
 
-    cr> select count(distinct kind), count(*), date from locations group by date
+    cr> select count(distinct kind), count(*), date
+    ... from locations group by date
     ... order by count(distinct kind) desc, count(*) desc;
     +----------------------+----------+---------------+
     | count(DISTINCT kind) | count(*) | date          |
@@ -104,7 +105,10 @@ The ``min`` aggregation function returns the smallest value in a column that is 
 Its single argument is a column name and its return value is always of the type of that column.
 Example::
 
-    cr> select min(position), kind from locations where name not like 'North %' group by kind order by min(position) asc, kind asc;
+    cr> select min(position), kind
+    ... from locations
+    ... where name not like 'North %'
+    ... group by kind order by min(position) asc, kind asc;
     +---------------+-------------+
     | min(position) | kind        |
     +---------------+-------------+
@@ -129,7 +133,8 @@ It is allowed on numeric columns (``byte``, ``short``, ``integer``, ``long``, ``
 on ``timestamp`` and ``string`` columns. On ``string`` columns it will return the lexicographically
 smallest.::
 
-    cr> select min(name), kind from locations group by kind order by kind asc;
+    cr> select min(name), kind from locations
+    ... group by kind order by kind asc;
     +------------------------------------+-------------+
     | min(name)                          | kind        |
     +------------------------------------+-------------+
@@ -146,7 +151,8 @@ max
 It behaves exactly like ``min`` but returns the biggest value in a column that is not ``NULL``.
 Some Examples::
 
-    cr> select max(position), kind from locations group by kind order by kind desc;
+    cr> select max(position), kind from locations
+    ... group by kind order by kind desc;
     +---------------+-------------+
     | max(position) | kind        |
     +---------------+-------------+
@@ -168,7 +174,8 @@ Some Examples::
 
 ::
 
-    cr> select max(name), kind from locations group by kind order by max(name) desc;
+    cr> select max(name), kind from locations
+    ... group by kind order by max(name) desc;
     +-------------------+-------------+
     | max(name)         | kind        |
     +-------------------+-------------+
@@ -188,7 +195,8 @@ as a double value. Its single argument is the column name of a numeric column or
 
 ::
 
-    cr> select sum(position), kind from locations group by kind order by sum(position) asc;
+    cr> select sum(position), kind from locations
+    ... group by kind order by sum(position) asc;
     +---------------+-------------+
     | sum(position) | kind        |
     +---------------+-------------+
@@ -222,7 +230,8 @@ and timestamp columns as single argument. Using ``avg`` on other column types is
 
 Example::
 
-    cr> select avg(position), kind from locations group by kind order by kind;
+    cr> select avg(position), kind from locations
+    ... group by kind order by kind;
     +---------------+-------------+
     | avg(position) | kind        |
     +---------------+-------------+
