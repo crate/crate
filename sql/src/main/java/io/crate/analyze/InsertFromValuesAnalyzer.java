@@ -54,37 +54,48 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
 
     @Override
     public Symbol visitValuesList(ValuesList node, InsertFromValuesAnalysis context) {
-
-        List<BytesRef> primaryKeyValues = new ArrayList<>(context.table().primaryKey().size());
-        Map<String, Object> sourceMap = new HashMap<>(node.values().size());
-        String routingValue = null;
-
         if (node.values().size() != context.columns().size()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Invalid number of values: Got %d columns specified but %d values",
                     context.columns().size(), node.values().size()));
         }
-
         if (context.table().isPartitioned()) {
             context.newPartitionMap();
         }
+        int numPks = context.table().primaryKey().size();
+        int numValues = node.values().size();
+        if (context.parameterContext().bulkParameters.length > 0) {
+            for (int i = 0; i < context.parameterContext().bulkParameters.length; i++) {
+                context.parameterContext().setIdx(i);
+                addValues(node, context, numPks, numValues);
+            }
+        } else {
+            addValues(node, context, numPks, numValues);
+        }
+        return null;
+    }
+
+    private void addValues(ValuesList node,
+                           InsertFromValuesAnalysis context,
+                           int numPrimaryKeys,
+                           int numValues) {
+        List<BytesRef> primaryKeyValues = new ArrayList<>(numPrimaryKeys);
+        Map<String, Object> sourceMap = new HashMap<>(numValues);
 
         int i = 0;
+        String routingValue = null;
         for (Expression expression : node.values()) {
             // TODO: instead of doing a type guessing and then a conversion this could
             // be improved by using the dataType from the column Reference as a hint
             Symbol valuesSymbol = process(expression, context);
-
             // implicit type conversion
             Reference column = context.columns().get(i);
             final ColumnIdent columnIdent = column.info().ident().columnIdent();
-
             try {
                 valuesSymbol = context.normalizeInputForReference(valuesSymbol, column);
             } catch (IllegalArgumentException|UnsupportedOperationException e) {
                 throw new ColumnValidationException(column.info().ident().columnIdent().fqn(), e);
             }
-
             try {
                 Object value = ((io.crate.operation.Input)valuesSymbol).value();
                 if (value instanceof BytesRef) {
@@ -123,13 +134,10 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
                 throw new ColumnValidationException(columnIdent.name(),
                         String.format("invalid value '%s' in insert statement", valuesSymbol.toString()));
             }
-
             i++;
         }
         context.sourceMaps().add(sourceMap);
         context.addIdAndRouting(primaryKeyValues, routingValue);
-
-        return null;
     }
 
     private void addPrimaryKeyValue(int index, Object value, List<BytesRef> primaryKeyValues) {
