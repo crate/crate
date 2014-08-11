@@ -46,8 +46,8 @@ public class SetAnalysis extends Analysis {
     private Settings settings;
     private boolean persistent = false;
 
-    protected SetAnalysis(Object[] parameters) {
-        super(parameters);
+    protected SetAnalysis(Analyzer.ParameterContext parameterContext) {
+        super(parameterContext);
     }
 
     public Settings settings() {

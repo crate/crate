@@ -56,8 +56,8 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     }
 
     public SelectAnalysis(ReferenceInfos referenceInfos, Functions functions,
-                          Object[] parameters, ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameters, referenceResolver);
+                          Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
+        super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 
     public void limit(Integer limit) {

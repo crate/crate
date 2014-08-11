@@ -48,8 +48,9 @@ public class CreateAnalyzerAnalysis extends AbstractDDLAnalysis {
     private Map<String,Settings> charFilters = new HashMap<>();
     private Map<String, Settings> tokenFilters = new HashMap<>();
 
-    public CreateAnalyzerAnalysis(FulltextAnalyzerResolver fulltextAnalyzerResolver, Object[] params) {
-        super(params);
+    public CreateAnalyzerAnalysis(FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                  Analyzer.ParameterContext parameterContext) {
+        super(parameterContext);
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
