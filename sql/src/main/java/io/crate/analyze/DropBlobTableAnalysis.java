@@ -34,8 +34,8 @@ public class DropBlobTableAnalysis extends AbstractDDLAnalysis {
     private TableInfo tableInfo;
     private SchemaInfo schemaInfo;
 
-    protected DropBlobTableAnalysis(Object[] parameters, ReferenceInfos referenceInfos) {
-        super(parameters);
+    protected DropBlobTableAnalysis(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
+        super(parameterContext);
         this.referenceInfos = referenceInfos;
     }
 

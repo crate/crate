@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.analyze.AnalyzedTableElements;
+import io.crate.analyze.Analyzer;
 import io.crate.analyze.CreateTableAnalysis;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.metadata.*;
@@ -645,7 +646,7 @@ public class DocIndexMetaDataTest {
                 new ReferenceInfos(
                         ImmutableMap.<String, SchemaInfo>of("doc", new DocSchemaInfo(clusterService, mock(TransportPutIndexTemplateAction.class)))),
                 new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
-                new Object[0]);
+                new Analyzer.ParameterContext(new Object[0], new Object[0][]));
         analysis.analyzedTableElements(new AnalyzedTableElements());
 
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder()

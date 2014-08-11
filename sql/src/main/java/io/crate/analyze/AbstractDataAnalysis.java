@@ -79,10 +79,11 @@ public abstract class AbstractDataAnalysis extends Analysis {
     protected boolean hasSysExpressions = false;
     protected boolean sysExpressionsAllowed = false;
 
-    public AbstractDataAnalysis(ReferenceInfos referenceInfos, Functions functions,
-                                Object[] parameters,
+    public AbstractDataAnalysis(ReferenceInfos referenceInfos,
+                                Functions functions,
+                                Analyzer.ParameterContext parameterContext,
                                 ReferenceResolver referenceResolver) {
-        super(parameters);
+        super(parameterContext);
         this.referenceInfos = referenceInfos;
         this.functions = functions;
         this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);

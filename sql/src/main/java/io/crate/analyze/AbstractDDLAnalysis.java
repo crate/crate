@@ -29,8 +29,8 @@ public abstract class AbstractDDLAnalysis extends Analysis {
 
     protected TableIdent tableIdent;
 
-    protected AbstractDDLAnalysis(Object[] parameters) {
-        super(parameters);
+    protected AbstractDDLAnalysis(Analyzer.ParameterContext parameterContext) {
+        super(parameterContext);
     }
 
     @Override
@@ -64,5 +64,4 @@ public abstract class AbstractDDLAnalysis extends Analysis {
         }
         return true;
     }
-
 }

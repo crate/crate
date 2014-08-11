@@ -25,11 +25,18 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.sql.tree.*;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
+
+import java.util.Locale;
 
 public class Analyzer {
 
     private final AnalyzerDispatcher dispatcher;
+
+    private final static Object[] EMPTY_ARGS = new Object[0];
+    private final static Object[][] EMPTY_BULK_ARGS = new Object[0][];
 
     @Inject
     public Analyzer(ReferenceInfos referenceInfos,
@@ -42,11 +49,11 @@ public class Analyzer {
     }
 
     public Analysis analyze(Statement statement) {
-        return analyze(statement, new Object[0]);
+        return analyze(statement, EMPTY_ARGS, EMPTY_BULK_ARGS);
     }
 
-    public Analysis analyze(Statement statement, Object[] parameters) {
-        Context ctx = new Context(parameters);
+    public Analysis analyze(Statement statement, Object[] parameters, Object[][] bulkParams) {
+        Context ctx = new Context(parameters, bulkParams);
         AbstractStatementAnalyzer statementAnalyzer = dispatcher.process(statement, ctx);
         assert ctx.analysis != null;
 
@@ -55,12 +62,66 @@ public class Analyzer {
         return ctx.analysis;
     }
 
-    private static class Context {
-        Object[] parameters;
+    public static class ParameterContext {
+        final Object[] parameters;
+        final Object[][] bulkParameters;
+        DataType[] bulkTypes;
+
+        public ParameterContext(Object[] parameters, Object[][] bulkParameters) {
+            this.parameters = parameters;
+            if (bulkParameters.length > 0) {
+                validateBulkParams(bulkParameters);
+            }
+            this.bulkParameters = bulkParameters;
+        }
+
+        private void validateBulkParams(Object[][] bulkParams) {
+            for (Object[] bulkParam : bulkParams) {
+                if (bulkTypes == null) {
+                    initializeBulkTypes(bulkParam);
+                    continue;
+                } else if (bulkParam.length != bulkTypes.length) {
+                    throw new IllegalArgumentException("mixed number of arguments inside bulk arguments");
+                }
+
+                for (int i = 0; i < bulkParam.length; i++) {
+                    Object o = bulkParam[i];
+                    DataType expectedType = bulkTypes[i];
+                    DataType guessedType = guessTypeSafe(o);
+
+                    if (expectedType == DataTypes.NULL) {
+                        bulkTypes[i] = guessedType;
+                    } else if (!bulkTypes[i].equals(guessedType)) {
+                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                "argument %d of bulk arguments contains mixed data types", i + 1));
+                    }
+                }
+            }
+        }
+
+        private static DataType guessTypeSafe(Object value) throws IllegalArgumentException {
+            DataType guessedType = DataTypes.guessType(value);
+            if (guessedType == null) {
+                throw new IllegalArgumentException(String.format(
+                        "Got an argument \"%s\" that couldn't be recognized", value));
+            }
+            return guessedType;
+        }
+
+        private void initializeBulkTypes(Object[] bulkParam) {
+            bulkTypes = new DataType[bulkParam.length];
+            for (int i = 0; i < bulkParam.length; i++) {
+                bulkTypes[i] = guessTypeSafe(bulkParam[i]);
+            }
+        }
+    }
+
+    static class Context {
+        final ParameterContext parameterCtx;
         Analysis analysis;
 
-        private Context(Object[] parameters) {
-            this.parameters = parameters;
+        private Context(Object[] parameters, Object[][] bulkParams) {
+            this.parameterCtx = new ParameterContext(parameters, bulkParams);
         }
     }
 
@@ -85,7 +146,7 @@ public class Analyzer {
         private final AbstractStatementAnalyzer refreshTableAnalyzer = new RefreshTableAnalyzer();
         private final AbstractStatementAnalyzer alterTableAnalyzer = new AlterTableAnalyzer();
         private final AbstractStatementAnalyzer alterBlobTableAnalyzer = new AlterBlobTableAnalyzer();
-        private final AbstractStatementAnalyzer setStatementeAnalyzer = new SetStatementAnalyzer();
+        private final AbstractStatementAnalyzer setStatementAnalyzer = new SetStatementAnalyzer();
         private final AbstractStatementAnalyzer alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer();
 
         public AnalyzerDispatcher(ReferenceInfos referenceInfos,
@@ -101,14 +162,14 @@ public class Analyzer {
         @Override
         protected AbstractStatementAnalyzer visitQuery(Query node, Context context) {
             context.analysis = new SelectAnalysis(
-                    referenceInfos, functions, context.parameters, referenceResolver);
+                    referenceInfos, functions, context.parameterCtx, referenceResolver);
             return selectStatementAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitDelete(Delete node, Context context) {
             context.analysis = new DeleteAnalysis(
-                    referenceInfos, functions, context.parameters, referenceResolver);
+                    referenceInfos, functions, context.parameterCtx, referenceResolver);
             return deleteStatementAnalyzer;
         }
 
@@ -116,35 +177,35 @@ public class Analyzer {
         @Override
         public AbstractStatementAnalyzer visitInsertFromValues(InsertFromValues node, Context context) {
             context.analysis = new InsertFromValuesAnalysis(
-                    referenceInfos, functions, context.parameters, referenceResolver);
+                    referenceInfos, functions, context.parameterCtx, referenceResolver);
             return insertFromValuesAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitInsertFromSubquery(InsertFromSubquery node, Context context) {
             context.analysis = new InsertFromSubQueryAnalysis(
-                    referenceInfos, functions, context.parameters, referenceResolver);
+                    referenceInfos, functions, context.parameterCtx, referenceResolver);
             return insertFromSubQueryAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitUpdate(Update node, Context context) {
             context.analysis = new UpdateAnalysis(
-                    referenceInfos, functions, context.parameters, referenceResolver);
+                    referenceInfos, functions, context.parameterCtx, referenceResolver);
             return updateStatementAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitCopyFromStatement(CopyFromStatement node, Context context) {
             context.analysis = new CopyAnalysis(
-                    referenceInfos, functions, context.parameters, referenceResolver);
+                    referenceInfos, functions, context.parameterCtx, referenceResolver);
             return copyStatementAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitCopyTo(CopyTo node, Context context) {
             context.analysis = new CopyAnalysis(
-                    referenceInfos, functions, context.parameters, referenceResolver);
+                    referenceInfos, functions, context.parameterCtx, referenceResolver);
             return copyStatementAnalyzer;
         }
 
@@ -158,63 +219,63 @@ public class Analyzer {
         public AbstractStatementAnalyzer visitCreateTable(CreateTable node, Context context) {
             context.analysis = new CreateTableAnalysis(referenceInfos,
                     fulltextAnalyzerResolver,
-                    context.parameters);
+                    context.parameterCtx);
             return createTableStatementAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitCreateAnalyzer(CreateAnalyzer node, Context context) {
-            context.analysis = new CreateAnalyzerAnalysis(fulltextAnalyzerResolver, context.parameters);
+            context.analysis = new CreateAnalyzerAnalysis(fulltextAnalyzerResolver, context.parameterCtx);
             return createAnalyzerStatementAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitCreateBlobTable(CreateBlobTable node, Context context) {
-            context.analysis = new CreateBlobTableAnalysis(context.parameters);
+            context.analysis = new CreateBlobTableAnalysis(context.parameterCtx);
             return createBlobTableStatementAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitDropBlobTable(DropBlobTable node, Context context) {
-            context.analysis = new DropBlobTableAnalysis(context.parameters, referenceInfos);
+            context.analysis = new DropBlobTableAnalysis(context.parameterCtx, referenceInfos);
             return dropBlobTableStatementAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitAlterBlobTable(AlterBlobTable node, Context context) {
-            context.analysis = new AlterBlobTableAnalysis(context.parameters, referenceInfos);
+            context.analysis = new AlterBlobTableAnalysis(context.parameterCtx, referenceInfos);
             return alterBlobTableAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitRefreshStatement(RefreshStatement node, Context context) {
-            context.analysis = new RefreshTableAnalysis(referenceInfos, context.parameters);
+            context.analysis = new RefreshTableAnalysis(referenceInfos, context.parameterCtx);
             return refreshTableAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitAlterTable(AlterTable node, Context context) {
-            context.analysis = new AlterTableAnalysis(context.parameters, referenceInfos);
+            context.analysis = new AlterTableAnalysis(context.parameterCtx, referenceInfos);
             return alterTableAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitAlterTableAddColumnStatement(AlterTableAddColumn node, Context context) {
             context.analysis = new AddColumnAnalysis(
-                    referenceInfos, fulltextAnalyzerResolver, context.parameters);
+                    referenceInfos, fulltextAnalyzerResolver, context.parameterCtx);
             return alterTableAddColumnAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitSetStatement(SetStatement node, Context context) {
-            context.analysis = new SetAnalysis(context.parameters);
-            return setStatementeAnalyzer;
+            context.analysis = new SetAnalysis(context.parameterCtx);
+            return setStatementAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitResetStatement(ResetStatement node, Context context) {
-            context.analysis = new SetAnalysis(context.parameters);
-            return setStatementeAnalyzer;
+            context.analysis = new SetAnalysis(context.parameterCtx);
+            return setStatementAnalyzer;
         }
 
         @Override

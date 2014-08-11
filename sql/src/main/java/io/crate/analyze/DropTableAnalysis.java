@@ -37,7 +37,7 @@ public class DropTableAnalysis extends AbstractDDLAnalysis {
     private final ReferenceInfos referenceInfos;
 
     public DropTableAnalysis(ReferenceInfos referenceInfos) {
-        super(new Object[0]);
+        super(null);
         this.referenceInfos = referenceInfos;
     }
 
