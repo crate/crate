@@ -47,6 +47,7 @@ public class AnalyzedTableElements {
     private List<String> additionalPrimaryKeys = new ArrayList<>();
     private Map<String, Set<String>> copyToMap = new HashMap<>();
 
+
     public Map<String, Object> toMapping() {
         Map<String, Object> mapping = new HashMap<>();
         Map<String, Object> meta = new HashMap<>();

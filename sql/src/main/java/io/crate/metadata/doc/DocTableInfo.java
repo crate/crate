@@ -47,6 +47,7 @@ public class DocTableInfo implements TableInfo {
 
     private final List<ReferenceInfo> columns;
     private final List<ReferenceInfo> partitionedByColumns;
+    private final Map<ColumnIdent, IndexReferenceInfo> indexColumns;
     private final ImmutableMap<ColumnIdent, ReferenceInfo> references;
     private final TableIdent ident;
     private final List<ColumnIdent> primaryKeys;
@@ -67,6 +68,7 @@ public class DocTableInfo implements TableInfo {
     public DocTableInfo(TableIdent ident,
                         List<ReferenceInfo> columns,
                         List<ReferenceInfo> partitionedByColumns,
+                        ImmutableMap<ColumnIdent, IndexReferenceInfo> indexColumns,
                         ImmutableMap<ColumnIdent, ReferenceInfo> references,
                         List<ColumnIdent> primaryKeys,
                         ColumnIdent clusteredBy,
@@ -81,6 +83,7 @@ public class DocTableInfo implements TableInfo {
         this.clusterService = clusterService;
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
+        this.indexColumns = indexColumns;
         this.references = references;
         this.ident = ident;
         this.primaryKeys = primaryKeys;
@@ -286,6 +289,15 @@ public class DocTableInfo implements TableInfo {
     @Override
     public boolean isPartitioned() {
         return isPartitioned;
+    }
+
+    public Collection<IndexReferenceInfo> indexColumns() {
+        return indexColumns.values();
+    }
+
+    @Override
+    public IndexReferenceInfo indexColumn(ColumnIdent ident) {
+        return indexColumns.get(ident);
     }
 
     @Override

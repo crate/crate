@@ -146,11 +146,16 @@ public abstract class AbstractDataAnalysis extends Analysis {
         if (reference == null) {
             ReferenceInfo info = getReferenceInfo(ident);
             if (info == null) {
-                reference = table.getDynamic(ident.columnIdent());
-                if (reference == null) {
-                    throw new ColumnUnknownException(ident.tableIdent().name(), ident.columnIdent().fqn());
+                info = table.indexColumn(ident.columnIdent());
+                if (info == null) {
+                    reference = table.getDynamic(ident.columnIdent());
+                    if (reference == null) {
+                        throw new ColumnUnknownException(ident.tableIdent().name(), ident.columnIdent().fqn());
+                    }
+                    info = reference.info();
+                } else {
+                    reference = new Reference(info);
                 }
-                info = reference.info();
             } else {
                 reference = new Reference(info);
             }
@@ -194,7 +199,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
             // for child fields of object arrays
             // return references of primitive types as arrays
-            info = ReferenceInfo.builder()
+            info = new ReferenceInfo.Builder()
                     .ident(info.ident())
                     .objectType(info.objectType())
                     .granularity(info.granularity())
