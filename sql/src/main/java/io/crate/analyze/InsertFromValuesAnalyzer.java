@@ -27,6 +27,7 @@ import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.operation.Input;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Expression;
@@ -34,9 +35,15 @@ import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.ValuesList;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromValuesAnalysis> {
 
@@ -62,55 +69,58 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
         if (context.table().isPartitioned()) {
             context.newPartitionMap();
         }
-        int numPks = context.table().primaryKey().size();
-        int numValues = node.values().size();
-        if (context.parameterContext().bulkParameters.length > 0) {
-            for (int i = 0; i < context.parameterContext().bulkParameters.length; i++) {
-                context.parameterContext().setIdx(i);
-                addValues(node, context, numPks, numValues);
+        try {
+            int numPks = context.table().primaryKey().size();
+            if (context.parameterContext().bulkParameters.length > 0) {
+                for (int i = 0; i < context.parameterContext().bulkParameters.length; i++) {
+                    context.parameterContext().setBulkIdx(i);
+                    addValues(node, context, numPks);
+                }
+            } else {
+                addValues(node, context, numPks);
             }
-        } else {
-            addValues(node, context, numPks, numValues);
+        } catch (IOException e) {
+            throw new RuntimeException(e); // can't throw IOException directly because of visitor interface
         }
         return null;
     }
 
     private void addValues(ValuesList node,
                            InsertFromValuesAnalysis context,
-                           int numPrimaryKeys,
-                           int numValues) {
+                           int numPrimaryKeys) throws IOException {
         List<BytesRef> primaryKeyValues = new ArrayList<>(numPrimaryKeys);
-        Map<String, Object> sourceMap = new HashMap<>(numValues);
-
-        int i = 0;
+        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
         String routingValue = null;
-        for (Expression expression : node.values()) {
-            // TODO: instead of doing a type guessing and then a conversion this could
-            // be improved by using the dataType from the column Reference as a hint
+        List<Expression> values = node.values();
+        List<ColumnIdent> primaryKey = context.table().primaryKey();
+
+        for (int i = 0, valuesSize = values.size(); i < valuesSize; i++) {
+            Expression expression = values.get(i);
             Symbol valuesSymbol = process(expression, context);
+
             // implicit type conversion
             Reference column = context.columns().get(i);
             final ColumnIdent columnIdent = column.info().ident().columnIdent();
             try {
                 valuesSymbol = context.normalizeInputForReference(valuesSymbol, column);
-            } catch (IllegalArgumentException|UnsupportedOperationException e) {
+            } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(column.info().ident().columnIdent().fqn(), e);
             }
             try {
-                Object value = ((io.crate.operation.Input)valuesSymbol).value();
+                Object value = ((Input) valuesSymbol).value();
                 if (value instanceof BytesRef) {
                     value = ((BytesRef) value).utf8ToString();
                 }
                 if (context.primaryKeyColumnIndices().contains(i)) {
-                    int idx = context.table().primaryKey().indexOf(columnIdent);
+                    int idx = primaryKey.indexOf(columnIdent);
                     if (idx < 0) {
                         // oh look, one or more nested primary keys!
                         assert value instanceof Map;
-                        for (ColumnIdent pkIdent : context.table().primaryKey()) {
+                        for (ColumnIdent pkIdent : primaryKey) {
                             if (!pkIdent.getRoot().equals(columnIdent)) {
                                 continue;
                             }
-                            int pkIdx = context.table().primaryKey().indexOf(pkIdent);
+                            int pkIdx = primaryKey.indexOf(pkIdent);
                             Object nestedValue = StringObjectMaps.fromMapByPath((Map) value, pkIdent.path());
                             addPrimaryKeyValue(pkIdx, nestedValue, primaryKeyValues);
                         }
@@ -124,19 +134,18 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
                 if (context.partitionedByIndices().contains(i)) {
                     Object rest = processPartitionedByValues(columnIdent, value, context);
                     if (rest != null) {
-                        sourceMap.put(columnIdent.name(), rest);
+                        builder.field(columnIdent.name(), rest);
                     }
                 } else {
-                    sourceMap.put(columnIdent.name(), value);
+                    builder.field(columnIdent.name(), value);
                 }
             } catch (ClassCastException e) {
                 // symbol is no input
                 throw new ColumnValidationException(columnIdent.name(),
                         String.format("invalid value '%s' in insert statement", valuesSymbol.toString()));
             }
-            i++;
         }
-        context.sourceMaps().add(sourceMap);
+        context.sourceMaps().add(builder.bytes());
         context.addIdAndRouting(primaryKeyValues, routingValue);
     }
 
@@ -157,14 +166,11 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
         if (!columnIdent.equals(clusteredByIdent)) {
             // oh my gosh! A nested clustered by value!!!
             assert clusteredByValue instanceof Map;
-            clusteredByValue = StringObjectMaps.getByPath(
-                    (Map<String, Object>)clusteredByValue,
-                    StringUtils.PATH_JOINER.join(clusteredByIdent.path()));
+            clusteredByValue = StringObjectMaps.fromMapByPath((Map) clusteredByValue, clusteredByIdent.path());
         }
         if (clusteredByValue == null) {
             throw new IllegalArgumentException("Clustered by value must not be NULL");
         }
-
         return clusteredByValue.toString();
     }
 

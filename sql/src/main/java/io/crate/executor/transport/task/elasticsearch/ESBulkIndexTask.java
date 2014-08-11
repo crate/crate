@@ -28,10 +28,9 @@ import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.List;
 
 public class ESBulkIndexTask extends AbstractESIndexTask {
@@ -51,16 +50,24 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
 
     @Override
     protected void doStart(List<Object[][]> upstreamResults) {
-        for(int i=0; i < this.node.sourceMaps().size(); i++){
-
-            try {
-                bulkShardProcessor.add(node.indices()[node.indices().length == 1 ? 0 : i],
-                        XContentFactory.jsonBuilder().map(node.sourceMaps().get(i)).bytes(),
+        if (node.indices().length == 1) {
+            String index = node.indices()[0];
+            for(int i=0; i < this.node.sourceMaps().size(); i++){
+                bulkShardProcessor.add(
+                        index,
+                        node.sourceMaps().get(i),
                         node.ids().get(i),
                         node.routingValues().get(i)
                 );
-            } catch (IOException e) {
-                result.setException(e);
+            }
+        } else {
+            for(int i=0; i < this.node.sourceMaps().size(); i++){
+                bulkShardProcessor.add(
+                        node.indices()[i],
+                        node.sourceMaps().get(i),
+                        node.ids().get(i),
+                        node.routingValues().get(i)
+                );
             }
         }
         bulkShardProcessor.close();
@@ -72,7 +79,7 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 result.setException(t);
             }
         });
