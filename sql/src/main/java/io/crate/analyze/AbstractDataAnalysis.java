@@ -164,9 +164,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     /**
      * add a reference for the given ident, get from map-cache if already
-     *
-     * @param ident
-     * @return
      */
     public Reference allocateReference(ReferenceIdent ident) {
         return allocateReference(ident, false);
@@ -209,9 +206,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * return true if the given {@linkplain com.google.common.base.Predicate}
      * returns true for a parent column of this one.
      * returns false if info has no parent column.
-     * @param info
-     * @param parentMatchPredicate
-     * @return
      */
     protected boolean hasMatchingParent(ReferenceInfo info,
                               Predicate<ReferenceInfo> parentMatchPredicate) {
@@ -298,7 +292,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * Updates the row granularity of this query if it is higher than the current row granularity.
      *
      * @param granularity the row granularity as seen by a reference
-     * @return
      */
     protected RowGranularity updateRowGranularity(RowGranularity granularity) {
         if (rowGranularity == null || rowGranularity.ordinal() < granularity.ordinal()) {

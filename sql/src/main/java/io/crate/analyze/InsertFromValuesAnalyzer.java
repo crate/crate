@@ -95,16 +95,13 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
                     if (idx < 0) {
                         // oh look, one or more nested primary keys!
                         assert value instanceof Map;
-                        Map<String, Object> mapValue = (Map<String, Object>) value;
-                        for (ColumnIdent primaryKeyIdent : Iterables.filter(context.table().primaryKey(), new Predicate<ColumnIdent>() {
-                            @Override
-                            public boolean apply(@Nullable ColumnIdent input) {
-                                return input != null && input.getRoot().equals(columnIdent);
+                        for (ColumnIdent pkIdent : context.table().primaryKey()) {
+                            if (!pkIdent.getRoot().equals(columnIdent)) {
+                                continue;
                             }
-                        })) {
-                            int pkIdx = context.table().primaryKey().indexOf(primaryKeyIdent);
-                            Object nestedPkValue = StringObjectMaps.getByPath(mapValue, StringUtils.PATH_JOINER.join(primaryKeyIdent.path()));
-                            addPrimaryKeyValue(pkIdx, nestedPkValue, primaryKeyValues);
+                            int pkIdx = context.table().primaryKey().indexOf(pkIdent);
+                            Object nestedValue = fromMapByPath((Map) value, pkIdent.path());
+                            addPrimaryKeyValue(pkIdx, nestedValue, primaryKeyValues);
                         }
                     } else {
                         addPrimaryKeyValue(idx, value, primaryKeyValues);
@@ -119,10 +116,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
                         sourceMap.put(columnIdent.name(), rest);
                     }
                 } else {
-                    sourceMap.put(
-                            columnIdent.name(),
-                            value
-                    );
+                    sourceMap.put(columnIdent.name(), value);
                 }
             } catch (ClassCastException e) {
                 // symbol is no input
@@ -136,6 +130,20 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
         context.addIdAndRouting(primaryKeyValues, routingValue);
 
         return null;
+    }
+
+    private static Object fromMapByPath(Map value, List<String> path) {
+        Map map = value;
+        Object tmp = null;
+        for (String s : path) {
+            tmp = map.get(s);
+            if (tmp instanceof Map) {
+                map = (Map) tmp;
+            } else {
+                break;
+            }
+        }
+        return tmp;
     }
 
     private void addPrimaryKeyValue(int index, Object value, List<BytesRef> primaryKeyValues) {

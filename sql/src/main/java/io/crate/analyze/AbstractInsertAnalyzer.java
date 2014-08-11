@@ -22,8 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -33,7 +31,6 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.Table;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 
 public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> extends DataStatementAnalyzer<T> {
@@ -91,23 +88,39 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
         return null;
     }
 
+    /**
+     * validates the column and sets primary key / partitioned by / routing information as well as a
+     * column Reference to the context.
+     *
+     * the created column reference is returned
+     */
     protected Reference addColumn(String column, T context, int i) {
         assert context.table() != null;
         return addColumn(new ReferenceIdent(context.table().ident(), column), context, i);
     }
 
+    /**
+     * validates the column and sets primary key / partitioned by / routing information as well as a
+     * column Reference to the context.
+     *
+     * the created column reference is returned
+     */
     protected Reference addColumn(ReferenceIdent ident, T context, int i) {
         final ColumnIdent columnIdent = ident.columnIdent();
         Preconditions.checkArgument(!columnIdent.name().startsWith("_"), "Inserting system columns is not allowed");
 
-        // set primary key index if found
-        if (Iterables.any(context.table().primaryKey(), new Predicate<ColumnIdent>() {
-            @Override
-            public boolean apply(@Nullable ColumnIdent input) {
-                return input != null && input.getRoot().equals(columnIdent);
+        // set primary key column if found
+        for (ColumnIdent pkIdent : context.table().primaryKey()) {
+            if (pkIdent.getRoot().equals(columnIdent)) {
+                context.addPrimaryKeyColumnIdx(i);
             }
-        })) {
-            context.addPrimaryKeyColumnIdx(i);
+        }
+
+        // set partitioned column if found
+        for (ColumnIdent partitionIdent : context.table().partitionedBy()) {
+            if (partitionIdent.getRoot().equals(columnIdent)) {
+                context.addPartitionedByIndex(i);
+            }
         }
 
         // set routing if found
@@ -116,22 +129,9 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
             context.routingColumnIndex(i);
         }
 
-        // set partitioned column if found
-        if (Iterables.any(context.table().partitionedBy(), new Predicate<ColumnIdent>() {
-            @Override
-            public boolean apply(@Nullable ColumnIdent input) {
-                return input != null && input.getRoot().equals(columnIdent);
-            }
-        })) {
-            context.addPartitionedByIndex(i);
-        }
-
         // ensure that every column is only listed once
         Reference columnReference = context.allocateUniqueReference(ident);
-
         context.columns().add(columnReference);
-
         return columnReference;
     }
-
 }
