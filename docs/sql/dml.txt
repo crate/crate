@@ -393,20 +393,20 @@ an array of all the values of that field for all objects in that object array.
 
 Example::
 
-    cr> select name, informations, informations['population'] from locations
-    ... where informations['population'] is not null
+    cr> select name, information, information['population'] from locations
+    ... where information['population'] is not null
     ... order by name;
-    +-------------------+---------------------------------------------------------------------------------------+----------------------------+
-    | name              | informations                                                                          | informations['population'] |
-    +-------------------+---------------------------------------------------------------------------------------+----------------------------+
-    | North West Ripple | [{"evolution_level": 4, "population": 12}, {"evolution_level": 42, "population": 42}] | [12, 42]                   |
-    | Outer Eastern Rim | [{"evolution_level": 2, "population": 5673745846}]                                    | [5673745846]               |
-    +-------------------+---------------------------------------------------------------------------------------+----------------------------+
+    +-------------------+---------------------------------------------------------------------------------------+---------------------------+
+    | name              | information                                                                           | information['population'] |
+    +-------------------+---------------------------------------------------------------------------------------+---------------------------+
+    | North West Ripple | [{"evolution_level": 4, "population": 12}, {"evolution_level": 42, "population": 42}] | [12, 42]                  |
+    | Outer Eastern Rim | [{"evolution_level": 2, "population": 5673745846}]                                    | [5673745846]              |
+    +-------------------+---------------------------------------------------------------------------------------+---------------------------+
     SELECT 2 rows in set (... sec)
 
 ::
 
-    cr> insert into locations (id, name, position, kind, informations)
+    cr> insert into locations (id, name, position, kind, information)
     ... values (
     ...   'B', 'Berlin', 15, 'City',
     ...   [{evolution_level=6, population=3600001},
@@ -421,7 +421,7 @@ Example::
 
 ::
 
-    cr> select name from locations where 4 < ANY (informations['evolution_level']);
+    cr> select name from locations where 4 < ANY (information['evolution_level']);
     +-------------------+
     | name              |
     +-------------------+
