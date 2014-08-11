@@ -38,6 +38,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -55,8 +56,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
-    private static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
+    private static final TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
+    private static final TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_ALIAS_TABLE_IDENT, RowGranularity.DOC, new Routing())
             .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
@@ -176,7 +177,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(DataTypes.BOOLEAN, analysis.columns().get(2).valueType());
 
         Map<String, Object> values = analysis.sourceMaps().get(0);
-        assertThat((Long)values.get("id"), is(1L));
+        assertThat((Long) values.get("id"), is(1L));
         assertThat((Boolean)values.get("awesome"), is(true));
 
     }
@@ -514,4 +515,57 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         ));
         assertThat(analysis.sourceMaps().size(), is(2));
     }
+
+    @Test
+    public void testInsertWithBulkArgsTypeMissMatch() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("argument 1 of bulk arguments contains mixed data types");
+        analyze("insert into users (id, name) values (?, ?)",
+                new Object[][]{
+                        new Object[]{10, "foo"},
+                        new Object[]{"11", "bar"}
+                }
+        );
+    }
+
+    @Test
+    public void testInsertWithBulkArgsMixedLength() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("mixed number of arguments inside bulk arguments");
+        analyze("insert into users (id, name) values (?, ?)",
+                new Object[][]{
+                        new Object[]{10, "foo"},
+                        new Object[]{"11"}
+                }
+        );
+    }
+
+    @Test
+    public void testInsertBulkArgWithFirstArgsContainsUnrecognizableObject() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(Matchers.allOf(
+                Matchers.startsWith("Got an argument \""),
+                Matchers.endsWith("that couldn't be recognized")
+        ));
+
+        analyze("insert into users (id, name) values (?, ?)", new Object[][]{
+                new Object[]{new Foo()},
+        });
+    }
+
+    @Test
+    public void testInsertBulkArgWithUnrecognizableObject() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(Matchers.allOf(
+                Matchers.startsWith("Got an argument \""),
+                Matchers.endsWith("that couldn't be recognized")
+        ));
+
+        analyze("insert into users (id, name) values (?, ?)", new Object[][]{
+                new Object[] { "foo" },
+                new Object[]{new Foo()},
+        });
+    }
+
+    private static class Foo {}
 }
