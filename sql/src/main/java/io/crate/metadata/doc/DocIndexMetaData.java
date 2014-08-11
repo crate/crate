@@ -27,10 +27,7 @@ import com.google.common.collect.*;
 import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.exceptions.TableAliasSchemaException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -61,6 +58,8 @@ public class DocIndexMetaData {
     private final MappingMetaData defaultMappingMetaData;
     private final Map<String, Object> defaultMappingMap;
 
+    private final Map<ColumnIdent, IndexReferenceInfo.Builder> indicesBuilder = new HashMap<>();
+
     private final ImmutableSortedSet.Builder<ReferenceInfo> columnsBuilder = ImmutableSortedSet.orderedBy(new Comparator<ReferenceInfo>() {
         @Override
         public int compare(ReferenceInfo o1, ReferenceInfo o2) {
@@ -80,6 +79,7 @@ public class DocIndexMetaData {
     private Map<String, Object> indicesMap;
     private List<List<String>> partitionedByList;
     private ImmutableList<ReferenceInfo> columns;
+    private ImmutableMap<ColumnIdent, IndexReferenceInfo> indices;
     private ImmutableList<ReferenceInfo> partitionedByColumns;
     private ImmutableMap<ColumnIdent, ReferenceInfo> references;
     private ImmutableList<ColumnIdent> primaryKey;
@@ -172,11 +172,6 @@ public class DocIndexMetaData {
 
     private void add(ColumnIdent column, DataType type, ReferenceInfo.ObjectType objectType,
                      ReferenceInfo.IndexType indexType, boolean partitioned) {
-        // don't include indices in the column references
-        if (indicesMap.keySet().contains(column.name())) {
-            return;
-        }
-
         ReferenceInfo info = newInfo(column, type, objectType, indexType);
         if (info.ident().isColumn()) {
             columnsBuilder.add(info);
@@ -196,6 +191,17 @@ public class DocIndexMetaData {
         }
         return new ReferenceInfo(new ReferenceIdent(ident, column), granularity, type,
                 objectType, indexType);
+    }
+
+    private IndexReferenceInfo newIndexInfo(ColumnIdent column,
+                                            String analyzer,
+                                            ReferenceInfo.IndexType indexType,
+                                            ReferenceInfo ... sourceColumns) {
+        return new IndexReferenceInfo(
+                new ReferenceIdent(ident, column),
+                indexType,
+                Arrays.asList(sourceColumns),
+                analyzer);
     }
 
     /**
@@ -315,6 +321,9 @@ public class DocIndexMetaData {
         }
     }
 
+    /**
+     * extracts index definitions as well
+     */
     @SuppressWarnings("unchecked")
     private void internalExtractColumnDefinitions(ColumnIdent columnIdent,
                                                   Map<String, Object> propertiesMap) {
@@ -326,6 +335,7 @@ public class DocIndexMetaData {
             Map<String, Object> columnProperties = (Map) columnEntry.getValue();
             DataType columnDataType = getColumnDataType(columnEntry.getKey(), columnIdent, columnProperties);
             ReferenceInfo.IndexType columnIndexType = getColumnIndexType(columnEntry.getKey(), columnProperties);
+            List<String> copyToColumns = getNested(columnProperties, "copy_to");
 
             if (columnDataType == DataTypes.OBJECT
                     || ( columnDataType.id() == ArrayType.ID
@@ -341,9 +351,36 @@ public class DocIndexMetaData {
                 }
             } else if (columnDataType != DataTypes.NOT_SUPPORTED) {
                 ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
-                add(newIdent, columnDataType, columnIndexType);
+
+                // extract columns this column is copied to, needed for indices
+                if (copyToColumns != null) {
+                    for (String copyToColumn : copyToColumns) {
+                        ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
+                        IndexReferenceInfo.Builder builder = getOrCreateIndexBuilder(targetIdent);
+                        builder.addColumn(newInfo(newIdent, columnDataType, ReferenceInfo.ObjectType.DYNAMIC, columnIndexType));
+                    }
+                }
+                // is it an index?
+                if (indicesMap.containsKey(newIdent.fqn())) {
+                    String analyzer = getNested(columnProperties, "analyzer");
+                    IndexReferenceInfo.Builder builder = getOrCreateIndexBuilder(newIdent);
+                    builder.analyzer(analyzer)
+                           .indexType(columnIndexType)
+                           .ident(new ReferenceIdent(ident, newIdent));
+                } else {
+                    add(newIdent, columnDataType, columnIndexType);
+                }
             }
         }
+    }
+
+    private IndexReferenceInfo.Builder getOrCreateIndexBuilder(ColumnIdent ident) {
+        IndexReferenceInfo.Builder builder = indicesBuilder.get(ident);
+        if (builder == null) {
+            builder = new IndexReferenceInfo.Builder();
+            indicesBuilder.put(ident, builder);
+        }
+        return builder;
     }
 
     private ImmutableList<ColumnIdent> getPrimaryKey() {
@@ -389,6 +426,15 @@ public class DocIndexMetaData {
         extractPartitionedByColumns();
     }
 
+    private ImmutableMap<ColumnIdent, IndexReferenceInfo> createIndexDefinitions() {
+        ImmutableMap.Builder<ColumnIdent, IndexReferenceInfo> builder = ImmutableMap.builder();
+        for (Map.Entry<ColumnIdent, IndexReferenceInfo.Builder> entry: indicesBuilder.entrySet()) {
+            builder.put(entry.getKey(), entry.getValue().build());
+        }
+        indices = builder.build();
+        return indices;
+    }
+
     private void extractPartitionedByColumns() {
         for (List<String> partitioned : partitionedByList) {
             ColumnIdent ident = ColumnIdent.fromPath(partitioned.get(0));
@@ -418,13 +464,13 @@ public class DocIndexMetaData {
     public DocIndexMetaData build() {
         partitionedBy = getPartitionedBy();
         createColumnDefinitions();
+        indices = createIndexDefinitions();
         columns = ImmutableList.copyOf(columnsBuilder.build());
         partitionedByColumns = partitionedByColumnsBuilder.build();
 
-        for (Tuple<ColumnIdent, ReferenceInfo> sysColumns : DocSysColumns.forTable(ident)) {
-            referencesBuilder.put(sysColumns.v1(), sysColumns.v2());
+        for (Tuple<ColumnIdent, ReferenceInfo> sysColumn : DocSysColumns.forTable(ident)) {
+            referencesBuilder.put(sysColumn.v1(), sysColumn.v2());
         }
-
         references = referencesBuilder.build();
         primaryKey = getPrimaryKey();
         routingCol = getRoutingCol();
@@ -437,6 +483,10 @@ public class DocIndexMetaData {
 
     public ImmutableList<ReferenceInfo> columns() {
         return columns;
+    }
+
+    public ImmutableMap<ColumnIdent, IndexReferenceInfo> indices() {
+        return indices;
     }
 
     public ImmutableList<ReferenceInfo> partitionedByColumns() {
@@ -457,8 +507,9 @@ public class DocIndexMetaData {
 
         // TODO: when analyzers are exposed in the info, equality has to be checked on them
         // see: TransportSQLActionTest.testSelectTableAliasSchemaExceptionColumnDefinition
-        if (columns != null ? !columns.equals(other.columns) : other.columns != null) return false;
+        if (columns    != null ? !columns.equals(other.columns)       : other.columns    != null) return false;
         if (primaryKey != null ? !primaryKey.equals(other.primaryKey) : other.primaryKey != null) return false;
+        if (indices    != null ? !indices.equals(other.indices)       : other.indices    != null) return false;
         if (references != null ? !references.equals(other.references) : other.references != null) return false;
         if (routingCol != null ? !routingCol.equals(other.routingCol) : other.routingCol != null) return false;
 

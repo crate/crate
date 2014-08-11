@@ -23,10 +23,7 @@ package io.crate.metadata.table;
 
 import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
@@ -50,6 +47,11 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
     public Collection<ReferenceInfo> columns();
 
     public List<ReferenceInfo> partitionedByColumns();
+
+    public Collection<IndexReferenceInfo> indexColumns();
+
+    @Nullable
+    public IndexReferenceInfo indexColumn(ColumnIdent ident);
 
     public RowGranularity rowGranularity();
 

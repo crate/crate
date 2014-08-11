@@ -251,8 +251,4 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         out.writeVInt(objectType.ordinal());
         out.writeVInt(indexType.ordinal());
     }
-
-    public static Builder builder() {
-        return new Builder();
-    }
 }

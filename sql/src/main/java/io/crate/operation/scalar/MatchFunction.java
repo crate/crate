@@ -39,10 +39,9 @@ public class MatchFunction implements FunctionImplementation<Function> {
     public static final String NAME = "match";
 
     public static void register(ScalarFunctionModule module) {
-        for (DataType dataType : ImmutableList.<DataType>of(DataTypes.NULL, DataTypes.STRING)) {
-            FunctionIdent functionIdent = new FunctionIdent(MatchFunction.NAME, ImmutableList.of(dataType, DataTypes.STRING));
-            module.register(new MatchFunction(new FunctionInfo(functionIdent, DataTypes.BOOLEAN)));
-        }
+        FunctionIdent functionIdent = new FunctionIdent(MatchFunction.NAME,
+                ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING));
+        module.register(new MatchFunction(new FunctionInfo(functionIdent, DataTypes.BOOLEAN)));
     }
 
     private final FunctionInfo info;

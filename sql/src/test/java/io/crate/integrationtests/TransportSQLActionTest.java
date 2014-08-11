@@ -2310,8 +2310,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void selectWhereNonExistingColumnMatchFunction() throws Exception {
         nonExistingColumnSetup();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("unknown function: match(null, string)");
+
         execute("select * from quotes where match(something, 'bla')");
-        assertEquals(0L, response.rowCount());
     }
 
     @Test
@@ -4585,6 +4588,40 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             String doubleCall = String.format(Locale.ENGLISH, functionCall, "d");
             execute(String.format(Locale.ENGLISH, "select %s, d from t where %s < 2", doubleCall, doubleCall));
         }
+    }
+
+    @Test
+    public void testMatchNotOnSubColumn() throws Exception {
+        execute("create table matchbox (" +
+                "  s string index using fulltext with (analyzer='german')," +
+                "  o object as (" +
+                "    s string index using fulltext with (analyzer='german')," +
+                "    m string index using fulltext with (analyzer='german')" +
+                "  )" +
+                ") with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into matchbox (s, o) values ('Arthur Dent', {s='Zaphod Beeblebroox', m='Ford Prefect'})");
+        refresh();
+        execute("select * from matchbox where match(s, 'Arthur')");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select * from matchbox where match(o['s'], 'Arthur')");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select * from matchbox where match(o['s'], 'Zaphod')");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select * from matchbox where match(s, 'Zaphod')");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select * from matchbox where match(o['m'], 'Ford')");
+        assertThat(response.rowCount(), is(1L));
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("unknown function: match(null, string)");
+
+        execute("select * from matchbox where match(m, 'Ford')");
+        assertThat(response.rowCount(), is(0L));
     }
 
 }

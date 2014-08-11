@@ -144,7 +144,7 @@ public class AnalysisTest {
     @Test
     public void testNormalizePrimitiveLiteral() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
-        ReferenceInfo info = ReferenceInfo.builder()
+        ReferenceInfo info = new ReferenceInfo.Builder()
                 .granularity(RowGranularity.DOC)
                 .type(DataTypes.BOOLEAN)
                 .ident(TEST_TABLE_IDENT, new ColumnIdent("bool")).build();
@@ -162,7 +162,7 @@ public class AnalysisTest {
     @Test
     public void testNormalizeScalar() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
-        ReferenceInfo info = ReferenceInfo.builder()
+        ReferenceInfo info = new ReferenceInfo.Builder()
                 .granularity(RowGranularity.DOC)
                 .type(DataTypes.DOUBLE)
                 .ident(TEST_TABLE_IDENT, new ColumnIdent("double")).build();
