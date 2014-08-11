@@ -553,7 +553,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
     @Override
     public Symbol visitParameterExpression(ParameterExpression node, T context) {
-        return new Parameter(context.parameterAt(node.index()));
+        return context.parameterContext().getAsSymbol(node.index());
     }
 
     private static class Comparison {

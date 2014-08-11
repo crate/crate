@@ -57,8 +57,11 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.search.SearchHits;
 import org.junit.Before;
 import org.junit.Test;
@@ -470,13 +473,14 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         execute("create table characters (id int primary key, name string)");
         ensureGreen();
 
-        Map<String, Object> sourceMap = new HashMap<>();
-        sourceMap.put(id_ref.info().ident().columnIdent().name(), 99);
-        sourceMap.put(name_ref.info().ident().columnIdent().name(), "Marvin");
+
+        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+        builder.field(id_ref.info().ident().columnIdent().name(), 99);
+        builder.field(name_ref.info().ident().columnIdent().name(), "Marvin");
 
         ESIndexNode indexNode = new ESIndexNode(
                 new String[]{"characters"},
-                Arrays.asList(sourceMap),
+                Arrays.asList(builder.bytes()),
                 ImmutableList.of("99"),
                 ImmutableList.of("99")
         );
@@ -517,10 +521,11 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 .put("id", 0L)
                 .put("name", "Trillian")
                 .map();
+        BytesReference source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
         PartitionName partitionName = new PartitionName("parted", Arrays.asList(new BytesRef("13959981214861")));
         ESIndexNode indexNode = new ESIndexNode(
                 new String[]{partitionName.stringValue()},
-                Arrays.asList(sourceMap),
+                Arrays.asList(source),
                 ImmutableList.of("123"),
                 ImmutableList.of("123")
                 );
@@ -577,14 +582,16 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Map<String, Object> sourceMap1 = new HashMap<>();
         sourceMap1.put(id_ref.info().ident().columnIdent().name(), 99);
         sourceMap1.put(name_ref.info().ident().columnIdent().name(), "Marvin");
+        BytesReference source1 = XContentFactory.jsonBuilder().map(sourceMap1).bytes();
 
         Map<String, Object> sourceMap2 = new HashMap<>();
         sourceMap2.put(id_ref.info().ident().columnIdent().name(), 42);
         sourceMap2.put(name_ref.info().ident().columnIdent().name(), "Deep Thought");
+        BytesReference source2 = XContentFactory.jsonBuilder().map(sourceMap2).bytes();
 
         ESIndexNode indexNode = new ESIndexNode(
                 new String[]{"characters"},
-                Arrays.asList(sourceMap1, sourceMap2),
+                Arrays.asList(source1, source2),
                 ImmutableList.of("99", "42"),
                 ImmutableList.of("99", "42")
         );
