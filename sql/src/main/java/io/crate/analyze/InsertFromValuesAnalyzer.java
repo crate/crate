@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
@@ -34,11 +32,12 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.ValuesList;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.text.BytesText;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -108,9 +107,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
             }
             try {
                 Object value = ((Input) valuesSymbol).value();
-                if (value instanceof BytesRef) {
-                    value = ((BytesRef) value).utf8ToString();
-                }
                 if (context.primaryKeyColumnIndices().contains(i)) {
                     int idx = primaryKey.indexOf(columnIdent);
                     if (idx < 0) {
@@ -137,6 +133,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
                         builder.field(columnIdent.name(), rest);
                     }
                 } else {
+                    if (value instanceof BytesRef) {
+                        value = new BytesText(new BytesArray((BytesRef) value));
+                    }
                     builder.field(columnIdent.name(), value);
                 }
             } catch (ClassCastException e) {
@@ -171,7 +170,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
         if (clusteredByValue == null) {
             throw new IllegalArgumentException("Clustered by value must not be NULL");
         }
-        return clusteredByValue.toString();
+        return BytesRefs.toString(clusteredByValue);
     }
 
     private Object processPartitionedByValues(final ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalysis context) {
@@ -181,25 +180,23 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
             assert columnValue instanceof Map;
             Map<String, Object> mapValue = (Map<String, Object>) columnValue;
             // hmpf, one or more nested partitioned by columns
-            for (ColumnIdent partitionIdent : Iterables.filter(context.table().partitionedBy(), new Predicate<ColumnIdent>() {
-                @Override
-                public boolean apply(@Nullable ColumnIdent input) {
-                    return input != null && input.getRoot().equals(columnIdent);
-                }
-            })) {
-                Object nestedValue = mapValue.remove(StringUtils.PATH_JOINER.join(partitionIdent.path()));
-                if (nestedValue instanceof BytesRef) {
-                    nestedValue = ((BytesRef) nestedValue).utf8ToString();
-                }
-                if (partitionMap != null) {
-                    partitionMap.put(partitionIdent.fqn(), nestedValue != null ? nestedValue.toString() : null);
+
+            for (ColumnIdent partitionIdent : context.table().partitionedBy()) {
+                if (partitionIdent.getRoot().equals(columnIdent)) {
+                    Object nestedValue = mapValue.remove(StringUtils.PATH_JOINER.join(partitionIdent.path()));
+                    if (nestedValue instanceof BytesRef) {
+                        nestedValue = ((BytesRef) nestedValue).utf8ToString();
+                    }
+                    if (partitionMap != null) {
+                        partitionMap.put(partitionIdent.fqn(), BytesRefs.toString(nestedValue));
+                    }
                 }
             }
 
             // put the rest into source
             return mapValue;
         } else if (partitionMap != null) {
-            partitionMap.put(columnIdent.name(), columnValue != null ? columnValue.toString() : null);
+            partitionMap.put(columnIdent.name(), BytesRefs.toString(columnValue));
         }
         return null;
     }
