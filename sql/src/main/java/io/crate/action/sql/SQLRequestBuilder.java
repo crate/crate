@@ -50,6 +50,10 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
         request.args(args);
     }
 
+    public void bulkArgs(Object[][] args) {
+        request.bulkArgs(args);
+    }
+
     public void includeTypesOnResponse(boolean includeTypes) {
         request.includeTypesOnResponse(includeTypes);
     }
