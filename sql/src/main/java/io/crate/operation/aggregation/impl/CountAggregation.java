@@ -23,9 +23,8 @@ package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.DynamicFunctionResolver;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.types.DataType;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -33,10 +32,12 @@ import io.crate.operation.aggregation.AggregationState;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.List;
 
@@ -47,7 +48,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
     private final boolean hasArgs;
 
     public static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
-            ImmutableList.<DataType>of()), DataTypes.LONG, true);
+            ImmutableList.<DataType>of()), DataTypes.LONG, FunctionInfo.Type.AGGREGATE);
 
     public static void register(AggregationImplModule mod) {
         mod.register(NAME, new CountAggregationFunctionResolver());
@@ -61,7 +62,8 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
                 return new CountAggregation(COUNT_STAR_FUNCTION, false);
             } else {
                 return new CountAggregation(
-                        new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.LONG, true),
+                        new FunctionInfo(new FunctionIdent(NAME, dataTypes),
+                                DataTypes.LONG, FunctionInfo.Type.AGGREGATE),
                         true
                 );
             }
@@ -103,7 +105,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
         }
 
         @Override
-        public int compareTo(CountAggState o) {
+        public int compareTo(@Nonnull CountAggState o) {
             return Long.compare(value, o.value);
         }
     }

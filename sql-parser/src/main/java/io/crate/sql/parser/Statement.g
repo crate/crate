@@ -116,6 +116,9 @@ tokens {
     ARRAY_LITERAL;
     OBJECT_LITERAL;
     KEY_VALUE;
+    MATCH;
+    MATCH_PREDICATE_IDENT;
+    MATCH_PREDICATE_IDENT_LIST;
 }
 
 @header {
@@ -409,7 +412,8 @@ booleanPrimary
     ;
 
 predicate
-    : (predicatePrimary -> predicatePrimary)
+    : (MATCH) => matchPredicate -> matchPredicate
+    | ((predicatePrimary -> predicatePrimary)
       ( cmpOp quant=setCmpQuantifier '(' e=predicatePrimary ')'       -> ^(ARRAY_CMP $predicate cmpOp $quant $e)
       | (LIKE setCmpQuantifier) => LIKE quant=setCmpQuantifier '(' e=predicatePrimary ')' (ESCAPE x=predicatePrimary)?          -> ^(ARRAY_LIKE $predicate $quant $e $x?)
       | LIKE e=predicatePrimary (ESCAPE x=predicatePrimary)?          -> ^(LIKE $predicate $e $x?)
@@ -424,8 +428,22 @@ predicate
       | IS NOT NULL                                                   -> ^(IS_NOT_NULL $predicate)
       | IN inList                                                     -> ^(IN $predicate inList)
       | NOT IN inList                                                 -> ^(NOT ^(IN $predicate inList))
-      )*
+      )*)
     ;
+
+matchPredicate
+    : MATCH '(' matchPredicateIdentList ',' s=parameterOrSimpleLiteral ')' (USING matchMethod=ident ((WITH '(') => WITH '(' genericProperties ')' )?)? -> ^(MATCH matchPredicateIdentList $s $matchMethod? genericProperties?)
+    ;
+
+matchPredicateIdentList
+    : ('(' matchPredicateIdent) => '(' matchPredicateIdent (',' matchPredicateIdent)* ')' -> ^(MATCH_PREDICATE_IDENT_LIST matchPredicateIdent+)
+    | matchPredicateIdent  -> ^(MATCH_PREDICATE_IDENT_LIST matchPredicateIdent+)
+    ;
+
+matchPredicateIdent
+    : subscriptSafe parameterOrSimpleLiteral? -> ^(MATCH_PREDICATE_IDENT subscriptSafe parameterOrSimpleLiteral?)
+    ;
+
 
 predicatePrimary
     : (numericExpr -> numericExpr)
@@ -450,6 +468,10 @@ subscript
     : exprPrimary ('['^ numericExpr ']'!)*
     ;
 
+subscriptSafe
+    : qname ('['^ numericExpr ']'!)*
+    ;
+
 exprPrimary
     : simpleExpr
     | caseExpression
@@ -465,6 +487,14 @@ simpleExpr
     | ('{') => objectLiteral
     | qnameOrFunction
     | specialFunction
+    | number
+    | parameterExpr
+    | bool
+    | STRING
+    ;
+
+parameterOrSimpleLiteral
+    : NULL
     | number
     | parameterExpr
     | bool
@@ -1153,6 +1183,8 @@ PARTITIONED: 'PARTITIONED';
 
 TRANSIENT: 'TRANSIENT';
 PERSISTENT: 'PERSISTENT';
+
+MATCH: 'MATCH';
 
 
 EQ  : '=';

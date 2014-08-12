@@ -42,10 +42,12 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     public static void register(AggregationImplModule mod) {
         for (DataType t :DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(new AverageAggregation(new FunctionInfo(
-                            new FunctionIdent(NAME, ImmutableList.of(t)), DataTypes.DOUBLE, true)));
+                            new FunctionIdent(NAME, ImmutableList.of(t)), DataTypes.DOUBLE,
+                    FunctionInfo.Type.AGGREGATE)));
         }
         mod.register(new AverageAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE, true)));
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+                FunctionInfo.Type.AGGREGATE)));
     }
 
     AverageAggregation(FunctionInfo info) {

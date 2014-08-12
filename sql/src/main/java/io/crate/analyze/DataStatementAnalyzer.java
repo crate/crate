@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -34,13 +35,17 @@ import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
-import io.crate.operation.predicate.NotPredicate;
+import io.crate.operation.predicate.*;
 import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.IsNullPredicate;
+import io.crate.sql.tree.MatchPredicate;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
 import java.util.*;
 
@@ -53,7 +58,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             .put(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ComparisonExpression.Type.LESS_THAN_OR_EQUAL)
             .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
             .build();
-
 
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, T context) {
@@ -555,6 +559,48 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     public Symbol visitParameterExpression(ParameterExpression node, T context) {
         return new Parameter(context.parameterAt(node.index()));
     }
+
+    @Override
+    public Symbol visitMatchPredicate(MatchPredicate node, T context) {
+
+        Map<String, Object> identBoostMap = new HashMap<>();
+        for (MatchPredicateColumnIdent ident : node.idents()) {
+            Symbol reference = process(ident.columnIdent(), context);
+            Preconditions.checkArgument(
+                reference instanceof Reference,
+                SymbolFormatter.format("can only MATCH on references, not on %s", reference)
+            );
+            Preconditions.checkArgument(
+                !(reference instanceof DynamicReference),
+                SymbolFormatter.format("cannot MATCH on non existing column %s", reference)
+            );
+            Number boost = ExpressionToNumberVisitor.convert(ident.boost(), context.parameters());
+            identBoostMap.put(((Reference) reference).info().ident().columnIdent().fqn(),
+                        boost == null ? null: boost.doubleValue());
+        }
+
+        String queryTerm = ExpressionToStringVisitor.convert(node.value(), context.parameters());
+
+        String matchType = node.matchType() == null
+                    ? io.crate.operation.predicate.MatchPredicate.DEFAULT_MATCH_TYPE_STRING
+                    : node.matchType();
+        try {
+            MultiMatchQueryBuilder.Type.parse(matchType);
+        } catch (ElasticsearchParseException e) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "invalid MATCH type '%s'", matchType), e);
+        }
+
+        Map<String, Object> options = MatchOptionsAnalysis.process(node.properties(), context.parameters());
+
+        FunctionInfo functionInfo = context.getFunctionInfo(io.crate.operation.predicate.MatchPredicate.IDENT);
+        return context.allocateFunction(functionInfo,
+                Arrays.<Symbol>asList(
+                        Literal.newLiteral(identBoostMap),
+                        Literal.newLiteral(queryTerm),
+                        Literal.newLiteral(matchType),
+                        Literal.newLiteral(options)));
+    }
+
 
     private static class Comparison {
 

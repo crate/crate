@@ -42,7 +42,7 @@ public class IsNullPredicate<T> implements Scalar<Boolean, T> {
     }
 
     private static FunctionInfo generateInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.BOOLEAN);
+        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE);
     }
 
     IsNullPredicate(FunctionInfo info) {

@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -84,7 +85,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
         Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(EqOperator.NAME, whereClause.info().ident().name());
-        assertFalse(whereClause.info().isAggregate());
+        assertFalse(whereClause.info().type() == FunctionInfo.Type.AGGREGATE);
 
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
 

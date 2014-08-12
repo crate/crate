@@ -44,7 +44,7 @@ public class ArbitraryAggregation<T extends Comparable<T>> extends AggregationFu
     public static void register(AggregationImplModule mod) {
         for (DataType t : DataTypes.PRIMITIVE_TYPES) {
             mod.register(new ArbitraryAggregation(
-                    new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t, true))
+                    new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t, FunctionInfo.Type.AGGREGATE))
             );
         }
     }

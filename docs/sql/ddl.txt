@@ -63,6 +63,9 @@ Or using a alternate syntax::
     ... );
     CREATE OK (... sec)
 
+
+.. _sql_ddl_datatypes:
+
 Data Types
 ==========
 
@@ -662,6 +665,8 @@ Of course defining a custom analyzer is possible here too::
     ... );
     CREATE OK (... sec)
 
+
+.. _sql-ddl-composite-index:
 
 Defining a composite index
 ..........................

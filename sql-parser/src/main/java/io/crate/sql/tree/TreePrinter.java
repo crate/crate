@@ -220,6 +220,16 @@ public class TreePrinter
             }
 
             @Override
+            public Void visitMatchPredicate(MatchPredicate node, Integer indentLevel)
+            {
+                print(indentLevel, "MATCH");
+
+                super.visitMatchPredicate(node, indentLevel + 1);
+
+                return null;
+            }
+
+            @Override
             protected Void visitQualifiedNameReference(QualifiedNameReference node, Integer indentLevel)
             {
                 QualifiedName resolved = resolvedNameReferences.get(node);

@@ -38,7 +38,8 @@ import static java.lang.String.format;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 
 public class TestStatementBuilder
 {
@@ -305,6 +306,15 @@ public class TestStatementBuilder
     public void testParameterExpressionLimitOffset() throws Exception {
         // ORMs like SQLAlchemy generate these kind of queries.
         printStatement("select * from foo limit ? offset ?");
+    }
+
+    @Test
+    public void testPredicates() throws Exception {
+        printStatement("select * from foo where match (a, 'abc')");
+        printStatement("select * from foo where match ((a, b 2.0), 'abc')");
+        printStatement("select * from foo where match ((a ?, b 2.0), ?)");
+        printStatement("select * from foo where match ((a 1, b 2.0), 'abc') using best_fields");
+        printStatement("select * from foo where match ((a 1, b 2.0), 'abc') using best_fields with (prop=val, foo=1)");
     }
 
     @Test

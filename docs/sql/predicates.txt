@@ -1,0 +1,355 @@
+.. highlight:: psql
+.. _predicates:
+
+==========
+Predicates
+==========
+
+Predicates are expressions that evaluate to boolean and can be used in the following places:
+
+ * in the :ref:`sql_dml_where_clause`
+
+
+While scalar functions that evaluate to boolean can be used in place of a predicate,
+a predicate cannot be used everywhere, e.g. in the result columns of a select statement.
+The semantics of a predicate usually differ from function semantics.
+
+e.g. A function is resolved by its name and the type of its arguments.
+A reference can be interchanged with the value it evaluates to (given as a literal)
+in a function argument and the function resolves to the same value.
+Predicates can bear different semantics, e.g. enforce the usage of a column reference.
+
+
+.. _predicates_is_null:
+
+Is Null
+=======
+
+Synopsis
+--------
+
+::
+
+    expr IS NULL
+
+Description
+-----------
+
+Returns ``TRUE`` if ``expr`` evaluates to ``NULL``.
+Given a column reference it returns ``TRUE`` if the field contains ``NULL``
+or is missing.
+
+Use this predicate to check for ``NULL`` values as SQL's three-valued logic
+does always return ``NULL`` when comparing ``NULL``.
+
+Parameters
+----------
+
+:expr: expression of one of the supported :ref:`sql_ddl_datatypes` supported by crate.
+
+Examples
+--------
+
+::
+
+    cr> select name from locations where race is null order by name;
+    +------------------------------------+
+    | name                               |
+    +------------------------------------+
+    |                                    |
+    | Aldebaran                          |
+    | Algol                              |
+    | Allosimanius Syneca                |
+    | Alpha Centauri                     |
+    | Altair                             |
+    | Argabuthon                         |
+    | Arkintoofle Minor                  |
+    | Galactic Sector QQ7 Active J Gamma |
+    | North West Ripple                  |
+    | Outer Eastern Rim                  |
+    | NULL                               |
+    +------------------------------------+
+    SELECT 12 rows in set (... sec)
+
+    cr> select count(*) from locations where name is null;
+    +----------+
+    | count(*) |
+    +----------+
+    |        1 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+
+.. _predicates_not_null:
+
+Is Not Null
+===========
+
+Synopsis
+--------
+
+::
+
+    expr IS NOT NULL
+
+Description
+-----------
+
+Returns ``TRUE`` if ``expr`` does not evaluate to ``NULL``.
+Additionally, for column references it returns ``FALSE`` if the column does not exist.
+
+Use this predicate to check for non-``NULL`` values as SQL's three-valued logic
+does always return ``NULL`` when comparing ``NULL``.
+
+Paramaters
+----------
+
+:expr: expression of one of the supported :ref:`sql_ddl_datatypes` supported by crate.
+
+Examples
+--------
+
+::
+
+    cr> select name from locations where race['interests'] is not null;
+    +-----------+
+    | name      |
+    +-----------+
+    | Bartledan |
+    +-----------+
+    SELECT 1 row in set (... sec)
+
+    cr> select count(*) from locations where name is not null;
+    +----------+
+    | count(*) |
+    +----------+
+    |       12 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+
+.. _predicates_match:
+
+Match
+=====
+
+Perform a fulltext search on one or multiple columns.
+
+Synopsis
+--------
+
+::
+
+    MATCH (
+         {  column_ident | ( column_ident [boost]  [, ...] ) }
+     , query_term
+    )  [ using match_type [ with ( match_parameter [= value] [, ... ] ) ] ]
+
+Description
+-----------
+
+The MATCH predicate performs a fulltext search on one or multiple columns
+and supports different matching techniques.
+
+In order to use fulltext searches on a column, a :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>`
+must be created on the related column. See :ref:`fulltext-indices` for details.
+
+To get the relevance of a matching row, an internal system column
+:ref:`_score <sql_ddl_system_column_score>` can be selected.
+It is a numeric value which is not absolute but relative to the other rows.
+The higher the score value, the more relevant the row::
+
+    cr> select name, _score from locations where match(name_description_ft, 'time');
+    +-----------+------------+
+    | name      |     _score |
+    +-----------+------------+
+    | Altair    | 0.56319076 |
+    | Bartledan | 0.4590714  |
+    +-----------+------------+
+    SELECT 2 rows in set (... sec)
+
+The MATCH predicate in its simplest form performs a fulltext search against a single column.
+It takes the ``query_term`` and analyzes it with the same analyzer configured on ``column_ident``
+if no ``analyzer`` is given in the match parameters.
+The resulting tokens are matched against the already indexed tokens at ``column_ident``.
+If any of the ``query_term`` tokens is contained in the ``column_ident`` tokens,
+MATCH returns ``TRUE``.
+
+The MATCH predicate can be also used to perform a fulltext search on multiple
+columns with a single ``query_term``. Using this variant, it is possible to manipulate the relevance of a
+column by referencing it using its ``column_ident`` and the ``boost`` argument.
+Matches on columns with a higher boost result in a higher :ref:`_score <sql_ddl_system_column_score>` value
+for that document.
+
+How the single ``query_term`` is applied to the variable number of columns
+and how the resulting :ref:`_score <sql_ddl_system_column_score>` is computed
+is determined by the ``match_type`` argument. See :ref:`predicates_match_types`.
+
+Without explicit ordering using ``ORDER BY`` the results are sorted by relevance.
+
+Arguments
+.........
+
+:column_ident: A reference to an index column or an existing column that is of type ``string`` and is indexed.
+               By default every column is indexed but only the raw data is stored.
+               So matching against a ``string`` column without a fulltext index is equivalent to using the ``=`` operator.
+               To perform real fulltext searches using a :ref:`sql_ddl_index_fulltext` is mandatory.
+
+:boost: a column ident can have a boost attached. That is a factor that increases
+        the relevance of a column in respect to the other columns. The default boost
+        is 1.
+
+:query_term: This string is analyzed (using the explicitly given ``analyzer``
+             or the analyzer of the columns to perform the search on)
+             and the resulting tokens are compared to the already indexed ones.
+             The tokens used for search are combined using the ``OR`` operator
+             if not stated otherwise using the ``operator`` option, so only
+             one of the resulting tokens has to match to include a row.
+
+:match_type: Optional. Defaults to ``best_fields``. For details see :ref:`predicates_match_types`.
+
+
+.. _predicates_match_types:
+
+Match Types
+...........
+
+The match type determines how the ``query_term`` is applied and the :ref:`_score <sql_ddl_system_column_score>`
+is created, thus it influences which documents are considered more relevant.
+The default ``match_type`` is ``best_fields``.
+
+:best_fields: Use the :ref:`_score <sql_ddl_system_column_score>` of the column that matched best.
+              For example if a column contains all the tokens of the ``query_term``
+              it is considered more relevant than another column only containing one of them.
+
+              This type is the default, if omitted.
+
+:most_fields: This match type takes the :ref:`_score <sql_ddl_system_column_score>` of every matching column
+              and combines their scores to one by calculating a simple mean.
+
+:cross_fields: This match type analyzes the ``query_term`` into tokens and searches all the tokens
+               of all given columns at once as if they were one big column (given they have the same analyzer).
+               All tokens have to be present in at least one column.
+               So querying for ``foo bar`` should have the tokens ``foo`` in one column and ``bar`` in the same or any other.
+
+:phrase: This match type differs from ``best_fields`` in that it constructs a phrase query from the ``query_term``.
+         A phrase query will only match if the tokens in the columns are in the same order than the
+         analyzed columns from the ``query_term``.
+         So, querying for ``foo bar`` (analyzed tokens: ``foo`` and ``bar``) will only match
+         if one of the columns contains those two token in order.
+
+:phrase_prefix: This match type is roughly the same than ``phrase`` but it allows to match by prefix
+                on the last token of the ``query_term``. For example if your query for ``foo ba``,
+                one of the columns has to contain ``foo`` and a token that starts with ``ba`` in that order.
+                So a column containing ``foo baz`` would match and ``foo bar`` too.
+
+
+Options
+~~~~~~~
+
+The match options further distinguish the way the matching process using a certain match type works.
+Not all options are applicable to all match types. See the options below for details.
+
+:analyzer: The analyzer used to convert the ``query_term`` into tokens.
+
+:boost: This numeric value is multiplied with the resulting :ref:`_score <sql_ddl_system_column_score>` of
+        this ``match`` call. If this ``match`` call is used with other conditions in the where clause
+        a value above ``1.0`` will increase its influence on the overall :ref:`_score <sql_ddl_system_column_score>`
+        of the whole query, a value below ``1.0`` will decrease it.
+
+:cutoff_frequency: The token frequency is the number of occurences of a token in a column.
+                   This option specifies a minimum token frequency that excludes
+                   matching tokens with a higher frequency from the overall :ref:`_score <sql_ddl_system_column_score>`.
+                   Their :ref:`_score <sql_ddl_system_column_score>` is only included
+                   if another token with a lower frequency also matches.
+                   This can be used to suppress results where only high frequency terms like ``the`` would cause a match.
+
+:fuzziness: Can be used to perform fuzzy full text search.
+            On numeric columns use a numeric, on timestamp columns a long indicating milliseconds,
+            on strings use a number indicating the maximum allowed Levenshtein Edit Distance.
+            Use ``prefix_length``, ``fuzzy_rewrite`` and ``max_expansions`` to fine tune the fuzzy matching process.
+
+:fuzzy_rewrite: The same than ``rewrite`` but only applies to queries using ``fuzziness``.
+
+
+:max_expansions: When using ``fuzziness`` or ``phrase_prefix`` this options controls
+                 to how many different possible tokens a search token will be expanded.
+                 The ``fuzziness`` controls how big the distance or difference
+                 between the original token and the set of tokens it is expanded to can be.
+                 This option controls how big this set can get.
+
+:minimum_should_match: The number of tokens from the ``query_term`` to match when ``or`` is used.
+                       Defaults to ``1``.
+
+:operator: Can be ``or`` or ``and``. The default is ``or``. It is used to combine the tokens of the ``query_term``.
+           If ``and`` is used, every token from the ``query_term`` has to match. If ``or`` is used only the number of
+           ``minimum_should_match`` have to match.
+
+:prefix_length: When used with ``fuzziness`` option or with ``phrase_prefix``
+                this options controls how long the common prefix of the tokens
+                that are considered as similar (same prefix or fuzziness distance/difference)has to be.
+
+:rewrite: When using ``phrase_prefix`` the prefix query is constructed
+          using all possible terms and rewriting them into another kind of query to compute the score.
+          Possible values are ``constant_score_auto``, ``constant_score_boolean``, ``constant_score_filter``,
+          ``scoring_boolean``,``top_terms_N``, ``top_terms_boost_N``. The ``constant_...`` values
+          can be used together with the ``boost`` option to set a constant :ref:`_score <sql_ddl_system_column_score>`
+          for rows with a matching prefix or fuzzy match.
+
+:slop: When matching for phrases this option controls how exact the phrase match should be.
+       If set to ``0`` (the default), the terms must be in the exact order.
+       If two transposed terms should match, a minimum ``slop`` of ``2`` has to be set.
+       Only applicable to ``phrase`` and ``phrase_prefix`` queries.
+
+
+:tie_breaker: When using ``best_fields``, ``phrase`` or ``phrase_prefix``
+              the :ref:`_score <sql_ddl_system_column_score>` of every other column
+              will be multiplied with this value and added to the
+              :ref:`_score <sql_ddl_system_column_score>` of the best matching column.
+              Defaults to ``0.0``. Not applicable to match type ``most_fields``
+              as this type is executed as if it had a ``tie_breaker`` of ``1.0``.
+
+
+:zero_terms_query: If no tokens are generated analyzing the ``query_term`` then no documents are matched.
+                   If ``all`` is given here, all documents are matched.
+
+Examples
+........
+
+.. Todo:
+
+   fill in results
+
+::
+
+    cr> select name
+    ... from locations
+    ... where match((name_description_ft, race['name'] 1.5, race['description']), 'planet earth');
+    +------------------------------------+
+    | name                               |
+    +------------------------------------+
+    | Alpha Centauri                     |
+    |                                    |
+    | Allosimanius Syneca                |
+    | Bartledan                          |
+    | Galactic Sector QQ7 Active J Gamma |
+    +------------------------------------+
+    SELECT 5 rows in set (... sec)
+
+::
+
+    cr> select name, _score
+    ... from locations
+    ... where match((race['name'] 1.5, name_description_ft 1.2), 'planet sun')
+    ... using most_fields with (tie_breaker=0.3, analyzer='english', fuzziness=2);
+    +------------------------------------+------------+
+    | name                               |     _score |
+    +------------------------------------+------------+
+    | Allosimanius Syneca                | 0.6604981  |
+    | Galactic Sector QQ7 Active J Gamma | 0.4704613  |
+    | Argabuthon                         | 0.26255143 |
+    |                                    | 0.25220823 |
+    | Bartledan                          | 0.14275678 |
+    | Algol                              | 0.06251224 |
+    +------------------------------------+------------+
+    SELECT 6 rows in set (... sec)

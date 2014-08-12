@@ -32,7 +32,7 @@ import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.scalar.MatchFunction;
+import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.LogFunction;
 import io.crate.operation.scalar.arithmetic.RoundFunction;
@@ -51,6 +51,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -72,25 +73,31 @@ import static org.junit.Assert.assertThat;
 public class ESQueryBuilderTest {
 
     Functions functions;
-    static TableIdent characters = new TableIdent(null, "characters");
-    static Reference name_ref = new Reference(new ReferenceInfo(
+    static final TableIdent characters = new TableIdent(null, "characters");
+    static final Reference name_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "name"), RowGranularity.DOC, DataTypes.STRING));
-    static Reference age_ref = new Reference(new ReferenceInfo(
+    static final Reference age_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "age"), RowGranularity.DOC, DataTypes.INTEGER));
-    static Reference weight_ref = new Reference(new ReferenceInfo(
+    static final Reference weight_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "weight"), RowGranularity.DOC, DataTypes.DOUBLE));
-    static Reference float_ref = new Reference(new ReferenceInfo(
+    static final Reference float_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "float_ref"), RowGranularity.DOC, DataTypes.FLOAT));
-    static Reference long_ref = new Reference(new ReferenceInfo(
+    static final Reference long_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "long_ref"), RowGranularity.DOC, DataTypes.LONG));
-    static Reference short_ref = new Reference(new ReferenceInfo(
+    static final Reference short_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "short_ref"), RowGranularity.DOC, DataTypes.SHORT));
-    static Reference isParanoid = new Reference(new ReferenceInfo(
+    static final Reference isParanoid = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "isParanoid"), RowGranularity.DOC, DataTypes.BOOLEAN));
-    static Reference extrafield = new Reference(new ReferenceInfo(
+    static final Reference extrafield = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "extrafield"), RowGranularity.DOC, DataTypes.STRING));
-    static Reference tagsField = new Reference(new ReferenceInfo(
+    static final Reference tagsField = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "tags"), RowGranularity.DOC, new ArrayType(DataTypes.STRING)
+    ));
+    static final Reference objectField = new Reference(new ReferenceInfo(
+            new ReferenceIdent(characters, "object_field"), RowGranularity.DOC, DataTypes.OBJECT
+    ));
+    static final Reference nestedField = new Reference(new ReferenceInfo(
+            new ReferenceIdent(characters, "object_field", Arrays.asList("nested")), RowGranularity.DOC, DataTypes.STRING
     ));
     private ESQueryBuilder generator;
 
@@ -261,12 +268,101 @@ public class ESQueryBuilderTest {
     @Test
     public void testWhereReferenceMatchString() throws Exception {
         FunctionIdent functionIdent = new FunctionIdent(
-                MatchFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING));
-        FunctionImplementation matchImpl = functions.get(functionIdent);
+                MatchPredicate.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT));
+        MatchPredicate matchImpl = (MatchPredicate)functions.get(functionIdent);
         Function match = new Function(matchImpl.info(),
-                Arrays.<Symbol>asList(name_ref, Literal.newLiteral("arthur")));
+                Arrays.<Symbol>asList(
+                        Literal.newLiteral(
+                                new MapBuilder<String, Object>().put(name_ref.info().ident().columnIdent().fqn(), null).map()),
+                        Literal.newLiteral("arthur"),
+                        Literal.newLiteral(MatchPredicate.DEFAULT_MATCH_TYPE),
+                        Literal.newLiteral(DataTypes.OBJECT, null)
+                ));
 
         xcontentAssert(match, "{\"query\":{\"match\":{\"name\":\"arthur\"}}}");
+    }
+
+    @Test
+    public void testWhereMultiMatchString() throws Exception {
+        FunctionIdent ident = new FunctionIdent(
+                MatchPredicate.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
+        );
+        MatchPredicate matchImpl = (MatchPredicate)functions.get(ident);
+        Function match = new Function(matchImpl.info(),
+                Arrays.<Symbol>asList(
+                        Literal.newLiteral(
+                                new MapBuilder<String, Object>()
+                                        .put(name_ref.info().ident().columnIdent().fqn(), null)
+                                        .put(extrafield.info().ident().columnIdent().fqn(), 4.5d)
+                                        .map()),
+                        Literal.newLiteral("arthur"),
+                        Literal.newLiteral(MatchPredicate.DEFAULT_MATCH_TYPE),
+                        Literal.newLiteral(
+                                new MapBuilder<String, Object>()
+                                        .put("tie_breaker", 0.5)
+                                        .put("analyzer", "english")
+                                        .map()
+                        )
+                ));
+        xcontentAssert(match, "{\"query\":{\"multi_match\":{\"type\":\"best_fields\"," +
+                "\"fields\":[\"extrafield^4.5\",\"name\"]," +
+                "\"query\":\"arthur\",\"tie_breaker\":0.5,\"analyzer\":\"english\"}}}");
+    }
+
+    @Test
+    public void testMultiMatchType() throws Exception {
+        FunctionIdent ident = new FunctionIdent(
+                MatchPredicate.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
+        );
+        MatchPredicate matchImpl = (MatchPredicate) functions.get(ident);
+        Function match = new Function(matchImpl.info(),
+                Arrays.<Symbol>asList(
+                        Literal.newLiteral(
+                                new MapBuilder<String, Object>()
+                                        .put(name_ref.info().ident().columnIdent().fqn(), 0.003d)
+                                        .put(nestedField.info().ident().columnIdent().fqn(), null)
+                                        .map()),
+                        Literal.newLiteral("arthur"),
+                        Literal.newLiteral("phrase"),
+                        Literal.newLiteral(
+                                new MapBuilder<String, Object>()
+                                        .put("fuzziness", 3)
+                                        .put("max_expansions", 6)
+                                        .map()
+                        )
+                ));
+        xcontentAssert(match, "{\"query\":{\"multi_match\":{\"type\":\"phrase\"," +
+                "\"fields\":[\"name^0.003\",\"object_field.nested\"]," +
+                "\"query\":\"arthur\",\"max_expansions\":6,\"fuzziness\":3}}}");
+    }
+
+    @Test
+    public void testMatchNull() throws Exception {
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("cannot use NULL as query term in match predicate");
+
+        FunctionIdent ident = new FunctionIdent(
+                MatchPredicate.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
+        );
+        MatchPredicate matchImpl = (MatchPredicate) functions.get(ident);
+        Function match = new Function(matchImpl.info(),
+                Arrays.<Symbol>asList(
+                        Literal.newLiteral(
+                                new MapBuilder<String, Object>()
+                                        .put(name_ref.info().ident().columnIdent().fqn(), 0.003d)
+                                        .put(nestedField.info().ident().columnIdent().fqn(), null)
+                                        .map()),
+                        Literal.newLiteral(DataTypes.STRING, null),
+                        Literal.newLiteral(MatchPredicate.DEFAULT_MATCH_TYPE),
+                        Literal.newLiteral(
+                                new MapBuilder<String, Object>()
+                                        .put("fuzziness", 3)
+                                        .put("max_expansions", 6)
+                                        .map()
+                        )
+                ));
+        generator.convert(new WhereClause(match));
     }
 
     @Test

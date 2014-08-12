@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - match predicate can now be used on multiple columns
+   and supports several options for a more powerful fulltext search
+
  - improve readability of documentation
 
  - blobs can now be stored on different paths than normal tables,

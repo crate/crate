@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import io.crate.exceptions.SQLParseException;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
@@ -238,8 +239,8 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
         for (Expression expression : groupByExpressions) {
             Symbol s = process(expression, context);
-            Symbol deref = ordinalOutputReference(context.outputSymbols(), s, "GROUP BY");
-            s = Objects.firstNonNull(deref, s);
+            Symbol deRef = ordinalOutputReference(context.outputSymbols(), s, "GROUP BY");
+            s = Objects.firstNonNull(deRef, s);
             groupBySymbolValidator.process(s, null);
             groupBy.add(s);
         }
@@ -248,7 +249,8 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     private void ensureNonAggregatesInGroupBy(SelectAnalysis context) {
         for (Symbol symbol : context.outputSymbols()) {
-            if (context.groupBy() == null || !context.groupBy().contains(symbol)) {
+            List<Symbol> groupBySymbols = context.groupBy();
+            if (groupBySymbols == null || !groupBySymbols.contains(symbol)) {
                 if (!isAggregate(symbol)) {
                     throw new IllegalArgumentException(
                             SymbolFormatter.format("column '%s' must appear in the GROUP BY clause or be used in an aggregation function",
@@ -260,7 +262,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     private boolean isAggregate(Symbol s) {
         if (s.symbolType() == SymbolType.FUNCTION) {
-            if (((Function) s).info().isAggregate()) {
+            if (((Function) s).info().type() == FunctionInfo.Type.AGGREGATE) {
                 return true;
             }
             AggregationSearcherContext searcherContext = new AggregationSearcherContext();
@@ -277,7 +279,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             sortSymbol = Literal.fromParameter((Parameter)sortSymbol);
         }
         if (sortSymbol.symbolType() == SymbolType.LITERAL && DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(((Literal)sortSymbol).valueType())) {
-            // deref
+            // de-ref
             sortSymbol = ordinalOutputReference(context.outputSymbols(), sortSymbol, "ORDER BY");
         }
         // validate sortSymbol
@@ -299,7 +301,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         @Override
         public Void visitFunction(Function symbol, AggregationSearcherContext context) {
-            if (symbol.info().isAggregate()) {
+            if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
                 context.found = true;
             } else {
                 for (Symbol argument : symbol.arguments()) {
@@ -342,6 +344,12 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                                     symbol.valueType())
                     );
                 }
+
+                if (symbol.info().type() == FunctionInfo.Type.PREDICATE) {
+                    throw new UnsupportedOperationException(String.format(
+                            "%s predicate cannot be used in an ORDER BY clause", symbol.info().ident().name()));
+                }
+
                 for (Symbol arg : symbol.arguments()) {
                     process(arg, context);
                 }
@@ -415,10 +423,19 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         @Override
         public Void visitFunction(Function symbol, Void context) {
-             if (symbol.info().isAggregate()) {
-                 throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
-             }
-             return null;
+            switch (symbol.info().type()) {
+                case SCALAR:
+                    break;
+                case AGGREGATE:
+                    throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
+                case PREDICATE:
+                    throw new UnsupportedOperationException(String.format(
+                            "%s predicate cannot be used in a GROUP BY clause", symbol.info().ident().name()));
+                default:
+                    throw new UnsupportedOperationException(
+                            String.format("FunctionInfo.Type %s not handled", symbol.info().type()));
+            }
+            return null;
          }
 
         @Override
@@ -460,8 +477,18 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         @Override
         public Void visitFunction(Function symbol, SelectContext context) {
-            if (symbol.info().isAggregate()) {
-                context.selectFromFieldCache = true;
+            switch (symbol.info().type()) {
+                case SCALAR:
+                    break;
+                case AGGREGATE:
+                    context.selectFromFieldCache = true;
+                    break;
+                case PREDICATE:
+                    throw new UnsupportedOperationException(String.format(
+                            "%s predicate cannot be selected", symbol.info().ident().name()));
+                default:
+                    throw new UnsupportedOperationException(String.format(
+                            "FunctionInfo.Type %s not handled", symbol.info().type()));
             }
             for (Symbol arg : symbol.arguments()) {
                 process(arg, context);

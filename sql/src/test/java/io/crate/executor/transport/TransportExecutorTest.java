@@ -80,7 +80,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     private ClusterService clusterService;
     private ClusterName clusterName;
     private TransportExecutor executor;
-    private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
 
     TableIdent table = new TableIdent(null, "characters");
     Reference id_ref = new Reference(new ReferenceInfo(
@@ -318,7 +317,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ));
         Function function = new Function(new FunctionInfo(
                 new FunctionIdent(DateTruncFunction.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.TIMESTAMP)),
-                DataTypes.TIMESTAMP, false
+                DataTypes.TIMESTAMP
         ), Arrays.<Symbol>asList(Literal.newLiteral("day"), new InputColumn(1)));
         Function whereClause = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),

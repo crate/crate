@@ -37,8 +37,8 @@ import io.crate.operation.Input;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
+import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
-import io.crate.operation.scalar.MatchFunction;
 import io.crate.operation.scalar.arithmetic.*;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSortScript;
@@ -81,6 +81,10 @@ public class ESQueryBuilder {
         static final XContentBuilderString LAT = new XContentBuilderString("lat");
         static final XContentBuilderString GEO_POLYGON = new XContentBuilderString("geo_polygon");
         static final XContentBuilderString POINTS = new XContentBuilderString("points");
+        static final XContentBuilderString TYPE = new XContentBuilderString("type");
+        static final XContentBuilderString FIELDS = new XContentBuilderString("fields");
+        static final XContentBuilderString MATCH = new XContentBuilderString("match");
+        static final XContentBuilderString MULTI_MATCH = new XContentBuilderString("multi_match");
     }
 
     /**
@@ -498,7 +502,7 @@ public class ESQueryBuilder {
                     .put(LikeOperator.NAME, new LikeConverter())
                     .put(IsNullPredicate.NAME, new IsNullConverter())
                     .put(NotPredicate.NAME, new NotConverter())
-                    .put(MatchFunction.NAME, new MatchConverter())
+                    .put(MatchPredicate.NAME, new MatchConverter())
                     .put(InOperator.NAME, new InConverter())
                     .put(AnyEqOperator.NAME, eqConverter)
                     .put(AnyNeqOperator.NAME, new AnyNeqConverter())
@@ -823,8 +827,8 @@ public class ESQueryBuilder {
 
             @Nullable
             protected Tuple<String, Object> prepare(Function function) {
-                Preconditions.checkNotNull(function);
-                Preconditions.checkArgument(function.arguments().size() == 2);
+                Preconditions.checkNotNull(function, "given function '%s' is null", function.getClass().getSimpleName());
+                Preconditions.checkArgument(function.arguments().size() == 2, "invalid number of arguments");
 
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
@@ -1018,15 +1022,62 @@ public class ESQueryBuilder {
             }
         }
 
-        class MatchConverter extends CmpConverter {
+        class MatchConverter extends Converter<Function> {
+
 
             @Override
             public boolean convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> tuple = super.prepare(function);
-                if (tuple == null) {
-                    return false;
+                Preconditions.checkNotNull(function, "expected MATCH predicate, but is null");
+                Preconditions.checkArgument(function.arguments().size() == 4, "invalid number of arguments");
+                List<Symbol> arguments = function.arguments();
+                assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT);
+                assert Symbol.isLiteral(arguments.get(1), DataTypes.STRING);
+                assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING);
+                assert Symbol.isLiteral(arguments.get(3), DataTypes.OBJECT);
+
+                @SuppressWarnings("unchecked")
+                Map<String, Object> idents = ((Literal<Map<String, Object>>)arguments.get(0)).value();
+                BytesRef queryString = (BytesRef) ((Literal)arguments.get(1)).value();
+                BytesRef matchType = (BytesRef) ((Literal)arguments.get(2)).value();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> options = ((Literal<Map<String, Object>>)arguments.get(3)).value();
+
+                // validate
+                Preconditions.checkArgument(queryString != null, "cannot use NULL as query term in match predicate");
+
+                String[] columnNames = new String[idents.entrySet().size()];
+                int i = 0;
+                for (Map.Entry<String, Object> entry : idents.entrySet()) {
+                    if (entry.getValue() != null) {
+                        columnNames[i] = String.format("%s^%s", entry.getKey(),
+                                MatchPredicate.BOOST_FORMAT.format(entry.getValue()));
+                    } else {
+                        columnNames[i] = entry.getKey();
+                    }
+                    i++;
                 }
-                context.builder.startObject("match").field(tuple.v1(), tuple.v2()).endObject();
+
+                // build
+                if (columnNames.length == 1 &&
+                        (matchType == null || matchType.equals(MatchPredicate.DEFAULT_MATCH_TYPE)) &&
+                        (options == null || options.isEmpty())) {
+                    // legacy match
+                    context.builder.startObject(Fields.MATCH)
+                            .field(columnNames[0], queryString)
+                            .endObject();
+                } else {
+
+                    context.builder.startObject(Fields.MULTI_MATCH)
+                            .field(Fields.TYPE, matchType != null ? matchType : MatchPredicate.DEFAULT_MATCH_TYPE)
+                            .array(Fields.FIELDS, columnNames)
+                            .field(Fields.QUERY, queryString.utf8ToString());
+                    if (options != null) {
+                        for (Map.Entry<String, Object> option : options.entrySet()) {
+                            context.builder.field(option.getKey(), option.getValue());
+                        }
+                    }
+                    context.builder.endObject();
+                }
                 return true;
             }
         }
