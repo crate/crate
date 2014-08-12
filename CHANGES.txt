@@ -5,6 +5,12 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - blobs can now be stored on different paths than normal tables,
+   custom path can be set global and per blob table
+
+2014/08/12 0.41.2
+=================
+
  - fix: ``match`` is now more strict and no longer searches nested objects if the searched column doesn't exist
    and it is not allowed on non existing columns anymore
 
@@ -23,9 +29,6 @@ Unreleased
 
  - improved error handling if illegal arguments are used in COPY FROM or COPY
    TO statements.
-
- - blobs can now be stored on different paths than normal tables,
-   custom path can be set global and per blob table
 
  - improved COPY TO documentation.
 
