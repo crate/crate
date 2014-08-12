@@ -33,6 +33,7 @@ import org.elasticsearch.monitor.sigar.SigarService;
 import org.hyperic.sigar.FileSystem;
 import org.hyperic.sigar.FileSystemUsage;
 import org.hyperic.sigar.SigarException;
+import org.hyperic.sigar.SigarPermissionDeniedException;
 
 import javax.annotation.Nonnull;
 import java.util.HashMap;
@@ -100,14 +101,19 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
         if (sigarService.sigarAvailable()) {
             try {
                 for (FileSystem fs : sigarService.sigar().getFileSystemList()) {
-                    FileSystemUsage usage = sigarService.sigar().getFileSystemUsage(fs.getDirName());
-                    size = setOrIncrementBy(size, usage.getTotal() * 1024);
-                    used = setOrIncrementBy(used, usage.getUsed());
-                    available = setOrIncrementBy(available, usage.getAvail() * 1024);
-                    reads = setOrIncrementBy(reads, usage.getDiskReads());
-                    bytes_read = setOrIncrementBy(bytes_read, usage.getDiskReadBytes());
-                    writes = setOrIncrementBy(writes, usage.getDiskWrites());
-                    bytes_written = setOrIncrementBy(bytes_written, usage.getDiskWriteBytes());
+                    try {
+                        FileSystemUsage usage = sigarService.sigar().getFileSystemUsage(fs.getDirName());
+                        size = setOrIncrementBy(size, usage.getTotal() * 1024);
+                        used = setOrIncrementBy(used, usage.getUsed());
+                        available = setOrIncrementBy(available, usage.getAvail() * 1024);
+                        reads = setOrIncrementBy(reads, usage.getDiskReads());
+                        bytes_read = setOrIncrementBy(bytes_read, usage.getDiskReadBytes());
+                        writes = setOrIncrementBy(writes, usage.getDiskWrites());
+                        bytes_written = setOrIncrementBy(bytes_written, usage.getDiskWriteBytes());
+                    } catch (SigarPermissionDeniedException e) {
+                        logger.warn(String.format(
+                            "Permission denied: couldn't get file system usage for \"%s\"", fs.getDirName()));
+                    }
                 }
             } catch (SigarException e) {
                 logger.warn("error getting filesystem totals", e);
