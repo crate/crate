@@ -3014,6 +3014,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testBulkInsert() throws Exception {
+        execute("create table test (id integer, name string)");
+        ensureGreen();
+        execute("insert into test (id, name) values (?, ?), (?, ?)",
+                new Object[][] {
+                        {1, "Earth", 2, "Saturn"},    // bulk row 1
+                        {3, "Moon", 4, "Mars"}        // bulk row 2
+                });
+        refresh();
+        execute("select name from test order by id asc");
+        assertEquals("Earth\nSaturn\nMoon\nMars\n", TestingHelpers.printedTable(response.rows()));
+    }
+
+    @Test
     public void testInsertPartitionedTableOnlyPartitionedColumns() throws Exception {
         execute("create table parted (name string, date timestamp)" +
                 "partitioned by (name, date)");
