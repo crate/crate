@@ -18,7 +18,10 @@ is skipped and the request is automatically routed to the next server::
 
     import io.crate.client.CrateClient;
 
-    CrateClient client = new CrateClient("host1.example.com:4300", "host2.example.com:4300");
+    CrateClient client = new CrateClient(
+        "host1.example.com:4300",
+        "host2.example.com:4300"
+    );
 
 
 Selecting Data
@@ -35,7 +38,8 @@ Retrieving the returned columns using the ``cols()`` method::
 
 will print::
 
-    ["id", "name", "hostname", "port", "load", "mem", "heap", "fs", "version", "thread_pools"]
+    ["id", "name", "hostname", "port", "load", "mem", "heap", "fs", "version",
+    "thread_pools"]
 
 Retrieving the returned rows using the ``rows()`` method::
 
@@ -89,7 +93,7 @@ Parameter Substitution
 ======================
 
 To prevent `SQL Injection`_ and for convenience reasons one always
-should use parameter substitution when quering data.
+should use parameter substitution when querying data.
 
 In order to perform parameter substitution you have to use the
 ``SQLRequest`` class again.
@@ -103,7 +107,7 @@ using parameter substitution::
     String stmt = "INSERT INTO foo (id, name) VALUES (?, ?)";
     Object[] args = new Object[]{1, "bar"};
 
-    SQLRequest request = new SQLRequest(stmt, args).actionGet();
+    SQLRequest request = new SQLRequest(stmt, args);
 
 To bulk insert data you need to make use of multiple rows in the
 INSERT statement like and provide an object array of arguments
@@ -113,7 +117,7 @@ with the length of
     String stmt = "INSERT INTO foo (id, name) VALUES (?, ?), (?, ?)";
     Object[] args = new Object[]{1, "bar", 2, "baz"};
 
-    SQLRequest request = new SQLRequest(stmt, args).actionGet();
+    SQLRequest request = new SQLRequest(stmt, args);
 
 
 Data Type Mapping
