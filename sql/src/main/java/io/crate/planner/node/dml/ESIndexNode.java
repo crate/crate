@@ -33,16 +33,19 @@ import java.util.List;
  */
 public class ESIndexNode extends DMLPlanNode {
 
-    private String[] indices;
+    private final boolean partitionedTable;
+    private final String[] indices;
 
-    private List<BytesReference> sources;
-    private List<String> ids;
-    private List<String> routingValues;
+    private final List<BytesReference> sources;
+    private final List<String> ids;
+    private final List<String> routingValues;
 
     public ESIndexNode(String[] indices,
                        List<BytesReference> sources,
                        List<String> ids,
-                       @Nullable List<String> routingValues) {
+                       @Nullable List<String> routingValues,
+                       boolean partitionedTable) {
+        this.partitionedTable = partitionedTable;
         assert indices != null : "no indices";
         assert indices.length == 1 || indices.length == sources.size() : "unsupported number of indices";
         this.indices = indices;
@@ -73,4 +76,10 @@ public class ESIndexNode extends DMLPlanNode {
         return visitor.visitESIndexNode(this, context);
     }
 
+    /**
+     * @return true if the table is partitioned, otherwise false
+     */
+    public boolean partitionedTable() {
+        return partitionedTable;
+    }
 }

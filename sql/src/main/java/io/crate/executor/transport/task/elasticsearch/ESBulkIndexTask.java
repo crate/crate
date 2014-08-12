@@ -43,9 +43,8 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
                            TransportCreateIndexAction transportCreateIndexAction,
                            ESIndexNode node) {
         super(node);
-
         this.bulkShardProcessor = new BulkShardProcessor(clusterService, settings,
-                transportShardBulkAction, transportCreateIndexAction, false, this.node.sourceMaps().size());
+                transportShardBulkAction, transportCreateIndexAction, node.partitionedTable(), this.node.sourceMaps().size());
     }
 
     @Override
