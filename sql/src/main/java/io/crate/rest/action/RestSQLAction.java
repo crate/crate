@@ -62,7 +62,15 @@ public class RestSQLAction extends BaseRestHandler {
                         new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, stackTrace.toString())));
             }
             requestBuilder.stmt(context.stmt());
-            requestBuilder.args(context.args());
+            Object[] args = context.args();
+            Object[][] bulkArgs = context.bulkArgs();
+            if(args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0){
+                channel.sendResponse(new CrateThrowableRestResponse(channel,
+                        new SQLActionException("request body contains args and bulk_args. It's forbidden to provide both",
+                                4000, RestStatus.BAD_REQUEST, null)));
+            }
+            requestBuilder.args(args);
+            requestBuilder.bulkArgs(bulkArgs);
             requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
         } else {
             channel.sendResponse(new CrateThrowableRestResponse(channel,
