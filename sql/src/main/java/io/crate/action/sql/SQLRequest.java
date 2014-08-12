@@ -78,6 +78,10 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         this.args = Objects.firstNonNull(args, EMPTY_ARGS);
     }
 
+    public void bulkArgs(Object[][] bulkArgs){
+        this.bulkArgs = Objects.firstNonNull(bulkArgs, EMPTY_BULK_ARGS);
+    }
+
     public SQLRequest stmt(String stmt){
         this.stmt = stmt;
         return this;

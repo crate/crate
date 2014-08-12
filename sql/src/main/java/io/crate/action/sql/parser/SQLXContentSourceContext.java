@@ -28,6 +28,7 @@ public class SQLXContentSourceContext {
 
     private String stmt;
     private Object[] args;
+    private Object[][] bulkArgs;
 
     public String stmt() {
         return stmt;
@@ -43,5 +44,14 @@ public class SQLXContentSourceContext {
 
     public void args(Object[] args) {
         this.args = args;
+    }
+
+
+    public Object[][] bulkArgs() {
+        return bulkArgs;
+    }
+
+    public void bulkArgs(Object[][] bulkArgs) {
+        this.bulkArgs = bulkArgs;
     }
 }

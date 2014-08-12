@@ -51,4 +51,12 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         String bodyAsString = EntityUtils.toString(response.getEntity());
         assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLActionException[Failed to parse source [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},\"error_trace\":\"io.crate.exceptions.SQLParseException: Failed to parse source [{\\\"foo\\\": \\\"bar\\\"}]\\n\\tat "));
     }
+
+    @Test
+    public void testWithArgsAndBulkArgs() throws IOException {
+        CloseableHttpResponse response = post("{\"stmt\": \"INSERT INTO foo (bar) values (?)\", \"args\": [0], \"bulk_args\": [[0], [1]]}");
+        assertEquals(400, response.getStatusLine().getStatusCode());
+        String bodyAsString = EntityUtils.toString(response.getEntity());
+        assertEquals("{\"error\":{\"message\":\"SQLActionException[request body contains args and bulk_args. It's forbidden to provide both]\",\"code\":4000},\"error_trace\":null}", bodyAsString);
+    }
 }

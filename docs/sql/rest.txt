@@ -177,15 +177,16 @@ specified columns.
 The following example describes how to issue an insert bulk operation and
 insert three records at once::
 
-    sh$ curl -sSXPOST '127.0.0.1:4200/_sql?pretty' -d '{
-    ... "stmt": "INSERT INTO locations (id, name, kind, description)
+    sh$ curl -sSXPOST '127.0.0.1:4200/_sql?pretty' -d@- <<- EOF
+    ... {"stmt": "INSERT INTO locations (id, name, kind, description)
     ...          VALUES (?, ?, ?, ?)",
-    ... "bulk_args" = [
+    ... "bulk_args": [
     ...     [1337, "Earth", "Planet", "An awesome place to spend some time on."],
     ...     [1338, "Sun", "Star", "An extraordinarily hot place."],
     ...     [1339, "Titan", "Moon", "Titan, where it rains fossil fuels."]
     ... ]
-    ... }'
+    ... }
+    ... EOF
     {
       "cols" : [ ],
       "rows" : [ ],
