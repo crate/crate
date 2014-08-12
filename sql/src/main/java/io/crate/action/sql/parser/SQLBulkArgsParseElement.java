@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,46 +21,37 @@
 
 package io.crate.action.sql.parser;
 
+
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SQLArgsParseElement implements SQLParseElement {
+public class SQLBulkArgsParseElement extends SQLArgsParseElement implements SQLParseElement {
 
     @Override
     public void parse(XContentParser parser, SQLXContentSourceContext context) throws Exception {
         XContentParser.Token token = parser.currentToken();
 
-        if (token != XContentParser.Token.START_ARRAY) {
+        if(token != XContentParser.Token.START_ARRAY) {
             throw new SQLParseSourceException(context, "Field [" + parser.currentName() + "] has an invalid value");
         }
 
-        Object[] params = parseSubArray(context, parser);
-        context.args(params);
+        Object[][] params = parseSubArrays(context, parser);
+        context.bulkArgs(params);
     }
 
-    protected Object[] parseSubArray(SQLXContentSourceContext context, XContentParser parser)
-        throws IOException
-    {
+    private Object[][] parseSubArrays(SQLXContentSourceContext context, XContentParser parser) throws IOException {
         XContentParser.Token token;
-        List<Object> subList = new ArrayList<Object>();
-
-        while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
-            if (token.isValue()) {
-                subList.add(parser.objectText());
-            } else if (token == XContentParser.Token.START_ARRAY) {
-                subList.add(parseSubArray(context, parser));
-            } else if (token == XContentParser.Token.START_OBJECT) {
-                subList.add(parser.map());
-            } else if (token == XContentParser.Token.VALUE_NULL) {
-                subList.add(null);
+        List<Object[]> list = new ArrayList<Object[]>();
+        while((token = parser.nextToken()) != XContentParser.Token.END_ARRAY){
+            if(token == XContentParser.Token.START_ARRAY) {
+                list.add(parseSubArray(context, parser));
             } else {
                 throw new SQLParseSourceException(context, "Field [" + parser.currentName() + "] has an invalid value");
             }
         }
-
-        return subList.toArray(new Object[subList.size()]);
+        return list.toArray(new Object[list.size()][]);
     }
 }
