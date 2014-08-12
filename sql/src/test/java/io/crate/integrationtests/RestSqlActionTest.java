@@ -174,4 +174,22 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
         assertEquals("[{\"1\":{\"2\":{\"3\":3}}},[{\"1\":{\"2\":[2,2]}}]]",
             mapper.writeValueAsString(context.args()));
     }
+
+    @Test
+    public void testSqlRequestWithBulkArgs() throws Exception {
+
+        String json = restSQLExecute("{\n" +
+                "    \"stmt\": \"insert into locations (id, name, kind) values (?, ?, ?)\",\n" +
+                "    \"bulk_args\": [[\"200\", \"Somewhere\", \"planet\"], [\"201\", \"Somewhere else town\", \"city\"]]\n" +
+                "}\n");
+
+        JSONAssert.assertEquals(
+                "{\n" +
+                        "  \"cols\" : [ ],\n" +
+                        "  \"rows\" : [ ],\n" +
+                        "  \"rowcount\" : 2,\n" +
+                        "  \"duration\" : \n" + responseDuration +
+                        "}", json, true);
+    }
+
 }
