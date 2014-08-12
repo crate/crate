@@ -42,11 +42,13 @@ public class SQLXContentSourceParser {
     static final class Fields {
         static final String STMT = "stmt";
         static final String ARGS = "args";
+        static final String BULK_ARGS = "bulk_args";
     }
 
     private static final ImmutableMap<String, SQLParseElement> elementParsers = ImmutableMap.of(
             Fields.STMT, (SQLParseElement) new SQLStmtParseElement(),
-            Fields.ARGS, (SQLParseElement) new SQLArgsParseElement()
+            Fields.ARGS, (SQLParseElement) new SQLArgsParseElement(),
+            Fields.BULK_ARGS, (SQLParseElement) new SQLBulkArgsParseElement()
     );
 
     public SQLXContentSourceParser(SQLXContentSourceContext context) {

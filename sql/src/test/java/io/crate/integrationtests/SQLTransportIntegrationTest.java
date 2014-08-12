@@ -188,6 +188,7 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
         parser.parseSource(new BytesArray(source));
         requestBuilder.stmt(context.stmt());
         requestBuilder.args(context.args());
+        requestBuilder.bulkArgs(context.bulkArgs());
         requestBuilder.includeTypesOnResponse(includeTypes);
         SQLResponse response = requestBuilder.execute().actionGet();
         response.toXContent(builder, ToXContent.EMPTY_PARAMS);
