@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - improve readability of documentation
+
  - blobs can now be stored on different paths than normal tables,
    custom path can be set global and per blob table
 
