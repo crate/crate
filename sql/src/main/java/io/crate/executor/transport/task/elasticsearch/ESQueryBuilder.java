@@ -81,6 +81,10 @@ public class ESQueryBuilder {
         static final XContentBuilderString LAT = new XContentBuilderString("lat");
         static final XContentBuilderString GEO_POLYGON = new XContentBuilderString("geo_polygon");
         static final XContentBuilderString POINTS = new XContentBuilderString("points");
+        static final XContentBuilderString TYPE = new XContentBuilderString("type");
+        static final XContentBuilderString FIELDS = new XContentBuilderString("fields");
+        static final XContentBuilderString MATCH = new XContentBuilderString("match");
+        static final XContentBuilderString MULTI_MATCH = new XContentBuilderString("multi_match");
     }
 
     /**
@@ -1020,9 +1024,10 @@ public class ESQueryBuilder {
 
         class MatchConverter extends Converter<Function> {
 
+
             @Override
             public boolean convert(Function function, Context context) throws IOException {
-                Preconditions.checkNotNull(function, "given function '%s' is null", function.getClass().getSimpleName());
+                Preconditions.checkNotNull(function, "expected MATCH predicate, but is null");
                 Preconditions.checkArgument(function.arguments().size() == 4, "invalid number of arguments");
                 List<Symbol> arguments = function.arguments();
                 assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT);
@@ -1030,9 +1035,11 @@ public class ESQueryBuilder {
                 assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING);
                 assert Symbol.isLiteral(arguments.get(3), DataTypes.OBJECT);
 
+                @SuppressWarnings("unchecked")
                 Map<String, Object> idents = ((Literal<Map<String, Object>>)arguments.get(0)).value();
-                BytesRef queryString = ((Literal<BytesRef>)arguments.get(1)).value();
-                BytesRef matchType = ((Literal<BytesRef>)arguments.get(2)).value();
+                BytesRef queryString = (BytesRef) ((Literal)arguments.get(1)).value();
+                BytesRef matchType = (BytesRef) ((Literal)arguments.get(2)).value();
+                @SuppressWarnings("unchecked")
                 Map<String, Object> options = ((Literal<Map<String, Object>>)arguments.get(3)).value();
 
                 // validate
@@ -1052,18 +1059,18 @@ public class ESQueryBuilder {
 
                 // build
                 if (columnNames.length == 1 &&
-                        (matchType == null || matchType.utf8ToString().equals(MatchPredicate.DEFAULT_MATCH_TYPE)) &&
+                        (matchType == null || matchType.equals(MatchPredicate.DEFAULT_MATCH_TYPE)) &&
                         (options == null || options.isEmpty())) {
                     // legacy match
-                    context.builder.startObject("match")
-                            .field(columnNames[0], queryString.utf8ToString())
+                    context.builder.startObject(Fields.MATCH)
+                            .field(columnNames[0], queryString)
                             .endObject();
                 } else {
 
-                    context.builder.startObject("multi_match")
-                            .field("type", matchType != null ? matchType.utf8ToString() : MatchPredicate.DEFAULT_MATCH_TYPE)
-                            .array("fields", columnNames)
-                            .field("query", queryString.utf8ToString());
+                    context.builder.startObject(Fields.MULTI_MATCH)
+                            .field(Fields.TYPE, matchType != null ? matchType : MatchPredicate.DEFAULT_MATCH_TYPE)
+                            .array(Fields.FIELDS, columnNames)
+                            .field(Fields.QUERY, queryString.utf8ToString());
                     if (options != null) {
                         for (Map.Entry<String, Object> option : options.entrySet()) {
                             context.builder.field(option.getKey(), option.getValue());

@@ -574,7 +574,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 !(reference instanceof DynamicReference),
                 SymbolFormatter.format("cannot MATCH on non existing column %s", reference)
             );
-            // TODO: forbid Dynamic References and check for string types once an IndexReference is created
             Number boost = ExpressionToNumberVisitor.convert(ident.boost(), context.parameters());
             identBoostMap.put(((Reference) reference).info().ident().columnIdent().fqn(),
                         boost == null ? null: boost.doubleValue());
@@ -582,8 +581,9 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
         String queryTerm = ExpressionToStringVisitor.convert(node.value(), context.parameters());
 
-        String matchType = com.google.common.base.Objects.firstNonNull(node.matchType(),
-                io.crate.operation.predicate.MatchPredicate.DEFAULT_MATCH_TYPE);
+        String matchType = node.matchType() == null
+                    ? io.crate.operation.predicate.MatchPredicate.DEFAULT_MATCH_TYPE_STRING
+                    : node.matchType();
         try {
             MultiMatchQueryBuilder.Type.parse(matchType);
         } catch (ElasticsearchParseException e) {
@@ -592,14 +592,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
         Map<String, Object> options = MatchOptionsAnalysis.process(node.properties(), context.parameters());
 
-        FunctionInfo functionInfo;
-        try {
-            FunctionIdent functionIdent = new FunctionIdent(io.crate.operation.predicate.MatchPredicate.NAME,
-                    Arrays.<DataType>asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT));
-            functionInfo = context.getFunctionInfo(functionIdent);
-        } catch (UnsupportedOperationException e) {
-            throw new UnsupportedOperationException("invalid MATCH predicate", e);
-        }
+        FunctionInfo functionInfo = context.getFunctionInfo(io.crate.operation.predicate.MatchPredicate.IDENT);
         return context.allocateFunction(functionInfo,
                 Arrays.<Symbol>asList(
                         Literal.newLiteral(identBoostMap),

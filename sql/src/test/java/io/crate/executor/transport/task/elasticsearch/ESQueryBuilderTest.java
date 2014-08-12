@@ -73,30 +73,30 @@ import static org.junit.Assert.assertThat;
 public class ESQueryBuilderTest {
 
     Functions functions;
-    static TableIdent characters = new TableIdent(null, "characters");
-    static Reference name_ref = new Reference(new ReferenceInfo(
+    static final TableIdent characters = new TableIdent(null, "characters");
+    static final Reference name_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "name"), RowGranularity.DOC, DataTypes.STRING));
-    static Reference age_ref = new Reference(new ReferenceInfo(
+    static final Reference age_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "age"), RowGranularity.DOC, DataTypes.INTEGER));
-    static Reference weight_ref = new Reference(new ReferenceInfo(
+    static final Reference weight_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "weight"), RowGranularity.DOC, DataTypes.DOUBLE));
-    static Reference float_ref = new Reference(new ReferenceInfo(
+    static final Reference float_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "float_ref"), RowGranularity.DOC, DataTypes.FLOAT));
-    static Reference long_ref = new Reference(new ReferenceInfo(
+    static final Reference long_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "long_ref"), RowGranularity.DOC, DataTypes.LONG));
-    static Reference short_ref = new Reference(new ReferenceInfo(
+    static final Reference short_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "short_ref"), RowGranularity.DOC, DataTypes.SHORT));
-    static Reference isParanoid = new Reference(new ReferenceInfo(
+    static final Reference isParanoid = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "isParanoid"), RowGranularity.DOC, DataTypes.BOOLEAN));
-    static Reference extrafield = new Reference(new ReferenceInfo(
+    static final Reference extrafield = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "extrafield"), RowGranularity.DOC, DataTypes.STRING));
-    static Reference tagsField = new Reference(new ReferenceInfo(
+    static final Reference tagsField = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "tags"), RowGranularity.DOC, new ArrayType(DataTypes.STRING)
     ));
-    static Reference objectField = new Reference(new ReferenceInfo(
+    static final Reference objectField = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "object_field"), RowGranularity.DOC, DataTypes.OBJECT
     ));
-    static Reference nestedField = new Reference(new ReferenceInfo(
+    static final Reference nestedField = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "object_field", Arrays.asList("nested")), RowGranularity.DOC, DataTypes.STRING
     ));
     private ESQueryBuilder generator;

@@ -35,8 +35,11 @@ import static com.google.common.collect.Iterables.transform;
 import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.SqlFormatter.orderByFormatterFunction;
 
-public final class ExpressionFormatter
-{
+public final class ExpressionFormatter {
+
+    private static final Joiner COMMA_JOINER = Joiner.on(", ");
+    private static final Joiner WHITESPACE_JOINER = Joiner.on(' ');
+
     private ExpressionFormatter() {}
 
     public static String formatExpression(Expression expression)
@@ -59,6 +62,8 @@ public final class ExpressionFormatter
     public static class Formatter
             extends AstVisitor<String, Void>
     {
+
+
 
         @Override
         protected String visitNode(Node node, Void context)
@@ -223,7 +228,7 @@ public final class ExpressionFormatter
             for (String part : node.getName().getParts()) {
                 parts.add(formatIdentifier(part));
             }
-            return Joiner.on('.').join(parts);
+            return WHITESPACE_JOINER.join(parts);
         }
 
         @Override
@@ -374,16 +379,14 @@ public final class ExpressionFormatter
                 builder.append(process(node.idents().get(0).columnIdent(), context));
             } else {
                 builder.append("(");
-                builder.append(Joiner.on(", ").join(transform(node.idents(), new Function<MatchPredicateColumnIdent, Object>() {
-                    @Override
-                    public Object apply(MatchPredicateColumnIdent input) {
-                        String column = process(input.columnIdent(), null);
-                        if (!(input.boost() instanceof NullLiteral)) {
-                            column = column + " " + input.boost().toString();
-                        }
-                        return column;
+                List<MatchPredicateColumnIdent> idents = node.idents();
+                for (int i = 0, identsSize = idents.size(); i < identsSize; i++) {
+                    MatchPredicateColumnIdent ident = idents.get(i);
+                    builder.append(ident.accept(this, null));
+                    if (i < (identsSize-1)) {
+                        builder.append(", ");
                     }
-                })));
+                }
                 builder.append(")");
             }
             builder.append(", ").append(process(node.value(), context));
@@ -398,9 +401,18 @@ public final class ExpressionFormatter
         }
 
         @Override
+        public String visitMatchPredicateColumnIdent(MatchPredicateColumnIdent node, Void context) {
+            String column = process(node.columnIdent(), null);
+            if (!(node.boost() instanceof NullLiteral)) {
+                column = column + " " + node.boost().toString();
+            }
+            return column;
+        }
+
+        @Override
         public String visitGenericProperties(GenericProperties node, Void context) {
             StringBuilder builder = new StringBuilder().append(" WITH (");
-            String properties = Joiner.on(", ").join(transform(node.properties().entrySet(), new Function<Map.Entry<String, Expression>, Object>()
+            String properties = COMMA_JOINER.join(transform(node.properties().entrySet(), new Function<Map.Entry<String, Expression>, Object>()
             {
                 @Override
                 public Object apply(Map.Entry<String, Expression> input)
@@ -443,7 +455,7 @@ public final class ExpressionFormatter
             }
             parts.add("END");
 
-            return "(" + Joiner.on(' ').join(parts.build()) + ")";
+            return "(" + WHITESPACE_JOINER.join(parts.build()) + ")";
         }
 
         @Override
@@ -463,7 +475,7 @@ public final class ExpressionFormatter
             }
             parts.add("END");
 
-            return "(" + Joiner.on(' ').join(parts.build()) + ")";
+            return "(" + WHITESPACE_JOINER.join(parts.build()) + ")";
         }
 
         @Override
@@ -501,13 +513,13 @@ public final class ExpressionFormatter
                 parts.add("PARTITION BY " + joinExpressions(node.getPartitionBy()));
             }
             if (!node.getOrderBy().isEmpty()) {
-                parts.add("ORDER BY " + Joiner.on(", ").join(transform(node.getOrderBy(), orderByFormatterFunction())));
+                parts.add("ORDER BY " + COMMA_JOINER.join(transform(node.getOrderBy(), orderByFormatterFunction())));
             }
             if (node.getFrame().isPresent()) {
                 parts.add(process(node.getFrame().get(), null));
             }
 
-            return '(' + Joiner.on(' ').join(parts) + ')';
+            return '(' + WHITESPACE_JOINER.join(parts) + ')';
         }
 
         @Override
@@ -555,7 +567,7 @@ public final class ExpressionFormatter
 
         private String joinExpressions(List<Expression> expressions)
         {
-            return Joiner.on(", ").join(transform(expressions, new Function<Expression, Object>()
+            return COMMA_JOINER.join(transform(expressions, new Function<Expression, Object>()
             {
                 @Override
                 public Object apply(Expression input)

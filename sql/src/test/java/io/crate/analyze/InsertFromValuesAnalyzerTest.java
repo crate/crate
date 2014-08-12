@@ -33,6 +33,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.operation.predicate.PredicateModule;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -91,7 +92,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         modules.addAll(Arrays.<Module>asList(
                 new TestModule(),
                 new TestMetaDataModule(),
-                new MetaDataSysModule()
+                new MetaDataSysModule(),
+                new PredicateModule()
         ));
         return modules;
     }
@@ -371,7 +373,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertThat((String)((Map<String, Object>)arrayValue[0]).get("name"), is("cool"));
         assertThat((String)((Map<String, Object>)arrayValue[1]).get("name"), is("fancy"));
         assertThat(Arrays.toString((Object[])((Map<String, Object>)arrayValue[0]).get("metadata")), is("[{id=0}, {id=1}]"));
-        assertThat(Arrays.toString((Object[])((Map<String, Object>)arrayValue[1]).get("metadata")), is("[{id=2}, {id=3}]"));
+        assertThat(Arrays.toString((Object[]) ((Map<String, Object>) arrayValue[1]).get("metadata")), is("[{id=2}, {id=3}]"));
     }
 
     @Test
@@ -501,9 +503,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithMatchPredicateInValues() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("invalid MATCH predicate");
-        analyze("insert into users (id, name) values (1, match(name, 'bar'))");
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Invalid value of type 'FUNCTION'");
+        analyze("insert into users (id, awesome) values (1, match(name, 'bar'))");
     }
 
     @Test

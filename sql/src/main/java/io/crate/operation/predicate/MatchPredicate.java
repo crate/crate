@@ -21,7 +21,6 @@
 
 package io.crate.operation.predicate;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -29,11 +28,13 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.Arrays;
 import java.util.Locale;
 
 /**
@@ -41,10 +42,14 @@ import java.util.Locale;
   */
 public class MatchPredicate implements FunctionImplementation<Function> {
 
-    public static final String DEFAULT_MATCH_TYPE = MultiMatchQueryBuilder.Type.BEST_FIELDS.toString().toLowerCase();
+    public static final String DEFAULT_MATCH_TYPE_STRING = MultiMatchQueryBuilder.Type.BEST_FIELDS.toString().toLowerCase();
+    public static final BytesRef DEFAULT_MATCH_TYPE = new BytesRef(DEFAULT_MATCH_TYPE_STRING);
     public static final DecimalFormat BOOST_FORMAT = new DecimalFormat("#.###", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
     public static final String NAME = "match";
-
+    public static final FunctionIdent IDENT = new FunctionIdent(
+            NAME,
+            Arrays.<DataType>asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
+    );
 
     /**
      * the match predicate is registered as a regular function
@@ -58,9 +63,7 @@ public class MatchPredicate implements FunctionImplementation<Function> {
      * 4. match_type options - object mapping option name to value (Object) (nullable)
      */
     public static void register(PredicateModule module) {
-        FunctionIdent fullIdent = new FunctionIdent(MatchPredicate.NAME,
-                ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT));
-        module.register(new MatchPredicate(new FunctionInfo(fullIdent, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE)));
+        module.register(new MatchPredicate(new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE)));
     }
 
     private final FunctionInfo info;
