@@ -915,7 +915,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 indices,
                 analysis.sourceMaps(),
                 analysis.ids(),
-                analysis.routingValues());
+                analysis.routingValues(),
+                analysis.table().isPartitioned());
         plan.add(indexNode);
         plan.expectsAffectedRows(true);
     }

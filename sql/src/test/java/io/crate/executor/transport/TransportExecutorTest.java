@@ -481,7 +481,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 new String[]{"characters"},
                 Arrays.asList(builder.bytes()),
                 ImmutableList.of("99"),
-                ImmutableList.of("99")
+                ImmutableList.of("99"),
+                false
         );
         Plan plan = new Plan();
         plan.add(indexNode);
@@ -526,7 +527,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 new String[]{partitionName.stringValue()},
                 Arrays.asList(source),
                 ImmutableList.of("123"),
-                ImmutableList.of("123")
+                ImmutableList.of("123"),
+                true
                 );
         Plan plan = new Plan();
         plan.add(indexNode);
@@ -592,7 +594,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 new String[]{"characters"},
                 Arrays.asList(source1, source2),
                 ImmutableList.of("99", "42"),
-                ImmutableList.of("99", "42")
+                ImmutableList.of("99", "42"),
+                false
         );
 
         Plan plan = new Plan();
