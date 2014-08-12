@@ -7,8 +7,8 @@ Crate SQL HTTP Endpoint
 Crate provides a HTTP Endpoint that can be used to submit SQL queries. The
 endpoint is accessible under `<servername:port>/_sql`
 
-SQL statements are sent to the `_sql` endpoint in `json` format,
-whereby the statement is sent as value associated to the key `stmt`".
+SQL statements are sent to the `_sql` endpoint in ``json`` format,
+whereby the statement is sent as value associated to the key ``stmt``.
 
 .. seealso::
 
@@ -29,15 +29,15 @@ A simple `SELECT` statement can be submitted like this::
 Parameter Substitution
 ======================
 
-In addition to the `stmt` key the request body may also contain an `args` key
+In addition to the ``stmt`` key the request body may also contain an ``args`` key
 which can be used for SQL parameter substitution.
 
 The SQL statement has to be changed to use placeholders where the values should
-be inserted. Placeholders can either bei numbered (in the form of `$1`, `$2`,
-etc.) or unnumbered using a question mark `?`
+be inserted. Placeholders can either bei numbered (in the form of ``$1``, ``$2``,
+etc.) or unnumbered using a question mark ``?``.
 
 The placeholders will then be substituted with values from an array that is
-expected under the `args` key::
+expected under the ``args`` key::
 
     sh$ curl -sSXPOST '127.0.0.1:4200/_sql?pretty' -d@- <<- EOF
     ... {"stmt":
@@ -82,7 +82,7 @@ The same query using question marks as placeholders looks like this::
 Column Types
 ============
 
-Crate can respond a list `col_types` with the data type id of every
+Crate can respond a list ``col_types`` with the data type id of every
 responded column. This way one can know what exact data type a column
 is holding.
 
@@ -91,8 +91,8 @@ parameter must be passed to the request::
 
     sh$ curl -sSXPOST '127.0.0.1:4200/_sql?types&pretty' -d@- <<- EOF
     ... {"stmt":
-    ...     "select date,position from locations
-    ...     where date <= \$1 and position < \$2 order by position",
+    ...     "select date, position from locations
+    ...      where date <= \$1 and position < \$2 order by position",
     ...  "args": ["1979-10-12", 3]
     ... }
     ... EOF
@@ -104,7 +104,7 @@ parameter must be passed to the request::
       "duration" : ...
     }
 
-Collection data types like `Set` or `Array` are displayed as
+Collection data types like ``Set`` or ``Array`` are displayed as
 a list where the first value is the collection type and the second is
 the inner type. Of course the inner type could also be a collection.
 
