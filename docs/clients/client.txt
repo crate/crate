@@ -147,6 +147,46 @@ geo_point  Double[2]
 The mapping also works the other way round for parameter substitution.
 
 
+Bulk Operations
+===============
+
+The SQLRequest class allows to specify and issue bulk operations which are
+executed as single calls on the back-end site. It can be compared to
+`prepared statement`_.
+
+A bulk operation can be expressed simply as an SQL statement. Supported
+statements are:
+
+ - Insert
+
+ - Update
+
+ - Delete
+
+In order to issue a bulk operation, the SQLRequest class can be used. It
+accepts a two dimensional array (``bulkArgs`` of type Object[][]). The first
+dimension consolidates all records to a bulk. The second dimension represents
+one record and needs to match the specified columns of a statement.
+
+The following example describes how to issue an insert bulk operation and
+insert three records at once::
+
+    String stmt = "INSERT INTO foo (id, name) VALUES (?, ?)";
+    Object[][] bulkArgs = new Object[][] {
+        {1, "I am Batman!"},
+        {2, "Deadpool"},
+        {3, "Nancy Callahan"}
+    };
+
+    SQLRequest request = new SQLRequest(stmt, bulkArgs);
+
+The response is similar to the equivalent single request except that
+``rowcount`` reflects the number of successfully performed requests.
+In this case, the response is similar to a single insert request but with a
+``rowcount`` of three, instead of one.
+
 
 .. _`SQL Injection`: http://en.wikipedia.org/wiki/SQL_injection
+
+.. _prepared statement: http://en.wikipedia.org/wiki/Prepared_statement
 
