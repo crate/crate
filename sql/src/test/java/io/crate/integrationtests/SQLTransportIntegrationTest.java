@@ -86,6 +86,18 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
      * Execute an SQL Statement on a random node of the cluster
      *
      * @param stmt the SQL Statement
+     * @param bulkArgs the bulk arguments of the statement
+     * @return the SQLResponse
+     */
+    public SQLResponse execute(String stmt, Object[][] bulkArgs) {
+        response = sqlExecutor.exec(stmt, bulkArgs);
+        return response;
+    }
+
+    /**
+     * Execute an SQL Statement on a random node of the cluster
+     *
+     * @param stmt the SQL Statement
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt) {
