@@ -26,6 +26,8 @@ A simple `SELECT` statement can be submitted like this::
       "duration" : ...
     }
 
+.. _parameter_substitution:
+
 Parameter Substitution
 ======================
 
@@ -150,6 +152,47 @@ Id's of all currently available data types:
     101   Set
     ===== ===================
 
+.. _bulk_operations:
+
+Bulk Operations
+===============
+
+The REST endpoint allows to issue bulk operations which are executed as
+single calls on the back-end site. It can be compared to `prepared statement`_.
+
+A bulk operation can be expressed simply as an SQL statement. Supported
+statements are:
+
+ - Insert
+
+ - Update
+
+ - Delete
+
+Instead of the ``args`` (:ref:`parameter_substitution`) key, use the
+key ``bulk_args``. This allows to specify a list of lists, containing all
+the records which shall be processed. The inner lists need to match the
+specified columns.
+
+The following example describes how to issue an insert bulk operation and
+insert three records at once::
+
+    sh$ curl -sSXPOST '127.0.0.1:4200/_sql?pretty' -d '{
+    ... "stmt": "INSERT INTO locations (id, name, kind, description)
+    ...          VALUES (?, ?, ?, ?)",
+    ... "bulk_args" = [
+    ...     [1337, "Earth", "Planet", "An awesome place to spend some time on."],
+    ...     [1338, "Sun", "Star", "An extraordinarily hot place."],
+    ...     [1339, "Titan", "Moon", "Titan, where it rains fossil fuels."]
+    ... ]
+    ... }'
+    {
+      "cols" : [ ],
+      "rows" : [ ],
+      "rowcount" : 3,
+      "duration" : ...
+    }
+
 
 Error Handling
 ==============
@@ -239,3 +282,5 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     5003  the query failed on one or more shards
     ===== =====================================================================
+
+.. _prepared statement: http://en.wikipedia.org/wiki/Prepared_statement
