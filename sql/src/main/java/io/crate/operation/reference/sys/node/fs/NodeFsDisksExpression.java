@@ -32,6 +32,7 @@ import org.elasticsearch.monitor.sigar.SigarService;
 import org.hyperic.sigar.FileSystem;
 import org.hyperic.sigar.FileSystemUsage;
 import org.hyperic.sigar.SigarException;
+import org.hyperic.sigar.SigarPermissionDeniedException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,8 +56,13 @@ public class NodeFsDisksExpression extends SysNodeObjectArrayReference {
                 FileSystem[] fileSystems = sigarService.sigar().getFileSystemList();
                 diskRefs = new ArrayList<>(fileSystems.length);
                 for (FileSystem fs : fileSystems) {
-                    FileSystemUsage usage = sigarService.sigar().getFileSystemUsage(fs.getDirName());
-                    diskRefs.add(new NodeFsDiskChildExpression(fs, usage));
+                    try {
+                        FileSystemUsage usage = sigarService.sigar().getFileSystemUsage(fs.getDirName());
+                        diskRefs.add(new NodeFsDiskChildExpression(fs, usage));
+                    } catch (SigarPermissionDeniedException e) {
+                        logger.warn(String.format(
+                            "Permission denied: couldn't get file system usage for \"%s\"", fs.getDirName()));
+                    }
                 }
             } catch (SigarException e) {
                 logger.warn("error getting disk stats", e);
