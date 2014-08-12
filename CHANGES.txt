@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/08/12 0.41.2
+=================
+
  - fix: ``match`` is now more strict and no longer searches nested objects if the searched column doesn't exist
    and it is not allowed on non existing columns anymore
 
