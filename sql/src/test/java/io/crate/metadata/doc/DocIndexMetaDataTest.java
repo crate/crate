@@ -699,6 +699,48 @@ public class DocIndexMetaDataTest {
 
         assertThat(aliases.size(), is(1));
     }
+
+    @Test
+    public void testCompoundIndexColumn() throws Exception {
+        DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table t (" +
+                "  id integer primary key," +
+                "  name string," +
+                "  fun string index off," +
+                "  INDEX fun_name_ft using fulltext(name, fun)" +
+                ")");
+        assertThat(md.indices().size(), is(1));
+        assertThat(md.columns().size(), is(3));
+        assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReferenceInfo.class));
+        IndexReferenceInfo indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
+        assertThat(indexInfo.analyzer(), is("standard"));
+        assertThat(indexInfo.columns().size(), is(2));
+        assertThat(indexInfo.columns(), hasItem(md.references().get(new ColumnIdent("name"))));
+        assertThat(indexInfo.columns(), hasItem(md.references().get(new ColumnIdent("fun"))));
+        assertThat(indexInfo.indexType(), is(ReferenceInfo.IndexType.ANALYZED));
+        assertThat(indexInfo.ident().columnIdent().fqn(), is("fun_name_ft"));
+    }
+
+    @Test
+    public void testCompoundIndexColumnNested() throws Exception {
+        DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table t (" +
+                "  id integer primary key," +
+                "  name string," +
+                "  o object as (" +
+                "    fun string" +
+                "  )," +
+                "  INDEX fun_name_ft using fulltext(name, o['fun'])" +
+                ")");
+        assertThat(md.indices().size(), is(1));
+        assertThat(md.columns().size(), is(3));
+        assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReferenceInfo.class));
+        IndexReferenceInfo indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
+        assertThat(indexInfo.analyzer(), is("standard"));
+        assertThat(indexInfo.columns().size(), is(2));
+        assertThat(indexInfo.columns(), hasItem(md.references().get(new ColumnIdent("name"))));
+        assertThat(indexInfo.columns(), hasItem(md.references().get(ColumnIdent.fromPath("o.fun"))));
+        assertThat(indexInfo.indexType(), is(ReferenceInfo.IndexType.ANALYZED));
+        assertThat(indexInfo.ident().columnIdent().fqn(), is("fun_name_ft"));
+    }
 }
 
 

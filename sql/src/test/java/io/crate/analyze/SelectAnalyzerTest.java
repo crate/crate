@@ -1382,4 +1382,30 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select min(substr(no_index, 0, 2)) from users");
     }
 
+    @Test
+    public void testWhereMatchOnColumn() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select * from users where match(name, 'Arthur Dent')");
+        Function query = (Function)analysis.whereClause.query();
+        assertThat(query.info().ident().name(), is("match"));
+        assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
+        assertThat(query.arguments().get(1), Matchers.instanceOf(Literal.class));
+    }
+
+    @Test
+    public void testMatchOnIndex() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where match(name_text_ft, 'Arthur Dent')");
+        Function query = (Function) analysis.whereClause.query();
+        assertThat(query.info().ident().name(), is("match"));
+        assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
+        assertThat(query.arguments().get(1), Matchers.instanceOf(Literal.class));
+    }
+
+    @Test
+    public void testMatchOnDynamicColumn() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: match(null, string)");
+
+        analyze("select * from users where match(me_not_exizzt, 'Arthur Dent')");
+    }
+
 }

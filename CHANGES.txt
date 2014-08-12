@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: ``match`` is now more strict and no longer searches nested objects if the searched column doesn't exist
+   and it is not allowed on non existing columns anymore
+
  - improved readability of documentation
 
  - improved formatting of field lists in docs

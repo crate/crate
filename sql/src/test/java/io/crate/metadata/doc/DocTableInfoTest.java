@@ -4,10 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataTypes;
@@ -27,6 +24,7 @@ public class DocTableInfoTest {
                 new TableIdent(null, "dummy"),
                 ImmutableList.<ReferenceInfo>of(),
                 ImmutableList.<ReferenceInfo>of(),
+                ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, ReferenceInfo>of(),
                 ImmutableList.<ColumnIdent>of(),
                 null,
@@ -67,6 +65,7 @@ public class DocTableInfoTest {
                 dummy,
                 ImmutableList.<ReferenceInfo>of(strictParent),
                 ImmutableList.<ReferenceInfo>of(),
+                ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
                 references,
                 ImmutableList.<ColumnIdent>of(),
                 null,

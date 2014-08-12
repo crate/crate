@@ -31,7 +31,9 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -54,6 +56,7 @@ public class TestingTableInfo extends AbstractTableInfo {
         private final ImmutableList.Builder<ColumnIdent> primaryKey = ImmutableList.builder();
         private final ImmutableList.Builder<ColumnIdent> partitionedBy = ImmutableList.builder();
         private final ImmutableList.Builder<PartitionName> partitions = ImmutableList.builder();
+        private final ImmutableMap.Builder<ColumnIdent, IndexReferenceInfo> indexColumns = ImmutableMap.builder();
         private ColumnIdent clusteredBy;
 
 
@@ -123,6 +126,24 @@ public class TestingTableInfo extends AbstractTableInfo {
             return this;
         }
 
+        public Builder addIndex(ColumnIdent column, ReferenceInfo.IndexType indexType) {
+            addIndex(column, indexType, null, ImmutableList.<ColumnIdent>of());
+            return this;
+        }
+
+        public Builder addIndex(ColumnIdent columnIdent, ReferenceInfo.IndexType indexType, @Nullable String analyzer, List<ColumnIdent> columns) {
+            IndexReferenceInfo.Builder builder = new IndexReferenceInfo.Builder()
+                    .ident(new ReferenceIdent(ident, columnIdent))
+                    .analyzer(analyzer)
+                    .indexType(indexType);
+            for (ColumnIdent column : columns) {
+                ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column), RowGranularity.DOC, DataTypes.STRING);
+                builder.addColumn(info);
+            }
+            indexColumns.put(columnIdent, builder.build());
+            return this;
+        }
+
         public Builder addPrimaryKey(String column) {
             primaryKey.add(ColumnIdent.fromPath(column));
             return this;
@@ -153,6 +174,7 @@ public class TestingTableInfo extends AbstractTableInfo {
             return new TestingTableInfo(
                     columns.build(),
                     partitionedByColumns.build(),
+                    indexColumns.build(),
                     references.build(),
                     ident,
                     granularity,
@@ -169,6 +191,7 @@ public class TestingTableInfo extends AbstractTableInfo {
 
     private final List<ReferenceInfo> columns;
     private final List<ReferenceInfo> partitionedByColumns;
+    private final Map<ColumnIdent, IndexReferenceInfo> indexColumns;
     private final Map<ColumnIdent, ReferenceInfo> references;
     private final TableIdent ident;
     private final RowGranularity granularity;
@@ -181,6 +204,7 @@ public class TestingTableInfo extends AbstractTableInfo {
 
     public TestingTableInfo(List<ReferenceInfo> columns,
                             List<ReferenceInfo> partitionedByColumns,
+                            Map<ColumnIdent, IndexReferenceInfo> indexColumns,
                             Map<ColumnIdent, ReferenceInfo> references,
                             TableIdent ident, RowGranularity granularity,
                             Routing routing,
@@ -191,6 +215,7 @@ public class TestingTableInfo extends AbstractTableInfo {
                             List<PartitionName> partitions) {
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
+        this.indexColumns = indexColumns;
         this.references = references;
         this.ident = ident;
         this.granularity = granularity;
@@ -217,6 +242,16 @@ public class TestingTableInfo extends AbstractTableInfo {
     @Override
     public List<ReferenceInfo> partitionedByColumns() {
         return partitionedByColumns;
+    }
+
+    @Override
+    public Collection<IndexReferenceInfo> indexColumns() {
+        return indexColumns.values();
+    }
+
+    @Override
+    public IndexReferenceInfo indexColumn(ColumnIdent ident) {
+        return indexColumns.get(ident);
     }
 
     @Override
