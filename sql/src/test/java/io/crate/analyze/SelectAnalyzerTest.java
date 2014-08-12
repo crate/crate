@@ -66,8 +66,10 @@ import org.junit.rules.ExpectedException;
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -1389,8 +1391,20 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from users where match(name, 'Arthur Dent')");
         Function query = (Function)analysis.whereClause.query();
         assertThat(query.info().ident().name(), is("match"));
-        assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
+        assertThat(query.arguments().size(), is(4));
+        assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
+        Literal<Map<String, Object>> idents = (Literal<Map<String, Object>>)query.arguments().get(0);
+
+        assertThat(idents.value().size(), is(1));
+        assertThat(idents.value().get("name"), is(nullValue()));
+
         assertThat(query.arguments().get(1), Matchers.instanceOf(Literal.class));
+        assertThat((BytesRef)((Literal)query.arguments().get(1)).value(), is(new BytesRef("Arthur Dent")));
+        assertThat((BytesRef)((Literal)query.arguments().get(2)).value(), is(new BytesRef("best_fields")));
+
+        Literal<Map<String, Object>> options = (Literal<Map<String, Object>>)query.arguments().get(3);
+        assertThat(options.value(), Matchers.instanceOf(Map.class));
+        assertThat(options.value().size(), is(0));
     }
 
     @Test
@@ -1398,14 +1412,26 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where match(name_text_ft, 'Arthur Dent')");
         Function query = (Function) analysis.whereClause.query();
         assertThat(query.info().ident().name(), is("match"));
-        assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
+        assertThat(query.arguments().size(), is(4));
+        assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
+        Literal<Map<String, Object>> idents = (Literal<Map<String, Object>>)query.arguments().get(0);
+
+        assertThat(idents.value().size(), is(1));
+        assertThat(idents.value().get("name_text_ft"), is(nullValue()));
+
         assertThat(query.arguments().get(1), Matchers.instanceOf(Literal.class));
+        assertThat((BytesRef)((Literal)query.arguments().get(1)).value(), is(new BytesRef("Arthur Dent")));
+        assertThat((BytesRef)((Literal)query.arguments().get(2)).value(), is(new BytesRef("best_fields")));
+
+        Literal<Map<String, Object>> options = (Literal<Map<String, Object>>)query.arguments().get(3);
+        assertThat(options.value(), Matchers.instanceOf(Map.class));
+        assertThat(options.value().size(), is(0));
     }
 
     @Test
     public void testMatchOnDynamicColumn() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("invalid MATCH predicate");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("cannot MATCH on non existing column users.me_not_exizzt");
 
         analyze("select * from users where match(me_not_exizzt, 'Arthur Dent')");
     }
