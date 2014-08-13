@@ -33,6 +33,7 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
+import io.crate.sql.parser.SqlParser;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
@@ -76,9 +77,19 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         return modules;
     }
 
+    protected DeleteAnalysis analyze(String statement, Object[][] bulkArgs) {
+        return (DeleteAnalysis) analyzer.analyze(
+                SqlParser.createStatement(statement), new Object[0], bulkArgs);
+    }
+
+    protected DeleteAnalysis.NestedDeleteAnalysis analyze(String statement) {
+        DeleteAnalysis analysis = (DeleteAnalysis) analyzer.analyze(SqlParser.createStatement(statement));
+        return analysis.nestedAnalysis().get(0);
+    }
+
     @Test
     public void testDeleteWhere() throws Exception {
-        DeleteAnalysis analysis = (DeleteAnalysis) analyze("delete from users where name='Trillian'");
+        DeleteAnalysis.NestedDeleteAnalysis analysis = analyze("delete from users where name='Trillian'");
         assertEquals(TEST_DOC_TABLE_IDENT, analysis.table().ident());
 
         assertThat(analysis.rowGranularity(), is(RowGranularity.DOC));
@@ -104,14 +115,14 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDeleteWherePartitionedByColumn() throws Exception {
-        DeleteAnalysis analysis = (DeleteAnalysis) analyze("delete from parted where date = 1395874800000");
+        DeleteAnalysis.NestedDeleteAnalysis analysis = analyze("delete from parted where date = 1395874800000");
         assertThat(analysis.whereClause().hasQuery(), Matchers.is(false));
         assertThat(analysis.whereClause().noMatch(), Matchers.is(false));
         assertEquals(ImmutableList.of(
                         new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()),
                 analysis.whereClause().partitions());
 
-        analysis = (DeleteAnalysis) analyze("delete from parted");
+        analysis = analyze("delete from parted");
         assertThat(analysis.whereClause().hasQuery(), Matchers.is(false));
         assertThat(analysis.whereClause().noMatch(), Matchers.is(false));
         assertEquals(ImmutableList.<String>of(), analysis.whereClause().partitions());
@@ -119,8 +130,10 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDeleteTableAlias() throws Exception {
-        DeleteAnalysis expectedAnalysis = (DeleteAnalysis) analyze("delete from users where name='Trillian'");
-        DeleteAnalysis actualAnalysis = (DeleteAnalysis) analyze("delete from users as u where u.name='Trillian'");
+        DeleteAnalysis.NestedDeleteAnalysis expectedAnalysis = analyze(
+                "delete from users where name='Trillian'");
+        DeleteAnalysis.NestedDeleteAnalysis actualAnalysis = analyze(
+                "delete from users as u where u.name='Trillian'");
 
         assertEquals(actualAnalysis.tableAlias(), "u");
         assertEquals(
@@ -134,4 +147,19 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         analyze("delete from users where friends['id'] = 5");
     }
 
+    @Test
+    public void testBulkDelete() throws Exception {
+        DeleteAnalysis analysis = analyze("delete from users where id = ?", new Object[][]{
+                new Object[]{1},
+                new Object[]{2},
+                new Object[]{3},
+                new Object[]{4},
+        });
+        assertThat(analysis.nestedAnalysis().size(), is(4));
+
+        DeleteAnalysis.NestedDeleteAnalysis firstAnalysis = analysis.nestedAnalysis().get(0);
+        assertThat(firstAnalysis.ids().get(0), is("1"));
+        DeleteAnalysis.NestedDeleteAnalysis secondAnalysis = analysis.nestedAnalysis().get(1);
+        assertThat(secondAnalysis.ids().get(0), is("2"));
+    }
 }
