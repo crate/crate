@@ -27,23 +27,36 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Table;
 
-public class DeleteStatementAnalyzer extends DataStatementAnalyzer<DeleteAnalysis> {
+public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, DeleteAnalysis> {
+
+    DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis> innerAnalyzer = new DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis>() {
+        @Override
+        public Symbol visitDelete(Delete node, DeleteAnalysis.NestedDeleteAnalysis context) {
+            process(node.getRelation(), context);
+
+            if (node.getWhere().isPresent()) {
+                processWhereClause(node.getWhere().get(), context);
+            }
+
+            return null;
+        }
+
+        @Override
+        protected Symbol visitTable(Table node, DeleteAnalysis.NestedDeleteAnalysis context) {
+            Preconditions.checkState(context.table() == null, "deleting multiple tables is not supported");
+            context.editableTable(TableIdent.of(node));
+            return null;
+        }
+    };
 
     @Override
     public Symbol visitDelete(Delete node, DeleteAnalysis context) {
-        process(node.getRelation(), context);
-
-        if (node.getWhere().isPresent()) {
-            processWhereClause(node.getWhere().get(), context);
+        java.util.List<DeleteAnalysis.NestedDeleteAnalysis> nestedAnalysis = context.nestedAnalysisList;
+        for (int i = 0, nestedAnalysisSize = nestedAnalysis.size(); i < nestedAnalysisSize; i++) {
+            DeleteAnalysis.NestedDeleteAnalysis nestedAnalysi = nestedAnalysis.get(i);
+            context.parameterContext().setBulkIdx(i);
+            innerAnalyzer.process(node, nestedAnalysi);
         }
-
-        return null;
-    }
-
-    @Override
-    protected Symbol visitTable(Table node, DeleteAnalysis context) {
-        Preconditions.checkState(context.table() == null, "deleting multiple tables is not supported");
-        context.editableTable(TableIdent.of(node));
         return null;
     }
 }
