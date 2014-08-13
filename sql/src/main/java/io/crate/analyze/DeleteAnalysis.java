@@ -24,22 +24,77 @@ package io.crate.analyze;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
 
-public class DeleteAnalysis extends AbstractDataAnalysis {
+import java.util.ArrayList;
+import java.util.List;
+
+public class DeleteAnalysis extends Analysis {
+
+    List<NestedDeleteAnalysis> nestedAnalysisList;
 
     public DeleteAnalysis(ReferenceInfos referenceInfos,
                           Functions functions,
                           Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameterContext, referenceResolver);
+        super(parameterContext);
+        int numNested = 1;
+        if (parameterContext.bulkParameters.length > 0) {
+            numNested = parameterContext.bulkParameters.length;
+        }
+        nestedAnalysisList = new ArrayList<>(numNested);
+        for (int i = 0; i < numNested; i++) {
+            nestedAnalysisList.add(new NestedDeleteAnalysis(
+                    referenceInfos,
+                    functions,
+                    parameterContext,
+                    referenceResolver
+            ));
+        }
+    }
+
+    public List<NestedDeleteAnalysis> nestedAnalysis() {
+        return nestedAnalysisList;
+    }
+
+    @Override
+    public void table(TableIdent tableIdent) {
+    }
+
+    @Override
+    public TableInfo table() {
+        throw new UnsupportedOperationException("use nested analysis");
+    }
+
+    @Override
+    public SchemaInfo schema() {
+        throw new UnsupportedOperationException("use nested analysis");
     }
 
     @Override
     public boolean hasNoResult() {
-        return noMatch();
+        return false;
+    }
+
+    @Override
+    public void normalize() {
     }
 
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
         return analysisVisitor.visitDeleteAnalysis(this, context);
+    }
+
+    public static class NestedDeleteAnalysis extends AbstractDataAnalysis {
+
+        public NestedDeleteAnalysis(ReferenceInfos referenceInfos, Functions functions, Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
+            super(referenceInfos, functions, parameterContext, referenceResolver);
+        }
+
+        @Override
+        public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+            return null;
+        }
     }
 }

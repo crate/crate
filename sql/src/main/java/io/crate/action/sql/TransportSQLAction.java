@@ -317,6 +317,12 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             restStatus = RestStatus.BAD_REQUEST;
         }
 
+        if (e instanceof NullPointerException && message == null) {
+            StackTraceElement[] stackTrace1 = e.getStackTrace();
+            if (stackTrace1.length > 0) {
+                message = String.format("NPE in %s", stackTrace1[0]);
+            }
+        }
         if (logger.isTraceEnabled()) {
             message = Objects.firstNonNull(message, stackTrace.toString());
         }
