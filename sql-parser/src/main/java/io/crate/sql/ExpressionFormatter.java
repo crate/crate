@@ -228,7 +228,7 @@ public final class ExpressionFormatter {
             for (String part : node.getName().getParts()) {
                 parts.add(formatIdentifier(part));
             }
-            return WHITESPACE_JOINER.join(parts);
+            return Joiner.on('.').join(parts);
         }
 
         @Override
