@@ -21,34 +21,24 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.Task;
-import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.Constants;
+import io.crate.executor.transport.task.AsyncChainedTask;
+import io.crate.planner.node.dml.ESDeleteNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+public class ESDeleteTask extends AsyncChainedTask {
 
-public class ESDeleteTask implements Task<Object[][]> {
-
-    private final List<ListenableFuture<Object[][]>> results;
     private final TransportDeleteAction transport;
     private final DeleteRequest request;
     private final ActionListener<DeleteResponse> listener;
 
     public ESDeleteTask(TransportDeleteAction transport, ESDeleteNode node) {
         this.transport = transport;
-
-        final SettableFuture<Object[][]> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
-
 
         request = new DeleteRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.id());
         request.routing(node.routing());
@@ -93,17 +83,4 @@ public class ESDeleteTask implements Task<Object[][]> {
     public void start() {
         transport.execute(request, listener);
     }
-
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        return results;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
-                        getClass().getSimpleName()));
-    }
-
 }

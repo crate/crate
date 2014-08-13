@@ -187,10 +187,13 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitDeleteAnalysis(DeleteAnalysis analysis, Context context) {
         Plan plan = new Plan();
-        if (analysis.ids().size() == 1 && analysis.routingValues().size() == 1) {
-            ESDelete(analysis, plan);
-        } else {
-            ESDeleteByQuery(analysis, plan);
+        for (DeleteAnalysis.NestedDeleteAnalysis nestedDeleteAnalysis : analysis.nestedAnalysis()) {
+            if (nestedDeleteAnalysis.ids().size() == 1 &&
+                    nestedDeleteAnalysis.routingValues().size() == 1) {
+                ESDelete(nestedDeleteAnalysis, plan);
+            } else {
+                ESDeleteByQuery(nestedDeleteAnalysis, plan);
+            }
         }
         return plan;
     }
@@ -409,7 +412,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         return plan;
     }
 
-    private void ESDelete(DeleteAnalysis analysis, Plan plan) {
+    private void ESDelete(DeleteAnalysis.NestedDeleteAnalysis analysis, Plan plan) {
         WhereClause whereClause = analysis.whereClause();
         if (analysis.ids().size() == 1 && analysis.routingValues().size() == 1) {
             plan.add(new ESDeleteNode(
@@ -424,7 +427,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
     }
 
-    private void ESDeleteByQuery(DeleteAnalysis analysis, Plan plan) {
+    private void ESDeleteByQuery(DeleteAnalysis.NestedDeleteAnalysis analysis, Plan plan) {
         String[] indices = indices(analysis);
 
         if (!analysis.whereClause().hasQuery() && analysis.table().isPartitioned()) {

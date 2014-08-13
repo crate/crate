@@ -21,9 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.Task;
+import io.crate.executor.transport.task.AsyncChainedTask;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
@@ -31,25 +29,19 @@ import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 
-public class ESDeleteByQueryTask implements Task<Object[][]> {
+public class ESDeleteByQueryTask extends AsyncChainedTask {
 
     private final ESDeleteByQueryNode deleteByQueryNode;
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
-    private final SettableFuture<Object[][]> result;
-    private final List<ListenableFuture<Object[][]>> results;
     private final ESQueryBuilder queryBuilder;
+    private final static Object[][] RESULT = new Object[][] { new Object[] { -1L }};
 
     public ESDeleteByQueryTask(ESDeleteByQueryNode deleteByQueryNode,
                                TransportDeleteByQueryAction transportDeleteByQueryAction) {
         this.deleteByQueryNode = deleteByQueryNode;
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
         this.queryBuilder = new ESQueryBuilder();
-
-        result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
     }
 
     @Override
@@ -64,7 +56,7 @@ public class ESDeleteByQueryTask implements Task<Object[][]> {
             transportDeleteByQueryAction.execute(request, new ActionListener<DeleteByQueryResponse>() {
                 @Override
                 public void onResponse(DeleteByQueryResponse deleteByQueryResponses) {
-                    result.set(new Object[][] { new Object[] { -1L }});
+                    result.set(RESULT);
                 }
 
                 @Override
@@ -75,15 +67,5 @@ public class ESDeleteByQueryTask implements Task<Object[][]> {
         } catch (IOException e) {
             result.setException(e);
         }
-    }
-
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        return results;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException("Can't have upstreamResults");
     }
 }
