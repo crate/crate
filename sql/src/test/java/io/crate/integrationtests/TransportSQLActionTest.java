@@ -3013,8 +3013,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testBulkInsert() throws Exception {
-        execute("create table test (id integer, name string)");
+    public void testBulkOperations() throws Exception {
+        execute("create table test (id integer primary key, name string) with (number_of_replicas = 0)");
         ensureGreen();
         execute("insert into test (id, name) values (?, ?), (?, ?)",
                 new Object[][] {
@@ -3024,6 +3024,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select name from test order by id asc");
         assertEquals("Earth\nSaturn\nMoon\nMars\n", TestingHelpers.printedTable(response.rows()));
+
+        execute("delete from test where id = ?", new Object[][] {
+                new Object[] { 1 },
+                new Object[] { 3 }
+        });
+        assertThat(response.rowCount(), is(2L));
+        refresh();
+
+        execute("select count(*) from test");
+        assertThat((Long) response.rows()[0][0], is(2L));
     }
 
     @Test
