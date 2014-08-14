@@ -29,7 +29,7 @@ import io.crate.sql.tree.Table;
 
 public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, DeleteAnalysis> {
 
-    DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis> innerAnalyzer = new DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis>() {
+    final DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis> innerAnalyzer = new DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis>() {
         @Override
         public Symbol visitDelete(Delete node, DeleteAnalysis.NestedDeleteAnalysis context) {
             process(node.getRelation(), context);

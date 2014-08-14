@@ -24,45 +24,97 @@ package io.crate.analyze;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
-public class UpdateAnalysis extends AbstractDataAnalysis {
+public class UpdateAnalysis extends Analysis {
 
-    private Map<Reference, Symbol> assignments = new HashMap<>();
+    List<NestedAnalysis> nestedAnalysisList;
+
 
     public UpdateAnalysis(ReferenceInfos referenceInfos,
                           Functions functions,
                           Analyzer.ParameterContext parameterContext,
                           ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameterContext, referenceResolver);
+        super(parameterContext);
+        int numNested = 1;
+        if (parameterContext.bulkParameters.length > 0) {
+            numNested = parameterContext.bulkParameters.length;
+        }
+
+        nestedAnalysisList = new ArrayList<>(numNested);
+        for (int i = 0; i < numNested; i++) {
+            nestedAnalysisList.add(new NestedAnalysis(
+                    referenceInfos,
+                    functions,
+                    parameterContext,
+                    referenceResolver
+            ));
+        }
     }
 
-    public Map<Reference, Symbol> assignments() {
-        return assignments;
+    @Override
+    public void table(TableIdent tableIdent) {
+        throw new UnsupportedOperationException("used nested analysis");
     }
 
-    public void addAssignement(Reference reference, Symbol value) {
-        if (assignments.containsKey(reference)) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.info().ident().columnIdent().fqn()));
-        }
-        if (!reference.info().ident().tableIdent().equals(table().ident())) {
-            throw new UnsupportedOperationException("cannot update references from other tables.");
-        }
-        assignments.put(reference, value);
+    @Override
+    public TableInfo table() {
+        throw new UnsupportedOperationException("used nested analysis");
+    }
+
+    @Override
+    public SchemaInfo schema() {
+        throw new UnsupportedOperationException("used nested analysis");
     }
 
     @Override
     public boolean hasNoResult() {
-        return noMatch();
+        return false;
+    }
+
+    @Override
+    public void normalize() {
+
     }
 
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
         return analysisVisitor.visitUpdateAnalysis(this, context);
+    }
+
+    public List<NestedAnalysis> nestedAnalysis() {
+        return nestedAnalysisList;
+    }
+
+    public static class NestedAnalysis extends AbstractDataAnalysis {
+
+        private Map<Reference, Symbol> assignments = new HashMap<>();
+
+        public NestedAnalysis(ReferenceInfos referenceInfos,
+                              Functions functions,
+                              Analyzer.ParameterContext parameterContext,
+                              ReferenceResolver referenceResolver) {
+            super(referenceInfos, functions, parameterContext, referenceResolver);
+        }
+
+        public Map<Reference, Symbol> assignments() {
+            return assignments;
+        }
+
+        public void addAssignment(Reference reference, Symbol value) {
+            if (assignments.containsKey(reference)) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.info().ident().columnIdent().fqn()));
+            }
+            if (!reference.info().ident().tableIdent().equals(table().ident())) {
+                throw new UnsupportedOperationException("cannot update references from other tables.");
+            }
+            assignments.put(reference, value);
+        }
     }
 }
