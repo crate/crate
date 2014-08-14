@@ -5,6 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.9.2 which includes following changes
+
+    - fix: display number of records and started shards correctly
+      if table and blob table have the same name
+
  - querying the node stats didn't work correctly if one of the paths couldn't
    be read due to permission issues. Now Permission denied errors emit a
    warning and disk stats are calculation continues.
