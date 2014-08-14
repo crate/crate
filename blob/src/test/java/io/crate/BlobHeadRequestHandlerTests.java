@@ -84,6 +84,7 @@ public class BlobHeadRequestHandlerTests {
             file, 5, transportService, blobTransferTarget, discoveryNode, transferId
         );
 
+        @SuppressWarnings("unchecked")
         TransportFuture<TransportResponse.Empty> result = mock(TransportFuture.class);
 
         when(transportService.submitRequest(
@@ -123,6 +124,7 @@ public class BlobHeadRequestHandlerTests {
             file, 5, transportService, transferTarget, discoveryNode, transferId
         );
 
+        @SuppressWarnings("unchecked")
         TransportFuture<TransportResponse.Empty> result = mock(TransportFuture.class);
         when(transportService.submitRequest(
             eq(discoveryNode),

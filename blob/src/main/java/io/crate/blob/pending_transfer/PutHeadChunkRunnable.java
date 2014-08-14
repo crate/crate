@@ -125,16 +125,15 @@ public class PutHeadChunkRunnable implements Runnable {
                     continue;
                 }
 
+                @SuppressWarnings("unchecked")
                 WatchEvent<Path> ev = (WatchEvent<Path>)event;
                 Path filename = ev.context();
                 if (filename.toString().equals(pendingFile.getName())) {
                     break;
                 }
             }
-        } catch (IOException ex) {
-            // ignore
-        } catch (InterruptedException ex) {
-            // ignore
+        } catch (IOException | InterruptedException ex) {
+            logger.warn(ex.getMessage(), ex);
         }
     }
 
