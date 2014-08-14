@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed error handling on certain kind of failures that can occur on select
+   queries
+
  - updated crate-admin to 0.9.2 which includes following changes
 
     - fix: display number of records and started shards correctly
