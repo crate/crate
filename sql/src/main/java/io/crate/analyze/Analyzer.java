@@ -134,12 +134,18 @@ public class Analyzer {
         }
 
         public Symbol getAsSymbol(int index) {
-            if (hasBulkParams()) {
-                // already did a type guess so it is possible to create a literal directly
-                return io.crate.planner.symbol.Literal.newLiteral(
-                        bulkTypes[index], bulkParameters[currentIdx][index]);
+            try {
+                if (hasBulkParams()) {
+                    // already did a type guess so it is possible to create a literal directly
+                    return io.crate.planner.symbol.Literal.newLiteral(
+                            bulkTypes[index], bulkParameters[currentIdx][index]);
+                }
+                return new Parameter(parameters[index]);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "Tried to resolve a parameter but the arguments provided with the " +
+                                "SQLRequest don't contain a parameter at position %d", index), e);
             }
-            return new Parameter(parameters[index]);
         }
     }
 
