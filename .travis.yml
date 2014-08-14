@@ -5,5 +5,4 @@ jdk:
 notifications:
   email: false
 
-# reduce logging, use 'quiet' or higher (default is 'lifecycle' or higher).
-script: ./gradlew check -q
+script: ./gradlew test itest -s
