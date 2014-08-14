@@ -36,80 +36,93 @@ import io.crate.types.DataTypes;
 
 import java.util.Map;
 
-public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysis> {
+public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, UpdateAnalysis> {
+
+    final DataStatementAnalyzer<UpdateAnalysis.NestedAnalysis> innerAnalyzer =
+            new DataStatementAnalyzer<UpdateAnalysis.NestedAnalysis>() {
+
+                @Override
+                public Symbol visitUpdate(Update node, UpdateAnalysis.NestedAnalysis context) {
+                    process(node.relation(), context);
+                    for (Assignment assignment : node.assignements()) {
+                        process(assignment, context);
+                    }
+                    if (node.whereClause().isPresent()) {
+                        processWhereClause(node.whereClause().get(), context);
+                    }
+                    return null;
+                }
+
+                @Override
+                protected Symbol visitTable(Table node, UpdateAnalysis.NestedAnalysis context) {
+                    Preconditions.checkState(context.table() == null, "updating multiple tables is not supported");
+                    context.editableTable(TableIdent.of(node));
+                    return null;
+                }
+
+                @Override
+                public Symbol visitAssignment(Assignment node, UpdateAnalysis.NestedAnalysis context) {
+                    // unknown columns in strict objects handled in here
+                    Reference reference = (Reference)process(node.columnName(), context);
+                    final ColumnIdent ident = reference.info().ident().columnIdent();
+                    if (ident.name().startsWith("_")) {
+                        throw new IllegalArgumentException("Updating system columns is not allowed");
+                    }
+
+                    ColumnIdent clusteredBy = context.table().clusteredBy();
+                    if (clusteredBy != null && clusteredBy.equals(ident)) {
+                        throw new IllegalArgumentException("Updating a clustered-by column is currently not supported");
+                    }
+
+                    if (context.hasMatchingParent(reference.info(), UpdateAnalysis.NestedAnalysis.HAS_OBJECT_ARRAY_PARENT)) {
+                        // cannot update fields of object arrays
+                        throw new IllegalArgumentException("Updating fields of object arrays is not supported");
+                    }
+
+                    // it's something that we can normalize to a literal
+                    Symbol value = process(node.expression(), context);
+                    Literal updateValue;
+                    try {
+                        updateValue = context.normalizeInputForReference(value, reference);
+                    } catch(IllegalArgumentException|UnsupportedOperationException e) {
+                        throw new ColumnValidationException(ident.fqn(), e);
+                    }
+
+                    for (ColumnIdent pkIdent : context.table().primaryKey()) {
+                        ensureNotUpdated(ident, updateValue, pkIdent, "Updating a primary key is not supported");
+                    }
+                    for (ColumnIdent partitionIdent : context.table.partitionedBy()) {
+                        ensureNotUpdated(ident, updateValue, partitionIdent, "Updating a partitioned-by column is not supported");
+                    }
+
+                    context.addAssignment(reference, updateValue);
+                    return null;
+                }
+
+                private void ensureNotUpdated(ColumnIdent columnUpdated,
+                                              Literal newValue,
+                                              ColumnIdent protectedColumnIdent,
+                                              String errorMessage) {
+                    if (columnUpdated.equals(protectedColumnIdent)) {
+                        throw new IllegalArgumentException(errorMessage);
+                    }
+
+                    if (columnUpdated.isChildOf(protectedColumnIdent) &&
+                            !(newValue.valueType().equals(DataTypes.OBJECT)
+                                    && StringObjectMaps.fromMapByPath((Map) newValue.value(), protectedColumnIdent.path()) == null)) {
+                        throw new IllegalArgumentException(errorMessage);
+                    }
+                }
+    };
 
     @Override
     public Symbol visitUpdate(Update node, UpdateAnalysis context) {
-        process(node.relation(), context);
-
-        for (Assignment assignment : node.assignements()) {
-            process(assignment, context);
-        }
-        if (node.whereClause().isPresent()) {
-            processWhereClause(node.whereClause().get(), context);
+        java.util.List<UpdateAnalysis.NestedAnalysis> nestedAnalysisList = context.nestedAnalysisList;
+        for (int i = 0, nestedAnalysisListSize = nestedAnalysisList.size(); i < nestedAnalysisListSize; i++) {
+            UpdateAnalysis.NestedAnalysis nestedAnalysis = nestedAnalysisList.get(i);
+            context.parameterContext().setBulkIdx(i);
+            innerAnalyzer.process(node, nestedAnalysis);
         }
         return null;
     }
-
-    @Override
-    protected Symbol visitTable(Table node, UpdateAnalysis context) {
-        Preconditions.checkState(context.table() == null, "updating multiple tables is not supported");
-        context.editableTable(TableIdent.of(node));
-        return null;
-    }
-
-    @Override
-    public Symbol visitAssignment(Assignment node, UpdateAnalysis context) {
-        // unknown columns in strict objects handled in here
-        Reference reference = (Reference)process(node.columnName(), context);
-        final ColumnIdent ident = reference.info().ident().columnIdent();
-        if (ident.name().startsWith("_")) {
-            throw new IllegalArgumentException("Updating system columns is not allowed");
-        }
-
-        ColumnIdent clusteredBy = context.table().clusteredBy();
-        if (clusteredBy != null && clusteredBy.equals(ident)) {
-            throw new IllegalArgumentException("Updating a clustered-by column is currently not supported");
-        }
-
-        if (context.hasMatchingParent(reference.info(), UpdateAnalysis.HAS_OBJECT_ARRAY_PARENT)) {
-            // cannot update fields of object arrays
-            throw new IllegalArgumentException("Updating fields of object arrays is not supported");
-        }
-
-        // it's something that we can normalize to a literal
-        Symbol value = process(node.expression(), context);
-        Literal updateValue;
-        try {
-            updateValue = context.normalizeInputForReference(value, reference);
-        } catch(IllegalArgumentException|UnsupportedOperationException e) {
-            throw new ColumnValidationException(ident.fqn(), e);
-        }
-
-        for (ColumnIdent pkIdent : context.table().primaryKey()) {
-            ensureNotUpdated(ident, updateValue, pkIdent, "Updating a primary key is not supported");
-        }
-        for (ColumnIdent partitionIdent : context.table.partitionedBy()) {
-            ensureNotUpdated(ident, updateValue, partitionIdent, "Updating a partitioned-by column is not supported");
-        }
-
-        context.addAssignement(reference, updateValue);
-        return null;
-    }
-
-    private void ensureNotUpdated(ColumnIdent columnUpdated,
-                                  Literal newValue,
-                                  ColumnIdent protectedColumnIdent,
-                                  String errorMessage) {
-        if (columnUpdated.equals(protectedColumnIdent)) {
-            throw new IllegalArgumentException(errorMessage);
-        }
-
-        if (columnUpdated.isChildOf(protectedColumnIdent) &&
-                !(newValue.valueType().equals(DataTypes.OBJECT)
-                        && StringObjectMaps.fromMapByPath((Map) newValue.value(), protectedColumnIdent.path()) == null)) {
-            throw new IllegalArgumentException(errorMessage);
-        }
-    }
-
 }
