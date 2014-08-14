@@ -172,14 +172,16 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitUpdateAnalysis(UpdateAnalysis analysis, Context context) {
         Plan plan = new Plan();
-        ESUpdateNode node = new ESUpdateNode(
-                indices(analysis),
-                analysis.assignments(),
-                analysis.whereClause(),
-                analysis.ids(),
-                analysis.routingValues()
-        );
-        plan.add(node);
+        for (UpdateAnalysis.NestedAnalysis nestedAnalysis : analysis.nestedAnalysis()) {
+            ESUpdateNode node = new ESUpdateNode(
+                    indices(nestedAnalysis),
+                    nestedAnalysis.assignments(),
+                    nestedAnalysis.whereClause(),
+                    nestedAnalysis.ids(),
+                    nestedAnalysis.routingValues()
+            );
+            plan.add(node);
+        }
         plan.expectsAffectedRows(true);
         return plan;
     }

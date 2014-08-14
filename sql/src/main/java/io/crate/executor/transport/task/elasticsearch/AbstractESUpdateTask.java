@@ -21,36 +21,15 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.Task;
+import io.crate.executor.transport.task.AsyncChainedTask;
 import io.crate.planner.node.dml.ESUpdateNode;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+public abstract class AbstractESUpdateTask extends AsyncChainedTask {
 
-public abstract class AbstractESUpdateTask implements Task<Object[][]> {
-
-    protected final SettableFuture<Object[][]> result;
-    protected final List<ListenableFuture<Object[][]>> results;
     protected final ESUpdateNode node;
 
     protected AbstractESUpdateTask(ESUpdateNode node) {
+        super();
         this.node = node;
-        this.result = SettableFuture.create();
-        this.results = Arrays.<ListenableFuture<Object[][]>>asList(result);
-    }
-
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        return results;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
-                        getClass().getSimpleName()));
     }
 }
