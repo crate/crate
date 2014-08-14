@@ -183,7 +183,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     private void sendRedirect(HttpRequest request, String newUri) {
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.TEMPORARY_REDIRECT);
         HttpHeaders.setContentLength(response, 0);
-        response.addHeader(HttpHeaders.Names.LOCATION, newUri);
+        response.headers().add(HttpHeaders.Names.LOCATION, newUri);
         ChannelFuture cf = ctx.getChannel().write(response);
         if (!HttpHeaders.isKeepAlive(request)) {
             cf.addListener(ChannelFutureListener.CLOSE);
@@ -257,7 +257,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     }
 
     private void get(HttpRequest request, String index, final String digest) throws IOException {
-        String range = request.getHeader(RANGE);
+        String range = request.headers().get(RANGE);
         if (range != null) {
             partialContentResponse(range, request, index, digest);
         } else {
@@ -304,7 +304,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, PARTIAL_CONTENT);
         HttpHeaders.setContentLength(response, end - start + 1);
-        response.setHeader(CONTENT_RANGE, "bytes " + start + "-" + end + "/" + raf.length());
+        response.headers().set(CONTENT_RANGE, "bytes " + start + "-" + end + "/" + raf.length());
         setDefaultGetHeaders(response);
 
         ctx.getChannel().write(response);
@@ -349,9 +349,9 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     }
 
     private void setDefaultGetHeaders(HttpResponse response) {
-        response.setHeader(ACCEPT_RANGES, "bytes");
-        response.setHeader(EXPIRES, EXPIRES_VALUE);
-        response.setHeader(CACHE_CONTROL, CACHE_CONTROL_VALUE);
+        response.headers().set(ACCEPT_RANGES, "bytes");
+        response.headers().set(EXPIRES, EXPIRES_VALUE);
+        response.headers().set(CACHE_CONTROL, CACHE_CONTROL_VALUE);
     }
 
     private void put(HttpRequest request, String index, String digest) throws IOException {
