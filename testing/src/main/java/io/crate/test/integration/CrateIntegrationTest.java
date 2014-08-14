@@ -53,6 +53,8 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.logging.ESLoggerFactory;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -85,6 +87,8 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+        ESLoggerFactory.getRootLogger().setLevel("WARN");
+        Loggers.getLogger("org.elasticsearch.http").setLevel("INFO");
     }
 
     public static void deleteAll() {
@@ -640,7 +644,10 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
         }
         assertThat(actualErrors, emptyIterable());
         if (forceRefresh) {
-            assertNoFailures(client().admin().indices().prepareRefresh(indices).setIndicesOptions(IndicesOptions.lenient()).execute().get());
+            assertNoFailures(client().admin().indices()
+                    .prepareRefresh(indices)
+                    .setIndicesOptions(IndicesOptions.lenientExpandOpen())
+                    .execute().get());
         }
     }
 

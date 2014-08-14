@@ -21,6 +21,8 @@
 
 package io.crate.test.integration;
 
+import org.elasticsearch.common.logging.ESLoggerFactory;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.ElasticsearchTestCase;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -39,6 +41,11 @@ import java.util.Random;
 public class ClassLifecycleIntegrationTest {
 
     public static final long CLUSTER_SEED = System.nanoTime();
+
+    static {
+        ESLoggerFactory.getRootLogger().setLevel("WARN");
+        Loggers.getLogger("org.elasticsearch.http").setLevel("INFO");
+    }
 
 
     public static final CrateTestCluster GLOBAL_CLUSTER = new CrateTestCluster(
