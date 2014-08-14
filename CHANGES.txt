@@ -5,6 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.9.2 which includes following changes
+
+    - fix: display number of records and started shards correctly
+      if table and blob table have the same name
+
  - upgraded ES upstream to v1.2.4 to fix a bug
    concerning compressed inter-node communications
 
