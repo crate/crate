@@ -377,7 +377,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertThat((String)((Map)arrayValue.get(0)).get("name"), is("cool"));
         assertThat((String)((Map)arrayValue.get(1)).get("name"), is("fancy"));
         assertThat(Arrays.toString(((List)((Map)arrayValue.get(0)).get("metadata")).toArray()), is("[{id=0}, {id=1}]"));
-        assertThat(Arrays.toString(((List)((Map)arrayValue.get(1)).get("metadata")).toArray()), is("[{id=2}, {id=3}]"));
+        assertThat(Arrays.toString(((List) ((Map) arrayValue.get(1)).get("metadata")).toArray()), is("[{id=2}, {id=3}]"));
     }
 
     @Test
@@ -618,4 +618,22 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     private static class Foo {}
+
+
+    @Test
+    public void testInsertWithTooFewArguments() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Tried to resolve a parameter but the arguments provided with the SQLRequest don't contain a parameter at position 1");
+        analyze("insert into users (id, name) values (?, ?)", new Object[] { 1 });
+    }
+
+    @Test
+    public void testInsertWithTooFewBulkArguments() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Tried to resolve a parameter but the arguments provided with the SQLRequest don't contain a parameter at position 0");
+        analyze("insert into users (id, name) values (?, ?)", new Object[][]{
+                new Object[]{},
+                new Object[]{}
+        });
+    }
 }

@@ -55,13 +55,14 @@ import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.joda.time.DateTime;
 import org.junit.Before;
+import org.junit.Rule;
 
 import java.util.*;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BaseAnalyzerTest {
+public abstract class BaseAnalyzerTest {
 
     static final Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
