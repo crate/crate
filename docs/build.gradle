@@ -19,6 +19,7 @@ task unpackDistTar (dependsOn: project(':app').distTar) << {
         }
         into crateDist
     }
+
 }
 
 task buildout (type:Exec, dependsOn: bootstrap) {
@@ -30,7 +31,11 @@ task itest (type:Exec){
     executable = "$projectDir/bin/test"
 }
 
-itest.dependsOn(unpackDistTar, buildout)
+task lessLogging (type:Exec, dependsOn: unpackDistTar) {
+    commandLine "sed", "-i", 's/rootLogger: INFO/rootLogger: WARN/', "$projectDir/tmp/crate/config/logging.yml"
+}
+
+itest.dependsOn(unpackDistTar, buildout, lessLogging)
 
 task clean << {
     FileCollection toDelete = files(crateDist,
