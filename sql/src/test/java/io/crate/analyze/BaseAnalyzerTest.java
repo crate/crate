@@ -55,7 +55,6 @@ import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.joda.time.DateTime;
 import org.junit.Before;
-import org.junit.Rule;
 
 import java.util.*;
 

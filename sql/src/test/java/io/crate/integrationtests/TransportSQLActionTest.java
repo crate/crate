@@ -3025,6 +3025,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name from test order by id asc");
         assertEquals("Earth\nSaturn\nMoon\nMars\n", TestingHelpers.printedTable(response.rows()));
 
+
+        execute("update test set name = 'bulk_update' where id = ?", new Object[][] {
+                new Object[] { 2 },
+                new Object[] { 3 },
+                new Object[] { 4 },
+        });
+        assertThat(response.rowCount(), is(3L));
+        refresh();
+
+        execute("select count(*) from test where name = 'bulk_update'");
+        assertThat((Long) response.rows()[0][0], is(3L));
+
         execute("delete from test where id = ?", new Object[][] {
                 new Object[] { 1 },
                 new Object[] { 3 }
@@ -3034,6 +3046,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select count(*) from test");
         assertThat((Long) response.rows()[0][0], is(2L));
+
     }
 
     @Test
