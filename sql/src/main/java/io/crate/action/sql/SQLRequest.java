@@ -45,6 +45,7 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         this.stmt = stmt;
         this.args = EMPTY_ARGS;
         this.bulkArgs = Objects.firstNonNull(bulkArgs, EMPTY_BULK_ARGS);
+        this.creationTime = System.currentTimeMillis();
     }
 
     public SQLRequest(String stmt, Object[] args) {

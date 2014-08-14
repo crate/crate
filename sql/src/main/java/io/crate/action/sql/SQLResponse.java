@@ -46,7 +46,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     private Object[][] rows;
     private String[] cols;
     private long rowCount = NO_ROW_COUNT;
-    private long requestStartedTime = 0L;
+    private long requestStartedTime;
     private DataType[] colTypes;
     private boolean includeTypes = false;
     private final static DataType[] EMPTY_TYPES = new DataType[0];
