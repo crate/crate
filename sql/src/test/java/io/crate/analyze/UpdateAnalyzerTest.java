@@ -66,8 +66,8 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     public ExpectedException expectedException = ExpectedException.none();
 
 
-    private static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
-    private static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
+    private final static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
+    private final static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
             TEST_ALIAS_TABLE_IDENT, RowGranularity.DOC, new Routing())
             .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
