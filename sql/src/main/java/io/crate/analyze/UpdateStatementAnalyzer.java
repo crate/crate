@@ -22,9 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
@@ -37,7 +34,6 @@ import io.crate.sql.tree.Table;
 import io.crate.sql.tree.Update;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.Map;
 
 public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysis> {
@@ -89,42 +85,31 @@ public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysi
         } catch(IllegalArgumentException|UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.fqn(), e);
         }
-        // check for primary keys
-        for (ColumnIdent primaryKeyIdent : Iterables.filter(context.table().primaryKey(), new Predicate<ColumnIdent>() {
-            @Override
-            public boolean apply(@Nullable ColumnIdent input) {
-                return input != null && (input.equals(ident) || ident.isChildOf(input));
-            }
-        })) {
-            if (!ident.equals(primaryKeyIdent) && updateValue.valueType().equals(DataTypes.OBJECT)) {
-                // we might have a nested primary key column
-                if (StringObjectMaps.getByPath(((Map)updateValue.value()),
-                        StringUtils.PATH_JOINER.join(primaryKeyIdent.path())) == null) {
-                    // no primary key column found
-                    continue;
-                }
-            }
-            throw new IllegalArgumentException("Updating a primary key is currently not supported");
+
+        for (ColumnIdent pkIdent : context.table().primaryKey()) {
+            ensureNotUpdated(ident, updateValue, pkIdent, "Updating a primary key is not supported");
+        }
+        for (ColumnIdent partitionIdent : context.table.partitionedBy()) {
+            ensureNotUpdated(ident, updateValue, partitionIdent, "Updating a partitioned-by column is not supported");
         }
 
-        // check for partitioned columns
-        for (ColumnIdent partitionedIdent : Iterables.filter(context.table().partitionedBy(), new Predicate<ColumnIdent>() {
-            @Override
-            public boolean apply(@Nullable ColumnIdent input) {
-                return input != null && (input.equals(ident) || ident.isChildOf(input));
-            }
-        })) {
-            if (!ident.equals(partitionedIdent) && updateValue.valueType().equals(DataTypes.OBJECT)) {
-                // we might have a nested partitioned by column
-                if (StringObjectMaps.getByPath((Map)updateValue.value(), StringUtils.PATH_JOINER.join(partitionedIdent.path())) == null) {
-                    // no partitioned column found
-                    continue;
-                }
-            }
-            throw new IllegalArgumentException("Updating a partitioned-by column is currently not supported");
-        }
         context.addAssignement(reference, updateValue);
         return null;
+    }
+
+    private void ensureNotUpdated(ColumnIdent columnUpdated,
+                                  Literal newValue,
+                                  ColumnIdent protectedColumnIdent,
+                                  String errorMessage) {
+        if (columnUpdated.equals(protectedColumnIdent)) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+
+        if (columnUpdated.isChildOf(protectedColumnIdent) &&
+                !(newValue.valueType().equals(DataTypes.OBJECT)
+                        && StringObjectMaps.fromMapByPath((Map) newValue.value(), protectedColumnIdent.path()) == null)) {
+            throw new IllegalArgumentException(errorMessage);
+        }
     }
 
 }
