@@ -32,10 +32,7 @@ import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.search.SearchPhaseExecutionException;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.TransportSearchAction;
+import org.elasticsearch.action.search.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.search.SearchHit;
@@ -188,12 +185,13 @@ public class ESSearchTask implements Task<Object[][]> {
         public void onFailure(Throwable e) {
             if (e instanceof SearchPhaseExecutionException) {
                 logger.error("Error executing SELECT statement", e);
-                result.setException(
-                        Throwables.getRootCause(((SearchPhaseExecutionException) e).shardFailures()[0].failure()));
-            } else {
-                result.setException(e);
+                ShardSearchFailure[] shardSearchFailures = ((SearchPhaseExecutionException) e).shardFailures();
+                if (shardSearchFailures.length > 0) {
+                    result.setException(Throwables.getRootCause(shardSearchFailures[0].failure()));
+                    return;
+                }
             }
+            result.setException(e);
         }
     }
-
 }
