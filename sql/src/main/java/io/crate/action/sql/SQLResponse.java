@@ -46,9 +46,9 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     private Object[][] rows;
     private String[] cols;
     private long rowCount = NO_ROW_COUNT;
-    private long requestStartedTime = 0L;
+    private long requestStartedTime;
     private DataType[] colTypes;
-    private boolean includeTypes = false;
+    private boolean includeTypes;
 
     public SQLResponse() {
     }
@@ -164,10 +164,6 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
             return System.currentTimeMillis()- requestStartedTime;
         }
         return -1;
-    }
-
-    public void requestStartedTime(long requestStartedTime) {
-        this.requestStartedTime = requestStartedTime;
     }
 
     @Override
