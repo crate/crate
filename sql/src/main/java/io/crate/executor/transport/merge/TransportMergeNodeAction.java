@@ -23,6 +23,7 @@ package io.crate.executor.transport.merge;
 
 import io.crate.Streamer;
 import io.crate.executor.transport.DistributedResultRequestHandler;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
@@ -37,8 +38,6 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
@@ -67,8 +66,7 @@ public class TransportMergeNodeAction {
     @Inject
     public TransportMergeNodeAction(final ClusterService clusterService,
                                     final Settings settings,
-                                    final TransportShardBulkAction transportShardBulkAction,
-                                    final TransportCreateIndexAction transportCreateIndexAction,
+                                    final TransportActionProvider transportActionProvider,
                                     TransportService transportService,
                                     ReferenceResolver referenceResolver,
                                     Functions functions,
@@ -89,8 +87,7 @@ public class TransportMergeNodeAction {
                 return new MergeOperation(
                         clusterService,
                         settings,
-                        transportShardBulkAction,
-                        transportCreateIndexAction,
+                        transportActionProvider,
                         implementationSymbolVisitor,
                         node
                 );

@@ -175,7 +175,7 @@ The following types are supported:
 ``chinese``, ``cjk``, ``czech``, ``danish``, ``dutch``, ``english``, ``finnish``,
 ``french``, ``galician``, ``german``, ``greek``, ``hindi``, ``hungarian``, ``indonesian``,
 ``italian``, ``norwegian``, ``persian``, ``portuguese``, ``romanian``, ``russian``,
-``spanish``, ``swedish``, ``turkish``, ``thai``.
+``sorani``, ``spanish``, ``swedish``, ``turkish``, ``thai``.
 
 Parameters
 ..........
@@ -362,6 +362,16 @@ Flags should be pipe-separated, eg ``CASE_INSENSITIVE|COMMENTS``. Check `Java Pa
 more details about flags options.
 
 
+.. _thai-tokenizer:
+
+thai
+----
+
+``type='thai'``
+
+Splits Thai text correctly, treats all other languages like the `standard-tokenizer`_ does.
+
+
 .. _uaxemailurl-tokenizer:
 
 uax email url
@@ -428,6 +438,16 @@ standard
 ``tyoe='standard'``
 
 Normalizes tokens extracted with the :ref:`standard-tokenizer` Tokenizer.
+
+
+.. _apostrophe-tokenfilter:
+
+apostrophe
+----------
+
+``type='apostrophe'``
+
+Strips all characters after an apostrophe, and the apostrophe itself.
 
 
 .. _asciifolding-tokenfilter:
@@ -968,13 +988,37 @@ query_mode
 
     Either ``common_words`` or ``common_words_path`` must be given.
 
+
 .. _normalization-tokenfilter:
 
 normalization
 -------------
 
-``type='arabic_normalization'`` or ``type='persian_normalization'``
+``type='<language>_normalization'``
 
+Normalizes special characters of several languages.
+
+Available languages:
+
+* arabic
+* german
+* hindi
+* indic
+* sorani
+* persian
+* scandinavian
+
+
+.. _scandinavian-folding-tokenfilter:
+
+scandinavian folding
+--------------------
+
+``type='scandinavian_folding'``
+
+*Folds* scandinavian characters like ``ø`` to ``o`` or ``å`` to ``a``.
+Though this might result in different words,
+it is easier to match different scandinavian languages using this folding algorithm.
 
 .. _delimited_payload-tokenfilter:
 

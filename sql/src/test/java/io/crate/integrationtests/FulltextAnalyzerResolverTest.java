@@ -262,7 +262,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                         "classic, czech, danish, default, dutch, english, finnish, french, " +
                         "galician, german, greek, hindi, hungarian, indonesian, irish, " +
                         "italian, keyword, latvian, norwegian, pattern, persian, portuguese, " +
-                        "romanian, russian, simple, snowball, spanish, standard, " +
+                        "romanian, russian, simple, snowball, sorani, spanish, standard, " +
                         "standard_html_strip, stop, swedish, thai, turkish, whitespace"));
     }
 
@@ -272,7 +272,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         Collections.sort(tokenizers);
         assertThat(Joiner.on(", ").join(tokenizers),
                 is("classic, edgeNGram, edge_ngram, keyword, letter, lowercase, " +
-                        "nGram, ngram, path_hierarchy, pattern, standard, " +
+                        "nGram, ngram, path_hierarchy, pattern, standard, thai, " +
                         "uax_url_email, whitespace"));
     }
 
@@ -281,14 +281,17 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         List<String> tokenFilters = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInTokenFilters());
         Collections.sort(tokenFilters);
         assertThat(Joiner.on(", ").join(tokenFilters),
-                is("arabic_normalization, arabic_stem, asciifolding, brazilian_stem, " +
+                is("apostrophe, arabic_normalization, arabic_stem, asciifolding, brazilian_stem, " +
                         "cjk_bigram, cjk_width, classic, common_grams, czech_stem, " +
                         "delimited_payload_filter, dictionary_decompounder, dutch_stem, " +
-                        "edgeNGram, edge_ngram, elision, french_stem, german_stem, hunspell, " +
-                        "hyphenation_decompounder, keep, keyword_marker, keyword_repeat, " +
+                        "edgeNGram, edge_ngram, elision, french_stem, german_normalization, " +
+                        "german_stem, hindi_normalization, hunspell, " +
+                        "hyphenation_decompounder, indic_normalization, keep, " +
+                        "keyword_marker, keyword_repeat, " +
                         "kstem, length, limit, lowercase, nGram, ngram, pattern_capture, " +
                         "pattern_replace, persian_normalization, porter_stem, reverse, " +
-                        "russian_stem, shingle, snowball, standard, stemmer, stemmer_override, " +
+                        "russian_stem, scandinavian_folding, scandinavian_normalization, " +
+                        "shingle, snowball, sorani_normalization, standard, stemmer, stemmer_override, " +
                         "stop, synonym, trim, truncate, type_as_payload, unique, uppercase, word_delimiter"));
     }
 

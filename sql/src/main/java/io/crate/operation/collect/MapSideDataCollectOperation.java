@@ -30,6 +30,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -44,8 +45,6 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
 import org.apache.lucene.search.CollectionTerminatedException;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
@@ -106,8 +105,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     @Inject
     public MapSideDataCollectOperation(ClusterService clusterService,
                                        Settings settings,
-                                       TransportShardBulkAction transportShardBulkAction,
-                                       TransportCreateIndexAction transportCreateIndexAction,
+                                       TransportActionProvider transportActionProvider,
                                        Functions functions,
                                        ReferenceResolver referenceResolver,
                                        IndicesService indicesService,
@@ -129,8 +127,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         this.projectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
                 settings,
-                transportShardBulkAction,
-                transportCreateIndexAction,
+                transportActionProvider,
                 nodeImplementationSymbolVisitor
         );
     }

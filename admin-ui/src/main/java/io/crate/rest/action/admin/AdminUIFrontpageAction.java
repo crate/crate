@@ -43,10 +43,10 @@ public class AdminUIFrontpageAction extends BaseRestHandler {
     }
 
     @Override
-    public void handleRequest(RestRequest restRequest, RestChannel restChannel) {
+    protected void handleRequest(RestRequest request, RestChannel channel, Client client) throws Exception {
         BytesRestResponse resp = new BytesRestResponse(RestStatus.TEMPORARY_REDIRECT);
         resp.addHeader("Location", "/_plugin/crate-admin/");
-        restChannel.sendResponse(resp);
+        channel.sendResponse(resp);
     }
 
 }

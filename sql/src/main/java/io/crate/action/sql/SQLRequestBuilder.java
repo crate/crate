@@ -24,12 +24,11 @@ package io.crate.action.sql;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.internal.InternalClient;
 
-public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLResponse, SQLRequestBuilder> {
+public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLResponse, SQLRequestBuilder, Client> {
 
     public SQLRequestBuilder(Client client) {
-        super((InternalClient) client, new SQLRequest());
+        super(client, new SQLRequest());
     }
 
     /**
@@ -37,7 +36,7 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
      */
     @Override
     protected void doExecute(ActionListener<SQLResponse> listener) {
-        ((Client) client).execute(SQLAction.INSTANCE, request, listener);
+        client.execute(SQLAction.INSTANCE, request, listener);
     }
 
     public void stmt(String stmt) {

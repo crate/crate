@@ -147,7 +147,7 @@ public class BlobRecoverySource extends AbstractComponent {
                     StopWatch stopWatch = new StopWatch().start();
 
                     for (String name : snapshot.getFiles()) {
-                        StoreFileMetaData md = shard.store().metaData(name);
+                        StoreFileMetaData md = shard.store().getMetadata().get(name);
                         boolean useExisting = false;
                         if (request.existingFiles().containsKey(name)) {
                             // we don't compute checksum for segments, so always recover them
@@ -191,9 +191,9 @@ public class BlobRecoverySource extends AbstractComponent {
                                 try {
                                     final int BUFFER_SIZE = (int) recoverySettings.fileChunkSize().bytes();
                                     byte[] buf = new byte[BUFFER_SIZE];
-                                    StoreFileMetaData md = shard.store().metaData(name);
+                                    StoreFileMetaData md = shard.store().getMetadata().get(name);
                                     // TODO: maybe use IOContext.READONCE?
-                                    indexInput = shard.store().openInputRaw(name, IOContext.READ);
+                                    indexInput = shard.store().directory().openInput(name, IOContext.READ);
                                     boolean shouldCompressRequest = recoverySettings.compress();
                                     if (CompressorFactory.isCompressed(indexInput)) {
                                         shouldCompressRequest = false;
@@ -214,7 +214,7 @@ public class BlobRecoverySource extends AbstractComponent {
 
                                         indexInput.readBytes(buf, 0, toRead, false);
                                         BytesArray content = new BytesArray(buf, 0, toRead);
-                                        transportService.submitRequest(request.targetNode(), RecoveryTarget.Actions.FILE_CHUNK, new RecoveryFileChunkRequest(request.recoveryId(), request.shardId(), name, position, len, md.checksum(), content),
+                                        transportService.submitRequest(request.targetNode(), RecoveryTarget.Actions.FILE_CHUNK, new RecoveryFileChunkRequest(request.recoveryId(), request.shardId(), md, position, content),
                                                 TransportRequestOptions.options().withCompress(shouldCompressRequest).withType(TransportRequestOptions.Type.RECOVERY).withTimeout(internalActionTimeout), EmptyTransportResponseHandler.INSTANCE_SAME).txGet();
                                         readCount += toRead;
                                     }

@@ -32,7 +32,7 @@ task itest (type:Exec){
 }
 
 task lessLogging (type:Exec, dependsOn: unpackDistTar) {
-    commandLine "sed", "-i", "-e", 's/rootLogger: INFO/rootLogger: WARN/', "$projectDir/tmp/crate/config/logging.yml"
+    commandLine "sed", "-i", "", "-e", "s/rootLogger: INFO/rootLogger: WARN/", "$projectDir/tmp/crate/config/logging.yml"
 }
 
 itest.dependsOn(unpackDistTar, buildout, lessLogging)

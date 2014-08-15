@@ -21,6 +21,7 @@
 
 package io.crate.operation.merge;
 
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -37,8 +38,6 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -47,6 +46,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -105,8 +105,7 @@ public class MergeOperationTest {
         MergeOperation mergeOperation = new MergeOperation(
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
-                mock(TransportShardBulkAction.class),
-                mock(TransportCreateIndexAction.class),
+                mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 symbolVisitor,
                 mergeNode
         );
@@ -141,8 +140,7 @@ public class MergeOperationTest {
         MergeOperation mergeOperation = new MergeOperation(
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
-                mock(TransportShardBulkAction.class),
-                mock(TransportCreateIndexAction.class),
+                mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 symbolVisitor,
                 mergeNode
         );

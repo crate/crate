@@ -62,6 +62,7 @@ import org.elasticsearch.monitor.process.ProcessInfo;
 import org.elasticsearch.monitor.process.ProcessStats;
 import org.elasticsearch.monitor.sigar.SigarService;
 import org.elasticsearch.node.service.NodeService;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hyperic.sigar.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -257,6 +258,9 @@ public class TestSysNodesExpressions {
             bind(JvmService.class).toInstance(jvmService);
 
             bind(ReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
+
+            ThreadPool threadPool = new ThreadPool(getClass().getName());
+            bind(ThreadPool.class).toInstance(threadPool);
         }
     }
 

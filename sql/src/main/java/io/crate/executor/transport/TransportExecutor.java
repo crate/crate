@@ -22,10 +22,12 @@
 package io.crate.executor.transport;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.executor.*;
+import io.crate.executor.Executor;
+import io.crate.executor.Job;
+import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.executor.transport.task.CreateTableTask;
 import io.crate.executor.transport.task.DistributedMergeTask;
 import io.crate.executor.transport.task.DropTableTask;
@@ -46,21 +48,6 @@ import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
-import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.action.bulk.TransportBulkAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
-import org.elasticsearch.action.count.TransportCountAction;
-import org.elasticsearch.action.delete.TransportDeleteAction;
-import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
-import org.elasticsearch.action.get.TransportGetAction;
-import org.elasticsearch.action.get.TransportMultiGetAction;
-import org.elasticsearch.action.index.TransportIndexAction;
-import org.elasticsearch.action.search.TransportSearchAction;
-import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -78,68 +65,22 @@ public class TransportExecutor implements Executor {
 
     private final Settings settings;
     private final ClusterService clusterService;
-    private final TransportSearchAction transportSearchAction;
-    private final TransportCollectNodeAction transportCollectNodeAction;
-    private final TransportMergeNodeAction transportMergeNodeAction;
-    private final TransportShardBulkAction transportShardBulkAction;
-    private final TransportGetAction transportGetAction;
-    private final TransportMultiGetAction transportMultiGetAction;
-    private final TransportDeleteByQueryAction transportDeleteByQueryAction;
-    private final TransportDeleteAction transportDeleteAction;
-    private final TransportCreateIndexAction transportCreateIndexAction;
-    private final TransportCountAction transportCountAction;
-    private final TransportIndexAction transportIndexAction;
-    private final TransportUpdateAction transportUpdateAction;
-    private final TransportDeleteIndexAction transportDeleteIndexAction;
-    private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
-    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
-    private final TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction;
+    private final TransportActionProvider transportActionProvider;
+
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
 
     @Inject
     public TransportExecutor(Settings settings,
-                             TransportShardBulkAction transportShardBulkAction,
-                             TransportSearchAction transportSearchAction,
-                             TransportCollectNodeAction transportCollectNodeAction,
-                             TransportMergeNodeAction transportMergeNodeAction,
-                             TransportGetAction transportGetAction,
-                             TransportMultiGetAction transportMultiGetAction,
-                             TransportDeleteByQueryAction transportDeleteByQueryAction,
-                             TransportDeleteAction transportDeleteAction,
-                             TransportCreateIndexAction transportCreateIndexAction,
-                             TransportCountAction transportCountAction,
+                             TransportActionProvider transportActionProvider,
                              ThreadPool threadPool,
                              Functions functions,
                              ReferenceResolver referenceResolver,
-                             TransportIndexAction transportIndexAction,
-                             TransportBulkAction transportBulkAction,
-                             TransportUpdateAction transportUpdateAction,
-                             TransportDeleteIndexAction transportDeleteIndexAction,
-                             TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction,
-                             TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                             TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
                              StatsTables statsTables,
                              ClusterService clusterService) {
         this.settings = settings;
-        this.transportShardBulkAction = transportShardBulkAction;
-        this.transportGetAction = transportGetAction;
-        this.transportMultiGetAction = transportMultiGetAction;
-        this.transportCollectNodeAction = transportCollectNodeAction;
-        this.transportMergeNodeAction = transportMergeNodeAction;
-        this.transportSearchAction = transportSearchAction;
-        this.transportDeleteByQueryAction = transportDeleteByQueryAction;
-        this.transportDeleteAction = transportDeleteAction;
-        this.transportCreateIndexAction = transportCreateIndexAction;
-        this.transportCountAction = transportCountAction;
-        this.transportIndexAction = transportIndexAction;
-        this.transportUpdateAction = transportUpdateAction;
-        this.transportDeleteIndexAction = transportDeleteIndexAction;
-        this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-        this.transportDeleteIndexTemplateAction = transportDeleteIndexTemplateAction;
-
+        this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
         this.functions = functions;
@@ -185,7 +126,7 @@ public class TransportExecutor implements Executor {
             if (node.isRouted()) {
                 context.addTask(new RemoteCollectTask(
                     node,
-                    transportCollectNodeAction,
+                    transportActionProvider.transportCollectNodeAction(),
                     handlerSideDataCollectOperation));
             } else {
                 context.addTask(new LocalCollectTask(handlerSideDataCollectOperation, node));
@@ -201,13 +142,13 @@ public class TransportExecutor implements Executor {
                         threadPool,
                         clusterService,
                         settings,
-                        transportShardBulkAction,
-                        transportCreateIndexAction,
+                        transportActionProvider,
                         new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
                         node,
                         statsTables));
             } else {
-                context.addTask(new DistributedMergeTask(transportMergeNodeAction, node));
+                context.addTask(new DistributedMergeTask(
+                        transportActionProvider.transportMergeNodeAction(), node));
             }
 
             return null;
@@ -215,57 +156,71 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitESSearchNode(ESSearchNode node, Job context) {
-            context.addTask(new ESSearchTask(node, transportSearchAction));
+            context.addTask(new ESSearchTask(node,
+                    transportActionProvider.transportSearchAction()));
             return null;
         }
 
         @Override
         public Void visitESGetNode(ESGetNode node, Job context) {
-            context.addTask(new ESGetTask(transportMultiGetAction, transportGetAction, node));
+            context.addTask(new ESGetTask(
+                    transportActionProvider.transportMultiGetAction(),
+                    transportActionProvider.transportGetAction(),
+                    node));
             return null;
         }
 
         @Override
         public Void visitESDeleteByQueryNode(ESDeleteByQueryNode node, Job context) {
-            context.addTask(new ESDeleteByQueryTask(node, transportDeleteByQueryAction));
+            context.addTask(new ESDeleteByQueryTask(node,
+                    transportActionProvider.transportDeleteByQueryAction()));
             return null;
         }
 
         @Override
         public Void visitESDeleteNode(ESDeleteNode node, Job context) {
-            context.addTask(new ESDeleteTask(transportDeleteAction, node));
+            context.addTask(new ESDeleteTask(
+                    transportActionProvider.transportDeleteAction(),
+                    node));
             return null;
         }
 
         @Override
         public Void visitCreateTableNode(CreateTableNode node, Job context) {
             context.addTask(new CreateTableTask(clusterService,
-                    transportCreateIndexAction,
-                    transportDeleteIndexAction,
-                    transportPutIndexTemplateAction,
-                    node)
+                transportActionProvider.transportCreateIndexAction(),
+                transportActionProvider.transportDeleteIndexAction(),
+                transportActionProvider.transportPutIndexTemplateAction(),
+                node)
             );
             return null;
         }
 
         @Override
         public Void visitESCreateTemplateNode(ESCreateTemplateNode node, Job context) {
-            context.addTask(new ESCreateTemplateTask(node, transportPutIndexTemplateAction));
+            context.addTask(new ESCreateTemplateTask(node,
+                    transportActionProvider.transportPutIndexTemplateAction()));
             return null;
         }
 
         @Override
         public Void visitESCountNode(ESCountNode node, Job context) {
-            context.addTask(new ESCountTask(node, transportCountAction));
+            context.addTask(new ESCountTask(node,
+                    transportActionProvider.transportCountAction()));
             return null;
         }
 
         @Override
         public Void visitESIndexNode(ESIndexNode node, Job context) {
             if (node.sourceMaps().size() > 1) {
-                context.addTask(new ESBulkIndexTask(clusterService, settings, transportShardBulkAction, transportCreateIndexAction, node));
+                context.addTask(new ESBulkIndexTask(clusterService, settings,
+                        transportActionProvider.transportShardBulkAction(),
+                        transportActionProvider.transportCreateIndexAction(),
+                        node));
             } else {
-                context.addTask(new ESIndexTask(transportIndexAction, node));
+                context.addTask(new ESIndexTask(
+                        transportActionProvider.transportIndexAction(),
+                        node));
             }
             return null;
         }
@@ -274,29 +229,39 @@ public class TransportExecutor implements Executor {
         public Void visitESUpdateNode(ESUpdateNode node, Job context) {
             // update with _version currently only possible in update by query
             if (node.ids().size() == 1 && node.routingValues().size() == 1) {
-                context.addTask(new ESUpdateByIdTask(transportUpdateAction, node));
+                context.addTask(new ESUpdateByIdTask(
+                        transportActionProvider.transportUpdateAction(),
+                        node));
             } else {
-                context.addTask(new ESUpdateByQueryTask(transportSearchAction, node));
+                context.addTask(new ESUpdateByQueryTask(
+                        transportActionProvider.transportSearchAction(),
+                        node));
             }
             return null;
         }
 
         @Override
         public Void visitDropTableNode(DropTableNode node, Job context) {
-            context.addTask(new DropTableTask(transportDeleteIndexTemplateAction,
-                    transportDeleteIndexAction, node));
+            context.addTask(new DropTableTask(
+                    transportActionProvider.transportDeleteIndexTemplateAction(),
+                    transportActionProvider.transportDeleteIndexAction(),
+                    node));
             return null;
         }
 
         @Override
         public Void visitESDeleteIndexNode(ESDeleteIndexNode node, Job context) {
-            context.addTask(new ESDeleteIndexTask(transportDeleteIndexAction, node));
+            context.addTask(new ESDeleteIndexTask(
+                    transportActionProvider.transportDeleteIndexAction(),
+                    node));
             return null;
         }
 
         @Override
         public Void visitESClusterUpdateSettingsNode(ESClusterUpdateSettingsNode node, Job context) {
-            context.addTask(new ESClusterUpdateSettingsTask(transportClusterUpdateSettingsAction, node));
+            context.addTask(new ESClusterUpdateSettingsTask(
+                    transportActionProvider.transportClusterUpdateSettingsAction(),
+                    node));
             return null;
         }
 

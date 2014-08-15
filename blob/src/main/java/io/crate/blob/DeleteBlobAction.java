@@ -21,10 +21,10 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ClientAction;
 import org.elasticsearch.client.Client;
 
-public class DeleteBlobAction extends Action<DeleteBlobRequest, DeleteBlobResponse, DeleteBlobRequestBuilder> {
+public class DeleteBlobAction extends ClientAction<DeleteBlobRequest, DeleteBlobResponse, DeleteBlobRequestBuilder> {
 
     public static final DeleteBlobAction INSTANCE = new DeleteBlobAction();
     public static final String NAME = "delete_blob";
@@ -42,4 +42,5 @@ public class DeleteBlobAction extends Action<DeleteBlobRequest, DeleteBlobRespon
     public DeleteBlobResponse newResponse() {
         return new DeleteBlobResponse();
     }
+
 }

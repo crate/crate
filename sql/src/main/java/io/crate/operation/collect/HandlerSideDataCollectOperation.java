@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -34,8 +35,6 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import org.apache.lucene.search.CollectionTerminatedException;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -58,8 +57,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     @Inject
     public HandlerSideDataCollectOperation(ClusterService clusterService,
                                            Settings settings,
-                                           TransportShardBulkAction transportShardBulkAction,
-                                           TransportCreateIndexAction transportCreateIndexAction,
+                                           TransportActionProvider transportActionProvider,
                                            Functions functions,
                                            ReferenceResolver referenceResolver,
                                            InformationSchemaCollectService informationSchemaCollectService,
@@ -69,8 +67,9 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         this.clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         this.implementationVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         this.projectorVisitor = new ProjectionToProjectorVisitor(
-                clusterService, settings, transportShardBulkAction,
-                transportCreateIndexAction,implementationVisitor, clusterNormalizer);
+                clusterService, settings,
+                transportActionProvider,
+                implementationVisitor, clusterNormalizer);
     }
 
     @Override

@@ -32,12 +32,11 @@ import io.crate.exceptions.Exceptions;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.node.dql.MergeNode;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -62,8 +61,7 @@ public class LocalMergeTask implements Task<TaskResult> {
     private final StatsTables statsTables;
     private final ClusterService clusterService;
     private final Settings settings;
-    private final TransportShardBulkAction transportShardBulkAction;
-    private final TransportCreateIndexAction transportCreateIndexAction;
+    private final TransportActionProvider transportActionProvider;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final ThreadPool threadPool;
     private final SettableFuture<TaskResult> result;
@@ -78,16 +76,14 @@ public class LocalMergeTask implements Task<TaskResult> {
     public LocalMergeTask(ThreadPool threadPool,
                           ClusterService clusterService,
                           Settings settings,
-                          TransportShardBulkAction transportShardBulkAction,
-                          TransportCreateIndexAction transportCreateIndexAction,
+                          TransportActionProvider transportActionProvider,
                           ImplementationSymbolVisitor implementationSymbolVisitor,
                           MergeNode mergeNode,
                           StatsTables statsTables) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.settings = settings;
-        this.transportShardBulkAction = transportShardBulkAction;
-        this.transportCreateIndexAction = transportCreateIndexAction;
+        this.transportActionProvider = transportActionProvider;
         this.symbolVisitor = implementationSymbolVisitor;
         this.mergeNode = mergeNode;
         this.statsTables = statsTables;
@@ -109,8 +105,7 @@ public class LocalMergeTask implements Task<TaskResult> {
         }
 
         final MergeOperation mergeOperation = new MergeOperation(
-                clusterService, settings, transportShardBulkAction,
-                transportCreateIndexAction, symbolVisitor, mergeNode);
+                clusterService, settings, transportActionProvider, symbolVisitor, mergeNode);
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
         final UUID operationId = UUID.randomUUID();
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());

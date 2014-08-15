@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.*;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.*;
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.client.transport.TransportClientNodesService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -63,9 +64,8 @@ public class InternalCrateClient {
     }
 
     protected <Request extends ActionRequest, Response extends ActionResponse,
-            RequestBuilder extends ActionRequestBuilder<Request, Response,
-                    RequestBuilder>> ActionFuture<Response> execute(final Action<Request,
-            Response, RequestBuilder> action, final Request request) {
+            RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder, Client>, Client extends ElasticsearchClient> ActionFuture<Response> execute(final Action<Request,
+            Response, RequestBuilder, Client> action, final Request request) {
         final TransportActionNodeProxy<Request, Response> proxy = actions.get(action);
         return nodesService.execute(
                 new TransportClientNodesService.NodeCallback<ActionFuture<Response>>() {
@@ -87,8 +87,8 @@ public class InternalCrateClient {
 
     protected <Request extends ActionRequest, Response extends ActionResponse,
             RequestBuilder extends ActionRequestBuilder<Request, Response,
-                    RequestBuilder>> void execute(final Action<Request,
-            Response, RequestBuilder> action, final Request request, final ActionListener<Response> listener) {
+                    RequestBuilder, Client>, Client extends ElasticsearchClient> void execute(final Action<Request,
+            Response, RequestBuilder, Client> action, final Request request, final ActionListener<Response> listener) {
         final TransportActionNodeProxy<Request, Response> proxy = actions.get(action);
         nodesService.execute(
             new TransportClientNodesService.NodeListenerCallback<Response>() {

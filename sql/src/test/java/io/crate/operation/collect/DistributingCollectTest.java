@@ -47,10 +47,18 @@ import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecidersModule;
+import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
+import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
+import org.elasticsearch.cluster.settings.DynamicSettings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -68,6 +76,7 @@ import org.elasticsearch.index.shard.service.InternalIndexShard;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.SearchService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponseHandler;
@@ -98,7 +107,7 @@ public class DistributingCollectTest {
     private DistributingCollectOperation operation;
 
     private final UUID jobId = UUID.randomUUID();
-    private final ThreadPool testThreadPool = new ThreadPool();
+    private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
     private final static String TEST_NODE_ID = "dcollect_node";
     private final static String OTHER_NODE_ID = "other_node";
     private final static String TEST_TABLE_NAME = "dcollect_table";
@@ -113,6 +122,13 @@ public class DistributingCollectTest {
 
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
+
+            bind(ScriptService.class).toInstance(mock(ScriptService.class));
+            bind(SearchService.class).toInstance(mock(SearchService.class));
+            bind(AllocationService.class).toInstance(mock(AllocationService.class));
+            bind(DynamicSettings.class).annotatedWith(ClusterDynamicSettings.class).toInstance(mock(DynamicSettings.class));
+            bind(MetaDataDeleteIndexService.class).toInstance(mock(MetaDataDeleteIndexService.class));
+            bind(ClusterInfoService.class).toInstance(mock(ClusterInfoService.class));
 
             bind(TransportShardBulkAction.class).toInstance(mock(TransportShardBulkAction.class));
             bind(TransportCreateIndexAction.class).toInstance(mock(TransportCreateIndexAction.class));
@@ -209,7 +225,7 @@ public class DistributingCollectTest {
                     .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
             binder.addBinding(this.shardIdExpression.info().ident()).toInstance(this.shardIdExpression);
             bind(ShardReferenceResolver.class).asEagerSingleton();
-            bind(ScriptService.class).toInstance(mock(ScriptService.class));
+            bind(AllocationDecider.class).to(DiskThresholdDecider.class);
             bind(ShardCollectService.class).asEagerSingleton();
 
             // blob stuff
@@ -224,6 +240,7 @@ public class DistributingCollectTest {
     public void prepare() {
         Injector injector = new ModulesBuilder()
                 .add(new OperatorModule())
+                .add(new AllocationDecidersModule(ImmutableSettings.EMPTY))
                 .add(new TestModule())
                 .createInjector();
         operation = injector.getInstance(DistributingCollectOperation.class);

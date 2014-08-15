@@ -216,7 +216,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     }
 
     public List<String> indices() {
-        return FluentIterable.from(indicesService.indices())
+        return FluentIterable.from(indicesService.indices().keySet())
                 .filter(indicesFilter).toList();
     }
 

@@ -29,6 +29,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.DistributedFailureRequest;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
@@ -38,8 +39,6 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -225,8 +224,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
     @Inject
     public DistributingCollectOperation(ClusterService clusterService,
                                         Settings settings,
-                                        TransportShardBulkAction transportShardBulkAction,
-                                        TransportCreateIndexAction transportCreateIndexAction,
+                                        TransportActionProvider transportActionProvider,
                                         Functions functions,
                                         ReferenceResolver referenceResolver,
                                         IndicesService indicesService,
@@ -234,7 +232,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                                         TransportService transportService,
                                         PlanNodeStreamerVisitor streamerVisitor,
                                         CollectServiceResolver collectServiceResolver) {
-        super(clusterService, settings, transportShardBulkAction, transportCreateIndexAction,
+        super(clusterService, settings, transportActionProvider,
                 functions, referenceResolver, indicesService,
                 threadPool, collectServiceResolver);
         this.transportService = transportService;
