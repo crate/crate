@@ -6,6 +6,8 @@ INSERT
 
 Create new rows in a table.
 
+.. _insert_synopsis:
+
 Synopsis
 ========
 
