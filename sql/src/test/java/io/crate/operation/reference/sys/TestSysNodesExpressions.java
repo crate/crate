@@ -192,14 +192,23 @@ public class TestSysNodesExpressions {
             FileSystem fsFoo = mock(FileSystem.class);
             when(fsFoo.getDevName()).thenReturn("/dev/sda1");
             when(fsFoo.getDirName()).thenReturn("/foo");
+            when(fsFoo.getType()).thenReturn(FileSystem.TYPE_LOCAL_DISK);
 
             FileSystem fsBar = mock(FileSystem.class);
             when(fsBar.getDevName()).thenReturn("/dev/sda2");
             when(fsBar.getDirName()).thenReturn("/bar");
+            when(fsBar.getType()).thenReturn(FileSystem.TYPE_LOCAL_DISK);
+
+
+            FileSystem fsFiltered = mock(FileSystem.class);
+            when(fsFiltered.getType()).thenReturn(FileSystem.TYPE_UNKNOWN);
+            when(fsFiltered.getDevName()).thenReturn(("/dev/filtered"));
+            when(fsFiltered.getDirName()).thenReturn(("/filtered"));
 
             FileSystemMap map = mock(FileSystemMap.class);
             when(map.getMountPoint("/foo")).thenReturn(fsFoo);
             when(map.getMountPoint("/bar")).thenReturn(fsBar);
+            when(map.getMountPoint("/filtered")).thenReturn(fsFiltered);
             FileSystemUsage usage = mock(FileSystemUsage.class, new Answer<Long>() {
                 @Override
                 public Long answer(InvocationOnMock invocation) throws Throwable {
@@ -208,7 +217,7 @@ public class TestSysNodesExpressions {
             });
 
             try {
-                when(sigar.getFileSystemList()).thenReturn(new FileSystem[]{fsFoo, fsBar});
+                when(sigar.getFileSystemList()).thenReturn(new FileSystem[]{fsFoo, fsBar, fsFiltered});
                 when(sigar.getFileSystemMap()).thenReturn(map);
                 when(sigar.getFileSystemUsage(anyString())).thenReturn(usage);
                 assertThat(sigar.getFileSystemUsage("/"), is(usage));
