@@ -23,6 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.AsyncChainedTask;
 import io.crate.planner.node.dml.ESDeleteNode;
 import org.elasticsearch.action.ActionListener;
@@ -50,18 +51,18 @@ public class ESDeleteTask extends AsyncChainedTask {
 
     static class DeleteResponseListener implements ActionListener<DeleteResponse> {
 
-        private final SettableFuture<Object[][]> result;
+        private final SettableFuture<TaskResult> result;
 
-        public DeleteResponseListener(SettableFuture<Object[][]> result) {
+        public DeleteResponseListener(SettableFuture<TaskResult> result) {
             this.result = result;
         }
 
         @Override
         public void onResponse(DeleteResponse response) {
             if (!response.isFound()) {
-                result.set(Constants.EMPTY_RESULT);
+                result.set(TaskResult.ZERO);
             } else {
-                result.set(new Object[][] { new Object[] {1L}});
+                result.set(TaskResult.ONE_ROW);
             }
         }
 
@@ -72,7 +73,7 @@ public class ESDeleteTask extends AsyncChainedTask {
             // otherwise the exception is wrapped inside a transportExecutionException
             if (e instanceof VersionConflictEngineException || (cause != null && cause instanceof VersionConflictEngineException)) {
                 // treat version conflict as rows affected = 0
-                result.set(Constants.EMPTY_RESULT);
+                result.set(TaskResult.ZERO);
             } else {
                 result.setException(e);
             }

@@ -22,11 +22,11 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableSet;
-import io.crate.Constants;
 import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.*;
@@ -263,7 +263,7 @@ public class DistributingCollectTest {
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
 
-        assertThat(operation.collect(collectNode).get(), is(Constants.EMPTY_RESULT));
+        assertThat(operation.collect(collectNode).get(), is(TaskResult.EMPTY_RESULT.rows()));
         Thread.sleep(20); // give the mocked transport time to operate
         assertThat(buckets.size(), is(2));
         assertTrue(buckets.containsKey(TEST_NODE_ID));
@@ -295,10 +295,10 @@ public class DistributingCollectTest {
         )));
 
         Object[][] pseudoResult = operation.collect(collectNode).get();
-        assertThat(pseudoResult, is(Constants.EMPTY_RESULT));
+        assertThat(pseudoResult, is(TaskResult.EMPTY_RESULT.rows()));
         Thread.sleep(20);
         assertThat(buckets.size(), is(2));
-        assertThat(buckets.get(TEST_NODE_ID), is(Constants.EMPTY_RESULT));
-        assertThat(buckets.get(OTHER_NODE_ID), is(Constants.EMPTY_RESULT));
+        assertThat(buckets.get(TEST_NODE_ID), is(TaskResult.EMPTY_RESULT.rows()));
+        assertThat(buckets.get(OTHER_NODE_ID), is(TaskResult.EMPTY_RESULT.rows()));
     }
 }

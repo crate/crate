@@ -25,7 +25,9 @@ import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.FailedShardsException;
+import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.dql.ESSearchNode;
@@ -41,14 +43,14 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-public class ESSearchTask implements Task<Object[][]> {
+public class ESSearchTask implements Task<QueryResult> {
 
     private final ESLogger logger = Loggers.getLogger(this.getClass());
 
     private final ESSearchNode searchNode;
     private final TransportSearchAction transportSearchAction;
-    private final SettableFuture<Object[][]> result;
-    private final List<ListenableFuture<Object[][]>> results;
+    private final SettableFuture<QueryResult> result;
+    private final List<ListenableFuture<QueryResult>> results;
     private final ESQueryBuilder queryBuilder;
 
     public ESSearchTask(ESSearchNode searchNode,
@@ -58,7 +60,7 @@ public class ESSearchTask implements Task<Object[][]> {
         this.queryBuilder = new ESQueryBuilder();
 
         result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
+        results = Arrays.<ListenableFuture<QueryResult>>asList(result);
     }
 
     @Override
@@ -136,24 +138,24 @@ public class ESSearchTask implements Task<Object[][]> {
     }
 
     @Override
-    public List<ListenableFuture<Object[][]>> result() {
+    public List<ListenableFuture<QueryResult>> result() {
         return results;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException("Can't have upstreamResults");
     }
 
     static class SearchResponseListener implements ActionListener<SearchResponse> {
 
-        private final SettableFuture<Object[][]> result;
+        private final SettableFuture<QueryResult> result;
         private final ESFieldExtractor[] extractor;
         private final int numColumns;
 
         private final ESLogger logger = Loggers.getLogger(getClass());
 
-        public SearchResponseListener(SettableFuture<Object[][]> result,
+        public SearchResponseListener(SettableFuture<QueryResult> result,
                                       ESFieldExtractor[] extractor,
                                       int numColumns) {
 
@@ -177,7 +179,7 @@ public class ESSearchTask implements Task<Object[][]> {
                     }
                 }
 
-                result.set(rows);
+                result.set(new QueryResult(rows));
             }
         }
 

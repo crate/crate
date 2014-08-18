@@ -24,7 +24,9 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.FailedShardsException;
+import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 import io.crate.planner.node.dql.ESCountNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.count.CountRequest;
@@ -35,10 +37,10 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-public class ESCountTask implements Task<Object[][]> {
+public class ESCountTask implements Task<QueryResult> {
 
     private final TransportCountAction transportCountAction;
-    private final List<ListenableFuture<Object[][]>> results;
+    private final List<ListenableFuture<QueryResult>> results;
     private final CountRequest request;
     private final ActionListener<CountResponse> listener;
     private final static ESQueryBuilder queryBuilder = new ESQueryBuilder();
@@ -47,8 +49,8 @@ public class ESCountTask implements Task<Object[][]> {
         this.transportCountAction = transportCountAction;
         assert node != null;
 
-        final SettableFuture<Object[][]> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
+        final SettableFuture<QueryResult> result = SettableFuture.create();
+        results = Arrays.<ListenableFuture<QueryResult>>asList(result);
         request = new CountRequest(node.indexName());
         try {
             request.source(queryBuilder.convert(node.whereClause()), false);
@@ -65,20 +67,20 @@ public class ESCountTask implements Task<Object[][]> {
     }
 
     @Override
-    public List<ListenableFuture<Object[][]>> result() {
+    public List<ListenableFuture<QueryResult>> result() {
         return results;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException("ESCountTask does not support upstream results");
     }
 
     static class CountResponseListener implements ActionListener<CountResponse> {
 
-        private final SettableFuture<Object[][]> result;
+        private final SettableFuture<QueryResult> result;
 
-        public CountResponseListener(SettableFuture<Object[][]> result) {
+        public CountResponseListener(SettableFuture<QueryResult> result) {
             this.result = result;
         }
 
@@ -87,7 +89,7 @@ public class ESCountTask implements Task<Object[][]> {
             if (countResponse.getFailedShards() > 0) {
                 onFailure(new FailedShardsException(countResponse.getShardFailures()));
             } else {
-                result.set(new Object[][]{new Object[]{countResponse.getCount()}});
+                result.set(new QueryResult(new Object[][]{new Object[]{countResponse.getCount()}}));
             }
         }
 

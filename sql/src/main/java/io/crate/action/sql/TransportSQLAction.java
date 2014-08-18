@@ -28,7 +28,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.Constants;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.exceptions.*;
@@ -130,7 +129,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 listener.onResponse(
                         new SQLResponse(
                                 analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
-                                Constants.EMPTY_RESULT,
+                                TaskResult.EMPTY_RESULT.rows(),
                                 rowCount == null ? SQLResponse.NO_ROW_COUNT : rowCount,
                                 request.creationTime())
                 );
@@ -161,13 +160,13 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             UUID jobId = UUID.randomUUID();
             statsTables.jobStarted(jobId, request.stmt());
             assert plan.expectsAffectedRows();
-            ListenableFuture<List<Object[][]>> zeroAffectedRows =
-                    Futures.immediateFuture(Arrays.<Object[][]>asList(new Object[][] { new Object[] { 0 }}));
+            ListenableFuture<List<TaskResult>> zeroAffectedRows =
+                    Futures.immediateFuture(Arrays.<TaskResult>asList(TaskResult.ZERO));
             addResultCallback(request, listener, outputNames, plan, responseBuilder, jobId, zeroAffectedRows);
         } else {
             final Job job = executor.newJob(plan);
             statsTables.jobStarted(job.id(), request.stmt());
-            final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(executor.execute(job));
+            final ListenableFuture<List<TaskResult>> resultFuture = Futures.allAsList(executor.execute(job));
             addResultCallback(request, listener, outputNames, plan, responseBuilder, job.id(), resultFuture);
         }
 
@@ -178,7 +177,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                                       final ActionListener<SQLResponse> listener) {
         SQLResponse response = new SQLResponse(
                 analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
-                Constants.EMPTY_RESULT,
+                TaskResult.EMPTY_RESULT.rows(),
                 0,
                 request.creationTime());
         listener.onResponse(response);
@@ -193,29 +192,41 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     }
 
     private void addResultCallback(final SQLRequest request,
-                                          final ActionListener<SQLResponse> listener,
-                                          final String[] outputNames,
-                                          final Plan plan,
-                                          final ResponseBuilder responseBuilder,
-                                          @Nullable final UUID jobId,
-                                          ListenableFuture<List<Object[][]>> resultFuture) {
-        Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
+                                   final ActionListener<SQLResponse> listener,
+                                   final String[] outputNames,
+                                   final Plan plan,
+                                   final ResponseBuilder responseBuilder,
+                                   @Nullable final UUID jobId,
+                                   ListenableFuture<List<TaskResult>> resultFuture) {
+        Futures.addCallback(resultFuture, new FutureCallback<List<TaskResult>>() {
             @Override
-            public void onSuccess(@Nullable List<Object[][]> result) {
+            public void onSuccess(@Nullable List<TaskResult> result) {
                 Object[][] rows;
-                if (result == null) {
-                    rows = Constants.EMPTY_RESULT;
-                } else {
-                    assert result.size() == 1;
-                    rows = result.get(0);
-                }
+                SQLResponse response;
 
-                SQLResponse response = responseBuilder.buildResponse(
-                        plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
-                        outputNames,
-                        rows,
-                        request.creationTime(),
-                        request.includeTypesOnResponse());
+                if (result == null) {
+                    response = responseBuilder.buildResponse(
+                            plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
+                            outputNames,
+                            TaskResult.EMPTY_RESULT,
+                            request.creationTime(),
+                            request.includeTypesOnResponse());
+                } else if (result.size() == 1) {
+                    response = responseBuilder.buildResponse(
+                            plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
+                            outputNames,
+                            result.get(0),
+                            request.creationTime(),
+                            request.includeTypesOnResponse());
+                } else {
+                    // TODO: bulk result
+                    response = responseBuilder.buildResponse(
+                            plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
+                            outputNames,
+                            result.get(0),
+                            request.creationTime(),
+                            request.includeTypesOnResponse());
+                }
 
                 handleJobStats(jobId, null);
                 listener.onResponse(response);

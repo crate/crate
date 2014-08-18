@@ -21,15 +21,15 @@
 
 package io.crate.executor.transport.task;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.NonQueryResult;
 import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,53 +39,30 @@ import java.util.List;
  *
  * Implementations have to set the result on {@link #result} and just have to implement {@link #start()}.
  */
-public abstract class AsyncChainedTask implements Task<Object[][]> {
+public abstract class AsyncChainedTask implements Task<TaskResult> {
 
-    protected final SettableFuture<Object[][]> result;
-    private final List<ListenableFuture<Object[][]>> resultList;
+    protected final SettableFuture<TaskResult> result;
+    private final List<ListenableFuture<TaskResult>> resultList;
 
     protected AsyncChainedTask() {
         result = SettableFuture.create();
-        resultList = new ArrayList<>();
-        resultList.add(result);
-    }
-
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        if (resultList.size() == 1) {
-            // no upstreams.. return result directly
-            return resultList;
-        }
-
-        // got upstreams, aggregate results together
-        final SettableFuture<Object[][]> future = SettableFuture.create();
-        Futures.addCallback(Futures.allAsList(resultList), new FutureCallback<List<Object[][]>>() {
+        ListenableFuture<TaskResult> resultFallback = Futures.withFallback(result, new FutureFallback<TaskResult>() {
             @Override
-            public void onSuccess(@Nullable List<Object[][]> results) {
-                assert results != null;
-                long aggregatedRowsAffected = 0;
-                for (Object[][] result : results) {
-                    Long rowsAffected = (Long) result[0][0];
-                    if (rowsAffected < 0) {
-                        aggregatedRowsAffected = rowsAffected;
-                        break;
-                    } else {
-                        aggregatedRowsAffected += rowsAffected;
-                    }
-                }
-                future.set(new Object[][] { new Object[] { aggregatedRowsAffected }});
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                future.setException(t);
+            public ListenableFuture<TaskResult> create(@Nonnull Throwable t) throws Exception {
+                return Futures.immediateFuture((TaskResult) new NonQueryResult(-2, t));
             }
         });
-        return ImmutableList.of((ListenableFuture<Object[][]>) future);
+        resultList = new ArrayList<>();
+        resultList.add(resultFallback);
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+    public List<ListenableFuture<TaskResult>> result() {
+        return resultList;
+    }
+
+    @Override
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         resultList.addAll(result);
     }
 }

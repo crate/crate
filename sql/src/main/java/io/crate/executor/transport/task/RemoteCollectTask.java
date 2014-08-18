@@ -26,7 +26,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.NodeCollectRequest;
 import io.crate.executor.transport.NodeCollectResponse;
 import io.crate.executor.transport.TransportCollectNodeAction;
@@ -34,14 +36,15 @@ import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.ActionListener;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RemoteCollectTask implements Task<Object[][]> {
+public class RemoteCollectTask implements Task<QueryResult> {
 
     private final CollectNode collectNode;
-    private final List<ListenableFuture<Object[][]>> result;
+    private final List<ListenableFuture<QueryResult>> result;
     private final String[] nodeIds;
     private final TransportCollectNodeAction transportCollectNodeAction;
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
@@ -64,7 +67,7 @@ public class RemoteCollectTask implements Task<Object[][]> {
         nodeIds = collectNode.routing().nodes().toArray(new String[resultSize]);
         result = new ArrayList<>(resultSize);
         for (int i = 0; i < resultSize; i++) {
-            result.add(SettableFuture.<Object[][]>create());
+            result.add(SettableFuture.<QueryResult>create());
         }
     }
 
@@ -85,12 +88,12 @@ public class RemoteCollectTask implements Task<Object[][]> {
                     new ActionListener<NodeCollectResponse>() {
                         @Override
                         public void onResponse(NodeCollectResponse response) {
-                            ((SettableFuture<Object[][]>)result.get(resultIdx)).set(response.rows());
+                            ((SettableFuture<QueryResult>)result.get(resultIdx)).set(new QueryResult(response.rows()));
                         }
 
                         @Override
                         public void onFailure(Throwable e) {
-                            ((SettableFuture<Object[][]>)result.get(resultIdx)).setException(e);
+                            ((SettableFuture<QueryResult>)result.get(resultIdx)).setException(e);
                         }
                     }
             );
@@ -102,23 +105,23 @@ public class RemoteCollectTask implements Task<Object[][]> {
         Futures.addCallback(future, new FutureCallback<Object[][]>() {
             @Override
             public void onSuccess(@Nullable Object[][] rows) {
-                ((SettableFuture<Object[][]>)result.get(resultIdx)).set(rows);
+                ((SettableFuture<QueryResult>)result.get(resultIdx)).set(new QueryResult(rows));
             }
 
             @Override
-            public void onFailure(Throwable t) {
-                ((SettableFuture<Object[][]>)result.get(resultIdx)).setException(t);
+            public void onFailure(@Nonnull Throwable t) {
+                ((SettableFuture<QueryResult>)result.get(resultIdx)).setException(t);
             }
         });
     }
 
     @Override
-    public List<ListenableFuture<Object[][]>> result() {
+    public List<ListenableFuture<QueryResult>> result() {
         return result;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException("nope");
     }
 }

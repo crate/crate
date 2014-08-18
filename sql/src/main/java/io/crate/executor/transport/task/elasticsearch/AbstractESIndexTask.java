@@ -28,7 +28,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 
-public abstract class AbstractESIndexTask extends AbstractChainedTask<Object[][]> {
+public abstract class AbstractESIndexTask extends AbstractChainedTask {
 
     protected final ESIndexNode node;
 

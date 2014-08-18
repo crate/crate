@@ -21,11 +21,18 @@
 
 package io.crate.executor.task;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.node.dql.CollectNode;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,30 +40,43 @@ import java.util.List;
 /**
  * A collect task which returns one future and runs a  collectOperation locally and synchronous
  */
-public class LocalCollectTask implements Task<Object[][]> {
+public class LocalCollectTask implements Task<QueryResult> {
 
     private final CollectNode collectNode;
     private final CollectOperation collectOperation;
-    private final List<ListenableFuture<Object[][]>> resultList;
+    private final List<ListenableFuture<QueryResult>> resultList;
+    private final SettableFuture<QueryResult> result;
 
-    public LocalCollectTask(CollectOperation collectOperation, CollectNode collectNode) {
+    public LocalCollectTask(CollectOperation<Object[][]> collectOperation, CollectNode collectNode) {
         this.collectNode = collectNode;
         this.collectOperation = collectOperation;
         this.resultList = new ArrayList<>(1);
+        this.result = SettableFuture.create();
+        resultList.add(result);
     }
 
     @Override
     public void start() {
-        resultList.add(collectOperation.collect(collectNode));
+        Futures.addCallback(collectOperation.collect(collectNode), new FutureCallback<Object[][]>() {
+            @Override
+            public void onSuccess(@Nullable Object[][] rows) {
+                result.set(new QueryResult(rows));
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                result.setException(t);
+            }
+        });
     }
 
     @Override
-    public List<ListenableFuture<Object[][]>> result() {
+    public List<ListenableFuture<QueryResult>> result() {
         return resultList;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         // ignored, comes always first
     }
 }

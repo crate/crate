@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.executor.QueryResult;
+import io.crate.executor.TaskResult;
 import io.crate.types.DataType;
 import io.crate.PartitionName;
 import io.crate.executor.Task;
@@ -39,11 +41,11 @@ import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import java.util.*;
 
-public class ESGetTask implements Task<Object[][]> {
+public class ESGetTask implements Task<QueryResult> {
 
     private final static Visitor visitor = new Visitor();
     private final ESGetNode node;
-    private final List<ListenableFuture<Object[][]>> results;
+    private final List<ListenableFuture<QueryResult>> results;
     private final TransportAction transportAction;
     private final ActionRequest request;
     private final ActionListener listener;
@@ -80,8 +82,8 @@ public class ESGetTask implements Task<Object[][]> {
         }
         final FetchSourceContext fsc = new FetchSourceContext(ctx.fields);
         final FieldExtractor[] extractors = buildExtractors(ctx.fields, ctx.types);
-        final SettableFuture<Object[][]> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
+        final SettableFuture<QueryResult> result = SettableFuture.create();
+        results = Arrays.<ListenableFuture<QueryResult>>asList(result);
         if (node.ids().size() > 1) {
             MultiGetRequest multiGetRequest = new MultiGetRequest();
             for (int i = 0; i < node.ids().size(); i++) {
@@ -149,10 +151,10 @@ public class ESGetTask implements Task<Object[][]> {
 
     static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
 
-        private final SettableFuture<Object[][]> result;
+        private final SettableFuture<QueryResult> result;
         private final FieldExtractor[] fieldExtractor;
 
-        public MultiGetResponseListener(SettableFuture<Object[][]> result, FieldExtractor[] extractors) {
+        public MultiGetResponseListener(SettableFuture<QueryResult> result, FieldExtractor[] extractors) {
             this.result = result;
             this.fieldExtractor = extractors;
         }
@@ -173,7 +175,7 @@ public class ESGetTask implements Task<Object[][]> {
                 rows.add(row);
             }
 
-            result.set(rows.toArray(new Object[rows.size()][]));
+            result.set(new QueryResult(rows.toArray(new Object[rows.size()][])));
         }
 
         @Override
@@ -184,10 +186,10 @@ public class ESGetTask implements Task<Object[][]> {
 
     static class GetResponseListener implements ActionListener<GetResponse> {
 
-        private final SettableFuture<Object[][]> result;
+        private final SettableFuture<QueryResult> result;
         private final FieldExtractor[] extractors;
 
-        public GetResponseListener(SettableFuture<Object[][]> result, FieldExtractor[] extractors) {
+        public GetResponseListener(SettableFuture<QueryResult> result, FieldExtractor[] extractors) {
             this.result = result;
             this.extractors = extractors;
         }
@@ -195,7 +197,7 @@ public class ESGetTask implements Task<Object[][]> {
         @Override
         public void onResponse(GetResponse response) {
             if (!response.isExists()) {
-                result.set(Constants.EMPTY_RESULT);
+                result.set((QueryResult) TaskResult.EMPTY_RESULT);
                 return;
             }
 
@@ -210,7 +212,7 @@ public class ESGetTask implements Task<Object[][]> {
                 c++;
             }
 
-            result.set(rows);
+            result.set(new QueryResult(rows));
         }
 
         @Override
@@ -226,12 +228,12 @@ public class ESGetTask implements Task<Object[][]> {
     }
 
     @Override
-    public List<ListenableFuture<Object[][]>> result() {
+    public List<ListenableFuture<QueryResult>> result() {
         return results;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
                         getClass().getSimpleName()));

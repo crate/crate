@@ -30,5 +30,5 @@ public interface Executor {
 
     public Job newJob(Plan node);
 
-    public List<ListenableFuture<Object[][]>> execute(Job job);
+    public List<ListenableFuture<TaskResult>> execute(Job job);
 }

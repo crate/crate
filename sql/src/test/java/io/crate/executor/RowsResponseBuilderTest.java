@@ -40,7 +40,7 @@ import static org.junit.Assert.assertThat;
 
 public class RowsResponseBuilderTest {
 
-    static Joiner commaJoiner = Joiner.on(", ");
+    final static Joiner commaJoiner = Joiner.on(", ");
 
     @Test
     public void testBuildResponseSetString() throws Exception {
@@ -53,7 +53,7 @@ public class RowsResponseBuilderTest {
                 Arrays.asList(new BytesRef("foo"), new BytesRef("bar")));
 
         rows[0][0] = refs;
-        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L, false);
+        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, new QueryResult(rows), 0L, false);
         String[] strings = (String[]) response.rows()[0][0];
         assertThat(strings, Matchers.arrayContainingInAnyOrder("foo", "bar"));
     }
@@ -68,7 +68,7 @@ public class RowsResponseBuilderTest {
         BytesRef[] refs = new BytesRef[] { new BytesRef("foo"), new BytesRef("bar") };
 
         rows[0][0] = refs;
-        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, rows, 0L, false);
+        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, new QueryResult(rows), 0L, false);
         assertThat(commaJoiner.join((String[])response.rows()[0][0]), is("foo, bar"));
     }
 

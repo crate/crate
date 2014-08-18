@@ -23,6 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.FailedShardsException;
+import io.crate.executor.QueryResult;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
@@ -47,7 +48,7 @@ public class ESCountTaskTest {
         expectedException.expect(FailedShardsException.class);
         expectedException.expectMessage("query failed on shard 2 of table dummy");
 
-        SettableFuture<Object[][]> result = SettableFuture.create();
+        SettableFuture<QueryResult> result = SettableFuture.create();
         ESCountTask.CountResponseListener listener = new ESCountTask.CountResponseListener(result);
 
 

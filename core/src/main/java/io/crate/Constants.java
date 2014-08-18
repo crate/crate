@@ -38,7 +38,6 @@ public class Constants {
     public static final String THRIFT_PORT_RANGE = "4500-4600";
     public static final Integer DEFAULT_SELECT_LIMIT = 10000;
 
-    public static final Object[][] EMPTY_RESULT = new Object[0][];
     public static final String CUSTOM_ANALYSIS_SETTINGS_PREFIX = "crate.analysis.custom";
     public static final Integer DEFAULT_NUM_SHARDS = 5;
 
