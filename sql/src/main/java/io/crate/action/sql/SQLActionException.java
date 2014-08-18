@@ -60,7 +60,6 @@ public class SQLActionException extends ElasticsearchException {
     /**
      * Return the rest status code defined on construction
      *
-     * @return
      */
     public RestStatus status() {
         return status;
@@ -69,7 +68,6 @@ public class SQLActionException extends ElasticsearchException {
     /**
      * Return the error code given defined on construction
      *
-     * @return
      */
     public int errorCode() {
         return errorCode;
@@ -78,7 +76,6 @@ public class SQLActionException extends ElasticsearchException {
     /**
      * Return the stack trace as string.
      *
-     * @return
      */
     public String stackTrace() {
         return stackTrace;
