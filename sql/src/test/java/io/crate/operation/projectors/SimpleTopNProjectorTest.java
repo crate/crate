@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.Constants;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -168,7 +169,7 @@ public class SimpleTopNProjectorTest {
         projector.startProjection();
         projector.upstreamFinished();
         Object[][] projected = collectingProjector.result().get();
-        assertArrayEquals(Constants.EMPTY_RESULT, projected);
+        assertArrayEquals(TaskResult.EMPTY_RESULT.rows(), projected);
 
         int iterateLength = 0;
         for (Object[] row : collectingProjector) {
@@ -355,7 +356,7 @@ public class SimpleTopNProjectorTest {
         projector.startProjection();
         projector.upstreamFinished();
         Object[][] projected = noop.result().get();
-        assertArrayEquals(Constants.EMPTY_RESULT, projected);
+        assertArrayEquals(TaskResult.EMPTY_RESULT.rows(), projected);
 
         int iterateLength = 0;
         for (Object[] row : noop) {

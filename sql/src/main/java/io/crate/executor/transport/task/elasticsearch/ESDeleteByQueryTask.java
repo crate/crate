@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.AsyncChainedTask;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import org.elasticsearch.action.ActionListener;
@@ -35,7 +36,6 @@ public class ESDeleteByQueryTask extends AsyncChainedTask {
     private final ESDeleteByQueryNode deleteByQueryNode;
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final ESQueryBuilder queryBuilder;
-    private final static Object[][] RESULT = new Object[][] { new Object[] { -1L }};
 
     public ESDeleteByQueryTask(ESDeleteByQueryNode deleteByQueryNode,
                                TransportDeleteByQueryAction transportDeleteByQueryAction) {
@@ -56,7 +56,7 @@ public class ESDeleteByQueryTask extends AsyncChainedTask {
             transportDeleteByQueryAction.execute(request, new ActionListener<DeleteByQueryResponse>() {
                 @Override
                 public void onResponse(DeleteByQueryResponse deleteByQueryResponses) {
-                    result.set(RESULT);
+                    result.set(TaskResult.ROW_COUNT_UNKNOWN);
                 }
 
                 @Override

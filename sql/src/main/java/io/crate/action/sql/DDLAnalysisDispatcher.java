@@ -34,6 +34,7 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Plan;
@@ -139,12 +140,12 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         if (analysis.newPrimaryKeys()) {
             Plan plan = genCountStarPlan(analysis.table());
             Job job = executor.newJob(plan);
-            ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(executor.execute(job));
-            Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
+            ListenableFuture<List<TaskResult>> resultFuture = Futures.allAsList(executor.execute(job));
+            Futures.addCallback(resultFuture, new FutureCallback<List<TaskResult>>() {
                 @Override
-                public void onSuccess(@Nullable List<Object[][]> resultList) {
+                public void onSuccess(@Nullable List<TaskResult> resultList) {
                     assert resultList != null && resultList.size() == 1;
-                    Object[][] rows = resultList.get(0);
+                    Object[][] rows = resultList.get(0).rows();
                     if ((Long) rows[0][0] == 0L) {
                         addColumnToTable(analysis, result);
                     } else {
@@ -464,7 +465,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 result.setException(t);
             }
         });

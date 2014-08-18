@@ -28,6 +28,7 @@ import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
@@ -150,12 +151,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         plan.add(collectNode);
         Job job = executor.newJob(plan);
 
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
 
         assertThat(result.size(), is(2));
-        for (ListenableFuture<Object[][]> nodeResult : result) {
-            assertEquals(1, nodeResult.get().length);
-            assertThat((Double) nodeResult.get()[0][0], is(greaterThan(0.0)));
+        for (ListenableFuture<TaskResult> nodeResult : result) {
+            assertEquals(1, nodeResult.get().rows().length);
+            assertThat((Double) nodeResult.get().rows()[0][0], is(greaterThan(0.0)));
 
         }
     }
@@ -174,9 +175,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         plan.add(collectNode);
         Job job = executor.newJob(plan);
 
-        List<ListenableFuture<Object[][]>> results = executor.execute(job);
+        List<ListenableFuture<TaskResult>> results = executor.execute(job);
         assertThat(results.size(), is(1));
-        Object[][] result = results.get(0).get();
+        Object[][] result = results.get(0).get().rows();
         assertThat(result.length, is(1));
         assertThat(result[0].length, is(2));
 
@@ -193,8 +194,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] objects = result.get(0).get();
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(1));
         assertThat((Integer) objects[0][0], is(2));
@@ -211,8 +212,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] objects = result.get(0).get();
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(1));
         assertThat((Integer) objects[0][0], is(2));
@@ -227,8 +228,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] objects = result.get(0).get();
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(2));
     }
@@ -252,7 +253,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchTask task = (ESSearchTask) job.tasks().get(0);
 
         task.start();
-        Object[][] rows = task.result().get(0).get();
+        Object[][] rows = task.result().get(0).get().rows();
         assertThat(rows.length, is(3));
 
         assertThat((Integer) rows[0][0], is(1));
@@ -290,7 +291,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchTask task = (ESSearchTask) job.tasks().get(0);
 
         task.start();
-        Object[][] rows = task.result().get(0).get();
+        Object[][] rows = task.result().get(0).get().rows();
         assertThat(rows.length, is(1));
 
         assertThat((Integer) rows[0][0], is(2));
@@ -350,8 +351,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().size(), is(2));
 
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get();
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get().rows();
         assertThat(rows.length, is(1));
 
         assertThat((Integer) rows[0][0], is(2));
@@ -382,7 +383,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchTask task = (ESSearchTask) job.tasks().get(0);
 
         task.start();
-        Object[][] rows = task.result().get(0).get();
+        Object[][] rows = task.result().get(0).get().rows();
         assertThat(rows.length, is(3));
 
         assertThat((Integer) rows[0][0], is(3));
@@ -416,9 +417,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESDeleteByQueryTask task = (ESDeleteByQueryTask) job.tasks().get(0);
 
         task.start();
-        Object[][] rows = task.result().get(0).get();
-        assertThat(rows.length, is(1));
-        assertThat((Long)rows[0][0], is(-1L));
+        TaskResult taskResult = task.result().get(0).get();
+        Object[][] rows = taskResult.rows();
+        assertThat(rows.length, is(0));
+        assertThat(taskResult.rowCount(), is(-1L));
 
         // verify deletion
         ESSearchNode searchNode = new ESSearchNode(
@@ -437,7 +439,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchTask searchTask = (ESSearchTask) job.tasks().get(0);
 
         searchTask.start();
-        rows = searchTask.result().get(0).get();
+        rows = searchTask.result().get(0).get().rows();
         assertThat(rows.length, is(0));
     }
 
@@ -449,10 +451,11 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get();
-        assertThat(rows.length, is(1)); // contains rowcount in first row
-        assertThat((Long)rows[0][0], is(1L));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] rows = taskResult.rows();
+        assertThat(rows.length, is(0));
+        assertThat(taskResult.rowCount(), is(1L));
 
         // verify deletion
         ESGetNode getNode = new ESGetNode("characters", "2", "2");
@@ -461,10 +464,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         plan.add(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get();
+        Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(0));
-
     }
 
     @Test
@@ -489,10 +491,11 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
 
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get();
-        assertThat(rows.length, is(1));
-        assertThat((Long)rows[0][0], is(1l));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] rows = taskResult.rows();
+        assertThat(rows.length, is(0));
+        assertThat(taskResult.rowCount(), is(1L));
 
 
         // verify insertion
@@ -502,7 +505,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         plan.add(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get();
+        Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(99));
@@ -535,9 +538,11 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         plan.expectsAffectedRows(true);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] indexResult = result.get(0).get();
-        assertThat((Long)indexResult[0][0], is(1L));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] indexResult = taskResult.rows();
+        assertThat(indexResult.length, is(0));
+        assertThat(taskResult.rowCount(), is(1L));
 
         refresh();
 
@@ -568,8 +573,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         WhereClause whereClause = new WhereClause(null, false);
         plan.add(new ESCountNode("characters", whereClause));
 
-        List<ListenableFuture<Object[][]>> result = executor.execute(executor.newJob(plan));
-        Object[][] rows = result.get(0).get();
+        List<ListenableFuture<TaskResult>> result = executor.execute(executor.newJob(plan));
+        Object[][] rows = result.get(0).get().rows();
 
         assertThat(rows.length, is(1));
         assertThat((Long)rows[0][0], is(3L));
@@ -603,10 +608,11 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESBulkIndexTask.class));
 
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get();
-        assertThat(rows.length, is(1));
-        assertThat((Long)rows[0][0], is(2l));
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        assertThat(taskResult.rowCount(), is(2L));
+        Object[][] rows = result.get(0).get().rows();
+        assertThat(rows.length, is(0));
 
         // verify insertion
 
@@ -618,7 +624,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         plan.add(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get();
+        Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(2));
         assertThat((Integer)objects[0][0], is(99));
@@ -650,11 +656,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByIdTask.class));
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get();
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        TaskResult taskResult = result.get(0).get();
+        Object[][] rows = taskResult.rows();
 
-        assertThat(rows.length, is(1));
-        assertThat((Long)rows[0][0], is(1l));
+        assertThat(rows.length, is(0));
+        assertThat(taskResult.rowCount(), is(1L));
 
         // verify update
         ESGetNode getNode = new ESGetNode("characters", Arrays.asList("1"), Arrays.asList("1"));
@@ -663,7 +670,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         plan.add(getNode);
         job = executor.newJob(plan);
         result = executor.execute(job);
-        Object[][] objects = result.get(0).get();
+        Object[][] objects = result.get(0).get().rows();
 
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(1));
@@ -706,8 +713,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get();
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get().rows();
         assertThat((Long) rows[0][0], is(1l));
 
         ESGetNode getNode = new ESGetNode("characters", "1", "1");
@@ -718,7 +725,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         job = executor.newJob(plan);
         result = executor.execute(job);
-        rows = result.get(0).get();
+        rows = result.get(0).get().rows();
 
         assertThat(rows.length, is(1));
         assertThat((Integer)rows[0][0], is(1));
@@ -758,8 +765,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get();
+        List<ListenableFuture<TaskResult>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get().rows();
         assertThat((Long)rows[0][0], is(2l));
 
         refresh();
@@ -785,7 +792,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         job = executor.newJob(plan);
         result = executor.execute(job);
-        rows = result.get(0).get();
+        rows = result.get(0).get().rows();
 
         assertThat(rows.length, is(2));
         assertThat((Integer)rows[0][0], is(1));

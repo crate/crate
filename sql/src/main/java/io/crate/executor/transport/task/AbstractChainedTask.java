@@ -28,42 +28,44 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.TaskExecutionException;
 import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public abstract class AbstractChainedTask<ResultType> implements Task<ResultType> {
+public abstract class AbstractChainedTask implements Task<TaskResult> {
 
-    protected List<ListenableFuture<ResultType>> upstreamResult = ImmutableList.of();
-    protected final List<ListenableFuture<ResultType>> resultList;
-    protected final SettableFuture<ResultType> result;
+    protected List<ListenableFuture<TaskResult>> upstreamResult = ImmutableList.of();
+    protected final List<ListenableFuture<TaskResult>> resultList;
+    protected final SettableFuture<TaskResult> result;
 
     protected final ESLogger logger = Loggers.getLogger(getClass());
 
     protected AbstractChainedTask() {
         this.result = SettableFuture.create();
-        this.resultList = ImmutableList.<ListenableFuture<ResultType>>of(this.result);
+        this.resultList = ImmutableList.<ListenableFuture<TaskResult>>of(this.result);
     }
 
 
     @Override
     public void start() {
         if (!this.upstreamResult.isEmpty()) {
-            Futures.addCallback(Futures.allAsList(this.upstreamResult), new FutureCallback<List<ResultType>>() {
+            Futures.addCallback(Futures.allAsList(this.upstreamResult), new FutureCallback<List<TaskResult>>() {
                 @Override
-                public void onSuccess(@Nullable List<ResultType> result) {
+                public void onSuccess(@Nullable List<TaskResult> result) {
                     doStart(result);
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
+                public void onFailure(@Nonnull Throwable t) {
                     throw new TaskExecutionException(AbstractChainedTask.this, t);
                 }
             });
         } else {
-            doStart(ImmutableList.<ResultType>of());
+            doStart(ImmutableList.<TaskResult>of());
         }
     }
 
@@ -75,16 +77,16 @@ public abstract class AbstractChainedTask<ResultType> implements Task<ResultType
      *
      * @param upstreamResults the results of the upstream task
      */
-    protected abstract void doStart(List<ResultType> upstreamResults);
+    protected abstract void doStart(List<TaskResult> upstreamResults);
 
     @Override
-    public List<ListenableFuture<ResultType>> result() {
-        return resultList;
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+        this.upstreamResult = result;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<ResultType>> result) {
-        this.upstreamResult = result;
+    public List<ListenableFuture<TaskResult>> result() {
+        return resultList;
     }
 
     protected void warnNotAcknowledged(String operationName) {

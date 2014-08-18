@@ -28,7 +28,6 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Arrays;
@@ -52,13 +51,14 @@ public class RowsResponseBuilder implements ResponseBuilder {
     @Override
     public SQLResponse buildResponse(DataType[] dataTypes,
                                      String[] outputNames,
-                                     Object[][] rows,
+                                     TaskResult taskResult,
                                      long requestStartedTime,
                                      boolean includeTypes) {
+        Object[][] rows = taskResult.rows();
         if (convertBytesRefs) {
             convertBytesRef(dataTypes, rows);
         }
-        return new SQLResponse(outputNames, rows, dataTypes, rows.length,
+        return new SQLResponse(outputNames, rows, dataTypes, taskResult.rowCount(),
                 requestStartedTime, includeTypes);
     }
 
