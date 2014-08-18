@@ -49,6 +49,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     private long requestStartedTime = 0L;
     private DataType[] colTypes;
     private boolean includeTypes = false;
+    private final static DataType[] EMPTY_TYPES = new DataType[0];
 
     public SQLResponse() {
     }
@@ -72,7 +73,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
         // output types could list of one LongType, used internally for affectedRows of DML nodes
         // remove it here, create empty array
         if (cols.length == 0 && dataTypes.length == 1 && dataTypes[0].equals(LongType.INSTANCE)) {
-            this.colTypes = new DataType[0];
+            this.colTypes = EMPTY_TYPES;
         } else {
             this.colTypes = dataTypes;
         }
@@ -166,10 +167,6 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
         return -1;
     }
 
-    public void requestStartedTime(long requestStartedTime) {
-        this.requestStartedTime = requestStartedTime;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -195,7 +192,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
                 colTypes[i] = DataTypes.fromStream(in);
             }
         } else {
-            colTypes = new DataType[0];
+            colTypes = EMPTY_TYPES;
         }
     }
 
