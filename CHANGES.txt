@@ -5,6 +5,14 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - match predicate can now be used on multiple columns
+   and supports several options for a more powerful fulltext search
+
+ - improve readability of documentation
+
+ - blobs can now be stored on different paths than normal tables,
+   custom path can be set global and per blob table
+
 2014/08/18 0.41.3
 =================
 
@@ -24,14 +32,6 @@ Unreleased
  - querying the node stats didn't work correctly if one of the paths couldn't
    be read due to permission issues. Now Permission denied errors emit a
    warning and disk stats are calculation continues.
-
- - match predicate can now be used on multiple columns
-   and supports several options for a more powerful fulltext search
-
- - improve readability of documentation
-
- - blobs can now be stored on different paths than normal tables,
-   custom path can be set global and per blob table
 
 2014/08/12 0.41.2
 =================
