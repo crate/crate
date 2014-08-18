@@ -29,6 +29,7 @@ import io.crate.PartitionName;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
+import io.crate.executor.TaskResult;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
@@ -2651,7 +2652,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("refresh table test");
         assertFalse(response.hasRowCount());
-        assertThat(response.rows(), is(Constants.EMPTY_RESULT));
+        assertThat(response.rows(), is(TaskResult.EMPTY_RESULT.rows()));
 
         execute("select count(*) from test");
         assertThat((Long) response.rows()[0][0], is(3L));

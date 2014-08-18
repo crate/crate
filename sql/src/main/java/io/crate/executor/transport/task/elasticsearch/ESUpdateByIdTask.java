@@ -23,13 +23,14 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.exceptions.Exceptions;
+import io.crate.executor.TaskResult;
 import io.crate.planner.node.dml.ESUpdateNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.transport.RemoteTransportException;
 
 public class ESUpdateByIdTask extends AbstractESUpdateTask {
 
@@ -39,24 +40,26 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
 
     private static class UpdateResponseListener implements ActionListener<UpdateResponse> {
 
-        private final SettableFuture<Object[][]> future;
+        private final SettableFuture<TaskResult> future;
 
-        private UpdateResponseListener(SettableFuture<Object[][]> future) {
+        private UpdateResponseListener(SettableFuture<TaskResult> future) {
             this.future = future;
         }
 
         @Override
         public void onResponse(UpdateResponse updateResponse) {
-            future.set(new Object[][]{new Object[]{updateResponse.getGetResult().isExists() ? 1L : 0L}});
+            if (updateResponse.getGetResult().isExists()) {
+                future.set(TaskResult.ONE_ROW);
+            } else {
+                future.set(TaskResult.ZERO);
+            }
         }
 
         @Override
         public void onFailure(Throwable e) {
-            if (e instanceof RemoteTransportException) {
-                e = e.getCause();
-            }
+            e = Exceptions.unwrap(e);
             if (e instanceof VersionConflictEngineException) {
-                future.set(new Object[][] { new Object[] { 0L }});
+                future.set(TaskResult.ZERO);
             } else {
                 future.setException(e);
             }

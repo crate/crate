@@ -26,10 +26,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -172,7 +172,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
         collectNode = collectNode.normalize(nodeNormalizer);
         if (collectNode.whereClause().noMatch()) {
-            return Futures.immediateFuture(Constants.EMPTY_RESULT);
+            return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
         }
 
         FlatProjectorChain projectorChain = new FlatProjectorChain(

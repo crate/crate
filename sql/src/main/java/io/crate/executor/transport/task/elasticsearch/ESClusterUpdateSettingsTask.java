@@ -24,6 +24,7 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -34,9 +35,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-public class ESClusterUpdateSettingsTask implements Task<Object[][]> {
+public class ESClusterUpdateSettingsTask implements Task<TaskResult> {
 
-    private final List<ListenableFuture<Object[][]>> results;
+    private final List<ListenableFuture<TaskResult>> results;
     private final TransportClusterUpdateSettingsAction transport;
     private final ClusterUpdateSettingsRequest request;
     private final ActionListener<ClusterUpdateSettingsResponse> listener;
@@ -45,8 +46,8 @@ public class ESClusterUpdateSettingsTask implements Task<Object[][]> {
                                        ESClusterUpdateSettingsNode node) {
         this.transport = transport;
 
-        final SettableFuture<Object[][]> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
+        final SettableFuture<TaskResult> result = SettableFuture.create();
+        results = Arrays.<ListenableFuture<TaskResult>>asList(result);
 
         request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(node.persistentSettings());
@@ -56,15 +57,15 @@ public class ESClusterUpdateSettingsTask implements Task<Object[][]> {
 
     static class ClusterUpdateSettingsResponseListener implements ActionListener<ClusterUpdateSettingsResponse> {
 
-        private final SettableFuture<Object[][]> result;
+        private final SettableFuture<TaskResult> result;
 
-        public ClusterUpdateSettingsResponseListener(SettableFuture<Object[][]> result) {
+        public ClusterUpdateSettingsResponseListener(SettableFuture<TaskResult> result) {
             this.result = result;
         }
 
         @Override
         public void onResponse(ClusterUpdateSettingsResponse response) {
-            result.set(new Object[][] { new Object[] { 1L }});
+            result.set(TaskResult.ONE_ROW);
         }
 
         @Override
@@ -79,15 +80,14 @@ public class ESClusterUpdateSettingsTask implements Task<Object[][]> {
     }
 
     @Override
-    public List<ListenableFuture<Object[][]>> result() {
+    public List<ListenableFuture<TaskResult>> result() {
         return results;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
                         getClass().getSimpleName()));
     }
-
 }

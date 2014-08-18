@@ -24,6 +24,7 @@ package io.crate.executor.task;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.QueryResult;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.RowGranularity;
@@ -41,7 +42,7 @@ import static org.hamcrest.Matchers.is;
 
 public class LocalCollectTaskTest {
 
-    public static Routing CLUSTER_ROUTING = new Routing();
+    public final static Routing CLUSTER_ROUTING = new Routing();
     private UUID testJobId = UUID.randomUUID();
 
     @Test
@@ -64,10 +65,10 @@ public class LocalCollectTaskTest {
         };
         LocalCollectTask collectTask = new LocalCollectTask(collectOperation, collectNode);
         collectTask.start();
-        List<ListenableFuture<Object[][]>> results = collectTask.result();
+        List<ListenableFuture<QueryResult>> results = collectTask.result();
         assertThat(results.size(), is(1));
 
-        ListenableFuture<Object[][]> result = results.get(0);
-        assertThat(result.get(), is(new Object[][]{{1}}));
+        ListenableFuture<QueryResult> result = results.get(0);
+        assertThat(result.get().rows(), is(new Object[][]{{1}}));
     }
 }

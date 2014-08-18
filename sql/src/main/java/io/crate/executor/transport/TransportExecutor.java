@@ -22,9 +22,7 @@
 package io.crate.executor.transport;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.executor.Executor;
-import io.crate.executor.Job;
-import io.crate.executor.Task;
+import io.crate.executor.*;
 import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
@@ -91,7 +89,6 @@ public class TransportExecutor implements Executor {
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportCountAction transportCountAction;
     private final TransportIndexAction transportIndexAction;
-    private final TransportBulkAction transportBulkAction;
     private final TransportUpdateAction transportUpdateAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
@@ -137,7 +134,6 @@ public class TransportExecutor implements Executor {
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportCountAction = transportCountAction;
         this.transportIndexAction = transportIndexAction;
-        this.transportBulkAction = transportBulkAction;
         this.transportUpdateAction = transportUpdateAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
@@ -164,7 +160,7 @@ public class TransportExecutor implements Executor {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<ListenableFuture<Object[][]>> execute(Job job) {
+    public List<ListenableFuture<TaskResult>> execute(Job job) {
         assert job.tasks().size() > 0;
 
         Task lastTask = null;
@@ -178,7 +174,7 @@ public class TransportExecutor implements Executor {
         }
 
         assert lastTask != null;
-        return lastTask.result();
+        return (List<ListenableFuture<TaskResult>>)lastTask.result();
     }
 
     class Visitor extends PlanVisitor<Job, Void> {

@@ -22,6 +22,8 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.Futures;
+import io.crate.executor.NonQueryResult;
+import io.crate.executor.TaskResult;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
@@ -48,7 +50,7 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
     }
 
     @Override
-    protected void doStart(List<Object[][]> upstreamResults) {
+    protected void doStart(List<TaskResult> upstreamResults) {
         if (node.indices().length == 1) {
             String index = node.indices()[0];
             for(int i=0; i < this.node.sourceMaps().size(); i++){
@@ -74,7 +76,8 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
 
             @Override
             public void onSuccess(@Nullable Long res) {
-                result.set(new Object[][]{new Object[]{res}});
+                assert res != null;
+                result.set(new NonQueryResult(res));
             }
 
             @Override

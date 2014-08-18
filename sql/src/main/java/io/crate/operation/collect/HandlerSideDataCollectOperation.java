@@ -23,8 +23,8 @@ package io.crate.operation.collect;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -78,7 +78,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         if (collectNode.isPartitioned()) {
             // edge case: partitioned table without actual indices
             // no results
-            return Futures.immediateFuture(Constants.EMPTY_RESULT);
+            return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
         }
         if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
             // we assume information schema here
@@ -95,7 +95,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     private ListenableFuture<Object[][]> handleCluster(CollectNode collectNode) {
         collectNode = collectNode.normalize(clusterNormalizer);
         if (collectNode.whereClause().noMatch()) {
-            return Futures.immediateFuture(Constants.EMPTY_RESULT);
+            return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
         }
         assert collectNode.toCollect().size() > 0;
 
