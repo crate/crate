@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.Constants;
 import io.crate.core.NumberOfReplicas;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
@@ -34,9 +35,15 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
 
         if (node.clusteredBy().isPresent()) {
             ClusteredBy clusteredBy = node.clusteredBy().get();
-            Integer numShards = clusteredBy.numberOfShards().orNull();
-            if (numShards != null && numShards < 1) {
-                throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
+
+            int numShards;
+            if (clusteredBy.numberOfShards().isPresent()) {
+                numShards = ExpressionToNumberVisitor.convert(clusteredBy.numberOfShards().get(), context.parameters()).intValue();
+                if (numShards < 1) {
+                    throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
+                }
+            } else {
+                numShards = Constants.DEFAULT_NUM_SHARDS;
             }
             context.numberOfShards(numShards);
         }

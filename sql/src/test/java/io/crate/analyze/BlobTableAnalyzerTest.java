@@ -29,7 +29,9 @@ import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +42,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
@@ -127,5 +132,24 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     @Test (expected = TableUnknownException.class)
     public void testDropBlobTableThatDoesNotExist() {
         analyze("drop blob table unknown");
+    }
+
+    @Test
+    public void testCreateBlobTableWithParams() throws Exception {
+        CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
+                "create blob table screenshots clustered into ? shards with (number_of_replicas= ?)",
+                new Object[] { 2, "0-all" });
+
+        assertThat(analysis.tableIdent().name(), is("screenshots"));
+        assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
+        assertThat(analysis.numberOfShards(), is(2));
+        assertThat(analysis.numberOfReplicas().esSettingValue(), is("0-all"));
+    }
+
+    @Test
+    public void testCreateBlobTableWithInvalidShardsParam() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid number 'foo'");
+        analyze("create blob table screenshots clustered into ? shards", new Object[] { "foo" });
     }
 }

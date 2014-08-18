@@ -23,9 +23,6 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import io.crate.Constants;
-import io.crate.core.collections.StringObjectMaps;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
@@ -87,9 +84,14 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
             context.routing(routingColumn);
         }
-        int numShards = node.numberOfShards().or(Constants.DEFAULT_NUM_SHARDS);
-        if (numShards < 1) {
-            throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
+        int numShards;
+        if (node.numberOfShards().isPresent()) {
+            numShards = ExpressionToNumberVisitor.convert(node.numberOfShards().get(), context.parameters()).intValue();
+            if (numShards < 1) {
+                throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
+            }
+        } else {
+            numShards = Constants.DEFAULT_NUM_SHARDS;
         }
         context.indexSettingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
         return null;

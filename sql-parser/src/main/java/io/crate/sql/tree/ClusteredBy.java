@@ -29,18 +29,18 @@ import javax.annotation.Nullable;
 public class ClusteredBy extends CrateTableOption {
 
     private final Optional<Expression> column;
-    private final Optional<Integer> numberOfShards;
+    private final Optional<Expression> numberOfShards;
 
-    public ClusteredBy(@Nullable Expression column, @Nullable String numberOfShards) {
+    public ClusteredBy(@Nullable Expression column, @Nullable Expression numberOfShards) {
         this.column = Optional.fromNullable(column);
-        this.numberOfShards = (numberOfShards == null ? Optional.<Integer>absent() : Optional.of(Integer.parseInt(numberOfShards)));
+        this.numberOfShards = Optional.fromNullable(numberOfShards);
     }
 
     public Optional<Expression> column() {
         return column;
     }
 
-    public Optional<Integer> numberOfShards() {
+    public Optional<Expression> numberOfShards() {
         return numberOfShards;
     }
 

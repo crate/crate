@@ -331,10 +331,9 @@ singleExpression returns [Expression value]
     ;
 
 expr returns [Expression value]
-    : NULL                  { $value = new NullLiteral(); }
+    : parameterOrSimpleLiteral { $value = $parameterOrSimpleLiteral.value; }
     | qname                 { $value = new QualifiedNameReference($qname.value); }
     | subscript             { $value = $subscript.value; }
-    | parameterExpr         { $value = $parameterExpr.value; }
     | functionCall          { $value = $functionCall.value; }
     | arithmeticExpression  { $value = $arithmeticExpression.value; }
     | comparisonExpression  { $value = $comparisonExpression.value; }
@@ -345,11 +344,6 @@ expr returns [Expression value]
     | ^(DATE string)        { $value = new DateLiteral($string.value); }
     | ^(TIME string)        { $value = new TimeLiteral($string.value); }
     | ^(TIMESTAMP string)   { $value = new TimestampLiteral($string.value); }
-    | string                { $value = new StringLiteral($string.value); }
-    | integer               { $value = new LongLiteral($integer.value); }
-    | decimal               { $value = new DoubleLiteral($decimal.value); }
-    | TRUE                  { $value = BooleanLiteral.TRUE_LITERAL; }
-    | FALSE                 { $value = BooleanLiteral.FALSE_LITERAL; }
     | intervalValue         { $value = $intervalValue.value; }
     | predicate             { $value = $predicate.value; }
     | ^(IN_LIST exprList)   { $value = new InListExpression($exprList.value); }
@@ -370,6 +364,16 @@ exprList returns [List<Expression> value = new ArrayList<>()]
 parameterExpr returns [ParameterExpression value]
     : '$' integer { $value = new ParameterExpression(Integer.parseInt($integer.value)); }
     | '?'         { $value = new ParameterExpression(parameterPos++); }
+    ;
+
+parameterOrSimpleLiteral returns [Expression value]
+    : NULL                  { $value = new NullLiteral(); }
+    | parameterExpr         { $value = $parameterExpr.value; }
+    | string                { $value = new StringLiteral($string.value); }
+    | integer               { $value = new LongLiteral($integer.value); }
+    | decimal               { $value = new DoubleLiteral($decimal.value); }
+    | TRUE                  { $value = BooleanLiteral.TRUE_LITERAL; }
+    | FALSE                 { $value = BooleanLiteral.FALSE_LITERAL; }
     ;
 
 subscript returns [SubscriptExpression value]
@@ -402,6 +406,11 @@ ident returns [String value]
 
 string returns [String value]
     : s=STRING { $value = $s.text; }
+    ;
+
+numberLiteral returns [Literal value]
+    : integer               { $value = new LongLiteral($integer.value); }
+    | decimal               { $value = new DoubleLiteral($decimal.value); }
     ;
 
 integer returns [String value]
@@ -639,9 +648,9 @@ insert returns [Statement value]
             $value = new InsertFromValues($namedTable.value, $values.value, $cols.value);
         }
     | ^(INSERT subQuery=query namedTable cols=columnIdentList?)
-    	{
-    	    $value = new InsertFromSubquery($namedTable.value, $subQuery.value, $cols.value);
-    	}
+        {
+            $value = new InsertFromSubquery($namedTable.value, $subQuery.value, $cols.value);
+        }
     ;
 
 insertValues returns [List<ValuesList> value = new ArrayList<>()]
@@ -864,9 +873,9 @@ crateTableOption returns [CrateTableOption value]
     ;
 
 clusteredBy returns [ClusteredBy value]
-    : ^(CLUSTERED integer) { $value = new ClusteredBy(null, $integer.value); }
-    | ^(CLUSTERED subscript integer?) { $value = new ClusteredBy($subscript.value, $integer.value); }
-    | ^(CLUSTERED qname integer?) { $value = new ClusteredBy(new QualifiedNameReference($qname.value), $integer.value); }
+    : ^(CLUSTERED parameterOrSimpleLiteral) { $value = new ClusteredBy(null, $parameterOrSimpleLiteral.value); }
+    | ^(CLUSTERED subscript parameterOrSimpleLiteral?) { $value = new ClusteredBy($subscript.value, $parameterOrSimpleLiteral.value); }
+    | ^(CLUSTERED qname parameterOrSimpleLiteral?) { $value = new ClusteredBy(new QualifiedNameReference($qname.value), $parameterOrSimpleLiteral.value); }
     ;
 
 partitionedBy returns [PartitionedBy value]
