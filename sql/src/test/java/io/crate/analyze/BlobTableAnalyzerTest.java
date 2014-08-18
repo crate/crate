@@ -186,4 +186,23 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expectMessage("Invalid property \"blobs_path\" passed to [ALTER | CREATE] TABLE statement");
         analyze("alter blob table myblobs set (blobs_path=1)");
     }
+
+    @Test
+    public void testCreateBlobTableWithParams() throws Exception {
+        CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
+                "create blob table screenshots clustered into ? shards with (number_of_replicas= ?)",
+                new Object[] { 2, "0-all" });
+
+        assertThat(analysis.tableIdent().name(), is("screenshots"));
+        assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
+        assertThat(analysis.indexSettings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(2));
+        assertThat(analysis.indexSettings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+    }
+
+    @Test
+    public void testCreateBlobTableWithInvalidShardsParam() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid number 'foo'");
+        analyze("create blob table screenshots clustered into ? shards", new Object[] { "foo" });
+    }
 }

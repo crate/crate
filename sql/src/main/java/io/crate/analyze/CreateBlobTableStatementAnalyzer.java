@@ -37,9 +37,15 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
 
         if (node.clusteredBy().isPresent()) {
             ClusteredBy clusteredBy = node.clusteredBy().get();
-            int numShards = clusteredBy.numberOfShards().or(Constants.DEFAULT_NUM_SHARDS);
-            if (numShards < 1) {
-                throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
+
+            int numShards;
+            if (clusteredBy.numberOfShards().isPresent()) {
+                numShards = ExpressionToNumberVisitor.convert(clusteredBy.numberOfShards().get(), context.parameters()).intValue();
+                if (numShards < 1) {
+                    throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
+                }
+            } else {
+                numShards = Constants.DEFAULT_NUM_SHARDS;
             }
             context.indexSettingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
         }

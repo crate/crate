@@ -125,9 +125,12 @@ public class TestStatementBuilder
 
         printStatement("create table t (id integer primary key, name string)");
         printStatement("create table t (id integer primary key, name string) clustered into 3 shards");
+        printStatement("create table t (id integer primary key, name string) clustered into ? shards");
         printStatement("create table t (id integer primary key, name string) clustered by (id)");
         printStatement("create table t (id integer primary key, name string) clustered by (id) into 4 shards");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) into ? shards");
         printStatement("create table t (id integer primary key, name string) with (number_of_replicas=4)");
+        printStatement("create table t (id integer primary key, name string) with (number_of_replicas=?)");
         printStatement("create table t (id integer primary key, name string) clustered by (id) with (number_of_replicas=4)");
         printStatement("create table t (id integer primary key, name string) clustered by (id) into 999 shards with (number_of_replicas=4)");
         printStatement("create table t (id integer primary key, name string) with (number_of_replicas=-4)");

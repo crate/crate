@@ -37,8 +37,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.index.settings.IndexSettings;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -50,7 +48,6 @@ import java.util.Map;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -778,5 +775,19 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test (expected = UnsupportedOperationException.class)
     public void testCreateTableWithArrayPrimaryKeyUnsupported() throws Exception {
         analyze("create table t (id array(int) primary key)");
+    }
+
+    @Test
+    public void testCreateTableWithClusteredIntoShardsParameter() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
+                "create table t (id int primary key) clustered into ? shards", new Object[]{2});
+        assertThat(analysis.indexSettings().get(IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("2"));
+    }
+
+    @Test
+    public void testCreateTableWithClusteredIntoShardsParameterNonNumeric() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid number 'foo'");
+        analyze("create table t (id int primary key) clustered into ? shards", new Object[]{"foo"});
     }
 }

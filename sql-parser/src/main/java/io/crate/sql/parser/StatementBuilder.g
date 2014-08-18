@@ -407,7 +407,7 @@ ident returns [String value]
 string returns [String value]
     : s=STRING { $value = $s.text; }
     ;
-    
+
 numberLiteral returns [Literal value]
     : integer               { $value = new LongLiteral($integer.value); }
     | decimal               { $value = new DoubleLiteral($decimal.value); }
@@ -660,9 +660,9 @@ insert returns [Statement value]
             $value = new InsertFromValues($namedTable.value, $values.value, $cols.value);
         }
     | ^(INSERT subQuery=query namedTable cols=columnIdentList?)
-    	{
-    	    $value = new InsertFromSubquery($namedTable.value, $subQuery.value, $cols.value);
-    	}
+        {
+            $value = new InsertFromSubquery($namedTable.value, $subQuery.value, $cols.value);
+        }
     ;
 
 insertValues returns [List<ValuesList> value = new ArrayList<>()]
@@ -885,9 +885,9 @@ crateTableOption returns [CrateTableOption value]
     ;
 
 clusteredBy returns [ClusteredBy value]
-    : ^(CLUSTERED integer) { $value = new ClusteredBy(null, $integer.value); }
-    | ^(CLUSTERED subscript integer?) { $value = new ClusteredBy($subscript.value, $integer.value); }
-    | ^(CLUSTERED qname integer?) { $value = new ClusteredBy(new QualifiedNameReference($qname.value), $integer.value); }
+    : ^(CLUSTERED parameterOrSimpleLiteral) { $value = new ClusteredBy(null, $parameterOrSimpleLiteral.value); }
+    | ^(CLUSTERED subscript parameterOrSimpleLiteral?) { $value = new ClusteredBy($subscript.value, $parameterOrSimpleLiteral.value); }
+    | ^(CLUSTERED qname parameterOrSimpleLiteral?) { $value = new ClusteredBy(new QualifiedNameReference($qname.value), $parameterOrSimpleLiteral.value); }
     ;
 
 partitionedBy returns [PartitionedBy value]

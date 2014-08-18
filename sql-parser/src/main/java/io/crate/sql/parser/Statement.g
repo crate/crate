@@ -947,11 +947,11 @@ primaryKeyConstraint
     ;
 
 clusteredInto
-    : CLUSTERED INTO integer SHARDS -> ^(CLUSTERED integer)
+    : CLUSTERED INTO parameterOrSimpleLiteral SHARDS -> ^(CLUSTERED parameterOrSimpleLiteral)
     ;
 
 clusteredBy
-    : CLUSTERED (BY '(' numericExpr ')' )? (INTO integer SHARDS)? -> ^(CLUSTERED numericExpr? integer?)
+    : CLUSTERED (BY '(' numericExpr ')' )? (INTO parameterOrSimpleLiteral SHARDS)? -> ^(CLUSTERED numericExpr? parameterOrSimpleLiteral?)
     ;
 
 partitionedBy

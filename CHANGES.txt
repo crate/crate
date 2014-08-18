@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - The number of shards in the ``CLUSTERED INTO`` clause of the ``CREATE
+   TABLE`` statement can now be specified using parameter substitution.
+
  - fixed error handling on certain kind of failures that can occur on select
    queries
 
