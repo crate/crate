@@ -101,6 +101,9 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
         if (sigarService.sigarAvailable()) {
             try {
                 for (FileSystem fs : sigarService.sigar().getFileSystemList()) {
+                    if (!FileSystems.SUPPORTED_FS_TYPE.apply(fs)) {
+                        continue;
+                    }
                     try {
                         FileSystemUsage usage = sigarService.sigar().getFileSystemUsage(fs.getDirName());
                         size = setOrIncrementBy(size, usage.getTotal() * 1024);
