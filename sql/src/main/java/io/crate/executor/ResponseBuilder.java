@@ -27,7 +27,7 @@ import io.crate.action.sql.SQLResponse;
 public interface ResponseBuilder {
     public SQLResponse buildResponse(DataType[] dataTypes,
                                      String[] outputNames,
-                                     Object[][] rows,
+                                     TaskResult taskResult,
                                      long requestStartedTime,
                                      boolean includeTypes);
 }

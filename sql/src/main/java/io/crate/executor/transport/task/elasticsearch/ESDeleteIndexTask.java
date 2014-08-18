@@ -22,6 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import org.elasticsearch.action.ActionListener;
@@ -32,10 +33,10 @@ import org.elasticsearch.action.support.IndicesOptions;
 
 import java.util.List;
 
-public class ESDeleteIndexTask extends AbstractChainedTask<Object[][]> {
+public class ESDeleteIndexTask extends AbstractChainedTask {
 
-    private static final Object[][] RESULT = new Object[][]{ new Object[]{ 1L } };
-    private static final Object[][] RESULT_PARTITION = new Object[][]{ new Object[]{ -1L } };
+    private static final TaskResult RESULT = TaskResult.ONE_ROW;
+    private static final TaskResult RESULT_PARTITION = TaskResult.ROW_COUNT_UNKNOWN;
 
     private final TransportDeleteIndexAction transport;
     private final DeleteIndexRequest request;
@@ -43,10 +44,10 @@ public class ESDeleteIndexTask extends AbstractChainedTask<Object[][]> {
 
     static class DeleteIndexListener implements ActionListener<DeleteIndexResponse> {
 
-        private final SettableFuture<Object[][]> future;
+        private final SettableFuture<TaskResult> future;
         private final boolean isPartition;
 
-        DeleteIndexListener(SettableFuture<Object[][]> future, boolean isPartition) {
+        DeleteIndexListener(SettableFuture<TaskResult> future, boolean isPartition) {
             this.future = future;
             this.isPartition = isPartition;
         }
@@ -70,12 +71,12 @@ public class ESDeleteIndexTask extends AbstractChainedTask<Object[][]> {
         super();
         this.transport = transport;
         this.request = new DeleteIndexRequest(node.index());
-        this.request.indicesOptions(IndicesOptions.strict());
+        this.request.indicesOptions(IndicesOptions.strictExpandOpen());
         this.listener = new DeleteIndexListener(result, node.isPartition());
     }
 
     @Override
-    protected void doStart(List<Object[][]> upstreamResults) {
+    protected void doStart(List<TaskResult> upstreamResults) {
         transport.execute(request, listener);
     }
 }

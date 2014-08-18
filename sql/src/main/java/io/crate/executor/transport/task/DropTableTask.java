@@ -22,6 +22,7 @@
 package io.crate.executor.transport.task;
 
 import io.crate.PartitionName;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.ddl.DropTableNode;
 import org.elasticsearch.action.ActionListener;
@@ -37,9 +38,9 @@ import org.elasticsearch.common.logging.Loggers;
 import java.util.List;
 import java.util.Locale;
 
-public class DropTableTask extends AbstractChainedTask<Object[][]> {
+public class DropTableTask extends AbstractChainedTask {
 
-    private static final Object[][] SUCCESS_RESULT = new Object[][] { new Object[]{ 1L }};
+    private static final TaskResult SUCCESS_RESULT = TaskResult.ONE_ROW;
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
@@ -58,7 +59,7 @@ public class DropTableTask extends AbstractChainedTask<Object[][]> {
 
 
     @Override
-    protected void doStart(List<Object[][]> upstreamResults) {
+    protected void doStart(List<TaskResult> upstreamResults) {
         if (tableInfo.isPartitioned()) {
             String templateName = PartitionName.templateName(tableInfo.ident().name());
             deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {

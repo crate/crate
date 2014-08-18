@@ -26,6 +26,7 @@ import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.TaskExecutionException;
+import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.CreateTableNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -43,9 +44,9 @@ import org.elasticsearch.cluster.ClusterService;
 import java.util.List;
 import java.util.Locale;
 
-public class CreateTableTask extends AbstractChainedTask<Object[][]> {
+public class CreateTableTask extends AbstractChainedTask {
 
-    private static final Object[][] SUCCESS_RESULT = new Object[][] { new Object[]{ 1L }};
+    private static final TaskResult SUCCESS_RESULT = TaskResult.ONE_ROW;
 
     private final ClusterService clusterService;
     private final TransportCreateIndexAction createIndexAction;
@@ -65,7 +66,7 @@ public class CreateTableTask extends AbstractChainedTask<Object[][]> {
     }
 
     @Override
-    protected void doStart(List<Object[][]> upstreamResults) {
+    protected void doStart(List<TaskResult> upstreamResults) {
         // real work done in createTable()
         deleteOrphans(new CreateTableResponseListener());
     }

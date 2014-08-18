@@ -26,7 +26,9 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.UnknownUpstreamFailure;
+import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.merge.NodeMergeRequest;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
@@ -37,20 +39,21 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.RemoteTransportException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class DistributedMergeTask implements Task<Object[][]> {
+public class DistributedMergeTask implements Task<QueryResult> {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final MergeNode mergeNode;
     private final TransportMergeNodeAction transportMergeNodeAction;
-    private final ArrayList<ListenableFuture<Object[][]>> results;
-    private List<ListenableFuture<Object[][]>> upstreamResult;
+    private final ArrayList<ListenableFuture<QueryResult>> results;
+    private List<ListenableFuture<TaskResult>> upstreamResult;
 
     public DistributedMergeTask(TransportMergeNodeAction transportMergeNodeAction, MergeNode mergeNode) {
         Preconditions.checkNotNull(mergeNode.executionNodes());
@@ -60,7 +63,7 @@ public class DistributedMergeTask implements Task<Object[][]> {
 
         results = new ArrayList<>(mergeNode.executionNodes().size());
         for (String node : mergeNode.executionNodes()) {
-            results.add(SettableFuture.<Object[][]>create());
+            results.add(SettableFuture.<QueryResult>create());
         }
     }
 
@@ -79,22 +82,22 @@ public class DistributedMergeTask implements Task<Object[][]> {
             countDownLatch = new CountDownLatch(upstreamResult.size());
             logger.trace("upstreamResult.size: " + upstreamResult.size());
             // consume the upstream result
-            for (final ListenableFuture<Object[][]> upstreamFuture : upstreamResult) {
-                Futures.addCallback(upstreamFuture, new FutureCallback<Object[][]>() {
+            for (final ListenableFuture<TaskResult> upstreamFuture : upstreamResult) {
+                Futures.addCallback(upstreamFuture, new FutureCallback<TaskResult>() {
                     @Override
-                    public void onSuccess(@Nullable Object[][] result) {
+                    public void onSuccess(@Nullable TaskResult result) {
                         assert result != null;
-                        logger.trace("successful collect Future size: " + result.length);
+                        logger.trace("successful collect Future size: " + result.rows().length);
                         countDownLatch.countDown();
                     }
 
                     @Override
-                    public void onFailure(Throwable t) {
+                    public void onFailure(@Nonnull Throwable t) {
                         if (t instanceof RemoteTransportException){
                             t = t.getCause();
                         }
-                        for (ListenableFuture<Object[][]> result : results) {
-                            ((SettableFuture<Object[][]>)result).setException(t);
+                        for (ListenableFuture<QueryResult> result : results) {
+                            ((SettableFuture<QueryResult>)result).setException(t);
                         }
                         countDownLatch.countDown();
                         logger.error("remote collect request failed", t);
@@ -111,7 +114,7 @@ public class DistributedMergeTask implements Task<Object[][]> {
                 @Override
                 public void onResponse(NodeMergeResponse nodeMergeResponse) {
                     logger.trace("startMerge.onResponse: {} of {}", node, mergeNode.executionNodes().size());
-                    ((SettableFuture<Object[][]>)results.get(resultIdx)).set(nodeMergeResponse.rows());
+                    ((SettableFuture<QueryResult>)results.get(resultIdx)).set(new QueryResult(nodeMergeResponse.rows()));
                 }
 
                 @Override
@@ -128,7 +131,7 @@ public class DistributedMergeTask implements Task<Object[][]> {
                             logger.error("Interrupted waiting for upstream exception", e1);
                         }
                     }
-                    SettableFuture<Object[][]> result = (SettableFuture<Object[][]>) results.get(resultIdx);
+                    SettableFuture<QueryResult> result = (SettableFuture<QueryResult>) results.get(resultIdx);
                     result.setException(e);
                     logger.error("Failure getting NodeMergeResponse: ", e);
                 }
@@ -139,13 +142,13 @@ public class DistributedMergeTask implements Task<Object[][]> {
     }
 
     @Override
-    public List<ListenableFuture<Object[][]>> result() {
+    public List<ListenableFuture<QueryResult>> result() {
         logger.trace("result() size:{}", results.size());
         return results;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         upstreamResult = result;
     }
 }

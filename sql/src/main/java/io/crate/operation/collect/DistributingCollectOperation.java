@@ -27,8 +27,8 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.Constants;
 import io.crate.Streamer;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.distributed.DistributedFailureRequest;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
@@ -108,7 +108,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                 forwardFailures();
                 return;
             }
-            super.set(Constants.EMPTY_RESULT);
+            super.set(TaskResult.EMPTY_RESULT.rows());
 
             BucketingIterator bucketingIterator = new ModuloBucketingIterator(
                     this.numDownStreams,

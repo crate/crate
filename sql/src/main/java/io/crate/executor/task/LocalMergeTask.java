@@ -28,9 +28,10 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
+import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
+import io.crate.executor.TaskResult;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
@@ -53,7 +54,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * merging rows locally on the handler
  */
-public class LocalMergeTask implements Task<Object[][]> {
+public class LocalMergeTask implements Task<TaskResult> {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
@@ -65,10 +66,10 @@ public class LocalMergeTask implements Task<Object[][]> {
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final ThreadPool threadPool;
-    private final SettableFuture<Object[][]> result;
-    private final List<ListenableFuture<Object[][]>> resultList;
+    private final SettableFuture<TaskResult> result;
+    private final List<ListenableFuture<TaskResult>> resultList;
 
-    private List<ListenableFuture<Object[][]>> upstreamResults;
+    private List<ListenableFuture<TaskResult>> upstreamResults;
 
     /**
      *
@@ -91,7 +92,7 @@ public class LocalMergeTask implements Task<Object[][]> {
         this.mergeNode = mergeNode;
         this.statsTables = statsTables;
         this.result = SettableFuture.create();
-        this.resultList = Arrays.<ListenableFuture<Object[][]>>asList(this.result);
+        this.resultList = Arrays.<ListenableFuture<TaskResult>>asList(this.result);
     }
 
     /**
@@ -103,7 +104,7 @@ public class LocalMergeTask implements Task<Object[][]> {
     @Override
     public void start() {
         if (upstreamResults == null) {
-            result.set(Constants.EMPTY_RESULT);
+            result.set(TaskResult.EMPTY_RESULT);
             return;
         }
 
@@ -118,7 +119,7 @@ public class LocalMergeTask implements Task<Object[][]> {
             @Override
             public void onSuccess(@Nullable Object[][] rows) {
                 statsTables.operationFinished(operationId, null);
-                result.set(rows);
+                result.set(new QueryResult(rows));
             }
 
             @Override
@@ -128,16 +129,16 @@ public class LocalMergeTask implements Task<Object[][]> {
             }
         });
 
-        for (final ListenableFuture<Object[][]> upstreamResult : upstreamResults) {
-            Futures.addCallback(upstreamResult, new FutureCallback<Object[][]>() {
+        for (final ListenableFuture<TaskResult> upstreamResult : upstreamResults) {
+            Futures.addCallback(upstreamResult, new FutureCallback<TaskResult>() {
                 @Override
-                public void onSuccess(@Nullable Object[][] rows) {
+                public void onSuccess(@Nullable TaskResult rows) {
                     assert rows != null;
                     traceLogResult(rows);
                     boolean shouldContinue;
 
                     try {
-                        shouldContinue = mergeOperation.addRows(rows);
+                        shouldContinue = mergeOperation.addRows(rows.rows());
                     } catch (Exception ex) {
                         statsTables.operationFinished(operationId, Exceptions.messageOf(ex));
                         result.setException(ex);
@@ -159,14 +160,18 @@ public class LocalMergeTask implements Task<Object[][]> {
         }
     }
 
-    private void traceLogResult(Object[][] rows) {
+    private void traceLogResult(TaskResult taskResult) {
         if (logger.isTraceEnabled()) {
-            String result = Joiner.on(", ").join(Collections2.transform(Arrays.asList(rows),
-                new Function<Object[], String>() {
+            String result = Joiner.on(", ").join(Collections2.transform(Arrays.asList(taskResult),
+                new Function<TaskResult, String>() {
                     @Nullable
                     @Override
-                    public String apply(@Nullable Object[] input) {
-                        return Arrays.toString(input);
+                    public String apply(@Nullable TaskResult input) {
+                        if (input == null) {
+                            return "";
+                        } else {
+                            return Arrays.toString(input.rows());
+                        }
                     }
                 })
             );
@@ -175,12 +180,12 @@ public class LocalMergeTask implements Task<Object[][]> {
     }
 
     @Override
-    public List<ListenableFuture<Object[][]>> result() {
+    public List<ListenableFuture<TaskResult>> result() {
         return resultList;
     }
 
     @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
         upstreamResults = result;
     }
 }

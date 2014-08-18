@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,15 +21,21 @@
 
 package io.crate.executor;
 
-import com.google.common.util.concurrent.ListenableFuture;
+public abstract class TaskResult {
 
-import java.util.List;
+    protected static final Object[][] EMPTY_ROWS = new Object[0][];
 
-public interface Task<R extends TaskResult> {
+    public static final NonQueryResult ZERO = new NonQueryResult(0L);
+    public static final NonQueryResult ONE_ROW = new NonQueryResult(1L);
+    public static final NonQueryResult ROW_COUNT_UNKNOWN = new NonQueryResult(-1L);
 
-    public void start();
+    public static final QueryResult EMPTY_RESULT = new QueryResult(EMPTY_ROWS);
 
-    public List<ListenableFuture<R>> result();
+    public TaskResult() {
 
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result);
+    }
+
+    public abstract Object[][] rows();
+
+    public abstract long rowCount();
 }

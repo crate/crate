@@ -23,6 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import org.elasticsearch.action.ActionListener;
@@ -33,20 +34,23 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 
 import java.util.List;
 
-public class ESCreateTemplateTask extends AbstractChainedTask<Object[][]> {
+public class ESCreateTemplateTask extends AbstractChainedTask {
 
     private static class CreateTemplateListener implements ActionListener<PutIndexTemplateResponse> {
 
-        private final SettableFuture<Object[][]> future;
+        private final SettableFuture<TaskResult> future;
 
-        private CreateTemplateListener(SettableFuture<Object[][]> future) {
+        private CreateTemplateListener(SettableFuture<TaskResult> future) {
             this.future = future;
         }
 
         @Override
         public void onResponse(PutIndexTemplateResponse putIndexTemplateResponse) {
-            long count = putIndexTemplateResponse.isAcknowledged() ? 1L : 0L;
-            future.set(new Object[][]{ new Object[] { count } });
+            if (putIndexTemplateResponse.isAcknowledged()) {
+                future.set(TaskResult.ONE_ROW);
+            } else {
+                future.set(TaskResult.ZERO);
+            }
         }
 
         @Override
@@ -67,7 +71,7 @@ public class ESCreateTemplateTask extends AbstractChainedTask<Object[][]> {
     }
 
     @Override
-    protected void doStart(List<Object[][]> upstreamResults) {
+    protected void doStart(List<TaskResult> upstreamResults) {
         transport.execute(request, listener);
     }
 

@@ -116,7 +116,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         assertThat(task.result().size(), is(2)); // 2 reducer nodes
 
         // results from first node
-        Object[][] rows = task.result().get(0).get();
+        Object[][] rows = task.result().get(0).get().rows();
         assertThat(rows.length, is(2));
 
         assertThat((BytesRef)rows[0][0], is(new BytesRef("foobar")));
@@ -129,7 +129,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
 
 
         // results from second node
-        rows = task.result().get(1).get();
+        rows = task.result().get(1).get().rows();
         assertThat(rows.length, is(2));
         assertThat((BytesRef)rows[0][0], is(new BytesRef("test")));
         assertThat((Long)rows[0][1], is(14L));

@@ -22,6 +22,8 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.QueryResult;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.elasticsearch.facet.InternalUpdateFacet;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.planner.node.dml.ESUpdateNode;
@@ -37,9 +39,9 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
 
     static class UpdateByQueryResponseListener implements ActionListener<SearchResponse> {
 
-        private final SettableFuture<Object[][]> future;
+        private final SettableFuture<TaskResult> future;
 
-        UpdateByQueryResponseListener(SettableFuture<Object[][]> future) {
+        UpdateByQueryResponseListener(SettableFuture<TaskResult> future) {
             this.future = future;
         }
 
@@ -47,7 +49,7 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
         public void onResponse(SearchResponse searchResponse) {
             InternalUpdateFacet facet = searchResponse.getFacets().facet(InternalUpdateFacet.class, UpdateFacet.TYPE);
             facet.reduce();
-            future.set(new Object[][]{new Object[]{facet.rowCount()}});
+            future.set(new QueryResult(new Object[][]{new Object[]{facet.rowCount()}}));
         }
 
         @Override

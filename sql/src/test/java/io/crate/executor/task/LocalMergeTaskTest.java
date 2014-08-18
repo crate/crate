@@ -23,6 +23,8 @@ package io.crate.executor.task;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.QueryResult;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -94,18 +96,18 @@ public class LocalMergeTaskTest {
         ));
     }
 
-    private ListenableFuture<Object[][]> getUpstreamResult(int numRows) {
-        Object[][] resultRows = new Object[numRows][];
+    private ListenableFuture<TaskResult> getUpstreamResult(int numRows) {
+        Object[][] rows = new Object[numRows][];
         for (int i=0; i<numRows; i++) {
             double d = (double)numRows*i;
             MinimumAggregation.MinimumAggState aggState = minAggFunction.newState();
             aggState.setValue(d);
-            resultRows[i] = new Object[]{
+            rows[i] = new Object[]{
                     d % 4,
                     aggState
             };
         }
-        return Futures.immediateFuture(resultRows);
+        return Futures.immediateFuture((TaskResult) new QueryResult(rows));
     }
 
     @Test
@@ -123,7 +125,7 @@ public class LocalMergeTaskTest {
                     groupProjection,
                     topNProjection
             ));
-            List<ListenableFuture<Object[][]>> upstreamResults = new ArrayList<>(1);
+            List<ListenableFuture<TaskResult>> upstreamResults = new ArrayList<>(1);
             for (int i=1; i<14; i++) {
                 upstreamResults.add(getUpstreamResult(i));
             }
@@ -141,8 +143,8 @@ public class LocalMergeTaskTest {
             localMergeTask.upstreamResult(upstreamResults);
             localMergeTask.start();
 
-            ListenableFuture<List<Object[][]>> allAsList = Futures.allAsList(localMergeTask.result());
-            Object[][] result = allAsList.get().get(0);
+            ListenableFuture<List<TaskResult>> allAsList = Futures.allAsList(localMergeTask.result());
+            Object[][] result = allAsList.get().get(0).rows();
 
             assertThat(result.length, is(3));
             assertThat(result[0].length, is(2));

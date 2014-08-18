@@ -23,6 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.FailedShardsException;
+import io.crate.executor.QueryResult;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.search.SearchShardTarget;
@@ -41,7 +42,7 @@ public class SearchResponseListenerTest {
     public void testMissingShardsException() throws Throwable {
         expectedException.expect(FailedShardsException.class);
 
-        SettableFuture<Object[][]> result = SettableFuture.create();
+        SettableFuture<QueryResult> result = SettableFuture.create();
         ESSearchTask.SearchResponseListener listener = new ESSearchTask.SearchResponseListener(
                 result, null, 4
         );
