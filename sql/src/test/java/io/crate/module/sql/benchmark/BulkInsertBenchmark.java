@@ -27,8 +27,7 @@ import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.google.common.base.Joiner;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Rule;
 import org.junit.Test;
@@ -71,12 +70,12 @@ public class BulkInsertBenchmark extends BenchmarkBase {
         return new SQLRequest(BULK_INSERT_SQL_STMT, bulkObjects);
     }
 
-    private SQLRequest getBulkArgsRequest() {
+    private SQLBulkRequest getBulkArgsRequest() {
         Object[][] bulkArgs = new Object[ROWS][];
         for (int i = 0; i < ROWS; i++) {
             bulkArgs[i] = getRandomObject();
         }
-        return new SQLRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
+        return new SQLBulkRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
     }
 
     private Object[] getRandomObject() {
@@ -108,7 +107,7 @@ public class BulkInsertBenchmark extends BenchmarkBase {
     @Test
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     public void testBulkInsertWithBulkArgs() throws Exception {
-        getClient(false).execute(SQLAction.INSTANCE, getBulkArgsRequest()).actionGet();
+        getClient(false).execute(SQLBulkAction.INSTANCE, getBulkArgsRequest()).actionGet();
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)

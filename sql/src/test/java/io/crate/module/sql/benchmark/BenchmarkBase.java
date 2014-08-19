@@ -21,12 +21,12 @@
 
 package io.crate.module.sql.benchmark;
 
-import junit.framework.TestCase;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.test.integration.NodeSettingsSource;
+import junit.framework.TestCase;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;

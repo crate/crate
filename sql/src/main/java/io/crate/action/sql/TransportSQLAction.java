@@ -22,66 +22,29 @@
 package io.crate.action.sql;
 
 import com.google.common.base.Objects;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
-import io.crate.exceptions.*;
-import io.crate.executor.*;
+import io.crate.executor.BytesRefUtils;
+import io.crate.executor.Executor;
+import io.crate.executor.QueryResult;
+import io.crate.executor.TaskResult;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Plan;
-import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
-import io.crate.sql.parser.ParsingException;
-import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.search.ReduceSearchPhaseException;
-import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
-import org.elasticsearch.indices.IndexAlreadyExistsException;
-import org.elasticsearch.indices.IndexMissingException;
-import org.elasticsearch.indices.InvalidIndexNameException;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 
-public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
-
-    private final Analyzer analyzer;
-    private final Planner planner;
-    private final Executor executor;
-    private final DDLAnalysisDispatcher dispatcher;
-    private final StatsTables statsTables;
-
-    private final LoadingCache<String, Statement> statementCache = CacheBuilder.newBuilder()
-            .maximumSize(500)
-            .build(
-                    new CacheLoader<String, Statement>() {
-                        @Override
-                        public Statement load(@Nonnull String key) throws Exception {
-                            return SqlParser.createStatement(key);
-                        }
-                    }
-            );
+public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLResponse> {
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
@@ -91,253 +54,63 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             DDLAnalysisDispatcher dispatcher,
             TransportService transportService,
             StatsTables statsTables) {
-        super(settings, threadPool);
-        this.analyzer = analyzer;
-        this.planner = planner;
-        this.executor = executor;
-        this.dispatcher = dispatcher;
-        this.statsTables = statsTables;
+        super(settings, threadPool, analyzer, planner, executor, dispatcher, statsTables);
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
     }
 
     @Override
-    protected void doExecute(final SQLRequest request, final ActionListener<SQLResponse> listener) {
-        logger.debug("{}", request);
-
-        try {
-            Statement statement = statementCache.get(request.stmt());
-            Analysis analysis = analyzer.analyze(statement, request.args(), request.bulkArgs());
-
-            if (analysis.isData()) {
-                processWithPlanner(analysis, request, listener);
-            } else {
-                processNonData(analysis, request, listener);
-            }
-        } catch (Exception e) {
-            logger.debug("Error executing SQLRequest", e);
-            listener.onFailure(buildSQLActionException(e));
-        }
+    public Analysis getAnalysis(Statement statement, SQLRequest request) {
+        return analyzer.analyze(statement, request.args(), SQLBulkRequest.EMPTY_BULK_ARGS);
     }
 
-    private void processNonData(final Analysis analysis,
-                                final SQLRequest request,
-                                final ActionListener<SQLResponse> listener) {
-        ListenableFuture<Long> future = dispatcher.process(analysis, null);
-        Futures.addCallback(future, new FutureCallback<Long>() {
-            @Override
-            public void onSuccess(@Nullable Long rowCount) {
-                listener.onResponse(
-                        new SQLResponse(
-                                analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
-                                TaskResult.EMPTY_RESULT.rows(),
-                                rowCount == null ? SQLResponse.NO_ROW_COUNT : rowCount,
-                                request.creationTime())
-                );
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                logger.debug("Error processing non data SQLRequest", t);
-                listener.onFailure(buildSQLActionException(t));
-            }
-        });
+    @Override
+    public SQLResponse emptyResponse(String[] outputNames, long requestCreationTime) {
+        return new SQLResponse(outputNames, TaskResult.EMPTY_RESULT.rows(), 0L, requestCreationTime);
     }
 
-    private void processWithPlanner(Analysis analysis, SQLRequest request, ActionListener<SQLResponse> listener) {
-        final String[] outputNames = analysis.outputNames().toArray(new String[analysis.outputNames().size()]);
-
-        if (analysis.hasNoResult()) {
-            emptyResponse(request, analysis, listener);
-            return;
-        }
-        final Plan plan = planner.plan(analysis);
-        if (logger.isTraceEnabled()) {
-            PlanPrinter printer = new PlanPrinter();
-            logger.trace(printer.print(plan));
-        }
-        final ResponseBuilder responseBuilder = getResponseBuilder(plan);
-        if (plan.isEmpty()) {
-            UUID jobId = UUID.randomUUID();
-            statsTables.jobStarted(jobId, request.stmt());
-            assert plan.expectsAffectedRows();
-            ListenableFuture<List<TaskResult>> zeroAffectedRows =
-                    Futures.immediateFuture(Arrays.<TaskResult>asList(TaskResult.ZERO));
-            addResultCallback(request, listener, outputNames, plan, responseBuilder, jobId, zeroAffectedRows);
-        } else {
-            final Job job = executor.newJob(plan);
-            statsTables.jobStarted(job.id(), request.stmt());
-            final ListenableFuture<List<TaskResult>> resultFuture = Futures.allAsList(executor.execute(job));
-            addResultCallback(request, listener, outputNames, plan, responseBuilder, job.id(), resultFuture);
-        }
-
-    }
-
-    private static void emptyResponse(SQLRequest request,
-                                      Analysis analysis,
-                                      final ActionListener<SQLResponse> listener) {
-        SQLResponse response = new SQLResponse(
-                analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
+    @Override
+    protected SQLResponse createResponseFromResult(String[] outputNames, Long rowCount, long requestCreationTime) {
+        return new SQLResponse(
+                outputNames,
                 TaskResult.EMPTY_RESULT.rows(),
-                0,
-                request.creationTime());
-        listener.onResponse(response);
+                Objects.firstNonNull(rowCount, SQLResponse.NO_ROW_COUNT),
+                requestCreationTime
+        );
     }
 
-    private static ResponseBuilder getResponseBuilder(Plan plan) {
-        if (plan.expectsAffectedRows()) {
-            return new AffectedRowsResponseBuilder();
+    @Override
+    protected SQLResponse createResponseFromResult(Plan plan,
+                                                   String[] outputNames,
+                                                   List<TaskResult> result,
+                                                   long requestCreationTime,
+                                                   boolean includeTypesOnResponse) {
+        assert result.size() == 1;
+
+        TaskResult taskResult = result.get(0);
+        Object[][] rows = taskResult.rows();
+        long rowCount = 0;
+        if (plan.expectsAffectedRows() && taskResult instanceof QueryResult) {
+            if (rows.length >= 1 && rows[0].length >= 1) {
+                rowCount = ((Number) rows[0][0]).longValue();
+            }
         } else {
-            return new RowsResponseBuilder(true);
-        }
-    }
-
-    private void addResultCallback(final SQLRequest request,
-                                   final ActionListener<SQLResponse> listener,
-                                   final String[] outputNames,
-                                   final Plan plan,
-                                   final ResponseBuilder responseBuilder,
-                                   @Nullable final UUID jobId,
-                                   ListenableFuture<List<TaskResult>> resultFuture) {
-        Futures.addCallback(resultFuture, new FutureCallback<List<TaskResult>>() {
-            @Override
-            public void onSuccess(@Nullable List<TaskResult> result) {
-                Object[][] rows;
-                SQLResponse response;
-
-                if (result == null) {
-                    response = responseBuilder.buildResponse(
-                            plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
-                            outputNames,
-                            TaskResult.EMPTY_RESULT,
-                            request.creationTime(),
-                            request.includeTypesOnResponse());
-                } else if (result.size() == 1) {
-                    response = responseBuilder.buildResponse(
-                            plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
-                            outputNames,
-                            result.get(0),
-                            request.creationTime(),
-                            request.includeTypesOnResponse());
-                } else {
-                    // TODO: bulk result
-                    response = responseBuilder.buildResponse(
-                            plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
-                            outputNames,
-                            result.get(0),
-                            request.creationTime(),
-                            request.includeTypesOnResponse());
-                }
-
-                handleJobStats(jobId, null);
-                listener.onResponse(response);
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                logger.debug("Error processing SQLRequest", t);
-                handleJobStats(jobId, Exceptions.messageOf(t));
-                listener.onFailure(buildSQLActionException(t));
-            }
-
-            private void handleJobStats(@Nullable UUID jobId, @Nullable String errorMessage) {
-                if (jobId == null) {
-                    return;
-                }
-                statsTables.jobFinished(jobId, errorMessage);
-            }
-        });
-    }
-
-    /**
-     * Returns the cause throwable of a {@link org.elasticsearch.transport.RemoteTransportException}
-     * and {@link org.elasticsearch.action.search.ReduceSearchPhaseException}.
-     * Also transform throwable to {@link io.crate.exceptions.CrateException}.
-     *
-     */
-    public Throwable esToCrateException(Throwable e) {
-        e = Exceptions.unwrap(e);
-
-        if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
-            return new SQLParseException(e.getMessage(), (Exception)e);
-        } else if (e instanceof UnsupportedOperationException) {
-            return new UnsupportedFeatureException(e.getMessage(), (Exception)e);
-        } else if (e instanceof DocumentAlreadyExistsException) {
-            return new DuplicateKeyException(
-                    "A document with the same primary key exists already", e);
-        } else if (e instanceof IndexAlreadyExistsException) {
-            return new TableAlreadyExistsException(((IndexAlreadyExistsException)e).index().name(), e);
-        } else if ((e instanceof InvalidIndexNameException)) {
-            if (e.getMessage().contains("already exists as alias")) {
-                // treat an alias like a table as aliases are not officially supported
-                return new TableAlreadyExistsException(((InvalidIndexNameException)e).index().getName(),
-                        e);
-            }
-            return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
-        } else if (e instanceof IndexMissingException) {
-            return new TableUnknownException(((IndexMissingException)e).index().name(), e);
-        } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {
-            /**
-             * For update or search requests we use upstream ES SearchRequests
-             * These requests are executed using the transportSearchAction.
-             *
-             * The transportSearchAction (or the more specific QueryThenFetch/../ Action inside it
-             * executes the TransportSQLAction.SearchResponseListener onResponse/onFailure
-             * but adds its own error handling around it.
-             * By doing so it wraps every exception raised inside our onResponse in its own ReduceSearchPhaseException
-             * Here we unwrap it to get the original exception.
-             */
-            return e.getCause();
-        }
-        return e;
-    }
-
-    /**
-     * Create a {@link io.crate.action.sql.SQLActionException} out of a {@link java.lang.Throwable}.
-     * If concrete {@link org.elasticsearch.ElasticsearchException} is found, first transform it
-     * to a {@link io.crate.exceptions.CrateException}
-     *
-     */
-    public SQLActionException buildSQLActionException(Throwable e) {
-        if (e instanceof SQLActionException) {
-            return (SQLActionException) e;
-        }
-        e = esToCrateException(e);
-
-        int errorCode = 5000;
-        RestStatus restStatus = RestStatus.INTERNAL_SERVER_ERROR;
-        String message = e.getMessage();
-        StringWriter stackTrace = new StringWriter();
-        e.printStackTrace(new PrintWriter(stackTrace));
-
-        if (e instanceof CrateException) {
-            CrateException crateException = (CrateException)e;
-            if (e instanceof ValidationException) {
-                errorCode = 4000 + crateException.errorCode();
-                restStatus = RestStatus.BAD_REQUEST;
-            } else if (e instanceof ResourceUnknownException) {
-                errorCode = 4040 + crateException.errorCode();
-                restStatus = RestStatus.NOT_FOUND;
-            } else if (e instanceof ConflictException) {
-                errorCode = 4090 + crateException.errorCode();
-                restStatus = RestStatus.CONFLICT;
-            } else if (e instanceof UnhandledServerException) {
-                errorCode = 5000 + crateException.errorCode();
-            }
-        } else if (e instanceof ParsingException) {
-            errorCode = 4000;
-            restStatus = RestStatus.BAD_REQUEST;
+            rowCount = taskResult.rowCount();
         }
 
-        if (e instanceof NullPointerException && message == null) {
-            StackTraceElement[] stackTrace1 = e.getStackTrace();
-            if (stackTrace1.length > 0) {
-                message = String.format("NPE in %s", stackTrace1[0]);
-            }
+        DataType[] dataTypes = plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]);
+        BytesRefUtils.ensureStringTypesAreStrings(dataTypes, rows);
+        if (includeTypesOnResponse) {
+            return new SQLResponse(
+                    outputNames,
+                    rows,
+                    dataTypes,
+                    rowCount,
+                    requestCreationTime,
+                    true
+            );
+        } else {
+            return new SQLResponse(outputNames, rows, rowCount, requestCreationTime);
         }
-        if (logger.isTraceEnabled()) {
-            message = Objects.firstNonNull(message, stackTrace.toString());
-        }
-        return new SQLActionException(message, errorCode, restStatus, stackTrace.toString());
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {
