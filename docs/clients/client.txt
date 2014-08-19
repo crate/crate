@@ -58,12 +58,13 @@ SQLRequest Class
 ================
 
 By default, the column data types are not serialized. In order to get
-these, one must defined it at the ``SQLRequest`` object::
+these, one must defined it at the ``SQLRequest``
+or ``SQLBulkRequest`` (see :ref:`java_client_bulk`) object::
 
     SQLRequest request = new SQLRequest("SELECT name FROM sys.nodes");
 
 If you want to receive the types of the columns in the ``SQLResponse``
-you'll need to set ``includeTypesOnResponse``::
+or ``SQLBulkResponse`` you'll need to set ``includeTypesOnResponse``::
 
     request.includeTypesOnResponse(true);
 
@@ -95,12 +96,11 @@ Parameter Substitution
 To prevent `SQL Injection`_ and for convenience reasons one always
 should use parameter substitution when querying data.
 
-In order to perform parameter substitution you have to use the
-``SQLRequest`` class again.
+In order to perform parameter substitution you can use the
+``SQLRequest`` or the ``SQLBulkRequest`` (see :ref:`java_client_bulk`) class again.
 
 Here we'll create a table ``foo`` first and then insert data
 using parameter substitution::
-
 
     client.sql("CREATE TABLE foo (id int primary key, name string)").actionGet()
 
@@ -109,21 +109,12 @@ using parameter substitution::
 
     SQLRequest request = new SQLRequest(stmt, args);
 
-To bulk insert data you need to make use of multiple rows in the
-INSERT statement like and provide an object array of arguments
-with the length of
-``number of inserted records * number of columns``::
-
-    String stmt = "INSERT INTO foo (id, name) VALUES (?, ?), (?, ?)";
-    Object[] args = new Object[]{1, "bar", 2, "baz"};
-
-    SQLRequest request = new SQLRequest(stmt, args);
-
 
 Data Type Mapping
 =================
 
-The data type of columns in the ``SQLResponse`` are Crate data types
+The data type of columns in the ``SQLResponse``
+or ``SQLBulkResponse`` are Crate data types
 and map with the following native Java types.
 
 ========== =========
@@ -147,10 +138,12 @@ geo_point  Double[2]
 The mapping also works the other way round for parameter substitution.
 
 
+.. _java_client_bulk:
+
 Bulk Operations
 ===============
 
-The SQLRequest class allows to specify and issue bulk operations which are
+Using the SQLBulkRequest class allows to specify and issue bulk operations which are
 executed as single calls on the back-end site. It can be compared to
 `prepared statement`_.
 
@@ -163,10 +156,11 @@ statements are:
 
  - Delete
 
-In order to issue a bulk operation, the SQLRequest class can be used. It
-accepts a two dimensional array (``bulkArgs`` of type Object[][]). The first
+In order to issue a bulk operation, the SQLBulkRequest class can be used
+together with the ``bulkSql()`` method.
+It accepts a two dimensional array (``bulkArgs`` of type Object[][]). The first
 dimension consolidates all records to a bulk. The second dimension represents
-one record and needs to match the specified columns of a statement.
+one record and needs to match the specified parameters of a statement.
 
 The following example describes how to issue an insert bulk operation and
 insert three records at once::
@@ -178,12 +172,22 @@ insert three records at once::
         {3, "Nancy Callahan"}
     };
 
-    SQLRequest request = new SQLRequest(stmt, bulkArgs);
+    SQLBulkRequest request = new SQLBulkRequest(stmt, bulkArgs);
+    client.bulkSql(request).actionGet();
 
-The response is similar to the equivalent single request except that
-``rowcount`` reflects the number of successfully performed requests.
-In this case, the response is similar to a single insert request but with a
-``rowcount`` of three, instead of one.
+.. note::
+
+    When using bulk operations **all operations are executed** whatsoever.
+    It does not matter whether one single operation fails or all succeed.
+
+The response is an instance of ``SQLBulkResponse``.
+It contains the column names (using ``sqlBulkResponse.cols()``)
+and column data types (using ``sqlBulkResponse.columnTypes()``) and an Array
+of ``Result`` instances which contain a ``rowCount`` per single bulk operation.
+If a bulk operation failed,  the attribute ``errorMessage`` is not null.
+The insert operation above would contain three ``Result`` instances with the following data::
+
+    "{rowCount=1, errorMessage=null}"
 
 
 .. _`SQL Injection`: http://en.wikipedia.org/wiki/SQL_injection

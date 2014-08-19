@@ -71,6 +71,7 @@ import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 
@@ -717,8 +718,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get().rows();
-        assertThat((Long) rows[0][0], is(1l));
+        assertThat(result.get(0).get().errorMessage(), is(nullValue()));
+        assertThat(result.get(0).get().rowCount(), is(1L));
 
         ESGetNode getNode = new ESGetNode("characters", "1", "1");
         getNode.outputs(Arrays.<Symbol>asList(id_ref, name_ref, version_ref));
@@ -728,7 +729,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         job = executor.newJob(plan);
         result = executor.execute(job);
-        rows = result.get(0).get().rows();
+        Object[][] rows = result.get(0).get().rows();
 
         assertThat(rows.length, is(1));
         assertThat((Integer)rows[0][0], is(1));
@@ -769,8 +770,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get().rows();
-        assertThat((Long)rows[0][0], is(2l));
+        assertThat(result.get(0).get().rowCount(), is(2L));
 
         refresh();
 
@@ -795,7 +795,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         job = executor.newJob(plan);
         result = executor.execute(job);
-        rows = result.get(0).get().rows();
+        Object[][] rows = result.get(0).get().rows();
 
         assertThat(rows.length, is(2));
         assertThat((Integer)rows[0][0], is(1));

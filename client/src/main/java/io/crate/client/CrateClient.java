@@ -21,6 +21,8 @@
 
 package io.crate.client;
 
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.ElasticsearchException;
@@ -116,6 +118,14 @@ public class CrateClient {
 
     public void sql(SQLRequest request, ActionListener<SQLResponse> listener) {
         internalClient.sql(request, listener);
+    }
+
+    public ActionFuture<SQLBulkResponse> bulkSql(SQLBulkRequest bulkRequest) {
+        return internalClient.bulkSql(bulkRequest);
+    }
+
+    public void bulkSql(SQLBulkRequest bulkRequest, ActionListener<SQLBulkResponse> listener) {
+        internalClient.bulkSql(bulkRequest, listener);
     }
 
     public Settings settings() {
