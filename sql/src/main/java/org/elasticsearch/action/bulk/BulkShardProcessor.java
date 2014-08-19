@@ -278,21 +278,12 @@ public class BulkShardProcessor {
 
     private void processResponse(BulkShardResponse bulkShardResponse) {
         trace("execute response");
-        int successes = 0;
         for (BulkItemResponse itemResponse : bulkShardResponse.getResponses()) {
-            if (itemResponse.isFailed()) {
-                setFailure(new RuntimeException(itemResponse.getFailureMessage()));
-                synchronized (responsesLock) {
-                    responses.set(itemResponse.getItemId(), false);
-                }
-            } else {
-                synchronized (responsesLock) {
-                    responses.set(itemResponse.getItemId());
-                }
-                successes++;
+            synchronized (responsesLock) {
+                responses.set(itemResponse.getItemId(), !itemResponse.isFailed());
             }
         }
-        setResultIfDone(successes);
+        setResultIfDone(bulkShardResponse.getResponses().length);
     }
 
     private void processFailure(Throwable e, BulkShardRequest bulkShardRequest, boolean repeatingRetry) {
