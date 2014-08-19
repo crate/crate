@@ -57,7 +57,7 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     public static final String INDEX_NAME = "users";
-    public static final int BENCHMARK_ROUNDS = 5;
+    public static final int BENCHMARK_ROUNDS = 3;
     public static final int ROWS = 5000;
 
     public static final String SINGLE_INSERT_SQL_STMT = "INSERT INTO users (id, name, age) Values (?, ?, ?)";
@@ -141,5 +141,15 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
         }
         getClient(false).execute(SQLAction.INSTANCE, new SQLRequest(DELETE_SQL_STMT, bulkArgs)).actionGet();
         refresh(client());
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testSQLSingleDelete() {
+        HashMap<String, String> ids = createSampleData();
+        for(String id: ids.keySet()){
+            getClient(false).execute(SQLAction.INSTANCE,
+                                     new SQLRequest(DELETE_SQL_STMT, new Object[]{id})).actionGet();
+        }
     }
 }
