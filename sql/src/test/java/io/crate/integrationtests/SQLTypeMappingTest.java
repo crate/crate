@@ -21,10 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.client.Client;
 import org.junit.Rule;
