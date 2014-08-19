@@ -24,7 +24,7 @@ package io.crate.action.sql;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.Executor;
-import io.crate.executor.NonQueryResult;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Plan;
@@ -83,7 +83,7 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
         SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[result.size()];
         for (int i = 0, resultSize = result.size(); i < resultSize; i++) {
             TaskResult taskResult = result.get(i);
-            assert taskResult instanceof NonQueryResult : "Query operation not supported with bulk requests";
+            assert taskResult instanceof RowCountResult : "Query operation not supported with bulk requests";
             results[i] = new SQLBulkResponse.Result(taskResult.errorMessage(), taskResult.rowCount());
         }
 
