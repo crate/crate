@@ -26,7 +26,6 @@ import com.google.common.collect.Maps;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
@@ -52,12 +51,11 @@ public abstract class SysObjectArrayReference extends SysExpression<Object[]>
                 }
                 // convert nested columns of type e.getValue().value() to String here
                 // as we do not want to convert them when building the response
-                if (info.type().equals(DataTypes.STRING)) {
-                    values[i] = ((BytesRef)child.value()).utf8ToString();
-                } else {
-                    values[i] = child.value();
+                Object value = child.value();
+                if (value != null && value instanceof BytesRef) {
+                    value = ((BytesRef)value).utf8ToString();
                 }
-                i++;
+                values[i++] = value;
             }
         }
         if (info == null) {
@@ -89,10 +87,11 @@ public abstract class SysObjectArrayReference extends SysExpression<Object[]>
                 @Nullable
                 @Override
                 public Object apply(@Nullable SysExpression input) {
-                    if (input.info().type().equals(DataTypes.STRING)) {
-                        return ((BytesRef)input.value()).utf8ToString();
+                    Object value = input.value();
+                    if (value != null && value instanceof BytesRef) {
+                        return ((BytesRef)value).utf8ToString();
                     } else {
-                        return input.value();
+                        return value;
                     }
                 }
             });
