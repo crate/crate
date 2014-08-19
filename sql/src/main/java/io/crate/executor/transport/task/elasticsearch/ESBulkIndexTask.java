@@ -22,7 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.Futures;
-import io.crate.executor.NonQueryResult;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -77,7 +77,7 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
             @Override
             public void onSuccess(@Nullable Long res) {
                 assert res != null;
-                result.set(new NonQueryResult(res));
+                result.set(new RowCountResult(res));
             }
 
             @Override

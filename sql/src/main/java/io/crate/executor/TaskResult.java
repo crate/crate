@@ -27,9 +27,9 @@ public abstract class TaskResult {
 
     protected static final Object[][] EMPTY_ROWS = new Object[0][];
 
-    public static final NonQueryResult ZERO = new NonQueryResult(0L);
-    public static final NonQueryResult ONE_ROW = new NonQueryResult(1L);
-    public static final NonQueryResult ROW_COUNT_UNKNOWN = new NonQueryResult(-1L);
+    public static final RowCountResult ZERO = new RowCountResult(0L);
+    public static final RowCountResult ONE_ROW = new RowCountResult(1L);
+    public static final RowCountResult ROW_COUNT_UNKNOWN = new RowCountResult(-1L);
 
     public static final QueryResult EMPTY_RESULT = new QueryResult(EMPTY_ROWS);
 
