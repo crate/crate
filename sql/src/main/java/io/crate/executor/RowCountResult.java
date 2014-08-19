@@ -25,17 +25,17 @@ import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nullable;
 
-public class NonQueryResult extends TaskResult {
+public class RowCountResult extends TaskResult {
 
     private final long rowCount;
     @Nullable private final Throwable error;
 
-    public NonQueryResult(long rowCount) {
+    public RowCountResult(long rowCount) {
         this.rowCount = rowCount;
         this.error = null;
     }
 
-    public NonQueryResult(long rowCount, Throwable throwable) {
+    public RowCountResult(long rowCount, Throwable throwable) {
         this.rowCount = rowCount;
         this.error = throwable;
     }

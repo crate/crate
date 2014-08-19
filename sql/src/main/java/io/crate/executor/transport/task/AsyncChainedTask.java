@@ -25,7 +25,7 @@ import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.NonQueryResult;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 
@@ -49,7 +49,7 @@ public abstract class AsyncChainedTask implements Task<TaskResult> {
         ListenableFuture<TaskResult> resultFallback = Futures.withFallback(result, new FutureFallback<TaskResult>() {
             @Override
             public ListenableFuture<TaskResult> create(@Nonnull Throwable t) throws Exception {
-                return Futures.immediateFuture((TaskResult) new NonQueryResult(-2, t));
+                return Futures.immediateFuture((TaskResult) new RowCountResult(-2, t));
             }
         });
         resultList = new ArrayList<>();
