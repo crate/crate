@@ -100,7 +100,6 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
     @Override
     public void writeValueTo(StreamOutput out, Object v) throws IOException {
         // .writeBytesRef isn't used here because it will convert null values to empty bytesRefs
-
         // to distinguish between null and an empty bytesRef
         // 1 is always added to the length so that
         // 0 is null

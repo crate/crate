@@ -226,4 +226,17 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         assertThat(someData.keySet().size(), is(2));
         assertThat(someData.keySet(), hasItems("dev", "path"));
     }
+
+    @Test
+    public void testVersion() throws Exception {
+        SQLResponse response = executor.exec("select version, version['number'], " +
+                "version['build_hash'], version['build_snapshot'] " +
+                "from sys.nodes limit 1");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], instanceOf(Map.class));
+        assertThat((Map<String, Object>)response.rows()[0][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
+        assertThat((String)response.rows()[0][1], is("0.42.0"));
+        assertThat(response.rows()[0][2], instanceOf(String.class));
+        assertThat((Boolean)response.rows()[0][3], isOneOf(true, false));
+    }
 }

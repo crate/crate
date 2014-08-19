@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: correctly serialize sys expressions of type object
+
 2014/08/18 0.41.3
 =================
 

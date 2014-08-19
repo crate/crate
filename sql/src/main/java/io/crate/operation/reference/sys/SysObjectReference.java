@@ -23,6 +23,8 @@ package io.crate.operation.reference.sys;
 
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysExpression;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,7 +44,14 @@ public abstract class SysObjectReference extends SysExpression<Map<String, Objec
     public Map<String,Object> value() {
         Map<String, Object> map = new HashMap<>();
         for (Map.Entry<String, SysExpression> e : childImplementations.entrySet()) {
-            map.put(e.getKey(), e.getValue().value());
+            Object value = e.getValue().value();
+
+            // convert nested columns of type e.getValue().value() to String here
+            // as we do not want to convert them when building the response
+            if (e.getValue().info().type().equals(DataTypes.STRING)) {
+                value = ((BytesRef)value).utf8ToString();
+            }
+            map.put(e.getKey(), value);
         }
         return Collections.unmodifiableMap(map);
     }

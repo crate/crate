@@ -24,9 +24,7 @@ package io.crate.integrationtests;
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
-import io.crate.PartitionName;
-import io.crate.TimestampFormat;
+import io.crate.*;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
@@ -61,6 +59,7 @@ import java.util.*;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 @Seed("991C1014D4833E6C:1CDD059F87E0920F")

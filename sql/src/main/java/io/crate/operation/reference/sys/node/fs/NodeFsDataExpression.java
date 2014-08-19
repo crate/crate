@@ -26,6 +26,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.operation.reference.sys.SysNodeStaticObjectArrayReference;
 import io.crate.operation.reference.sys.SysObjectReference;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.env.NodeEnvironment;
@@ -72,8 +73,8 @@ public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
                         }
                     }
                     childImplementations.add(new NodeFsDataChildExpression(
-                            winner != null ? winner.getDevName() : null,
-                            absDataLocation
+                            winner != null ? new BytesRef(winner.getDevName()) : null,
+                            new BytesRef(absDataLocation)
                     ));
                 }
             } catch (Exception e) {
@@ -92,17 +93,17 @@ public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
         public static final String DEV = "dev";
         public static final String PATH = "path";
 
-        protected NodeFsDataChildExpression(final String device, final String dataPath) {
+        protected NodeFsDataChildExpression(final BytesRef device, final BytesRef dataPath) {
             super(NodeFsDataExpression.this.info().ident().columnIdent());
-            childImplementations.put(DEV, new ChildExpression<String>(DEV) {
+            childImplementations.put(DEV, new ChildExpression<BytesRef>(DEV) {
                 @Override
-                public String value() {
+                public BytesRef value() {
                     return device;
                 }
             });
-            childImplementations.put(PATH, new ChildExpression<String>(PATH) {
+            childImplementations.put(PATH, new ChildExpression<BytesRef>(PATH) {
                 @Override
-                public String value() {
+                public BytesRef value() {
                     return dataPath;
                 }
             });

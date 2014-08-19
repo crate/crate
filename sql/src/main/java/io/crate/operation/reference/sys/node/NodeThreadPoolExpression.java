@@ -24,6 +24,7 @@ package io.crate.operation.reference.sys.node;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -49,19 +50,19 @@ public class NodeThreadPoolExpression extends SysNodeObjectReference {
     public static final String QUEUE = "queue";
 
     private final ThreadPoolExecutor threadPoolExecutor;
-    private final String name;
+    private final BytesRef name;
 
     public NodeThreadPoolExpression(ThreadPool threadPool, String name) {
         super(NAME);
         this.threadPoolExecutor = (ThreadPoolExecutor) threadPool.executor(name);
-        this.name = name;
+        this.name = new BytesRef(name);
         addChildImplementations();
     }
 
     private void addChildImplementations() {
-        childImplementations.put(POOL_NAME, new ThreadPoolExpression<String>(POOL_NAME) {
+        childImplementations.put(POOL_NAME, new ThreadPoolExpression<BytesRef>(POOL_NAME) {
             @Override
-            public String value() {
+            public BytesRef value() {
                 return name;
             }
         });
