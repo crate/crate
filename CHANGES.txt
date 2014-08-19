@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.9.3 which includes following changes:
+
+    - send cookies with cross-origin requests
+
  - fix: using the is not null predicate on a non-existing or ignored column
    did throw an exception
 
