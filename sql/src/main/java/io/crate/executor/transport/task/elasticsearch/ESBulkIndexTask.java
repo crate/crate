@@ -59,6 +59,7 @@ public class ESBulkIndexTask implements Task<RowCountResult> {
                 transportShardBulkAction,
                 transportCreateIndexAction,
                 node.partitionedTable(),
+                true,
                 this.node.sourceMaps().size());
 
         if (!node.isBulkRequest()) {

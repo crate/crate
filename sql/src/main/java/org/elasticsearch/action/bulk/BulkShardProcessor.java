@@ -63,6 +63,7 @@ public class BulkShardProcessor {
     private final TransportShardBulkAction transportShardBulkAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final boolean autoCreateIndices;
+    private final boolean allowCreateOnly;
     private final int bulkSize;
     private final Map<ShardId, List<BulkItemRequest>> requestsByShard = new HashMap<>();
     private final AutoCreateIndex autoCreateIndex;
@@ -88,11 +89,13 @@ public class BulkShardProcessor {
                               TransportShardBulkAction transportShardBulkAction,
                               TransportCreateIndexAction transportCreateIndexAction,
                               boolean autoCreateIndices,
+                              boolean allowCreateOnly,
                               int bulkSize) {
         this.clusterService = clusterService;
         this.transportShardBulkAction = transportShardBulkAction;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.autoCreateIndices = autoCreateIndices;
+        this.allowCreateOnly = allowCreateOnly;
         this.bulkSize = bulkSize;
         responses = new BitSet();
         result = SettableFuture.create();
@@ -139,6 +142,7 @@ public class BulkShardProcessor {
         }
         indexRequest.source(source, false);
         indexRequest.timestamp(Long.toString(System.currentTimeMillis()));
+        indexRequest.create(allowCreateOnly);
 
         try {
             executeLock.acquire();

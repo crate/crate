@@ -74,6 +74,7 @@ public class BulkShardProcessorTest {
                 transportShardBulkAction,
                 mock(TransportCreateIndexAction.class),
                 false,
+                false,
                 1
         );
         bulkShardProcessor.add("foo", new BytesArray("{\"foo\": \"bar1\"}"), "1", null);
@@ -109,6 +110,7 @@ public class BulkShardProcessorTest {
                 ImmutableSettings.EMPTY,
                 transportShardBulkAction,
                 mock(TransportCreateIndexAction.class),
+                false,
                 false,
                 1
         );
