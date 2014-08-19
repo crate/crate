@@ -94,6 +94,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
                 transportShardBulkAction,
                 transportCreateIndexAction,
                 partitionedByInputs.size() > 0, // autoCreate indices if this is a partitioned table
+                false,
                 Objects.firstNonNull(bulkActions, 100)
         );
     }
