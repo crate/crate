@@ -9,6 +9,8 @@ Unreleased
 
     - send cookies with cross-origin requests
 
+ - implemented ``bulkSql`` methods for crate java client
+
  - fix: using the is not null predicate on a non-existing or ignored column
    did throw an exception
 

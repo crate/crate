@@ -22,9 +22,7 @@
 package io.crate.client;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.*;
 import org.elasticsearch.client.transport.TransportClientNodesService;
@@ -48,16 +46,20 @@ public class InternalCrateClient {
 
         this.nodesService = nodesService;
 
-        // Currently we only support the sql action, so this gets registered directly
-        MapBuilder<Action, TransportActionNodeProxy> actionsBuilder = new MapBuilder<Action,
-                TransportActionNodeProxy>();
-        actionsBuilder.put((Action) SQLAction.INSTANCE,
-                new TransportActionNodeProxy(settings, SQLAction.INSTANCE, transportService));
+        MapBuilder<Action, TransportActionNodeProxy> actionsBuilder = new MapBuilder<>();
+        actionsBuilder.put(SQLAction.INSTANCE,
+                           new TransportActionNodeProxy(settings, SQLAction.INSTANCE, transportService))
+                      .put(SQLBulkAction.INSTANCE,
+                           new TransportActionNodeProxy(settings, SQLBulkAction.INSTANCE, transportService));
         this.actions = actionsBuilder.immutableMap();
     }
 
     public ActionFuture<SQLResponse> sql(final SQLRequest request) {
         return execute(SQLAction.INSTANCE, request);
+    }
+
+    public ActionFuture<SQLBulkResponse> bulkSql(final SQLBulkRequest bulkRequest) {
+        return execute(SQLBulkAction.INSTANCE, bulkRequest);
     }
 
     protected <Request extends ActionRequest, Response extends ActionResponse,
@@ -77,6 +79,10 @@ public class InternalCrateClient {
 
     public void sql(final SQLRequest request, final ActionListener<SQLResponse> listener) {
         execute(SQLAction.INSTANCE, request, listener);
+    }
+
+    public void bulkSql(final SQLBulkRequest bulkRequest, final ActionListener<SQLBulkResponse> listener) {
+        execute(SQLBulkAction.INSTANCE, bulkRequest, listener);
     }
 
     protected <Request extends ActionRequest, Response extends ActionResponse,
