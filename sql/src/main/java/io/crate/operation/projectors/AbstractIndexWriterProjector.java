@@ -44,6 +44,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -164,10 +165,11 @@ public abstract class AbstractIndexWriterProjector implements Projector {
 
     private void setResultCallback() {
         assert downstream != null;
-        Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<Long>() {
+        Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
             @Override
-            public void onSuccess(@Nullable Long result) {
-                downstream.setNextRow(result);
+            public void onSuccess(@Nullable BitSet result) {
+                long rowCount = result == null ? 0L : result.cardinality();
+                downstream.setNextRow(rowCount);
                 downstream.upstreamFinished();
             }
 

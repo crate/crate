@@ -118,7 +118,7 @@ public class Analyzer {
             }
         }
 
-        private boolean hasBulkParams() {
+        public boolean hasBulkParams() {
             return bulkParameters.length > 0;
         }
 

@@ -30,6 +30,7 @@ public abstract class TaskResult {
     public static final RowCountResult ZERO = new RowCountResult(0L);
     public static final RowCountResult ONE_ROW = new RowCountResult(1L);
     public static final RowCountResult ROW_COUNT_UNKNOWN = new RowCountResult(-1L);
+    public static final RowCountResult FAILURE = new RowCountResult(-2L);
 
     public static final QueryResult EMPTY_RESULT = new QueryResult(EMPTY_ROWS);
 

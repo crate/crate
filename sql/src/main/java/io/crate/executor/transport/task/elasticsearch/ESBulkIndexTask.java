@@ -21,8 +21,12 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.RowCountResult;
+import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -33,24 +37,92 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 
-public class ESBulkIndexTask extends AbstractESIndexTask {
+public class ESBulkIndexTask implements Task<RowCountResult> {
 
     private final BulkShardProcessor bulkShardProcessor;
+    private final ESIndexNode node;
+    private final ArrayList<ListenableFuture<RowCountResult>> resultList;
 
     public ESBulkIndexTask(ClusterService clusterService,
                            Settings settings,
                            TransportShardBulkAction transportShardBulkAction,
                            TransportCreateIndexAction transportCreateIndexAction,
                            ESIndexNode node) {
-        super(node);
-        this.bulkShardProcessor = new BulkShardProcessor(clusterService, settings,
-                transportShardBulkAction, transportCreateIndexAction, node.partitionedTable(), this.node.sourceMaps().size());
+        this.node = node;
+        this.bulkShardProcessor = new BulkShardProcessor(
+                clusterService,
+                settings,
+                transportShardBulkAction,
+                transportCreateIndexAction,
+                node.partitionedTable(),
+                this.node.sourceMaps().size());
+
+        if (!node.isBulkRequest()) {
+            final SettableFuture<RowCountResult> futureResult = SettableFuture.create();
+            resultList = new ArrayList<>(1);
+            resultList.add(futureResult);
+
+            Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
+                @Override
+                public void onSuccess(@Nullable BitSet result) {
+                    if (result == null) {
+                        futureResult.set(TaskResult.ROW_COUNT_UNKNOWN);
+                    } else {
+                        futureResult.set(new RowCountResult(result.cardinality()));
+                    }
+                }
+
+                @Override
+                public void onFailure(@Nonnull Throwable t) {
+                    futureResult.setException(t);
+                }
+            });
+        } else {
+            final int numResults = node.sourceMaps().size();
+            resultList = new ArrayList<>(numResults);
+            for (int i = 0; i < numResults; i++) {
+                resultList.add(SettableFuture.<RowCountResult>create());
+            }
+            Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
+                @Override
+                public void onSuccess(@Nullable BitSet result) {
+                    if (result == null) {
+                        setAllToFailed(null);
+                        return;
+                    }
+
+                    for (int i = 0; i < numResults; i++) {
+                        SettableFuture<RowCountResult> future = (SettableFuture<RowCountResult>) resultList.get(i);
+                        future.set(result.get(i) ? TaskResult.ONE_ROW : TaskResult.FAILURE);
+                    }
+                }
+
+                private void setAllToFailed(@Nullable Throwable throwable) {
+                    if (throwable == null) {
+                        for (ListenableFuture<RowCountResult> future : resultList) {
+                            ((SettableFuture<RowCountResult>) future).set(TaskResult.FAILURE);
+                        }
+                    } else {
+                        for (ListenableFuture<RowCountResult> future : resultList) {
+                            ((SettableFuture<RowCountResult>) future).set(new RowCountResult(-2L, throwable));
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(@Nonnull Throwable t) {
+                    setAllToFailed(t);
+                }
+            });
+        }
     }
 
     @Override
-    protected void doStart(List<TaskResult> upstreamResults) {
+    public void start() {
         if (node.indices().length == 1) {
             String index = node.indices()[0];
             for(int i=0; i < this.node.sourceMaps().size(); i++){
@@ -72,18 +144,15 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
             }
         }
         bulkShardProcessor.close();
-        Futures.addCallback(bulkShardProcessor.result(), new com.google.common.util.concurrent.FutureCallback<Long>() {
+    }
 
-            @Override
-            public void onSuccess(@Nullable Long res) {
-                assert res != null;
-                result.set(new RowCountResult(res));
-            }
+    @Override
+    public List<ListenableFuture<RowCountResult>> result() {
+        return resultList;
+    }
 
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                result.setException(t);
-            }
-        });
+    @Override
+    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
+        throw new UnsupportedOperationException("BulkIndexTask can't have an upstream result");
     }
 }

@@ -34,6 +34,7 @@ import java.util.List;
 public class ESIndexNode extends DMLPlanNode {
 
     private final boolean partitionedTable;
+    private final boolean isBulkRequest;
     private final String[] indices;
 
     private final List<BytesReference> sources;
@@ -44,8 +45,10 @@ public class ESIndexNode extends DMLPlanNode {
                        List<BytesReference> sources,
                        List<String> ids,
                        @Nullable List<String> routingValues,
-                       boolean partitionedTable) {
+                       boolean partitionedTable,
+                       boolean isBulkRequest) {
         this.partitionedTable = partitionedTable;
+        this.isBulkRequest = isBulkRequest;
         assert indices != null : "no indices";
         assert indices.length == 1 || indices.length == sources.size() : "unsupported number of indices";
         this.indices = indices;
@@ -81,5 +84,9 @@ public class ESIndexNode extends DMLPlanNode {
      */
     public boolean partitionedTable() {
         return partitionedTable;
+    }
+
+    public boolean isBulkRequest() {
+        return isBulkRequest;
     }
 }
