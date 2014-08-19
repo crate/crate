@@ -1,5 +1,5 @@
-.. _partitioned-tables:
 .. highlight:: psql
+.. _partitioned_tables:
 
 ==================
 Partitioned Tables

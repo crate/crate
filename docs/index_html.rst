@@ -22,3 +22,4 @@ Contents
    sql/index
    blob
    udc
+   best_practices/index

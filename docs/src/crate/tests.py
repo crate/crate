@@ -111,6 +111,22 @@ def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
 
+def setUpTutorials(test):
+    setUp(test)
+    import_dir = '/tmp/import_data'
+    if not os.path.isdir(import_dir):
+        os.mkdir(import_dir)
+    shutil.copy(project_path('sql/src/test/resources/essetup/data/copy',
+                             'data_import.json'),
+                os.path.join(import_dir, "users.json"))
+    shutil.copy(project_path('sql/src/test/resources/essetup/data/copy',
+                             'data_import.json.gz'),
+                os.path.join(import_dir, "users.json.gz"))
+    shutil.copy(project_path('sql/src/test/resources/essetup/data/copy',
+                             'data_import_1408312800.json'),
+                os.path.join(import_dir, "users_1408312800.json"))
+
+
 def setUp(test):
     test.globs['cmd'] = cmd
 
@@ -146,6 +162,14 @@ def test_suite():
                'hello.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsAndQuotes,
+                                 optionflags=doctest.NORMALIZE_WHITESPACE |
+                                 doctest.ELLIPSIS)
+        s.layer = empty_layer
+        suite.addTest(s)
+    for fn in ('data_import.txt',):
+        path = os.path.join('..','..','best_practices',fn)
+        s = doctest.DocFileSuite(path, parser=crash_parser,
+                                 setUp=setUpTutorials,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
