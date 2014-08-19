@@ -59,6 +59,7 @@ public class Exceptions {
         if (t == null) {
             return "Unknown";
         }
+        @SuppressWarnings("all") // throwable not thrown
         Throwable unwrappedT = unwrap(t);
         return Objects.firstNonNull(unwrappedT.getMessage(), unwrappedT.toString());
     }

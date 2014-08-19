@@ -22,8 +22,7 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import io.crate.action.sql.SQLRequestBuilder;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.test.integration.CrateIntegrationTest;
@@ -89,9 +88,8 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
      * @param bulkArgs the bulk arguments of the statement
      * @return the SQLResponse
      */
-    public SQLResponse execute(String stmt, Object[][] bulkArgs) {
-        response = sqlExecutor.exec(stmt, bulkArgs);
-        return response;
+    public SQLBulkResponse execute(String stmt, Object[][] bulkArgs) {
+        return sqlExecutor.exec(stmt, bulkArgs);
     }
 
     /**
@@ -182,17 +180,27 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
     protected String restSQLExecute(String source, boolean includeTypes) throws IOException {
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.generator().usePrettyPrint();
-        SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client());
         SQLXContentSourceContext context = new SQLXContentSourceContext();
         SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
         parser.parseSource(new BytesArray(source));
-        requestBuilder.stmt(context.stmt());
-        requestBuilder.args(context.args());
-        requestBuilder.bulkArgs(context.bulkArgs());
-        requestBuilder.includeTypesOnResponse(includeTypes);
-        SQLResponse response = requestBuilder.execute().actionGet();
-        response.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        responseDuration = response.duration();
+
+        SQLBaseResponse sqlResponse;
+        Object[][] bulkArgs = context.bulkArgs();
+        if (bulkArgs != null && bulkArgs.length > 0) {
+            SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client());
+            requestBuilder.bulkArgs(context.bulkArgs());
+            requestBuilder.stmt(context.stmt());
+            requestBuilder.includeTypesOnResponse(includeTypes);
+            sqlResponse = requestBuilder.execute().actionGet();
+        } else {
+            SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client());
+            requestBuilder.args(context.args());
+            requestBuilder.stmt(context.stmt());
+            requestBuilder.includeTypesOnResponse(includeTypes);
+            sqlResponse = requestBuilder.execute().actionGet();
+        }
+        sqlResponse.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        responseDuration = sqlResponse.duration();
         return builder.string();
     }
 

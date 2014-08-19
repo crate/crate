@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.TimestampFormat;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.executor.TaskResult;
@@ -3018,7 +3019,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testBulkOperations() throws Exception {
         execute("create table test (id integer primary key, name string) with (number_of_replicas = 0)");
         ensureGreen();
-        execute("insert into test (id, name) values (?, ?), (?, ?)",
+        SQLBulkResponse bulkResp = execute("insert into test (id, name) values (?, ?), (?, ?)",
                 new Object[][] {
                         {1, "Earth", 2, "Saturn"},    // bulk row 1
                         {3, "Moon", 4, "Mars"}        // bulk row 2
@@ -3028,22 +3029,28 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals("Earth\nSaturn\nMoon\nMars\n", TestingHelpers.printedTable(response.rows()));
 
 
-        execute("update test set name = 'bulk_update' where id = ?", new Object[][] {
-                new Object[] { 2 },
-                new Object[] { 3 },
-                new Object[] { 4 },
+        bulkResp = execute("update test set name = 'bulk_update' where id = ?", new Object[][]{
+                new Object[]{2},
+                new Object[]{3},
+                new Object[]{4},
         });
-        assertThat(response.rowCount(), is(3L));
+        assertThat(bulkResp.results().length, is(3));
+        for (SQLBulkResponse.Result result : bulkResp.results()) {
+            assertThat(result.rowCount(), is(1L));
+        }
         refresh();
 
         execute("select count(*) from test where name = 'bulk_update'");
         assertThat((Long) response.rows()[0][0], is(3L));
 
-        execute("delete from test where id = ?", new Object[][] {
+        bulkResp = execute("delete from test where id = ?", new Object[][] {
                 new Object[] { 1 },
                 new Object[] { 3 }
         });
-        assertThat(response.rowCount(), is(2L));
+        assertThat(bulkResp.results().length, is(2));
+        for (SQLBulkResponse.Result result : bulkResp.results()) {
+            assertThat(result.rowCount(), is(1L));
+        }
         refresh();
 
         execute("select count(*) from test");

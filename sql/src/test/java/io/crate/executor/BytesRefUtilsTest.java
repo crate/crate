@@ -22,7 +22,6 @@
 package io.crate.executor;
 
 import com.google.common.base.Joiner;
-import io.crate.action.sql.SQLResponse;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -35,41 +34,33 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-public class RowsResponseBuilderTest {
+public class BytesRefUtilsTest {
 
     final static Joiner commaJoiner = Joiner.on(", ");
 
     @Test
-    public void testBuildResponseSetString() throws Exception {
-        RowsResponseBuilder rrb = new RowsResponseBuilder(true);
-
-        String[] outputNames = new String[] { "col" };
+    public void testEnsureStringTypesAreStringsSetString() throws Exception {
         DataType[] dataTypes = new DataType[] { new SetType(DataTypes.STRING) };
         Object[][] rows = new Object[1][1];
         Set<BytesRef> refs = new HashSet<>(
                 Arrays.asList(new BytesRef("foo"), new BytesRef("bar")));
 
         rows[0][0] = refs;
-        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, new QueryResult(rows), 0L, false);
-        String[] strings = (String[]) response.rows()[0][0];
-        assertThat(strings, Matchers.arrayContainingInAnyOrder("foo", "bar"));
+        BytesRefUtils.ensureStringTypesAreStrings(dataTypes, rows);
+        assertThat((String[]) rows[0][0], Matchers.arrayContainingInAnyOrder("foo", "bar"));
     }
 
     @Test
-    public void testBuildResponseArrayString() throws Exception {
-        RowsResponseBuilder rrb = new RowsResponseBuilder(true);
-
-        String[] outputNames = new String[] { "col" };
+    public void testEnsureStringTypesAreStringsArrayString() throws Exception {
         DataType[] dataTypes = new DataType[] { new ArrayType(DataTypes.STRING) };
         Object[][] rows = new Object[1][1];
         BytesRef[] refs = new BytesRef[] { new BytesRef("foo"), new BytesRef("bar") };
 
         rows[0][0] = refs;
-        SQLResponse response = rrb.buildResponse(dataTypes, outputNames, new QueryResult(rows), 0L, false);
-        assertThat(commaJoiner.join((String[])response.rows()[0][0]), is("foo, bar"));
+        BytesRefUtils.ensureStringTypesAreStrings(dataTypes, rows);
+        assertThat(commaJoiner.join((String[])rows[0][0]), is("foo, bar"));
     }
-
 }

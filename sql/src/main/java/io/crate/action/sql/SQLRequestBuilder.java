@@ -34,8 +34,6 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
 
     /**
      * Executes the built request on the client
-     *
-     * @param listener
      */
     @Override
     protected void doExecute(ActionListener<SQLResponse> listener) {
@@ -48,10 +46,6 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
 
     public void args(Object[] args) {
         request.args(args);
-    }
-
-    public void bulkArgs(Object[][] args) {
-        request.bulkArgs(args);
     }
 
     public void includeTypesOnResponse(boolean includeTypes) {

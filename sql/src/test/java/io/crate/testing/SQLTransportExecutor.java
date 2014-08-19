@@ -21,9 +21,7 @@
 
 package io.crate.testing;
 
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import io.crate.test.integration.CrateTestCluster;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -65,16 +63,16 @@ public class SQLTransportExecutor {
         return execute(statement, params).actionGet();
     }
 
-    public SQLResponse exec(String statemet, Object[][] bulkArgs) {
-        return execute(statemet, bulkArgs).actionGet();
+    public SQLBulkResponse exec(String statement, Object[][] bulkArgs) {
+        return execute(statement, bulkArgs).actionGet();
     }
 
     public ActionFuture<SQLResponse> execute(String statement, Object[] params) {
         return clientProvider.client().execute(SQLAction.INSTANCE, new SQLRequest(statement, params));
     }
 
-    public ActionFuture<SQLResponse> execute(String statement, Object[][] bulkArgs) {
-        return clientProvider.client().execute(SQLAction.INSTANCE, new SQLRequest(statement, bulkArgs));
+    public ActionFuture<SQLBulkResponse> execute(String statement, Object[][] bulkArgs) {
+        return clientProvider.client().execute(SQLBulkAction.INSTANCE, new SQLBulkRequest(statement, bulkArgs));
     }
 
     public ClusterHealthStatus ensureGreen() {

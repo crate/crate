@@ -28,66 +28,60 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.Arrays;
 
-/**
- * Request class for regular/single SQL statements.
- */
-public class SQLRequest extends SQLBaseRequest {
+public class SQLBulkRequest extends SQLBaseRequest {
 
-    public final static Object[] EMPTY_ARGS = new Object[0];
-    private Object[] args;
+    public final static Object[][] EMPTY_BULK_ARGS = new Object[0][];
+    private Object[][] bulkArgs;
 
-    public SQLRequest() {} // used for serialization
+    public SQLBulkRequest() { // used for serialization
 
-    public SQLRequest(String stmt) {
+    }
+
+    public SQLBulkRequest(String stmt) {
+        this(stmt, EMPTY_BULK_ARGS);
+    }
+
+    public SQLBulkRequest(String stmt, Object[][] bulkArgs) {
         super(stmt);
-        args = EMPTY_ARGS;
+        bulkArgs(bulkArgs);
     }
 
-    public SQLRequest(String stmt, Object[] args) {
-        super(stmt);
-        args(args);
+    public Object[][] bulkArgs() {
+        return bulkArgs;
     }
 
-    /**
-     * @return the arguments of the request that have been set using
-     * {@link #SQLRequest(String, Object[])} or {@link #args(Object[])}
-     */
-    public Object[] args() {
-        return args;
-    }
-
-    /**
-     * use to set the request arguments.
-     *
-     * E.g. if a statement like
-     *
-     *      "select * from x where y = ?"
-     *
-     *  is used, the value for "?" can be set as an argument.
-     *  args in that case would look like:
-     *
-     *      args = new Object[] { "myYvalue" }
-     */
-    public void args(Object[] args) {
-        this.args = Objects.firstNonNull(args, EMPTY_ARGS);
+    public void bulkArgs(Object[][] bulkArgs){
+        this.bulkArgs = Objects.firstNonNull(bulkArgs, EMPTY_BULK_ARGS);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        int length = in.readVInt();
-        args = new Object[length];
-        for (int i = 0; i < length; i++) {
-            args[i] = in.readGenericValue();
+        int bulkArgsLength = in.readVInt();
+        if (bulkArgsLength == 0) {
+            bulkArgs = EMPTY_BULK_ARGS;
+        } else {
+            bulkArgs = new Object[bulkArgsLength][];
+            for (int i = 0; i < bulkArgsLength; i++) {
+                int bulkArgLength = in.readVInt();
+                bulkArgs[i] = new Object[bulkArgLength];
+                for (int j = 0; j < bulkArgLength; j++) {
+                    bulkArgs[i][j] = in.readGenericValue();
+                }
+            }
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(args.length);
-        for (int i = 0; i < args.length; i++) {
-            out.writeGenericValue(args[i]);
+        out.writeVInt(bulkArgs.length);
+        for (int i = 0, bulkArgsLength = bulkArgs.length; i < bulkArgsLength; i++) {
+            Object[] bulkArg = bulkArgs[i];
+            out.writeVInt(bulkArg.length);
+            for (int i1 = 0, bulkArgLength = bulkArg.length; i1 < bulkArgLength; i1++) {
+                out.writeGenericValue(bulkArg[i1]);
+            }
         }
     }
 
@@ -95,7 +89,7 @@ public class SQLRequest extends SQLBaseRequest {
     public String toString() {
         return Objects.toStringHelper(this)
                 .add("stmt", stmt)
-                .add("args", Arrays.asList(args))
+                .add("bulkArgs", Arrays.asList(bulkArgs))
                 .add("creationTime", creationTime).toString();
     }
 }
