@@ -1,6 +1,6 @@
-========================
+======================
 Crate Data Java Client
-========================
+======================
 
 .. highlight:: java
 
@@ -11,7 +11,7 @@ Installation
 ============
 
 Maven
-------
+-----
 
 The easiest way to use the crate client is to include it as a dependency using
 maven::

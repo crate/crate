@@ -22,6 +22,8 @@
 package io.crate.client;
 
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
@@ -38,8 +40,7 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -167,6 +168,24 @@ public class CrateClientTest extends CrateIntegrationTest {
         assertEquals(true, settings.getAsBoolean("node.client", false));
         assertEquals(true, settings.getAsBoolean("client.transport.ignore_cluster_name", false));
         assertThat(settings.get("node.name"), startsWith("crate-client-"));
+    }
+
+    @Test
+    public void testBulkSql() throws Exception {
+        client.sql("create table test (a string, b int) with (number_of_replicas=0)").actionGet();
+        ensureGreen();
+        client.sql("insert into test (a, b) values ('foo', 1)").actionGet();
+        client.sql("refresh table test").actionGet();
+
+        SQLBulkRequest bulkRequest = new SQLBulkRequest(
+                "update test set a = ? where b = ?",
+                new Object[][]{new Object[]{"bar", 1}, new Object[]{"baz", 1}});
+        SQLBulkResponse bulkResponse = client.bulkSql(bulkRequest).actionGet();
+        assertThat(bulkResponse.results().length, is(2));
+        for (SQLBulkResponse.Result result : bulkResponse.results()) {
+            assertThat(result.rowCount(), is(1L));
+            assertThat(result.errorMessage(), is(nullValue()));
+        }
     }
 
 }
