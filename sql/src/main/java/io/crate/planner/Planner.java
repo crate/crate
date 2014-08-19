@@ -916,16 +916,18 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (analysis.table().isPartitioned()) {
             indices = analysis.partitions().toArray(new String[analysis.partitions().size()]);
         }
+
         ESIndexNode indexNode = new ESIndexNode(
                 indices,
                 analysis.sourceMaps(),
                 analysis.ids(),
                 analysis.routingValues(),
-                analysis.table().isPartitioned());
+                analysis.table().isPartitioned(),
+                analysis.parameterContext().hasBulkParams()
+                );
         plan.add(indexNode);
         plan.expectsAffectedRows(true);
     }
-
 
 
     static List<DataType> extractDataTypes(List<Symbol> symbols) {

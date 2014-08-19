@@ -3025,6 +3025,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         {1, "Earth", 2, "Saturn"},    // bulk row 1
                         {3, "Moon", 4, "Mars"}        // bulk row 2
                 });
+        assertThat(bulkResp.results().length, is(4));
+        for (SQLBulkResponse.Result result : bulkResp.results()) {
+            assertThat(result.rowCount(), is(1L));
+        }
         refresh();
         execute("select name from test order by id asc");
         assertEquals("Earth\nSaturn\nMoon\nMars\n", TestingHelpers.printedTable(response.rows()));

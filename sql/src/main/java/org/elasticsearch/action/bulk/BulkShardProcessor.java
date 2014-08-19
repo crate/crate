@@ -25,7 +25,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
-import jsr166e.LongAdder;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -67,12 +66,14 @@ public class BulkShardProcessor {
     private final int bulkSize;
     private final Map<ShardId, List<BulkItemRequest>> requestsByShard = new HashMap<>();
     private final AutoCreateIndex autoCreateIndex;
+    private final AtomicInteger globalCounter = new AtomicInteger(0);
     private final AtomicInteger counter = new AtomicInteger(0);
-    private final SettableFuture<Long> result;
-    private final LongAdder rowsInserted = new LongAdder();
+    private final SettableFuture<BitSet> result;
     private final AtomicInteger pending = new AtomicInteger(0);
     private final AtomicInteger currentDelay = new AtomicInteger(0);
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
+    private final BitSet responses;
+    private final Object responsesLock = new Object();
     private volatile boolean closed = false;
     private final Set<String> indicesCreated = new HashSet<>();
     private final ReadWriteLock retryLock = new ReadWriteLock();
@@ -93,6 +94,7 @@ public class BulkShardProcessor {
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.autoCreateIndices = autoCreateIndices;
         this.bulkSize = bulkSize;
+        responses = new BitSet();
         result = SettableFuture.create();
         autoCreateIndex = new AutoCreateIndex(settings);
         requestTimeout = settings.getAsTime("insert_by_query.request_timeout", BulkShardRequest.DEFAULT_TIMEOUT);
@@ -148,11 +150,12 @@ public class BulkShardProcessor {
             items = new ArrayList<>();
             requestsByShard.put(shardId, items);
         }
-        items.add(new BulkItemRequest(counter.getAndIncrement(), indexRequest));
+        counter.getAndIncrement();
+        items.add(new BulkItemRequest(globalCounter.getAndIncrement(), indexRequest));
         executeLock.release();
     }
 
-    public ListenableFuture<Long> result() {
+    public ListenableFuture<BitSet> result() {
         return result;
     }
 
@@ -173,7 +176,7 @@ public class BulkShardProcessor {
     private void setResult() {
         Throwable throwable = failure.get();
         if (throwable == null) {
-            result.set(rowsInserted.longValue());
+            result.set(responses);
         } else {
             result.setException(throwable);
         }
@@ -275,11 +278,16 @@ public class BulkShardProcessor {
         for (BulkItemResponse itemResponse : bulkShardResponse.getResponses()) {
             if (itemResponse.isFailed()) {
                 setFailure(new RuntimeException(itemResponse.getFailureMessage()));
+                synchronized (responsesLock) {
+                    responses.set(itemResponse.getItemId(), false);
+                }
             } else {
+                synchronized (responsesLock) {
+                    responses.set(itemResponse.getItemId());
+                }
                 successes++;
             }
         }
-        rowsInserted.add(successes);
         setResultIfDone(successes);
     }
 
@@ -296,6 +304,11 @@ public class BulkShardProcessor {
                     retryLock.writeUnlock();
                 } catch (InterruptedException ex) {
                     Thread.interrupted();
+                }
+            }
+            for (BulkItemRequest bulkItemRequest : bulkShardRequest.items()) {
+                synchronized (responsesLock) {
+                    responses.set(bulkItemRequest.id(), false);
                 }
             }
             setFailure(e);

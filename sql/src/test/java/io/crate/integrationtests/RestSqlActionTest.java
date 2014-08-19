@@ -186,7 +186,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
         JSONAssert.assertEquals(
                 "{\n" +
                         "  \"cols\" : [ ],\n" +
-                        "  \"results\" : [ {\"rowcount\" : 2 } ],\n" +
+                        "  \"results\" : [ {\"rowcount\" : 1 }, {\"rowcount\": 1 } ],\n" +
                         "  \"duration\" : \n" + responseDuration +
                         "}", json, true);
     }
