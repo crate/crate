@@ -26,6 +26,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectArrayReference;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.operation.reference.sys.SysObjectReference;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.monitor.sigar.SigarService;
@@ -90,20 +91,20 @@ public class NodeFsDisksExpression extends SysNodeObjectArrayReference {
         public static final String WRITES = "writes";
         public static final String BYTES_WRITTEN = "bytes_written";
 
-        private final String dev;
+        private final BytesRef dev;
         private final FileSystemUsage usage;
 
         protected NodeFsDiskChildExpression(FileSystem fileSystem, FileSystemUsage usage) {
             super(NodeFsDisksExpression.this.info().ident().columnIdent());
-            this.dev = fileSystem.getDevName();
+            this.dev = new BytesRef(fileSystem.getDevName());
             this.usage = usage;
             addChildImplementations();
         }
 
         private void addChildImplementations() {
-            childImplementations.put(DEV, new ChildExpression<String>(DEV) {
+            childImplementations.put(DEV, new ChildExpression<BytesRef>(DEV) {
                 @Override
-                public String value() {
+                public BytesRef value() {
                     return dev;
                 }
             });

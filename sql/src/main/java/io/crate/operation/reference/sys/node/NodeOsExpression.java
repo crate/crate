@@ -23,7 +23,6 @@ package io.crate.operation.reference.sys.node;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.sys.SysExpression;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.node.service.NodeService;
@@ -63,7 +62,7 @@ public class NodeOsExpression extends SysNodeObjectReference {
             }
         });
         childImplementations.put(NodeOsCpuExpression.NAME,
-                (SysExpression) new NodeOsCpuExpression(nodeService));
+                new NodeOsCpuExpression(nodeService));
     }
 
 }

@@ -30,6 +30,8 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.Input;
+import io.crate.operation.reference.sys.node.NodeVersionExpression;
+import io.crate.operation.reference.sys.node.SysNodeExpression;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.apache.lucene.util.BytesRef;
@@ -490,5 +492,18 @@ public class TestSysNodesExpressions {
         Map<String, Object> v = processRef.value();
         assertEquals(42L, (long) v.get("open_file_descriptors"));
         assertEquals(1000L, (long) v.get("max_open_file_descriptors"));
+    }
+
+    @Test
+    public void testNestedBytesRefExpressionsString() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version");
+        SysObjectReference version = (SysObjectReference) resolver.getImplementation(ident);
+
+        ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "version", Arrays.asList("number"));
+        SysNodeExpression<BytesRef> versionNumber = (SysNodeExpression<BytesRef>)resolver.getImplementation(ident);
+
+        assertThat(version.value().get(NodeVersionExpression.NUMBER), instanceOf(String.class));
+        assertThat(versionNumber.value(), is(new BytesRef(version.value().get(NodeVersionExpression.NUMBER).toString())));
+
     }
 }

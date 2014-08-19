@@ -25,6 +25,7 @@ import io.crate.Build;
 import io.crate.Version;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
+import org.apache.lucene.util.BytesRef;
 
 public class NodeVersionExpression extends SysNodeObjectReference {
 
@@ -40,32 +41,32 @@ public class NodeVersionExpression extends SysNodeObjectReference {
         childImplementations.put(BUILD_SNAPSHOT, new VersionBuildSnapshotExpression());
     }
 
-    static class VersionNumberExpression extends SysNodeExpression<String> {
+    static class VersionNumberExpression extends SysNodeExpression<BytesRef> {
 
-        private final String versionNumber;
+        private final BytesRef versionNumber;
 
         VersionNumberExpression() {
             super(new ColumnIdent(NAME, NUMBER));
-            versionNumber = Version.CURRENT.number();
+            versionNumber = new BytesRef(Version.CURRENT.number());
         }
 
         @Override
-        public String value() {
+        public BytesRef value() {
             return versionNumber;
         }
     }
 
-    static class VersionBuildHashExpression extends SysNodeExpression<String> {
+    static class VersionBuildHashExpression extends SysNodeExpression<BytesRef> {
 
-        private final String buildHash;
+        private final BytesRef buildHash;
 
         VersionBuildHashExpression() {
             super(new ColumnIdent(NAME, BUILD_HASH));
-            buildHash = Build.CURRENT.hash();
+            buildHash = new BytesRef(Build.CURRENT.hash());
         }
 
         @Override
-        public String value() {
+        public BytesRef value() {
             return buildHash;
         }
     }

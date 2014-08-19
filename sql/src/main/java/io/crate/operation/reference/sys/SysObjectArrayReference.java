@@ -26,6 +26,7 @@ import com.google.common.collect.Maps;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
+import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -48,7 +49,13 @@ public abstract class SysObjectArrayReference extends SysExpression<Object[]>
                 if (info == null) {
                     info = child.info();
                 }
-                values[i++] = child.value();
+                // convert nested columns of type e.getValue().value() to String here
+                // as we do not want to convert them when building the response
+                Object value = child.value();
+                if (value != null && value instanceof BytesRef) {
+                    value = ((BytesRef)value).utf8ToString();
+                }
+                values[i++] = value;
             }
         }
         if (info == null) {
@@ -80,7 +87,12 @@ public abstract class SysObjectArrayReference extends SysExpression<Object[]>
                 @Nullable
                 @Override
                 public Object apply(@Nullable SysExpression input) {
-                    return input.value();
+                    Object value = input.value();
+                    if (value != null && value instanceof BytesRef) {
+                        return ((BytesRef)value).utf8ToString();
+                    } else {
+                        return value;
+                    }
                 }
             });
             values[i++] = map;
