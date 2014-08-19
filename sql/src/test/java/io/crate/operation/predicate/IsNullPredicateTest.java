@@ -24,10 +24,7 @@ package io.crate.operation.predicate;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -69,6 +66,17 @@ public class IsNullPredicateTest {
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
         Symbol symbol = predicate.normalizeSymbol(isNull);
         assertThat(symbol, instanceOf(Function.class));
+    }
+
+    @Test
+    public void testNormalizeDynamicReference() throws Exception {
+        DynamicReference name_ref = new DynamicReference(new ReferenceInfo(
+                new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
+                RowGranularity.DOC,
+                DataTypes.STRING));
+        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
+        Symbol symbol = predicate.normalizeSymbol(isNull);
+        assertLiteralSymbol(symbol, true);
     }
 
     @Test

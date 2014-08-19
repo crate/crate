@@ -1408,4 +1408,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select * from users where match(me_not_exizzt, 'Arthur Dent')");
     }
 
+    @Test
+    public void testIsNotNullDynamic() {
+         SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where no_such_column is not null");
+         assertTrue(analysis.hasNoResult());
+    }
 }
