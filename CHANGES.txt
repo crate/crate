@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: using the is not null predicate on a non-existing or ignored column
+   did throw an exception
+
  - fix: correctly serialize sys expressions of type object
 
  - match predicate can now be used on multiple columns

@@ -1585,4 +1585,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                         "slop:3, analyzer:german, boost:4.6, max_expansions:3, fuzzy_rewrite:top_terms_20, " +
                         "fuzziness:12, operator:or"));
     }
+
+    @Test
+    public void testIsNotNullDynamic() {
+         SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where no_such_column is not null");
+         assertTrue(analysis.hasNoResult());
+    }
 }
