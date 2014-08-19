@@ -21,7 +21,9 @@
 
 package io.crate.integrationtests;
 
+import io.crate.Build;
 import io.crate.Constants;
+import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.metadata.settings.CrateSettings;
@@ -43,7 +45,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -784,5 +788,20 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Analyzer [foobar] not found for field [content]");
         executor.exec("create table t (content string index using fulltext with (analyzer='foobar'))");
+    }
+
+    @Test
+    public void testSysNodesVersionFromMultipleNodes() throws Exception {
+        SQLResponse response = executor.exec("select version, version['number'], " +
+                "version['build_hash'], version['build_snapshot'] " +
+                "from sys.nodes");
+        assertThat(response.rowCount(), is(2L));
+        for (int i = 0; i <=1 ; i++) {
+            assertThat(response.rows()[i][0], instanceOf(Map.class));
+            assertThat((Map<String, Object>) response.rows()[i][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
+            assertThat((String) response.rows()[i][1], Matchers.is(Version.CURRENT.number()));
+            assertThat((String)response.rows()[i][2], is(Build.CURRENT.hash()));
+            assertThat((Boolean) response.rows()[i][3], is(Version.CURRENT.snapshot()));
+        }
     }
 }

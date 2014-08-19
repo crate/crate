@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: correctly serialize sys expressions of type object
+
  - match predicate can now be used on multiple columns
    and supports several options for a more powerful fulltext search
 
