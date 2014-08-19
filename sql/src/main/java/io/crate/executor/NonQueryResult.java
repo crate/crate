@@ -21,6 +21,8 @@
 
 package io.crate.executor;
 
+import io.crate.exceptions.Exceptions;
+
 import javax.annotation.Nullable;
 
 public class NonQueryResult extends TaskResult {
@@ -46,5 +48,14 @@ public class NonQueryResult extends TaskResult {
     @Override
     public long rowCount() {
         return rowCount;
+    }
+
+    @Nullable
+    @Override
+    public String errorMessage() {
+        if (error == null) {
+            return null;
+        }
+        return Exceptions.messageOf(error);
     }
 }

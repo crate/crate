@@ -21,9 +21,7 @@
 
 package io.crate.plugin;
 
-import io.crate.action.sql.DDLAnalysisDispatcher;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.TransportSQLAction;
+import io.crate.action.sql.*;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
@@ -36,15 +34,18 @@ public class SQLModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(TransportSQLAction.class).asEagerSingleton();
+        bind(TransportSQLBulkAction.class).asEagerSingleton();
         bind(DDLAnalysisDispatcher.class).asEagerSingleton();
         bind(FulltextAnalyzerResolver.class).asEagerSingleton();
         MapBinder<GenericAction, TransportAction> transportActionsBinder = MapBinder.newMapBinder(binder(), GenericAction.class,
                 TransportAction.class);
 
         transportActionsBinder.addBinding(SQLAction.INSTANCE).to(TransportSQLAction.class).asEagerSingleton();
+        transportActionsBinder.addBinding(SQLBulkAction.INSTANCE).to(TransportSQLBulkAction.class).asEagerSingleton();
 
         MapBinder<String, GenericAction> actionsBinder = MapBinder.newMapBinder(binder(), String.class, GenericAction.class);
         actionsBinder.addBinding(SQLAction.NAME).toInstance(SQLAction.INSTANCE);
+        actionsBinder.addBinding(SQLBulkAction.NAME).toInstance(SQLBulkAction.INSTANCE);
 
     }
 }

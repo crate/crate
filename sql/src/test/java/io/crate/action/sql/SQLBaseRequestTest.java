@@ -27,12 +27,12 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
 
-public class SQLRequestTest {
+public class SQLBaseRequestTest {
 
 
     @Test
     public void testBulkArgsSerialization() throws Exception {
-        SQLRequest request = new SQLRequest(
+        SQLBulkRequest request = new SQLBulkRequest(
                 "select * from sys.cluster",
                 new Object[][] {
                         new Object[] { "dummy", "args" },
@@ -42,7 +42,7 @@ public class SQLRequestTest {
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        SQLRequest serialized = new SQLRequest();
+        SQLBulkRequest serialized = new SQLBulkRequest();
         serialized.readFrom(in);
 
         assertArrayEquals(request.bulkArgs(), serialized.bulkArgs());
@@ -50,11 +50,11 @@ public class SQLRequestTest {
 
     @Test
     public void testEmptyBulkArgsSerialization() throws Exception {
-        SQLRequest request = new SQLRequest("select * from sys.cluster");
+        SQLBulkRequest request = new SQLBulkRequest("select * from sys.cluster");
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        SQLRequest serialized = new SQLRequest();
+        SQLBulkRequest serialized = new SQLBulkRequest();
         serialized.readFrom(in);
 
         Object[][] empty = new Object[0][];

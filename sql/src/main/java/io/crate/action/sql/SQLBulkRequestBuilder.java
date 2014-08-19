@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,15 +19,33 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.action.sql;
 
-import io.crate.types.DataType;
-import io.crate.action.sql.SQLResponse;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionRequestBuilder;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.client.internal.InternalClient;
 
-public interface ResponseBuilder {
-    public SQLResponse buildResponse(DataType[] dataTypes,
-                                     String[] outputNames,
-                                     TaskResult taskResult,
-                                     long requestStartedTime,
-                                     boolean includeTypes);
+public class SQLBulkRequestBuilder extends ActionRequestBuilder<SQLBulkRequest, SQLBulkResponse, SQLBulkRequestBuilder> {
+
+    public SQLBulkRequestBuilder(Client client) {
+        super((InternalClient) client, new SQLBulkRequest());
+    }
+
+    @Override
+    protected void doExecute(ActionListener<SQLBulkResponse> listener) {
+        ((Client) client).execute(SQLBulkAction.INSTANCE, request, listener);
+    }
+
+    public void stmt(String stmt) {
+        request.stmt(stmt);
+    }
+
+    public void bulkArgs(Object[][] bulkArgs) {
+        request.bulkArgs(bulkArgs);
+    }
+
+    public void includeTypesOnResponse(boolean includeTypes) {
+        request.includeTypesOnResponse(includeTypes);
+    }
 }

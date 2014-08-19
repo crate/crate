@@ -21,6 +21,8 @@
 
 package io.crate.executor;
 
+import javax.annotation.Nullable;
+
 public abstract class TaskResult {
 
     protected static final Object[][] EMPTY_ROWS = new Object[0][];
@@ -38,4 +40,12 @@ public abstract class TaskResult {
     public abstract Object[][] rows();
 
     public abstract long rowCount();
+
+    /**
+     * can be set in bulk operations to set the error for a single operation
+     */
+    @Nullable
+    public String errorMessage() {
+        return null;
+    }
 }

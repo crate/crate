@@ -24,7 +24,6 @@ package io.crate.executor;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.collect.ImmutableSet;
-import io.crate.action.sql.SQLResponse;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -34,35 +33,11 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 
-public class RowsResponseBuilder implements ResponseBuilder {
+public class BytesRefUtils {
 
-    /**
-     * TODO: let the client set this flag through SQLRequest and Planner
-     */
-    private final boolean convertBytesRefs;
+    private final static Set<DataType> BYTES_REF_TYPES = ImmutableSet.<DataType>of(DataTypes.STRING, DataTypes.IP);
 
-    private final static Set<DataType> BYTES_REF_TYPES = ImmutableSet.<DataType>of(
-            DataTypes.STRING, DataTypes.IP);
-
-    public RowsResponseBuilder(boolean convertBytesRefs) {
-        this.convertBytesRefs = convertBytesRefs;
-    }
-
-    @Override
-    public SQLResponse buildResponse(DataType[] dataTypes,
-                                     String[] outputNames,
-                                     TaskResult taskResult,
-                                     long requestStartedTime,
-                                     boolean includeTypes) {
-        Object[][] rows = taskResult.rows();
-        if (convertBytesRefs) {
-            convertBytesRef(dataTypes, rows);
-        }
-        return new SQLResponse(outputNames, rows, dataTypes, taskResult.rowCount(),
-                requestStartedTime, includeTypes);
-    }
-
-    private void convertBytesRef(DataType[] dataTypes, Object[][] rows) {
+    public static void ensureStringTypesAreStrings(DataType[] dataTypes, Object[][] rows) {
         if (rows.length == 0) {
             return;
         }
@@ -97,6 +72,7 @@ public class RowsResponseBuilder implements ResponseBuilder {
                     Iterator<BytesRef> iter = null;
                     int size;
                     if (value instanceof Set) {
+                        @SuppressWarnings("unchecked")
                         Set<BytesRef> bytesRefSet = ((Set<BytesRef>) value);
                         iter = bytesRefSet.iterator();
                         size = bytesRefSet.size();

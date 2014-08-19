@@ -21,15 +21,15 @@
 
 package io.crate.rest.action;
 
-import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLRequestBuilder;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.exceptions.SQLParseException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
@@ -48,55 +48,89 @@ public class RestSQLAction extends BaseRestHandler {
 
     @Override
     public void handleRequest(final RestRequest request, final RestChannel channel) throws Exception {
-
-        final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
-        if (request.hasContent()) {
-            SQLXContentSourceContext context = new SQLXContentSourceContext();
-            SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
-            try {
-                parser.parseSource(request.content());
-            } catch (SQLParseException e) {
-                StringWriter stackTrace = new StringWriter();
-                e.printStackTrace(new PrintWriter(stackTrace));
-                channel.sendResponse(new CrateThrowableRestResponse(channel,
-                        new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, stackTrace.toString())));
-            }
-            requestBuilder.stmt(context.stmt());
-            Object[] args = context.args();
-            Object[][] bulkArgs = context.bulkArgs();
-            if(args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0){
-                channel.sendResponse(new CrateThrowableRestResponse(channel,
-                        new SQLActionException("request body contains args and bulk_args. It's forbidden to provide both",
-                                4000, RestStatus.BAD_REQUEST, null)));
-            }
-            requestBuilder.args(args);
-            requestBuilder.bulkArgs(bulkArgs);
-            requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
-        } else {
+        if (!request.hasContent()) {
             channel.sendResponse(new CrateThrowableRestResponse(channel,
                     new SQLActionException("missing request body", 4000, RestStatus.BAD_REQUEST, null)));
+            return;
         }
-        requestBuilder.execute(new ActionListener<SQLResponse>() {
 
-            @Override
-            public void onResponse(SQLResponse response) {
-                try {
-                    XContentBuilder builder = channel.newBuilder();
-                    response.toXContent(builder, request);
-                    channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
-                } catch (Throwable e) {
-                    onFailure(e);
-                }
-            }
+        SQLXContentSourceContext context = new SQLXContentSourceContext();
+        SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
+        try {
+            parser.parseSource(request.content());
+        } catch (SQLParseException e) {
+            StringWriter stackTrace = new StringWriter();
+            e.printStackTrace(new PrintWriter(stackTrace));
+            channel.sendResponse(new CrateThrowableRestResponse(channel,
+                    new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, stackTrace.toString())));
+            return;
+        }
 
-            @Override
-            public void onFailure(Throwable e) {
-                try {
-                    channel.sendResponse(new CrateThrowableRestResponse(channel, e));
-                } catch (Throwable e1) {
-                    logger.error("failed to send failure response", e1);
-                }
+        Object[] args = context.args();
+        Object[][] bulkArgs = context.bulkArgs();
+        if(args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0){
+            channel.sendResponse(new CrateThrowableRestResponse(channel,
+                    new SQLActionException("request body contains args and bulk_args. It's forbidden to provide both",
+                            4000, RestStatus.BAD_REQUEST, null)));
+            return;
+        }
+        if (bulkArgs != null && bulkArgs.length > 0) {
+            executeBulkRequest(context, request, channel);
+        } else {
+            executeSimpleRequest(context, request, channel);
+        }
+    }
+
+    private void executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel) {
+        final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
+        requestBuilder.stmt(context.stmt());
+        requestBuilder.args(context.args());
+        requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
+        requestBuilder.execute(RestSQLAction.<SQLResponse>newListener(request, channel));
+    }
+
+    private void executeBulkRequest(SQLXContentSourceContext context, RestRequest request, RestChannel channel) {
+        final SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client);
+        requestBuilder.stmt(context.stmt());
+        requestBuilder.bulkArgs(context.bulkArgs());
+        requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
+        requestBuilder.execute(RestSQLAction.<SQLBulkResponse>newListener(request, channel));
+    }
+
+    private static <TResponse extends SQLBaseResponse> ActionListener<TResponse> newListener(
+            RestRequest request, RestChannel channel) {
+        return new SQLResponseListener<>(request, channel);
+    }
+
+    private static class SQLResponseListener<TResponse extends SQLBaseResponse> implements ActionListener<TResponse> {
+
+        private static final ESLogger logger = Loggers.getLogger(SQLResponseListener.class);
+        private final RestRequest request;
+        private final RestChannel channel;
+
+        public SQLResponseListener(RestRequest request, RestChannel channel) {
+            this.request = request;
+            this.channel = channel;
+        }
+
+        @Override
+        public void onResponse(TResponse tResponse) {
+            try {
+                XContentBuilder builder = channel.newBuilder();
+                tResponse.toXContent(builder, request);
+                channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+            } catch (Throwable e) {
+                onFailure(e);
             }
-        });
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            try {
+                channel.sendResponse(new CrateThrowableRestResponse(channel, e));
+            } catch (Throwable e1) {
+                logger.error("failed to send failure response", e1);
+            }
+        }
     }
 }
