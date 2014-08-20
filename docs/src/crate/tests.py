@@ -113,17 +113,15 @@ def setUpLocationsAndQuotes(test):
 
 def setUpTutorials(test):
     setUp(test)
-    import_dir = '/tmp/import_data'
+    import_dir = '/tmp/best_practice_data'
+    source_dir = 'sql/src/test/resources/essetup/data/best_practices'
     if not os.path.isdir(import_dir):
         os.mkdir(import_dir)
-    shutil.copy(project_path('sql/src/test/resources/essetup/data/copy',
-                             'data_import.json'),
+    shutil.copy(project_path(source_dir, 'data_import.json'),
                 os.path.join(import_dir, "users.json"))
-    shutil.copy(project_path('sql/src/test/resources/essetup/data/copy',
-                             'data_import.json.gz'),
+    shutil.copy(project_path(source_dir, 'data_import.json.gz'),
                 os.path.join(import_dir, "users.json.gz"))
-    shutil.copy(project_path('sql/src/test/resources/essetup/data/copy',
-                             'data_import_1408312800.json'),
+    shutil.copy(project_path(source_dir, 'data_import_1408312800.json'),
                 os.path.join(import_dir, "users_1408312800.json"))
 
 

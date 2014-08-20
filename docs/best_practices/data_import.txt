@@ -186,7 +186,7 @@ COPY FROM Command
 
 ::
 
-  cr> COPY user FROM '/tmp/import_data/users.json';
+  cr> COPY user FROM '/tmp/best_practice_data/users.json';
   COPY OK, 150 rows affected (... sec)
 
 .. hide:
@@ -211,7 +211,7 @@ and defaults to 10,000 if not specified.
 
 For example::
 
-  cr> COPY user FROM '/tmp/import_data/users.json'
+  cr> COPY user FROM '/tmp/best_practice_data/users.json'
   ... WITH (bulk_size = 2000);
   COPY OK, 150 rows affected (... sec)
 
@@ -238,7 +238,7 @@ Crate Data does not automatically detect compression, but you'll need to specify
 
 For example::
 
-  cr> COPY user FROM '/tmp/import_data/users.json.gz'
+  cr> COPY user FROM '/tmp/best_practice_data/users.json.gz'
   ... WITH (compression = 'gzip');
   COPY OK, 150 rows affected (... sec)
 
@@ -299,7 +299,7 @@ The value of the partition column however is defined in the ``COPY FROM``
 statement using the ``PARTITION`` clause::
 
   cr> COPY user PARTITION (day_joined=1408312800)
-  ... FROM '/tmp/import_data/users_1408312800.json';
+  ... FROM '/tmp/best_practice_data/users_1408312800.json';
   COPY OK, 23 rows affected (... sec)
 
 This way, Crate Data does not need to resolve the partition for each row
