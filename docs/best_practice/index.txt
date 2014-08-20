@@ -1,6 +1,6 @@
-==============
-Best Practices
-==============
+=============
+Best Practice
+=============
 
 This is a collection of best practice examples how to use Crate Data in the wild.
 
