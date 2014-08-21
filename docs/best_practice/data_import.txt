@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _efficient_data_import:
 
-=====================================================
-Best practices for importing huge datasets into Crate
-=====================================================
+====================================================
+Best practice for importing huge datasets into Crate
+====================================================
 
 When you start a project one ususally does not start with zero.
 Most of the time there is already some data that needs to be imported,
@@ -74,7 +74,7 @@ of data that goes into the table.
 
   Be careful, you cannot change the number of shards any more
   once the table is created!
-  
+
 Assuming there are 6 instances in the cluster we put 2 shards on each node
 giving us a total of 12 shards, which should be more than enough
 for millions of records.
@@ -130,7 +130,7 @@ minimise the overhead during the import.
 
 It is also possible to set the refresh interval already
 in the ``CREATE TABLE`` statement::
-  
+
   cr> CREATE TABLE user (
   ...   id INT primary key,
   ...   name STRING,
@@ -160,7 +160,7 @@ a reasonable value (time in ms)::
   - :ref:`sql_ref_refresh_interval`
 
 
-Importing Data Using COPY FROM 
+Importing Data Using COPY FROM
 ------------------------------
 
 Once the table is created it is time for the actual import. There is the
@@ -230,7 +230,7 @@ Compression
 ^^^^^^^^^^^
 
 If you do not have your data locally on the nodes, but somewhere on the network,
-e.g. ``NAS` or ``S3``, it is recommended to used ``gzip`` compression to reduce
+e.g. ``NAS`` or ``S3``, it is recommended to used ``gzip`` compression to reduce
 the network traffic needed to obtain the data.
 
 Crate Data does not automatically detect compression, but you'll need to specify
@@ -288,7 +288,7 @@ each table partition separately. Since the value of the table partition is not
 stored in the column of the table, the ``JSON`` source must not contain
 the column value.
 
-For example: ``users_20140819.json``
+For example: ``users_1408312800.json``
 
 .. code-block:: json
 
@@ -343,5 +343,3 @@ Further Reading
 .. seealso::
 
   - :ref:`importing_data`
-
-
