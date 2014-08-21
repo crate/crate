@@ -23,7 +23,6 @@ package io.crate.module.sql.test;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.types.*;
-import junit.framework.TestCase;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -36,9 +35,12 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import java.io.IOException;
 import java.util.HashSet;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
-public class SQLResponseTest extends TestCase {
+public class SQLResponseTest {
 
     private XContentBuilder builder() throws IOException {
         return XContentFactory.contentBuilder(XContentType.JSON);
@@ -167,4 +169,52 @@ public class SQLResponseTest extends TestCase {
         assertEquals(r1.rowCount(), r2.rowCount());
     }
 
+
+
+
+    /**
+     * the serialization tests here with fixed bytes arrays ensure that backward-compatibility isn't broken.
+     */
+
+    @Test
+    public void testSerializationWriteTo() throws Exception {
+        SQLResponse resp = new SQLResponse(
+                new String[] {"col1", "col2"},
+                new Object[][] {
+                        new Object[] {"row1_col1", "row1_col2"},
+                        new Object[] {"row2_col1", "row2_col2"}
+                },
+                new DataType[] { DataTypes.STRING, DataTypes.STRING },
+                2L,
+                0,
+                true
+        );
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        resp.writeTo(out);
+
+        byte[] expectedBytes = new byte[]
+                { 0,0,2,2,4,99,111,108,49,4,99,111,108,50,0,0,0,2,0,9,114,111,119,49,95,99,111,108,49,0,9,114,111,119,49,95,99,111,108,50,0,9,114,111,119,50,95,99,111,108,49,0,9,114,111,119,50,95,99,111,108,50,0,1,0,0,0,2,4,4};
+        byte[] bytes = out.bytes().toBytes();
+        assertThat(bytes, is(expectedBytes));
+    }
+
+    @Test
+    public void testSerializationReadFrom() throws Exception {
+        byte[] buf = new byte[]
+                { 0,0,2,2,4,99,111,108,49,4,99,111,108,50,0,0,0,2,0,9,114,111,119,49,95,99,111,108,49,0,9,114,111,119,49,95,99,111,108,50,0,9,114,111,119,50,95,99,111,108,49,0,9,114,111,119,50,95,99,111,108,50,0,1,0,0,0,2,4,4};
+        BytesStreamInput in = new BytesStreamInput(buf, false);
+        SQLResponse resp = new SQLResponse();
+        resp.readFrom(in);
+
+        assertThat(resp.cols(), is(new String[] { "col1", "col2" }));
+        assertThat(resp.rows(), is(new Object[][] {
+                new Object[] {"row1_col1", "row1_col2"},
+                new Object[] {"row2_col1", "row2_col2"},
+        }));
+
+        assertThat(resp.columnTypes(), is(new DataType[] { DataTypes.STRING, DataTypes.STRING }));
+        assertThat(resp.rowCount(), is(2L));
+        assertThat(resp.duration(), is(-1L));
+    }
 }
