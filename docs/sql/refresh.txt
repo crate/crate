@@ -1,0 +1,23 @@
+.. highlight: psql
+.. _refresh_data:
+
+Refresh
+=======
+
+Crate Data is `eventually consistent`_. Data written with a former statement is
+not guaranteed to be fetched with the next following select statement for
+the affected rows.
+
+If required a table can be refreshed explicitly in order to ensure
+that the latest state of the table gets fetched::
+
+    cr> refresh table locations;
+    REFRESH OK (... sec)
+
+A table is refreshed periodically with a specified refresh interval. By
+default, the refresh interval is set to 1000 milliseconds. The refresh interval
+of a table can be changed with the table parameter ``refresh_interval`` (see
+:ref:`sql_ref_refresh_interval`).
+
+
+.. _`eventually consistent`: http://en.wikipedia.org/wiki/Eventual_consistency

@@ -115,6 +115,7 @@ be returned::
   it returns true when the actual row values are substituted for any
   variable references.
 
+
 .. _sql_reference_group_by:
 
 GROUP BY Clause

@@ -13,10 +13,10 @@ see :doc:`sql`. For general information about SQL please refer to
 
    ddl
    dml
+   dql
    aggregation
    scalar
    arithmetic
-   predicates
    occ
    partitioned_tables
    rest
