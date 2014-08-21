@@ -22,6 +22,7 @@
 package io.crate.action.sql;
 
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -96,12 +97,15 @@ public class SQLResponse extends SQLBaseResponse {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+        // don't user super.readFrom to stay binary backward compatible
+        in.readBoolean(); // headers in TransportResponse
+
         boolean negative = in.readBoolean();
         rowCount = in.readVLong();
         if (negative) {
             rowCount = -rowCount;
         }
+        cols = in.readStringArray();
         int numRows = in.readInt();
         rows = new Object[numRows][cols.length];
         for (int i = 0; i < numRows; i++) {
@@ -109,17 +113,39 @@ public class SQLResponse extends SQLBaseResponse {
                 rows[i][j] = in.readGenericValue();
             }
         }
+        requestStartedTime = in.readVLong();
+        includeTypes = in.readBoolean();
+        if (includeTypes) {
+            int numColumnTypes = in.readInt();
+            colTypes = new DataType[numColumnTypes];
+            for (int i = 0; i < numColumnTypes; i++) {
+                colTypes[i] = DataTypes.fromStream(in);
+            }
+        } else {
+            colTypes = EMPTY_TYPES;
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
+        // don't user super.writeTo to stay binary backward compatible
+
+        out.writeBoolean(false); // headers in TransportResponse
         out.writeBoolean(rowCount < 0);
         out.writeVLong(Math.abs(rowCount));
+        out.writeStringArray(cols);
         out.writeInt(rows.length);
         for (int i = 0; i < rows.length ; i++) {
             for (int j = 0; j < cols.length; j++) {
                 out.writeGenericValue(rows[i][j]);
+            }
+        }
+        out.writeVLong(requestStartedTime);
+        out.writeBoolean(includeTypes);
+        if (includeTypes) {
+            out.writeInt(colTypes.length);
+            for (int i = 0; i < colTypes.length; i++) {
+                DataTypes.toStream(colTypes[i], out);
             }
         }
     }

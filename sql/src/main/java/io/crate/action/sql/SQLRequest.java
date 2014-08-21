@@ -74,21 +74,32 @@ public class SQLRequest extends SQLBaseRequest {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+        // doesn't call super to stay compatible with older crate version
+
+        in.readBoolean(); // read headers boolean / TransportRequest base class
+        stmt = in.readString();
         int length = in.readVInt();
         args = new Object[length];
         for (int i = 0; i < length; i++) {
             args[i] = in.readGenericValue();
         }
+        creationTime = in.readVLong();
+        includeTypesOnResponse = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
+        // doesn't call super to stay compatible with older crate version
+
+        out.writeBoolean(false); // headers == null from TransportRequest base class
+
+        out.writeString(stmt);
         out.writeVInt(args.length);
         for (int i = 0; i < args.length; i++) {
             out.writeGenericValue(args[i]);
         }
+        out.writeVLong(creationTime);
+        out.writeBoolean(includeTypesOnResponse);
     }
 
     @Override
