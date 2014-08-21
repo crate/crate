@@ -114,7 +114,7 @@ def setUpLocationsAndQuotes(test):
 def setUpTutorials(test):
     setUp(test)
     import_dir = '/tmp/best_practice_data'
-    source_dir = 'sql/src/test/resources/essetup/data/best_practices'
+    source_dir = 'sql/src/test/resources/essetup/data/best_practice'
     if not os.path.isdir(import_dir):
         os.mkdir(import_dir)
     shutil.copy(project_path(source_dir, 'data_import.json'),
@@ -165,7 +165,7 @@ def test_suite():
         s.layer = empty_layer
         suite.addTest(s)
     for fn in ('data_import.txt',):
-        path = os.path.join('..','..','best_practices',fn)
+        path = os.path.join('..','..','best_practice',fn)
         s = doctest.DocFileSuite(path, parser=crash_parser,
                                  setUp=setUpTutorials,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
