@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - COPY FROM now always assumes that the files it reads are encoded using UTF-8
+   instead of relying on the system default.
+
  - added support for update, delete and insert bulk operations
 
  - updated crate-admin to 0.9.3 which includes following changes:
