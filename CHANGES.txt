@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added support for update, delete and insert bulk operations
+
  - updated crate-admin to 0.9.3 which includes following changes:
 
     - send cookies with cross-origin requests
