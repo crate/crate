@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -193,9 +194,10 @@ public class FileReadingCollector implements CrateCollector {
     private BufferedReader createReader(InputStream inputStream) throws IOException {
         BufferedReader reader;
         if (compressed) {
-            reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(inputStream)));
+            reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(inputStream),
+                    Charset.forName("utf-8")));
         } else {
-            reader = new BufferedReader(new InputStreamReader(inputStream));
+            reader = new BufferedReader(new InputStreamReader(inputStream, Charset.forName("utf-8")));
         }
         return reader;
     }

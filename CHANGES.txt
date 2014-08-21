@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - COPY FROM now always assumes that the files it reads are encoded using UTF-8
+   instead of relying on the system default.
+
  - fix: using the is not null predicate on a non-existing or ignored column
    did throw an exception
 

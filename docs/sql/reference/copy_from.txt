@@ -30,7 +30,8 @@ COPY FROM copies data from a URI to the specified table.
 The nodes in the cluster will attempt to access the resources available under
 the URI and import the data.
 
-The file(s) must contain one JSON formatted row per line.
+The file(s) must contain one JSON formatted row per line and have to be encoded
+using UTF-8.
 
 For examples see: :ref:`importing_data`.
 
