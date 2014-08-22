@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added having support for global aggregate
+   and group by
+
  BREAKING:
 
  - Logging configuration files must now start with ``logging.`` and end with

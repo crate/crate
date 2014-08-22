@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import io.crate.PartitionName;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.SQLParseException;
@@ -50,6 +51,7 @@ import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -65,11 +67,8 @@ import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.nullValue;
+import static io.crate.testing.TestingHelpers.*;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -1590,5 +1589,114 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testIsNotNullDynamic() {
          SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where no_such_column is not null");
          assertTrue(analysis.hasNoResult());
+    }
+
+    @Test
+    public void testGroupByHaving() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
+        assertThat(analysis.havingClause(), isFunction("op_like"));
+        Function havingFunction = (Function)analysis.havingClause();
+        assertThat(havingFunction.arguments().size(), is(2));
+        assertThat(havingFunction.arguments().get(0), isReference("name"));
+        TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), "Slartibart%");
+    }
+
+    @Test
+    public void testGroupByHavingNormalize() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select sum(floats) from users group by name having 1 > 4");
+        TestingHelpers.assertLiteralSymbol(analysis.havingClause(), false);
+    }
+
+    @Test
+    public void testGroupByHavingOtherColumnInAggregate() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select sum(floats), name from users group by name having max(bytes) = 4");
+        assertThat(analysis.havingClause(), isFunction("op_="));
+        Function havingFunction = (Function)analysis.havingClause();
+        assertThat(havingFunction.arguments().size(), is(2));
+        assertThat(havingFunction.arguments().get(0), isFunction("max"));
+        Function maxFunction = (Function)havingFunction.arguments().get(0);
+
+        assertThat(maxFunction.arguments().get(0), isReference("bytes"));
+        TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), (byte) 4, DataTypes.BYTE);
+    }
+
+    @Test
+    public void testGroupByHavingOtherColumnOutsideAggregate() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use reference users.bytes outside of an Aggregation in HAVING clause");
+
+        analyze("select sum(floats) from users group by name having bytes = 4");
+    }
+
+    @Test
+    public void testGroupByHavingOtherColumnOutsideAggregateInFunction() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use reference users.bytes outside of an Aggregation in HAVING clause");
+
+        analyze("select sum(floats), name from users group by name having (bytes + 1)  = 4");
+    }
+
+    @Test
+    public void testGroupByHavingByGroupKey() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select sum(floats), name from users group by name having name like 'Slartibart%'");
+        assertThat(analysis.havingClause(), isFunction("op_like"));
+        Function havingFunction = (Function)analysis.havingClause();
+        assertThat(havingFunction.arguments().size(), is(2));
+        assertThat(havingFunction.arguments().get(0), TestingHelpers.isReference("name"));
+        TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), "Slartibart%");
+    }
+
+    @Test
+    public void testGroupByHavingComplex() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select sum(floats), name from users group by name having 1=0 or sum(bytes) in (42, 43, 44) and  name not like 'Slartibart%'");
+        assertThat(analysis.havingClause(), instanceOf(Function.class));
+        Function havingFunction = (Function)analysis.havingClause();
+        assertThat(havingFunction, is(notNullValue()));
+        assertThat(havingFunction.info().ident().name(), is("op_or"));
+        assertThat(havingFunction.arguments().size(), is(2));
+
+        TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(0), false);
+
+        assertThat(havingFunction.arguments().get(1), isFunction("op_and"));
+        Function andFunction = (Function)havingFunction.arguments().get(1);
+
+        assertThat(andFunction.arguments().get(0), isFunction("op_in"));
+        assertThat(andFunction.arguments().get(1), isFunction("op_not"));
+    }
+
+    @Test
+    public void testHavingWithoutGroupBy() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("HAVING clause can only be used in GROUP BY or global aggregate queries");
+        analyze("select * from users having max(bytes) > 100");
+    }
+
+    @Test
+    public void testGlobalAggregateHaving() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select sum(floats) from users having sum(bytes) in (42, 43, 44)");
+        assertThat(analysis.havingClause(), isFunction("op_in"));
+        Function havingFunction = (Function)analysis.havingClause();
+
+        assertThat(havingFunction.info().ident().name(), is("op_in"));
+        assertThat(havingFunction.arguments().size(), is(2));
+
+        assertThat(havingFunction.arguments().get(0), isFunction("sum"));
+        TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), Sets.newHashSet(42.0D, 43.0D, 44.0D), new SetType(DataTypes.DOUBLE));
+
+    }
+
+    @Test
+    public void testHavingNoResult() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select sum(floats) from users having 1 = 2");
+        assertThat(analysis.havingClause(), isLiteral(false, DataTypes.BOOLEAN));
+        assertThat(analysis.hasNoResult(), is(true));
+    }
+
+    @Test
+    public void testGlobalAggregateReference() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use reference users.bytes outside of an Aggregation in HAVING clause. Only GROUP BY keys allowed here.");
+
+        analyze("select sum(floats) from users having bytes in (42, 43, 44)");
     }
 }

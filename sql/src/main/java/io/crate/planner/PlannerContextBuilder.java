@@ -24,16 +24,17 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
+import io.crate.metadata.FunctionInfo;
+import io.crate.planner.symbol.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ListIterator;
 
 public class PlannerContextBuilder {
+
+    private final static HavingSymbolConverter havingSymbolConverter = new HavingSymbolConverter();
 
     private final PlannerContext context;
     public final boolean ignoreOrderBy;
@@ -146,6 +147,7 @@ public class PlannerContextBuilder {
         int idx = 0;
         for (Symbol symbol : context.groupBy) {
             context.groupBy.set(idx, new InputColumn(idx));
+            idx++;
         }
     }
 
@@ -177,6 +179,10 @@ public class PlannerContextBuilder {
             }
         }
         return this;
+    }
+
+    public Symbol having(Symbol query) {
+        return havingSymbolConverter.process(query, context);
     }
 
     /**
@@ -217,4 +223,47 @@ public class PlannerContextBuilder {
         }
         return outputs;
     }
+
+    /**
+     * Convert aggregation symbols to input columns from previous projection
+     */
+    static class HavingSymbolConverter extends SymbolVisitor<PlannerContext, Symbol> {
+
+        @Override
+        public Symbol visitFunction(Function symbol, PlannerContext context) {
+            if (symbol.info().type().equals(FunctionInfo.Type.AGGREGATE)) {
+                Symbol resolvedSymbol = context.resolvedSymbols.get(symbol);
+
+                if (resolvedSymbol == null) {
+                    // resolve symbol
+                    resolvedSymbol = Planner.splitter.process(symbol, context);
+                }
+                return resolvedSymbol;
+            }
+            ListIterator<Symbol> it = symbol.arguments().listIterator();
+            while (it.hasNext()) {
+                Symbol argument = it.next();
+                it.set(process(argument, context));
+            }
+
+            return symbol;
+        }
+
+        @Override
+        public Symbol visitReference(Reference symbol, PlannerContext context) {
+            Symbol resolvedSymbol = context.resolvedSymbols.get(symbol);
+            if (resolvedSymbol == null) {
+                throw new UnhandledServerException(
+                        "Cannot resolve symbol: " + symbol);
+
+            }
+            return resolvedSymbol;
+        }
+
+        @Override
+        protected Symbol visitSymbol(Symbol symbol, PlannerContext context) {
+            return symbol;
+        }
+    }
+
 }

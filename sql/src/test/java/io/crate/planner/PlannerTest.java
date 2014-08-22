@@ -46,7 +46,9 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
@@ -61,6 +63,9 @@ public class PlannerTest {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private Injector injector;
     private Analyzer analyzer;
@@ -641,6 +646,7 @@ public class PlannerTest {
         assertNull(collectNode.downStreamNodes());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergeNode mergeNode = (MergeNode)iterator.next();
         assertThat(mergeNode.projections().size(), is(1));
         assertFalse(iterator.hasNext());
@@ -654,6 +660,7 @@ public class PlannerTest {
         assertNull(collectNode.downStreamNodes());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         MergeNode mergeNode = (MergeNode)iterator.next();
         assertThat(mergeNode.projections().size(), is(1));
@@ -1141,5 +1148,132 @@ public class PlannerTest {
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
     }
+
+    @Test
+    public void testGroupByHaving() throws Exception {
+        Plan plan = plan("select avg(date), name from users group by name having min(date) > '1970-01-01'");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+        CollectNode collectNode = (CollectNode)planNode;
+        assertThat(collectNode.projections().size(), is(1));
+        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(2));
+        assertThat(localMergeNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(localMergeNode.projections().get(1), instanceOf(FilterProjection.class));
+
+        GroupProjection groupProjection = (GroupProjection)localMergeNode.projections().get(0);
+        assertThat(groupProjection.values().size(), is(2));
+
+        FilterProjection filterProjection = (FilterProjection)localMergeNode.projections().get(1);
+        assertThat(filterProjection.outputs().size(), is(2));
+        assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
+        InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
+        assertThat(inputColumn.index(), is(0));
+
+        assertThat(filterProjection.outputs().get(1), instanceOf(InputColumn.class));
+        inputColumn = (InputColumn)filterProjection.outputs().get(1);
+        assertThat(inputColumn.index(), is(1));
+    }
+
+    @Test
+    public void testGroupByHavingInsertInto() throws Exception {
+        Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name having count(*) > 3)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+        assertThat(mergeNode.projections().size(), is(3));
+        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(mergeNode.projections().get(1), instanceOf(FilterProjection.class));
+        assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
+
+        FilterProjection filterProjection = (FilterProjection)mergeNode.projections().get(1);
+        assertThat(filterProjection.outputs().size(), is(2));
+        assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
+        assertThat(filterProjection.outputs().get(1), instanceOf(InputColumn.class));
+
+        InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
+        assertThat(inputColumn.index(), is(0));
+        inputColumn = (InputColumn)filterProjection.outputs().get(1);
+        assertThat(inputColumn.index(), is(1));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(1));
+        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
+
+        assertThat(iterator.hasNext(), is(false));
+    }
+
+    @Test
+    public void testGroupByHavingNonDistributed() throws Exception {
+        Plan plan = plan("select id from users group by id having id > 0");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+        CollectNode collectNode = (CollectNode)planNode;
+        assertThat(collectNode.projections().size(), is(1));
+        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(2));
+        assertThat(localMergeNode.projections().get(0), instanceOf(FilterProjection.class));
+        assertThat(localMergeNode.projections().get(1), instanceOf(TopNProjection.class));
+
+        FilterProjection filterProjection = (FilterProjection)localMergeNode.projections().get(0);
+        assertThat(filterProjection.requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(filterProjection.outputs().size(), is(1));
+        assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
+        InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
+        assertThat(inputColumn.index(), is(0));
+    }
+
+    @Test
+    public void testGlobalAggregationHaving() throws Exception {
+        Plan plan = plan("select avg(date) from users having min(date) > '1970-01-01'");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+        CollectNode collectNode = (CollectNode)planNode;
+        assertThat(collectNode.projections().size(), is(1));
+        assertThat(collectNode.projections().get(0), instanceOf(AggregationProjection.class));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(3));
+        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(localMergeNode.projections().get(1), instanceOf(FilterProjection.class));
+        assertThat(localMergeNode.projections().get(2), instanceOf(TopNProjection.class));
+
+        AggregationProjection aggregationProjection = (AggregationProjection)localMergeNode.projections().get(0);
+        assertThat(aggregationProjection.aggregations().size(), is(2));
+
+        FilterProjection filterProjection = (FilterProjection)localMergeNode.projections().get(1);
+        assertThat(filterProjection.outputs().size(), is(1));
+        assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
+        InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
+        assertThat(inputColumn.index(), is(0));
+
+        TopNProjection topNProjection = (TopNProjection)localMergeNode.projections().get(2);
+        assertThat(topNProjection.outputs().size(), is(1));
+    }
+
 
 }

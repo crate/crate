@@ -21,20 +21,21 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -65,6 +66,7 @@ public class ProjectionToProjectorVisitorTest {
     private ProjectionToProjectorVisitor visitor;
     private FunctionInfo countInfo;
     private FunctionInfo avgInfo;
+    private Functions functions;
 
     @Before
     public void prepare() {
@@ -78,8 +80,9 @@ public class ProjectionToProjectorVisitorTest {
                         bind(Client.class).toInstance(mock(Client.class));
                     }
                 })
+                .add(new OperatorModule())
                 .createInjector();
-        Functions functions = injector.getInstance(Functions.class);
+        functions = injector.getInstance(Functions.class);
         ImplementationSymbolVisitor symbolvisitor =
                 new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
         visitor = new ProjectionToProjectorVisitor(
@@ -221,4 +224,30 @@ public class ProjectionToProjectorVisitorTest {
         assertThat((Double)rows[2][2], is(44.0));
         assertThat((Long)rows[2][3], is(2L));
     }
+
+    @Test
+    public void testFilterProjection() throws Exception {
+        EqOperator op = (EqOperator)functions.get(
+                new FunctionIdent(EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
+        Function function = new Function(
+                op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), new InputColumn(1)));
+        FilterProjection projection = new FilterProjection(function);
+        projection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
+
+        CollectingProjector collectingProjector = new CollectingProjector();
+        Projector projector = visitor.process(projection);
+        projector.registerUpstream(null);
+        projector.downstream(collectingProjector);
+        assertThat(projector, instanceOf(FilterProjector.class));
+
+        projector.startProjection();
+        projector.setNextRow("human", 2);
+        projector.setNextRow("vogon", 1);
+
+        projector.upstreamFinished();
+
+        Object[][] rows = collectingProjector.result().get();
+        assertThat(rows.length, is(1));
+    }
+
 }

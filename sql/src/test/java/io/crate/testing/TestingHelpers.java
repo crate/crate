@@ -28,6 +28,9 @@ import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -168,4 +171,114 @@ public class TestingHelpers {
         assertEquals(type, ((Literal)symbol).valueType());
         assertThat(((Literal) symbol).value(), is(expectedValue));
     }
+
+    public static Matcher<Symbol> isLiteral(final Object expectedValue, final DataType type) {
+        return new TypeSafeDiagnosingMatcher<Symbol>() {
+            @Override
+            protected boolean matchesSafely(Symbol item, Description mismatchDescription) {
+                if (!(item instanceof Literal)) {
+                    mismatchDescription.appendText("not a Literal: ").appendValue(item.getClass().getName());
+                    return false;
+                }
+                if (!((Literal) item).valueType().equals(type)) {
+                    mismatchDescription.appendText("wrong type ").appendValue(type.toString());
+                }
+                if (!((Literal) item).value().equals(expectedValue)) {
+                    mismatchDescription.appendText("wrong value ").appendValue(((Literal) item).value());
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("is Literal of type ")
+                        .appendText(type.toString())
+                        .appendText(" and value ").appendValue(expectedValue);
+            }
+        };
+    }
+
+    public static Matcher<Symbol> isReference(String expectedName) {
+        return isReference(expectedName, null);
+    }
+
+    public static Matcher<Symbol> isReference(final String expectedName, @Nullable final DataType dataType) {
+        return new TypeSafeDiagnosingMatcher<Symbol>() {
+
+            @Override
+            public boolean matchesSafely(Symbol item, Description desc) {
+                if (!(item instanceof Reference)) {
+                    desc.appendText("not a Reference: ").appendText(item.getClass().getName());
+                    return false;
+                }
+                String name = ((Reference) item).info().ident().columnIdent().fqn();
+                if (!name.equals(expectedName)) {
+                    desc.appendText("different name ").appendValue(name);
+                    return false;
+                }
+                if (dataType != null && !((Reference) item).info().type().equals(dataType)) {
+                    desc.appendText("different type ").appendValue(dataType.toString());
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                StringBuilder builder = new StringBuilder("a Reference with name ").append(expectedName);
+                if (dataType != null) {
+                    builder.append(" and type").append(dataType.toString());
+                }
+                description.appendText(builder.toString());
+            }
+        };
+    }
+
+    public static Matcher<Symbol> isFunction(String name) {
+        return isFunction(name, null);
+    }
+
+    public static Matcher<Symbol> isFunction(final String name, @Nullable final List<DataType> argumentTypes) {
+        return new TypeSafeDiagnosingMatcher<Symbol>() {
+            @Override
+            public boolean matchesSafely(Symbol item, Description mismatchDescription) {
+                if (!(item instanceof Function)) {
+                    mismatchDescription.appendText("not a Function: ").appendValue(item.getClass().getName());
+                    return false;
+                }
+                if (!((Function) item).info().ident().name().equals(name)) {
+                    mismatchDescription.appendText("wrong Function: ").appendValue(name);
+                    return false;
+                }
+                if (argumentTypes != null) {
+                    if (((Function) item).info().ident().argumentTypes().size() != argumentTypes.size()) {
+                        mismatchDescription.appendText("wrong number of arguments: ").appendValue(((Function) item).info().ident().argumentTypes().size());
+                        return false;
+                    }
+
+                    List<DataType> types = ((Function) item).info().ident().argumentTypes();
+                    for (int i = 0, typesSize = types.size(); i < typesSize; i++) {
+                        DataType type = types.get(i);
+                        DataType expected = argumentTypes.get(i);
+                        if (!expected.equals(type)) {
+                            mismatchDescription.appendText("argument ").appendValue(i + 1).appendText(" has wrong type ").appendValue(type.toString());
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("is function ").appendText(name);
+                if (argumentTypes != null) {
+                    description.appendText("with argument types: ");
+                    for (DataType type : argumentTypes) {
+                        description.appendText(type.toString());
+                    }
+                }
+            }
+        };
+    }
+
 }

@@ -26,7 +26,9 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.metadata.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
 import io.crate.sql.tree.Query;
 
 import javax.annotation.Nullable;
@@ -44,6 +46,8 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     private Boolean[] nullsFirst;
     private List<Symbol> sortSymbols;
     protected boolean selectFromFieldCache = false;
+
+    private Symbol havingClause;
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
 
@@ -92,6 +96,15 @@ public class SelectAnalysis extends AbstractDataAnalysis {
         return groupBy != null && groupBy.size() > 0;
     }
 
+    @Nullable
+    public Symbol havingClause() {
+        return havingClause;
+    }
+
+    public void havingClause(Symbol clause) {
+        this.havingClause = normalizer.process(clause, null);
+    }
+
     public void reverseFlags(boolean[] reverseFlags) {
         this.reverseFlags = reverseFlags;
     }
@@ -106,6 +119,13 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     @Override
     public boolean hasNoResult() {
+        if (havingClause != null && havingClause.symbolType() == SymbolType.LITERAL) {
+            Literal havingLiteral = (Literal)havingClause;
+            if (havingLiteral.value() == false) {
+                return true;
+            }
+        }
+
         if (globalAggregate()) {
             return Objects.firstNonNull(limit(), 1) < 1 || offset() > 0;
         }

@@ -57,7 +57,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         ImplementationSymbolVisitor symbolVisitor,
-            EvaluatingNormalizer normalizer) {
+                                        EvaluatingNormalizer normalizer) {
         this.clusterService = clusterService;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
@@ -265,5 +265,21 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 projection.bulkActions()
         );
+    }
+
+    @Override
+    public Projector visitFilterProjection(FilterProjection projection, Void context) {
+        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
+
+        Input<Boolean> condition;
+        if (projection.query() != null) {
+            condition = (Input)symbolVisitor.process(projection.query(), ctx);
+        } else {
+            condition = Literal.newLiteral(true);
+        }
+
+        return new FilterProjector(
+                ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()]),
+                condition);
     }
 }

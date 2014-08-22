@@ -760,3 +760,81 @@ This is useful if used in conjunction with aggregation functions::
     Grouping can only be applied to columns with a plain index, which is the
     default for all columns.
     For more information, please refer to :ref:`sql_ddl_index_plain`.
+
+.. _sql_dql_having:
+
+HAVING
+......
+
+The having clause is the equivalent to the where clause for the
+resulting rows of a group by clause.
+A simple having clause example using an equality operator::
+
+    cr> select count(*), kind from locations
+    ... group by kind having count(*) = 4 order by kind;
+    +----------+-------------+
+    | count(*) | kind        |
+    +----------+-------------+
+    |        4 | Galaxy      |
+    |        4 | Star System |
+    +----------+-------------+
+    SELECT 2 rows in set (... sec)
+
+The condition of the having clause can refer to the resulting columns
+of the group by clause.
+It is also possible to use aggregates in the having clause just
+like in the result columns::
+
+
+    cr> select count(*), kind from locations
+    ... group by kind having min(name) = 'Berlin';
+    +----------+------+
+    | count(*) | kind |
+    +----------+------+
+    |        2 | City |
+    +----------+------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select count(*), kind from locations
+    ... group by kind having count(*) = 4 and kind like 'Gal%';
+    +----------+--------+
+    | count(*) | kind   |
+    +----------+--------+
+    |        4 | Galaxy |
+    +----------+--------+
+    SELECT 1 row in set (... sec)
+
+
+Comparison Operators
+~~~~~~~~~~~~~~~~~~~~
+
+The having clause supports the same operators as the :ref:`sql_dql_where_clause`::
+
+    ================  =================================
+    Operator          Description
+    ================  =================================
+    <                 less than
+    >                 greater than
+    <=                less than or equal to
+    >=                greater than or equal to
+    =                 equal
+    <>                not equal
+    !=                not equal - same as <>
+    like              matches a part of the given value
+    ================  =================================
+
+Predicates
+~~~~~~~~~~
+
+The having supports almost the same predicates as the :ref:`sql_dql_where_clause`
+excpet the `match` predicate, which is not supported.
+The following :ref:`predicates` are supported::
+
+    ==========================  ===========================================================
+    Predicate                   Description
+    ==========================  ===========================================================
+    :ref:`predicates_not_null`  value is not null and not missing
+    :ref:`predicates_is_null`   value is null or missing
+    ==========================  ===========================================================

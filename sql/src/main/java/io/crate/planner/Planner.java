@@ -644,6 +644,16 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2)
                 .output(analysis.outputSymbols());
 
+        // havingClause could be a Literal or Function.
+        // if its a Literal and value is false, we'll never reach this point (no match),
+        // otherwise (true value) having can be ignored
+        Symbol havingClause = null;
+        if (analysis.havingClause() != null
+                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
+            // replace aggregation symbols with input columns from previous projection
+            havingClause = contextBuilder.having(analysis.havingClause());
+        }
+
         AggregationProjection ap = new AggregationProjection();
         ap.aggregations(contextBuilder.aggregations());
         CollectNode collectNode = PlanNodeBuilder.collect(
@@ -657,9 +667,17 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
         //// the handler stuff
         List<Projection> projections = new ArrayList<>();
+
         projections.add(new AggregationProjection(contextBuilder.aggregations()));
 
-        if (contextBuilder.aggregationsWrappedInScalar) {
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.passThroughOutputs());
+            projections.add(fp);
+        }
+
+        if (contextBuilder.aggregationsWrappedInScalar || havingClause != null) {
+            // will filter out optional having symbols which are not selected
             TopNProjection topNProjection = new TopNProjection(1, 0);
             topNProjection.outputs(contextBuilder.outputs());
             projections.add(topNProjection);
@@ -687,6 +705,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private void groupBy(SelectAnalysis analysis, Plan plan, Context context) {
+
         if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
                 || !requiresDistribution(analysis)) {
             nonDistributedGroupBy(analysis, plan, context);
@@ -743,6 +762,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         boolean ignoreSorting = context.indexWriterProjection.isPresent()
                 && analysis.limit() == null
                 && analysis.offset() == TopN.NO_OFFSET;
+        boolean groupedByClusteredPk = groupedByClusteredColumnOrPrimaryKeys(analysis);
 
         int numAggregationSteps = 2;
         if (analysis.rowGranularity() == RowGranularity.DOC) {
@@ -757,9 +777,21 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
+        Symbol havingClause = null;
+        if (analysis.havingClause() != null
+                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
+            // replace aggregation symbols with input columns from previous projection
+            havingClause = contextBuilder.having(analysis.havingClause());
+        }
+
         ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
         GroupProjection groupProjection =
                 new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
+
+        if(groupedByClusteredPk){
+            groupProjection.setRequiredGranularity(RowGranularity.SHARD);
+
+        }
 
         List<Symbol> toCollect = contextBuilder.toCollect();
         contextBuilder.nextStep();
@@ -778,6 +810,15 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
         // handler
         ImmutableList.Builder<Projection> builder = ImmutableList.<Projection>builder();
+
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.passThroughOutputs());
+            if(groupedByClusteredPk){
+                fp.requiredGranularity(RowGranularity.SHARD);
+            }
+            builder.add(fp);
+        }
         if (numAggregationSteps == 2) {
             builder.add(new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations()));
         }
@@ -849,6 +890,13 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
+        Symbol havingClause = null;
+        if (analysis.havingClause() != null
+                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
+            // replace aggregation symbols with input columns from previous projection
+            havingClause = contextBuilder.having(analysis.havingClause());
+        }
+
         // collector
         GroupProjection groupProjection = new GroupProjection(
                 contextBuilder.groupBy(), contextBuilder.aggregations());
@@ -867,6 +915,13 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         projectionsBuilder.add(new GroupProjection(
                 contextBuilder.groupBy(),
                 contextBuilder.aggregations()));
+
+
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.passThroughOutputs());
+            projectionsBuilder.add(fp);
+        }
 
         boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionsBuilder);
         MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
@@ -908,6 +963,13 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
+        Symbol havingClause = null;
+        if (analysis.havingClause() != null
+                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
+            // replace aggregation symbols with input columns from previous projection
+            havingClause = contextBuilder.having(analysis.havingClause());
+        }
+
         // collector
         GroupProjection groupProjection = new GroupProjection(
                 contextBuilder.groupBy(), contextBuilder.aggregations());
@@ -926,6 +988,13 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         projectionsBuilder.add(new GroupProjection(
                 contextBuilder.groupBy(),
                 contextBuilder.aggregations()));
+
+
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.passThroughOutputs());
+            projectionsBuilder.add(fp);
+        }
 
         boolean topNDone = false;
         if (analysis.isLimited()) {
