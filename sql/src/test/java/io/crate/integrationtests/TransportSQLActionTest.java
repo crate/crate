@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.*;
@@ -62,7 +61,6 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
-@Seed("991C1014D4833E6C:1CDD059F87E0920F")
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
 
@@ -2344,6 +2342,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from quotes");
         assertEquals(3L, response.rowCount());
         assertThat(response.rows()[0].length, is(2));
+
+        execute("select quote from quotes where id = 1");
+        assertThat((String) response.rows()[0][0], is("Don't pañic."));
     }
 
     @Test
