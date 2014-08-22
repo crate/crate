@@ -4717,6 +4717,29 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.025284158\n" +
                         "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.02338146\n"));
     }
+
+
+    @Test
+    public void testTestGroupByOnClusteredByColumn() throws Exception {
+        execute("create table foo (id int, name string, country string) clustered by (country) with (number_of_replicas = 0)");
+        ensureGreen();
+
+        execute("insert into foo (id, name, country) values (?, ?, ?)", new Object[][]{
+                new Object[] { 1, "Arthur", "Austria" },
+                new Object[] { 2, "Trillian", "Austria" },
+                new Object[] { 3, "Marvin", "Austria" },
+                new Object[] { 4, "Jeltz", "Germany" },
+                new Object[] { 5, "Ford", "Germany" },
+                new Object[] { 6, "Slartibardfast", "Italy" },
+        });
+        refresh();
+
+        execute("select count(*), country from foo group by country order by count(*) desc");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((String) response.rows()[0][1], is("Austria"));
+        assertThat((String) response.rows()[1][1], is("Germany"));
+        assertThat((String) response.rows()[2][1], is("Italy"));
+    }
 }
 
 

@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - improved the performance of GROUP BY queries that use only the column by
+   which a table is clustered as GROUP BY key.
+
  - upgraded ES upstream to v1.3.2
 
  - added support for update, delete and insert bulk operations
