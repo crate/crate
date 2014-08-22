@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/08/22 0.41.4
+=================
+
  - fix: The table schema of partitioned table is now correctly invalidated if a
    single partition has been modified using the ALTER TABLE statement with the
    PARTITION clause.
