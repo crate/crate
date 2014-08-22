@@ -1,0 +1,210 @@
+.. highlight:: sh
+.. _cluster_upgrade:
+
+=====================
+Zero Downtime Upgrade
+=====================
+
+Crate Data provides an easy way to perform a cluster upgrade with zero downtime.
+
+To perform a rolling upgrade of a Crate cluster without downtime you need to
+utilise the ``graceful-stop`` command of the crate executable. This will ensure
+a certain data availability during upgrade while one or more nodes of the
+cluster are not available.
+
+If you keep the following 6 simple steps in mind you will be able to upgrade your
+cluster without downtime.
+
+
+Step 1: Disable Re-Allocations
+==============================
+
+First, you have to prevent the cluster from re-distributing shards and replicas
+while certain nodes are not available. You can do that by disabling
+re-allocations and only allowing new primary allocations.
+
+Use the :ref:`ref-set` command to do so:
+
+.. code-block:: psql
+
+  cr> SET GLOBAL TRANSIENT routing.allocation.enable = 'new_primaries';
+  SET OK (... sec)
+
+.. note::
+
+  This step may be omited if you set the ``graceful_stop.min_availability``
+  setting to ``full``.
+
+
+Step 2: Graceful Stop
+=====================
+
+The ``crate`` executable provides additionally to the regular ``stop`` command
+also a ``graceful-stop`` command. This command uses the settings described
+at the end of this document to shut down the node::
+
+  bin/crate graceful-stop
+
+Depending on your installation you will have to invoke ``crate`` in a
+different way, e.g. like that::
+
+  sudo service crate graceful-stop
+
+Using the default settings the node would shut down by moving all primary shards
+off the node first. This will ensure that no data is lost. However, the cluster
+health will go most likely to yellow, because replicas that lived on that node
+will be missing.
+
+If you want to ensure green health, you'd need to change the
+``gradeful_stop.min_availability`` setting to ``full``. This will move
+all shards off the node before shutting down.
+
+Keep in mind that reallocating shards might take some time depending
+on the amount of shards and the amount and size of records (and/or blob data).
+For that reason you should set the ``timeout`` setting to a reasonable
+time. By default the shutdown process aborts and the cluster will start
+distributing shards evenly again. If you want to force a shutdown after
+the timeout, even if the reallocating is not finished, you can set the
+``force`` setting to ``true``.
+
+.. warning::
+
+  A forced stop does not ensure the minimum data availability
+  defined in the settings and may result in temporary or even permanent
+  loss of data!
+
+You can also set the ``reallocate`` setting to ``false`` if you want to ensure
+that a node cannot be stopped if the cluster would need to move shard off the
+node. This can prevent long waiting times until the shutdown process runs
+into timeout during reallocation.
+
+By default, only the ``graceful-stop`` command considers the cluster settings
+described below. To make the regular ``stop`` command consider these settings
+as well, you can change ``is_default`` to ``true``.
+
+
+Step 3: Upgrade Crate
+=====================
+
+After the node is stopped you can safely upgrade your Crate installation.
+Depending on your installation and operating system you can do it by downloading
+the latest tarball or just use the package manager.
+
+Example for RHEL/YUM::
+
+  sudo yum update -y crate
+
+If you are in doubt how to upgrade an installed package,
+please refer to the man pages of your operating system / package manager.
+
+
+Step 4: Start Crate
+===================
+
+Once the upgrade process is completed you can start the Crate process again
+by either invoking the bin/crate executable from the tarball directly::
+
+  bin/crate start
+
+or using the service manager of your operating system.
+
+Example for RHEL/YUM::
+
+  sudo service crate start
+
+
+Step 5: Repeat
+==============
+
+Repeat step 2, 3 and 4 for all other nodes.
+
+
+Step 6: Enable Reallocations
+============================
+
+Last but not least when all nodes are updated you can re-enable
+allocations again that have been disabled in the first step:
+
+.. code-block:: psql
+
+  cr> SET GLOBAL TRANSIENT routing.allocation.enable = 'all';
+  SET OK (... sec)
+
+
+.. warning::
+
+  Even the safest upgrade process might go wrong at some point.
+  So make sure you have your data backed up!
+
+
+Settings
+========
+
+Available settings are:
+
+:graceful_stop.min_availability:
+    Options are: ``none | primaries | full``
+
+    ``none``: No minimum data availability is required. The node may shut down
+    even if records are missing after shutdown.
+
+    ``primaries``: At least all primary shards need to be availabe after the
+    node has shut down. Replicas may be missing.
+
+    ``full``: All records and all replicas need to be available after the
+    node has shut down. Data availability is full.
+
+    .. note::
+
+      This option is ignored if there is only 1 node in a cluster!
+
+:graceful_stop.reallocate:
+    Options are: ``true | false``
+
+    ``true``: The ``graceful-stop`` command allows shards to be reallocated before
+    shutting down the node in order to ensure minimum data availability set
+    with ``min_availability``.
+
+    ``false``: The ``graceful-stop`` command will fail if the cluster would
+    need to reallocate shards in order to ensure the minimum data availability
+    set with ``min_availability``.
+
+:graceful_stop.timeout:
+    Defines the maximum waiting time for the reallocation process to finish.
+    The ``force`` setting will define the behaviour when the ``graceful-stop``
+    command runs into this timeout.
+
+:graceful_stop.force:
+    Options are: ``true | false``
+
+    Defines whether ``graceful-stop`` should force stopping of the node if it
+    runs into the timeout which is specified with the ``timeout`` setting.
+
+:graceful_stop.is_default:
+    ``true | false``
+    This options defines whether the ``stop`` command of the ``crate`` executable
+    uses the graceful-stop option by default.
+
+Depending on your requirements you'll need to adjust the settings for
+graceful stop in the ``crate.yml`` before starting the nodes.
+
+Alternatively, if the cluster is already running, you can utilise the
+:ref:`ref-set` SQL command to update the cluster settings.
+
+For example to set the timeout to 30 minutes:
+
+.. code-block:: psql
+
+  cr> SET GLOBAL TRANSIENT graceful_stop.timeout = '30m';
+  SET OK (... sec)
+
+The default configuration looks like:
+
+.. code-block:: yaml
+
+  graceful_stop:
+    min_availability: primaries
+    reallocate: true
+    timeout: 2h
+    force: false
+    is_default: false
