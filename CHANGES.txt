@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: The table schema of partitioned table is now correctly invalidated if a
+   single partition has been modified using the ALTER TABLE statement with the
+   PARTITION clause.
+
  - COPY FROM now always assumes that the files it reads are encoded using UTF-8
    instead of relying on the system default.
 

@@ -4071,7 +4071,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("insert into t (id, date, name) values (2, '2014-01-01', 100)"); // insert integer as name
         refresh();
-        ensureGreen();
         execute("select name from t where id = 2 and date = '2014-01-01'");
         assertThat((String)response.rows()[0][0], is("100")); // is returned as string
 

@@ -21,7 +21,9 @@
 
 package io.crate.metadata.doc;
 
+import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.cache.CacheBuilder;
@@ -40,8 +42,11 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -142,18 +147,12 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             // search for aliases of deleted and created indices, they must be invalidated also
             if (cache.size() > 0) {
                 for (String index : event.indicesDeleted()) {
-                    IndexMetaData indexMetaData = event.previousState().metaData().index(index);
-                    if (indexMetaData.aliases() != null && indexMetaData.aliases().size() > 0) {
-                        cache.invalidateAll(Arrays.asList(indexMetaData.aliases().keys().toArray(String.class)));
-                    }
+                    invalidateAliases(event.previousState().metaData().index(index).aliases());
                 }
             }
             if (cache.size() > 0) {
                 for (String index : event.indicesCreated()) {
-                    IndexMetaData indexMetaData = event.state().metaData().index(index);
-                    if (indexMetaData.aliases() != null && indexMetaData.aliases().size() > 0) {
-                        cache.invalidateAll(Arrays.asList(indexMetaData.aliases().keys().toArray(String.class)));
-                    }
+                    invalidateAliases(event.state().metaData().index(index).aliases());
                 }
             }
 
@@ -162,40 +161,54 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                     && !event.state().metaData().templates().equals(event.previousState().metaData().templates())) {
                 // current state templates
                 for (ObjectCursor<IndexTemplateMetaData> cursor : event.state().metaData().getTemplates().values()) {
-                    IndexTemplateMetaData templateMetaData = cursor.value;
-                    if (templateMetaData.aliases() != null && templateMetaData.aliases().size() > 0) {
-                        cache.invalidateAll(Arrays.asList(templateMetaData.aliases().keys().toArray(String.class)));
-                    }
+                    invalidateAliases(cursor.value.aliases());
                 }
                 // previous state templates
                 if (cache.size() > 0) {
                     for (ObjectCursor<IndexTemplateMetaData> cursor : event.previousState().metaData().getTemplates().values()) {
-                        IndexTemplateMetaData templateMetaData = cursor.value;
-                        if (templateMetaData.aliases() != null && templateMetaData.aliases().size() > 0) {
-                            cache.invalidateAll(Arrays.asList(templateMetaData.aliases().keys().toArray(String.class)));
-                        }
+                        invalidateAliases(cursor.value.aliases());
                     }
                 }
             }
 
             // search indices with changed meta data
             Iterator<String> it = cache.asMap().keySet().iterator();
+            MetaData metaData = event.state().getMetaData();
+            ObjectLookupContainer<String> templates = metaData.templates().keys();
+            ImmutableOpenMap<String, IndexMetaData> indices = metaData.indices();
             while (it.hasNext()) {
-                String index = it.next();
-                IndexMetaData newIndexMetaData = event.state().getMetaData().index(index);
+                String tableName = it.next();
+
+                IndexMetaData newIndexMetaData = event.state().getMetaData().index(tableName);
                 if (newIndexMetaData != null && event.indexMetaDataChanged(newIndexMetaData)) {
-                    cache.invalidate(index);
+                    cache.invalidate(tableName);
                     // invalidate aliases of changed indices
-                    if (newIndexMetaData.aliases() != null && newIndexMetaData.aliases().size() > 0) {
-                        cache.invalidateAll(Arrays.asList(newIndexMetaData.aliases().keys().toArray(String.class)));
+                    invalidateAliases(newIndexMetaData.aliases());
+
+                    IndexMetaData oldIndexMetaData = event.previousState().metaData().index(tableName);
+                    if (oldIndexMetaData != null) {
+                        invalidateAliases(oldIndexMetaData.aliases());
                     }
-                    IndexMetaData oldIndexMetaData = event.previousState().metaData().index(index);
-                    if (oldIndexMetaData != null && oldIndexMetaData.aliases() != null
-                            && oldIndexMetaData.aliases().size() > 0) {
-                        cache.invalidateAll(Arrays.asList(oldIndexMetaData.aliases().keys().toArray(String.class)));
+                } else {
+                    // this is the case if a single partition has been modified using alter table <t> partition (...)
+                    String possibleTemplateName = PartitionName.templateName(tableName);
+                    if (templates.contains(possibleTemplateName)) {
+                        for (ObjectObjectCursor<String, IndexMetaData> indexEntry : indices) {
+                            if (PartitionName.isPartition(indexEntry.key)) {
+                                cache.invalidate(tableName);
+                                break;
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+
+    private void invalidateAliases(ImmutableOpenMap<String, AliasMetaData> aliases) {
+        assert aliases != null;
+        if (aliases.size() > 0) {
+            cache.invalidateAll(Arrays.asList(aliases.keys().toArray(String.class)));
         }
     }
 
