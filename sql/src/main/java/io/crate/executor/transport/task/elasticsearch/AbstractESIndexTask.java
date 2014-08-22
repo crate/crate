@@ -26,6 +26,7 @@ import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.xcontent.XContentType;
 
 import java.util.Map;
 
@@ -44,7 +45,7 @@ public abstract class AbstractESIndexTask extends AbstractChainedTask<Object[][]
                                              @Nullable String routingValue) {
         IndexRequest request = new IndexRequest(index, Constants.DEFAULT_MAPPING_TYPE);
         request.create(true);
-        request.source(sourceMap);
+        request.source(sourceMap, XContentType.JSON);
         request.id(id);
         request.routing(routingValue);
 
