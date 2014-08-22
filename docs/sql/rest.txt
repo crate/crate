@@ -191,7 +191,11 @@ insert three records at once::
       "cols" : [ ],
       "duration" : ...,
       "results" : [ {
-        "rowcount" : 3
+        "rowcount" : 1
+      }, {
+        "rowcount" : 1
+      }, {
+        "rowcount" : 1
       } ]
     <BLANKLINE>
     }
