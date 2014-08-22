@@ -162,6 +162,7 @@ def test_suite():
                'sql/arithmetic.txt',
                'sql/scalar.txt',
                'sql/system.txt',
+               'sql/queries.txt',
                'hello.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsAndQuotes,
