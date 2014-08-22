@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added documentation for zero downtime cluster upgrade
+
 2014/08/25 0.42.0
 =================
 
