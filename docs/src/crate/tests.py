@@ -149,8 +149,13 @@ def test_suite():
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
         suite.addTest(s)
-    for fn in ('sql/dml.txt', 'sql/predicates.txt',
-               'sql/occ.txt', 'sql/ddl.txt',
+    for fn in ('sql/ddl.txt',
+               'sql/dml.txt',
+               'sql/dql.txt',
+               'sql/refresh.txt',
+               'sql/fulltext.txt',
+               'sql/data_types.txt',
+               'sql/occ.txt',
                'sql/information_schema.txt',
                'sql/partitioned_tables.txt',
                'sql/aggregation.txt',

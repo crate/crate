@@ -6,12 +6,12 @@ Aggregation
 ===========
 
 There are two ways of doing aggregation, one on the result of a whole query and one
-on the separate groups of a :ref:`sql_dml_group_by` query.
+on the separate groups of a :ref:`sql_dql_group_by` query.
 Aggregation Function will always return one result value for a single group.
 You can imagine the matching rows of a ``SELECT`` statement without ``GROUP BY``
 as one group. One row will always be returned.
 
-For a short summary of aggregation functions see :ref:`sql_dml_aggregation`.
+For a short summary of aggregation functions see :ref:`sql_dql_aggregation`.
 
 count
 =====
