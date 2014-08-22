@@ -61,12 +61,15 @@ Unreleased
    - updated crate-python to version 0.11.1 to get a more reliable failover
      mechanism if a host goes down.
 
+ - added documentation for zero downtime cluster upgrade
+
  BREAKING:
 
  - Logging configuration files must now start with ``logging.`` and end with
    either ``.yml`` or ``.yaml`` to be read. The previous behaviour was to read
    all files starting with ``logging.`` which incorrectly also read ``.rpmnew``
    or ``.bak`` files.
+
 
 2014/08/25 0.42.0
 =================
