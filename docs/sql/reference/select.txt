@@ -14,7 +14,7 @@ Synopsis
     SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
       FROM table_ident [ [AS] table_alias ]
       [ WHERE condition ]
-      [ GROUP BY expression [, ...] ]
+      [ GROUP BY expression [, ...] [HAVING condition] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
       [ LIMIT num_results ]
       [ OFFSET start ]
@@ -139,13 +139,26 @@ making up each group, producing a separate value for each group.
 
 ::
 
-    GROUP BY expression [, ...]
+    GROUP BY expression [, ...] [HAVING condition]
 
 :expression: can be an input column name, or the name or ordinal
   number of an output column, or an arbitrary expression formed from
   input-column values. In case of ambiguity, a GROUP BY name will be
   interpreted as an input-column name rather than an output column
   name.
+
+.. _sql_reference_having:
+
+HAVING Clause
+.............
+
+The optional HAVING clause defines the condition to be met for
+values whitin a resulting row of a group by clause.
+
+:condition: a having condition is any expression that evaluates to a result
+    of type boolean. Every row for which the condition is not satisfied
+    will be eliminated from the output.
+
 
 .. note::
 
