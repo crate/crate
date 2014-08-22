@@ -5,13 +5,6 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: The table schema of partitioned table is now correctly invalidated if a
-   single partition has been modified using the ALTER TABLE statement with the
-   PARTITION clause.
-
- - COPY FROM now always assumes that the files it reads are encoded using UTF-8
-   instead of relying on the system default.
-
  - added support for update, delete and insert bulk operations
 
  - updated crate-admin to 0.9.3 which includes following changes:
@@ -20,11 +13,6 @@ Unreleased
 
  - implemented ``bulkSql`` methods for crate java client
 
- - fix: using the is not null predicate on a non-existing or ignored column
-   did throw an exception
-
- - fix: correctly serialize sys expressions of type object
-
  - match predicate can now be used on multiple columns
    and supports several options for a more powerful fulltext search
 
@@ -32,6 +20,23 @@ Unreleased
 
  - blobs can now be stored on different paths than normal tables,
    custom path can be set global and per blob table
+
+2014/08/22 0.41.4
+=================
+
+ - COPY FROM now always assumes that the files it reads are encoded using UTF-8
+   instead of relying on the system default.
+
+ - fix: The table schema of partitioned table is now correctly invalidated if a
+   single partition has been modified using the ALTER TABLE statement with the
+   PARTITION clause.
+
+ - fix: correctly serialize sys expressions of type object
+
+ - fix: using the is not null predicate on a non-existing or ignored column
+   did throw an exception
+
+
 
 2014/08/18 0.41.3
 =================
