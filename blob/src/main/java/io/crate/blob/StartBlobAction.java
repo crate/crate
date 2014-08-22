@@ -21,10 +21,10 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.Action;
+import org.elasticsearch.action.ClientAction;
 import org.elasticsearch.client.Client;
 
-public class StartBlobAction extends Action<StartBlobRequest, StartBlobResponse, StartBlobRequestBuilder> {
+public class StartBlobAction extends ClientAction<StartBlobRequest, StartBlobResponse, StartBlobRequestBuilder> {
 
     public static final StartBlobAction INSTANCE = new StartBlobAction();
     public static final String NAME = "start_blob";

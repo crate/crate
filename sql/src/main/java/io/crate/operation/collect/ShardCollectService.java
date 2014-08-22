@@ -25,6 +25,7 @@ import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.task.elasticsearch.ESQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -39,8 +40,6 @@ import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
@@ -73,8 +72,7 @@ public class ShardCollectService {
     @Inject
     public ShardCollectService(ClusterService clusterService,
                                Settings settings,
-                               TransportShardBulkAction transportShardBulkAction,
-                               TransportCreateIndexAction transportCreateIndexAction,
+                               TransportActionProvider transportActionProvider,
                                ShardId shardId,
                                IndexService indexService,
                                ScriptService scriptService,
@@ -117,8 +115,7 @@ public class ShardCollectService {
         this.projectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
                 settings,
-                transportShardBulkAction,
-                transportCreateIndexAction,
+                transportActionProvider,
                 shardImplementationSymbolVisitor,
                 shardNormalizer);
     }

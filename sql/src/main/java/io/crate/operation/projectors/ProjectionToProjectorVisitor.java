@@ -21,8 +21,8 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
@@ -33,8 +33,6 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.StringType;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -47,8 +45,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
 
     private final ClusterService clusterService;
     private final Settings settings;
-    private final TransportShardBulkAction transportShardBulkAction;
-    private final TransportCreateIndexAction transportCreateIndexAction;
+    private final TransportActionProvider transportActionProvider;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final EvaluatingNormalizer normalizer;
 
@@ -58,25 +55,21 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Settings settings,
-                                        TransportShardBulkAction transportShardBulkAction,
-                                        TransportCreateIndexAction transportCreateIndexAction,
+                                        TransportActionProvider transportActionProvider,
                                         ImplementationSymbolVisitor symbolVisitor,
             EvaluatingNormalizer normalizer) {
         this.clusterService = clusterService;
         this.settings = settings;
-        this.transportShardBulkAction = transportShardBulkAction;
-        this.transportCreateIndexAction = transportCreateIndexAction;
+        this.transportActionProvider = transportActionProvider;
         this.symbolVisitor = symbolVisitor;
         this.normalizer = normalizer;
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Settings settings,
-                                        TransportShardBulkAction transportShardBulkAction,
-                                        TransportCreateIndexAction transportCreateIndexAction,
+                                        TransportActionProvider transportActionProvider,
                                         ImplementationSymbolVisitor symbolVisitor) {
-        this(clusterService, settings, transportShardBulkAction,
-                transportCreateIndexAction, symbolVisitor,
+        this(clusterService, settings, transportActionProvider, symbolVisitor,
                 new EvaluatingNormalizer(
                         symbolVisitor.functions(),
                         symbolVisitor.rowGranularity(),
@@ -221,8 +214,8 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         return new IndexWriterProjector(
                 clusterService,
                 settings,
-                transportShardBulkAction,
-                transportCreateIndexAction,
+                transportActionProvider.transportShardBulkAction(),
+                transportActionProvider.transportCreateIndexAction(),
                 projection.tableName(),
                 projection.primaryKeys(),
                 idInputs,
@@ -259,8 +252,8 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         return new ColumnIndexWriterProjector(
                 clusterService,
                 settings,
-                transportShardBulkAction,
-                transportCreateIndexAction,
+                transportActionProvider.transportShardBulkAction(),
+                transportActionProvider.transportCreateIndexAction(),
                 projection.tableName(),
                 projection.primaryKeys(),
                 idInputs,

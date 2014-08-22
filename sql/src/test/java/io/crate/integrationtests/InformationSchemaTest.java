@@ -366,7 +366,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             tokenFilterNames[i] = (String)response.rows()[i][0];
         }
         assertEquals(
-                "arabic_normalization, arabic_stem, asciifolding, brazilian_stem, cjk_bigram",
+                "apostrophe, arabic_normalization, arabic_stem, asciifolding, brazilian_stem",
                 Joiner.on(", ").join(tokenFilterNames)
         );
     }

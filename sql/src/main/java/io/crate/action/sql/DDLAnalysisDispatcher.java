@@ -71,6 +71,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.common.compress.CompressedString;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -92,7 +93,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     private final ClusterService clusterService;
     private final BlobIndices blobIndices;
     private final TransportRefreshAction transportRefreshAction;
-    private final Executor executor;
+    private final Provider<Executor> executorProvider;
     private final TransportPutMappingAction transportPutMappingAction;
     private final TransportUpdateSettingsAction transportUpdateSettingsAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
@@ -101,7 +102,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     @Inject
     public DDLAnalysisDispatcher(ClusterService clusterService,
                                  BlobIndices blobIndices,
-                                 Executor executor,
+                                 Provider<Executor> executorProvider,
                                  TransportPutMappingAction transportPutMappingAction,
                                  TransportRefreshAction transportRefreshAction,
                                  TransportUpdateSettingsAction transportUpdateSettingsAction,
@@ -109,7 +110,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                                  TransportGetIndexTemplatesAction transportGetIndexTemplatesAction) {
         this.clusterService = clusterService;
         this.blobIndices = blobIndices;
-        this.executor = executor;
+        this.executorProvider = executorProvider;
         this.transportPutMappingAction = transportPutMappingAction;
         this.transportRefreshAction = transportRefreshAction;
         this.transportUpdateSettingsAction = transportUpdateSettingsAction;
@@ -139,8 +140,8 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         final SettableFuture<Long> result = SettableFuture.create();
         if (analysis.newPrimaryKeys()) {
             Plan plan = genCountStarPlan(analysis.table());
-            Job job = executor.newJob(plan);
-            ListenableFuture<List<TaskResult>> resultFuture = Futures.allAsList(executor.execute(job));
+            Job job = executorProvider.get().newJob(plan);
+            ListenableFuture<List<TaskResult>> resultFuture = Futures.allAsList(executorProvider.get().execute(job));
             Futures.addCallback(resultFuture, new FutureCallback<List<TaskResult>>() {
                 @Override
                 public void onSuccess(@Nullable List<TaskResult> resultList) {

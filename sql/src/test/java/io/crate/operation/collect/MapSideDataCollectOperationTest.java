@@ -23,14 +23,13 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -39,6 +38,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -79,12 +79,11 @@ public class MapSideDataCollectOperationTest {
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardBulkAction.class),
-                mock(TransportCreateIndexAction.class),
+                mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 functions,
                 referenceResolver,
                 indicesService,
-                new ThreadPool(ImmutableSettings.EMPTY, null),
+                new ThreadPool(ImmutableSettings.builder().put("name", getClass().getName()).build(), null),
                 new CollectServiceResolver(discoveryService,
                     new SystemCollectService(
                             discoveryService,

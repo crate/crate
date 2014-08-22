@@ -33,6 +33,7 @@ import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
@@ -48,11 +49,11 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                                   ThreadPool threadPool,
                                   Analyzer analyzer,
                                   Planner planner,
-                                  Executor executor,
-                                  DDLAnalysisDispatcher dispatcher,
+                                  Provider<Executor> executor,
+                                  Provider<DDLAnalysisDispatcher> dispatcher,
                                   TransportService transportService,
                                   StatsTables statsTables) {
-        super(settings, threadPool, analyzer, planner, executor, dispatcher, statsTables);
+        super(settings, SQLBulkAction.NAME, threadPool, analyzer, planner, executor, dispatcher, statsTables);
         transportService.registerHandler(SQLBulkAction.NAME, new TransportHandler());
     }
 

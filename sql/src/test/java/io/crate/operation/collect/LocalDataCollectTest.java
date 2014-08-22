@@ -29,6 +29,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -53,8 +54,15 @@ import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
+import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
+import org.elasticsearch.cluster.settings.DynamicSettings;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
@@ -73,11 +81,14 @@ import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.SearchService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Answers;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -167,6 +178,7 @@ public class LocalDataCollectTest {
         }
     }
 
+    private DiscoveryService discoveryService;
     private Functions functions;
     private IndexService indexService = mock(IndexService.class);
     private MapSideDataCollectOperation operation;
@@ -175,7 +187,7 @@ public class LocalDataCollectTest {
     }});
 
 
-    private final ThreadPool testThreadPool = new ThreadPool();
+    private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
     private final static String TEST_NODE_ID = "test_node";
     private final static String TEST_TABLE_NAME = "test_table";
 
@@ -191,15 +203,27 @@ public class LocalDataCollectTest {
             functionBinder.addBinding(TestFunction.ident).toInstance(new TestFunction());
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
+
+            bind(ScriptService.class).toInstance(mock(ScriptService.class));
+            bind(SearchService.class).toInstance(mock(SearchService.class));
+            bind(AllocationService.class).toInstance(mock(AllocationService.class));
+            bind(DynamicSettings.class).annotatedWith(ClusterDynamicSettings.class).toInstance(mock(DynamicSettings.class));
+            bind(MetaDataDeleteIndexService.class).toInstance(mock(MetaDataDeleteIndexService.class));
+            bind(ClusterInfoService.class).toInstance(mock(ClusterInfoService.class));
+            bind(TransportService.class).toInstance(mock(TransportService.class));
+
             bind(TransportShardBulkAction.class).toInstance(mock(TransportShardBulkAction.class));
             bind(TransportCreateIndexAction.class).toInstance(mock(TransportCreateIndexAction.class));
 
             bind(SQLXContentQueryParser.class).toInstance(mock(SQLXContentQueryParser.class));
 
-            DiscoveryNode mockedNode = mock(DiscoveryNode.class);
-            when(mockedNode.id()).thenReturn(TEST_NODE_ID);
+            discoveryService = mock(DiscoveryService.class);
+            DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
+            when(discoveryNode.id()).thenReturn(TEST_NODE_ID);
+            when(discoveryService.localNode()).thenReturn(discoveryNode);
+
             ClusterService clusterService = mock(ClusterService.class);
-            when(clusterService.localNode()).thenReturn(mockedNode);
+            when(clusterService.localNode()).thenReturn(discoveryNode);
             bind(ClusterService.class).toInstance(clusterService);
 
             IndicesService indicesService = mock(IndicesService.class);
@@ -252,8 +276,10 @@ public class LocalDataCollectTest {
                     .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
             binder.addBinding(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")).ident()).toInstance(shardIdExpression);
             bind(ShardReferenceResolver.class).asEagerSingleton();
-            bind(ScriptService.class).toInstance(mock(ScriptService.class));
+            bind(AllocationDecider.class).to(DiskThresholdDecider.class);
             bind(ShardCollectService.class).asEagerSingleton();
+
+            bind(DiscoveryService.class).toInstance(discoveryService);
 
             // blob stuff
             MapBinder<ReferenceIdent, BlobShardReferenceImplementation> blobBinder = MapBinder
@@ -285,18 +311,14 @@ public class LocalDataCollectTest {
         when(indexService.shardSafe(1)).thenReturn(shard1Injector.getInstance(IndexShard.class));
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
-        DiscoveryService discoveryService = mock(DiscoveryService.class);
-        DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
-        when(discoveryNode.id()).thenReturn("dummyNodeId");
-        when(discoveryService.localNode()).thenReturn(discoveryNode);
+
 
         NodeSettingsService nodeSettingsService = mock(NodeSettingsService.class);
 
         operation = new MapSideDataCollectOperation(
                 injector.getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
-                mock(TransportShardBulkAction.class),
-                mock(TransportCreateIndexAction.class),
+                mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool,
                 new CollectServiceResolver(discoveryService,
                     new SystemCollectService(

@@ -49,7 +49,7 @@ public class BlobHeadRequestHandlerTests {
 
     @Before
     public void setUp() throws Exception {
-        threadPool = new ThreadPool();
+        threadPool = new ThreadPool(getClass().getName());
     }
 
     @After

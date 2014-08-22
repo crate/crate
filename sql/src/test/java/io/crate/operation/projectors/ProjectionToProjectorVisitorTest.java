@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -37,8 +38,6 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -47,6 +46,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
@@ -85,8 +85,7 @@ public class ProjectionToProjectorVisitorTest {
         visitor = new ProjectionToProjectorVisitor(
                 mock(ClusterService.class),
                 ImmutableSettings.EMPTY,
-                mock(TransportShardBulkAction.class),
-                mock(TransportCreateIndexAction.class),
+                mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 symbolvisitor);
 
         countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING)), DataTypes.LONG);

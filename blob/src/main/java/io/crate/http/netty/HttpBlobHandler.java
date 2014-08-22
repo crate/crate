@@ -69,7 +69,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     private final BlobIndices blobIndices;
     private HttpMessage currentMessage;
     private ChannelHandlerContext ctx;
-    private static final Pattern contentRangePattern = Pattern.compile("^bytes=(\\d+)-(\\d{0,})$");
+    private static final Pattern contentRangePattern = Pattern.compile("^bytes=(\\d+)-(\\d*)$");
 
     private RemoteDigestBlob digestBlob;
 

@@ -46,7 +46,7 @@ public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData,
     @Override
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getBytesValues(false);
+        values = indexFieldData.load(context).getBytesValues();
     }
 
     @Override

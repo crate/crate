@@ -47,7 +47,7 @@ public class RestSQLAction extends BaseRestHandler {
     }
 
     @Override
-    public void handleRequest(final RestRequest request, final RestChannel channel) throws Exception {
+    public void handleRequest(final RestRequest request, final RestChannel channel, Client client) throws Exception {
         if (!request.hasContent()) {
             channel.sendResponse(new CrateThrowableRestResponse(channel,
                     new SQLActionException("missing request body", 4000, RestStatus.BAD_REQUEST, null)));
@@ -75,13 +75,13 @@ public class RestSQLAction extends BaseRestHandler {
             return;
         }
         if (bulkArgs != null && bulkArgs.length > 0) {
-            executeBulkRequest(context, request, channel);
+            executeBulkRequest(context, request, channel, client);
         } else {
-            executeSimpleRequest(context, request, channel);
+            executeSimpleRequest(context, request, channel, client);
         }
     }
 
-    private void executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel) {
+    private void executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel, Client client) {
         final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
         requestBuilder.stmt(context.stmt());
         requestBuilder.args(context.args());
@@ -89,7 +89,7 @@ public class RestSQLAction extends BaseRestHandler {
         requestBuilder.execute(RestSQLAction.<SQLResponse>newListener(request, channel));
     }
 
-    private void executeBulkRequest(SQLXContentSourceContext context, RestRequest request, RestChannel channel) {
+    private void executeBulkRequest(SQLXContentSourceContext context, RestRequest request, RestChannel channel, Client client) {
         final SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client);
         requestBuilder.stmt(context.stmt());
         requestBuilder.bulkArgs(context.bulkArgs());
