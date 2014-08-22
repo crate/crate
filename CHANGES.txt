@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added documentation for zero downtime cluster upgrade
+
  - improved the performance of GROUP BY queries that use the clustered by
    column or the primary key as GROUP BY key
 
