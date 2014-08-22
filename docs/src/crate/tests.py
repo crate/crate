@@ -154,6 +154,7 @@ def test_suite():
                'sql/dql.txt',
                'sql/refresh.txt',
                'sql/fulltext.txt',
+               'sql/data_types.txt',
                'sql/occ.txt',
                'sql/information_schema.txt',
                'sql/partitioned_tables.txt',

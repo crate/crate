@@ -14,6 +14,7 @@ see :doc:`sql`. For general information about SQL please refer to
    ddl
    dml
    dql
+   data_types
    aggregation
    scalar
    arithmetic
