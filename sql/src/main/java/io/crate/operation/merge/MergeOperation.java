@@ -22,14 +22,13 @@
 package io.crate.operation.merge;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.MergeNode;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -48,15 +47,13 @@ public class MergeOperation implements DownstreamOperation {
 
     public MergeOperation(ClusterService clusterService,
                           Settings settings,
-                          TransportShardBulkAction transportShardBulkAction,
-                          TransportCreateIndexAction transportCreateIndexAction,
+                          TransportActionProvider transportActionProvider,
                           ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode) {
         projectorChain = new FlatProjectorChain(mergeNode.projections(),
                 new ProjectionToProjectorVisitor(
                         clusterService,
                         settings,
-                        transportShardBulkAction,
-                        transportCreateIndexAction,
+                        transportActionProvider,
                         symbolVisitor)
         );
         downstream(projectorChain.firstProjector());

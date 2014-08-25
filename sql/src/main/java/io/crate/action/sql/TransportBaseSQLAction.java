@@ -44,6 +44,7 @@ import io.crate.sql.tree.Statement;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -75,22 +76,23 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     protected final Analyzer analyzer;
     protected final Planner planner;
-    private final Executor executor;
-    private final DDLAnalysisDispatcher dispatcher;
+    private final Provider<Executor> executorProvider;
+    private final Provider<DDLAnalysisDispatcher> dispatcherProvider;
     private final StatsTables statsTables;
 
     public TransportBaseSQLAction(Settings settings,
+                                  String actionName,
                                   ThreadPool threadPool,
                                   Analyzer analyzer,
                                   Planner planner,
-                                  Executor executor,
-                                  DDLAnalysisDispatcher dispatcher,
+                                  Provider<Executor> executorProvider,
+                                  Provider<DDLAnalysisDispatcher> dispatcherProvider,
                                   StatsTables statsTables) {
-        super(settings, threadPool);
+        super(settings, actionName, threadPool);
         this.analyzer = analyzer;
         this.planner = planner;
-        this.executor = executor;
-        this.dispatcher = dispatcher;
+        this.executorProvider = executorProvider;
+        this.dispatcherProvider = dispatcherProvider;
         this.statsTables = statsTables;
     }
 
@@ -128,7 +130,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                 final TRequest request,
                                 final ActionListener<TResponse> listener) {
         final String[] outputNames = analysis.outputNames().toArray(new String[analysis.outputNames().size()]);
-        ListenableFuture<Long> future = dispatcher.process(analysis, null);
+        ListenableFuture<Long> future = dispatcherProvider.get().process(analysis, null);
         Futures.addCallback(future, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long rowCount) {
@@ -171,6 +173,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     }
 
     private void executePlan(final Plan plan, final String[] outputNames, final ActionListener<TResponse> listener, final TRequest request) {
+        Executor executor = executorProvider.get();
         Job job = executor.newJob(plan);
         final UUID jobId = job.id();
         if (jobId != null) {

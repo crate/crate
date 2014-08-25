@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -42,8 +43,6 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -53,6 +52,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -130,14 +130,13 @@ public class LocalMergeTaskTest {
                 upstreamResults.add(getUpstreamResult(i));
             }
 
-            ThreadPool threadPool = new ThreadPool();
+            ThreadPool threadPool = new ThreadPool(getClass().getSimpleName());
 
             LocalMergeTask localMergeTask = new LocalMergeTask(
                     threadPool,
                     mock(ClusterService.class),
                     ImmutableSettings.EMPTY,
-                    mock(TransportShardBulkAction.class),
-                    mock(TransportCreateIndexAction.class),
+                    mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                     symbolVisitor, mergeNode,
                     mock(StatsTables.class));
             localMergeTask.upstreamResult(upstreamResults);

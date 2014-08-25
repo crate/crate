@@ -48,7 +48,7 @@ public class TransportStartBlobAction extends TransportShardReplicationOperation
             ThreadPool threadPool,
             ShardStateAction shardStateAction,
             BlobTransferTarget transferTarget) {
-        super(settings, transportService, clusterService, indicesService, threadPool, shardStateAction);
+        super(settings, StartBlobAction.NAME, transportService, clusterService, indicesService, threadPool, shardStateAction);
         this.transferTarget = transferTarget;
         logger.trace("Constructor");
     }
@@ -72,11 +72,6 @@ public class TransportStartBlobAction extends TransportShardReplicationOperation
     }
 
     @Override
-    protected String transportAction() {
-        return StartBlobAction.NAME;
-    }
-
-    @Override
     protected String executor() {
         return ThreadPool.Names.INDEX;
     }
@@ -88,8 +83,7 @@ public class TransportStartBlobAction extends TransportShardReplicationOperation
         final StartBlobRequest request = shardRequest.request;
         final StartBlobResponse response = newResponseInstance();
         transferTarget.startTransfer(shardRequest.shardId, request, response);
-        return new PrimaryResponse<StartBlobResponse, StartBlobRequest>(
-                request, response, null);
+        return new PrimaryResponse<>(request, response, null);
 
     }
 

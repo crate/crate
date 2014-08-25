@@ -43,7 +43,7 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     public TransportPutChunkAction(Settings settings, TransportService transportService, ClusterService clusterService, IndicesService
             indicesService, ThreadPool threadPool, ShardStateAction shardStateAction,
             BlobTransferTarget transferTarget) {
-        super(settings, transportService, clusterService, indicesService, threadPool, shardStateAction);
+        super(settings, PutChunkAction.NAME, transportService, clusterService, indicesService, threadPool, shardStateAction);
         this.transferTarget = transferTarget;
     }
 
@@ -60,11 +60,6 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     @Override
     protected PutChunkResponse newResponseInstance() {
         return new PutChunkResponse();
-    }
-
-    @Override
-    protected String transportAction() {
-        return PutChunkAction.NAME;
     }
 
     @Override
@@ -86,7 +81,7 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
         replicaRequest.content = request.content();
         replicaRequest.isLast = request.isLast();
         replicaRequest.index(request.index());
-        return new PrimaryResponse<PutChunkResponse, PutChunkReplicaRequest>(replicaRequest, response, null);
+        return new PrimaryResponse<>(replicaRequest, response, null);
     }
 
     @Override

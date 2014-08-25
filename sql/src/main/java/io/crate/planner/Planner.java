@@ -688,7 +688,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
     private void groupBy(SelectAnalysis analysis, Plan plan, Context context) {
         if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
-                || !requiresDistribution(analysis.table().getRouting(analysis.whereClause()))) {
+                || !requiresDistribution(analysis)) {
             nonDistributedGroupBy(analysis, plan, context);
         } else if (context.indexWriterProjection.isPresent()) {
             distributedWriterGroupBy(analysis, plan, context.indexWriterProjection.get());
@@ -697,52 +697,87 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
     }
 
-    private boolean requiresDistribution(Routing routing) {
+    private boolean requiresDistribution(SelectAnalysis analysis) {
+        Routing routing = analysis.table().getRouting(analysis.whereClause());
         if (!routing.hasLocations()) return false;
+        if (groupedByClusteredColumn(analysis)) return false;
         if (routing.locations().size() > 1) return true;
 
         String nodeId = routing.locations().keySet().iterator().next();
         return !(nodeId == null || nodeId.equals(clusterService.localNode().id()));
     }
 
+    private boolean groupedByClusteredColumn(SelectAnalysis analysis) {
+        List<Symbol> groupBy = analysis.groupBy();
+        assert groupBy != null;
+        if (groupBy.size() > 1) {
+            return false;
+        }
+        Symbol groupByKey = groupBy.get(0);
+        return (groupByKey instanceof Reference
+                && ((Reference) groupByKey).info().ident().columnIdent().equals(analysis.table().clusteredBy()));
+    }
+
     private void nonDistributedGroupBy(SelectAnalysis analysis, Plan plan, Context context) {
-        // TODO:  if the routing is HandlerSideRouting or has no locations
-        // the localMergeNode isn't needed but instead the topN projection could be added to the
-        // collectNode
         boolean ignoreSorting = context.indexWriterProjection.isPresent()
                 && analysis.limit() == null
                 && analysis.offset() == TopN.NO_OFFSET;
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, analysis.groupBy(), ignoreSorting)
+
+        int numAggregationSteps = 2;
+        if (analysis.rowGranularity() == RowGranularity.DOC) {
+            /**
+             * this is only the case if the group by key is the clustered by column.
+             * collectNode has row-authority and there is no need to group again on the handler node
+             */
+            numAggregationSteps = 1;
+        }
+        PlannerContextBuilder contextBuilder =
+                new PlannerContextBuilder(numAggregationSteps, analysis.groupBy(), ignoreSorting)
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
+        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
         GroupProjection groupProjection =
                 new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
+
+        List<Symbol> toCollect = contextBuilder.toCollect();
+        contextBuilder.nextStep();
+
+        projectionBuilder.add(groupProjection);
+        boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionBuilder);
+
         CollectNode collectNode = PlanNodeBuilder.collect(
                 analysis,
-                contextBuilder.toCollect(),
-                ImmutableList.<Projection>of(groupProjection)
+                toCollect,
+                projectionBuilder.build()
         );
         plan.add(collectNode);
 
         contextBuilder.nextStep();
 
         // handler
-        groupProjection =
-            new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-
-        ImmutableList.Builder<Projection> builder = ImmutableList.<Projection>builder()
-                .add(groupProjection);
-
+        ImmutableList.Builder<Projection> builder = ImmutableList.<Projection>builder();
+        if (numAggregationSteps == 2) {
+            builder.add(new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations()));
+        }
         if (!ignoreSorting) {
+            List<Symbol> outputs;
+            List<Symbol> orderBy;
+            if (topNDone) {
+                orderBy = contextBuilder.passThroughOrderBy();
+                outputs = contextBuilder.passThroughOutputs();
+            } else {
+                orderBy = contextBuilder.orderBy();
+                outputs = contextBuilder.outputs();
+            }
             TopNProjection topN = new TopNProjection(
                     Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
-                    contextBuilder.orderBy(),
+                    orderBy,
                     analysis.reverseFlags(),
                     analysis.nullsFirst()
             );
-            topN.outputs(contextBuilder.outputs());
+            topN.outputs(outputs);
             builder.add(topN);
         }
         if (context.indexWriterProjection.isPresent()) {
@@ -751,6 +786,36 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         plan.add(PlanNodeBuilder.localMerge(builder.build(), collectNode));
     }
 
+    /**
+     * this method adds a TopNProjection to the given projectBuilder
+     * if the analysis has a limit, offset or if an aggregation is wrapped inside a scalar.
+     *
+     * the limit given to the topN projection will be limit + offset because there will be another
+     * topN projection on the handler node which will do the final sort + limiting (if applicable)
+     */
+    private boolean addTopNIfApplicableOnReducer(SelectAnalysis analysis,
+                                                 PlannerContextBuilder contextBuilder,
+                                                 ImmutableList.Builder<Projection> projectionBuilder) {
+        if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
+            TopNProjection topN = new TopNProjection(
+                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
+                    0,
+                    contextBuilder.orderBy(),
+                    analysis.reverseFlags(),
+                    analysis.nullsFirst()
+            );
+            topN.outputs(contextBuilder.outputs());
+            projectionBuilder.add(topN);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean requireLimitOnReducer(SelectAnalysis analysis, boolean aggregationsWrappedInScalar) {
+        return (analysis.limit() != null
+                || analysis.offset() > 0
+                || aggregationsWrappedInScalar);
+    }
 
     /**
      * distributed collect on mapper nodes
@@ -782,22 +847,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 contextBuilder.groupBy(),
                 contextBuilder.aggregations()));
 
-        boolean topNDone = false;
-        if (analysis.limit() != null
-                || analysis.offset() > 0
-                || contextBuilder.aggregationsWrappedInScalar) {
-            topNDone = true;
-
-            TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
-                    0,
-                    contextBuilder.orderBy(),
-                    analysis.reverseFlags(),
-                    analysis.nullsFirst()
-            );
-            topN.outputs(contextBuilder.outputs());
-            projectionsBuilder.add(topN);
-        }
+        boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionsBuilder);
         MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
         plan.add(mergeNode);
 

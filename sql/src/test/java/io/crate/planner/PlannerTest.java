@@ -634,6 +634,19 @@ public class PlannerTest {
     }
 
     @Test
+    public void testNoDistributedGroupByOnClusteredColumn() throws Exception {
+        Plan plan = plan("select count(*), id from users group by id limit 20");
+        Iterator<PlanNode> iterator = plan.iterator();
+        CollectNode collectNode = (CollectNode)iterator.next();
+        assertNull(collectNode.downStreamNodes());
+        assertThat(collectNode.projections().size(), is(2));
+        assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
+        MergeNode mergeNode = (MergeNode)iterator.next();
+        assertThat(mergeNode.projections().size(), is(1));
+        assertFalse(iterator.hasNext());
+    }
+
+    @Test
     public void testGroupByWithOrderOnAggregate() throws Exception {
         Plan plan = plan("select count(*), name from users group by name order by count(*)");
         Iterator<PlanNode> iterator = plan.iterator();

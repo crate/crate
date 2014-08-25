@@ -22,6 +22,10 @@
 package io.crate.plugin;
 
 import io.crate.Constants;
+import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLBulkAction;
+import io.crate.action.sql.TransportSQLAction;
+import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacetParser;
 import io.crate.metadata.MetaDataModule;
@@ -45,6 +49,7 @@ import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSortScript;
 import io.crate.planner.PlanModule;
 import io.crate.rest.action.RestSQLAction;
+import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -150,5 +155,10 @@ public class SQLPlugin extends AbstractPlugin {
     public void onModule(ScriptModule scriptModule) {
         NumericScalarSearchScript.register(scriptModule);
         NumericScalarSortScript.register(scriptModule);
+    }
+
+    public void onModule(ActionModule actionModule) {
+        actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
+        actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);
     }
 }

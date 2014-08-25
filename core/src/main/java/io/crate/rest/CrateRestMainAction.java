@@ -63,7 +63,7 @@ public class CrateRestMainAction extends BaseRestHandler {
     }
 
     @Override
-    public void handleRequest(final RestRequest request, final RestChannel channel) {
+    public void handleRequest(final RestRequest request, final RestChannel channel, Client client) {
         ClusterStateRequest clusterStateRequest = new ClusterStateRequest();
         clusterStateRequest.listenerThreaded(false);
         clusterStateRequest.masterNodeTimeout(TimeValue.timeValueMillis(0));

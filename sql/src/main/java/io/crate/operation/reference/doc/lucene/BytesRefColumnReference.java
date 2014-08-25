@@ -44,8 +44,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
             case 0:
                 return null;
             case 1:
-                values.nextValue();
-                return values.copyShared();
+                return BytesRef.deepCopyOf(values.nextValue());
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -54,7 +53,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
     @Override
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getBytesValues(false);
+        values = indexFieldData.load(context).getBytesValues();
     }
 
     @Override
