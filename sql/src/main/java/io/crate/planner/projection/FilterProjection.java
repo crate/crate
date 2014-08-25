@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -43,6 +44,7 @@ public class FilterProjection extends Projection {
     };
 
     private Function query;
+    private List<Symbol> outputs = ImmutableList.of();
 
     public FilterProjection() {
     }
@@ -70,8 +72,12 @@ public class FilterProjection extends Projection {
     }
 
     @Override
-    public List<? extends Symbol> outputs() {
-        return OUTPUTS;
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    public void outputs(List<Symbol> outputs) {
+        this.outputs = outputs;
     }
 
     @Override
@@ -87,11 +93,20 @@ public class FilterProjection extends Projection {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         query = (Function)Function.fromStream(in);
+        int numOutputs = in.readVInt();
+        outputs = new ArrayList<>(numOutputs);
+        for (int i = 0; i < numOutputs; i++) {
+            outputs.add(Symbol.fromStream(in));
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         Function.toStream(query, out);
+        out.writeVInt(outputs.size());
+        for (Symbol symbol : outputs) {
+            Symbol.toStream(symbol, out);
+        }
     }
 
     @Override

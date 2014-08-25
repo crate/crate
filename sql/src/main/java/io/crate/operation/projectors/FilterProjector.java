@@ -21,39 +21,30 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.planner.symbol.Function;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-/**
- * This implementation is currently only a stub.
- * TODO: implement functionality
- *
- */
 public class FilterProjector implements Projector {
 
     private final CollectExpression[] collectExpressions;
-    private final Function query;
+    private final Input<Boolean> condition;
 
     private Projector downstream;
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
     public FilterProjector(CollectExpression[] collectExpressions,
-                           Function query) {
+                           Input<Boolean> condition) {
         this.collectExpressions = collectExpressions;
-        this.query = query;
+        this.condition = condition;
     }
 
     @Override
     public void startProjection() {
-        for (CollectExpression collectExpression : collectExpressions) {
-            collectExpression.startCollect();
-        }
-
         if (remainingUpstreams.get() <= 0) {
             upstreamFinished();
         }
@@ -61,16 +52,16 @@ public class FilterProjector implements Projector {
 
     @Override
     public boolean setNextRow(Object... row) {
-        if (downstream != null) {
-            downstream.setNextRow(row);
-            Throwable throwable = upstreamFailure.get();
-            if (throwable != null) {
-                downstream.upstreamFailed(throwable);
-            } else {
-                downstream.upstreamFinished();
-            }
+        for (CollectExpression<?> collectExpression : collectExpressions) {
+            collectExpression.setNextRow(row);
         }
-        return true;
+
+        boolean queryResult = condition.value();
+
+        if (downstream != null && queryResult) {
+            downstream.setNextRow(row);
+        }
+        return queryResult;
     }
 
     @Override
@@ -80,7 +71,17 @@ public class FilterProjector implements Projector {
 
     @Override
     public void upstreamFinished() {
-        remainingUpstreams.decrementAndGet();
+        if (remainingUpstreams.decrementAndGet() > 0) {
+            return;
+        }
+        if (downstream != null) {
+            Throwable throwable = upstreamFailure.get();
+            if (throwable == null) {
+                downstream.upstreamFinished();
+            } else {
+                downstream.upstreamFailed(throwable);
+            }
+        }
     }
 
     @Override
