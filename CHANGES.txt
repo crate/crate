@@ -5,18 +5,21 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/08/25 0.42.0
+=================
+
  - improved the performance of GROUP BY queries that use the clustered by
    column or the primary key as GROUP BY key
 
  - upgraded ES upstream to v1.3.2
+
+ - implemented ``bulkSql`` methods for crate java client
 
  - added support for update, delete and insert bulk operations
 
  - updated crate-admin to 0.9.3 which includes following changes:
 
     - send cookies with cross-origin requests
-
- - implemented ``bulkSql`` methods for crate java client
 
  - match predicate can now be used on multiple columns
    and supports several options for a more powerful fulltext search
