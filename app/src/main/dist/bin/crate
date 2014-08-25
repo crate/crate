@@ -1,12 +1,17 @@
 #!/bin/sh
 
-# OPTIONS:
-#   -d: start the daemon in the background
-#   -p <filename>: log the pid to a file (useful to kill it later)
-#   -v: print crate version to stdout
-#   -h: print usage information
-#   -D: set a java system property value
-#   -X: set a nonstandard java option
+# COMMANDS
+#   start          start the crate daemon
+#   stop           stop the crate daemon
+#   graceful-stop  stop the crate daemon gracefully considering
+#                  graceful_stop settings in crate.yml
+# OPTIONS
+#   -d             start the daemon in the background
+#   -p <filename>  log the pid to a file (useful to kill it later)
+#   -v             print crate version to stdout
+#   -h             print usage information
+#   -D             set a java system property value
+#   -X             set a nonstandard java option
 
 # CONTROLLING STARTUP:
 #
@@ -52,6 +57,7 @@
 
 CDPATH=""
 SCRIPT="$0"
+PIDFILE="/var/run/crate.pid"
 
 # SCRIPT may be an arbitrarily deep series of symlinks. Loop until we have the concrete path.
 while [ -h "$SCRIPT" ] ; do
@@ -112,16 +118,11 @@ case `uname` in
     ;;
 esac
 
-launch_service()
+srv_start()
 {
-    pidpath=$1
-    daemonized=$2
-    props=$3
-    es_parms="-Dcrate"
-
-    if [ "x$pidpath" != "x" ]; then
-        es_parms="$es_parms -Des.pidfile=$pidpath"
-    fi
+    daemonized=$1
+    props=$2
+    es_parms="-Dcrate -Des.pidfile=$PIDFILE"
 
     if [ "x$daemonized" = "x" ]; then
         exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -Des.config="$CRATE_CONFIG" -cp "$CRATE_CLASSPATH" $props \
@@ -132,11 +133,34 @@ launch_service()
         exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -Des.config="$CRATE_CONFIG" -cp "$CRATE_CLASSPATH" $props \
                     io.crate.bootstrap.Crate <&- &
         execval=$?
-        [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
+        [ ! -z "$PIDFILE" ] && printf '%d' $! > "$PIDFILE"
     fi
 
     return $execval
 }
+
+srv_stop()
+{
+    kill -TERM `cat $PIDFILE`
+    return $?
+}
+
+srv_graceful_stop()
+{
+    kill -USR2 `cat $PIDFILE`
+    return $?
+}
+
+
+case "$1" in
+  start|stop|graceful-stop)
+    cmd=$1
+    shift
+    ;;
+  *)
+    cmd='start'
+    ;;
+esac
 
 # Parse any command line options.
 args=`getopt vdhp:D:X: "$@"`
@@ -150,7 +174,7 @@ while true; do
             exit 0
         ;;
         -p)
-            pidfile="$2"
+            PIDFILE="$2"
             shift 2
         ;;
         -d)
@@ -160,16 +184,20 @@ while true; do
         -h)
             echo "Crate is a shared nothing, fully searchable document oriented cluster datastore."
             echo ""
-            echo "  Usage: $(basename $0) [OPTION]..."
-            echo "         starts a new Crate database instance"
+            echo "  Usage: $(basename $0) {start|stop|graceful-stop} [OPTION]..."
             echo ""
-            echo "General options:"
-            echo "  -d            start the daemon in the background"
-            echo "  -h            print usage information"
-            echo "  -p <pidfile>  log the pid to a file"
-            echo "  -v            print version information"
-            echo "  -D            set a java system property value"
-            echo "  -X            set a nonstandard java option"
+            echo "Commands:"
+            echo "   start          start the crate daemon"
+            echo "   stop           stop the running crate daemon"
+            echo "   graceful-stop  stop the running crate daemon"
+            echo "                  considering the graceful_stop settings in crate.yml"
+            echo "Options:"
+            echo "  -d              start the daemon in the background"
+            echo "  -h              print usage information"
+            echo "  -p <pidfile>    log the pid to a file"
+            echo "  -v              print version information"
+            echo "  -D              set a java system property value"
+            echo "  -X              set a nonstandard java option"
             exit 0
         ;;
         -D)
@@ -191,7 +219,20 @@ while true; do
     esac
 done
 
-# Start up the service
-launch_service "$pidfile" "$daemonized" "$properties"
+
+case "$cmd" in
+    start)
+        srv_start "$daemonized" "$properties"
+        ;;
+    stop)
+        srv_stop
+        ;;
+    start)
+        srv_graceful_stop
+        ;;
+    *)
+        exit 1
+        ;;
+esac
 
 exit $?
