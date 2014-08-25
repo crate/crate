@@ -118,6 +118,7 @@ case `uname` in
     ;;
 esac
 
+# Start Crate process
 srv_start()
 {
     daemonized=$1
@@ -139,12 +140,14 @@ srv_start()
     return $execval
 }
 
+# Send terminate signal to Crate process
 srv_stop()
 {
     kill -TERM `cat $PIDFILE`
     return $?
 }
 
+# Send graceful stop signal to Crate process
 srv_graceful_stop()
 {
     kill -USR2 `cat $PIDFILE`
@@ -152,6 +155,8 @@ srv_graceful_stop()
 }
 
 
+# Parse command from command line
+# and default to 'start' if not available
 case "$1" in
   start|stop|graceful-stop)
     cmd=$1
@@ -219,7 +224,7 @@ while true; do
     esac
 done
 
-
+# Invoke command
 case "$cmd" in
     start)
         srv_start "$daemonized" "$properties"
