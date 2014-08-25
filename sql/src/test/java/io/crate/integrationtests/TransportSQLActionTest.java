@@ -4740,6 +4740,27 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((String) response.rows()[1][1], is("Germany"));
         assertThat((String) response.rows()[2][1], is("Italy"));
     }
+
+    @Test
+    public void testGroupByOnAllPrimaryKeys() throws Exception {
+        execute("create table foo (id int primary key, name string primary key) with (number_of_replicas = 0)");
+        ensureGreen();
+
+        execute("insert into foo (id, name) values (?, ?)", new Object[][] {
+                new Object[] { 1, "Arthur" },
+                new Object[] { 2, "Trillian" },
+                new Object[] { 3, "Slartibardfast" },
+                new Object[] { 4, "Marvin" },
+        });
+        refresh();
+
+        execute("select count(*), name from foo group by id, name order by name desc");
+        assertThat(response.rowCount(), is(4L));
+        assertThat((String) response.rows()[0][1], is("Trillian"));
+        assertThat((String) response.rows()[1][1], is("Slartibardfast"));
+        assertThat((String) response.rows()[2][1], is("Marvin"));
+        assertThat((String) response.rows()[3][1], is("Arthur"));
+    }
 }
 
 

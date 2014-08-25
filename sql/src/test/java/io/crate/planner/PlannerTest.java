@@ -647,6 +647,21 @@ public class PlannerTest {
     }
 
     @Test
+    public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
+        Plan plan = plan("select count(*), id, date from empty_parted group by id, date limit 20");
+        Iterator<PlanNode> iterator = plan.iterator();
+        CollectNode collectNode = (CollectNode)iterator.next();
+        assertNull(collectNode.downStreamNodes());
+        assertThat(collectNode.projections().size(), is(2));
+        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
+        MergeNode mergeNode = (MergeNode)iterator.next();
+        assertThat(mergeNode.projections().size(), is(1));
+        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
+        assertFalse(iterator.hasNext());
+    }
+
+    @Test
     public void testGroupByWithOrderOnAggregate() throws Exception {
         Plan plan = plan("select count(*), name from users group by name order by count(*)");
         Iterator<PlanNode> iterator = plan.iterator();

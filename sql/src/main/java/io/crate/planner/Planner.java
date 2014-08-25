@@ -700,22 +700,43 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     private boolean requiresDistribution(SelectAnalysis analysis) {
         Routing routing = analysis.table().getRouting(analysis.whereClause());
         if (!routing.hasLocations()) return false;
-        if (groupedByClusteredColumn(analysis)) return false;
+        if (groupedByClusteredColumnOrPrimaryKeys(analysis)) return false;
         if (routing.locations().size() > 1) return true;
 
         String nodeId = routing.locations().keySet().iterator().next();
         return !(nodeId == null || nodeId.equals(clusterService.localNode().id()));
     }
 
-    private boolean groupedByClusteredColumn(SelectAnalysis analysis) {
+    private boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalysis analysis) {
         List<Symbol> groupBy = analysis.groupBy();
         assert groupBy != null;
         if (groupBy.size() > 1) {
-            return false;
+            return groupedByPrimaryKeys(groupBy, analysis.table().primaryKey());
         }
+
+        // this also handles the case if there is only one primary key.
+        // as clustered by column == pk column  in that case
         Symbol groupByKey = groupBy.get(0);
         return (groupByKey instanceof Reference
                 && ((Reference) groupByKey).info().ident().columnIdent().equals(analysis.table().clusteredBy()));
+    }
+
+    private boolean groupedByPrimaryKeys(List<Symbol> groupBy, List<ColumnIdent> primaryKeys) {
+        if (groupBy.size() != primaryKeys.size()) {
+            return false;
+        }
+        for (int i = 0, groupBySize = groupBy.size(); i < groupBySize; i++) {
+            Symbol groupBySymbol = groupBy.get(i);
+            if (groupBySymbol instanceof Reference) {
+                ColumnIdent pkIdent = primaryKeys.get(i);
+                if (!pkIdent.equals(((Reference) groupBySymbol).info().ident().columnIdent())) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void nonDistributedGroupBy(SelectAnalysis analysis, Plan plan, Context context) {
