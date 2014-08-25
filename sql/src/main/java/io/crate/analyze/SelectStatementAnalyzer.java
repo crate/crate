@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
+import com.google.common.base.Optional;
 import io.crate.exceptions.SQLParseException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
@@ -33,6 +33,7 @@ import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -43,6 +44,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     private final static SortSymbolValidator sortSymbolValidator = new SortSymbolValidator();
     private final static GroupBySymbolValidator groupBySymbolValidator = new GroupBySymbolValidator();
     private final static SelectSymbolValidator selectSymbolVisitor = new SelectSymbolValidator();
+    private final static HavingSymbolValidator havingSymbolValidator = new HavingSymbolValidator();
 
     @Override
     protected Symbol visitSelect(Select node, SelectAnalysis context) {
@@ -146,12 +148,27 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             rewriteGlobalDistinct(context);
         }
 
-        Preconditions.checkArgument(!node.getHaving().isPresent(), "having clause is not yet supported");
+        if (node.getHaving().isPresent()) {
+            if (node.getGroupBy().isEmpty() && !context.hasAggregates()) {
+                throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
+            }
+            processHavingClause(node.getHaving().get(), context);
+        }
 
         if (node.getOrderBy().size() > 0) {
             addSorting(node.getOrderBy(), context);
         }
         return null;
+    }
+
+    private void processHavingClause(Expression expression, SelectAnalysis context) {
+        Symbol havingQuery = process(expression, context);
+
+        // validate having symbols
+        HavingSymbolValidator.HavingContext havingContext = new HavingSymbolValidator.HavingContext(context.groupBy());
+        havingSymbolValidator.process(havingQuery, havingContext);
+
+        context.havingClause(havingQuery);
     }
 
     private void addSorting(List<SortItem> orderBy, SelectAnalysis context) {
@@ -443,6 +460,44 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             throw new UnsupportedOperationException(
                     String.format("Cannot GROUP BY for '%s'", SymbolFormatter.format(symbol))
             );
+        }
+    }
+
+    static class HavingSymbolValidator extends SymbolVisitor<HavingSymbolValidator.HavingContext, Void> {
+        static class HavingContext {
+            private final Optional<List<Symbol>> groupBySymbols;
+
+            private boolean insideAggregation = false;
+
+            public HavingContext(@Nullable List<Symbol> groupBySymbols) {
+                this.groupBySymbols = Optional.fromNullable(groupBySymbols);
+            }
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, HavingContext context) {
+            if (!context.insideAggregation && (!context.groupBySymbols.isPresent() || !context.groupBySymbols.get().contains(symbol)) ) {
+                throw new IllegalArgumentException(
+                        SymbolFormatter.format("Cannot use reference %s outside of an Aggregation in HAVING clause. Only GROUP BY keys allowed here.", symbol));
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitFunction(Function symbol, HavingContext context) {
+            if (symbol.info().type().equals(FunctionInfo.Type.AGGREGATE)) {
+                context.insideAggregation = true;
+            }
+            for (Symbol argument : symbol.arguments()) {
+                process(argument, context);
+            }
+            context.insideAggregation = false;
+            return null;
+        }
+
+        @Override
+        protected Void visitSymbol(Symbol symbol, HavingContext context) {
+            return null;
         }
     }
 
