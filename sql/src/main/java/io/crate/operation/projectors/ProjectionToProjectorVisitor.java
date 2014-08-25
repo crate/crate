@@ -266,4 +266,13 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 projection.bulkActions()
         );
     }
+
+    @Override
+    public Projector visitFilterProjection(FilterProjection projection, Void context) {
+        ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
+
+        return new FilterProjector(
+                symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
+                projection.query());
+    }
 }

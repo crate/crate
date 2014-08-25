@@ -26,6 +26,7 @@ public enum ProjectionType {
     TOPN(TopNProjection.FACTORY),
     GROUP(GroupProjection.FACTORY),
     AGGREGATION(AggregationProjection.FACTORY),
+    FILTER(FilterProjection.FACTORY),
     WRITER(WriterProjection.FACTORY),
     INDEX_WRITER(SourceIndexWriterProjection.FACTORY),
     COLUMN_INDEX_WRITER(ColumnIndexWriterProjection.FACTORY);
