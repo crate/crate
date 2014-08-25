@@ -86,8 +86,9 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
         if (duration == null) {
             if (requestStartedTime > 0) {
                 duration = System.currentTimeMillis() - requestStartedTime;
+            } else {
+                duration = -1L;
             }
-            duration = -1L;
         }
         return duration;
     }
