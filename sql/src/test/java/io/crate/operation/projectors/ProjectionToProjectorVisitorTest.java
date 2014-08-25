@@ -228,10 +228,11 @@ public class ProjectionToProjectorVisitorTest {
     @Test
     public void testFilterProjection() throws Exception {
         EqOperator op = (EqOperator)functions.get(
-                new FunctionIdent(EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.BOOLEAN, DataTypes.BOOLEAN)));
+                new FunctionIdent(EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
         Function function = new Function(
-                op.info(), Arrays.<Symbol>asList(Literal.newLiteral(true), new Reference()));
+                op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), new InputColumn(1)));
         FilterProjection projection = new FilterProjection(function);
+        projection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         CollectingProjector collectingProjector = new CollectingProjector();
         Projector projector = visitor.process(projection);
@@ -239,7 +240,14 @@ public class ProjectionToProjectorVisitorTest {
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(FilterProjector.class));
 
-        // TODO: test real projector implementation
+        projector.startProjection();
+        projector.setNextRow("human", 2);
+        projector.setNextRow("vogon", 1);
+
+        projector.upstreamFinished();
+
+        Object[][] rows = collectingProjector.result().get();
+        assertThat(rows.length, is(1));
     }
 
 }
