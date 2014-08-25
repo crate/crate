@@ -46,7 +46,9 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
@@ -61,6 +63,9 @@ public class PlannerTest {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private Injector injector;
     private Analyzer analyzer;
@@ -1141,5 +1146,13 @@ public class PlannerTest {
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
     }
+
+    @Test
+    public void testGroupByHaving() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("HAVING clause not supported");
+        plan("select avg(date) from users group by name having min(date) > '1970-01-01'");
+    }
+
 
 }

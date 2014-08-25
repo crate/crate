@@ -107,6 +107,10 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         Plan plan = new Plan();
         plan.expectsAffectedRows(false);
 
+        if (analysis.havingClause() != null) {
+            throw new UnsupportedOperationException("HAVING clause not supported");
+        }
+
         if (analysis.hasGroupBy()) {
             groupBy(analysis, plan, context);
         } else if (analysis.hasAggregates()) {

@@ -45,6 +45,8 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     private List<Symbol> sortSymbols;
     protected boolean selectFromFieldCache = false;
 
+    private Symbol havingClause;
+
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
 
     public Query query() {
@@ -90,6 +92,15 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     public boolean hasGroupBy() {
         return groupBy != null && groupBy.size() > 0;
+    }
+
+    @Nullable
+    public Symbol havingClause() {
+        return havingClause;
+    }
+
+    public void havingClause(Symbol clause) {
+        this.havingClause = normalizer.process(clause, null);
     }
 
     public void reverseFlags(boolean[] reverseFlags) {
