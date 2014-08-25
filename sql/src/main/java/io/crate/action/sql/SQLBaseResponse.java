@@ -51,6 +51,7 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
     protected DataType[] colTypes;
     protected boolean includeTypes;
     protected long requestStartedTime;
+    protected Long duration;
 
     public SQLBaseResponse() {} // used for serialization
 
@@ -82,10 +83,13 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
     }
 
     public long duration() {
-        if (requestStartedTime > 0) {
-            return System.currentTimeMillis()- requestStartedTime;
+        if (duration == null) {
+            if (requestStartedTime > 0) {
+                duration = System.currentTimeMillis() - requestStartedTime;
+            }
+            duration = -1L;
         }
-        return -1;
+        return duration;
     }
 
     protected void writeSharedAttributes(XContentBuilder builder) throws IOException {
