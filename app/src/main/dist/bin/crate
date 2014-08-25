@@ -143,14 +143,14 @@ srv_start()
 # Send terminate signal to Crate process
 srv_stop()
 {
-    kill -TERM `cat $PIDFILE`
+    kill -TERM `cat $PIDFILE` && rm $PIDFILE
     return $?
 }
 
 # Send graceful stop signal to Crate process
 srv_graceful_stop()
 {
-    kill -USR2 `cat $PIDFILE`
+    kill -USR2 `cat $PIDFILE` && rm $PIDFILE
     return $?
 }
 
