@@ -41,6 +41,18 @@ public class SetAnalysis extends Analysis {
                 new SettingsAppliers.IntSettingsApplier(CrateSettings.OPERATIONS_LOG_SIZE))
         .put(CrateSettings.COLLECT_STATS.settingName(),
                 new SettingsAppliers.BooleanSettingsApplier(CrateSettings.COLLECT_STATS))
+        .put(CrateSettings.GRACEFUL_STOP.settingName(),
+                new SettingsAppliers.ObjectSettingsApplier(CrateSettings.GRACEFUL_STOP))
+        .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(),
+                new SettingsAppliers.StringSettingsApplier(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY))
+        .put(CrateSettings.GRACEFUL_STOP_REALLOCATE.settingName(),
+                new SettingsAppliers.BooleanSettingsApplier(CrateSettings.GRACEFUL_STOP_REALLOCATE))
+        .put(CrateSettings.GRACEFUL_STOP_FORCE.settingName(),
+                new SettingsAppliers.BooleanSettingsApplier(CrateSettings.GRACEFUL_STOP_FORCE))
+        .put(CrateSettings.GRACEFUL_STOP_TIMEOUT.settingName(),
+                new SettingsAppliers.TimeSettingsApplier(CrateSettings.GRACEFUL_STOP_TIMEOUT))
+        .put(CrateSettings.GRACEFUL_STOP_IS_DEFAULT.settingName(),
+                new SettingsAppliers.BooleanSettingsApplier(CrateSettings.GRACEFUL_STOP_IS_DEFAULT))
             .build();
 
     private Settings settings;
