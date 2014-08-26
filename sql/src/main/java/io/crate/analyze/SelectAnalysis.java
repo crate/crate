@@ -26,7 +26,9 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.metadata.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
 import io.crate.sql.tree.Query;
 
 import javax.annotation.Nullable;
@@ -117,10 +119,23 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     @Override
     public boolean hasNoResult() {
+        boolean globalAggregateCase = false;
         if (globalAggregate()) {
-            return Objects.firstNonNull(limit(), 1) < 1 || offset() > 0;
+            globalAggregateCase = Objects.firstNonNull(limit(), 1) < 1 || offset() > 0;
         }
-        return noMatch() || (limit() != null && limit() == 0);
+        return noMatch() || globalAggregateCase || (limit() != null && limit() == 0);
+    }
+
+    @Override
+    public boolean noMatch() {
+        if (havingClause != null && havingClause.symbolType() == SymbolType.LITERAL) {
+            Literal havingLiteral = (Literal)havingClause;
+            if (havingLiteral.value() == false) {
+                return true;
+            }
+        }
+
+        return super.noMatch();
     }
 
     private boolean globalAggregate() {

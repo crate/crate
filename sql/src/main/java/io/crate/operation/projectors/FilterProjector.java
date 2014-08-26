@@ -59,9 +59,9 @@ public class FilterProjector implements Projector {
         boolean queryResult = condition.value();
 
         if (downstream != null && queryResult) {
-            downstream.setNextRow(row);
+            return downstream.setNextRow(row);
         }
-        return queryResult;
+        return true;
     }
 
     @Override

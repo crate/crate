@@ -67,9 +67,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
-import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
-import static io.crate.testing.TestingHelpers.isFunction;
-import static io.crate.testing.TestingHelpers.isReference;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -1685,6 +1683,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(havingFunction.arguments().get(0), isFunction("sum"));
         TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), Sets.newHashSet(42.0D, 43.0D, 44.0D), new SetType(DataTypes.DOUBLE));
 
+    }
+
+    @Test
+    public void testHavingNoResult() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select sum(floats) from users having 1 = 2");
+        assertThat(analysis.havingClause(), isLiteral(false, DataTypes.BOOLEAN));
+        assertThat(analysis.hasNoResult(), is(true));
     }
 
     @Test

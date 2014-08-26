@@ -630,4 +630,14 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select max(lol), race from characters group by race");
     }
 
+    @Test
+    public void testHavingGlobalAggregation() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select min(birthdate), min(age) from characters having min(age) < 33 and max(age) > 100");
+        assertEquals(1L, response.rowCount());
+        assertEquals(2, response.rows()[0].length);
+        assertEquals(0L, response.rows()[0][0]);
+        assertEquals(32, response.rows()[0][1]);
+    }
+
 }

@@ -34,8 +34,6 @@ import java.util.Objects;
 
 public class FilterProjection extends Projection {
 
-    protected final static List<Symbol> OUTPUTS = ImmutableList.of();
-
     public static final ProjectionFactory<FilterProjection> FACTORY = new ProjectionFactory<FilterProjection>() {
         @Override
         public FilterProjection newInstance() {
