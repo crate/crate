@@ -62,6 +62,7 @@ public class ShardProjectorChain implements ResultProvider {
                 shardProjectionsIndex = idx;
                 break;
             }
+            idx++;
         }
 
         Projector previousProjector = null;
