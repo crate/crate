@@ -28,6 +28,9 @@ import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -167,5 +170,77 @@ public class TestingHelpers {
         assertThat(symbol, instanceOf(Literal.class));
         assertEquals(type, ((Literal)symbol).valueType());
         assertThat(((Literal) symbol).value(), is(expectedValue));
+    }
+
+    public static Matcher<Symbol> isReference(String expectedName) {
+        return isReference(expectedName, null);
+    }
+
+    public static Matcher<Symbol> isReference(final String expectedName, @Nullable final DataType dataType) {
+        return new BaseMatcher<Symbol>() {
+
+            @Override
+            public boolean matches(Object item) {
+                return item instanceof Reference
+                        && ((Reference) item).info().ident().columnIdent().fqn().equals(expectedName)
+                        && (dataType == null || ((Reference) item).info().type().equals(dataType));
+            }
+
+            @Override
+            public void describeMismatch(Object item, Description description) {
+                if (!(item instanceof Reference)) {
+                    description.appendText("wrong Reference ").appendText(SymbolFormatter.format((Reference) item));
+                } else {
+                    description.appendText("was no Reference, but  ").appendValue(item);
+                }
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                StringBuilder builder = new StringBuilder("a Reference with name ").append(expectedName);
+                if (dataType != null) {
+                    builder.append(" and type").append(dataType.toString());
+                }
+                description.appendText(builder.toString());
+            }
+        };
+    }
+
+    public static Matcher<Symbol> isFunction(String name) {
+        return isFunction(name, null);
+    }
+
+    public static Matcher<Symbol> isFunction(final String name, @Nullable final List<DataType> argumentTypes) {
+        return new BaseMatcher<Symbol>() {
+            @Override
+            public boolean matches(Object item) {
+                return item instanceof Function
+                        && ((Function) item).info().ident().name().equals(name)
+                        &&
+                            (argumentTypes == null
+                            || (((Function) item).info().ident().argumentTypes().size() == argumentTypes.size()
+                            && ((Function) item).info().ident().argumentTypes().containsAll(argumentTypes)));
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("is function ").appendText(name);
+                if (argumentTypes != null) {
+                    description.appendText("with argument types: ");
+                    for (DataType type : argumentTypes) {
+                        description.appendText(type.toString());
+                    }
+                }
+            }
+
+            @Override
+            public void describeMismatch(Object item, Description description) {
+                if (item instanceof Function) {
+                    description.appendText("wrong function ").appendText(SymbolFormatter.format((Function)item));
+                } else {
+                    description.appendText("not a function ").appendValue(item);
+                }
+            }
+        };
     }
 }
