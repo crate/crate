@@ -68,7 +68,7 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
     }
 
     public String normalizeKey(String key) {
-        if (!key.contains(".")) {
+        if (!key.startsWith("cluster.")) {
             return String.format("cluster.%s", key);
         }
         return key;
