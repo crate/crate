@@ -577,11 +577,14 @@ You can change multiple values at once::
 
 ::
 
-    cr> select sys.cluster.settings from sys.cluster;
-    +-----------------------------------------------------------------------------+
-    | sys.cluster.settings                                                        |
-    +-----------------------------------------------------------------------------+
-    | {"collect_stats": true, "jobs_log_size": 1024, "operations_log_size": 4096} |
-    +-----------------------------------------------------------------------------+
+    cr> select settings['collect_stats'],
+    ...   settings['jobs_log_size'],
+    ...   settings['operations_log_size']
+    ... from sys.cluster;
+    +-...------------------+-...------------------+-...------------------------+
+    | ...['collect_stats'] | ...['jobs_log_size'] | ...['operations_log_size'] |
+    +-...------------------+-...------------------+-...------------------------+
+    | TRUE                 |                 1024 |                       4096 |
+    +-...------------------+-...------------------+-...------------------------+
     SELECT 1 row in set (... sec)
 
