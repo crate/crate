@@ -146,6 +146,7 @@ public class PlannerContextBuilder {
         int idx = 0;
         for (Symbol symbol : context.groupBy) {
             context.groupBy.set(idx, new InputColumn(idx));
+            idx++;
         }
     }
 
