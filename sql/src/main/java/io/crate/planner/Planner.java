@@ -764,7 +764,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
         GroupProjection groupProjection =
                 new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        if(!requiresDistribution(analysis)){
+
+        if(analysis.rowGranularity() == RowGranularity.DOC){
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
         }
 
