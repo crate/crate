@@ -69,6 +69,44 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testSetTimeValue() throws Exception {
+        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = 60000");
+        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=60000,"));
+
+        analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = '2.5m'");
+        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=150000,"));
+
+        analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = 1000.0");
+        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=1000,"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetInvalidTimeValue() throws Exception {
+        analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = '-1h'");
+    }
+
+    @Test
+    public void testSetStringValue() throws Exception {
+        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT graceful_stop.min_availability = 'full'");
+        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.min_availability=full,"));
+    }
+
+    @Test
+    public void testSetInvalidStringValue() throws Exception {
+        try {
+            analyze("SET GLOBAL PERSISTENT graceful_stop.min_availability = 'something'");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage(), is("'something' is not an allowed value."));
+        }
+    }
+
+    @Test
+    public void testObjectValue() throws Exception {
+        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop = {timeout='1h',force=false}");
+        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop={force=false, timeout=1h},"));
+    }
+
+    @Test
     public void testSetParameter() throws Exception {
         SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT operations_log_size=?, jobs_log_size=?", new Object[]{1, 2});
         assertThat(analysis.isPersistent(), is(true));
