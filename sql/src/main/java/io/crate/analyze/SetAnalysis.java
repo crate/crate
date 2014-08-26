@@ -21,11 +21,7 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.Sets;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.settings.Setting;
-import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.Settings;
@@ -35,7 +31,6 @@ import java.util.Locale;
 import java.util.Set;
 
 public class SetAnalysis extends Analysis {
-
 
     private Settings settings;
     private Set<String> settingsToRemove;

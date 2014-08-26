@@ -509,6 +509,7 @@ public class CrateSettings {
         }
     };
 
+
     public static final StringSetting ROUTING_ALLOCATION_EXCLUDE_NAME = new StringSetting() {
         @Override
         public String name() { return "_name"; }
@@ -989,6 +990,7 @@ public class CrateSettings {
         @Override
         public TimeValue defaultValue() {
             return new TimeValue(30, TimeUnit.SECONDS);
+
         }
 
         @Override

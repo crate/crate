@@ -24,11 +24,13 @@ package io.crate.operation.reference.sys.cluster;
 import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class ApplySettingsTest {
 
@@ -56,6 +58,7 @@ public class ApplySettingsTest {
         assertEquals(values.get(name), settings.getAsBoolean(name, true));
 
         /*
+
         name = CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName();
         assertEquals(values.get(name), settings.get(name, "none"));
 
