@@ -646,6 +646,7 @@ public class PlannerTest {
         assertNull(collectNode.downStreamNodes());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergeNode mergeNode = (MergeNode)iterator.next();
         assertThat(mergeNode.projections().size(), is(1));
         assertFalse(iterator.hasNext());
@@ -659,6 +660,7 @@ public class PlannerTest {
         assertNull(collectNode.downStreamNodes());
         assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
         MergeNode mergeNode = (MergeNode)iterator.next();
         assertThat(mergeNode.projections().size(), is(1));

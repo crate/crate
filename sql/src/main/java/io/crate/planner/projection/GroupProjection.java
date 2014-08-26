@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,6 +36,8 @@ public class GroupProjection extends Projection {
     List<Symbol> keys;
     List<Aggregation> values;
     List<Symbol> outputs;
+
+    private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
 
     public static final ProjectionFactory<GroupProjection> FACTORY = new ProjectionFactory<GroupProjection>() {
         @Override
@@ -126,4 +129,12 @@ public class GroupProjection extends Projection {
         return true;
     }
 
+    @Override
+    public RowGranularity requiredGranularity() {
+        return requiredGranularity;
+    }
+
+    public void setRequiredGranularity(RowGranularity requiredGranularity) {
+        this.requiredGranularity = requiredGranularity;
+    }
 }
