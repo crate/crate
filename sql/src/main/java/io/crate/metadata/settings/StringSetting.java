@@ -21,13 +21,21 @@
 
 package io.crate.metadata.settings;
 
+import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class BoolSetting extends Setting<Boolean> {
+public abstract class StringSetting extends Setting<String> {
 
     @Override
-    public Boolean extract(Settings settings) {
-        return settings.getAsBoolean(settingName(), defaultValue());
+    public String defaultValue() {
+        return "";
     }
+
+    @Override
+    public String extract(Settings settings) {
+        return settings.get(settingName(), defaultValue());
+    }
+
+    public Validator validator() { return null; }
 
 }
