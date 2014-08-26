@@ -21,12 +21,12 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.settings.BoolSetting;
-import io.crate.metadata.settings.IntSetting;
+import io.crate.metadata.settings.*;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.Locale;
 
@@ -54,6 +54,25 @@ public class SettingsAppliers {
         public IllegalArgumentException invalidException() {
             return new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid value for argument '%s'", name));
+        }
+    }
+
+    public static class ObjectSettingsApplier extends AbstractSettingsApplier {
+
+        public ObjectSettingsApplier(NestedSetting settings) {
+            super(settings.settingName(),
+                    ImmutableSettings.builder().put(settings.settingName(), settings.defaultValue()).build());
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            Object value = null;
+            try {
+                value = ExpressionToObjectVisitor.convert(expression, parameters);
+            } catch (IllegalArgumentException e) {
+                invalidException(e);
+            }
+            settingsBuilder.put(this.name, value);
         }
     }
 
@@ -108,6 +127,66 @@ public class SettingsAppliers {
             int value = num.intValue();
             validate(value);
             settingsBuilder.put(this.name, value);
+        }
+    }
+
+    public static class StringSettingsApplier extends AbstractSettingsApplier {
+
+        private final StringSetting setting;
+
+        public StringSettingsApplier(StringSetting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+            this.setting = setting;
+        }
+
+        private void validate(String value) {
+            String validation = this.setting.validator().validate(this.setting.settingName(), value);
+            if (validation != null) {
+                throw new IllegalArgumentException(validation);
+            }
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            String value;
+            try {
+                value = ExpressionToStringVisitor.convert(expression, parameters);
+            } catch (IllegalArgumentException e) {
+                throw invalidException(e);
+            }
+            validate(value);
+            settingsBuilder.put(name, value);
+        }
+    }
+
+    public static class TimeSettingsApplier extends AbstractSettingsApplier {
+
+        private final TimeSetting setting;
+
+        public TimeSettingsApplier(TimeSetting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+            this.setting = setting;
+        }
+
+        private void validate(double value) {
+            if (value < setting.minValue().getMillis() || value > setting.maxValue().getMillis()) {
+                throw invalidException();
+            }
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            TimeValue time;
+            try {
+                time = ExpressionToTimeValueVisitor.convert(expression, parameters);
+            } catch (IllegalArgumentException e) {
+                throw invalidException(e);
+            }
+            long value = time.millis();
+            validate(value);
+            settingsBuilder.put(name, value);
         }
     }
 }

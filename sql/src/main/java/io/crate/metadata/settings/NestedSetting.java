@@ -21,13 +21,19 @@
 
 package io.crate.metadata.settings;
 
+import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class BoolSetting extends Setting<Boolean> {
+public abstract class NestedSetting extends Setting<Object> {
 
     @Override
-    public Boolean extract(Settings settings) {
-        return settings.getAsBoolean(settingName(), defaultValue());
+    public Object extract(Settings settings) {
+        return settings.getByPrefix(settingName()).getAsStructuredMap();
+    }
+
+    @Override
+    public Object defaultValue() {
+        return ImmutableMap.of();
     }
 
 }

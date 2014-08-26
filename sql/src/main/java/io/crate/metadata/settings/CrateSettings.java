@@ -21,6 +21,15 @@
 
 package io.crate.metadata.settings;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
+import org.elasticsearch.cluster.settings.Validator;
+import org.elasticsearch.common.unit.TimeValue;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.Set;
+
 public class CrateSettings {
 
     public static final IntSetting JOBS_LOG_SIZE = new IntSetting() {
@@ -68,4 +77,116 @@ public class CrateSettings {
             return false;
         }
     };
+
+    public static final NestedSetting GRACEFUL_STOP = new NestedSetting() {
+        @Override
+        public String name() { return "graceful_stop"; }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(
+                    GRACEFUL_STOP_MIN_AVAILABILITY,
+                    GRACEFUL_STOP_REALLOCATE,
+                    GRACEFUL_STOP_TIMEOUT,
+                    GRACEFUL_STOP_FORCE,
+                    GRACEFUL_STOP_IS_DEFAULT);
+        }
+    };
+
+    public static final StringSetting GRACEFUL_STOP_MIN_AVAILABILITY = new StringSetting() {
+        final Set<String> allowedValues = Sets.newHashSet("full", "primaries", "none");
+
+        @Override
+        public String name() { return "min_availability"; }
+
+        @Override
+        public String defaultValue() { return "primaries"; }
+
+        @Override
+        public Setting parent() {
+            return GRACEFUL_STOP;
+        }
+
+        public Validator validator() {
+            return new Validator() {
+                @Override
+                public String validate(String setting, String value) {
+                    if (!allowedValues.contains(value)) {
+                        return String.format("'%s' is not an allowed value.", value);
+                    }
+                    return null;
+                }
+            };
+        }
+    };
+
+    public static final BoolSetting GRACEFUL_STOP_REALLOCATE = new BoolSetting() {
+        @Override
+        public String name() { return "reallocate"; }
+
+        @Override
+        public Boolean defaultValue() {
+            return true;
+        }
+
+        @Override
+        public Setting parent() {
+            return GRACEFUL_STOP;
+        }
+    };
+
+    public static final TimeSetting GRACEFUL_STOP_TIMEOUT = new TimeSetting() {
+        @Override
+        public String name() {
+            return "timeout";
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return new TimeValue(7_200_000);
+        }
+
+        @Override
+        public Setting parent() {
+            return GRACEFUL_STOP;
+        }
+    };
+
+    public static final BoolSetting GRACEFUL_STOP_FORCE = new BoolSetting() {
+        @Override
+        public String name() {
+            return "force";
+        }
+
+        @Override
+        public Boolean defaultValue() {
+            return false;
+        }
+
+        @Override
+        public Setting parent() {
+            return GRACEFUL_STOP;
+        }
+    };
+
+    public static final BoolSetting GRACEFUL_STOP_IS_DEFAULT = new BoolSetting() {
+        @Override
+        public String name() {
+            return "is_default";
+        }
+
+        @Override
+        public Boolean defaultValue() {
+            return false;
+        }
+
+        @Override
+        public Setting parent() {
+            return GRACEFUL_STOP;
+        }
+    };
+
+    public static final ImmutableList<Setting> CLUSTER_SETTINGS = ImmutableList.<Setting>of(
+            JOBS_LOG_SIZE, OPERATIONS_LOG_SIZE, COLLECT_STATS, GRACEFUL_STOP);
+
 }
