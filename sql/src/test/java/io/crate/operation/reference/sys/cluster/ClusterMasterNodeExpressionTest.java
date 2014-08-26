@@ -21,27 +21,28 @@
 
 package io.crate.operation.reference.sys.cluster;
 
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
-public class ClusterMasterNodeExpression extends SysClusterExpression<BytesRef> {
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-    public static final String NAME = "master_node";
-    private final ClusterService clusterService;
+public class ClusterMasterNodeExpressionTest {
 
-    @Inject
-    protected ClusterMasterNodeExpression(ClusterService clusterService) {
-        super(NAME);
-        this.clusterService = clusterService;
-    }
+    @Test
+    public void testMasterNodeIdIsNull() throws Exception {
+        ClusterService clusterService = mock(ClusterService.class);
+        ClusterState state = mock(ClusterState.class);
+        DiscoveryNodes nodes = mock(DiscoveryNodes.class);
+        when(clusterService.state()).thenReturn(state);
+        when(state.nodes()).thenReturn(nodes);
+        when(nodes.masterNodeId()).thenReturn(null);
+        ClusterMasterNodeExpression clusterMasterNodeExpression = new ClusterMasterNodeExpression(clusterService);
 
-    @Override
-    public BytesRef value() {
-        String masterNodeId = clusterService.state().nodes().masterNodeId();
-        if (masterNodeId == null) {
-            return null;
-        }
-        return new BytesRef(masterNodeId);
+        assertThat(clusterMasterNodeExpression.value(), Matchers.nullValue());
     }
 }
