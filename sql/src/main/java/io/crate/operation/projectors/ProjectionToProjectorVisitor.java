@@ -269,7 +269,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
 
     @Override
     public Projector visitFilterProjection(FilterProjection projection, Void context) {
-        ImplementationSymbolVisitor.Context ctx = symbolVisitor.process(projection.outputs());
+        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
 
         Input<Boolean> condition;
         if (projection.query() != null) {

@@ -672,7 +672,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.having());
+            fp.outputs(contextBuilder.passThroughOutputs());
             projections.add(fp);
         }
 
@@ -776,14 +776,21 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
+        Symbol havingClause = null;
+        if (analysis.havingClause() != null
+                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
+            // replace aggregation symbols with input columns from previous projection
+            havingClause = contextBuilder.having(analysis.havingClause());
+        }
+
         ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
         GroupProjection groupProjection =
                 new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
 
         if(analysis.rowGranularity() == RowGranularity.DOC){
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
-        }
 
+        }
 
         List<Symbol> toCollect = contextBuilder.toCollect();
         contextBuilder.nextStep();
@@ -802,6 +809,15 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
         // handler
         ImmutableList.Builder<Projection> builder = ImmutableList.<Projection>builder();
+
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.passThroughOutputs());
+            if(analysis.rowGranularity() == RowGranularity.DOC){
+                fp.requiredGranularity(RowGranularity.SHARD);
+            }
+            builder.add(fp);
+        }
         if (numAggregationSteps == 2) {
             builder.add(new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations()));
         }
@@ -874,7 +890,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 .orderBy(analysis.sortSymbols());
 
         Symbol havingClause = null;
-        if (analysis.havingClause() != null) {
+        if (analysis.havingClause() != null
+                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
             // replace aggregation symbols with input columns from previous projection
             havingClause = contextBuilder.having(analysis.havingClause());
         }
@@ -899,10 +916,9 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 contextBuilder.aggregations()));
 
 
-
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.having());
+            fp.outputs(contextBuilder.passThroughOutputs());
             projectionsBuilder.add(fp);
         }
 
@@ -946,6 +962,13 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
+        Symbol havingClause = null;
+        if (analysis.havingClause() != null
+                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
+            // replace aggregation symbols with input columns from previous projection
+            havingClause = contextBuilder.having(analysis.havingClause());
+        }
+
         // collector
         GroupProjection groupProjection = new GroupProjection(
                 contextBuilder.groupBy(), contextBuilder.aggregations());
@@ -964,6 +987,13 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         projectionsBuilder.add(new GroupProjection(
                 contextBuilder.groupBy(),
                 contextBuilder.aggregations()));
+
+
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.passThroughOutputs());
+            projectionsBuilder.add(fp);
+        }
 
         boolean topNDone = false;
         if (analysis.isLimited()) {

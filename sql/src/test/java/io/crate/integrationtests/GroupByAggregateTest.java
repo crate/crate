@@ -30,6 +30,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.isIn;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -648,4 +649,70 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertEquals(43, response.rows()[0][0]);
     }
 
+
+    @Test
+    public void testHavingGroupByWithAggSelected() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select age, count(*) from characters group by age having age > 40 order by age");
+        assertEquals(2L, response.rowCount());
+        assertEquals(43, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testHavingGroupByNonDistributed() throws Exception {
+        execute("create table foo (id int, name string, country string) clustered by (country) with (number_of_replicas = 0)");
+        ensureGreen();
+
+        execute("insert into foo (id, name, country) values (?, ?, ?)", new Object[][]{
+                new Object[] { 1, "Arthur", "Austria" },
+                new Object[] { 2, "Trillian", "Austria" },
+                new Object[] { 3, "Marvin", "Austria" },
+                new Object[] { 4, "Jeltz", "German" },
+                new Object[] { 5, "Ford", "German" },
+                new Object[] { 6, "Slartibardfast", "Italy" },
+        });
+        refresh();
+
+
+        execute("select country from foo group by country having country = 'Austria'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("Austria"));
+
+        execute("select count(*), country from foo group by country having country = 'Austria'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long)response.rows()[0][0], is(3L));
+        assertThat((String) response.rows()[0][1], is("Austria"));
+
+        execute("select country, min(id) from foo group by country having min(id) < 5 ");
+        assertThat(response.rowCount(), is(2L));
+    }
+
+    @Test
+    public void testGroupByHavingInsertInto() throws Exception {
+        execute("create table foo (id int, name string, country string) with (number_of_replicas = 0)");
+        execute("create table bar (country string) clustered by (country) with (number_of_replicas = 0)");
+        ensureGreen();
+
+        execute("insert into foo (id, name, country) values (?, ?, ?)", new Object[][]{
+                new Object[] { 1, "Arthur", "Austria" },
+                new Object[] { 2, "Trillian", "Austria" },
+                new Object[] { 3, "Marvin", "Austria" },
+                new Object[] { 4, "Jeltz", "German" },
+                new Object[] { 5, "Ford", "German" },
+                new Object[] { 6, "Slartibardfast", "Italy" },
+        });
+        refresh();
+
+        execute("insert into bar(country)(select country from foo group by country having country = 'Austria')");
+        refresh();
+        execute("select country from bar");
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testGroupByHavingWithAggregate() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select gender from characters group by gender having min(age) < 33");
+        assertEquals(1L, response.rowCount());
+    }
 }

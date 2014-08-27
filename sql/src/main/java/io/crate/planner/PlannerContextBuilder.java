@@ -185,10 +185,6 @@ public class PlannerContextBuilder {
         return havingSymbolConverter.process(query, context);
     }
 
-    public List<Symbol> having() {
-        return context.having;
-    }
-
     /**
      * returns the symbols to be used in the first topN projection
      * <p/>
@@ -242,7 +238,6 @@ public class PlannerContextBuilder {
                     // resolve symbol
                     resolvedSymbol = Planner.splitter.process(symbol, context);
                 }
-                context.having.add(resolvedSymbol);
                 return resolvedSymbol;
             }
             ListIterator<Symbol> it = symbol.arguments().listIterator();
@@ -262,7 +257,6 @@ public class PlannerContextBuilder {
                         "Cannot resolve symbol: " + symbol);
 
             }
-            context.having.add(resolvedSymbol);
             return resolvedSymbol;
         }
 

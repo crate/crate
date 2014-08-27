@@ -39,7 +39,6 @@ public class PlannerContext {
     Map<Symbol, Symbol> resolvedSymbols = new HashMap<>();
     List<Symbol> orderBy = new ArrayList<>();
     List<Symbol> outputs = new ArrayList<>();
-    List<Symbol> having = new ArrayList<>();
     List<Symbol> originalGroupBy;
 
     public PlannerContext(int numGroupKeys, int numAggregationSteps) {

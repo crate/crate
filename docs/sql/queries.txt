@@ -771,12 +771,12 @@ resulting rows of a group by clause.
 A simple having clause example using an equality operator::
 
     cr> select count(*), kind from locations
-    ... group by kind having count(*) = 4;
+    ... group by kind having count(*) = 4 order by kind;
     +----------+-------------+
     | count(*) | kind        |
     +----------+-------------+
-    | 4        | Galaxy      |
-    | 4        | Star System |
+    |        4 | Galaxy      |
+    |        4 | Star System |
     +----------+-------------+
     SELECT 2 rows in set (... sec)
 
@@ -788,23 +788,23 @@ like in the result columns::
 
     cr> select count(*), kind from locations
     ... group by kind having min(name) = 'Berlin';
-    +----------+-------------+
-    | count(*) | kind        |
-    +----------+-------------+
-    |        2 | City        |
-    +----------+-------------+
-    SELECT 1 rows in set (... sec)
+    +----------+------+
+    | count(*) | kind |
+    +----------+------+
+    |        2 | City |
+    +----------+------+
+    SELECT 1 row in set (... sec)
 
 ::
 
     cr> select count(*), kind from locations
     ... group by kind having count(*) = 4 and kind like 'Gal%';
-    +----------+-------------+
-    | count(*) | kind        |
-    +----------+-------------+
-    | 4        | Galaxy      |
-    +----------+-------------+
-    SELECT 1 rows in set (... sec)
+    +----------+--------+
+    | count(*) | kind   |
+    +----------+--------+
+    |        4 | Galaxy |
+    +----------+--------+
+    SELECT 1 row in set (... sec)
 
 
 Comparison Operators

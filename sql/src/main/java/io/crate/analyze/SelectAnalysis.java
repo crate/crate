@@ -119,15 +119,6 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     @Override
     public boolean hasNoResult() {
-        boolean globalAggregateCase = false;
-        if (globalAggregate()) {
-            globalAggregateCase = Objects.firstNonNull(limit(), 1) < 1 || offset() > 0;
-        }
-        return noMatch() || globalAggregateCase || (limit() != null && limit() == 0);
-    }
-
-    @Override
-    public boolean noMatch() {
         if (havingClause != null && havingClause.symbolType() == SymbolType.LITERAL) {
             Literal havingLiteral = (Literal)havingClause;
             if (havingLiteral.value() == false) {
@@ -135,7 +126,10 @@ public class SelectAnalysis extends AbstractDataAnalysis {
             }
         }
 
-        return super.noMatch();
+        if (globalAggregate()) {
+            return Objects.firstNonNull(limit(), 1) < 1 || offset() > 0;
+        }
+        return noMatch() || (limit() != null && limit() == 0);
     }
 
     private boolean globalAggregate() {
