@@ -18,6 +18,7 @@ Contents
 
    installation
    configuration
+   cli
    hello
    sql/index
    blob
