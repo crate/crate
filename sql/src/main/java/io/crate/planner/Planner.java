@@ -705,9 +705,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private void groupBy(SelectAnalysis analysis, Plan plan, Context context) {
-        if (analysis.havingClause() != null) {
-            throw new UnsupportedOperationException("HAVING clause not supported");
-        }
 
         if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
                 || !requiresDistribution(analysis)) {
@@ -876,6 +873,12 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
+        Symbol havingClause = null;
+        if (analysis.havingClause() != null) {
+            // replace aggregation symbols with input columns from previous projection
+            havingClause = contextBuilder.having(analysis.havingClause());
+        }
+
         // collector
         GroupProjection groupProjection = new GroupProjection(
                 contextBuilder.groupBy(), contextBuilder.aggregations());
@@ -894,6 +897,14 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         projectionsBuilder.add(new GroupProjection(
                 contextBuilder.groupBy(),
                 contextBuilder.aggregations()));
+
+
+
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.having());
+            projectionsBuilder.add(fp);
+        }
 
         boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionsBuilder);
         MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());

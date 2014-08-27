@@ -56,7 +56,10 @@ public class FilterProjector implements Projector {
             collectExpression.setNextRow(row);
         }
 
-        boolean queryResult = condition.value();
+        Boolean queryResult = condition.value();
+        if (queryResult == null) {
+            return true;
+        }
 
         if (downstream != null && queryResult) {
             return downstream.setNextRow(row);

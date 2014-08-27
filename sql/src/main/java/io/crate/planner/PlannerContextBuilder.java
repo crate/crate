@@ -255,6 +255,18 @@ public class PlannerContextBuilder {
         }
 
         @Override
+        public Symbol visitReference(Reference symbol, PlannerContext context) {
+            Symbol resolvedSymbol = context.resolvedSymbols.get(symbol);
+            if (resolvedSymbol == null) {
+                throw new UnhandledServerException(
+                        "Cannot resolve symbol: " + symbol);
+
+            }
+            context.having.add(resolvedSymbol);
+            return resolvedSymbol;
+        }
+
+        @Override
         protected Symbol visitSymbol(Symbol symbol, PlannerContext context) {
             return symbol;
         }

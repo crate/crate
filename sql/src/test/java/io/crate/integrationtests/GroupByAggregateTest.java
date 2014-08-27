@@ -640,4 +640,12 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertEquals(32, response.rows()[0][1]);
     }
 
+    @Test
+    public void testHavingGroupBy() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select age from characters group by age having age > 40 order by age");
+        assertEquals(2L, response.rowCount());
+        assertEquals(43, response.rows()[0][0]);
+    }
+
 }
