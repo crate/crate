@@ -36,22 +36,88 @@ Parameters
 Supported Configuration Parameters
 ==================================
 
-:collect_stats: a boolean indicating whether or not to collect statistical information
-                about the cluster.
+.. _ref_collecting_stats:
 
-:jobs_log_size: the number of jobs kept in the ``sys.jobs_log`` table on each node for performance analytics.
-                Older entries will be deleted when the ``jobs_log_size`` is reached.
-                A single SQL statement results in a job to be executed on the cluster.
-                A higher number results in more expressive results but also in more
-                occupied RAM. Setting it to ``0`` disables collecting job information.
+Collecting Stats
+----------------
 
-:operations_log_size: the number of operations to keep in the ``sys.operations_log`` table
-                on each node for performance analytics.
-                Older entries will be deleted when the ``operations_log_size`` is reached.
-                A job consists of one or many operations.
-                A higher number results in more expressive results but also in more
-                occupied RAM.
-                Setting it to ``0`` disables collecting operation information.
+:collect_stats:
+    A boolean indicating whether or not to collect statistical information
+    about the cluster.
+
+:jobs_log_size:
+   The number of jobs kept in the ``sys.jobs_log`` table on each node for performance analytics.
+   Older entries will be deleted when the ``jobs_log_size`` is reached.
+   A single SQL statement results in a job to be executed on the cluster.
+   A higher number results in more expressive results but also in more
+   occupied RAM. Setting it to ``0`` disables collecting job information.
+
+:operations_log_size:
+    The number of operations to keep in the ``sys.operations_log`` table
+    on each node for performance analytics.
+    Older entries will be deleted when the ``operations_log_size`` is reached.
+    A job consists of one or many operations.
+    A higher number results in more expressive results but also in more
+    occupied RAM.
+    Setting it to ``0`` disables collecting operation information.
+
+.. _ref_set_graceful_stop:
+
+Graceful Stop
+-------------
+
+:graceful_stop.min_availability:
+    Options are: ``none | primaries | full``
+
+    ``none``: No minimum data availability is required. The node may shut down
+    even if records are missing after shutdown.
+
+    ``primaries``: At least all primary shards need to be availabe after the
+    node has shut down. Replicas may be missing.
+
+    ``full``: All records and all replicas need to be available after the
+    node has shut down. Data availability is full.
+
+    .. note::
+
+      This option is ignored if there is only 1 node in a cluster!
+
+:graceful_stop.reallocate:
+    Options are: ``true | false``
+
+    ``true``: The ``graceful stop`` command allows shards to be reallocated before
+    shutting down the node in order to ensure minimum data availability set
+    with ``min_availability``.
+
+    ``false``: The ``graceful stop`` command will fail if the cluster would
+    need to reallocate shards in order to ensure the minimum data availability
+    set with ``min_availability``.
+
+    .. note::
+
+      Make sure you have enough nodes and enough disk space for the reallocation.
+
+:graceful_stop.timeout:
+    Defines the maximum waiting time in milliseconds
+    for the reallocation process to finish.
+    The ``force`` setting will define the behaviour when the shutdown process
+    runs into this timeout.
+
+    The timeout expects a time value either as a long or double
+    or alternatively as a string literal with a time suffix
+    (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+
+:graceful_stop.force:
+    Options are: ``true | false``
+
+    Defines whether ``graceful stop`` should force stopping of the node if it
+    runs into the timeout which is specified with the ``timeout`` setting.
+
+:graceful_stop.is_default:
+    ``true | false``
+    This options defines whether the ``stop`` command of the ``crate`` executable
+    uses the graceful-stop option by default.
+
 
 Persistence
 ===========
