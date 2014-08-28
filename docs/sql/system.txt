@@ -575,7 +575,7 @@ Note, that querying a time setting will always return a ``string`` value::
     +--------------------------------------+
     | settings['graceful_stop']['timeout'] |
     +--------------------------------------+
-    | 10m                                  |
+    | 30m                                  |
     +--------------------------------------+
     SELECT 1 row in set (... sec)
 
@@ -595,7 +595,7 @@ Non existent parameters are ignored when set as an object::
     +---------------------------------------...-------------------+
     | settings['graceful_stop']                                   |
     +---------------------------------------...-------------------+
-    | {"force": false, "is_default": false, ... "timeout": "10m"} |
+    | {"force": false, "is_default": false, ... "timeout": "30m"} |
     +---------------------------------------...-------------------+
     SELECT 1 row in set (... sec)
 
