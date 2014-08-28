@@ -46,6 +46,7 @@ import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
@@ -55,6 +56,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -79,13 +81,16 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     }
             );
 
+    private final ClusterService clusterService;
     protected final Analyzer analyzer;
     protected final Planner planner;
     private final Provider<Executor> executorProvider;
     private final Provider<DDLAnalysisDispatcher> dispatcherProvider;
     private final StatsTables statsTables;
+    private volatile boolean disabled;
 
-    public TransportBaseSQLAction(Settings settings,
+    public TransportBaseSQLAction(ClusterService clusterService,
+                                  Settings settings,
                                   String actionName,
                                   ThreadPool threadPool,
                                   Analyzer analyzer,
@@ -94,6 +99,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                   Provider<DDLAnalysisDispatcher> dispatcherProvider,
                                   StatsTables statsTables) {
         super(settings, actionName, threadPool);
+        this.clusterService = clusterService;
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
@@ -153,6 +159,11 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     @Override
     protected void doExecute(TRequest request, ActionListener<TResponse> listener) {
         logger.debug("{}", request);
+        statsTables.activeRequestsInc();
+        if (disabled) {
+            sendResponse(listener, new NodeDisconnectedException(clusterService.localNode(), actionName));
+            return;
+        }
         try {
             Statement statement = statementCache.get(request.stmt());
             Analysis analysis = getAnalysis(statement, request);
@@ -164,8 +175,18 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             }
         } catch (Exception e) {
             logger.debug("Error executing SQLRequest", e);
-            listener.onFailure(buildSQLActionException(e));
+            sendResponse(listener, buildSQLActionException(e));
         }
+    }
+
+    private void sendResponse(ActionListener<TResponse> listener, Throwable throwable) {
+        listener.onFailure(throwable);
+        statsTables.activeRequestsDec();
+    }
+
+    private void sendResponse(ActionListener<TResponse> listener, TResponse response) {
+        listener.onResponse(response);
+        statsTables.activeRequestsDec();
     }
 
     private void processNonData(Analysis analysis,
@@ -187,7 +208,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 logger.debug("Error processing non data SQLRequest", t);
-                listener.onFailure(buildSQLActionException(t));
+                sendResponse(listener, buildSQLActionException(t));
             }
         });
     }
@@ -247,14 +268,14 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                         );
                     }
                 } catch (Exception e) {
-                    listener.onFailure(e);
+                    sendResponse(listener, e);
                     return;
                 }
 
                 if (jobId != null) {
                     statsTables.jobFinished(jobId, null);
                 }
-                listener.onResponse(response);
+                sendResponse(listener, response);
             }
 
             @Override
@@ -263,7 +284,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                 if (jobId != null) {
                     statsTables.jobFinished(jobId, Exceptions.messageOf(t));
                 }
-                listener.onFailure(buildSQLActionException(t));
+                sendResponse(listener, buildSQLActionException(t));
             }
         });
     }
@@ -369,5 +390,13 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             message = Objects.firstNonNull(message, stackTrace.toString());
         }
         return new SQLActionException(message, errorCode, restStatus, stackTrace.toString());
+    }
+
+    public void enable() {
+        disabled = false;
+    }
+
+    public void disable() {
+        disabled = true;
     }
 }

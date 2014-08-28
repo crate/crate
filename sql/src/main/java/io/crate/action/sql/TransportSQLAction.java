@@ -34,6 +34,7 @@ import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
@@ -49,14 +50,17 @@ import java.util.List;
 public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLResponse> {
 
     @Inject
-    protected TransportSQLAction(Settings settings, ThreadPool threadPool,
+    protected TransportSQLAction(
+            ClusterService clusterService,
+            Settings settings,
+            ThreadPool threadPool,
             Analyzer analyzer,
             Planner planner,
             Provider<Executor> executor,
             Provider<DDLAnalysisDispatcher> dispatcher,
             TransportService transportService,
             StatsTables statsTables) {
-        super(settings, SQLAction.NAME, threadPool, analyzer, planner, executor, dispatcher, statsTables);
+        super(clusterService, settings, SQLAction.NAME, threadPool, analyzer, planner, executor, dispatcher, statsTables);
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
     }
 
