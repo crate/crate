@@ -21,10 +21,19 @@
 
 package io.crate.metadata.settings;
 
-import org.elasticsearch.cluster.settings.Validator;
+import com.google.common.base.Joiner;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.Set;
+
 public abstract class StringSetting extends Setting<String> {
+
+    protected Set<String> allowedValues;
+
+    protected StringSetting(Set<String> allowedValues) {
+        this.allowedValues = allowedValues;
+    }
 
     @Override
     public String defaultValue() {
@@ -36,6 +45,17 @@ public abstract class StringSetting extends Setting<String> {
         return settings.get(settingName(), defaultValue());
     }
 
-    public Validator validator() { return null; }
+    /**
+     * @return Error message if not valid, else null.
+     */
+    @Nullable
+    public String validate(String value) {
+        if (allowedValues != null && !allowedValues.contains(value)) {
+            return String.format("'%s' is not an allowed value. Allowed values are: %s",
+                    value, Joiner.on(", ").join(allowedValues)
 
+            );
+        }
+        return null;
+    }
 }
