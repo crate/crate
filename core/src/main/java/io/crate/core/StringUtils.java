@@ -35,6 +35,8 @@ import java.util.regex.Pattern;
 public class StringUtils {
     public static final Splitter PATH_SPLITTER = Splitter.on('.');
     public static final Joiner PATH_JOINER = Joiner.on('.');
+    public static final Joiner COMMA_JOINER = Joiner.on(',');
+    public static final Splitter COMMA_SPLITTER = Splitter.on(',');
 
     private static final Pattern PATTERN = Pattern.compile("\\['([^\\]])*'\\]");
     private static final Pattern SQL_PATTERN = Pattern.compile("(.+?)(?:\\['([^\\]])*'\\])+");
