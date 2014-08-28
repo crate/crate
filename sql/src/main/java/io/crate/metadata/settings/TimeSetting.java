@@ -22,12 +22,26 @@
 package io.crate.metadata.settings;
 
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 
-public abstract class BoolSetting extends Setting<Boolean> {
+public abstract class TimeSetting extends Setting<TimeValue> {
 
     @Override
-    public Boolean extract(Settings settings) {
-        return settings.getAsBoolean(settingName(), defaultValue());
+    public TimeValue defaultValue() {
+        return new TimeValue(60_000);
+    }
+
+    public TimeValue maxValue() {
+        return new TimeValue(Long.MAX_VALUE);
+    }
+
+    public TimeValue minValue() {
+        return new TimeValue(0);
+    }
+
+    @Override
+    public TimeValue extract(Settings settings) {
+        return settings.getAsTime(settingName(), defaultValue());
     }
 
 }
