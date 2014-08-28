@@ -23,12 +23,9 @@ package io.crate.metadata.settings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.unit.TimeValue;
 
-import java.io.Serializable;
 import java.util.List;
-import java.util.Set;
 
 public class CrateSettings {
 
@@ -93,9 +90,9 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting GRACEFUL_STOP_MIN_AVAILABILITY = new StringSetting() {
-        final Set<String> allowedValues = Sets.newHashSet("full", "primaries", "none");
-
+    public static final StringSetting GRACEFUL_STOP_MIN_AVAILABILITY = new StringSetting(
+            Sets.newHashSet("full", "primaries", "none")
+    ) {
         @Override
         public String name() { return "min_availability"; }
 
@@ -105,18 +102,6 @@ public class CrateSettings {
         @Override
         public Setting parent() {
             return GRACEFUL_STOP;
-        }
-
-        public Validator validator() {
-            return new Validator() {
-                @Override
-                public String validate(String setting, String value) {
-                    if (!allowedValues.contains(value)) {
-                        return String.format("'%s' is not an allowed value.", value);
-                    }
-                    return null;
-                }
-            };
         }
     };
 
@@ -186,7 +171,49 @@ public class CrateSettings {
         }
     };
 
+    public static final NestedSetting ROUTING = new NestedSetting() {
+        @Override
+        public String name() { return "routing"; }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(
+                    ROUTING_ALLOCATION);
+        }
+    };
+
+    public static final NestedSetting ROUTING_ALLOCATION = new NestedSetting() {
+        @Override
+        public String name() { return "allocation"; }
+
+        @Override
+        public Setting parent() {
+            return ROUTING;
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(
+                    ROUTING_ALLOCATION_ENABLE);
+        }
+    };
+
+    public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting(
+            Sets.newHashSet("all", "new_primaries")
+    ) {
+        @Override
+        public String name() { return "enable"; }
+
+        @Override
+        public String defaultValue() { return "all"; }
+
+        @Override
+        public Setting parent() {
+            return ROUTING_ALLOCATION;
+        }
+    };
+
     public static final ImmutableList<Setting> CLUSTER_SETTINGS = ImmutableList.<Setting>of(
-            JOBS_LOG_SIZE, OPERATIONS_LOG_SIZE, COLLECT_STATS, GRACEFUL_STOP);
+            JOBS_LOG_SIZE, OPERATIONS_LOG_SIZE, COLLECT_STATS, GRACEFUL_STOP, ROUTING);
 
 }
