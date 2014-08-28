@@ -45,6 +45,7 @@ public class SQLServiceTest {
                         .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
                         .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0)
                         .put(EsExecutors.PROCESSORS, 1)
+                        .put("http.enabled", false)
                         .put("index.store.type", "ram")
                         .put("config.ignore_system_properties", true)
                         .put("gateway.type", "none")).build();
