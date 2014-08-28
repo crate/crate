@@ -96,7 +96,7 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         try {
             analyze("SET GLOBAL PERSISTENT graceful_stop.min_availability = 'something'");
         } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), is("'something' is not an allowed value."));
+            assertThat(e.getMessage(), is("'something' is not an allowed value. Allowed values are: primaries, none, full"));
         }
     }
 
