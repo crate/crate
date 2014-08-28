@@ -21,6 +21,7 @@
 
 package io.crate.plugin;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBulkAction;
@@ -50,6 +51,7 @@ import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.elasticsearch.script.NumericScalarSortScript;
 import io.crate.planner.PlanModule;
 import io.crate.rest.action.RestSQLAction;
+import io.crate.service.SQLService;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.cluster.settings.Validator;
@@ -95,7 +97,7 @@ public class SQLPlugin extends AbstractPlugin {
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> services() {
-        return super.services();
+        return ImmutableList.<Class<? extends LifecycleComponent>>of(SQLService.class);
     }
 
     @Override
