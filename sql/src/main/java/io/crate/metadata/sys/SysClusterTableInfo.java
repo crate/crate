@@ -70,6 +70,13 @@ public class SysClusterTableInfo extends SysTableInfo {
                 CrateSettings.GRACEFUL_STOP_FORCE.name()));
         register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
                 CrateSettings.GRACEFUL_STOP_IS_DEFAULT.name()));
+
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.ROUTING.name()));
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_ENABLE.name()));
     }
 
     @Inject
