@@ -27,7 +27,6 @@ import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.node.service.NodeService;
 
 
@@ -46,13 +45,11 @@ public class NodePortExpression extends SysNodeObjectReference {
     public static final String TRANSPORT = "transport";
 
     private final NodeService nodeService;
-    private final HttpServer httpServer;
 
     @Inject
-    public NodePortExpression(NodeService nodeService, HttpServer httpServer) {
+    public NodePortExpression(NodeService nodeService) {
         super(NAME);
         this.nodeService = nodeService;
-        this.httpServer = httpServer;
         addChildImplementations();
     }
 
@@ -60,8 +57,10 @@ public class NodePortExpression extends SysNodeObjectReference {
         childImplementations.put(HTTP, new PortExpression(HTTP) {
             @Override
             public Integer value() {
-
-                return portFromAddress(httpServer.info().address().publishAddress()); //nodeService.stats().getNode().attributes().get("http_address"));
+                if (nodeService.info().getHttp() == null) {
+                    return null;
+                }
+                return portFromAddress(nodeService.info().getHttp().address().publishAddress());
             }
         });
         childImplementations.put(TRANSPORT, new PortExpression(TRANSPORT) {

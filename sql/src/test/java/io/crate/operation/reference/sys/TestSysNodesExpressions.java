@@ -51,7 +51,6 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpInfo;
-import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.network.NetworkService;
@@ -235,15 +234,13 @@ public class TestSysNodesExpressions {
                 e.printStackTrace();
             }
 
-            HttpServer httpServer = mock(HttpServer.class);
             HttpInfo httpInfo = mock(HttpInfo.class);
+            when(nodeInfo.getHttp()).thenReturn(httpInfo);
             BoundTransportAddress boundTransportAddress = new BoundTransportAddress(
                     new InetSocketTransportAddress("localhost", 44200),
                     new InetSocketTransportAddress("localhost", 44200)
             );
             when(httpInfo.address()).thenReturn(boundTransportAddress);
-            when(httpServer.info()).thenReturn(httpInfo);
-            bind(HttpServer.class).toInstance(httpServer);
 
             JvmService jvmService = mock(JvmService.class);
             JvmStats jvmStats = mock(JvmStats.class);
