@@ -2,6 +2,8 @@
 Installation
 ============
 
+.. _install_targz:
+
 Install via tar.gz
 ==================
 
@@ -37,6 +39,8 @@ your browser once Crate is started::
   Crate Data needs a working Java 7 virtual machine. We recommend
   using `Oracle's Java`_ on OSX and OpenJDK_ on Linux Systems.
 
+
+.. _install_production:
 
 Install Crate Data for Production
 =================================
