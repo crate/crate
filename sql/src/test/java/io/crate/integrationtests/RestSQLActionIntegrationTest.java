@@ -31,9 +31,8 @@ import java.io.IOException;
 
 import static org.hamcrest.core.StringStartsWith.startsWith;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
-
 
     @Test
     public void testWithoutBody() throws IOException {

@@ -27,22 +27,34 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.http.HttpServerTransport;
+import org.junit.Before;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 
 public class SQLHttpIntegrationTest extends SQLTransportIntegrationTest {
+
+    private HttpPost httpPost;
+
+    @Before
+    public void setup() {
+        HttpServerTransport httpServerTransport = cluster().getInstance(HttpServerTransport.class);
+        InetSocketAddress address = ((InetSocketTransportAddress) httpServerTransport.boundAddress().publishAddress())
+                .address();
+        httpPost = new HttpPost(String.format("http://%s:%s/_sql?error_trace", address.getHostName(), address.getPort()));
+    }
 
     protected CloseableHttpClient httpClient = HttpClients.createDefault();
 
     protected CloseableHttpResponse post(String body) throws IOException {
-        HttpPost httpPost = new HttpPost("http://localhost:44200/_sql?error_trace");
 
         if(body != null){
             StringEntity bodyEntity = new StringEntity(body);
             httpPost.setEntity(bodyEntity);
         }
-        CloseableHttpResponse response = httpClient.execute(httpPost);
-        return response;
+        return httpClient.execute(httpPost);
     }
 
     protected CloseableHttpResponse post() throws IOException {
