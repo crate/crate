@@ -21,14 +21,37 @@
 
 package io.crate.metadata.settings;
 
+import com.google.common.collect.ImmutableList;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
-public interface Setting<T> {
+import java.util.List;
 
-    public String settingName();
-    public String name();
-    public T defaultValue();
-    public T maxValue();
-    public T minValue();
-    public T extract(Settings settings);
+public abstract class Setting<T> {
+
+    public String settingName() {
+        Setting parentSetting = parent();
+        StringBuilder builder = new StringBuilder(name());
+        while (parentSetting != null) {
+            builder.insert(0, ".").insert(0, parentSetting.name());
+            parentSetting = parentSetting.parent();
+        }
+        builder.insert(0, ".").insert(0, "cluster");
+        return builder.toString();
+    }
+
+    public abstract String name();
+
+    public abstract T defaultValue();
+
+    public abstract T extract(Settings settings);
+
+    public List<Setting> children() {
+        return ImmutableList.<Setting>of();
+    }
+
+    @Nullable
+    public Setting parent() {
+        return null;
+    }
 }

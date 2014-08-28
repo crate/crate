@@ -23,19 +23,12 @@ package io.crate.metadata.settings;
 
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class IntSetting implements Setting<Integer> {
+public abstract class IntSetting extends Setting<Integer> {
 
-    @Override
-    public String settingName() {
-        return "cluster." + name();
-    }
-
-    @Override
     public Integer maxValue() {
         return Integer.MAX_VALUE;
     }
 
-    @Override
     public Integer minValue() {
         return Integer.MIN_VALUE;
     }

@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.Setting;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -53,9 +54,22 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("name", DataTypes.STRING, null);
         register("master_node", DataTypes.STRING, null);
         register("settings", DataTypes.OBJECT, null);
+
         register("settings", DataTypes.INTEGER, ImmutableList.of(CrateSettings.JOBS_LOG_SIZE.name()));
         register("settings", DataTypes.INTEGER, ImmutableList.of(CrateSettings.OPERATIONS_LOG_SIZE.name()));
         register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.COLLECT_STATS.name()));
+
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
+                CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.name()));
+        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
+                CrateSettings.GRACEFUL_STOP_REALLOCATE.name()));
+        register("settings", DataTypes.LONG, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
+                CrateSettings.GRACEFUL_STOP_TIMEOUT.name()));
+        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
+                CrateSettings.GRACEFUL_STOP_FORCE.name()));
+        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
+                CrateSettings.GRACEFUL_STOP_IS_DEFAULT.name()));
     }
 
     @Inject
