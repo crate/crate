@@ -35,6 +35,10 @@ Use the :ref:`ref-set` command to do so:
   This step may be omited if you set the ``graceful_stop.min_availability``
   setting to ``full``.
 
+.. seealso::
+
+  - :ref:`ref_routing`
+
 
 Step 2: Graceful Stop
 =====================
