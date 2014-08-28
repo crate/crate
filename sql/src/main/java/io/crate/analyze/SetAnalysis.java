@@ -55,6 +55,12 @@ public class SetAnalysis extends Analysis {
                 new SettingsAppliers.TimeSettingsApplier(CrateSettings.GRACEFUL_STOP_TIMEOUT))
         .put(CrateSettings.GRACEFUL_STOP_IS_DEFAULT.settingName(),
                 new SettingsAppliers.BooleanSettingsApplier(CrateSettings.GRACEFUL_STOP_IS_DEFAULT))
+        .put(CrateSettings.ROUTING.settingName(),
+                new SettingsAppliers.ObjectSettingsApplier(CrateSettings.ROUTING))
+        .put(CrateSettings.ROUTING_ALLOCATION.settingName(),
+                new SettingsAppliers.ObjectSettingsApplier(CrateSettings.ROUTING_ALLOCATION))
+        .put(CrateSettings.ROUTING_ALLOCATION_ENABLE.settingName(),
+                new SettingsAppliers.StringSettingsApplier(CrateSettings.ROUTING_ALLOCATION_ENABLE))
             .build();
 
     private Settings settings;

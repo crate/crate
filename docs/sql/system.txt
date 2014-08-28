@@ -68,8 +68,11 @@ currently applied cluster settings.
     | settings['graceful_stop']['timeout']          | long      |
     | settings['graceful_stop']['force']            | boolean   |
     | settings['graceful_stop']['is_default']       | boolean   |
+    | settings['routing']                           | object    |
+    | settings['routing']['allocation']             | object    |
+    | settings['routing']['allocation']['enable']   | string    |
     +-----------------------------------------------+-----------+
-    SELECT 10 rows in set (... sec)
+    SELECT 13 rows in set (... sec)
 
 For further details, see the :ref:`ref-set` reference.
 
@@ -572,7 +575,7 @@ Note, that querying a time setting will always return a ``string`` value::
     +--------------------------------------+
     | settings['graceful_stop']['timeout'] |
     +--------------------------------------+
-    | 30m                                  |
+    | 10m                                  |
     +--------------------------------------+
     SELECT 1 row in set (... sec)
 
@@ -592,7 +595,7 @@ Non existent parameters are ignored when set as an object::
     +---------------------------------------...-------------------+
     | settings['graceful_stop']                                   |
     +---------------------------------------...-------------------+
-    | {"force": false, "is_default": false, ... "timeout": "30m"} |
+    | {"force": false, "is_default": false, ... "timeout": "10m"} |
     +---------------------------------------...-------------------+
     SELECT 1 row in set (... sec)
 

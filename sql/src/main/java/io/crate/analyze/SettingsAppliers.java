@@ -70,7 +70,7 @@ public class SettingsAppliers {
             try {
                 value = ExpressionToObjectVisitor.convert(expression, parameters);
             } catch (IllegalArgumentException e) {
-                invalidException(e);
+                throw invalidException(e);
             }
             settingsBuilder.put(this.name, value);
         }
@@ -141,7 +141,7 @@ public class SettingsAppliers {
         }
 
         private void validate(String value) {
-            String validation = this.setting.validator().validate(this.setting.settingName(), value);
+            String validation = this.setting.validate(value);
             if (validation != null) {
                 throw new IllegalArgumentException(validation);
             }

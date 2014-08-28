@@ -119,6 +119,26 @@ Graceful Stop
     uses the graceful-stop option by default.
 
 
+.. _ref_routing:
+
+Routing
+-------
+
+:routing.allocation.enable:
+    Options are: ``all | new_primaries``
+
+    ``all`` allows all shard allocations. The default value ``all`` specifies
+    that the cluster can allocate all kinds of shards.
+
+    ``new_primaries`` allows allocations for new primary shards only. This means
+    that for example a newly added node will not allocate any replicas. However
+    it is still possible to allocate new primary shards for new indices.
+    Whenever you want to perform a zero downtime upgrade of your cluster
+    you need to set ``routing.allocation.enable`` to this value before gracefully
+    stopping the first node and reset it to ``all`` after starting the last
+    updated node.
+
+
 Persistence
 ===========
 
