@@ -38,7 +38,7 @@ public class ExpressionToStringVisitor extends AstVisitor<String, Object[]> {
 
     @Override
     protected String visitQualifiedNameReference(QualifiedNameReference node, Object[] parameters) {
-        return node.getName().getSuffix();
+        return node.getName().toString();
     }
 
     @Override
