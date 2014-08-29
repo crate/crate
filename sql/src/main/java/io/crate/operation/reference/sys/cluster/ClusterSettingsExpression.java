@@ -46,14 +46,8 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
         private final String name;
 
         protected SettingExpression(Setting setting, Map<String, Object> values) {
-            super(new ColumnIdent(NAME, ImmutableList.of(setting.name())));
+            super(new ColumnIdent(NAME, setting.chain()));
             this.name = setting.settingName();
-            this.values = values;
-        }
-
-        protected SettingExpression(ColumnIdent columnIdent, String fullSettingName, Map<String, Object> values) {
-            super(columnIdent);
-            this.name = fullSettingName;
             this.values = values;
         }
 
@@ -64,26 +58,27 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
 
     }
 
-    static class GracefulStopSettingExpression extends SysClusterObjectReference {
+    static class NestedSettingExpression extends SysClusterObjectReference {
 
         private final Map<String, Object> values;
-        private final String name;
 
-        protected GracefulStopSettingExpression(Setting setting, Map<String, Object> values) {
-            super(new ColumnIdent(NAME, ImmutableList.of(setting.name())));
-            this.name = setting.settingName();
+        protected NestedSettingExpression(Setting setting, Map<String, Object> values) {
+            super(new ColumnIdent(NAME, setting.chain()));
             this.values = values;
             addChildImplementations(setting.children());
         }
 
         public void addChildImplementations(List<Setting> childSettings) {
             for (Setting childSetting : childSettings) {
-                ColumnIdent ident = new ColumnIdent(NAME, ImmutableList.of(
-                        CrateSettings.GRACEFUL_STOP.name(), childSetting.name()));
-                childImplementations.put(
-                        childSetting.name(),
-                        new SettingExpression(ident, childSetting.settingName(), values)
-                );
+                if (childSetting.children().isEmpty()) {
+                    childImplementations.put(childSetting.name(),
+                            new SettingExpression(childSetting, values)
+                    );
+                } else {
+                    childImplementations.put(childSetting.name(),
+                            new NestedSettingExpression(childSetting, values)
+                    );
+                }
             }
         }
 
@@ -101,31 +96,33 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
 
         @Override
         public void onRefreshSettings(Settings settings) {
-            applySettings(CrateSettings.CLUSTER_SETTINGS, settings);
+            applySettings(CrateSettings.CRATE_SETTINGS, settings);
         }
 
         private void applySettings(List<Setting> clusterSettings, Settings settings) {
             for (Setting setting : clusterSettings) {
                 String name = setting.settingName();
                 Object newValue = setting.extract(settings);
+                if (settings.get(name) == null) {
+                    applySettings((List<Setting>) setting.children(), settings);
+                }
                 if (!newValue.equals(values.get(name))) {
                     logger.info("updating [{}] from [{}] to [{}]", name, values.get(name), newValue);
                     values.put(name, newValue);
                 }
-                applySettings((List<Setting>) setting.children(), settings);
             }
         }
     }
 
 
-    private volatile ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<String, Object>();
+    private final ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<>();
 
     @Inject
     public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService) {
         super(NAME);
         nodeSettingsService.addListener(new ApplySettings(values));
         addChildImplementations();
-        applySettings(CrateSettings.CLUSTER_SETTINGS);
+        applySettings(CrateSettings.CRATE_SETTINGS);
     }
 
     private final void applySettings(List<Setting> settings) {
@@ -138,16 +135,10 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
 
     private void addChildImplementations() {
         childImplementations.put(
-                CrateSettings.JOBS_LOG_SIZE.name(),
-                new SettingExpression(CrateSettings.JOBS_LOG_SIZE, values));
+                CrateSettings.STATS.name(),
+                new NestedSettingExpression(CrateSettings.STATS, values));
         childImplementations.put(
-                CrateSettings.OPERATIONS_LOG_SIZE.name(),
-                new SettingExpression(CrateSettings.OPERATIONS_LOG_SIZE, values));
-        childImplementations.put(
-                CrateSettings.COLLECT_STATS.name(),
-                new SettingExpression(CrateSettings.COLLECT_STATS, values));
-        childImplementations.put(
-                CrateSettings.GRACEFUL_STOP.name(),
-                new GracefulStopSettingExpression(CrateSettings.GRACEFUL_STOP, values));
+                CrateSettings.CLUSTER.name(),
+                new NestedSettingExpression(CrateSettings.CLUSTER, values));
     }
 }

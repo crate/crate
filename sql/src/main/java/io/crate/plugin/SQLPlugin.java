@@ -145,22 +145,19 @@ public class SQLPlugin extends AbstractPlugin {
     public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {
         // add our dynamic cluster settings
         clusterDynamicSettingsModule.addDynamicSettings(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
-
-        for (Setting setting : CrateSettings.CLUSTER_SETTINGS) {
-            registerSetting(clusterDynamicSettingsModule, setting);
-            for (Setting childSetting : (List<Setting>) setting.children()) {
-                registerSetting(clusterDynamicSettingsModule, childSetting);
-            }
-        }
+        registerSettings(clusterDynamicSettingsModule, CrateSettings.CRATE_SETTINGS);
     }
 
-    private void registerSetting(ClusterDynamicSettingsModule clusterDynamicSettingsModule, Setting setting) {
-        /**
-         * validation is done in
-         * {@link io.crate.analyze.SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.ImmutableSettings.Builder, Object[], io.crate.sql.tree.Expression)}
-         * here we use Validator.EMPTY, since ES ignores invalid settings silently
-         */
-        clusterDynamicSettingsModule.addDynamicSetting(setting.settingName(), Validator.EMPTY);
+    private void registerSettings(ClusterDynamicSettingsModule clusterDynamicSettingsModule, List<Setting> settings) {
+        for (Setting setting : settings) {
+            /**
+             * validation is done in
+             * {@link io.crate.analyze.SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.ImmutableSettings.Builder, Object[], io.crate.sql.tree.Expression)}
+             * here we use Validator.EMPTY, since ES ignores invalid settings silently
+             */
+            clusterDynamicSettingsModule.addDynamicSetting(setting.settingName(), Validator.EMPTY);
+            registerSettings(clusterDynamicSettingsModule, setting.children());
+        }
     }
 
     public void onModule(ScriptModule scriptModule) {

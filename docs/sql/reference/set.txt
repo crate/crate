@@ -5,16 +5,16 @@
 SET / RESET
 ===========
 
-Alter and restore global cluster configuration values at runtime.
+Alter and restore global cluster setting values at runtime.
 
 Synopsis
 ========
 
 ::
 
-    SET GLOBAL [ PERSISTENT | TRANSIENT ] parameter = value [ , ... ]
+    SET GLOBAL [ PERSISTENT | TRANSIENT ] setting_ident = value [ , ... ]
 
-    RESET GLOBAL parameter [ , ... ]
+    RESET GLOBAL setting_ident [ , ... ]
 
 Description
 ===========
@@ -22,15 +22,15 @@ Description
 Using the ``SET`` and ``RESET`` statements it is possible to configure the
 crate cluster at runtime.
 
-``SET`` can be used to change a configuration parameter to a different value.
-Using ``RESET`` will reset the parameter to its default value.
+``SET`` can be used to change a configuration setting ident to a different value.
+Using ``RESET`` will reset the setting  to its default value.
 
 Parameters
 ==========
 
-:parameter: The name of the configuration parameter to set / reset.
+:setting_ident: The full qualified setting ident of the setting to set / reset.
 
-:value: the value to set for the configuration parameter
+:value: The value to set for the configuration setting.
 
 
 Supported Configuration Parameters
@@ -41,18 +41,18 @@ Supported Configuration Parameters
 Collecting Stats
 ----------------
 
-:collect_stats:
+:stats.enabled:
     A boolean indicating whether or not to collect statistical information
     about the cluster.
 
-:jobs_log_size:
+:stats.jobs_log_size:
    The number of jobs kept in the ``sys.jobs_log`` table on each node for performance analytics.
    Older entries will be deleted when the ``jobs_log_size`` is reached.
    A single SQL statement results in a job to be executed on the cluster.
    A higher number results in more expressive results but also in more
    occupied RAM. Setting it to ``0`` disables collecting job information.
 
-:operations_log_size:
+:stats.operations_log_size:
     The number of operations to keep in the ``sys.operations_log`` table
     on each node for performance analytics.
     Older entries will be deleted when the ``operations_log_size`` is reached.
@@ -66,7 +66,7 @@ Collecting Stats
 Graceful Stop
 -------------
 
-:graceful_stop.min_availability:
+:cluster.graceful_stop.min_availability:
     Options are: ``none | primaries | full``
 
     ``none``: No minimum data availability is required. The node may shut down
@@ -82,7 +82,7 @@ Graceful Stop
 
       This option is ignored if there is only 1 node in a cluster!
 
-:graceful_stop.reallocate:
+:cluster.graceful_stop.reallocate:
     Options are: ``true | false``
 
     ``true``: The ``graceful stop`` command allows shards to be reallocated before
@@ -97,7 +97,7 @@ Graceful Stop
 
       Make sure you have enough nodes and enough disk space for the reallocation.
 
-:graceful_stop.timeout:
+:cluster.graceful_stop.timeout:
     Defines the maximum waiting time in milliseconds
     for the reallocation process to finish.
     The ``force`` setting will define the behaviour when the shutdown process
@@ -107,13 +107,13 @@ Graceful Stop
     or alternatively as a string literal with a time suffix
     (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
 
-:graceful_stop.force:
+:cluster.graceful_stop.force:
     Options are: ``true | false``
 
     Defines whether ``graceful stop`` should force stopping of the node if it
     runs into the timeout which is specified with the ``timeout`` setting.
 
-:graceful_stop.is_default:
+:cluster.graceful_stop.is_default:
     ``true | false``
     This options defines whether the ``stop`` command of the ``crate`` executable
     uses the graceful-stop option by default.
@@ -124,7 +124,7 @@ Graceful Stop
 Routing
 -------
 
-:routing.allocation.enable:
+:cluster.routing.allocation.enable:
     Options are: ``all | new_primaries``
 
     ``all`` allows all shard allocations. The default value ``all`` specifies
@@ -134,7 +134,7 @@ Routing
     that for example a newly added node will not allocate any replicas. However
     it is still possible to allocate new primary shards for new indices.
     Whenever you want to perform a zero downtime upgrade of your cluster
-    you need to set ``routing.allocation.enable`` to this value before gracefully
+    you need to set ``cluster.routing.allocation.enable`` to this value before gracefully
     stopping the first node and reset it to ``all`` after starting the last
     updated node.
 
