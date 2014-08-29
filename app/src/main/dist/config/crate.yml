@@ -24,6 +24,44 @@
 #
 # cluster.name: crate
 
+# The graceful_stop namespace defines settings for a graceful stop
+# procedure of nodes within the cluster.
+#
+# The minimum data availability the cluster needs to ensure when a certain node
+# is shut down. By default the cluster ensures availability of primary shards
+# but not replicas. Other options are "all" and "none".
+#
+# cluster.graceful_stop.min_availability: primaries
+#
+# The cluster may reallocate shards to ensure minimum data availabillity before
+# a certain node shuts down.
+#
+# cluster.graceful_stop.reallocate: true
+#
+# The time to wait for the reallocation process to be finished.
+#
+# cluster.graceful_stop.timeout: 2h
+#
+# The force setting allows you to force a shutdown of a node when the graceful
+# shutdown process runs into the cluster.graceful_stop.timeout.
+#
+# cluster.graceful_stop.force: false
+#
+# By default the regular stop procedure does not consider the graceful_stop
+# settings, but only sending the USR2 signal to the process does.
+#
+# cluster.graceful_stop.is_default: false
+#
+# You may want to set the is_default to true if you need to run the graceful
+# stop process whenever you stop a node regularly.
+# cluster.graceful_stop.is_default: true
+
+# In most cases you want to allow all kinds of shards allocations.
+# cluster.routing.allocation.enable = all
+#
+# However, you can limit shard allocations to certain kinds of shards,
+# for example if you perform a rolling cluster upgrade.
+# cluster.routing.allocation.enable = new_primaries
 
 #################################### Node #####################################
 
