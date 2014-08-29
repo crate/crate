@@ -139,11 +139,35 @@ public class TestGlobalSysExpressions {
         ReferenceIdent ident = new ReferenceIdent(SysClusterTableInfo.IDENT, ClusterSettingsExpression.NAME);
         SysObjectReference settingsExpression = (SysObjectReference) resolver.getImplementation(ident);
 
-        Map<String, Object> settings = settingsExpression.value();
-        assertEquals(CrateSettings.JOBS_LOG_SIZE.defaultValue(),
-                settings.get(CrateSettings.JOBS_LOG_SIZE.name()));
-        assertEquals(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue(),
-                settings.get(CrateSettings.OPERATIONS_LOG_SIZE.name()));
+        Map settings = settingsExpression.value();
+
+        Map stats = (Map) settings.get(CrateSettings.STATS.name());
+        assertEquals(CrateSettings.STATS_ENABLED.defaultValue(),
+                stats.get(CrateSettings.STATS_ENABLED.name()));
+        assertEquals(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue(),
+                stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
+        assertEquals(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue(),
+                stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
+
+        Map cluster = (Map) settings.get(CrateSettings.CLUSTER.name());
+        Map gracefulStop = (Map) cluster.get(CrateSettings.GRACEFUL_STOP.name());
+        assertEquals(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.defaultValue(),
+                gracefulStop.get(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.name()));
+        assertEquals(CrateSettings.GRACEFUL_STOP_REALLOCATE.defaultValue(),
+                gracefulStop.get(CrateSettings.GRACEFUL_STOP_REALLOCATE.name()));
+        assertEquals(CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue(),
+                gracefulStop.get(CrateSettings.GRACEFUL_STOP_TIMEOUT.name()));
+        assertEquals(CrateSettings.GRACEFUL_STOP_FORCE.defaultValue(),
+                gracefulStop.get(CrateSettings.GRACEFUL_STOP_FORCE.name()));
+        assertEquals(CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue(),
+                gracefulStop.get(CrateSettings.GRACEFUL_STOP_TIMEOUT.name()));
+        assertEquals(CrateSettings.GRACEFUL_STOP_IS_DEFAULT.defaultValue(),
+                gracefulStop.get(CrateSettings.GRACEFUL_STOP_IS_DEFAULT.name()));
+
+        Map routing = (Map) cluster.get(CrateSettings.ROUTING.name());
+        Map routingAllocation = (Map) routing.get(CrateSettings.ROUTING_ALLOCATION.name());
+        assertEquals(CrateSettings.ROUTING_ALLOCATION_ENABLE.defaultValue(),
+                routingAllocation.get(CrateSettings.ROUTING_ALLOCATION_ENABLE.name()));
     }
 
 }

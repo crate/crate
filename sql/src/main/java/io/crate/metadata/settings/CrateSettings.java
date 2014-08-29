@@ -29,7 +29,36 @@ import java.util.List;
 
 public class CrateSettings {
 
-    public static final IntSetting JOBS_LOG_SIZE = new IntSetting() {
+    public static final NestedSetting STATS = new NestedSetting() {
+        @Override
+        public String name() {
+            return "stats";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(STATS_ENABLED, STATS_JOBS_LOG_SIZE, STATS_OPERATIONS_LOG_SIZE);
+        }
+    };
+
+    public static final BoolSetting STATS_ENABLED = new BoolSetting() {
+        @Override
+        public String name() {
+            return "enabled";
+        }
+
+        @Override
+        public Boolean defaultValue() {
+            return false;
+        }
+
+        @Override
+        public Setting parent() {
+            return STATS;
+        }
+    };
+
+    public static final IntSetting STATS_JOBS_LOG_SIZE = new IntSetting() {
         @Override
         public String name() {
             return "jobs_log_size";
@@ -44,9 +73,14 @@ public class CrateSettings {
         public Integer minValue() {
             return 0;
         }
+
+        @Override
+        public Setting parent() {
+            return STATS;
+        }
     };
 
-    public static final IntSetting OPERATIONS_LOG_SIZE = new IntSetting() {
+    public static final IntSetting STATS_OPERATIONS_LOG_SIZE = new IntSetting() {
         @Override
         public String name() {
             return "operations_log_size";
@@ -61,23 +95,34 @@ public class CrateSettings {
         public Integer minValue() {
             return 0;
         }
+
+        @Override
+        public Setting parent() {
+            return STATS;
+        }
     };
 
-    public static final BoolSetting COLLECT_STATS = new BoolSetting() {
+    public static final NestedSetting CLUSTER = new NestedSetting() {
         @Override
         public String name() {
-            return "collect_stats";
+            return "cluster";
         }
 
         @Override
-        public Boolean defaultValue() {
-            return false;
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING);
         }
     };
 
     public static final NestedSetting GRACEFUL_STOP = new NestedSetting() {
+
         @Override
         public String name() { return "graceful_stop"; }
+
+        @Override
+        public Setting parent() {
+            return CLUSTER;
+        }
 
         @Override
         public List<Setting> children() {
@@ -180,6 +225,11 @@ public class CrateSettings {
             return ImmutableList.<Setting>of(
                     ROUTING_ALLOCATION);
         }
+
+        @Override
+        public Setting parent() {
+            return CLUSTER;
+        }
     };
 
     public static final NestedSetting ROUTING_ALLOCATION = new NestedSetting() {
@@ -213,7 +263,6 @@ public class CrateSettings {
         }
     };
 
-    public static final ImmutableList<Setting> CLUSTER_SETTINGS = ImmutableList.<Setting>of(
-            JOBS_LOG_SIZE, OPERATIONS_LOG_SIZE, COLLECT_STATS, GRACEFUL_STOP, ROUTING);
+    public static final ImmutableList<Setting> CRATE_SETTINGS = ImmutableList.<Setting>of(STATS, CLUSTER);
 
 }

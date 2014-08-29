@@ -88,9 +88,9 @@ public class StatsTables {
 
     @Inject
     public StatsTables(Settings settings, NodeSettingsService nodeSettingsService) {
-        int operationsLogSize = CrateSettings.OPERATIONS_LOG_SIZE.extract(settings);
-        int jobsLogSize = CrateSettings.JOBS_LOG_SIZE.extract(settings);
-        boolean isEnabled = CrateSettings.COLLECT_STATS.extract(settings);
+        int operationsLogSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
+        int jobsLogSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
+        boolean isEnabled = CrateSettings.STATS_ENABLED.extract(settings);
 
         if (isEnabled) {
             setJobsLog(jobsLogSize);
@@ -251,16 +251,16 @@ public class StatsTables {
         @Override
         public void onRefreshSettings(Settings settings) {
             boolean wasEnabled = lastIsEnabled;
-            boolean becomesEnabled = CrateSettings.COLLECT_STATS.extract(settings);
+            boolean becomesEnabled = CrateSettings.STATS_ENABLED.extract(settings);
 
             if (wasEnabled && becomesEnabled) {
-                int opSize = CrateSettings.OPERATIONS_LOG_SIZE.extract(settings);
+                int opSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
                 if (opSize != lastOperationsLogSize) {
                     lastOperationsLogSize = opSize;
                     setOperationsLog(opSize);
                 }
 
-                int jobSize = CrateSettings.JOBS_LOG_SIZE.extract(settings);
+                int jobSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
                 if (jobSize != lastJobsLogSize) {
                     lastJobsLogSize = jobSize;
                     setJobsLog(jobSize);
@@ -271,17 +271,17 @@ public class StatsTables {
                 setJobsLog(0);
                 lastIsEnabled = false;
 
-                lastOperationsLogSize = CrateSettings.OPERATIONS_LOG_SIZE.extract(settings);
-                lastJobsLogSize = CrateSettings.JOBS_LOG_SIZE.extract(settings);
+                lastOperationsLogSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
+                lastJobsLogSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
             } else if (becomesEnabled) { // !wasEnabled
                 lastIsEnabled = true;
 
                 // queue sizes was zero before so we have to change it
-                int opSize = CrateSettings.OPERATIONS_LOG_SIZE.extract(settings);
+                int opSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
                 lastOperationsLogSize = opSize;
                 setOperationsLog(opSize);
 
-                int jobSize = CrateSettings.JOBS_LOG_SIZE.extract(settings);
+                int jobSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
                 lastJobsLogSize = jobSize;
                 setJobsLog(jobSize);
             }

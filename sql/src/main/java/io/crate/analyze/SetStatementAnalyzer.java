@@ -36,9 +36,7 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
         context.persistent(node.settingType().equals(SetStatement.SettingType.PERSISTENT));
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Assignment assignment : node.assignments()) {
-            String settingsName = normalizeKey(
-                    ExpressionToStringVisitor.convert(assignment.columnName(), context.parameters())
-            );
+            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(), context.parameters());
             SettingsApplier settingsApplier = context.getSetting(settingsName);
             if (settingsApplier == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
@@ -54,9 +52,7 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
         context.persistent(node.settingType().equals(SetStatement.SettingType.PERSISTENT));
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Expression expression : node.columns()) {
-            String settingsName = normalizeKey(
-                    ExpressionToStringVisitor.convert(expression, context.parameters())
-            );
+            String settingsName = ExpressionToStringVisitor.convert(expression, context.parameters());
             SettingsApplier settingsApplier = context.getSetting(settingsName);
             if (settingsApplier == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
@@ -65,12 +61,5 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
         }
         context.settings(builder.build());
         return null;
-    }
-
-    public String normalizeKey(String key) {
-        if (!key.startsWith("cluster.")) {
-            return String.format("cluster.%s", key);
-        }
-        return key;
     }
 }

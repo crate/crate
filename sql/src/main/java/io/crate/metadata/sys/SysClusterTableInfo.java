@@ -55,26 +55,39 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("master_node", DataTypes.STRING, null);
         register("settings", DataTypes.OBJECT, null);
 
-        register("settings", DataTypes.INTEGER, ImmutableList.of(CrateSettings.JOBS_LOG_SIZE.name()));
-        register("settings", DataTypes.INTEGER, ImmutableList.of(CrateSettings.OPERATIONS_LOG_SIZE.name()));
-        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.COLLECT_STATS.name()));
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.STATS.name()));
+        register("settings", DataTypes.INTEGER, ImmutableList.of(CrateSettings.STATS.name(),
+                CrateSettings.STATS_JOBS_LOG_SIZE.name()));
+        register("settings", DataTypes.INTEGER, ImmutableList.of(CrateSettings.STATS.name(),
+                CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
+        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.STATS.name(),
+                CrateSettings.STATS_ENABLED.name()));
 
-        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name()));
-        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name()));
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.GRACEFUL_STOP.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.GRACEFUL_STOP.name(),
                 CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.name()));
-        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
+        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.GRACEFUL_STOP.name(),
                 CrateSettings.GRACEFUL_STOP_REALLOCATE.name()));
-        register("settings", DataTypes.LONG, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
+        register("settings", DataTypes.LONG, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.GRACEFUL_STOP.name(),
                 CrateSettings.GRACEFUL_STOP_TIMEOUT.name()));
-        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
+        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.GRACEFUL_STOP.name(),
                 CrateSettings.GRACEFUL_STOP_FORCE.name()));
-        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.GRACEFUL_STOP.name(),
+        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.GRACEFUL_STOP.name(),
                 CrateSettings.GRACEFUL_STOP_IS_DEFAULT.name()));
-
-        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.ROUTING.name()));
-        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.ROUTING.name(),
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name()));
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
                 CrateSettings.ROUTING_ALLOCATION.name()));
-        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.ROUTING.name(),
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
                 CrateSettings.ROUTING_ALLOCATION.name(),
                 CrateSettings.ROUTING_ALLOCATION_ENABLE.name()));
     }

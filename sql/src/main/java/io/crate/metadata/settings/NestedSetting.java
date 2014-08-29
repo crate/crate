@@ -28,7 +28,7 @@ public abstract class NestedSetting extends Setting<Object> {
 
     @Override
     public Object extract(Settings settings) {
-        return settings.getByPrefix(settingName()).getAsStructuredMap();
+        return settings.getAsSettings(settingName()).getAsMap();
     }
 
     @Override
