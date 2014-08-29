@@ -21,6 +21,7 @@
 
 package io.crate.plugin;
 
+import io.crate.service.SQLService;
 import org.elasticsearch.common.inject.AbstractModule;
 import io.crate.action.sql.DDLAnalysisDispatcher;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -30,6 +31,7 @@ public class SQLModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        bind(SQLService.class).asEagerSingleton();
         bind(DDLAnalysisDispatcher.class).asEagerSingleton();
         bind(FulltextAnalyzerResolver.class).asEagerSingleton();
     }
