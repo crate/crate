@@ -909,24 +909,24 @@ public class PlannerTest {
 
     @Test
     public void testSetPlan() throws Exception {
-        Plan plan = plan("set GLOBAL PERSISTENT jobs_log_size=1024");
+        Plan plan = plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESClusterUpdateSettingsNode.class));
 
         ESClusterUpdateSettingsNode node = (ESClusterUpdateSettingsNode) planNode;
         // set transient settings too when setting persistent ones
-        assertThat(node.transientSettings().toDelimitedString(','), is("cluster.jobs_log_size=1024,"));
-        assertThat(node.persistentSettings().toDelimitedString(','), is("cluster.jobs_log_size=1024,"));
+        assertThat(node.transientSettings().toDelimitedString(','), is("stats.jobs_log_size=1024,"));
+        assertThat(node.persistentSettings().toDelimitedString(','), is("stats.jobs_log_size=1024,"));
 
-        plan = plan("set GLOBAL TRANSIENT collect_stats=false,jobs_log_size=0");
+        plan = plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");
         iterator = plan.iterator();
         planNode = iterator.next();
         assertThat(planNode, instanceOf(ESClusterUpdateSettingsNode.class));
 
         node = (ESClusterUpdateSettingsNode) planNode;
         assertThat(node.persistentSettings().getAsMap().size(), is(0));
-        assertThat(node.transientSettings().toDelimitedString(','), is("cluster.collect_stats=false,cluster.jobs_log_size=0,"));
+        assertThat(node.transientSettings().toDelimitedString(','), is("stats.enabled=false,stats.jobs_log_size=0,"));
     }
 
     @Test

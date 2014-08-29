@@ -44,7 +44,7 @@ public class SysJobsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testQueryAllColumns() throws Exception {
-        e.exec("set global collect_stats = true");
+        e.exec("set global stats.enabled = true");
         String stmt = "select * from sys.jobs";
 
         // the response contains all current jobs, if the tests are executed in parallel
@@ -57,6 +57,6 @@ public class SysJobsTest extends ClassLifecycleIntegrationTest {
             statements.add((String)objects[1]);
         }
         assertTrue(statements.contains(stmt));
-        e.exec("set global collect_stats = false");
+        e.exec("set global stats.enabled = false");
     }
 }
