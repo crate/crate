@@ -137,7 +137,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
                 currentCluster = buildAndPutCluster(currentClusterScope, true);
                 break;
             default:
-                assert false : "Unknonw Scope: [" + currentClusterScope + "]";
+                assert false : "Unknown Scope: [" + currentClusterScope + "]";
         }
         currentCluster.beforeTest(getRandom());
         wipeIndices("_all");

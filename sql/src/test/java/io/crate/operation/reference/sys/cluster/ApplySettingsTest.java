@@ -40,17 +40,17 @@ public class ApplySettingsTest {
         ClusterSettingsExpression.ApplySettings applySettings = new ClusterSettingsExpression.ApplySettings(values);
 
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
-                .put(CrateSettings.JOBS_LOG_SIZE.settingName(), 1)
-                .put(CrateSettings.COLLECT_STATS.settingName(), false)
+                .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
+                .put(CrateSettings.STATS_ENABLED.settingName(), false)
                 .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(), "full")
                 .put(CrateSettings.GRACEFUL_STOP_TIMEOUT.settingName(), "1m");
         Settings settings = builder.build();
         applySettings.onRefreshSettings(settings);
 
-        String name = CrateSettings.JOBS_LOG_SIZE.settingName();
+        String name = CrateSettings.STATS_JOBS_LOG_SIZE.settingName();
         assertEquals(values.get(name), settings.getAsInt(name, 0));
 
-        name = CrateSettings.COLLECT_STATS.settingName();
+        name = CrateSettings.STATS_ENABLED.settingName();
         assertEquals(values.get(name), settings.getAsBoolean(name, true));
 
         name = CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName();
