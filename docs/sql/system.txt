@@ -613,46 +613,46 @@ Graceful Stop
 =============
 
 In order to change the shutdown behaviour of nodes of the cluster,
-you can utilise the ``graceful_stop.*`` cluster settings.
+you can utilise the ``cluster.graceful_stop.*`` cluster settings.
 
 Please refer to :ref:`ref-set` for a complete list of settings.
 
 For example to set the timeout to 30 minutes::
 
-    cr> SET GLOBAL TRANSIENT graceful_stop.timeout = 1800000;
+    cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = 1800000;
     SET OK (... sec)
 
 Crate supports string literals for time values the same way as the ``crate.yml`` does.
 So you can write the previous statmement as::
 
-    cr> SET GLOBAL TRANSIENT graceful_stop.timeout = '30m';
+    cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = '30m';
     SET OK (... sec)
 
 Note, that querying a time setting will always return a ``string`` value::
 
-    cr> select settings['graceful_stop']['timeout'] from sys.cluster;
-    +--------------------------------------+
-    | settings['graceful_stop']['timeout'] |
-    +--------------------------------------+
-    | 30m                                  |
-    +--------------------------------------+
+    cr> select settings['cluster']['graceful_stop']['timeout'] from sys.cluster;
+    +-------------------------------------------------+
+    | settings['cluster']['graceful_stop']['timeout'] |
+    +-------------------------------------------------+
+    | 30m                                             |
+    +-------------------------------------------------+
     SELECT 1 row in set (... sec)
 
 ::
 
-    cr> SET GLOBAL TRANSIENT graceful_stop = {force=true};
+    cr> SET GLOBAL TRANSIENT cluster.graceful_stop = {force=true};
     SET OK (... sec)
 
 Non existent parameters are ignored when set as an object::
 
-    cr> SET GLOBAL TRANSIENT graceful_stop = {not_a_setting='true'};
+    cr> SET GLOBAL TRANSIENT cluster.graceful_stop = {not_a_setting='foo'};
     SET OK (... sec)
 
 ::
 
-    cr> select settings['graceful_stop'] from sys.cluster;
+    cr> select settings['cluster']['graceful_stop'] from sys.cluster;
     +---------------------------------------...-------------------+
-    | settings['graceful_stop']                                   |
+    | settings['cluster']['graceful_stop']                        |
     +---------------------------------------...-------------------+
     | {"force": false, "is_default": false, ... "timeout": "30m"} |
     +---------------------------------------...-------------------+
@@ -660,8 +660,8 @@ Non existent parameters are ignored when set as an object::
 
 ::
 
-    cr> select settings['graceful_stop']['not_a_setting'] from sys.cluster;
-    SQLActionException[Can't handle Symbol sys.cluster.settings['graceful_stop']['not_a_setting']]
+    cr> select settings['cluster']['graceful_stop']['not_a_setting'] from sys.cluster;
+    SQLActionException[Can't handle Symbol sys.cluster.settings['cluster']['graceful_stop']['not_a_setting']]
 
 The default configuration in ``crate.yml`` looks like:
 

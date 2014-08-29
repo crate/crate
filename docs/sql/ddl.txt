@@ -644,3 +644,4 @@ node startup defined configuration file value or to its default value::
     | {"enabled": false, "jobs_log_size": 10000, "operations_log_size": 10000} |
     +--------------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
+

@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.settings.Setting;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -97,6 +96,7 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.CLUSTER.name(),
                 CrateSettings.GRACEFUL_STOP.name(),
                 CrateSettings.GRACEFUL_STOP_IS_DEFAULT.name()));
+
         */
 
         register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),

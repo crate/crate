@@ -1159,5 +1159,4 @@ public class CrateSettings {
         }
         return settingNames;
     }
-
 }
