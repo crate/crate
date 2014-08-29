@@ -37,12 +37,14 @@ import java.util.Set;
 public class SetAnalysis extends Analysis {
 
     public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
-        .put(CrateSettings.JOBS_LOG_SIZE.settingName(),
-                new SettingsAppliers.IntSettingsApplier(CrateSettings.JOBS_LOG_SIZE))
-        .put(CrateSettings.OPERATIONS_LOG_SIZE.settingName(),
-                new SettingsAppliers.IntSettingsApplier(CrateSettings.OPERATIONS_LOG_SIZE))
-        .put(CrateSettings.COLLECT_STATS.settingName(),
-                new SettingsAppliers.BooleanSettingsApplier(CrateSettings.COLLECT_STATS))
+        .put(CrateSettings.STATS.settingName(),
+                new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS))
+        .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(),
+                new SettingsAppliers.IntSettingsApplier(CrateSettings.STATS_JOBS_LOG_SIZE))
+        .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(),
+                new SettingsAppliers.IntSettingsApplier(CrateSettings.STATS_OPERATIONS_LOG_SIZE))
+        .put(CrateSettings.STATS_ENABLED.settingName(),
+                new SettingsAppliers.BooleanSettingsApplier(CrateSettings.STATS_ENABLED))
         .put(CrateSettings.GRACEFUL_STOP.settingName(),
                 new SettingsAppliers.ObjectSettingsApplier(CrateSettings.GRACEFUL_STOP))
         .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(),

@@ -48,25 +48,25 @@ public class StatsTablesTest {
         StatsTables stats = new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService);
 
         assertThat(stats.isEnabled(), is(false));
-        assertThat(stats.lastJobsLogSize, is(CrateSettings.JOBS_LOG_SIZE.defaultValue()));
-        assertThat(stats.lastOperationsLogSize, is(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue()));
+        assertThat(stats.lastJobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
+        assertThat(stats.lastOperationsLogSize, is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
 
         // even though logSizes are > 0 it must be a NoopQueue because the stats are disabled
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(NoopQueue.class));
 
         stats.listener.onRefreshSettings(ImmutableSettings.builder()
-                .put(CrateSettings.COLLECT_STATS.settingName(), true)
-                .put(CrateSettings.OPERATIONS_LOG_SIZE.settingName(), 200).build());
+                .put(CrateSettings.STATS_ENABLED.settingName(), true)
+                .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 200).build());
 
         assertThat(stats.isEnabled(), is(true));
-        assertThat(stats.lastJobsLogSize, is(CrateSettings.JOBS_LOG_SIZE.defaultValue()));
+        assertThat(stats.lastJobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
         assertThat(stats.lastOperationsLogSize, is(200));
 
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(NonBlockingArrayQueue.class));
 
 
         stats.listener.onRefreshSettings(ImmutableSettings.builder()
-                .put(CrateSettings.COLLECT_STATS.settingName(), false).build());
+                .put(CrateSettings.STATS_ENABLED.settingName(), false).build());
 
         // logs got wiped:
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(NoopQueue.class));
@@ -77,14 +77,14 @@ public class StatsTablesTest {
     public void testLogsArentWipedOnSizeChange() {
         NodeSettingsService nodeSettingsService = new NodeSettingsService(ImmutableSettings.EMPTY);
         Settings settings = ImmutableSettings.builder()
-                .put(CrateSettings.COLLECT_STATS.settingName(), true).build();
+                .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
         StatsTables stats = new StatsTables(settings, nodeSettingsService);
 
         stats.jobsLog.get().add(new JobContextLog(new JobContext(UUID.randomUUID(), "select 1", 1L), null));
 
         stats.listener.onRefreshSettings(ImmutableSettings.builder()
-                .put(CrateSettings.COLLECT_STATS.settingName(), true)
-                .put(CrateSettings.JOBS_LOG_SIZE.settingName(), 200).build());
+                .put(CrateSettings.STATS_ENABLED.settingName(), true)
+                .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200).build());
 
         assertThat(stats.jobsLog.get().size(), is(1));
 
@@ -95,8 +95,8 @@ public class StatsTablesTest {
                 new OperationContext(UUID.randomUUID(), "foo", 3L), null));
 
         stats.listener.onRefreshSettings(ImmutableSettings.builder()
-                .put(CrateSettings.COLLECT_STATS.settingName(), true)
-                .put(CrateSettings.OPERATIONS_LOG_SIZE.settingName(), 1).build());
+                .put(CrateSettings.STATS_ENABLED.settingName(), true)
+                .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 1).build());
 
         assertThat(stats.operationsLog.get().size(), is(1));
     }

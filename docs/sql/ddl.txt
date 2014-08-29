@@ -556,36 +556,36 @@ The crate cluster can be configured at runtime using the ``SET`` and ``RESET`` s
 If ``SET`` is used with ``PERSISTENT`` the change will survive a cluster restart, if used with
 ``TRANSIENT`` the value will be restored to default or config file value on a restart::
 
-    cr> SET GLOBAL PERSISTENT collect_stats = false;
+    cr> SET GLOBAL PERSISTENT stats.enabled = false;
     SET OK (... sec)
 
 ::
 
-    cr> select sys.cluster.settings['collect_stats'] from sys.cluster;
-    +---------------------------------------+
-    | sys.cluster.settings['collect_stats'] |
-    +---------------------------------------+
-    | FALSE                                 |
-    +---------------------------------------+
+    cr> select sys.cluster.settings['stats']['enabled'] from sys.cluster;
+    +------------------------------------------+
+    | sys.cluster.settings['stats']['enabled'] |
+    +------------------------------------------+
+    | FALSE                                    |
+    +------------------------------------------+
     SELECT 1 row in set (... sec)
 
 You can change multiple values at once::
 
-    cr> SET GLOBAL TRANSIENT collect_stats = true,
-    ... jobs_log_size = 1024, operations_log_size = 4096;
+    cr> SET GLOBAL TRANSIENT stats.enabled = true,
+    ... stats.jobs_log_size = 1024, stats.operations_log_size = 4096;
     SET OK (... sec)
 
 ::
 
-    cr> select settings['collect_stats'],
-    ...   settings['jobs_log_size'],
-    ...   settings['operations_log_size']
+    cr> select settings['stats']['enabled'],
+    ...   settings['stats']['jobs_log_size'],
+    ...   settings['stats']['operations_log_size']
     ... from sys.cluster;
-    +-...------------------+-...------------------+-...------------------------+
-    | ...['collect_stats'] | ...['jobs_log_size'] | ...['operations_log_size'] |
-    +-...------------------+-...------------------+-...------------------------+
-    | TRUE                 |                 1024 |                       4096 |
-    +-...------------------+-...------------------+-...------------------------+
+    +-...------------+-...------------------+-...------------------------+
+    | ...['enabled'] | ...['jobs_log_size'] | ...['operations_log_size'] |
+    +-...------------+-...------------------+-...------------------------+
+    | TRUE           |                 1024 |                       4096 |
+    +-...------------+-...------------------+-...------------------------+
     SELECT 1 row in set (... sec)
 
 Using the ``RESET`` statement, a setting will be reset to either on

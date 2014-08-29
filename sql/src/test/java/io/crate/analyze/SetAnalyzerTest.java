@@ -48,24 +48,24 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSet() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT operations_log_size=1");
+        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT stats.operations_log_size=1");
         assertThat(analysis.isPersistent(), is(true));
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.operations_log_size=1,"));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,"));
 
-        analysis = (SetAnalysis) analyze("SET GLOBAL TRANSIENT jobs_log_size=2");
+        analysis = (SetAnalysis) analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=2");
         assertThat(analysis.isPersistent(), is(false));
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.jobs_log_size=2,"));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=2,"));
 
-        analysis = (SetAnalysis) analyze("SET GLOBAL TRANSIENT collect_stats=false, operations_log_size=0, jobs_log_size=0");
+        analysis = (SetAnalysis) analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size=0");
         assertThat(analysis.isPersistent(), is(false));
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.collect_stats=false,cluster.operations_log_size=0,cluster.jobs_log_size=0,"));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.enabled=false,stats.operations_log_size=0,stats.jobs_log_size=0,"));
     }
 
     @Test
     public void testSetFullQualified() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster['operations_log_size']=1");
+        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT stats['operations_log_size']=1");
         assertThat(analysis.isPersistent(), is(true));
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.operations_log_size=1,"));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,"));
     }
 
     @Test
@@ -87,14 +87,14 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSetStringValue() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT graceful_stop.min_availability = 'full'");
+        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.min_availability = 'full'");
         assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.min_availability=full,"));
     }
 
     @Test
     public void testSetInvalidStringValue() throws Exception {
         try {
-            analyze("SET GLOBAL PERSISTENT graceful_stop.min_availability = 'something'");
+            analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.min_availability = 'something'");
         } catch (IllegalArgumentException e) {
             assertThat(e.getMessage(), is("'something' is not an allowed value. Allowed values are: primaries, none, full"));
         }
@@ -108,19 +108,19 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSetParameter() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT operations_log_size=?, jobs_log_size=?", new Object[]{1, 2});
+        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT stats.operations_log_size=?, stats.jobs_log_size=?", new Object[]{1, 2});
         assertThat(analysis.isPersistent(), is(true));
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.operations_log_size=1,cluster.jobs_log_size=2,"));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,stats.jobs_log_size=2,"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetParameterInvalidType() throws Exception {
-        analyze("SET GLOBAL PERSISTENT operations_log_size=?", new Object[]{"foobar"});
+        analyze("SET GLOBAL PERSISTENT stats.operations_log_size=?", new Object[]{"foobar"});
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetParameterInvalidBooleanType() throws Exception {
-        analyze("SET GLOBAL PERSISTENT collect_stats=?", new Object[]{"foobar"});
+        analyze("SET GLOBAL PERSISTENT stats.collect_stats=?", new Object[]{"foobar"});
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -130,18 +130,18 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetInvalidValue() throws Exception {
-        analyze("SET GLOBAL TRANSIENT jobs_log_size=-1");
+        analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=-1");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testSetInvalidValueType() throws Exception {
-        analyze("SET GLOBAL TRANSIENT jobs_log_size='some value'");
+        analyze("SET GLOBAL TRANSIENT stats.jobs_log_size='some value'");
     }
 
     @Test
     public void testReset() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("RESET GLOBAL collect_stats");
+        SetAnalysis analysis = (SetAnalysis) analyze("RESET GLOBAL stats.enabled");
         assertThat(analysis.isReset(), is(true));
-        assertThat(analysis.settingsToRemove(), contains("cluster.collect_stats"));
+        assertThat(analysis.settingsToRemove(), contains("stats.enabled"));
     }
 }
