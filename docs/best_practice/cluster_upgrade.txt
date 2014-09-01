@@ -37,7 +37,7 @@ Use the :ref:`ref-set` command to do so:
 
 .. seealso::
 
-  - :ref:`ref_routing`
+  - :ref:`conf_routing`
 
 
 Step 2: Graceful Stop
