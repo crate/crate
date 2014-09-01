@@ -21,7 +21,6 @@
 
 package io.crate.operation.reference.sys.cluster;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
@@ -140,5 +139,11 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
         childImplementations.put(
                 CrateSettings.CLUSTER.name(),
                 new NestedSettingExpression(CrateSettings.CLUSTER, values));
+        childImplementations.put(
+                CrateSettings.DISCOVERY.name(),
+                new NestedSettingExpression(CrateSettings.DISCOVERY, values));
+        childImplementations.put(
+                CrateSettings.INDICES.name(),
+                new NestedSettingExpression(CrateSettings.INDICES, values));
     }
 }

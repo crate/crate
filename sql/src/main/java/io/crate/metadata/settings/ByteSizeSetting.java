@@ -21,45 +21,21 @@
 
 package io.crate.metadata.settings;
 
-import com.google.common.base.Joiner;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
 
-import java.util.Set;
+public abstract class ByteSizeSetting extends Setting<ByteSizeValue> {
 
-public abstract class StringSetting extends Setting<String> {
-
-    protected Set<String> allowedValues;
-
-    protected StringSetting(Set<String> allowedValues) {
-        this.allowedValues = allowedValues;
+    public long maxValue() {
+        return Long.MAX_VALUE;
     }
 
-    protected StringSetting() {
-        this.allowedValues = null;
+    public long minValue() {
+        return Long.MIN_VALUE;
     }
 
     @Override
-    public String defaultValue() {
-        return "";
-    }
-
-    @Override
-    public String extract(Settings settings) {
-        return settings.get(settingName(), defaultValue());
-    }
-
-    /**
-     * @return Error message if not valid, else null.
-     */
-    @Nullable
-    public String validate(String value) {
-        if (allowedValues != null && !allowedValues.contains(value)) {
-            return String.format("'%s' is not an allowed value. Allowed values are: %s",
-                    value, Joiner.on(", ").join(allowedValues)
-
-            );
-        }
-        return null;
+    public ByteSizeValue extract(Settings settings) {
+        return settings.getAsBytesSize(settingName(), defaultValue());
     }
 }
