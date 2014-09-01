@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - the ``bin/crate`` executable now supports setting configuration options by
+   prefixing them with double dashes. For example: ``bin/crate --node.name=foobar``
+
  - updated crash to 0.10.0
 
  - added having support for global aggregate
