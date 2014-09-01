@@ -5,6 +5,13 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ BREAKING:
+
+ - Logging configuration files must now start with ``logging.`` and end with
+   either ``.yml`` or ``.yaml`` to be read. The previous behaviour was to read
+   all files starting with ``logging.`` which incorrectly also read ``.rpmnew``
+   or ``.bak`` files.
+
 2014/08/25 0.42.0
 =================
 
