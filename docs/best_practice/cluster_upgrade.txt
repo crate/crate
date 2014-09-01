@@ -27,7 +27,7 @@ Use the :ref:`ref-set` command to do so:
 
 .. code-block:: psql
 
-  cr> SET GLOBAL TRANSIENT routing.allocation.enable = 'new_primaries';
+  cr> SET GLOBAL TRANSIENT cluster.routing.allocation.enable = 'new_primaries';
   SET OK (... sec)
 
 .. note::
@@ -139,7 +139,7 @@ allocations again that have been disabled in the first step:
 
 .. code-block:: psql
 
-  cr> SET GLOBAL TRANSIENT routing.allocation.enable = 'all';
+  cr> SET GLOBAL TRANSIENT cluster.routing.allocation.enable = 'all';
   SET OK (... sec)
 
 
