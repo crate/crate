@@ -141,8 +141,7 @@ public class CrateSettings {
                     GRACEFUL_STOP_MIN_AVAILABILITY,
                     GRACEFUL_STOP_REALLOCATE,
                     GRACEFUL_STOP_TIMEOUT,
-                    GRACEFUL_STOP_FORCE,
-                    GRACEFUL_STOP_IS_DEFAULT);
+                    GRACEFUL_STOP_FORCE);
         }
     };
 

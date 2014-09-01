@@ -50,12 +50,6 @@
 # By default the regular stop procedure does not consider the graceful_stop
 # settings, but only sending the USR2 signal to the process does.
 #
-# cluster.graceful_stop.is_default: false
-#
-# You may want to set the is_default to true if you need to run the graceful
-# stop process whenever you stop a node regularly.
-# cluster.graceful_stop.is_default: true
-
 # In most cases you want to allow all kinds of shards allocations.
 # cluster.routing.allocation.enable = all
 #

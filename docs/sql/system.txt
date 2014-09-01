@@ -651,11 +651,11 @@ Non existent parameters are ignored when set as an object::
 ::
 
     cr> select settings['cluster']['graceful_stop'] from sys.cluster;
-    +---------------------------------------...-------------------+
-    | settings['cluster']['graceful_stop']                        |
-    +---------------------------------------...-------------------+
-    | {"force": false, "is_default": false, ... "timeout": "30m"} |
-    +---------------------------------------...-------------------+
+    +---------------------------------------------------...-------------------+
+    | settings['cluster']['graceful_stop']                                    |
+    +---------------------------------------------------...-------------------+
+    | {"force": false, "min_availability": "primaries", ... "timeout": "30m"} |
+    +---------------------------------------------------...-------------------+
     SELECT 1 row in set (... sec)
 
 ::
@@ -672,7 +672,6 @@ The default configuration in ``crate.yml`` looks like:
     reallocate: true
     timeout: 2h
     force: false
-    is_default: false
 
 
 .. _configuration: ../configuration.html

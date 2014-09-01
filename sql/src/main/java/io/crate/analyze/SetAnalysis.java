@@ -31,7 +31,6 @@ import java.util.Locale;
 import java.util.Set;
 
 public class SetAnalysis extends Analysis {
-
     private Settings settings;
     private Set<String> settingsToRemove;
     private boolean persistent = false;

@@ -93,10 +93,6 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.CLUSTER.name(),
                 CrateSettings.GRACEFUL_STOP.name(),
                 CrateSettings.GRACEFUL_STOP_FORCE.name()));
-        register("settings", DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.CLUSTER.name(),
-                CrateSettings.GRACEFUL_STOP.name(),
-                CrateSettings.GRACEFUL_STOP_IS_DEFAULT.name()));
-
         */
 
         register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
