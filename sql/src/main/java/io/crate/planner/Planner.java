@@ -24,6 +24,7 @@ package io.crate.planner;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Objects;
 import com.google.common.base.*;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
