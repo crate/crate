@@ -762,6 +762,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         boolean ignoreSorting = context.indexWriterProjection.isPresent()
                 && analysis.limit() == null
                 && analysis.offset() == TopN.NO_OFFSET;
+        boolean groupedByClusteredPk = groupedByClusteredColumnOrPrimaryKeys(analysis);
 
         int numAggregationSteps = 2;
         if (analysis.rowGranularity() == RowGranularity.DOC) {
@@ -787,7 +788,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         GroupProjection groupProjection =
                 new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
 
-        if(analysis.rowGranularity() == RowGranularity.DOC){
+        if(groupedByClusteredPk){
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
 
         }
@@ -813,7 +814,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
             fp.outputs(contextBuilder.passThroughOutputs());
-            if(analysis.rowGranularity() == RowGranularity.DOC){
+            if(groupedByClusteredPk){
                 fp.requiredGranularity(RowGranularity.SHARD);
             }
             builder.add(fp);
