@@ -24,12 +24,14 @@ package io.crate.integrationtests;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.junit.Test;
 
 import java.util.Map;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class ClusterSettingsTest extends SQLTransportIntegrationTest {
 
+    @Test
     public void testDynamicTransientSettings() throws Exception {
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
                 .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
@@ -60,6 +62,7 @@ public class ClusterSettingsTest extends SQLTransportIntegrationTest {
                 stats.get(CrateSettings.STATS_ENABLED.name()));
     }
 
+    @Test
     public void testDynamicPersistentSettings() throws Exception {
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
                 .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
