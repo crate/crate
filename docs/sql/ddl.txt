@@ -400,6 +400,10 @@ You can use :ref:`builtin-tokenizer`, :ref:`builtin-token-filter` and
 extend and parameterize them, see for example the ``mymapping``
 char-filter above. You have to give these extended ones a unique name.
 
+.. note::
+
+    Altering analyzers is not supported yet.
+
 Extending Bultin Analyzer
 -------------------------
 
