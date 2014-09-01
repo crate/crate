@@ -96,8 +96,7 @@ node. This can prevent long waiting times until the shutdown process runs
 into timeout during reallocation.
 
 By default, only the ``graceful stop`` command considers the cluster settings
-described below. To make the regular ``stop`` command consider these settings
-as well, you can change ``is_default`` to ``true``.
+described below.
 
 
 Step 3: Upgrade Crate

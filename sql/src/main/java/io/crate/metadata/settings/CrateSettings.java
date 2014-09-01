@@ -130,8 +130,7 @@ public class CrateSettings {
                     GRACEFUL_STOP_MIN_AVAILABILITY,
                     GRACEFUL_STOP_REALLOCATE,
                     GRACEFUL_STOP_TIMEOUT,
-                    GRACEFUL_STOP_FORCE,
-                    GRACEFUL_STOP_IS_DEFAULT);
+                    GRACEFUL_STOP_FORCE);
         }
     };
 
@@ -186,23 +185,6 @@ public class CrateSettings {
         @Override
         public String name() {
             return "force";
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return false;
-        }
-
-        @Override
-        public Setting parent() {
-            return GRACEFUL_STOP;
-        }
-    };
-
-    public static final BoolSetting GRACEFUL_STOP_IS_DEFAULT = new BoolSetting() {
-        @Override
-        public String name() {
-            return "is_default";
         }
 
         @Override

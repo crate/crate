@@ -161,8 +161,6 @@ public class TestGlobalSysExpressions {
                 gracefulStop.get(CrateSettings.GRACEFUL_STOP_FORCE.name()));
         assertEquals(CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue(),
                 gracefulStop.get(CrateSettings.GRACEFUL_STOP_TIMEOUT.name()));
-        assertEquals(CrateSettings.GRACEFUL_STOP_IS_DEFAULT.defaultValue(),
-                gracefulStop.get(CrateSettings.GRACEFUL_STOP_IS_DEFAULT.name()));
 
         Map routing = (Map) cluster.get(CrateSettings.ROUTING.name());
         Map routingAllocation = (Map) routing.get(CrateSettings.ROUTING_ALLOCATION.name());

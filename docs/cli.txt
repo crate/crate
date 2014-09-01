@@ -82,9 +82,3 @@ The Crate process can handle the following signals.
 |           | ``USR2`` is not supported on Windows.     |
 |           |                                           |
 +-----------+-------------------------------------------+
-
-.. note::
-
-   To emulate the graceful shutdown behaviour using the ``TERM`` signal you
-   can set the ``graceful_stop.is_default`` setting to ``true``
-   (see :ref:`ref_set_graceful_stop`).
