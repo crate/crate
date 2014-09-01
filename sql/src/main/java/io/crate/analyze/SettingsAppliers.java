@@ -26,6 +26,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.Locale;
@@ -125,6 +126,111 @@ public class SettingsAppliers {
                         "'%s' does not support null values", name));
             }
             int value = num.intValue();
+            validate(value);
+            settingsBuilder.put(this.name, value);
+        }
+    }
+
+    public static class FloatSettingsApplier extends AbstractSettingsApplier {
+
+        private final FloatSetting setting;
+
+        public FloatSettingsApplier(FloatSetting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+            this.setting = setting;
+        }
+
+        private void validate(float num) {
+            if (num < setting.minValue() || num > setting.maxValue()) {
+                throw invalidException();
+            }
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            Number num;
+            try {
+                num = ExpressionToNumberVisitor.convert(expression, parameters);
+            } catch (IllegalArgumentException e) {
+                throw invalidException(e);
+            }
+
+            if (num == null) {
+                throw new IllegalArgumentException(String.format(
+                        "'%s' does not support null values", name));
+            }
+            float value = num.floatValue();
+            validate(value);
+            settingsBuilder.put(this.name, value);
+        }
+    }
+
+    public static class DoubleSettingsApplier extends AbstractSettingsApplier {
+
+        private final DoubleSetting setting;
+
+        public DoubleSettingsApplier(DoubleSetting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+            this.setting = setting;
+        }
+
+        private void validate(double num) {
+            if (num < setting.minValue() || num > setting.maxValue()) {
+                throw invalidException();
+            }
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            Number num;
+            try {
+                num = ExpressionToNumberVisitor.convert(expression, parameters);
+            } catch (IllegalArgumentException e) {
+                throw invalidException(e);
+            }
+
+            if (num == null) {
+                throw new IllegalArgumentException(String.format(
+                        "'%s' does not support null values", name));
+            }
+            double value = num.doubleValue();
+            validate(value);
+            settingsBuilder.put(this.name, value);
+        }
+    }
+
+    public static class ByteSizeSettingsApplier extends AbstractSettingsApplier {
+
+        private final ByteSizeSetting setting;
+
+        public ByteSizeSettingsApplier(ByteSizeSetting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+            this.setting = setting;
+        }
+
+        private void validate(long num) {
+            if (num < setting.minValue() || num > setting.maxValue()) {
+                throw invalidException();
+            }
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            ByteSizeValue byteSizeValue;
+            try {
+                byteSizeValue = ExpressionToByteSizeValueVisitor.convert(expression, parameters);
+            } catch (IllegalArgumentException e) {
+                throw invalidException(e);
+            }
+
+            if (byteSizeValue == null) {
+                throw new IllegalArgumentException(String.format(
+                        "'%s' does not support null values", name));
+            }
+            long value = byteSizeValue.bytes();
             validate(value);
             settingsBuilder.put(this.name, value);
         }

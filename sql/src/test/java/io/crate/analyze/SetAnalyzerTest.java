@@ -24,7 +24,9 @@ package io.crate.analyze;
 import io.crate.metadata.MetaDataModule;
 import io.crate.operation.operator.OperatorModule;
 import org.elasticsearch.common.inject.Module;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +36,9 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 public class SetAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Override
     protected List<Module> getModules() {
@@ -76,12 +81,14 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = '2.5m'");
         assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=150000,"));
 
-        analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = 1000.0");
+        analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = ?", new Object[]{ 1000.0 });
         assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=1000,"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSetInvalidTimeValue() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'cluster.graceful_stop.timeout'");
         analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = '-1h'");
     }
 
@@ -93,11 +100,25 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSetInvalidStringValue() throws Exception {
-        try {
-            analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.min_availability = 'something'");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), is("'something' is not an allowed value. Allowed values are: primaries, none, full"));
-        }
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("'something' is not an allowed value. Allowed values are: primaries, none, full");
+        analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.min_availability = 'something'");
+    }
+
+    @Test
+    public void testSetByteSizeValue() throws Exception {
+        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = '1024kb'");
+        assertThat(analysis.settings().toDelimitedString(','), is("indices.recovery.file_chunk_size=1048576,"));
+
+        analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = ?", new Object[]{ "1mb" });
+        assertThat(analysis.settings().toDelimitedString(','), is("indices.recovery.file_chunk_size=1048576,"));
+    }
+
+    @Test
+    public void testSetInvalidByteSizeValue() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'indices.recovery.file_chunk_size'");
+        analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = 'something'");
     }
 
     @Test
