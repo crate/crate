@@ -87,4 +87,4 @@ The Crate process can handle the following signals.
 
    To emulate the graceful shutdown behaviour using the ``TERM`` signal you
    can set the ``graceful_stop.is_default`` setting to ``true``
-   (see :ref:`ref_set_graceful_stop`).
+   (see :ref:`conf_graceful_stop`).
