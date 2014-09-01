@@ -119,10 +119,31 @@ Graceful Stop
     uses the graceful-stop option by default.
 
 
+.. _ref-set-discrovery:
+
+Discovery
+---------
+
+:discovery.zen.minimum_master_nodes:
+    Set to ensure a node sees N other master eligible nodes to be
+    considered operational within the cluster. It's recommended to set
+    it to a higher value than 1 when running more than 2 nodes in the
+    cluster. The default value is: ``1``
+
+:discovery.zen.ping_timeout:
+    Set the time to wait for ping responses from other nodes when
+    discovering. Set this option to a higher value on a slow or
+    congested network to minimize discovery failures. The default value
+    is: ``3s``
+
+:discovery.zen.publish_timeout:
+    Time a node is waiting for responses from other nodes to a published
+    cluster state. The default value is: ``30s``
+
 .. _ref_routing:
 
-Routing
--------
+Routing Allocation
+------------------
 
 :cluster.routing.allocation.enable:
     Options are: ``all | new_primaries``
@@ -134,10 +155,194 @@ Routing
     that for example a newly added node will not allocate any replicas. However
     it is still possible to allocate new primary shards for new indices.
     Whenever you want to perform a zero downtime upgrade of your cluster
-    you need to set ``cluster.routing.allocation.enable`` to this value before gracefully
-    stopping the first node and reset it to ``all`` after starting the last
-    updated node.
+    you need to set this value before gracefully stopping the first
+    node and reset it to ``all`` after starting the last updated node.
 
+:cluster.routing.allocation.allow_rebalance:
+    Options are: ``always | indices_primary_active | indices_all_active``
+
+    Allow to control when rebalancing will happen based on the total
+    state of all the indices shards in the cluster. Defaulting to
+    ``indices_all_active`` to reduce chatter during initial recovery.
+
+:cluster.routing.allocation.cluster_concurrent_rebalance:
+    Define how many concurrent rebalancing tasks are allowed cluster
+    wide, defaults to ``2``.
+
+:cluster.routing.allocation.node_initial_primaries_recoveries:
+    Define the number of initial recoveries of primaries that are
+    allowed per node. Since most times local gateway is used, those
+    should be fast and we can handle more of those per node without
+    creating load. The default value is ``4``.
+
+:cluster.routing.allocation.node_concurrent_recoveries:
+    How many concurrent recoveries are allowed to happen on a node. Defaults to ``2``.
+
+Awareness
+~~~~~~~~~
+
+Cluster allocation awareness allows to configure shard and replicas
+allocation across generic attributes associated with nodes.
+
+:cluster.routing.allocation.awareness.attributes:
+    Define node attributes which will be used to do awareness based
+    allocation of a shard and its replicas. For example, let's say we
+    start 2 nodes with node.rack_id set to rack_one, and deploy a
+    single index with 5 shards and 1 replica. The index will be fully
+    deployed on the current nodes (5 shards and 1 replica each, total
+    of 10 shards).
+    | Now, if we start two more nodes, with node.rack_id set to
+    rack_two, shards will relocate to even the number of shards across
+    the nodes, but a shard and its replica will not be allocated in
+    the same rack_id value.
+    | The awareness attributes can hold several values
+
+:cluster.routing.allocation.awareness.force.zone.values:
+   Node attributes on which shard allocation will be forced. Let's say
+   we configure the values ``zone1, zone2`` here, start 2 nodes with
+   ``node.zone`` set to ``zone1`` and create an index with 5 shards
+   and 1 replica. The index will be created, but only 5 shards will be
+   allocated (with no replicas). Only when we start more shards with
+   ``node.zone`` set to ``zone2`` the replicas will be allocated.
+
+Balanced Shards
+~~~~~~~~~~~~~~~
+
+All these values are relative to one another. The first three are used
+to compose a three separate weighting functions into one. The cluster
+is balanced when no allowed action can bring the weights of each node
+closer together by more then the fourth setting. Actions might not be
+allowed, for instance, due to forced awareness or allocation filtering.
+
+:cluster.routing.allocation.balance.shard:
+    Defines the weight factor for shards allocated on a node
+    (float). Defaults to ``0.45f``. Raising this raises the tendency to
+    equalize the number of shards across all nodes in the cluster.
+
+:cluster.routing.allocation.balance.index:
+    Defines a factor to the number of shards per index allocated on a
+    specific node (float). Defaults to ``0.5f``. Increasing this value
+    raises the tendency to equalize the number of shards per index
+    across all nodes in the cluster.
+
+:cluster.routing.allocation.balance.primary:
+    Defines a weight factor for the number of primaries of a specific
+    index allocated on a node (float). Defaults to ``0.05f``. Increasing
+    this value raises the tendency to equalize the number of primary shards
+    across all nodes in the cluster.
+
+:cluster.routing.allocation.balance.threshold:
+    Minimal optimization value of operations that should be performed
+    (non negative float). Defaults to ``1.0f``. Increasing this value will
+    cause the cluster to be less aggressive about optimising the shard
+    balance.
+
+Disk-based Shard Allocation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:cluster.routing.allocation.disk.threshold_enabled:
+    Prevent shard allocation on nodes depending of the disk
+    usage. Enabled by default.
+
+:cluster.routing.allocation.disk.watermark.low:
+    Defines the lower disk threshold limit for shard allocations.
+    Defaults to ``85%``. New shards will not be allocated on nodes with
+    disk usage is greater than this value. It can also be set to an
+    absolute bytes value (like e.g. ``500mb``) to prevent the cluster
+    from allocating new shards on node with less free disk space than
+    this value.
+
+:cluster.routing.allocation.disk.watermark.high:
+   Defines the higher disk threshold limit for shard allocations.
+   Defaults to ``90%``. The cluster will attempt to relocate existing
+   shards to another node if the disk usage on a node rises above this
+   value. It can also be set to an absolute bytes value (like
+   e.g. ``500mb``) to relocate shards from nodes with less free disk
+   space than this value.
+
+By default, the cluster will retrieve information about the disk usage
+of the nodes every 30 seconds. This can also be changed by setting the
+:ref:`ref_cluster-info-update-interval` setting.
+
+
+Recovery
+--------
+
+:indices.recovery.concurrent_streams:
+    Limits the number of open concurrent streams when
+    recovering a shard from a peer. Defaults to ``3``.
+
+:indices.recovery.file_chunk_size:
+    Specifies the chunk size used to copy the shard data from the
+    source shard. The default value is ``512kb``, it is compressed if
+    ``indices.recovery.compress`` is set to ``true``.
+
+:indices.recovery.translog_ops:
+    Specifies how many transaction log lines should be transfered
+    between shards in a single request during the recovery process.
+    If ``indices.recovery.translog_size`` is reached first, value is
+    ignored for this request.
+    The default value is ``1000``.
+
+:indices.recovery.translog_size:
+    Specifies how much data of the transaction log should be
+    transfered betweem shards in a single request during the recovery
+    process. If ``indices.recovery.translog_op`` is reached first,
+    value is ignored for this request.
+    The default value is ``512kb``.
+
+:indices.recovery.compress:
+    Define if transferred data should be compressed during the
+    recovery process. Defaults to ``true``. Setting it to ``false``
+    may lower the pressure on the CPU while resulting in more data
+    being transfererd over the network.
+
+:indices.recovery.max_bytes_per_sec:
+    Specifies the maximum number of bytes that can be transferred
+    during shard recovery per seconds. Defaults to ``20mb`. Limiting
+    can be disabled by setting it to ``0``. Similiar to
+    ``indices.recovery.concurrent_streams`` this setting allows to
+    control the network usage of the recovery process. Higher values
+    may result in higher network utilization, but also faster recovery process.
+
+Store Level Throttling
+----------------------
+
+:indices.store.throttle.type:
+    Options are: ``all | merge | none``
+
+    Allows to throttle ``merge`` (or ``all``) process of the store
+    module. The default value is ``merge``.
+
+:indices.store.throttle.max_bytes_per_sec:
+    If throttling is enabled by ``indices.store.throttle.type``, this
+    setting specifies the maximum bytes per second a store module
+    process can operate with, defaults to ``20mb``.
+
+Field Data Circuit Breaker
+--------------------------
+
+The field data circuit breaker allows estimation of needed memory
+required for loading field data into memory. If a certain limit
+is reached an exception is raised.
+
+:indices.fielddata.breaker.limit:
+    Specifies the limit for the fielddata breaker. The Default value
+    is ``60%`` (of JVM heap).
+
+:indices.fielddata.breaker.overhead:
+    A constant that all field data estimations are multiplied with to
+    determine a final estimation. The default value is ``1.03``.
+
+Metadata
+--------
+
+.. _ref_cluster-info-update-interval:
+
+:cluster.info.update.interval:
+    Defines how often the cluster collection metadata information
+    (e.g. disk usages etc.) if no concrete  event is triggered. The
+    default value is ``30s``.
 
 Persistence
 ===========
