@@ -113,11 +113,6 @@ Graceful Stop
     Defines whether ``graceful stop`` should force stopping of the node if it
     runs into the timeout which is specified with the ``timeout`` setting.
 
-:cluster.graceful_stop.is_default:
-    ``true | false``
-    This options defines whether the ``stop`` command of the ``crate`` executable
-    uses the graceful-stop option by default.
-
 
 .. _ref_routing:
 
