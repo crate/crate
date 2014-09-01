@@ -5,15 +5,68 @@
 Zero Downtime Upgrade
 =====================
 
-Crate Data provides an easy way to perform a cluster upgrade with zero downtime.
+Crate Data provides an easy way to perform a cluster upgrade with zero
+downtime.
 
-To perform a rolling upgrade of a Crate cluster without downtime you need to
-utilise the ``graceful stop`` procedure. This will ensure
-a certain data availability during upgrade while one or more nodes of the
-cluster are not available.
+To perform a rolling upgrade of a cluster one node at a time has to be stopped
+using the ``graceful stop`` procedure.
 
-If you keep the following 6 simple steps in mind you will be able to upgrade your
-cluster without downtime.
+This procedure will disable a node, which will cause it to reject any new
+requests but will make sure that any pending requests are finished.
+
+In addition it will ensure a certain data availability. Which can either be
+``none``, ``primaries`` or ``full`` and can be set using :ref:`ref-set`.
+
+``full`` means that all shards that are currently located on a node will be
+moved to the other nodes. Using this setting the cluster will stay ``green`` the
+whole time.
+
+``primaries`` means that only the primaries will be moved to other nodes. If
+replicas are available it will simply swap the primary shards with the
+replicas. Using this setting means that the cluster will go into the ``yellow``
+warning state if a node that has been stopped contained replicas.
+
+``none`` means that there is no data-availability guarantee.
+
+Requirements
+============
+
+Full Minimum Data Availability
+------------------------------
+
+If the ``full`` minimum data availability is configured the cluster needs to
+contain enough nodes to hold the number of replicas that are configured even if
+one node is missing.
+
+So for example if there are only two nodes in a cluster and a table has one
+replica configured the graceful stop procedure will run in a timeout as it
+won't be possible to relocate the replicas.
+
+If a table has a range configured as number of replicas this will take into
+account the upper number of replicas.
+
+So again, with two nodes and a number of replicas of '0-1' will cause the
+graceful-stop procedure to run in a timeout.
+
+In short: In order for the graceful stop to work the following has to be true::
+
+    number_of_nodes >= max_number_of_replicas + 2
+
+
+Primaries Minimum Data Availability
+-----------------------------------
+
+If the ``primaries`` minimum data availability is used one has to take care
+that there are still enough replicas in the cluster after a node has been
+stopped that a write-consistency can be guaranteed.
+
+By default write or delete operations only succeed if a quorum ( > replicas / 2
++ 1 ) of active shards is available.
+
+.. note::
+
+    If only 1 replica is configured there only has to be one active shard in
+    order for write and delete operations to succeed.
 
 
 Step 1: Disable Re-Allocations
