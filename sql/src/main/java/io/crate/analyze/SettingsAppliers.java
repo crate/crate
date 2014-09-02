@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
 import io.crate.metadata.settings.*;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
@@ -29,7 +30,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public class SettingsAppliers {
 
@@ -65,6 +68,22 @@ public class SettingsAppliers {
                     ImmutableSettings.builder().put(settings.settingName(), settings.defaultValue()).build());
         }
 
+        static final Joiner dotJoiner = Joiner.on('.');
+
+        private Map<String, Object> flattenSettings(String key, Object value){
+            Map<String, Object> flat = new HashMap<>();
+            if(value instanceof Map){
+                for(Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()){
+                    Map<String, Object> settings = flattenSettings(dotJoiner.join(key, setting.getKey()),
+                            setting.getValue());
+                    flat.putAll(settings);
+                }
+            } else {
+                flat.put(key, value);
+            }
+            return flat;
+        }
+
         @Override
         public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             Object value = null;
@@ -73,7 +92,9 @@ public class SettingsAppliers {
             } catch (IllegalArgumentException e) {
                 throw invalidException(e);
             }
-            settingsBuilder.put(this.name, value);
+            for(Map.Entry<String, Object> setting : flattenSettings(this.name, value).entrySet()){
+                settingsBuilder.put(setting.getKey(), setting.getValue());
+            }
         }
     }
 
