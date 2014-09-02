@@ -440,8 +440,7 @@
 # needed allocated on a specific group of nodes with the same awareness
 # attribute value. For that, we can force awareness on specific attributes.
 #
-# cluster.routing.allocation.awareness.force.zone.values:
-
+# cluster.routing.allocation.awareness.force.<attribute>.values:
 
 ############################### Balanced Shards ##############################
 
@@ -465,6 +464,24 @@
 #
 # cluster.routing.allocation.balance.threshold: 1.0f
 
+####################### Cluster-Wide Allocation Filtering ####################
+
+# Place new shards only on nodes where one of the specified
+# values matches the attribute.
+#
+# cluster.routing.allocation.include.<attribute>:
+
+# Place new shards only on nodes where none of the specified
+# values matches the attribute.
+#
+# cluster.routing.allocation.exclude.<attribute>:
+
+# used to specify a number of rules, which all MUST match for
+# a node in order to allocate a shard on it.
+# This is in contrast to include which will include a node
+# if ANY rule matches.
+#
+# cluster.routing.allocation.require.<attribute>:
 
 ########################## Disk-based Shard Allocation #######################
 
@@ -502,6 +519,14 @@
 #
 # indices.fielddata.breaker.overhead: 1.0.3
 
+################################# Threadpools ################################
+
+# Every node holds several thread pools to improve how threads are
+# managed within a node. There are several pools, but the important
+# ones include: index, search, bulk, refresh
+#
+# threadpool.index.type: fixed
+# threadpool.index.queue_size: 200
 
 ################################## Metadata ##################################
 
