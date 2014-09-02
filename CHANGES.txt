@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crash to 0.10.0
+
  BREAKING:
 
  - Logging configuration files must now start with ``logging.`` and end with
