@@ -643,11 +643,11 @@ Non existent parameters are ignored when set as an object::
 ::
 
     cr> select settings['cluster']['graceful_stop'] from sys.cluster;
-    +---------------------------------------...-------------------+
-    | settings['cluster']['graceful_stop']                        |
-    +---------------------------------------...-------------------+
-    | {"force": false, "is_default": false, ... "timeout": "30m"} |
-    +---------------------------------------...-------------------+
+    +---------------------------------------...------------------+
+    | settings['cluster']['graceful_stop']                       |
+    +---------------------------------------...------------------+
+    | {"force": true, "is_default": false, ... "timeout": "30m"} |
+    +---------------------------------------...------------------+
     SELECT 1 row in set (... sec)
 
 ::

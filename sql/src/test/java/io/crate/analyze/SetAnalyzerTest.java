@@ -123,7 +123,13 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testObjectValue() throws Exception {
         SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop = {timeout='1h',force=false}");
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop={force=false, timeout=1h},"));
+        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.force=false,cluster.graceful_stop.timeout=1h,"));
+    }
+
+    @Test
+    public void testNestedObjectValue() throws Exception {
+        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.routing = {disk ={threshold_enabled = false, watermark = {high= '75%'}}}");
+        assertThat(analysis.settings().toDelimitedString(','), is("cluster.routing.disk.watermark.high=75%,cluster.routing.disk.threshold_enabled=false,"));
     }
 
     @Test
