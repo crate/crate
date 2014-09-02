@@ -232,10 +232,13 @@ Awareness
 Cluster allocation awareness allows to configure shard and replicas
 allocation across generic attributes associated with nodes.
 
+.. _conf_awareness_attr:
+
 :cluster.routing.allocation.awareness.attributes:
     Define node attributes which will be used to do awareness based
-    on the allocation of a shard and its replicas. For example, let's
-    say we start 2 nodes with node.rack_id set to rack_one, and deploy a
+    on the allocation of a shard and its replicas.
+    For example, let's say we have defined an attribute `rack_id`
+    and we start 2 nodes with `node.rack_id` set to rack_one, and deploy a
     single index with 5 shards and 1 replica. The index will be fully
     deployed on the current nodes (5 shards and 1 replica each, total
     of 10 shards).
@@ -245,9 +248,13 @@ allocation across generic attributes associated with nodes.
     the same rack_id value.
     | The awareness attributes can hold several values
 
-:cluster.routing.allocation.awareness.force.zone.values:
-   Node attributes on which shard allocation will be forced. Let's say
-   we configure the values ``zone1, zone2`` here, start 2 nodes with
+:cluster.routing.allocation.awareness.force.*.values:
+   Attributes on which shard allocation will be forced. ``*`` is a placeholder
+   for the awareness attribute, which can be defined using the
+   `cluster.routing.allocation.awareness.attributes <conf_awareness_attr_>`_
+   setting.
+   Let's say we configured an awareness attribute ``zone`` and the values
+   values ``zone1, zone2`` here, start 2 nodes with
    ``node.zone`` set to ``zone1`` and create an index with 5 shards
    and 1 replica. The index will be created, but only 5 shards will be
    allocated (with no replicas). Only when we start more shards with
@@ -284,6 +291,30 @@ allowed, for instance, due to forced awareness or allocation filtering.
     (non negative float). Defaults to ``1.0f``. Increasing this value will
     cause the cluster to be less aggressive about optimising the shard
     balance.
+
+Cluster-Wide Allocation Filtering
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Allow to control the allocation of all shards based on include/exclude
+filters.
+E.g. this could be used to allocate all the new shards on the nodes
+with specific IP addresses or custom attributes.
+
+:cluster.routing.allocation.include.*:
+    Place new shards only on nodes where one of the specified
+    values matches the attribute.
+    e.g.: cluster.routing.allocation.include.zone: "zone1,zone2"
+
+:cluster.routing.allocation.exclude.*:
+    Place new shards only on nodes where none of the specified
+    values matches the attribute.
+    e.g.: cluster.routing.allocation.exclude.zone: "zone1"
+
+:cluster.routing.allocation.require.*:
+    used to specify a number of rules, which all MUST match for
+    a node in order to allocate a shard on it.
+    This is in contrast to include which will include a node
+    if ANY rule matches.
 
 Disk-based Shard Allocation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -346,7 +377,7 @@ Recovery
 
 :indices.recovery.max_bytes_per_sec:
     Specifies the maximum number of bytes that can be transferred
-    during shard recovery per seconds. Defaults to ``20mb`. Limiting
+    during shard recovery per seconds. Defaults to ``20mb``. Limiting
     can be disabled by setting it to ``0``. Similiar to
     ``indices.recovery.concurrent_streams`` this setting allows to
     control the network usage of the recovery process. Higher values
@@ -380,6 +411,38 @@ is reached an exception is raised.
 :indices.fielddata.breaker.overhead:
     A constant that all field data estimations are multiplied with to
     determine a final estimation. The default value is ``1.03``.
+
+Threadpools
+-----------
+
+Every node holds several thread pools to improve how threads are
+managed within a node. There are several pools, but the important ones include:
+
+    * index: For index/delete operations, defaults to fixed
+    * search: For count/search operations, defaults to fixed
+    * bulk: For bulk operations, defaults to fixed
+    * refresh: For refresh operations, defaults to cache
+
+:threadpool.<threadpool>.type:
+    Options are: ``fixed | cache``
+
+    ``fixed`` holds a fixed size of threads to handle the requests. It
+    also has a queue for pending requests if no threads are available.
+
+    ``cache`` will spawn a thread if there are pending requests (unbounded).
+
+Fixed Threadpool Settings
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the type of a threadpool is set to ``fixed`` there are a few
+optional settings::
+
+:threadpool.<threadpool>.size:
+    Number of threads. The default is number of cores times 5.
+
+:threadpool.<threadpool>.queue_size:
+    Size of the queue for pending requests. Default is -1 which is
+    unbounded.
 
 Metadata
 --------
