@@ -47,6 +47,7 @@ import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
+import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.InvalidIndexNameException;
@@ -303,6 +304,9 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                 errorCode = 5000 + crateException.errorCode();
             }
         } else if (e instanceof ParsingException) {
+            errorCode = 4000;
+            restStatus = RestStatus.BAD_REQUEST;
+        } else if (e instanceof MapperParsingException) {
             errorCode = 4000;
             restStatus = RestStatus.BAD_REQUEST;
         }

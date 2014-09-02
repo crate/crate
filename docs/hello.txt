@@ -16,13 +16,12 @@ the Crate distribution.
 First lets connect to a running node::
 
     cr> connect 127.0.0.1:4200;
-    +------------------------+-----------+-----------+---------+
-    | server_url             | node_name | connected | message |
-    +------------------------+-----------+-----------+---------+
-    | http://127.0.0.1:...   | crate     | TRUE      | OK      |
-    +------------------------+-----------+-----------+---------+
+    +------------------------+-----------+---------+-----------+---------+
+    | server_url             | node_name | version | connected | message |
+    +------------------------+-----------+---------+-----------+---------+
+    | http://127.0.0.1:44200 | crate     | 0.42.0  | TRUE      | OK      |
+    +------------------------+-----------+---------+-----------+---------+
     CONNECT OK
-
 
 In this guide we want to create a database for Twitter_ tweets. Let's create
 the table ``tweets`` with all columns we need.
