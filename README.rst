@@ -45,47 +45,11 @@ Get Crate Data
 Crate Data is not only easy to use, it's also easy to get. Use the one method which
 works best for you.
 
-Binary Archive
----------------
+Additional to the binary distibution via tarball, there are also distributions
+for Ubuntu/Debian, CentOS/Scientific Linux (RPM), ArchLinux and Docker.
 
-- Download_ the latest release and unzip the archive.
+You can find installation instructions on our website_ and documentation_.
 
-Debian Package
---------------
-
-Crate Launchpad_ Page. A package is available for the Ubuntu versions Lucid
-Lync, Saucy Salamander and Precise Pangolin.
-
-::
-
-    sudo apt-get install python-software-properties
-    sudo add-apt-repository ppa:crate/stable
-    sudo apt-get update
-    sudo apt-get install crate
-
-
-RPM: CentOS, Scientific Linux
------------------------------
-
-All Crate Data packages are signed with GPG. To verify the packages the public
-key must be installed to the system. After that, you can install the .rpm
-containing the YUM repository definition on your system.
-
-::
-
-    sudo rpm --import https://cdn.crate.io/downloads/yum/RPM-GPG-KEY-crate
-    sudo rpm -Uvh https://cdn.crate.io/downloads/yum/6/x86_64/crate-release-6.5-1.noarch.rpm
-
-Then install Crate Data:
-
-``yum install crate``
-
-The Crate Data Testing repository is disabled by default. It contains development builds and is
-frequently updated. If you want to enable the Testing repo on your server, set ``enabled=1`` in
-``/etc/yum.repos.d/crate.repo``.
-
-.. _Download: https://crate.io/download
-.. _Launchpad: https://launchpad.net/~crate
 
 Where to go from here?
 ======================
@@ -121,3 +85,5 @@ Or for further information and official contact please
 visit `https://crate.io/ <https://crate.io/>`_.
 
 .. _Freenode: http://freenode.net
+.. _website: https://crate.io/download/
+.. _documentation: https://crate.io/docs/stable/installation.html
