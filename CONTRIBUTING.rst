@@ -39,7 +39,7 @@ our CLA_. Once that is done, we suggest to continue as follows:
 
 - Squash related commits
 
-.. _CLA: https://crate.io/legal/contribute/
+.. _CLA: https://crate.io/community/contribute/
 
 
 Rebase
