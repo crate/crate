@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.Version;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
@@ -239,7 +240,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
         assertThat((Map<String, Object>)response.rows()[0][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
-        assertThat((String)response.rows()[0][1], is("0.42.0"));
+        assertThat((String)response.rows()[0][1], is(Version.CURRENT.toString()));
         assertThat(response.rows()[0][2], instanceOf(String.class));
         assertThat((Boolean)response.rows()[0][3], isOneOf(true, false));
     }
