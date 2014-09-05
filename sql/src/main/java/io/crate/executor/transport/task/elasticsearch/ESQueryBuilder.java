@@ -140,7 +140,7 @@ public class ESQueryBuilder {
      */
     public BytesReference convert(ESSearchNode node) throws IOException {
         assert node != null;
-        List<? extends Reference> outputs;
+        List<? extends Symbol> outputs;
 
         outputs = node.outputs();
         Context context = new Context();
@@ -149,15 +149,17 @@ public class ESQueryBuilder {
 
         List<String> fields = new ArrayList<>(outputs.size());
         boolean needWholeSource = false;
-        for (Reference output : outputs) {
-            ColumnIdent columnIdent = output.info().ident().columnIdent();
+        for (Symbol output : outputs) {
+            assert output instanceof Reference;
+            Reference ref = (Reference) output;
+            ColumnIdent columnIdent = ref.info().ident().columnIdent();
             if (columnIdent.isSystemColumn()){
                 if (DocSysColumns.VERSION.equals(columnIdent)){
                     builder.field("version", true);
                 } else if (DocSysColumns.RAW.equals(columnIdent)|| DocSysColumns.DOC.equals(columnIdent)){
                     needWholeSource = true;
                 }
-            } else if (node.partitionBy().indexOf(output.info()) < 0) { // do not include partitioned by columns
+            } else if (node.partitionBy().indexOf(ref.info()) < 0) { // do not include partitioned by columns
                 fields.add(columnIdent.fqn());
             }
         }

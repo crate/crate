@@ -25,6 +25,12 @@ public class Routing implements Streamable {
         this.locations = locations;
     }
 
+    /**
+     * @return a map with the locations in the following format: <p>
+     *  Map< nodeName (string), <br />
+     *  &nbsp;&nbsp;&nbsp;&nbsp;Map< indexName (string), Set<ShardId (int) > <br />
+     *  </p>
+     */
     public Map<String, Map<String, Set<Integer>>> locations() {
         return locations;
     }

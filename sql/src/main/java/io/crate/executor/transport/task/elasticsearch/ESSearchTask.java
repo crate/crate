@@ -29,9 +29,11 @@ import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.*;
@@ -40,8 +42,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class ESSearchTask implements Task<QueryResult> {
 
@@ -52,6 +53,7 @@ public class ESSearchTask implements Task<QueryResult> {
     private final SettableFuture<QueryResult> result;
     private final List<ListenableFuture<QueryResult>> results;
     private final ESQueryBuilder queryBuilder;
+
 
     public ESSearchTask(ESSearchNode searchNode,
                         TransportSearchAction transportSearchAction) {
@@ -65,30 +67,40 @@ public class ESSearchTask implements Task<QueryResult> {
 
     @Override
     public void start() {
-        final SearchRequest request = new SearchRequest();
+        Routing routing = searchNode.routing();
+        if (!routing.hasLocations()) {
+            result.set(QueryResult.EMPTY_RESULT);
+        }
+        List<String> indices = new ArrayList<>();
 
+        for (Map<String, Set<Integer>> stringSetMap : routing.locations().values()) {
+            indices.addAll(stringSetMap.keySet());
+        }
         final ESFieldExtractor[] extractor = buildExtractor(searchNode.outputs());
         final int numColumns = searchNode.outputs().size();
 
+
+        SearchRequest request = new SearchRequest();
+
         try {
             request.source(queryBuilder.convert(searchNode), false);
-            request.indices(searchNode.indices());
+            request.indices(indices.toArray(new String[indices.size()]));
             request.routing(searchNode.whereClause().clusteredBy().orNull());
 
             if (logger.isDebugEnabled()) {
                 logger.debug(request.source().toUtf8());
             }
-
             transportSearchAction.execute(request, new SearchResponseListener(result, extractor, numColumns));
         } catch (IOException e) {
             result.setException(e);
         }
     }
 
-    private ESFieldExtractor[] buildExtractor(final List<? extends Reference> outputs) {
+    private ESFieldExtractor[] buildExtractor(final List<? extends Symbol> outputs) {
         ESFieldExtractor[] extractors = new ESFieldExtractor[outputs.size()];
         int i = 0;
-        for (final Reference reference : outputs) {
+        for (Symbol symbol : outputs) {
+            Reference reference = ((Reference) symbol);
             final ColumnIdent columnIdent = reference.info().ident().columnIdent();
             if (DocSysColumns.VERSION.equals(columnIdent)) {
                 extractors[i] = new ESFieldExtractor() {
