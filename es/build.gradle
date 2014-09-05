@@ -41,6 +41,8 @@ dependencies {
     compile 'joda-time:joda-time:2.3'
     compile 'log4j:log4j:1.2.17'
     compile 'net.java.dev.jna:jna:4.1.0'
+    // also updated dependencies in client dependencies
+    // when updating lucene version!
     compile 'org.apache.lucene:lucene-analyzers-common:4.9.0'
     compile 'org.apache.lucene:lucene-codecs:4.9.0'
     compile 'org.apache.lucene:lucene-core:4.9.0'
