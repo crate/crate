@@ -45,6 +45,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -519,7 +520,12 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(ESSearchNode.class));
         ESSearchNode searchNode = (ESSearchNode) planNode;
 
-        assertThat(searchNode.indices(), arrayContaining(
+        List<String> indices = new ArrayList<>();
+        Map<String, Map<String, Set<Integer>>> locations = searchNode.routing().locations();
+        for (Map.Entry<String, Map<String, Set<Integer>>> entry : locations.entrySet()) {
+            indices.addAll(entry.getValue().keySet());
+        }
+        assertThat(indices, Matchers.contains(
                 new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()));
         assertThat(searchNode.outputTypes().size(), is(3));
         assertTrue(searchNode.whereClause().hasQuery());
@@ -539,7 +545,7 @@ public class PlannerTest {
         ESSearchNode searchNode = (ESSearchNode) planNode;
 
         assertThat(searchNode.outputs().size(), is(1));
-        assertThat(searchNode.outputs().get(0).info().ident().columnIdent().fqn(), is("name"));
+        assertThat(((Reference) searchNode.outputs().get(0)).info().ident().columnIdent().fqn(), is("name"));
 
         assertThat(searchNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
