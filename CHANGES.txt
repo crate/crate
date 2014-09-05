@@ -5,12 +5,24 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - made parser for object and array literals stricter to allow only literals
-
- - updated crash to 0.10.0
-
  - added having support for global aggregate
    and group by
+
+
+2014/09/05 0.42.1
+=================
+
+ - made parser for object and array literals stricter to allow only literals
+
+ - updated crash to 0.10.0 which includes following changes
+
+   - crate server version information is now also included in the connect-output
+
+   - improved formatting of field lists in docs
+     by adding docutils configuration to docs build process
+
+   - updated crate-python to version 0.11.1 to get a more reliable failover
+     mechanism if a host goes down.
 
  BREAKING:
 
