@@ -115,17 +115,6 @@ be returned::
   it returns true when the actual row values are substituted for any
   variable references.
 
-Predicates
-..........
-
-IF / IF NOT
-^^^^^^^^^^^
-
-MATCH
-^^^^^
-
-
-
 .. _sql_reference_group_by:
 
 GROUP BY Clause
@@ -141,11 +130,13 @@ making up each group, producing a separate value for each group.
 
     GROUP BY expression [, ...] [HAVING condition]
 
-:expression: can be an input column name, or the name or ordinal
-  number of an output column, or an arbitrary expression formed from
-  input-column values. In case of ambiguity, a GROUP BY name will be
-  interpreted as an input-column name rather than an output column
-  name.
+:expression: An arbitrary expression formed from column references
+  of the queried relation. Numeric literals are interpreted as ordinals
+  referencing an output column from the select list.
+  It can also reference output columns by name.
+  In case of ambiguity, a GROUP BY name will be
+  interpreted as a name of a column from the queried relation
+  rather than an output column name.
 
 .. _sql_reference_having:
 
