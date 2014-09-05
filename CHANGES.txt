@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated lucene version in client to 4.9.0
+
 2014/09/05 0.42.1
 =================
 
