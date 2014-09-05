@@ -33,6 +33,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
+import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.types.*;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -103,7 +104,7 @@ public class CompoundLiteralTest extends BaseAnalyzerTest {
         assertThat(objectLiteral.value(), is((Object) new MapBuilder<String, Object>().put("ident", 1).map()));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = ParsingException.class)
     public void testObjectLiteralWithFunction() throws Exception {
         analyzeExpression("{a=format('%s.', 'dot')}");
     }

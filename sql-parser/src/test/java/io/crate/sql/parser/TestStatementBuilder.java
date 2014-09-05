@@ -21,6 +21,7 @@
 
 package io.crate.sql.parser;
 
+import antlr.NoViableAltException;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import io.crate.sql.SqlFormatter;
@@ -38,6 +39,7 @@ import static java.lang.String.format;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
@@ -372,19 +374,13 @@ public class TestStatementBuilder
         assertThat(emptyObjectLiteral, instanceOf(ObjectLiteral.class));
         assertThat(((ObjectLiteral)emptyObjectLiteral).values().size(), is(0));
 
-        ObjectLiteral singleObjectLiteral = (ObjectLiteral)SqlParser.createExpression("{a=1}");
-        assertThat(singleObjectLiteral.values().size(), is(1));
-        assertThat(singleObjectLiteral.values().get("a").iterator().next(), instanceOf(LongLiteral.class));
-
-        ObjectLiteral multipleObjectLiteral = (ObjectLiteral)SqlParser.createExpression(
-                "{b=func('abc'), c=identifier, d=1+4, e=-12.56, f=sub['script'], g={}}");
-        assertThat(multipleObjectLiteral.values().size(), is(6));
-        assertThat(multipleObjectLiteral.values().get("b").iterator().next(), instanceOf(FunctionCall.class));
-        assertThat(multipleObjectLiteral.values().get("c").iterator().next(), instanceOf(QualifiedNameReference.class));
-        assertThat(multipleObjectLiteral.values().get("d").iterator().next(), instanceOf(ArithmeticExpression.class));
-        assertThat(multipleObjectLiteral.values().get("e").iterator().next(), instanceOf(NegativeExpression.class));
-        assertThat(multipleObjectLiteral.values().get("f").iterator().next(), instanceOf(SubscriptExpression.class));
-        assertThat(multipleObjectLiteral.values().get("g").iterator().next(), instanceOf(ObjectLiteral.class));
+        ObjectLiteral objectLiteral = (ObjectLiteral)SqlParser.createExpression("{a=1, aa=-1, b='str', c=[], d={}}");
+        assertThat(objectLiteral.values().size(), is(5));
+        assertThat(objectLiteral.values().get("a").iterator().next(), instanceOf(LongLiteral.class));
+        assertThat(objectLiteral.values().get("aa").iterator().next(), instanceOf(NegativeExpression.class));
+        assertThat(objectLiteral.values().get("b").iterator().next(), instanceOf(StringLiteral.class));
+        assertThat(objectLiteral.values().get("c").iterator().next(), instanceOf(ArrayLiteral.class));
+        assertThat(objectLiteral.values().get("d").iterator().next(), instanceOf(ObjectLiteral.class));
 
         ObjectLiteral quotedObjectLiteral = (ObjectLiteral)SqlParser.createExpression(
                 "{\"AbC\"=123}"
@@ -393,6 +389,34 @@ public class TestStatementBuilder
         assertThat(quotedObjectLiteral.values().get("AbC").iterator().next(), instanceOf(LongLiteral.class));
         assertThat(quotedObjectLiteral.values().get("abc").isEmpty(), is(true));
         assertThat(quotedObjectLiteral.values().get("ABC").isEmpty(), is(true));
+
+        try {
+            SqlParser.createExpression("{a=func('abc')");
+            fail();
+        } catch (ParsingException e) {
+            assertThat(e.getMessage(), is("line 1:4: no viable alternative at input 'func'"));
+        }
+
+        try {
+            SqlParser.createExpression("{b=identifier}");
+            fail();
+        } catch (ParsingException e) {
+            assertThat(e.getMessage(), is("line 1:4: no viable alternative at input 'identifier'"));
+        }
+
+        try {
+            SqlParser.createExpression("{c=1+4}");
+            fail();
+        } catch (ParsingException e) {
+            assertThat(e.getMessage(), is("line 1:5: mismatched input '+' expecting '}'"));
+        }
+
+        try {
+            SqlParser.createExpression("{d=sub['script']}");
+            fail();
+        } catch (ParsingException e) {
+            assertThat(e.getMessage(), is("line 1:4: no viable alternative at input 'sub'"));
+        }
     }
 
     @Test
@@ -405,14 +429,12 @@ public class TestStatementBuilder
         assertThat(singleArrayLiteral.values().get(0), instanceOf(LongLiteral.class));
 
         ArrayLiteral multipleArrayLiteral = (ArrayLiteral)SqlParser.createExpression(
-                "[func('abc'), identifier, (1+4), -12.56, sub['script'], ['another', 'array']]");
-        assertThat(multipleArrayLiteral.values().size(), is(6));
-        assertThat(multipleArrayLiteral.values().get(0), instanceOf(FunctionCall.class));
-        assertThat(multipleArrayLiteral.values().get(1), instanceOf(QualifiedNameReference.class));
-        assertThat(multipleArrayLiteral.values().get(2), instanceOf(ArithmeticExpression.class));
-        assertThat(multipleArrayLiteral.values().get(3), instanceOf(NegativeExpression.class));
-        assertThat(multipleArrayLiteral.values().get(4), instanceOf(SubscriptExpression.class));
-        assertThat(multipleArrayLiteral.values().get(5), instanceOf(ArrayLiteral.class));
+                "['str', -12.56, {}, ['another', 'array']]");
+        assertThat(multipleArrayLiteral.values().size(), is(4));
+        assertThat(multipleArrayLiteral.values().get(0), instanceOf(StringLiteral.class));
+        assertThat(multipleArrayLiteral.values().get(1), instanceOf(NegativeExpression.class));
+        assertThat(multipleArrayLiteral.values().get(2), instanceOf(ObjectLiteral.class));
+        assertThat(multipleArrayLiteral.values().get(3), instanceOf(ArrayLiteral.class));
     }
 
 
