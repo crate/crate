@@ -601,7 +601,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             searchSymbols = analysis.outputSymbols();
         }
         ESSearchNode node = new ESSearchNode(
-                indices(analysis),
+                analysis.table().getRouting(analysis.whereClause()),
                 searchSymbols,
                 analysis.sortSymbols(),
                 analysis.reverseFlags(),
@@ -625,7 +625,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     .add(topN);
             if (context.indexWriterProjection.isPresent()) {
                 projectionBuilder.add(context.indexWriterProjection.get());
-            }
+           }
             plan.add(PlanNodeBuilder.localMerge(projectionBuilder.build(), node));
         }
     }
