@@ -493,9 +493,15 @@ simpleExpr
     | STRING
     ;
 
+parameterOrLiteral
+    : parameterOrSimpleLiteral
+    | ('[') => arrayLiteral
+    | ('{') => objectLiteral
+    ;
+
 parameterOrSimpleLiteral
     : NULL
-    | number
+    | numericLiteral
     | parameterExpr
     | bool
     | STRING
@@ -727,7 +733,7 @@ integer
     ;
 
 arrayLiteral
-    : '[' ( expr (',' expr)* )? ']' -> ^(ARRAY_LITERAL expr*)
+    : '[' ( parameterOrLiteral (',' parameterOrLiteral)* )? ']' -> ^(ARRAY_LITERAL parameterOrLiteral*)
     ;
 
 objectLiteral
@@ -735,7 +741,7 @@ objectLiteral
     ;
 
 objectKeyValue
-    : ident EQ expr -> ^(KEY_VALUE ident expr)
+    : ident EQ parameterOrLiteral -> ^(KEY_VALUE ident parameterOrLiteral)
     ;
 
 insertStmt

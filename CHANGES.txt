@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - made parser for object and array literals stricter to allow only literals
+
  - updated crash to 0.10.0
 
  BREAKING:
