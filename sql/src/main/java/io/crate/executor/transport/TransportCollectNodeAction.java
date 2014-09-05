@@ -33,8 +33,6 @@ import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ListenableActionFuture;
-import org.elasticsearch.action.support.PlainListenableActionFuture;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -42,11 +40,12 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.*;
+import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.UUID;
 
 public class TransportCollectNodeAction {
@@ -93,11 +92,10 @@ public class TransportCollectNodeAction {
         return ThreadPool.Names.SEARCH;
     }
 
-    private ListenableActionFuture<NodeCollectResponse> nodeOperation(final NodeCollectRequest request) {
+    private void nodeOperation(final NodeCollectRequest request,
+                               final ActionListener<NodeCollectResponse> collectResponse) {
         final CollectNode node = request.collectNode();
         final ListenableFuture<Object[][]> collectResult;
-        final PlainListenableActionFuture<NodeCollectResponse> collectResponse =
-                new PlainListenableActionFuture<>(false, threadPool);
 
         final UUID operationId;
         if (request.collectNode().jobId().isPresent()) {
@@ -118,7 +116,7 @@ public class TransportCollectNodeAction {
             logger.error("Error when creating result futures", e);
             collectResponse.onFailure(e);
             statsTables.operationFinished(operationId, Exceptions.messageOf(e));
-            return collectResponse;
+            return;
         }
 
         Futures.addCallback(collectResult, new FutureCallback<Object[][]>() {
@@ -139,7 +137,6 @@ public class TransportCollectNodeAction {
                 statsTables.operationFinished(operationId, Exceptions.messageOf(t));
             }
         });
-        return collectResponse;
     }
 
     private class AsyncAction {
@@ -169,22 +166,7 @@ public class TransportCollectNodeAction {
                 threadPool.executor(executor).execute(new Runnable() {
                     @Override
                     public void run() {
-                        try {
-                            ListenableActionFuture<NodeCollectResponse> collectResponseFuture = nodeOperation(request);
-                            collectResponseFuture.addListener(new ActionListener<NodeCollectResponse>() {
-                                @Override
-                                public void onResponse(NodeCollectResponse nodeCollectResponse) {
-                                    listener.onResponse(nodeCollectResponse);
-                                }
-
-                                @Override
-                                public void onFailure(Throwable e) {
-                                    listener.onFailure(e);
-                                }
-                            });
-                        } catch (Throwable e) {
-                            listener.onFailure(e);
-                        }
+                        nodeOperation(request, listener);
                     }
                 });
             } else {
@@ -192,26 +174,10 @@ public class TransportCollectNodeAction {
                         node,
                         transportAction,
                         request,
-                        new BaseTransportResponseHandler<NodeCollectResponse>() {
-
+                        new DefaultTransportResponseHandler<NodeCollectResponse>(listener, executor) {
                             @Override
                             public NodeCollectResponse newInstance() {
                                 return new NodeCollectResponse(streamers);
-                            }
-
-                            @Override
-                            public void handleResponse(NodeCollectResponse response) {
-                                listener.onResponse(response);
-                            }
-
-                            @Override
-                            public void handleException(TransportException exp) {
-                                listener.onFailure(exp);
-                            }
-
-                            @Override
-                            public String executor() {
-                                return executor;
                             }
                         }
                 );
@@ -229,29 +195,8 @@ public class TransportCollectNodeAction {
 
         @Override
         public void messageReceived(final NodeCollectRequest request, final TransportChannel channel) throws Exception {
-            try {
-                nodeOperation(request).addListener(new ActionListener<NodeCollectResponse>() {
-                    @Override
-                    public void onResponse(NodeCollectResponse response) {
-                        try {
-                            channel.sendResponse(response);
-                        } catch (IOException e) {
-                            logger.error("Error sending collect response", e);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Throwable e) {
-                        try {
-                            channel.sendResponse(e);
-                        } catch (IOException e1) {
-                            logger.error("Error sending collect failure", e1);
-                        }
-                    }
-                });
-            } catch (Exception e) {
-                channel.sendResponse(e);
-            }
+            ActionListener<NodeCollectResponse> actionListener = ResponseForwarder.forwardTo(channel);
+            nodeOperation(request, actionListener);
         }
 
         @Override

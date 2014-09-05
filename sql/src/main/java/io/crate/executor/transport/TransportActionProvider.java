@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -44,9 +45,10 @@ public class TransportActionProvider {
     private final Provider<TransportShardBulkAction> transportShardBulkActionProvider;
     private final Provider<TransportCollectNodeAction> transportCollectNodeActionProvider;
     private final Provider<TransportMergeNodeAction> transportMergeNodeActionProvider;
+    private final Provider<TransportSearchAction> transportSearchActionProvider;
 
     private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
-    private final Provider<TransportDeleteIndexAction> transportDeleleteIndexActionProvider;
+    private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
     private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider;
     private final Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider;
     private final Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider;
@@ -57,7 +59,7 @@ public class TransportActionProvider {
     private final Provider<TransportGetAction> transportGetActionProvider;
     private final Provider<TransportMultiGetAction> transportMultiGetActionProvider;
     private final Provider<TransportIndexAction> transportIndexActionProvider;
-    private final Provider<TransportSearchAction> transportSearchActionProvider;
+    private final Provider<TransportQueryShardAction> transportQueryShardActionProvider;
     private final Provider<TransportUpdateAction> transportUpdateActionProvider;
 
     @Inject
@@ -65,7 +67,7 @@ public class TransportActionProvider {
                                    Provider<TransportCollectNodeAction> transportCollectNodeActionProvider,
                                    Provider<TransportMergeNodeAction> transportMergeNodeActionProvider,
                                    Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
-                                   Provider<TransportDeleteIndexAction> transportDeleleteIndexActionProvider,
+                                   Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
                                    Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider,
                                    Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider,
                                    Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider,
@@ -75,10 +77,11 @@ public class TransportActionProvider {
                                    Provider<TransportGetAction> transportGetActionProvider,
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
                                    Provider<TransportIndexAction> transportIndexActionProvider,
-                                   Provider<TransportSearchAction> transportSearchActionProvider,
-                                   Provider<TransportUpdateAction> transportUpdateActionProvider) {
+                                   Provider<TransportUpdateAction> transportUpdateActionProvider,
+                                   Provider<TransportQueryShardAction> transportQueryShardActionProvider,
+                                   Provider<TransportSearchAction> transportSearchActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
-        this.transportDeleleteIndexActionProvider = transportDeleleteIndexActionProvider;
+        this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
         this.transportDeleteIndexTemplateActionProvider = transportDeleteIndexTemplateActionProvider;
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
@@ -88,11 +91,12 @@ public class TransportActionProvider {
         this.transportGetActionProvider = transportGetActionProvider;
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
         this.transportIndexActionProvider = transportIndexActionProvider;
-        this.transportSearchActionProvider = transportSearchActionProvider;
+        this.transportQueryShardActionProvider = transportQueryShardActionProvider;
         this.transportUpdateActionProvider = transportUpdateActionProvider;
         this.transportShardBulkActionProvider = transportShardBulkActionProvider;
         this.transportCollectNodeActionProvider = transportCollectNodeActionProvider;
         this.transportMergeNodeActionProvider = transportMergeNodeActionProvider;
+        this.transportSearchActionProvider = transportSearchActionProvider;
     }
 
 
@@ -101,7 +105,7 @@ public class TransportActionProvider {
     }
 
     public TransportDeleteIndexAction transportDeleteIndexAction() {
-        return transportDeleleteIndexActionProvider.get();
+        return transportDeleteIndexActionProvider.get();
     }
 
     public TransportPutIndexTemplateAction transportPutIndexTemplateAction() {
@@ -140,10 +144,6 @@ public class TransportActionProvider {
         return transportIndexActionProvider.get();
     }
 
-    public TransportSearchAction transportSearchAction() {
-        return transportSearchActionProvider.get();
-    }
-
     public TransportUpdateAction transportUpdateAction() {
         return transportUpdateActionProvider.get();
     }
@@ -158,5 +158,13 @@ public class TransportActionProvider {
 
     public TransportMergeNodeAction transportMergeNodeAction() {
         return transportMergeNodeActionProvider.get();
+    }
+
+    public TransportQueryShardAction transportQueryShardAction() {
+        return transportQueryShardActionProvider.get();
+    }
+
+    public TransportSearchAction transportSearchAction() {
+        return transportSearchActionProvider.get();
     }
 }

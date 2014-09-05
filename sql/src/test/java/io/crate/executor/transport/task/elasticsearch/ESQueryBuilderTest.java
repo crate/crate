@@ -397,7 +397,7 @@ public class ESQueryBuilderTest {
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(0.4))
         );
-        ESSearchNode node = new ESSearchNode(new String[]{"something"},
+        ESSearchNode node = new ESSearchNode(new Routing(),
                 ImmutableList.<Symbol>of(), null, null, null, null, null, new WhereClause(whereClause), null);
         BytesReference bytesReference = generator.convert(node);
 
@@ -411,7 +411,7 @@ public class ESQueryBuilderTest {
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Marvin")));
 
         ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+                new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(),
                 new boolean[0],
@@ -455,7 +455,7 @@ public class ESQueryBuilderTest {
     public void testSelect_OnlyVersion() throws Exception {
         Reference version_ref = createReference("_version", DataTypes.INTEGER);
         ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+                new Routing(),
                 ImmutableList.<Symbol>of(version_ref),
                 null,
                 null,
@@ -491,7 +491,7 @@ public class ESQueryBuilderTest {
                 ColumnIdent.getChild(author.info().ident().columnIdent(), "age"), DataTypes.INTEGER);
 
         ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+                new Routing(),
                 ImmutableList.<Symbol>of(author, age),
                 null,
                 null,
@@ -511,7 +511,7 @@ public class ESQueryBuilderTest {
     public void testSelect_excludePartitionedColumns() throws Exception {
         PartitionName partitionName = new PartitionName(characters.name(), Arrays.asList(new BytesRef("0.5")));
         ESSearchNode searchNode = new ESSearchNode(
-                new String[]{partitionName.stringValue()},
+                new Routing(),
                 ImmutableList.<Symbol>of(name_ref, weight_ref),
                 null,
                 null,
@@ -655,7 +655,7 @@ public class ESQueryBuilderTest {
                 )
         );
         ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+                new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(distanceFunction),
                 new boolean[] { false },
@@ -683,7 +683,7 @@ public class ESQueryBuilderTest {
                 )
         );
         ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+                new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(distanceFunction),
                 new boolean[] { false },
@@ -707,7 +707,7 @@ public class ESQueryBuilderTest {
                 )
         );
         ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+                new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(distanceFunction),
                 new boolean[] { false },
@@ -728,7 +728,7 @@ public class ESQueryBuilderTest {
                 Arrays.<Symbol>asList(createReference("price", DataTypes.DOUBLE))
         );
         ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+                new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(scalarFunction),
                 new boolean[] { false },
