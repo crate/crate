@@ -82,6 +82,7 @@ import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.InternalSearchService;
 import org.elasticsearch.search.SearchService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -206,7 +207,7 @@ public class LocalDataCollectTest {
             bind(ThreadPool.class).toInstance(testThreadPool);
 
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
-            bind(SearchService.class).toInstance(mock(SearchService.class));
+            bind(SearchService.class).toInstance(mock(InternalSearchService.class));
             bind(AllocationService.class).toInstance(mock(AllocationService.class));
             bind(DynamicSettings.class).annotatedWith(ClusterDynamicSettings.class).toInstance(mock(DynamicSettings.class));
             bind(MetaDataDeleteIndexService.class).toInstance(mock(MetaDataDeleteIndexService.class));

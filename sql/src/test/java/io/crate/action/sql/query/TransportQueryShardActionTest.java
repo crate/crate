@@ -23,12 +23,15 @@ package io.crate.action.sql.query;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.analyze.WhereClause;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.search.query.QuerySearchResult;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -49,10 +52,20 @@ public class TransportQueryShardActionTest extends SQLTransportIntegrationTest {
         DiscoveryNode[] discoveryNodes = clusterService.state().nodes().nodes().values().toArray(DiscoveryNode.class);
         queryShardAction.execute(
                 discoveryNodes[1].id(),
-                new QueryShardRequest("foo", 1, ImmutableList.<Symbol>of(), ImmutableList.<Symbol>of()),
-                new ActionListener<QueryShardResponse>() {
+                new QueryShardRequest("foo",
+                        1,
+                        ImmutableList.<Symbol>of(),
+                        ImmutableList.<Symbol>of(),
+                        new boolean[0],
+                        new Boolean[0],
+                        10,
+                        0,
+                        WhereClause.MATCH_ALL,
+                        ImmutableList.<ReferenceInfo>of()
+                ),
+                new ActionListener<QuerySearchResult>() {
                     @Override
-                    public void onResponse(QueryShardResponse queryShardResponse) {
+                    public void onResponse(QuerySearchResult queryShardResponse) {
                         response.set(true);
                     }
 
