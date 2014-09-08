@@ -553,7 +553,7 @@ Set and Reset
 =============
 
 The crate cluster can be configured at runtime using the ``SET`` and ``RESET`` statement.
-If used with ``PERSISTENT`` the change will survive a cluster restart, if used with
+If ``SET`` is used with ``PERSISTENT`` the change will survive a cluster restart, if used with
 ``TRANSIENT`` the value will be restored to default or config file value on a restart::
 
     cr> SET GLOBAL PERSISTENT collect_stats = false;
@@ -585,3 +585,18 @@ You can change multiple values at once::
     +-----------------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
+Using the ``RESET`` statement, a setting will be reset to either on
+node startup defined configuration file value or to its default value::
+
+    cr> RESET GLOBAL collect_stats, operations_log_size;
+    RESET OK (... sec)
+
+::
+
+    cr> select sys.cluster.settings from sys.cluster;
+    +-------------------------------------------------------------------------------+
+    | sys.cluster.settings                                                          |
+    +-------------------------------------------------------------------------------+
+    | {"collect_stats": false, "jobs_log_size": 1024, "operations_log_size": 10000} |
+    +-------------------------------------------------------------------------------+
+    SELECT 1 row in set (... sec)

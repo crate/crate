@@ -21,15 +21,21 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.Sets;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.SetStatement;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 import java.util.Locale;
+import java.util.Set;
 
 public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAnalysis> {
+
+    private final ESLogger logger = Loggers.getLogger(this.getClass());
 
     @Override
     public Void visitSetStatement(SetStatement node, SetAnalysis context) {
@@ -51,19 +57,26 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
 
     @Override
     public Void visitResetStatement(ResetStatement node, SetAnalysis context) {
-        context.persistent(node.settingType().equals(SetStatement.SettingType.PERSISTENT));
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        context.isReset(true);
+        if (node.settingType() != null) {
+            // Warn about deprecated persistence token
+            // TODO: remove persistence token at parser later on
+            logger.warn("[RESET] Persistence keyword {} has been deprecated", node.settingType().name());
+        }
+        Set<String> settingsToRemove = Sets.newHashSet();
         for (Expression expression : node.columns()) {
             String settingsName = normalizeKey(
                     ExpressionToStringVisitor.convert(expression, context.parameters())
             );
-            SettingsApplier settingsApplier = context.getSetting(settingsName);
-            if (settingsApplier == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
+            if (!settingsToRemove.contains(settingsName)) {
+                Set<String> settingNames = context.settingNamesByPrefix(settingsName);
+                if (settingNames.size() == 0) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
+                }
+                settingsToRemove.addAll(settingNames);
             }
-            builder.put(settingsApplier.getDefault()); // put default values
         }
-        context.settings(builder.build());
+        context.settingsToRemove(settingsToRemove);
         return null;
     }
 

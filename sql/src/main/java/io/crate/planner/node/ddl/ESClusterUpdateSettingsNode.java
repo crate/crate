@@ -25,10 +25,15 @@ import io.crate.planner.node.PlanVisitor;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
+import java.util.Set;
+
 public class ESClusterUpdateSettingsNode extends DDLPlanNode {
 
     private final Settings persistentSettings;
     private final Settings transientSettings;
+    private final Set<String> transientSettingsToRemove;
+    private final Set<String> persistentSettingsToRemove;
 
     public ESClusterUpdateSettingsNode(Settings persistentSettings,
                                        Settings transientSettings) {
@@ -37,10 +42,23 @@ public class ESClusterUpdateSettingsNode extends DDLPlanNode {
         // on cluster settings merge, which prefers the transient ones over the persistent ones
         // which we don't
         this.transientSettings = ImmutableSettings.builder().put(persistentSettings).put(transientSettings).build();
+        persistentSettingsToRemove = null;
+        transientSettingsToRemove = null;
     }
 
     public ESClusterUpdateSettingsNode(Settings persistentSettings) {
         this(persistentSettings, persistentSettings); // override stale transient settings too in that case
+    }
+
+    public ESClusterUpdateSettingsNode(Set<String> persistentSettingsToRemove, Set<String> transientSettingsToRemove) {
+        this.persistentSettingsToRemove = persistentSettingsToRemove;
+        this.transientSettingsToRemove = transientSettingsToRemove;
+        persistentSettings = ImmutableSettings.EMPTY;
+        transientSettings = ImmutableSettings.EMPTY;
+    }
+
+    public ESClusterUpdateSettingsNode(Set<String> persistentSettingsToRemove) {
+        this(persistentSettingsToRemove, persistentSettingsToRemove);
     }
 
     public Settings persistentSettings() {
@@ -49,6 +67,16 @@ public class ESClusterUpdateSettingsNode extends DDLPlanNode {
 
     public Settings transientSettings() {
         return transientSettings;
+    }
+
+    @Nullable
+    public Set<String> persistentSettingsToRemove() {
+        return persistentSettingsToRemove;
+    }
+
+    @Nullable
+    public Set<String> transientSettingsToRemove() {
+        return transientSettingsToRemove;
     }
 
     @Override

@@ -405,10 +405,16 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     public Plan visitSetAnalysis(SetAnalysis analysis, Context context) {
         Plan plan = new Plan();
         ESClusterUpdateSettingsNode node;
-        if (analysis.isPersistent()) {
-            node = new ESClusterUpdateSettingsNode(analysis.settings());
+        if (analysis.isReset()) {
+            // always reset persistent AND transient settings
+            node = new ESClusterUpdateSettingsNode(
+                    analysis.settingsToRemove(), analysis.settingsToRemove());
         } else {
-            node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
+            if (analysis.isPersistent()) {
+                node = new ESClusterUpdateSettingsNode(analysis.settings());
+            } else {
+                node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
+            }
         }
         plan.add(node);
         plan.expectsAffectedRows(true);

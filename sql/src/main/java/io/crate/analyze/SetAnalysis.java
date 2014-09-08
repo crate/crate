@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.SchemaInfo;
@@ -31,6 +32,7 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class SetAnalysis extends Analysis {
 
@@ -44,7 +46,9 @@ public class SetAnalysis extends Analysis {
             .build();
 
     private Settings settings;
+    private Set<String> settingsToRemove;
     private boolean persistent = false;
+    private boolean isReset = false;
 
     protected SetAnalysis(Analyzer.ParameterContext parameterContext) {
         super(parameterContext);
@@ -58,6 +62,15 @@ public class SetAnalysis extends Analysis {
         this.settings = settings;
     }
 
+    @Nullable
+    public Set<String> settingsToRemove() {
+        return settingsToRemove;
+    }
+
+    public void settingsToRemove(Set<String> settingsToRemove) {
+        this.settingsToRemove = settingsToRemove;
+    }
+
     public boolean isPersistent() {
         return persistent;
     }
@@ -66,12 +79,34 @@ public class SetAnalysis extends Analysis {
         return !persistent;
     }
 
+    public boolean isReset() {
+        return isReset;
+    }
+
+    public void isReset(boolean isReset) {
+        this.isReset = isReset;
+    }
+
     public void persistent(boolean persistent) {
         this.persistent = persistent;
     }
 
     public @Nullable SettingsApplier getSetting(String name) {
         return SUPPORTED_SETTINGS.get(name);
+    }
+
+    public Set<String> settingNamesByPrefix(String prefix) {
+        Set<String> settingNames = Sets.newHashSet();
+        if (SUPPORTED_SETTINGS.containsKey(prefix)) {
+            settingNames.add(prefix);
+        }
+        prefix += ".";
+        for (String name : SUPPORTED_SETTINGS.keySet()) {
+            if (name.startsWith(prefix)) {
+                settingNames.add(name);
+            }
+        }
+        return settingNames;
     }
 
     @Override
@@ -96,7 +131,13 @@ public class SetAnalysis extends Analysis {
 
     @Override
     public boolean hasNoResult() {
-        return settings.getAsMap().isEmpty();
+        if (settings != null) {
+            return settings.getAsMap().isEmpty();
+        }
+        if (settingsToRemove != null) {
+            return settingsToRemove.size() == 0;
+        }
+        return true;
     }
 
     @Override
