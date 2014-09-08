@@ -51,8 +51,14 @@ public class Plan implements Iterable<PlanNode> {
         return expectsAffectedRows;
     }
 
+    /**
+     * @return a list of {@linkplain io.crate.types.DataType}s
+     *         that the output columns of a response created from a successful execution
+     *         of this plan will have.
+     *         Returns an empty list of there are no output columns.
+     */
     public List<DataType> outputTypes() {
-        if (nodes.isEmpty()) {
+        if (nodes.isEmpty() || expectsAffectedRows) {
             return ImmutableList.of();
         }
         return nodes.get(nodes.size() -1).outputTypes();

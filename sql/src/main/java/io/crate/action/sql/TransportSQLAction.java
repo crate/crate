@@ -42,6 +42,7 @@ import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 
@@ -65,17 +66,40 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
     }
 
     @Override
-    public SQLResponse emptyResponse(String[] outputNames, long requestCreationTime) {
-        return new SQLResponse(outputNames, TaskResult.EMPTY_RESULT.rows(), 0L, requestCreationTime);
+    public SQLResponse emptyResponse(SQLRequest request,
+                                     String[] outputNames,
+                                     @Nullable DataType[] types) {
+        return new SQLResponse(outputNames,
+                TaskResult.EMPTY_RESULT.rows(),
+                types,
+                0L,
+                request.creationTime(),
+                request.includeTypesOnResponse());
     }
 
     @Override
-    protected SQLResponse createResponseFromResult(String[] outputNames, Long rowCount, long requestCreationTime) {
+    protected SQLResponse emptyResponse(SQLRequest request, Plan plan, String[] outputNames) {
         return new SQLResponse(
                 outputNames,
                 TaskResult.EMPTY_RESULT.rows(),
+                plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
+                0L,
+                request.creationTime,
+                request.includeTypesOnResponse());
+    }
+
+    @Override
+    protected SQLResponse createResponseFromResult(SQLRequest request,
+                                                   String[] outputNames,
+                                                   Long rowCount,
+                                                   @Nullable DataType[] types) {
+        return new SQLResponse(
+                outputNames,
+                TaskResult.EMPTY_RESULT.rows(),
+                types,
                 Objects.firstNonNull(rowCount, SQLResponse.NO_ROW_COUNT),
-                requestCreationTime
+                request.creationTime(),
+                request.includeTypesOnResponse()
         );
     }
 
@@ -100,18 +124,14 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
 
         DataType[] dataTypes = plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]);
         BytesRefUtils.ensureStringTypesAreStrings(dataTypes, rows);
-        if (includeTypesOnResponse) {
-            return new SQLResponse(
-                    outputNames,
-                    rows,
-                    dataTypes,
-                    rowCount,
-                    requestCreationTime,
-                    true
-            );
-        } else {
-            return new SQLResponse(outputNames, rows, rowCount, requestCreationTime);
-        }
+        return new SQLResponse(
+                outputNames,
+                rows,
+                dataTypes,
+                rowCount,
+                requestCreationTime,
+                includeTypesOnResponse
+        );
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {

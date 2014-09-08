@@ -22,12 +22,17 @@
 package io.crate.integrationtests;
 
 
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
+import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
 public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
@@ -144,4 +149,74 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         ensureYellow();
     }
 
-}
+    @Test
+    public void testSelectNoResultWithTypes() throws Exception {
+        assertResponseWithTypes("select * from sys.nodes where 1=0");
+    }
+
+    @Test
+    public void testInsertBulkWithTypes() throws Exception {
+        execute("create table bla1 (id integer primary key, name string) " +
+                "clustered into 2 shards with (number_of_replicas=0)");
+        ensureGreen();
+
+        assertBulkResponseWithTypes("insert into bla1 (id, name) values (?, ?)",
+                new Object[][]{
+                        new Object[]{1, "Ford"},
+                        new Object[]{2, "Trillian"}
+                });
+    }
+
+    private void assertBulkResponseWithTypes(String stmt, Object[][] bulkArgs) {
+        SQLBulkRequest request = new SQLBulkRequest(stmt, bulkArgs);
+        request.includeTypesOnResponse(true);
+        SQLBulkResponse sqlResponse = sqlExecutor.exec(request);
+        assertThat(sqlResponse.columnTypes(), is(notNullValue()));
+        assertThat(sqlResponse.columnTypes().length, is(sqlResponse.cols().length));
+    }
+
+    @Test
+    public void testSelectUnknownNoResultWithTypes() throws Exception {
+        execute("create table unknown (id integer primary key, name string) " +
+                "clustered into 2 shards with (number_of_replicas=0)");
+        ensureGreen();
+
+        assertResponseWithTypes("select bla from unknown where 1=0");
+    }
+
+    @Test
+    public void testDMLStatementsWithTypes() throws Exception {
+        execute("create table bla (id integer primary key, name string) " +
+                "clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        assertResponseWithTypes("insert into bla (id, name) (select 4, 'Trillian' from sys.cluster)");
+        assertResponseWithTypes("insert into bla (id, name) values (1, 'Ford')");
+        assertResponseWithTypes("update bla set name='Arthur' where name ='Ford'");
+        assertResponseWithTypes("update bla set name='Arthur' where id=1");
+        assertResponseWithTypes("delete from bla where id=1");
+        assertResponseWithTypes("delete from bla where name='Ford'");
+
+    }
+
+    @Test
+    public void testDDLStatementsWithTypes() throws Exception {
+        assertResponseWithTypes("create table bla2 (id integer primary key, name string) " +
+                "clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        assertResponseWithTypes("alter table bla2 add column blubb string");
+        assertResponseWithTypes("refresh table bla2");
+        assertResponseWithTypes("drop table bla2");
+        assertResponseWithTypes("create blob table blablob2 clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        assertResponseWithTypes("drop blob table blablob2");
+        assertResponseWithTypes("create ANALYZER \"german_snowball\" extends snowball WITH (language='german')");
+    }
+
+    private void assertResponseWithTypes(String stmt) {
+        SQLRequest request = new SQLRequest(stmt);
+        request.includeTypesOnResponse(true);
+        SQLResponse sqlResponse = sqlExecutor.exec(request);
+        assertThat(sqlResponse.columnTypes(), is(notNullValue()));
+        assertThat(sqlResponse.columnTypes().length, is(sqlResponse.cols().length));
+    }
+ }

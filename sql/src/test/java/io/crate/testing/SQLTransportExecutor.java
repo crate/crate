@@ -63,16 +63,32 @@ public class SQLTransportExecutor {
         return execute(statement, params).actionGet();
     }
 
+    public SQLResponse exec(SQLRequest request) {
+        return execute(request).actionGet();
+    }
+
     public SQLBulkResponse exec(String statement, Object[][] bulkArgs) {
         return execute(statement, bulkArgs).actionGet();
+    }
+
+    public SQLBulkResponse exec(SQLBulkRequest request) {
+        return execute(request).actionGet();
     }
 
     public ActionFuture<SQLResponse> execute(String statement, Object[] params) {
         return clientProvider.client().execute(SQLAction.INSTANCE, new SQLRequest(statement, params));
     }
 
+    public ActionFuture<SQLResponse> execute(SQLRequest request) {
+        return clientProvider.client().execute(SQLAction.INSTANCE, request);
+    }
+
     public ActionFuture<SQLBulkResponse> execute(String statement, Object[][] bulkArgs) {
         return clientProvider.client().execute(SQLBulkAction.INSTANCE, new SQLBulkRequest(statement, bulkArgs));
+    }
+
+    public ActionFuture<SQLBulkResponse> execute(SQLBulkRequest request) {
+        return clientProvider.client().execute(SQLBulkAction.INSTANCE, request);
     }
 
     public ClusterHealthStatus ensureGreen() {

@@ -56,6 +56,7 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
     public SQLBaseResponse() {} // used for serialization
 
     public SQLBaseResponse(String[] cols, DataType[] colTypes, boolean includeTypes, long requestStartedTime) {
+        assert cols.length == colTypes.length : "cols and colTypes differ";
         this.cols = cols;
         this.colTypes = colTypes;
         this.includeTypes = includeTypes;

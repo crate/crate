@@ -40,6 +40,7 @@ import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkRequest, SQLBulkResponse> {
@@ -63,13 +64,30 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
     }
 
     @Override
-    protected SQLBulkResponse emptyResponse(String[] outputNames, long requestCreationTime) {
-        return new SQLBulkResponse(outputNames, SQLBulkResponse.EMPTY_RESULTS, requestCreationTime,
-                SQLBulkResponse.EMPTY_TYPES, false);
+    protected SQLBulkResponse emptyResponse(SQLBulkRequest request, String[] outputNames, @Nullable DataType[] types) {
+        return new SQLBulkResponse(
+                outputNames,
+                SQLBulkResponse.EMPTY_RESULTS,
+                request.creationTime(),
+                types,
+                request.includeTypesOnResponse());
     }
 
     @Override
-    protected SQLBulkResponse createResponseFromResult(String[] outputNames, Long rowCount, long requestCreationTime) {
+    protected SQLBulkResponse emptyResponse(SQLBulkRequest request, Plan plan, String[] outputNames) {
+        DataType[] dataTypes = plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]);
+        return new SQLBulkResponse(outputNames,
+                SQLBulkResponse.EMPTY_RESULTS,
+                request.creationTime(),
+                dataTypes,
+                request.includeTypesOnResponse());
+    }
+
+    @Override
+    protected SQLBulkResponse createResponseFromResult(SQLBulkRequest request,
+                                                       String[] outputNames,
+                                                       Long rowCount,
+                                                       @Nullable DataType[] types) {
         // this is just a post-apocalypse-error... should be thrown in the analyzer/planner
         throw new UnsupportedOperationException("statement cannot be executed as bulk operation");
     }

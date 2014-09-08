@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: return column types if requested even on responses with no results
+
  - updated lucene version in client to 4.9.0
 
 2014/09/05 0.42.1
