@@ -27,6 +27,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
@@ -40,38 +41,45 @@ public class TransportQueryShardAction {
     private final static String executorName = ThreadPool.Names.SEARCH;
     private final ClusterService clusterService;
     private final Executor executor;
+    private final CrateSearchService searchService;
     private final TransportService transportService;
 
     @Inject
     public TransportQueryShardAction(ClusterService clusterService,
                                      ThreadPool threadPool,
+                                     CrateSearchService searchService,
                                      TransportService transportService) {
+        this.searchService = searchService;
         this.transportService = transportService;
         this.clusterService = clusterService;
         executor = threadPool.executor(executorName);
         transportService.registerHandler(transportAction, new TransportHandler());
     }
 
-    public void execute(String node, QueryShardRequest request, ActionListener<QueryShardResponse> listener) {
+    public void execute(String node, QueryShardRequest request, ActionListener<QuerySearchResult> listener) {
         new AsyncAction(node, request, listener).start();
     }
 
-    private void shardOperation(QueryShardRequest request, ActionListener<QueryShardResponse> listener) {
-        // do stuff
-        listener.onResponse(new QueryShardResponse());
+    private void shardOperation(QueryShardRequest request, ActionListener<QuerySearchResult> listener) {
+        try {
+            QuerySearchResult querySearchResult = searchService.executeQueryPhase(request);
+            listener.onResponse(querySearchResult);
+        } catch (Exception e) {
+            listener.onFailure(e);
+        }
     }
 
     private class AsyncAction {
         private final String nodeId;
         private final QueryShardRequest request;
-        private final ActionListener<QueryShardResponse> listener;
         private final ClusterState clusterState;
+        private final ActionListener<QuerySearchResult> listener;
 
-        private AsyncAction(String node, QueryShardRequest request, ActionListener<QueryShardResponse> listener) {
+        private AsyncAction(String node, QueryShardRequest request, ActionListener<QuerySearchResult> listener) {
+            this.listener = listener;
             clusterState = clusterService.state();
             this.nodeId = node;
             this.request = request;
-            this.listener = listener;
         }
 
         public void start() {
@@ -87,10 +95,10 @@ public class TransportQueryShardAction {
                         clusterState.nodes().get(nodeId),
                         transportAction,
                         request,
-                        new DefaultTransportResponseHandler<QueryShardResponse>(listener, executorName) {
+                        new DefaultTransportResponseHandler<QuerySearchResult>(listener, executorName) {
                             @Override
-                            public QueryShardResponse newInstance() {
-                                return new QueryShardResponse();
+                            public QuerySearchResult newInstance() {
+                                return new QuerySearchResult();
                             }
                         }
                 );
@@ -108,7 +116,7 @@ public class TransportQueryShardAction {
 
         @Override
         public void messageReceived(QueryShardRequest request, TransportChannel channel) throws Exception {
-            ActionListener<QueryShardResponse> listener = ResponseForwarder.forwardTo(channel);
+            ActionListener<QuerySearchResult> listener = ResponseForwarder.forwardTo(channel);
             shardOperation(request, listener);
         }
 

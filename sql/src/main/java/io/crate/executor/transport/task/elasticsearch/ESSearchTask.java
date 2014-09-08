@@ -21,10 +21,12 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.base.Throwables;
+import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.exceptions.FailedShardsException;
+import io.crate.action.sql.query.QueryShardRequest;
+import io.crate.action.sql.query.TransportQueryShardAction;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
@@ -34,73 +36,99 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.search.*;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.ShardSearchFailure;
+import org.elasticsearch.action.support.TransportActions;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchShardTarget;
+import org.elasticsearch.search.action.SearchServiceListener;
+import org.elasticsearch.search.action.SearchServiceTransportAction;
+import org.elasticsearch.search.controller.SearchPhaseController;
+import org.elasticsearch.search.fetch.FetchSearchRequest;
+import org.elasticsearch.search.fetch.FetchSearchResult;
+import org.elasticsearch.search.internal.InternalSearchResponse;
+import org.elasticsearch.search.query.QueryPhaseExecutionException;
+import org.elasticsearch.search.query.QuerySearchResult;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ESSearchTask implements Task<QueryResult> {
 
     private final ESLogger logger = Loggers.getLogger(this.getClass());
 
     private final ESSearchNode searchNode;
-    private final TransportSearchAction transportSearchAction;
+    private final TransportQueryShardAction transportQueryShardAction;
+    private final SearchServiceTransportAction searchServiceTransportAction;
+    private final SearchPhaseController searchPhaseController;
     private final SettableFuture<QueryResult> result;
     private final List<ListenableFuture<QueryResult>> results;
-    private final ESQueryBuilder queryBuilder;
+
+    private final Routing routing;
+    private final AtomicArray<IntArrayList> docIdsToLoad;
+    private final List<Tuple<String, QueryShardRequest>> requests;
+    private final AtomicArray<QuerySearchResult> firstResults;
+    private final AtomicArray<FetchSearchResult> fetchResults;
+    private final DiscoveryNodes nodes;
+    private final ESFieldExtractor[] extractor;
+    private final int numColumns;
+    private final ClusterState state;
+    volatile ScoreDoc[] sortedShardList;
+    private volatile AtomicArray<ShardSearchFailure> shardFailures;
+    private final Object shardFailuresMutex = new Object();
+
+
+    /**
+     * dummy request required to re-use the searchService transport
+     */
+    private final static SearchRequest EMPTY_SEARCH_REQUEST = new SearchRequest();
 
 
     public ESSearchTask(ESSearchNode searchNode,
-                        TransportSearchAction transportSearchAction) {
+                        ClusterService clusterService,
+                        TransportQueryShardAction transportQueryShardAction,
+                        SearchServiceTransportAction searchServiceTransportAction,
+                        SearchPhaseController searchPhaseController) {
         this.searchNode = searchNode;
-        this.transportSearchAction = transportSearchAction;
-        this.queryBuilder = new ESQueryBuilder();
+        this.transportQueryShardAction = transportQueryShardAction;
+        this.searchServiceTransportAction = searchServiceTransportAction;
+        this.searchPhaseController = searchPhaseController;
+
+        state = clusterService.state();
+        nodes = state.nodes();
 
         result = SettableFuture.create();
         results = Arrays.<ListenableFuture<QueryResult>>asList(result);
+
+        routing = searchNode.routing();
+        requests = prepareRequests(routing.locations());
+        docIdsToLoad = new AtomicArray<>(requests.size());
+        firstResults = new AtomicArray<>(requests.size());
+        fetchResults = new AtomicArray<>(requests.size());
+
+        extractor = buildExtractor(searchNode.outputs());
+        numColumns = searchNode.outputs().size();
     }
 
-    @Override
-    public void start() {
-        Routing routing = searchNode.routing();
-        if (!routing.hasLocations()) {
-            result.set(QueryResult.EMPTY_RESULT);
-        }
-        List<String> indices = new ArrayList<>();
-
-        for (Map<String, Set<Integer>> stringSetMap : routing.locations().values()) {
-            indices.addAll(stringSetMap.keySet());
-        }
-        final ESFieldExtractor[] extractor = buildExtractor(searchNode.outputs());
-        final int numColumns = searchNode.outputs().size();
-
-
-        SearchRequest request = new SearchRequest();
-
-        try {
-            request.source(queryBuilder.convert(searchNode), false);
-            request.indices(indices.toArray(new String[indices.size()]));
-            request.routing(searchNode.whereClause().clusteredBy().orNull());
-
-            if (logger.isDebugEnabled()) {
-                logger.debug(request.source().toUtf8());
-            }
-            transportSearchAction.execute(request, new SearchResponseListener(result, extractor, numColumns));
-        } catch (IOException e) {
-            result.setException(e);
-        }
-    }
-
-    private ESFieldExtractor[] buildExtractor(final List<? extends Symbol> outputs) {
+    private ESFieldExtractor[] buildExtractor(final List<Symbol> outputs) {
         ESFieldExtractor[] extractors = new ESFieldExtractor[outputs.size()];
         int i = 0;
-        for (Symbol symbol : outputs) {
-            Reference reference = ((Reference) symbol);
+        for (Symbol output : outputs) {
+            assert output instanceof Reference;
+            Reference reference = ((Reference) output);
             final ColumnIdent columnIdent = reference.info().ident().columnIdent();
             if (DocSysColumns.VERSION.equals(columnIdent)) {
                 extractors[i] = new ESFieldExtractor() {
@@ -150,6 +178,177 @@ public class ESSearchTask implements Task<QueryResult> {
     }
 
     @Override
+    public void start() {
+        if (!routing.hasLocations() || requests.size() == 0) {
+            result.set(QueryResult.EMPTY_RESULT);
+        }
+
+        state.blocks().globalBlockedRaiseException(ClusterBlockLevel.READ);
+        AtomicInteger totalOps = new AtomicInteger(0);
+
+        int requestIdx = -1;
+        for (Tuple<String, QueryShardRequest> requestTuple : requests) {
+            requestIdx++;
+            state.blocks().indexBlockedRaiseException(ClusterBlockLevel.READ, requestTuple.v2().index());
+            transportQueryShardAction.execute(
+                    requestTuple.v1(),
+                    requestTuple.v2(),
+                    new QueryShardResponseListener(requestIdx, firstResults, totalOps)
+            );
+        }
+    }
+
+    private List<Tuple<String, QueryShardRequest>> prepareRequests(Map<String, Map<String, Set<Integer>>> locations) {
+        List<Tuple<String, QueryShardRequest>> requests = new ArrayList<>();
+        for (Map.Entry<String, Map<String, Set<Integer>>> entry : locations.entrySet()) {
+            String node = entry.getKey();
+            for (Map.Entry<String, Set<Integer>> indexEntry : entry.getValue().entrySet()) {
+                String index = indexEntry.getKey();
+                Set<Integer> shards = indexEntry.getValue();
+
+                for (Integer shard : shards) {
+                    requests.add(new Tuple<>(
+                            node,
+                            new QueryShardRequest(
+                                    index,
+                                    shard,
+                                    searchNode.outputs(),
+                                    searchNode.orderBy(),
+                                    searchNode.reverseFlags(),
+                                    searchNode.nullsFirst(),
+                                    searchNode.limit(),
+                                    searchNode.offset(),
+                                    searchNode.whereClause(),
+                                    searchNode.partitionBy()
+                            )
+                    ));
+                }
+            }
+        }
+        return requests;
+    }
+
+    private void moveToSecondPhase() throws IOException {
+        // boolean useScroll = !useSlowScroll && request.scroll() != null;
+        sortedShardList = searchPhaseController.sortDocs(false, firstResults);
+        searchPhaseController.fillDocIdsToLoad(docIdsToLoad, sortedShardList);
+
+        if (docIdsToLoad.asList().isEmpty()) {
+            finish();
+            return;
+        }
+
+        final ScoreDoc[] lastEmittedDocPerShard = null;
+        // searchPhaseController.getLastEmittedDocPerShard(request, sortedShardList, firstResults.length());
+
+        final AtomicInteger counter = new AtomicInteger(docIdsToLoad.asList().size());
+        for (AtomicArray.Entry<IntArrayList> entry : docIdsToLoad.asList()) {
+            QuerySearchResult queryResult = firstResults.get(entry.index);
+            DiscoveryNode node = nodes.get(queryResult.shardTarget().nodeId());
+            FetchSearchRequest fetchSearchRequest = createFetchRequest(queryResult, entry, lastEmittedDocPerShard);
+            executeFetch(entry.index, queryResult.shardTarget(), counter, fetchSearchRequest, node);
+        }
+    }
+
+    private void executeFetch(final int shardIndex,
+                              final SearchShardTarget shardTarget,
+                              final AtomicInteger counter,
+                              FetchSearchRequest fetchSearchRequest,
+                              DiscoveryNode node) {
+
+        searchServiceTransportAction.sendExecuteFetch(
+                node,
+                fetchSearchRequest,
+                new SearchServiceListener<FetchSearchResult>() {
+                    @Override
+                    public void onResult(FetchSearchResult result) {
+                        result.shardTarget(shardTarget);
+                        fetchResults.set(shardIndex, result);
+                        if (counter.decrementAndGet() == 0) {
+                            finish();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        docIdsToLoad.set(shardIndex, null);
+                        addShardFailure(shardIndex, shardTarget, t);
+                        if (counter.decrementAndGet() == 0) {
+                            finish();
+                        }
+                    }
+                }
+        );
+    }
+
+    private void addShardFailure(int shardIndex, SearchShardTarget shardTarget, Throwable t) {
+        if (TransportActions.isShardNotAvailableException(t)) {
+            return;
+        }
+        if (shardFailures == null) {
+            synchronized (shardFailuresMutex) {
+                if (shardFailures == null) {
+                    shardFailures = new AtomicArray<>(requests.size());
+                }
+            }
+        }
+        ShardSearchFailure failure = shardFailures.get(shardIndex);
+        if (failure == null) {
+            shardFailures.set(shardIndex, new ShardSearchFailure(t, shardTarget));
+        } else {
+            // the failure is already present, try and not override it with an exception that is less meaningless
+            // for example, getting illegal shard state
+            if (TransportActions.isReadOverrideException(t)) {
+                shardFailures.set(shardIndex, new ShardSearchFailure(t, shardTarget));
+            }
+        }
+    }
+
+    private void finish() {
+        try {
+            InternalSearchResponse response = searchPhaseController.merge(sortedShardList, firstResults, fetchResults);
+            final SearchHit[] hits = response.hits().hits();
+            final Object[][] rows = new Object[hits.length][numColumns];
+
+            for (int r = 0; r < hits.length; r++) {
+                rows[r] = new Object[numColumns];
+                for (int c = 0; c < numColumns; c++) {
+                    rows[r][c] = extractor[c].extract(hits[r]);
+                }
+            }
+            result.set(new QueryResult(rows));
+        } finally {
+            releaseIrrelevantSearchContexts(firstResults, docIdsToLoad);
+        }
+    }
+
+    private void releaseIrrelevantSearchContexts(AtomicArray<QuerySearchResult> firstResults,
+                                                 AtomicArray<IntArrayList> docIdsToLoad) {
+        if (docIdsToLoad == null) {
+            return;
+        }
+
+        for (AtomicArray.Entry<QuerySearchResult> entry : firstResults.asList()) {
+            if (docIdsToLoad.get(entry.index) == null) {
+                DiscoveryNode node = nodes.get(entry.value.queryResult().shardTarget().nodeId());
+                if (node != null) {
+                    searchServiceTransportAction.sendFreeContext(node, entry.value.queryResult().id(), EMPTY_SEARCH_REQUEST);
+                }
+            }
+        }
+    }
+
+    protected FetchSearchRequest createFetchRequest(QuerySearchResult queryResult,
+                                                    AtomicArray.Entry<IntArrayList> entry,
+                                                    ScoreDoc[] lastEmittedDocPerShard) {
+        if (lastEmittedDocPerShard != null) {
+            ScoreDoc lastEmittedDoc = lastEmittedDocPerShard[entry.index];
+            return new FetchSearchRequest(EMPTY_SEARCH_REQUEST, queryResult.id(), entry.value, lastEmittedDoc);
+        } else {
+            return new FetchSearchRequest(EMPTY_SEARCH_REQUEST, queryResult.id(), entry.value);
+        }
+    }
+    @Override
     public List<ListenableFuture<QueryResult>> result() {
         return results;
     }
@@ -159,53 +358,62 @@ public class ESSearchTask implements Task<QueryResult> {
         throw new UnsupportedOperationException("Can't have upstreamResults");
     }
 
-    static class SearchResponseListener implements ActionListener<SearchResponse> {
+    class QueryShardResponseListener implements ActionListener<QuerySearchResult> {
 
-        private final SettableFuture<QueryResult> result;
-        private final ESFieldExtractor[] extractor;
-        private final int numColumns;
+        private final int requestIdx;
+        private final AtomicArray<QuerySearchResult> firstResults;
+        private final AtomicInteger totalOps;
+        private final int expectedOps;
 
-        private final ESLogger logger = Loggers.getLogger(getClass());
+        public QueryShardResponseListener(int requestIdx,
+                                          AtomicArray<QuerySearchResult> firstResults,
+                                          AtomicInteger totalOps) {
 
-        public SearchResponseListener(SettableFuture<QueryResult> result,
-                                      ESFieldExtractor[] extractor,
-                                      int numColumns) {
-
-            this.result = result;
-            this.extractor = extractor;
-            this.numColumns = numColumns;
+            this.requestIdx = requestIdx;
+            this.firstResults = firstResults;
+            this.totalOps = totalOps;
+            this.expectedOps = firstResults.length();
         }
 
         @Override
-        public void onResponse(SearchResponse searchResponse) {
-            if (searchResponse.getFailedShards() > 0) {
-                onFailure(new FailedShardsException(searchResponse.getShardFailures()));
-            } else {
-                final SearchHit[] hits = searchResponse.getHits().getHits();
-                final Object[][] rows = new Object[hits.length][numColumns];
+        public void onResponse(QuerySearchResult querySearchResult) {
+            Tuple<String, QueryShardRequest> requestTuple = requests.get(requestIdx);
+            QueryShardRequest request = requestTuple.v2();
 
-                for (int r = 0; r < hits.length; r++) {
-                    rows[r] = new Object[numColumns];
-                    for (int c = 0; c < numColumns; c++) {
-                        rows[r][c] = extractor[c].extract(hits[r]);
-                    }
+            querySearchResult.shardTarget(
+                    new SearchShardTarget(requestTuple.v1(), request.index(), request.shardId()));
+            firstResults.set(requestIdx, querySearchResult);
+            if (totalOps.incrementAndGet() == expectedOps) {
+                try {
+                    moveToSecondPhase();
+                } catch (IOException e) {
+                    raiseEarlyFailure(e);
                 }
-
-                result.set(new QueryResult(rows));
             }
         }
 
         @Override
         public void onFailure(Throwable e) {
-            if (e instanceof SearchPhaseExecutionException) {
-                logger.error("Error executing SELECT statement", e);
-                ShardSearchFailure[] shardSearchFailures = ((SearchPhaseExecutionException) e).shardFailures();
-                if (shardSearchFailures.length > 0) {
-                    result.setException(Throwables.getRootCause(shardSearchFailures[0].failure()));
-                    return;
-                }
-            }
-            result.setException(e);
+            raiseEarlyFailure(e);
         }
+    }
+
+    private void raiseEarlyFailure(Throwable t) {
+        for (AtomicArray.Entry<QuerySearchResult> entry : firstResults.asList()) {
+            try {
+                DiscoveryNode node = nodes.get(entry.value.shardTarget().nodeId());
+                if (node != null) {
+                    searchServiceTransportAction.sendFreeContext(node, entry.value.id(), EMPTY_SEARCH_REQUEST);
+                }
+            } catch (Throwable t1) {
+                logger.trace("failed to release context", t1);
+            }
+        }
+        t = Exceptions.unwrap(t);
+        if (t instanceof QueryPhaseExecutionException) {
+            result.setException(t.getCause());
+            return;
+        }
+        result.setException(t);
     }
 }

@@ -32,15 +32,15 @@ import java.util.Set;
 
 public abstract class ESDQLPlanNode implements DQLPlanNode {
 
-    protected List<? extends Symbol> outputs;
+    protected List<Symbol> outputs;
     private List<DataType> inputTypes;
     private List<DataType> outputTypes;
 
-    public List<? extends Symbol> outputs() {
+    public List<Symbol> outputs() {
         return outputs;
     }
 
-    public void outputs(List<? extends Symbol> outputs) {
+    public void outputs(List<Symbol> outputs) {
         this.outputs = outputs;
     }
 
