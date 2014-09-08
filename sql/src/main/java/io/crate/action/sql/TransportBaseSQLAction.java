@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.OutputTypeVisitor;
 import io.crate.exceptions.*;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
@@ -41,6 +42,7 @@ import io.crate.planner.Planner;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.support.TransportAction;
@@ -63,6 +65,8 @@ import java.util.UUID;
 
 public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TResponse extends SQLBaseResponse>
         extends TransportAction<TRequest, TResponse> {
+
+    private static final OutputTypeVisitor outputTypesExtractor = new OutputTypeVisitor();
 
     private final LoadingCache<String, Statement> statementCache = CacheBuilder.newBuilder()
             .maximumSize(100)
@@ -99,15 +103,52 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     public abstract Analysis getAnalysis(Statement statement, TRequest request);
 
-    protected abstract TResponse emptyResponse(String[] outputNames, long requestCreationTime);
+    /**
+     * create an empty SQLBaseResponse instance with no rows
+     * and a rowCount of 0
+     *
+     * @param request the request that results in the response to be created
+     * @param outputNames an array of output column names
+     * @param types an array of types of the output columns,
+     *              if not null it must be of the same length as <code>outputNames</code>
+     */
+    protected abstract TResponse emptyResponse(TRequest request,
+                                               String[] outputNames,
+                                               @Nullable DataType[] types);
 
-    protected abstract TResponse createResponseFromResult(
-            String[] outputNames, Long rowCount, long requestCreationTime);
 
-    protected abstract TResponse createResponseFromResult(
-            Plan plan, String[] outputNames, List<TaskResult> result,
-            long requestCreationTime, boolean includeTypesOnResponse);
+    protected abstract TResponse emptyResponse(TRequest request, Plan plan, String[] outputNames);
 
+    /**
+     * creates an instance of SQLBaseResponse that has no rows,
+     * but a meaningful rowCount attribute
+     *
+     * @param request the request that results in the response to be created
+     * @param outputNames an array of output column names
+     * @param rowCount if >= 0L than this is the rowCount to be retunred, if null,
+     *                 a rowCount of -1L shall be returned
+     * @param types an array of types of the output columns,
+     *              if not null it must be of the same length as <code>outputNames</code>
+     */
+    protected abstract TResponse createResponseFromResult(TRequest request,
+                                                          String[] outputNames,
+                                                          Long rowCount,
+                                                          @Nullable DataType[] types);
+
+    /**
+     * create an instance of SQLBaseResponse from a plan and a TaskResult
+     *
+     * @param plan the plan created from an SQLBaseRequest
+     * @param outputNames an array of output column names
+     * @param result the result of the executed plan
+     * @param requestCreationTime the time the request was instantiated on the server
+     * @param includeTypesOnResponse true if the response must contain columnTypes
+     */
+    protected abstract TResponse createResponseFromResult(Plan plan,
+                                                          String[] outputNames,
+                                                          List<TaskResult> result,
+                                                          long requestCreationTime,
+                                                          boolean includeTypesOnResponse);
 
     @Override
     protected void doExecute(TRequest request, ActionListener<TResponse> listener) {
@@ -136,9 +177,10 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             @Override
             public void onSuccess(@Nullable Long rowCount) {
                 listener.onResponse(createResponseFromResult(
+                        request,
                         outputNames,
                         rowCount,
-                        request.creationTime()
+                        OutputTypeVisitor.EMPTY_TYPES
                 ));
             }
 
@@ -155,7 +197,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         final String[] outputNames = analysis.outputNames().toArray(new String[analysis.outputNames().size()]);
 
         if (analysis.hasNoResult()) {
-            listener.onResponse(emptyResponse(outputNames, request.creationTime()));
+            DataType[] types = outputTypesExtractor.process(analysis);
+            listener.onResponse(emptyResponse(request, outputNames, types));
             return;
         }
         final Plan plan = planner.plan(analysis);
@@ -166,7 +209,12 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
             UUID jobId = UUID.randomUUID();
             statsTables.jobStarted(jobId, request.stmt());
-            listener.onResponse(emptyResponse(outputNames, request.creationTime()));
+            listener.onResponse(
+                emptyResponse(request,
+                    outputNames,
+                    plan.outputTypes().toArray(new DataType[plan.outputTypes().size()])
+                )
+            );
             statsTables.jobFinished(jobId, null);
         } else {
             executePlan(plan, outputNames, listener, request);
@@ -188,7 +236,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
                 try {
                     if (result == null) {
-                        response = emptyResponse(outputNames, request.creationTime());
+                        response = emptyResponse(request, plan, outputNames);
                     } else {
                         response = createResponseFromResult(
                                 plan,
