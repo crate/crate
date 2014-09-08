@@ -32,7 +32,7 @@ public class ResetStatement extends Statement {
     private final List<Expression> columns;
 
     public ResetStatement(List<Expression> columns) {
-        this(SetStatement.SettingType.TRANSIENT, columns);
+        this(null, columns);
     }
 
     public ResetStatement(SetStatement.SettingType settingType, List<Expression> columns) {

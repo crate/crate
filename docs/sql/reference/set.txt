@@ -14,7 +14,7 @@ Synopsis
 
     SET GLOBAL [ PERSISTENT | TRANSIENT ] parameter = value [ , ... ]
 
-    RESET GLOBAL [ PERSISTENT | TRANSIENT ] parameter [ , ... ]
+    RESET GLOBAL parameter [ , ... ]
 
 Description
 ===========
@@ -61,3 +61,7 @@ keyword will be lost if the cluster is stopped or restarted.
 
 Using the ``PERSISTENT`` keyword will persist the changes to disk so that the
 change will survive cluster restarts.
+
+.. NOTE::
+
+   The persistence keyword can only be used within a ``SET`` statement.

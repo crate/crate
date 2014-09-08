@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 public class SetAnalyzerTest extends BaseAnalyzerTest {
@@ -97,5 +98,12 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = IllegalArgumentException.class)
     public void testSetInvalidValueType() throws Exception {
         analyze("SET GLOBAL TRANSIENT jobs_log_size='some value'");
+    }
+
+    @Test
+    public void testReset() throws Exception {
+        SetAnalysis analysis = (SetAnalysis) analyze("RESET GLOBAL collect_stats");
+        assertThat(analysis.isReset(), is(true));
+        assertThat(analysis.settingsToRemove(), contains("cluster.collect_stats"));
     }
 }

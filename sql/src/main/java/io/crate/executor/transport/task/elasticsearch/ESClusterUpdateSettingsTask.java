@@ -52,6 +52,12 @@ public class ESClusterUpdateSettingsTask implements Task<TaskResult> {
         request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(node.persistentSettings());
         request.transientSettings(node.transientSettings());
+        if (node.persistentSettingsToRemove() != null) {
+            request.persistentSettingsToRemove(node.persistentSettingsToRemove());
+        }
+        if (node.transientSettingsToRemove() != null) {
+            request.transientSettingsToRemove(node.transientSettingsToRemove());
+        }
         listener = new ClusterUpdateSettingsResponseListener(result);
     }
 
