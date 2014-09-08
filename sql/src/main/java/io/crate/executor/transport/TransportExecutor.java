@@ -51,6 +51,7 @@ import io.crate.planner.node.dql.*;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.search.controller.SearchPhaseController;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.List;
@@ -59,6 +60,7 @@ public class TransportExecutor implements Executor {
 
     private final Functions functions;
     private final ReferenceResolver referenceResolver;
+    private final SearchPhaseController searchPhaseController;
     private final StatsTables statsTables;
     private final Visitor visitor;
     private final ThreadPool threadPool;
@@ -77,6 +79,7 @@ public class TransportExecutor implements Executor {
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
+                             SearchPhaseController searchPhaseController,
                              StatsTables statsTables,
                              ClusterService clusterService) {
         this.settings = settings;
@@ -85,6 +88,7 @@ public class TransportExecutor implements Executor {
         this.threadPool = threadPool;
         this.functions = functions;
         this.referenceResolver = referenceResolver;
+        this.searchPhaseController = searchPhaseController;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.visitor = new Visitor();
@@ -158,7 +162,10 @@ public class TransportExecutor implements Executor {
         public Void visitESSearchNode(ESSearchNode node, Job context) {
             context.addTask(new ESSearchTask(
                     node,
-                    transportActionProvider.transportSearchAction()));
+                    clusterService,
+                    transportActionProvider.transportQueryShardAction(),
+                    transportActionProvider.searchServiceTransportAction(),
+                    searchPhaseController));
             return null;
         }
 

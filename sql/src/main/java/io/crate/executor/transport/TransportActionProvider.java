@@ -39,6 +39,7 @@ import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.search.action.SearchServiceTransportAction;
 
 public class TransportActionProvider {
 
@@ -46,6 +47,7 @@ public class TransportActionProvider {
     private final Provider<TransportCollectNodeAction> transportCollectNodeActionProvider;
     private final Provider<TransportMergeNodeAction> transportMergeNodeActionProvider;
     private final Provider<TransportSearchAction> transportSearchActionProvider;
+    private final Provider<SearchServiceTransportAction> searchServiceTransportActionProvider;
 
     private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
     private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
@@ -79,7 +81,8 @@ public class TransportActionProvider {
                                    Provider<TransportIndexAction> transportIndexActionProvider,
                                    Provider<TransportUpdateAction> transportUpdateActionProvider,
                                    Provider<TransportQueryShardAction> transportQueryShardActionProvider,
-                                   Provider<TransportSearchAction> transportSearchActionProvider) {
+                                   Provider<TransportSearchAction> transportSearchActionProvider,
+                                   Provider<SearchServiceTransportAction> searchServiceTransportActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
@@ -97,6 +100,7 @@ public class TransportActionProvider {
         this.transportCollectNodeActionProvider = transportCollectNodeActionProvider;
         this.transportMergeNodeActionProvider = transportMergeNodeActionProvider;
         this.transportSearchActionProvider = transportSearchActionProvider;
+        this.searchServiceTransportActionProvider = searchServiceTransportActionProvider;
     }
 
 
@@ -166,5 +170,9 @@ public class TransportActionProvider {
 
     public TransportSearchAction transportSearchAction() {
         return transportSearchActionProvider.get();
+    }
+
+    public SearchServiceTransportAction searchServiceTransportAction() {
+        return searchServiceTransportActionProvider.get();
     }
 }
