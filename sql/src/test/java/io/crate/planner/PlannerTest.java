@@ -81,6 +81,11 @@ public class PlannerTest {
             .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
             .build());
 
+    final Routing partedRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of(".partitioned.parted.04232chj", ImmutableSet.of(1, 2)))
+            .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
+            .build());
+
 
     class TestClusterTableInfo extends SysClusterTableInfo {
 
@@ -174,7 +179,7 @@ public class PlannerTest {
                     .clusteredBy("id")
                     .build();
             TableIdent partedTableIdent = new TableIdent(null, "parted");
-            TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
+            TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, partedRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
