@@ -527,7 +527,8 @@ Examples::
 
 ::
 
-    cr> select name from locations where 4 < ANY (information['evolution_level']);
+    cr> select name from locations where 4 < ANY (information['evolution_level'])
+    ... order by name;
     +-------------------+
     | name              |
     +-------------------+
