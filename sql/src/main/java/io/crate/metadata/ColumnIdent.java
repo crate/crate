@@ -160,6 +160,9 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         return path;
     }
 
+    /**
+     * @return true if this is a top level column, otherwise false
+     */
     public boolean isColumn() {
         return path.isEmpty();
     }

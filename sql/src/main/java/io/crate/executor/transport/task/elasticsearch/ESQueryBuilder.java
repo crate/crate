@@ -338,31 +338,6 @@ public class ESQueryBuilder {
             return visitReference(symbol, context);
         }
 
-        private class SortOrder {
-            private String order;
-            private String missing;
-
-            public SortOrder(boolean reverseFlag, Boolean nullFirst) {
-                order = "asc";
-                missing = "_last";
-                if (reverseFlag) {
-                    order = "desc";
-                    missing = "_first";     // null > 'anyValue'; null values at the beginning.
-                }
-                if (nullFirst != null) {
-                    missing = nullFirst ? "_first" : "_last";
-                }
-            }
-
-            public String order() {
-                return order;
-            }
-
-            public String missing() {
-                return missing;
-            }
-        }
-
         static abstract class Converter<T extends Symbol> {
 
             /**
