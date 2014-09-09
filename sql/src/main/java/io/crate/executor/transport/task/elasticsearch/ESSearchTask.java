@@ -306,6 +306,8 @@ public class ESSearchTask implements Task<QueryResult> {
 
     private void finish() {
         try {
+            // TODO: run in threadpool
+            // see https://github.com/elasticsearch/elasticsearch/pull/7624/files
             InternalSearchResponse response = searchPhaseController.merge(sortedShardList, firstResults, fetchResults);
             final SearchHit[] hits = response.hits().hits();
             final Object[][] rows = new Object[hits.length][numColumns];
