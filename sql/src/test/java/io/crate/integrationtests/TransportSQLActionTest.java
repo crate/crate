@@ -2032,7 +2032,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithInlineDefaultIndex() throws Exception {
-        execute("create table quotes (quote string index using plain)");
+        execute("create table quotes (quote string index using plain) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2091,7 +2092,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithIndex() throws Exception {
         execute("create table quotes (quote string, " +
-                "index quote_fulltext using fulltext(quote) with (analyzer='english'))");
+                "index quote_fulltext using fulltext(quote) with (analyzer='english')) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
