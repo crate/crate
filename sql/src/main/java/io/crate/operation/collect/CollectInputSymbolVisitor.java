@@ -31,6 +31,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.SymbolFormatter;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * convert Symbols into Inputs for evaluation and CollectExpressions
@@ -45,7 +46,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
 
         protected ArrayList<E> docLevelExpressions = new ArrayList<>();
 
-        public ArrayList<E> docLevelExpressions() {
+        public List<E> docLevelExpressions() {
             return docLevelExpressions;
         }
     }
