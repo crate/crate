@@ -136,6 +136,21 @@ parent directory of the directory containing the ``bin/crate`` executable.
              All configured relative paths will use this directory as
              a parent.
 
+CRATE_HEAP_SIZE
+---------------
+
+This variable specifies the amount of memory that can be used by the JVM. This
+should be set to at least 50% of the machines memory.
+
+Certain operations in Crate require a lot of records to be hold in memory at a
+time. If the amount of heap that can be allocated by the JVM is too low these
+operations would fail with an OutOfMemory exception.
+
+The value of the environment variable can be suffixed with ``g`` or ``m``. For
+example::
+
+    CRATE_HEAP_SIZE=4g
+
 .. _YAML: http://en.wikipedia.org/wiki/YAML
 
 .. _Log4j: https://logging.apache.org/log4j/1.2/

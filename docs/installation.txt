@@ -2,6 +2,15 @@
 Installation
 ============
 
+This section describes how to install Crate Data on a single node. In order to
+get a Crate cluster up and running it is enough to repeat the process on
+another machine if the network supports multicast. The Nodes will discover and
+form a cluster automatically. Just like magic.
+
+In case the network doesn't support multicast, a unicast configuration is
+required. Please refer to our article on `Multi Node Setup`_ in order to learn
+how to setup the unicast configuration.
+
 Install via tar.gz
 ==================
 
@@ -12,8 +21,9 @@ After downloading the latest stable version of Crate Data from
 the package needs to be unpacked::
 
    sh$ tar zxf crate-*.tar.gz
+   sh$ cd crate-*
 
-Crate can be started in the foreground like this::
+Once unpacked Crate can be started in the foreground like this::
 
    sh$ ./bin/crate
 
@@ -60,10 +70,18 @@ and **Arch Linux**.
 You can find instruction how to install Crate Data for production on
 the Download_ page.
 
+In case your distribution is missing feel free to `contact us
+<https://crate.io/about/contact/>`_. We're happy to create and maintain
+additional packages if we see enough interest.
 
 .. seealso::
 
  :doc:`Configuring Crate Data <configuration>`
+
+ :doc:`Hello Crate <hello>` - To learn how to interact with Crate.
+
+ `Multi Node Setup`_ - To see how to install and run Crate in a Multi Node
+ setup.
 
 
 .. _`Oracle's Java`: http://www.java.com/en/download/help/mac_install.xml
@@ -72,4 +90,4 @@ the Download_ page.
 .. _Docker: https://www.docker.com/
 .. _`Docker Hub Registry`: https://registry.hub.docker.com/u/crate/crate/
 .. _`docker-crate`: https://github.com/crate/docker-crate/
-
+.. _`Multi Node Setup`: https://crate.io/blog/using-crate-in-multinode-setup/

@@ -5,6 +5,12 @@
 Data Types
 ==========
 
+Data can be stored in different formats. Crate Data has different types that
+can be specified if a table is created using the the :ref:`ref-create-table`
+statement. Data types play a central role as they limit what kind of data can
+be inserted, how it is stored and they also influence the behaviour when the
+records are queried.
+
 Data type names are reserved words and need to be escaped
 when used as column names.
 
@@ -34,6 +40,7 @@ A text-based basic type containing one or more characters. Example::
     ... );
     CREATE OK (... sec)
 
+Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
 
 numeric types
 =============
