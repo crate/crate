@@ -4,5 +4,6 @@ jdk:
 
 notifications:
   email: false
+  irc: "irc.freenode.org#crate"
 
 script: ./gradlew test itest -s
