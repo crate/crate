@@ -131,12 +131,12 @@ making up each group, producing a separate value for each group.
     GROUP BY expression [, ...] [HAVING condition]
 
 :expression: An arbitrary expression formed from column references
-  of the queried relation. Numeric literals are interpreted as ordinals
-  referencing an output column from the select list.
+  of the queried relation that are also present in the result column list.
+  Numeric literals are interpreted as ordinals referencing an output
+  column from the select list.
   It can also reference output columns by name.
-  In case of ambiguity, a GROUP BY name will be
-  interpreted as a name of a column from the queried relation
-  rather than an output column name.
+  In case of ambiguity, a GROUP BY name will be interpreted as a name of a
+  column from the queried relation rather than an output column name.
 
 .. _sql_reference_having:
 
