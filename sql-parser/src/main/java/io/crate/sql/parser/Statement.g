@@ -1004,7 +1004,7 @@ setStmt
     ;
 
 resetStmt
-    : RESET GLOBAL settingsType? columnList -> ^(RESET settingsType? columnList)
+    : RESET GLOBAL columnList -> ^(RESET columnList)
     ;
 
 settingsType

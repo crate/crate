@@ -58,11 +58,6 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
     @Override
     public Void visitResetStatement(ResetStatement node, SetAnalysis context) {
         context.isReset(true);
-        if (node.settingType() != null) {
-            // Warn about deprecated persistence token
-            // TODO: remove persistence token at parser later on
-            logger.warn("[RESET] Persistence keyword {} has been deprecated", node.settingType().name());
-        }
         Set<String> settingsToRemove = Sets.newHashSet();
         for (Expression expression : node.columns()) {
             String settingsName = normalizeKey(

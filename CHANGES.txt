@@ -5,8 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - added having support for global aggregate
-   and group by
+ - ``RESET`` statement does not support the persistence keyword
+   anymore
+
+ - added having support for global aggregate and group by
 
 2014/09/08 0.42.2
 =================

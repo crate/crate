@@ -30,7 +30,7 @@ the ``sys.cluster`` table:
 
 .. Hidden: reset settings
 
-    cr> reset GLOBAL PERSISTENT collect_stats, jobs_log_size, operations_log_size;
+    cr> reset GLOBAL collect_stats, jobs_log_size, operations_log_size;
     RESET OK (... sec)
 
 The result has at most 1 row::

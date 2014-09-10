@@ -22,9 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.Build;
-import io.crate.Constants;
 import io.crate.Version;
-import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.executor.TaskResult;
@@ -610,7 +608,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat(response.rowCount(), Matchers.lessThanOrEqualTo(2L));
         assertThat((String)response.rows()[0][0], is("select id from sys.cluster"));
 
-        executor.exec("reset global transient collect_stats, jobs_log_size");
+        executor.exec("reset global collect_stats, jobs_log_size");
         response= executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L));
     }
@@ -647,7 +645,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer)response.rows()[0][0], is(7));
 
-        response = executor.exec("reset global persistent collect_stats, jobs_log_size");
+        response = executor.exec("reset global collect_stats, jobs_log_size");
         assertThat(response.rowCount(), is(1L));
 
         response = executor.exec("select settings['collect_stats'], settings['jobs_log_size'] from sys.cluster");
@@ -674,7 +672,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat((Integer)response.rows()[0][0], is(1024));
         assertThat((Boolean)response.rows()[0][1], is(false));
 
-        response = executor.exec("reset global persistent operations_log_size, collect_stats");
+        response = executor.exec("reset global operations_log_size, collect_stats");
         assertThat(response.rowCount(), is(1L));
 
         response = executor.exec(
@@ -682,6 +680,10 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer)response.rows()[0][0], is(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue()));
         assertThat((Boolean)response.rows()[0][1], is(CrateSettings.COLLECT_STATS.defaultValue()));
+
+        // clean up, reset to default
+        response = executor.exec("reset global collect_stats, jobs_log_size, operations_log_size");
+        assertThat(response.rowCount(), is(1L));
     }
 
     @Test
@@ -719,7 +721,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertTrue(names.contains("distributed merge"));
         assertTrue(names.contains("localMerge"));
 
-        executor.exec("reset global transient collect_stats, operations_log_size");
+        executor.exec("reset global collect_stats, operations_log_size");
         resp = executor.exec("select count(*) from sys.operations_log");
         assertThat((Long) resp.rows()[0][0], is(0L));
     }

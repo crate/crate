@@ -227,7 +227,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat(response.rowCount(), is(1L));
         assertThat((Boolean)response.rows()[0][0], is(true));
 
-        execute("reset global persistent collect_stats");
+        execute("reset global collect_stats");
         execute("select settings['collect_stats'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Boolean)response.rows()[0][0], is(false));
@@ -240,7 +240,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat((Integer)response.rows()[0][1], is(3));
         assertThat((Integer)response.rows()[0][2], is(4));
 
-        execute("reset global transient collect_stats, jobs_log_size, operations_log_size");
+        execute("reset global collect_stats, jobs_log_size, operations_log_size");
         execute("select settings['collect_stats'], settings['jobs_log_size']," +
                 "settings['operations_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));

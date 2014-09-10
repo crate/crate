@@ -942,6 +942,4 @@ set returns [SetStatement value]
 
 resetStatement returns [ResetStatement value]
     : ^(RESET columns=columnList) { $value = new ResetStatement($columns.value); }
-    | ^(RESET TRANSIENT columns=columnList) { $value = new ResetStatement(SetStatement.SettingType.TRANSIENT, $columns.value); }
-    | ^(RESET PERSISTENT columns=columnList) { $value = new ResetStatement(SetStatement.SettingType.PERSISTENT, $columns.value); }
     ;

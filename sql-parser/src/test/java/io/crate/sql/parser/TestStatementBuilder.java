@@ -21,7 +21,6 @@
 
 package io.crate.sql.parser;
 
-import antlr.NoViableAltException;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import io.crate.sql.SqlFormatter;
@@ -303,8 +302,6 @@ public class TestStatementBuilder
         printStatement("set global persistent sys.cluster['some_settings'] = '1'");
 
         printStatement("reset global some_setting['nested'], other_setting");
-        printStatement("reset global transient some_setting['nested'], other_setting");
-        printStatement("reset global persistent some_setting['nested'], other_setting");
     }
 
     @Test

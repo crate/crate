@@ -22,44 +22,30 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
 
 import java.util.List;
 
 public class ResetStatement extends Statement {
 
-    private final SetStatement.SettingType settingType;
     private final List<Expression> columns;
 
     public ResetStatement(List<Expression> columns) {
-        this(null, columns);
-    }
-
-    public ResetStatement(SetStatement.SettingType settingType, List<Expression> columns) {
-        Preconditions.checkNotNull(columns, "columns are null");
-        this.settingType = settingType;
         this.columns = columns;
     }
-
 
     public List<Expression> columns() {
         return columns;
     }
 
-    public SetStatement.SettingType settingType() {
-        return settingType;
-    }
-
     @Override
     public int hashCode() {
-        return Objects.hashCode(columns, settingType);
+        return Objects.hashCode(columns);
     }
 
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
                 .add("columns", columns)
-                .add("settingType", settingType)
                 .toString();
     }
 
@@ -71,7 +57,6 @@ public class ResetStatement extends Statement {
         ResetStatement update = (ResetStatement) o;
 
         if (!columns.equals(update.columns)) return false;
-        if (!settingType.equals(update.settingType)) return false;
 
         return true;
     }
