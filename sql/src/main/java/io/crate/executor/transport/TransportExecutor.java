@@ -159,8 +159,8 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Void visitESSearchNode(ESSearchNode node, Job context) {
-            context.addTask(new ESSearchTask(
+        public Void visitESSearchNode(QueryThenFetchNode node, Job context) {
+            context.addTask(new QueryThenFetchTask(
                     node,
                     clusterService,
                     transportActionProvider.transportQueryShardAction(),

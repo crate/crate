@@ -36,7 +36,7 @@ import org.elasticsearch.common.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
-public class ESSearchNode extends ESDQLPlanNode {
+public class QueryThenFetchNode extends ESDQLPlanNode {
 
     private final List<Symbol> orderBy;
     private final int limit;
@@ -56,16 +56,16 @@ public class ESSearchNode extends ESDQLPlanNode {
      * @param partitionBy list of columns
      *                    the queried is partitioned by
      */
-    public ESSearchNode(Routing routing,
-                        List<Symbol> outputs,
-                        @Nullable List<Symbol> orderBy,
-                        @Nullable boolean[] reverseFlags,
-                        @Nullable Boolean[] nullsFirst,
-                        @Nullable Integer limit,
-                        @Nullable Integer offset,
-                        WhereClause whereClause,
-                        @Nullable List<ReferenceInfo> partitionBy
-                        ) {
+    public QueryThenFetchNode(Routing routing,
+                              List<Symbol> outputs,
+                              @Nullable List<Symbol> orderBy,
+                              @Nullable boolean[] reverseFlags,
+                              @Nullable Boolean[] nullsFirst,
+                              @Nullable Integer limit,
+                              @Nullable Integer offset,
+                              WhereClause whereClause,
+                              @Nullable List<ReferenceInfo> partitionBy
+    ) {
         this.routing = routing;
         assert routing != null;
         assert outputs != null;
