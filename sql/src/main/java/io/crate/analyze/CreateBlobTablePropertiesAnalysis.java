@@ -69,6 +69,11 @@ public class CreateBlobTablePropertiesAnalysis extends TablePropertiesAnalysis {
         public Settings getDefault() {
             return ImmutableSettings.EMPTY;
         }
+
+        @Override
+        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+            throw new UnsupportedOperationException("Not supported");
+        }
     }
 
 }

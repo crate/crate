@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.Sets;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ResetStatement;
@@ -43,7 +44,7 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Assignment assignment : node.assignments()) {
             String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(), context.parameters());
-            SettingsApplier settingsApplier = context.getSetting(settingsName);
+            SettingsApplier settingsApplier = CrateSettings.getSetting(settingsName);
             if (settingsApplier == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
             }
@@ -60,11 +61,12 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
         for (Expression expression : node.columns()) {
             String settingsName = ExpressionToStringVisitor.convert(expression, context.parameters());
             if (!settingsToRemove.contains(settingsName)) {
-                Set<String> settingNames = context.settingNamesByPrefix(settingsName);
+                Set<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
                 if (settingNames.size() == 0) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
                 }
                 settingsToRemove.addAll(settingNames);
+                logger.info("resetting []", settingNames);
             }
         }
         context.settingsToRemove(settingsToRemove);

@@ -29,8 +29,8 @@ import java.util.Locale;
 
 public class ExpressionToByteSizeValueVisitor extends AstVisitor<ByteSizeValue, Object[]> {
 
+    public static final ByteSizeValue DEFAULT_VALUE = new ByteSizeValue(0);
     private static final ExpressionToByteSizeValueVisitor INSTANCE = new ExpressionToByteSizeValueVisitor();
-    private static final ByteSizeValue DEFAULT_VALUE = new ByteSizeValue(0);
 
     private ExpressionToByteSizeValueVisitor() {}
 
