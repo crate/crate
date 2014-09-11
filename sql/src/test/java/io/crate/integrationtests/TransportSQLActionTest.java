@@ -4452,7 +4452,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into t (d) values (?), (?), (?)", new Object[]{1.3d, 1.6d, 2.2d});
         execute("refresh table t");
 
-        execute("select * from t order by round(d)");
+        execute("select * from t order by round(d) * 2 + 3");
         assertThat(response.rowCount(), is(3L));
         assertThat((Double) response.rows()[0][0], is(1.3d));
 

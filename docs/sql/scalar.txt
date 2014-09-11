@@ -15,9 +15,6 @@ Scalar functions return a single data value (not a table).
     While some scalar functions are supported within a WHERE clause, comparing
     two scalar functions is never supported.
 
-    In addition, the ORDER BY clause also may not contain any nested
-    scalar functions unless GROUP BY is also present in the statement.
-
 See below for a list of available scalar functions.
 
 
