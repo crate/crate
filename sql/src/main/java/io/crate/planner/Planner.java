@@ -606,7 +606,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         } else {
             searchSymbols = analysis.outputSymbols();
         }
-        ESSearchNode node = new ESSearchNode(
+        QueryThenFetchNode node = new QueryThenFetchNode(
                 analysis.table().getRouting(analysis.whereClause()),
                 searchSymbols,
                 analysis.sortSymbols(),

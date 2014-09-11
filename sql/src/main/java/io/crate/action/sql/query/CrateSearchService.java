@@ -35,7 +35,7 @@ import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
-import io.crate.planner.node.dql.ESSearchNode;
+import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -191,7 +191,7 @@ public class CrateSearchService extends InternalSearchService {
         SearchContext.setCurrent(context);
 
         try {
-            ESSearchNode searchNode = new ESSearchNode(
+            QueryThenFetchNode searchNode = new QueryThenFetchNode(
                     new Routing(null),
                     request.outputs(),
                      // can omit sort because it's added below using generateLuceneSort

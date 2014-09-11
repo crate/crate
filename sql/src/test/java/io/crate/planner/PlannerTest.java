@@ -505,8 +505,8 @@ public class PlannerTest {
         Plan plan = plan("select name from users where name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESSearchNode.class));
-        ESSearchNode searchNode = (ESSearchNode) planNode;
+        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
+        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
 
         assertThat(searchNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
@@ -522,8 +522,8 @@ public class PlannerTest {
         Plan plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESSearchNode.class));
-        ESSearchNode searchNode = (ESSearchNode) planNode;
+        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
+        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
 
         List<String> indices = new ArrayList<>();
         Map<String, Map<String, Set<Integer>>> locations = searchNode.routing().locations();
@@ -546,8 +546,8 @@ public class PlannerTest {
         Plan plan = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESSearchNode.class));
-        ESSearchNode searchNode = (ESSearchNode) planNode;
+        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
+        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
 
         assertThat(searchNode.outputs().size(), is(1));
         assertThat(((Reference) searchNode.outputs().get(0)).info().ident().columnIdent().fqn(), is("name"));
@@ -1122,7 +1122,7 @@ public class PlannerTest {
         Plan plan = plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESSearchNode.class));
+        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));

@@ -33,7 +33,7 @@ import io.crate.executor.TaskResult;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.planner.node.dql.ESSearchNode;
+import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.search.ScoreDoc;
@@ -66,11 +66,11 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ESSearchTask implements Task<QueryResult> {
+public class QueryThenFetchTask implements Task<QueryResult> {
 
     private final ESLogger logger = Loggers.getLogger(this.getClass());
 
-    private final ESSearchNode searchNode;
+    private final QueryThenFetchNode searchNode;
     private final TransportQueryShardAction transportQueryShardAction;
     private final SearchServiceTransportAction searchServiceTransportAction;
     private final SearchPhaseController searchPhaseController;
@@ -97,11 +97,11 @@ public class ESSearchTask implements Task<QueryResult> {
     private final static SearchRequest EMPTY_SEARCH_REQUEST = new SearchRequest();
 
 
-    public ESSearchTask(ESSearchNode searchNode,
-                        ClusterService clusterService,
-                        TransportQueryShardAction transportQueryShardAction,
-                        SearchServiceTransportAction searchServiceTransportAction,
-                        SearchPhaseController searchPhaseController) {
+    public QueryThenFetchTask(QueryThenFetchNode searchNode,
+                              ClusterService clusterService,
+                              TransportQueryShardAction transportQueryShardAction,
+                              SearchServiceTransportAction searchServiceTransportAction,
+                              SearchPhaseController searchPhaseController) {
         this.searchNode = searchNode;
         this.transportQueryShardAction = transportQueryShardAction;
         this.searchServiceTransportAction = searchServiceTransportAction;
