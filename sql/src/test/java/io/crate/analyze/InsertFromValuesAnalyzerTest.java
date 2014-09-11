@@ -591,6 +591,16 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testInsertWithBulkArgsNullValues() throws Exception {
+        // this test verifies that the validation is okay - so if no exception is thrown this test passes
+        analyze("insert into users (id, name) values (?, ?)",
+                new Object[][] {
+                        new Object[] { 10, "foo" },
+                        new Object[] { 11, null }
+                });
+    }
+
+    @Test
     public void testInsertBulkArgWithFirstArgsContainsUnrecognizableObject() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(Matchers.allOf(

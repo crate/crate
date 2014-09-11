@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed bulk arguments validation: it was too strict and failed if the
+   arguments contains null values.
+
  - ``RESET`` statement does not support the persistence keyword
    anymore
 
