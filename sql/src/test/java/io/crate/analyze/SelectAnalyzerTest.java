@@ -351,9 +351,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testOrderByOnAlias() throws Exception {
-        SelectAnalysis analyze = (SelectAnalysis) analyze("select cluster_name as name from sys.cluster order by name");
+        SelectAnalysis analyze = (SelectAnalysis) analyze(
+                "select name as cluster_name from sys.cluster order by cluster_name");
         assertThat(analyze.outputNames().size(), is(1));
-        assertThat(analyze.outputNames().get(0), is("name"));
+        assertThat(analyze.outputNames().get(0), is("cluster_name"));
 
         assertTrue(analyze.isSorted());
         assertThat(analyze.sortSymbols().size(), is(1));
@@ -1028,11 +1029,20 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSelectPartitionedTableOrderBy() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
-                "select id, name from multi_parted order by id, abs(num), name");
-        assertThat(analysis.sortSymbols().size(), is(3));
-        assertThat(analysis.sortSymbols().get(0), Matchers.instanceOf(Reference.class));
-        assertThat(analysis.sortSymbols().get(1), Matchers.instanceOf(Function.class));
-        assertThat(analysis.sortSymbols().get(2), Matchers.instanceOf(Reference.class));
+                "select id from multi_parted order by id, abs(num)");
+        List<Symbol> symbols = analysis.sortSymbols();
+        assert symbols != null;
+        assertThat(symbols.size(), is(2));
+        assertThat(symbols.get(0), Matchers.instanceOf(Reference.class));
+        assertThat(symbols.get(1), Matchers.instanceOf(Function.class));
+    }
+
+    @Test
+    public void testSortOnUnknownColumn() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot order by \"users.unknown_column\". The column doesn't exist.");
+        analyze("select name from users order by unknown_column");
+
     }
 
     @Test(expected = UnsupportedOperationException.class)

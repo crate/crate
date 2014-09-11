@@ -254,10 +254,4 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
             "select sum(num_docs) from sys.shards where lol='funky'");
         assertEquals(1, response.rowCount()); // global aggregate always returns one row
     }
-
-    @Test
-    public void testGlobalAggregateUnknownOrderBy() throws Exception {
-        // order is ignored because global aggregates return only 1 row
-        transportExecutor.exec("select sum(num_docs) from sys.shards order by lol");
-    }
 }
