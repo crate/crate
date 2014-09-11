@@ -251,20 +251,12 @@ public class CrateSearchService extends InternalSearchService {
         if (symbols.isEmpty()) {
             return null;
         }
-        List<SortField> sortFields = new ArrayList<>(symbols.size());
+        SortField[] sortFields = new SortField[symbols.size()];
         for (int i = 0, symbolsSize = symbols.size(); i < symbolsSize; i++) {
-            SortField sortField = sortSymbolVisitor.generateSortField(
-                    symbols.get(i),
-                    new SortSymbolContext(context, reverseFlags[i], nullsFirst[i])
-            );
-            if (sortField != null) {
-                sortFields.add(sortField);
-            }
+            sortFields[i] = sortSymbolVisitor.generateSortField(
+                    symbols.get(i), new SortSymbolContext(context, reverseFlags[i], nullsFirst[i]));
         }
-        if (sortFields.isEmpty()) { // this is the case if symbols consists of only DynamicReferences
-            return null;
-        }
-        return new Sort(sortFields.toArray(new SortField[sortFields.size()]));
+        return new Sort(sortFields);
     }
 
     private static class SortSymbolContext {
@@ -290,7 +282,6 @@ public class CrateSearchService extends InternalSearchService {
             this.inputSymbolVisitor = inputSymbolVisitor;
         }
 
-        @Nullable
         public SortField generateSortField(Symbol symbol, SortSymbolContext sortSymbolContext) {
             return process(symbol, sortSymbolContext);
         }
@@ -327,11 +318,6 @@ public class CrateSearchService extends InternalSearchService {
                     fieldComparatorSource,
                     context.reverseFlag
             );
-        }
-
-        @Override
-        public SortField visitDynamicReference(DynamicReference symbol, SortSymbolContext context) {
-            return null;
         }
 
         @Override

@@ -28,7 +28,6 @@ import io.crate.PartitionName;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLResponse;
 import io.crate.executor.TaskResult;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -2119,7 +2118,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithCompositeIndex() throws Exception {
         execute("create table novels (title string, description string, " +
                 "index title_desc_fulltext using fulltext(title, description) " +
-                "with(analyzer='english'))");
+                "with(analyzer='english')) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("novels"))
                 .actionGet().isExists());
 
@@ -2324,18 +2324,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("cannot MATCH on non existing column quotes.something");
 
         execute("select * from quotes where match(something, 'bla')");
-    }
-
-    @Test
-    public void selectOrderByNonExistingColumn() throws Exception {
-        nonExistingColumnSetup();
-        execute("SELECT * from quotes");
-        SQLResponse responseWithoutOrder = response;
-        execute("SELECT * from quotes order by something");
-        assertEquals(responseWithoutOrder.rowCount(), response.rowCount());
-        for (int i = 0; i < response.rowCount(); i++) {
-            assertArrayEquals(responseWithoutOrder.rows()[i], response.rows()[i]);
-        }
     }
 
     @Test

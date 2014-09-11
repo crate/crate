@@ -5,25 +5,6 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: filtering on system column ``_score`` is only valid by using a
-   ``>=`` comparison, throw error if used otherwise
-
- - fix: properly return elements of object arrays in system tables
-   like sys.nodes.fs['data']['path']
-
- - implemented the graceful-stop command to enable zero downtime upgrades
-
- - exposed a lot of cluster settings, most of them are changeable at
-   runtime by using ``SET/RESET``
-
- - BREAKING:
-   existing cluster settings have been renamed:
-     - collect_stats to stats.enabled
-     - jobs_log_size to stats.jobs_log_size
-     - operations_log_size to stats.operations_log_size
-   please refer to the ``Configuration`` section in the documentation
-   for more details
-
 2014/09/11 0.43.0
 =================
 
@@ -69,7 +50,6 @@ Unreleased
    either ``.yml`` or ``.yaml`` to be read. The previous behaviour was to read
    all files starting with ``logging.`` which incorrectly also read ``.rpmnew``
    or ``.bak`` files.
-
 
 2014/08/25 0.42.0
 =================
