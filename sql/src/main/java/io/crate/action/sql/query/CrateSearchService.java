@@ -21,6 +21,7 @@
 
 package io.crate.action.sql.query;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
@@ -296,14 +297,14 @@ public class CrateSearchService extends InternalSearchService {
 
 
         /**
-         * generate a SortField from a Reference symobl.
+         * generate a SortField from a Reference symbol.
          *
          * the implementation is similar to what {@link org.elasticsearch.search.sort.SortParseElement}
          * does.
          */
         @Override
         public SortField visitReference(Reference symbol, SortSymbolContext context) {
-            // can't use the SortField(fieldName, type) ctor
+            // can't use the SortField(fieldName, type) constructor
             // because values are saved using docValues and therefore they're indexed in lucene as binary and not
             // with the reference valueType.
             // this is why we use a custom comparator source with the same logic as ES
@@ -342,20 +343,19 @@ public class CrateSearchService extends InternalSearchService {
             @SuppressWarnings("unchecked")
             final List<LuceneCollectorExpression> expressions = inputContext.docLevelExpressions();
             final SortField.Type type = luceneTypeMap.get(function.valueType());
+            final SortOrder sortOrder = new SortOrder(context.reverseFlag, context.nullFirst);
             assert type != null : "Could not get lucene sort type for " + function.valueType();
 
-            // TODO: support nullsFirst
             return new SortField(function.toString(), new IndexFieldData.XFieldComparatorSource() {
                 @Override
-                public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) throws IOException {
+                public FieldComparator<?> newComparator(String fieldName, int numHits, int sortPos, boolean reversed) throws IOException {
                     return new InputFieldComparator(
                             numHits,
                             context.context,
                             expressions,
                             functionInput,
                             function.valueType(),
-                            sortPos,
-                            reversed
+                            missingObject(sortOrder.missing(), reversed)
                     );
                 }
 
@@ -378,6 +378,7 @@ public class CrateSearchService extends InternalSearchService {
         private final Object[] values;
         private final Input input;
         private final List<LuceneCollectorExpression> collectorExpressions;
+        private final Object missingValue;
         private final DataType valueType;
         private Object bottom;
         private Object top;
@@ -387,10 +388,11 @@ public class CrateSearchService extends InternalSearchService {
                                     List<LuceneCollectorExpression> collectorExpressions,
                                     Input input,
                                     DataType valueType,
-                                    int sortPos,
-                                    boolean reversed) {
+                                    Object missingValue) {
             this.collectorExpressions = collectorExpressions;
-            for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
+            this.missingValue = missingValue;
+            for (int i = 0, collectorExpressionsSize = collectorExpressions.size(); i < collectorExpressionsSize; i++) {
+                LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
                 collectorExpression.startCollect(context);
             }
             this.valueType = valueType;
@@ -417,7 +419,8 @@ public class CrateSearchService extends InternalSearchService {
         @SuppressWarnings("unchecked")
         @Override
         public int compareBottom(int doc) throws IOException {
-            for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
+            for (int i = 0, collectorExpressionsSize = collectorExpressions.size(); i < collectorExpressionsSize; i++) {
+                LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
                 collectorExpression.setNextDocId(doc);
             }
             return valueType.compareValueTo(bottom, input.value());
@@ -426,7 +429,8 @@ public class CrateSearchService extends InternalSearchService {
         @SuppressWarnings("unchecked")
         @Override
         public int compareTop(int doc) throws IOException {
-            for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
+            for (int i = 0, collectorExpressionsSize = collectorExpressions.size(); i < collectorExpressionsSize; i++) {
+                LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
                 collectorExpression.setNextDocId(doc);
             }
             return valueType.compareValueTo(top, input.value());
@@ -434,20 +438,17 @@ public class CrateSearchService extends InternalSearchService {
 
         @Override
         public void copy(int slot, int doc) throws IOException {
-            for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
+            for (int i = 0, collectorExpressionsSize = collectorExpressions.size(); i < collectorExpressionsSize; i++) {
+                LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
                 collectorExpression.setNextDocId(doc);
             }
-            Object value = input.value();
-            if (value == null) {
-                // TODO: MISSING VALUE
-            } else {
-                values[slot] = value;
-            }
+            values[slot] = Objects.firstNonNull(input.value(), missingValue);
         }
 
         @Override
         public FieldComparator setNextReader(AtomicReaderContext context) throws IOException {
-            for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
+            for (int i = 0, collectorExpressionsSize = collectorExpressions.size(); i < collectorExpressionsSize; i++) {
+                LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
                 collectorExpression.setNextReader(context);
             }
             return this;
