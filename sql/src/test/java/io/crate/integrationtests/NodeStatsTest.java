@@ -240,8 +240,8 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
         assertThat((Map<String, Object>)response.rows()[0][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
-        assertThat((String)response.rows()[0][1], is(Version.CURRENT.toString()));
+        assertThat((String)response.rows()[0][1], is(Version.CURRENT.number()));
         assertThat(response.rows()[0][2], instanceOf(String.class));
-        assertThat((Boolean)response.rows()[0][3], isOneOf(true, false));
+        assertThat((Boolean)response.rows()[0][3], is(Version.CURRENT.snapshot()));
     }
 }
