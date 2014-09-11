@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed bulk arguments validation: it was too strict and failed if the
+   arguments contains null values.
+
 2014/09/08 0.42.2
 =================
 

@@ -94,7 +94,7 @@ public class Analyzer {
 
                     if (expectedType == DataTypes.NULL) {
                         bulkTypes[i] = guessedType;
-                    } else if (!bulkTypes[i].equals(guessedType)) {
+                    } else if (o != null && !bulkTypes[i].equals(guessedType)) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                 "argument %d of bulk arguments contains mixed data types", i + 1));
                     }
