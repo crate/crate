@@ -5,13 +5,16 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fixed bulk arguments validation: it was too strict and failed if the
-   arguments contains null values.
-
  - ``RESET`` statement does not support the persistence keyword
    anymore
 
  - added having support for global aggregate and group by
+
+2014/09/11 0.42.3
+=================
+
+ - fixed bulk arguments validation: it was too strict and failed if the
+   arguments contains null values.
 
 2014/09/08 0.42.2
 =================
@@ -22,7 +25,6 @@ Unreleased
  - fix: return column types if requested even on responses with no results
 
  - updated lucene version in client to 4.9.0
-
 
 2014/09/05 0.42.1
 =================
