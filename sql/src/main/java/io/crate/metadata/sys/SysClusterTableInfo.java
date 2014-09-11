@@ -123,12 +123,75 @@ public class SysClusterTableInfo extends SysTableInfo {
         register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
                 CrateSettings.ROUTING.name(),
                 CrateSettings.ROUTING_ALLOCATION.name(),
-                CrateSettings.ROUTING_ALLOCATION_AWARENESS.name()));
+                CrateSettings.ROUTING_ALLOCATION_INCLUDE.name()));
         register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
                 CrateSettings.ROUTING.name(),
                 CrateSettings.ROUTING_ALLOCATION.name(),
-                CrateSettings.ROUTING_ALLOCATION_AWARENESS.name(),
-                CrateSettings.ROUTING_ALLOCATION_AWARENESS_ATTRIBUTES.name()));
+                CrateSettings.ROUTING_ALLOCATION_INCLUDE.name(),
+                CrateSettings.ROUTING_ALLOCATION_INCLUDE_IP.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_INCLUDE.name(),
+                CrateSettings.ROUTING_ALLOCATION_INCLUDE_ID.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_INCLUDE.name(),
+                CrateSettings.ROUTING_ALLOCATION_INCLUDE_HOST.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_INCLUDE.name(),
+                CrateSettings.ROUTING_ALLOCATION_INCLUDE_NAME.name()));
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_EXCLUDE.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_EXCLUDE.name(),
+                CrateSettings.ROUTING_ALLOCATION_EXCLUDE_IP.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_EXCLUDE.name(),
+                CrateSettings.ROUTING_ALLOCATION_EXCLUDE_ID.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_EXCLUDE.name(),
+                CrateSettings.ROUTING_ALLOCATION_EXCLUDE_HOST.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_EXCLUDE.name(),
+                CrateSettings.ROUTING_ALLOCATION_EXCLUDE_NAME.name()));
+        register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_REQUIRE.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_REQUIRE.name(),
+                CrateSettings.ROUTING_ALLOCATION_REQUIRE_IP.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_REQUIRE.name(),
+                CrateSettings.ROUTING_ALLOCATION_REQUIRE_ID.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_REQUIRE.name(),
+                CrateSettings.ROUTING_ALLOCATION_REQUIRE_HOST.name()));
+        register("settings", DataTypes.STRING, ImmutableList.of(CrateSettings.CLUSTER.name(),
+                CrateSettings.ROUTING.name(),
+                CrateSettings.ROUTING_ALLOCATION.name(),
+                CrateSettings.ROUTING_ALLOCATION_REQUIRE.name(),
+                CrateSettings.ROUTING_ALLOCATION_REQUIRE_NAME.name()));
 
         register("settings", DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
                 CrateSettings.ROUTING.name(),
@@ -248,7 +311,7 @@ public class SysClusterTableInfo extends SysTableInfo {
         super(clusterService);
     }
 
-    private static ReferenceInfo register(String column, DataType type, List<String> path) {
+    public static ReferenceInfo register(String column, DataType type, List<String> path) {
         ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.CLUSTER, type);
         if (info.ident().isColumn()) {
             columns.add(info);

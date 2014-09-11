@@ -33,6 +33,7 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 public class SetAnalyzerTest extends BaseAnalyzerTest {
@@ -106,6 +107,13 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testSetInvalidStringValueObject() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Object values are not allowed at 'indices.fielddata.breaker.limit'");
+        analyze("SET GLOBAL PERSISTENT \"indices.fielddata.breaker.limit\" = {foo='bar'}");
+    }
+
+    @Test
     public void testSetByteSizeValue() throws Exception {
         SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = '1024kb'");
         assertThat(analysis.settings().toDelimitedString(','), is("indices.recovery.file_chunk_size=1048576,"));
@@ -124,13 +132,20 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testObjectValue() throws Exception {
         SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop = {timeout='1h',force=false}");
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.force=false,cluster.graceful_stop.timeout=1h,"));
+        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.force=false,cluster.graceful_stop.timeout=3600000,"));
     }
 
     @Test
     public void testNestedObjectValue() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.routing = {disk ={threshold_enabled = false, watermark = {high= '75%'}}}");
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.routing.disk.watermark.high=75%,cluster.routing.disk.threshold_enabled=false,"));
+        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.routing.allocation = {disk ={threshold_enabled = false, watermark = {high= '75%'}}}");
+        assertThat(analysis.settings().toDelimitedString(','), is("cluster.routing.allocation.disk.watermark.high=75%,cluster.routing.allocation.disk.threshold_enabled=false,"));
+    }
+
+    @Test
+    public void testNestedObjectValueInvalid() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Only object values are allowed at 'cluster.routing.allocation.disk'");
+        analyze("SET GLOBAL PERSISTENT cluster.routing.allocation = {disk = 1}");
     }
 
     @Test
@@ -140,28 +155,38 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,stats.jobs_log_size=2,"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSetParameterInvalidType() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'stats.operations_log_size'");
         analyze("SET GLOBAL PERSISTENT stats.operations_log_size=?", new Object[]{"foobar"});
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSetParameterInvalidBooleanType() throws Exception {
-        analyze("SET GLOBAL PERSISTENT stats.collect_stats=?", new Object[]{"foobar"});
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'stats.enabled'");
+        analyze("SET GLOBAL PERSISTENT stats.enabled=?", new Object[]{"foobar"});
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSetInvalidSetting() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("setting 'forbidden' not supported");
         analyze("SET GLOBAL PERSISTENT forbidden=1");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSetInvalidValue() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'stats.jobs_log_size'");
         analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=-1");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSetInvalidValueType() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'stats.jobs_log_size'");
         analyze("SET GLOBAL TRANSIENT stats.jobs_log_size='some value'");
     }
 
@@ -170,5 +195,8 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         SetAnalysis analysis = (SetAnalysis) analyze("RESET GLOBAL stats.enabled");
         assertThat(analysis.isReset(), is(true));
         assertThat(analysis.settingsToRemove(), contains("stats.enabled"));
+
+        analysis = (SetAnalysis) analyze("RESET GLOBAL stats");
+        assertThat(analysis.settingsToRemove(), containsInAnyOrder("stats.enabled", "stats.jobs_log_size", "stats.operations_log_size"));
     }
 }

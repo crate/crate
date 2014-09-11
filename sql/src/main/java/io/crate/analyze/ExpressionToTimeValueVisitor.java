@@ -29,8 +29,8 @@ import java.util.Locale;
 
 public class ExpressionToTimeValueVisitor extends AstVisitor<TimeValue, Object[]> {
 
+    public static final TimeValue DEFAULT_VALUE = new TimeValue(0);
     private static final ExpressionToTimeValueVisitor INSTANCE = new ExpressionToTimeValueVisitor();
-    private static final TimeValue DEFAULT_VALUE = new TimeValue(0);
 
     private ExpressionToTimeValueVisitor() {}
 

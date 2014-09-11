@@ -106,7 +106,9 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
                     applySettings((List<Setting>) setting.children(), settings);
                 }
                 if (!newValue.equals(values.get(name))) {
-                    logger.info("updating [{}] from [{}] to [{}]", name, values.get(name), newValue);
+                    if (settings.get(name) != null) {
+                        logger.info("updating [{}] from [{}] to [{}]", name, values.get(name), newValue);
+                    }
                     values.put(name, newValue);
                 }
             }

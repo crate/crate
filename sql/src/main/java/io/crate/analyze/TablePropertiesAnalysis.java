@@ -133,6 +133,11 @@ public class TablePropertiesAnalysis {
         public Settings getDefault() {
             return DEFAULT;
         }
+
+        @Override
+        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+            throw new UnsupportedOperationException("Not supported");
+        }
     }
 
     private static class RefreshIntervalSettingApplier implements SettingsApplier {
@@ -160,6 +165,11 @@ public class TablePropertiesAnalysis {
         @Override
         public Settings getDefault() {
             return DEFAULT;
+        }
+
+        @Override
+        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+            throw new UnsupportedOperationException("Not supported");
         }
     }
 }
