@@ -199,7 +199,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectWithParams() throws Exception {
-        execute("create table test (first_name string, last_name string, age double)");
+        execute("create table test (first_name string, last_name string, age double) with (number_of_replicas = 0)");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"first_name\":\"Youri\",\"last_name\":\"Zoon\", \"age\": 38}")
                 .execute().actionGet();
@@ -373,6 +374,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testIdSelectWithResult() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         refresh();
         execute("select \"_id\" from test");
@@ -1995,7 +1997,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectNotMatch() throws Exception {
-        execute("create table quotes (quote string)");
+        execute("create table quotes (quote string) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2053,7 +2056,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithInlineIndex() throws Exception {
-        execute("create table quotes (quote string index using fulltext)");
+        execute("create table quotes (quote string index using fulltext) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2073,7 +2077,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithIndexOff() throws Exception {
-        execute("create table quotes (id int, quote string index off)");
+        execute("create table quotes (id int, quote string index off) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2146,7 +2151,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectScoreMatchAll() throws Exception {
-        execute("create table quotes (quote string)");
+        execute("create table quotes (quote string) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2249,8 +2255,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "id integer primary key, " +
                 "quote string index off, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
-                ") clustered by (id) into 3 shards");
-        refresh();
+                ") clustered by (id) into 3 shards with (number_of_replicas = 0)");
+        ensureGreen();
         execute("insert into quotes (id, quote) values (1, '\"Nothing particularly exciting," +
                 "\" it admitted, \"but they are alternatives.\"')");
         execute("insert into quotes (id, quote) values (2, '\"Have another drink," +
@@ -2335,8 +2341,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testCopyFromFile() throws Exception {
         execute("create table quotes (id int primary key, " +
-                "quote string index using fulltext)");
-        refresh();
+                "quote string index using fulltext) with (number_of_replicas = 0)");
+        ensureGreen();
 
         String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{filePath});
@@ -3616,6 +3622,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("insert into foo (id, date, foo) values (1, '2014-01-01', 'foo')");
         execute("insert into foo (id, date, bar) values (2, '2014-02-01', 'bar')");
+        refresh();
+        ensureGreen();
 
         // schema updates are async and cannot reliably be forced
         int retry = 0;

@@ -36,7 +36,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
@@ -163,12 +162,8 @@ public class DocTableInfo implements TableInfo {
         return ident;
     }
 
-    private void processShardRouting(Map<String, Map<String, Set<Integer>>> locations, ShardRouting shardRouting, ShardId shardId) {
-        String node;
-        if (shardRouting == null) {
-            throw new UnavailableShardsException(shardId);
-        }
-        node = shardRouting.currentNodeId();
+    private void processShardRouting(Map<String, Map<String, Set<Integer>>> locations, ShardRouting shardRouting) {
+        String node = shardRouting.currentNodeId();
         Map<String, Set<Integer>> nodeMap = locations.get(node);
         if (nodeMap == null) {
             nodeMap = new HashMap<>();
@@ -186,7 +181,6 @@ public class DocTableInfo implements TableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause) {
-
         ClusterState clusterState = clusterService.state();
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
 
@@ -216,9 +210,12 @@ public class DocTableInfo implements TableInfo {
         ShardRouting shardRouting;
         for (ShardIterator shardIterator : shardIterators.iterators()) {
             shardRouting = shardIterator.nextOrNull();
-            processShardRouting(locations, shardRouting, shardIterator.shardId());
+            if (shardRouting != null && shardRouting.active()) {
+                processShardRouting(locations, shardRouting);
+            } else {
+                throw new UnavailableShardsException(shardIterator.shardId());
+            }
         }
-
         return new Routing(locations);
     }
 
