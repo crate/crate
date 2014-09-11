@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Using an unknown column in the ``ORDER BY`` clause will now result in an
+   error instead of silently ignoring it.
+
  - ``RESET`` statement does not support the persistence keyword
    anymore
 

@@ -43,6 +43,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     public void initTestData() {
         if (!setUpDone) {
             this.setup.setUpObjectTable();
+            ensureGreen();
             setUpDone = true;
         }
     }
@@ -266,39 +267,5 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
         assertEquals("Don't Panic: Douglas Adams and the \"Hitchhiker's Guide to the Galaxy\"", response.rows()[2][0]);
         assertEquals(false, response.rows()[2][1]);
-    }
-
-    @Test
-    public void testSelectIgnoredAddedColumnOrderBy() throws Exception {
-        Map<String, Object> detailMap = new HashMap<String, Object>(){{
-            put("num_pages", 240);
-            put("publishing_date", "1982-01-01");
-            put("isbn", "978-0345391827");
-            put("weight", 4.8d);
-        }};
-        execute("insert into ot (title, details) values (?, ?)",
-                new Object[]{
-                        "Life, the Universe and Everything",
-                        detailMap
-                });
-        execute("insert into ot (title, details) values (?, ?)",
-                new Object[]{
-                        "The Restaurant at the End of the Universe",
-                        new HashMap<String, Object>(){{
-                            put("num_pages", 256);
-                            put("publishing_date", "1980-01-01");
-                            put("isbn", "978-0345391810");
-                            put("weight", 6.4d);
-                        }}
-                });
-        refresh();
-        execute("select title, details['weight'] from ot order by details['weight'] desc, title");
-        assertEquals(3, response.rowCount());
-        assertEquals("Life, the Universe and Everything", response.rows()[0][0]);
-        assertEquals(4.8d, response.rows()[0][1]);
-        assertEquals("The Hitchhiker's Guide to the Galaxy", response.rows()[1][0]);
-        assertNull(response.rows()[1][1]);
-        assertEquals("The Restaurant at the End of the Universe", response.rows()[2][0]);
-        assertEquals(6.4d, response.rows()[2][1]);
     }
 }
