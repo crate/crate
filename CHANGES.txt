@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/09/11 0.43.0
+=================
+
  - ``RESET`` statement does not support the persistence keyword
    anymore
 
