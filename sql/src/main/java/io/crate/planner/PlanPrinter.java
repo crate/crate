@@ -149,7 +149,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     }
 
     @Override
-    public Void visitESSearchNode(ESSearchNode node, PrintContext context) {
+    public Void visitESSearchNode(QueryThenFetchNode node, PrintContext context) {
         context.print(node.toString());
         context.indent();
         context.print("outputs:");

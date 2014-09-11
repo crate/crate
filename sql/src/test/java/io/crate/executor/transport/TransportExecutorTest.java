@@ -247,7 +247,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
 
-        ESSearchNode node = new ESSearchNode(
+        QueryThenFetchNode node = new QueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Symbol>asList(name_ref),
@@ -259,7 +259,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
-        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
+        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get().rows();
@@ -285,7 +285,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Ford")));
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        ESSearchNode node = new ESSearchNode(
+        QueryThenFetchNode node = new QueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Symbol>asList(name_ref),
@@ -298,7 +298,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
-        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
+        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get().rows();
@@ -340,7 +340,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         );
 
         DocTableInfo searchf = docSchemaInfo.getTableInfo("searchf");
-        ESSearchNode node = new ESSearchNode(
+        QueryThenFetchNode node = new QueryThenFetchNode(
                 searchf.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, date_ref),
                 Arrays.<Symbol>asList(id_ref),
@@ -380,7 +380,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                         .execute().actionGet().getAliases();
 
         DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
-        ESSearchNode node = new ESSearchNode(
+        QueryThenFetchNode node = new QueryThenFetchNode(
                 parted.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(parted_id_ref, parted_name_ref, parted_date_ref),
                 Arrays.<Symbol>asList(name_ref),
@@ -393,7 +393,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
-        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
+        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get().rows();
@@ -437,7 +437,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         // verify deletion
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        ESSearchNode searchNode = new ESSearchNode(
+        QueryThenFetchNode searchNode = new QueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Symbol>asList(name_ref),
@@ -450,7 +450,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         plan = new Plan();
         plan.add(searchNode);
         job = executor.newJob(plan);
-        ESSearchTask searchTask = (ESSearchTask) job.tasks().get(0);
+        QueryThenFetchTask searchTask = (QueryThenFetchTask) job.tasks().get(0);
 
         searchTask.start();
         rows = searchTask.result().get(0).get().rows();
@@ -794,7 +794,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(name_ref, Literal.newLiteral("mostly harmless")));
 
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
-        ESSearchNode node = new ESSearchNode(
+        QueryThenFetchNode node = new QueryThenFetchNode(
                 characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 ImmutableList.<Symbol>of(id_ref),
