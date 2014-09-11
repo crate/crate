@@ -4446,15 +4446,24 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectOrderByArithmeticScalar() throws Exception {
-        execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
+    public void testSelectOrderByScalar() throws Exception {
+        execute("create table t (d double, i integer, name string) clustered into 1 shards with (number_of_replicas=0)");
         ensureGreen();
-        execute("insert into t (d) values (?), (?), (?)", new Object[]{1.3d, 1.6d, 2.2d});
+        execute("insert into t (d, name) values (?, ?)", new Object[][] {
+                new Object[] {1.3d, "Arthur" },
+                new Object[] {1.6d, null },
+                new Object[] {2.2d, "Marvin" }
+        });
         execute("refresh table t");
 
         execute("select * from t order by round(d) * 2 + 3");
         assertThat(response.rowCount(), is(3L));
         assertThat((Double) response.rows()[0][0], is(1.3d));
+
+        execute("select name from t order by substr(name, 1, 1) nulls first");
+        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rows()[0][0], nullValue());
+        assertThat((String) response.rows()[1][0], is("Arthur"));
 
         execute("select * from t order by ceil(d), d");
         assertThat(response.rowCount(), is(3L));

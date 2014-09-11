@@ -21,7 +21,6 @@
 
 package io.crate.action.sql.query;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
@@ -428,7 +427,12 @@ public class CrateSearchService extends InternalSearchService {
                 LuceneCollectorExpression collectorExpression = collectorExpressions.get(i);
                 collectorExpression.setNextDocId(doc);
             }
-            values[slot] = Objects.firstNonNull(input.value(), missingValue);
+            Object value = input.value();
+            if (value == null) {
+                values[slot] = missingValue;
+            } else {
+                values[slot] = value;
+            }
         }
 
         @Override
