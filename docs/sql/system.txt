@@ -44,6 +44,8 @@ The result has at most 1 row::
   SELECT 1 row in set (... sec)
 
 
+.. _sys-cluster-settings:
+
 Cluster Settings
 ----------------
 
@@ -92,8 +94,21 @@ currently applied cluster settings.
     | settings['cluster']['routing']['allocation']['cluster_concurrent_rebalance']      | integer   |
     | settings['cluster']['routing']['allocation']['node_initial_primaries_recoveries'] | integer   |
     | settings['cluster']['routing']['allocation']['node_concurrent_recoveries']        | integer   |
-    | settings['cluster']['routing']['allocation']['awareness']                         | object    |
-    | settings['cluster']['routing']['allocation']['awareness']['attributes']           | string    |
+    | settings['cluster']['routing']['allocation']['include']                           | object    |
+    | settings['cluster']['routing']['allocation']['include']['_ip']                    | string    |
+    | settings['cluster']['routing']['allocation']['include']['_id']                    | string    |
+    | settings['cluster']['routing']['allocation']['include']['_host']                  | string    |
+    | settings['cluster']['routing']['allocation']['include']['_name']                  | string    |
+    | settings['cluster']['routing']['allocation']['exclude']                           | object    |
+    | settings['cluster']['routing']['allocation']['exclude']['_ip']                    | string    |
+    | settings['cluster']['routing']['allocation']['exclude']['_id']                    | string    |
+    | settings['cluster']['routing']['allocation']['exclude']['_host']                  | string    |
+    | settings['cluster']['routing']['allocation']['exclude']['_name']                  | string    |
+    | settings['cluster']['routing']['allocation']['require']                           | object    |
+    | settings['cluster']['routing']['allocation']['require']['_ip']                    | string    |
+    | settings['cluster']['routing']['allocation']['require']['_id']                    | string    |
+    | settings['cluster']['routing']['allocation']['require']['_host']                  | string    |
+    | settings['cluster']['routing']['allocation']['require']['_name']                  | string    |
     | settings['cluster']['routing']['allocation']['balance']                           | object    |
     | settings['cluster']['routing']['allocation']['balance']['shard']                  | float     |
     | settings['cluster']['routing']['allocation']['balance']['index']                  | float     |
@@ -124,9 +139,9 @@ currently applied cluster settings.
     | settings['cluster']['info']['update']                                             | object    |
     | settings['cluster']['info']['update']['interval']                                 | long      |
     +-----------------------------------------------------------------------------------+-----------+
-    SELECT 55 rows in set (... sec)
+    SELECT 68 rows in set (... sec)
 
-For further details, see the :ref:`ref-set` reference.
+For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 
 
 Nodes
@@ -633,11 +648,6 @@ Note, that querying a time setting will always return a ``string`` value::
 ::
 
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop = {force=true};
-    SET OK (... sec)
-
-Non existent parameters are ignored when set as an object::
-
-    cr> SET GLOBAL TRANSIENT cluster.graceful_stop = {not_a_setting='foo'};
     SET OK (... sec)
 
 ::

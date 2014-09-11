@@ -5,12 +5,16 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - exposed a lot of cluster settings, most of them are changeable at
+   runtime by using ``SET/RESET``
+
  - BREAKING:
    existing cluster settings have been renamed:
      - collect_stats to stats.enabled
      - jobs_log_size to stats.jobs_log_size
      - operations_log_size to stats.operations_log_size
-   please refer to Crate SQL > Crate SQL Syntax Reference > SET/RESET in the documentation for more details
+   please refer to the ``Configuration`` section in the documentation
+   for more details
 
 2014/09/11 0.43.0
 =================
