@@ -6,7 +6,10 @@ SET / RESET
 ===========
 
 Alter and restore global cluster setting values at runtime.
-For a list of the possible settings see :ref:`conf_supported_settings`.
+For a list of the possible settings see
+:ref:`conf_supported_settings`. Only settings documented with
+*Runtime:*  ``yes`` can be changed.
+
 
 Synopsis
 ========
@@ -20,11 +23,13 @@ Synopsis
 Description
 ===========
 
-Using the ``SET`` and ``RESET`` statements it is possible to configure the
-crate cluster at runtime.
+Using the ``SET`` and ``RESET`` statements it is possible to configure
+the crate cluster at runtime.
 
-``SET`` can be used to change a configuration setting ident to a different value.
-Using ``RESET`` will reset the setting  to its default value.
+``SET`` can be used to change a configuration setting ident to a
+different value. Using ``RESET`` will reset the setting to its
+default value or, if the setting was defined at the configuration
+file on node start-up, to this value.
 
 Parameters
 ==========
