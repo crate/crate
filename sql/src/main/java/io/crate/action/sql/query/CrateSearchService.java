@@ -24,8 +24,8 @@ package io.crate.action.sql.query;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.core.StringUtils;
-import io.crate.executor.transport.task.elasticsearch.ESQueryBuilder;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
@@ -39,21 +39,19 @@ import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.search.FieldComparator;
-import org.apache.lucene.search.Sort;
-import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.*;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.indices.IndicesLifecycle;
@@ -83,7 +81,7 @@ import java.util.Set;
 
 public class CrateSearchService extends InternalSearchService {
 
-    private static final ESQueryBuilder ESQueryBuilder = new ESQueryBuilder();
+    private final LuceneQueryBuilder luceneQueryBuilder;
     private final SortSymbolVisitor sortSymbolVisitor;
 
     @Inject
@@ -106,6 +104,7 @@ public class CrateSearchService extends InternalSearchService {
                 threadPool,
                 scriptService,
                 cacheRecycler, pageCacheRecycler, bigArrays, dfsPhase, queryPhase, fetchPhase);
+        luceneQueryBuilder = new LuceneQueryBuilder(functions);
         CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
                 new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
         sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
@@ -192,9 +191,9 @@ public class CrateSearchService extends InternalSearchService {
         SearchContext.setCurrent(context);
 
         try {
-            // TODO: avoid xcontent generation / parsing -> generate lucene query directly from the whereClause
-            BytesReference source = ESQueryBuilder.convert(request.whereClause());
-            parseSource(context, source);
+            luceneQueryBuilder.searchContext(context);
+            Query query = luceneQueryBuilder.convert(request.whereClause());
+            context.parsedQuery(new ParsedQuery(query, ImmutableMap.<String, Filter>of()));
 
             // the OUTPUTS_VISITOR sets the sourceFetchContext / version / minScore onto the SearchContext
             OutputContext outputContext = new OutputContext(context, request.partitionBy());
