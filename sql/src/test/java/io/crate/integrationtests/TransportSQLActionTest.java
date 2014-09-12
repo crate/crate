@@ -412,6 +412,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectObject() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1")
                 .setSource("{\"a\":{\"nested\":2}}")
                 .execute().actionGet();
@@ -2174,7 +2175,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereScore() throws Exception {
         execute("create table quotes (quote string, " +
-                "index quote_ft using fulltext(quote))");
+                "index quote_ft using fulltext(quote)) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 

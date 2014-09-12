@@ -21,6 +21,7 @@
 
 package io.crate.core;
 
+import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -58,5 +59,16 @@ public class StringUtilsTest {
         assertEquals(StringUtils.getPathByPrefix(Arrays.asList("a", "b"), "b"), "b");
         assertEquals(StringUtils.getPathByPrefix(Arrays.asList("a", "b.c"), "b"), "b.c");
         assertEquals(StringUtils.getPathByPrefix(Arrays.asList("a", "bc"), "b"), null);
+    }
+
+    @Test
+    public void testCommonAncestors() throws Exception {
+        assertEquals(ImmutableSet.of("a"), StringUtils.commonAncestors(Arrays.asList("a", "a.b")));
+
+        assertEquals(ImmutableSet.of("d", "a", "b"),
+                StringUtils.commonAncestors(Arrays.asList("a.c", "b", "b.c.d", "a", "a.b", "d")));
+
+        assertEquals(ImmutableSet.of("d", "a", "b.c"),
+                StringUtils.commonAncestors(Arrays.asList("a.c", "b.c", "b.c.d", "a", "a.b", "d")));
     }
 }

@@ -30,9 +30,9 @@ import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.predicate.IsNullPredicate;
+import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.arithmetic.LogFunction;
 import io.crate.operation.scalar.arithmetic.RoundFunction;
@@ -469,19 +469,6 @@ public class ESQueryBuilderTest {
         String actual = reference.toUtf8();
         assertThat(actual, is(
                 "{\"version\":true,\"_source\":false,\"query\":{\"match_all\":{}},\"from\":0,\"size\":10000}"));
-    }
-
-    @Test
-    public void testCommonAncestors() throws Exception {
-        assertEquals(ImmutableSet.of("a"), ESQueryBuilder.commonAncestors(Arrays.asList("a", "a.b")));
-
-        assertEquals(ImmutableSet.of("d", "a", "b"),
-                ESQueryBuilder.commonAncestors(Arrays.asList("a.c", "b", "b.c.d", "a", "a.b", "d")));
-
-        assertEquals(ImmutableSet.of("d", "a", "b.c"),
-                ESQueryBuilder.commonAncestors(Arrays.asList("a.c", "b.c", "b.c.d", "a", "a.b", "d")));
-
-
     }
 
     @Test
