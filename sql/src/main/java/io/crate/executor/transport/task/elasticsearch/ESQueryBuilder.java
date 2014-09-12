@@ -86,6 +86,32 @@ public class ESQueryBuilder {
         static final XContentBuilderString MULTI_MATCH = new XContentBuilderString("multi_match");
     }
 
+    public static String convertWildcard(String wildcardString) {
+        // lucene uses * and ? as wildcard characters
+        // but via SQL they are used as % and _
+        // here they are converted back.
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)%", "*");
+        wildcardString = wildcardString.replaceAll("\\\\%", "%");
+
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)_", "?");
+        return wildcardString.replaceAll("\\\\_", "_");
+    }
+
+    public static String convertWildcardToRegex(String wildcardString) {
+        // lucene uses * and ? as wildcard characters
+        // but via SQL they are used as % and _
+        // here they are converted back.
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)%", ".*");
+        wildcardString = wildcardString.replaceAll("\\\\%", "%");
+
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)_", ".");
+        return wildcardString.replaceAll("\\\\_", "_");
+    }
+
     /**
      * adds the "query" part to the XContentBuilder
      */
@@ -645,31 +671,6 @@ public class ESQueryBuilder {
             }
         }
 
-        public static String convertWildcard(String wildcardString) {
-            // lucene uses * and ? as wildcard characters
-            // but via SQL they are used as % and _
-            // here they are converted back.
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)%", "*");
-            wildcardString = wildcardString.replaceAll("\\\\%", "%");
-
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)_", "?");
-            return wildcardString.replaceAll("\\\\_", "_");
-        }
-
-        public static String convertWildcardToRegex(String wildcardString) {
-            // lucene uses * and ? as wildcard characters
-            // but via SQL they are used as % and _
-            // here they are converted back.
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)%", ".*");
-            wildcardString = wildcardString.replaceAll("\\\\%", "%");
-
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)_", ".");
-            return wildcardString.replaceAll("\\\\_", "_");
-        }
 
 
 
@@ -815,12 +816,7 @@ public class ESQueryBuilder {
                 String[] columnNames = new String[idents.entrySet().size()];
                 int i = 0;
                 for (Map.Entry<String, Object> entry : idents.entrySet()) {
-                    if (entry.getValue() != null) {
-                        columnNames[i] = String.format("%s^%s", entry.getKey(),
-                                MatchPredicate.BOOST_FORMAT.format(entry.getValue()));
-                    } else {
-                        columnNames[i] = entry.getKey();
-                    }
+                    columnNames[i] = MatchPredicate.fieldNameWithBoost(entry.getKey(), entry.getValue());
                     i++;
                 }
 
