@@ -30,6 +30,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
+import io.crate.core.StringUtils;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
@@ -112,27 +113,6 @@ public class ESQueryBuilder {
         return context.builder.bytes();
     }
 
-    static Set<String> commonAncestors(List<String> fields){
-        int idx = 0;
-        String previous = null;
-
-        Collections.sort(fields);
-        Set<String> result = new HashSet<>(fields.size());
-        for (String field : fields) {
-            if (idx>0){
-                if (!field.startsWith(previous + '.')){
-                    previous = field;
-                    result.add(field);
-                }
-            } else {
-                result.add(field);
-                previous = field;
-            }
-            idx++;
-        }
-        return result;
-    }
-
     /**
      * use to create a full elasticsearch query "statement" including fields, size, etc.
      */
@@ -165,7 +145,7 @@ public class ESQueryBuilder {
         if (!needWholeSource){
             if (fields.size() > 0){
                 builder.startObject("_source");
-                builder.field("include", commonAncestors(fields));
+                builder.field("include", StringUtils.commonAncestors(fields));
                 builder.endObject();
             } else {
                 builder.field("_source", false);
