@@ -32,6 +32,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
+import javax.annotation.Nullable;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
@@ -44,12 +45,19 @@ public class MatchPredicate implements FunctionImplementation<Function> {
 
     public static final String DEFAULT_MATCH_TYPE_STRING = MultiMatchQueryBuilder.Type.BEST_FIELDS.toString().toLowerCase();
     public static final BytesRef DEFAULT_MATCH_TYPE = new BytesRef(DEFAULT_MATCH_TYPE_STRING);
-    public static final DecimalFormat BOOST_FORMAT = new DecimalFormat("#.###", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
+    private static final DecimalFormat BOOST_FORMAT = new DecimalFormat("#.###", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
     public static final String NAME = "match";
     public static final FunctionIdent IDENT = new FunctionIdent(
             NAME,
             Arrays.<DataType>asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
     );
+
+    public static String fieldNameWithBoost(String fieldName, @Nullable Object boost) {
+        if (boost == null) {
+            return fieldName;
+        }
+        return String.format("%s^%s", fieldName, BOOST_FORMAT.format(boost));
+    }
 
     /**
      * the match predicate is registered as a regular function

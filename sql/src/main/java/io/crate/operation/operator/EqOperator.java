@@ -30,7 +30,6 @@ import io.crate.types.DataTypes;
 
 import java.util.List;
 
-
 public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {
 
     public static final String NAME = "op_=";
