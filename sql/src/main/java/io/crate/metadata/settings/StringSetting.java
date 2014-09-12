@@ -27,7 +27,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.Set;
 
-public abstract class StringSetting extends Setting<String> {
+public abstract class StringSetting extends Setting<String, String> {
 
     protected Set<String> allowedValues;
 

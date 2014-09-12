@@ -37,6 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -188,4 +189,10 @@ public class CrateClientTest extends CrateIntegrationTest {
         }
     }
 
+    @Test
+    public void testClusterSettingsSerialization() throws Exception {
+        SQLResponse r = client.sql("select settings from sys.cluster").actionGet();
+        assertThat(r.rowCount(), is(1L));
+        assertTrue(r.rows()[0][0] instanceof Map);
+    }
 }

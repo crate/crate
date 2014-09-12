@@ -23,7 +23,7 @@ package io.crate.metadata.settings;
 
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class FloatSetting extends Setting<Float> {
+public abstract class FloatSetting extends Setting<Float, Float> {
 
     public Float maxValue() {
         return Float.MAX_VALUE;

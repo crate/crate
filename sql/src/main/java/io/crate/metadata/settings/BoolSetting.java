@@ -23,7 +23,7 @@ package io.crate.metadata.settings;
 
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class BoolSetting extends Setting<Boolean> {
+public abstract class BoolSetting extends Setting<Boolean, Boolean> {
 
     @Override
     public Boolean extract(Settings settings) {

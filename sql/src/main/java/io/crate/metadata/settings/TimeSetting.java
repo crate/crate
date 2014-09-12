@@ -24,7 +24,7 @@ package io.crate.metadata.settings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 
-public abstract class TimeSetting extends Setting<TimeValue> {
+public abstract class TimeSetting extends Setting<TimeValue, String> {
 
     @Override
     public TimeValue defaultValue() {
@@ -40,8 +40,8 @@ public abstract class TimeSetting extends Setting<TimeValue> {
     }
 
     @Override
-    public TimeValue extract(Settings settings) {
-        return settings.getAsTime(settingName(), defaultValue());
+    public String extract(Settings settings) {
+        return settings.getAsTime(settingName(), defaultValue()).toString();
     }
 
 }

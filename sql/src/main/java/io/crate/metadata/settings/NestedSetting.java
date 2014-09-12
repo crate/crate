@@ -24,7 +24,7 @@ package io.crate.metadata.settings;
 import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class NestedSetting extends Setting<Object> {
+public abstract class NestedSetting extends Setting<Object, Object> {
 
     @Override
     public Object extract(Settings settings) {

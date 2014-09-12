@@ -23,7 +23,7 @@ package io.crate.metadata.settings;
 
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class DoubleSetting extends Setting<Double> {
+public abstract class DoubleSetting extends Setting<Double, Double> {
 
     public Double maxValue() {
         return Double.MAX_VALUE;

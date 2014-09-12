@@ -24,7 +24,7 @@ package io.crate.metadata.settings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
-public abstract class ByteSizeSetting extends Setting<ByteSizeValue> {
+public abstract class ByteSizeSetting extends Setting<ByteSizeValue, String> {
 
     public long maxValue() {
         return Long.MAX_VALUE;
@@ -35,7 +35,7 @@ public abstract class ByteSizeSetting extends Setting<ByteSizeValue> {
     }
 
     @Override
-    public ByteSizeValue extract(Settings settings) {
-        return settings.getAsBytesSize(settingName(), defaultValue());
+    public String extract(Settings settings) {
+        return settings.getAsBytesSize(settingName(), defaultValue()).toString();
     }
 }

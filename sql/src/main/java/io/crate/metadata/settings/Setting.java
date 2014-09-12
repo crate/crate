@@ -28,7 +28,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 
-public abstract class Setting<T> {
+public abstract class Setting<T, E> {
 
     private final static Joiner dotJoiner = Joiner.on(".");
 
@@ -40,7 +40,7 @@ public abstract class Setting<T> {
 
     public abstract T defaultValue();
 
-    public abstract T extract(Settings settings);
+    public abstract E extract(Settings settings);
 
     public List<Setting> children() {
         return ImmutableList.<Setting>of();

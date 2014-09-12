@@ -23,7 +23,7 @@ package io.crate.metadata.settings;
 
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class IntSetting extends Setting<Integer> {
+public abstract class IntSetting extends Setting<Integer, Integer> {
 
     public Integer maxValue() {
         return Integer.MAX_VALUE;
