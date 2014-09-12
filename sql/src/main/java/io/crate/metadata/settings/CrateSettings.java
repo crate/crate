@@ -119,7 +119,9 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO);
+            // TODO: un-comment at graceful-stop branch
+            //return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO);
+            return ImmutableList.<Setting>of(ROUTING, CLUSTER_INFO);
         }
     };
 

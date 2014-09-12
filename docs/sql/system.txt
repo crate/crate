@@ -81,12 +81,6 @@ currently applied cluster settings.
     | settings['discovery']['zen']['ping_timeout']                                      | long      |
     | settings['discovery']['zen']['publish_timeout']                                   | long      |
     | settings['cluster']                                                               | object    |
-    | settings['cluster']['graceful_stop']                                              | object    |
-    | settings['cluster']['graceful_stop']['min_availability']                          | string    |
-    | settings['cluster']['graceful_stop']['reallocate']                                | boolean   |
-    | settings['cluster']['graceful_stop']['timeout']                                   | long      |
-    | settings['cluster']['graceful_stop']['force']                                     | boolean   |
-    | settings['cluster']['graceful_stop']['is_default']                                | boolean   |
     | settings['cluster']['routing']                                                    | object    |
     | settings['cluster']['routing']['allocation']                                      | object    |
     | settings['cluster']['routing']['allocation']['enable']                            | string    |
@@ -139,7 +133,7 @@ currently applied cluster settings.
     | settings['cluster']['info']['update']                                             | object    |
     | settings['cluster']['info']['update']['interval']                                 | long      |
     +-----------------------------------------------------------------------------------+-----------+
-    SELECT 68 rows in set (... sec)
+    SELECT 62 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 
@@ -614,67 +608,6 @@ deactivate the stats tracking. This will also wipe all existing log entries::
 
     Instead of ``SET`` the ``RESET`` statement could also have been used to
     reset the value of ``stats.enabled`` to its default which is false.
-
-
-Graceful Stop
-=============
-
-In order to change the shutdown behaviour of nodes of the cluster,
-you can utilise the ``cluster.graceful_stop.*`` cluster settings.
-
-Please refer to :ref:`ref-set` for a complete list of settings.
-
-For example to set the timeout to 30 minutes::
-
-    cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = 1800000;
-    SET OK (... sec)
-
-Crate supports string literals for time values the same way as the ``crate.yml`` does.
-So you can write the previous statmement as::
-
-    cr> SET GLOBAL TRANSIENT cluster.graceful_stop.timeout = '30m';
-    SET OK (... sec)
-
-Note, that querying a time setting will always return a ``string`` value::
-
-    cr> select settings['cluster']['graceful_stop']['timeout'] from sys.cluster;
-    +-------------------------------------------------+
-    | settings['cluster']['graceful_stop']['timeout'] |
-    +-------------------------------------------------+
-    | 30m                                             |
-    +-------------------------------------------------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> SET GLOBAL TRANSIENT cluster.graceful_stop = {force=true};
-    SET OK (... sec)
-
-::
-
-    cr> select settings['cluster']['graceful_stop'] from sys.cluster;
-    +---------------------------------------...------------------+
-    | settings['cluster']['graceful_stop']                       |
-    +---------------------------------------...------------------+
-    | {"force": true, "is_default": false, ... "timeout": "30m"} |
-    +---------------------------------------...------------------+
-    SELECT 1 row in set (... sec)
-
-::
-
-    cr> select settings['cluster']['graceful_stop']['not_a_setting'] from sys.cluster;
-    SQLActionException[Can't handle Symbol sys.cluster.settings['cluster']['graceful_stop']['not_a_setting']]
-
-The default configuration in ``crate.yml`` looks like:
-
-.. code-block:: yaml
-
-  graceful_stop:
-    min_availability: primaries
-    reallocate: true
-    timeout: 2h
-    force: false
-    is_default: false
 
 
 .. _configuration: ../configuration.html
