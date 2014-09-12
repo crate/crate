@@ -30,6 +30,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
+import io.crate.core.StringUtils;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
@@ -85,6 +86,32 @@ public class ESQueryBuilder {
         static final XContentBuilderString MULTI_MATCH = new XContentBuilderString("multi_match");
     }
 
+    public static String convertWildcard(String wildcardString) {
+        // lucene uses * and ? as wildcard characters
+        // but via SQL they are used as % and _
+        // here they are converted back.
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)%", "*");
+        wildcardString = wildcardString.replaceAll("\\\\%", "%");
+
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)_", "?");
+        return wildcardString.replaceAll("\\\\_", "_");
+    }
+
+    public static String convertWildcardToRegex(String wildcardString) {
+        // lucene uses * and ? as wildcard characters
+        // but via SQL they are used as % and _
+        // here they are converted back.
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)%", ".*");
+        wildcardString = wildcardString.replaceAll("\\\\%", "%");
+
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)_", ".");
+        return wildcardString.replaceAll("\\\\_", "_");
+    }
+
     /**
      * adds the "query" part to the XContentBuilder
      */
@@ -110,27 +137,6 @@ public class ESQueryBuilder {
         whereClause(context, whereClause);
         context.builder.endObject();
         return context.builder.bytes();
-    }
-
-    static Set<String> commonAncestors(List<String> fields){
-        int idx = 0;
-        String previous = null;
-
-        Collections.sort(fields);
-        Set<String> result = new HashSet<>(fields.size());
-        for (String field : fields) {
-            if (idx>0){
-                if (!field.startsWith(previous + '.')){
-                    previous = field;
-                    result.add(field);
-                }
-            } else {
-                result.add(field);
-                previous = field;
-            }
-            idx++;
-        }
-        return result;
     }
 
     /**
@@ -165,7 +171,7 @@ public class ESQueryBuilder {
         if (!needWholeSource){
             if (fields.size() > 0){
                 builder.startObject("_source");
-                builder.field("include", commonAncestors(fields));
+                builder.field("include", StringUtils.commonAncestors(fields));
                 builder.endObject();
             } else {
                 builder.field("_source", false);
@@ -665,31 +671,6 @@ public class ESQueryBuilder {
             }
         }
 
-        public static String convertWildcard(String wildcardString) {
-            // lucene uses * and ? as wildcard characters
-            // but via SQL they are used as % and _
-            // here they are converted back.
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)%", "*");
-            wildcardString = wildcardString.replaceAll("\\\\%", "%");
-
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)_", "?");
-            return wildcardString.replaceAll("\\\\_", "_");
-        }
-
-        public static String convertWildcardToRegex(String wildcardString) {
-            // lucene uses * and ? as wildcard characters
-            // but via SQL they are used as % and _
-            // here they are converted back.
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)%", ".*");
-            wildcardString = wildcardString.replaceAll("\\\\%", "%");
-
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
-            wildcardString = wildcardString.replaceAll("(?<!\\\\)_", ".");
-            return wildcardString.replaceAll("\\\\_", "_");
-        }
 
 
 
@@ -835,12 +816,7 @@ public class ESQueryBuilder {
                 String[] columnNames = new String[idents.entrySet().size()];
                 int i = 0;
                 for (Map.Entry<String, Object> entry : idents.entrySet()) {
-                    if (entry.getValue() != null) {
-                        columnNames[i] = String.format("%s^%s", entry.getKey(),
-                                MatchPredicate.BOOST_FORMAT.format(entry.getValue()));
-                    } else {
-                        columnNames[i] = entry.getKey();
-                    }
+                    columnNames[i] = MatchPredicate.fieldNameWithBoost(entry.getKey(), entry.getValue());
                     i++;
                 }
 

@@ -1,14 +1,19 @@
 package io.crate.operation.operator;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.operation.Input;
 import io.crate.operation.operator.input.ObjectInput;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -24,9 +29,21 @@ public class EqOperatorTest {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
+    private Functions functions;
+
+    @Before
+    public void setUp() throws Exception {
+        functions = new ModulesBuilder().add(new OperatorModule()).createInjector().getInstance(Functions.class);
+    }
+
+    private EqOperator getOp(DataType dataType) {
+        return (EqOperator) functions.get(
+                new FunctionIdent(EqOperator.NAME, ImmutableList.of(dataType, dataType)));
+    }
+
     @Test
     public void testNormalizeSymbol() {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
+        EqOperator op = getOp(DataTypes.INTEGER);
 
         Function function = new Function(
                 op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.newLiteral(2)));
@@ -37,7 +54,7 @@ public class EqOperatorTest {
 
     @Test
     public void testNormalizeSymbolWithNullLiteral() {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
+        EqOperator op = getOp(DataTypes.INTEGER);
         Function function = new Function(
                 op.info(), Arrays.<Symbol>asList(Literal.NULL, Literal.NULL));
         Literal result = (Literal)op.normalizeSymbol(function);
@@ -47,7 +64,7 @@ public class EqOperatorTest {
 
     @Test
     public void testNormalizeSymbolWithOneNullLiteral() {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
+        EqOperator op = getOp(DataTypes.INTEGER);
         Function function = new Function(
                 op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.NULL));
         Literal result = (Literal)op.normalizeSymbol(function);
@@ -57,7 +74,7 @@ public class EqOperatorTest {
 
     @Test
     public void testNormalizeSymbolNeq() {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
+        EqOperator op = getOp(DataTypes.INTEGER);
 
         Function function = new Function(
                 op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.newLiteral(4)));
@@ -68,7 +85,7 @@ public class EqOperatorTest {
 
     @Test
     public void testNormalizeSymbolNonLiteral() {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
+        EqOperator op = getOp(DataTypes.INTEGER);
         Function f1 = new Function(
                 new FunctionInfo(
                         new FunctionIdent("dummy_function", Arrays.<DataType>asList(DataTypes.INTEGER)),
@@ -94,16 +111,16 @@ public class EqOperatorTest {
         assertThat(result, instanceOf(Function.class));
     }
 
-    private Boolean eq(Object left, Object right) {
-        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataTypes.INTEGER));
-        return op.evaluate(new ObjectInput(left),new ObjectInput(right));
+    private Boolean eq(DataType type, Object left, Object right) {
+        EqOperator op = getOp(type);
+        return op.evaluate(new Input[] {new ObjectInput(left),new ObjectInput(right) });
     }
 
     @Test
     public void testEvaluateEqOperator() {
-        assertTrue(eq(1, 1));
-        assertFalse(eq(1L, 2L));
-        assertTrue(eq(
+        assertTrue(eq(DataTypes.INTEGER, 1, 1));
+        assertFalse(eq(DataTypes.LONG, 1L, 2L));
+        assertTrue(eq(DataTypes.OBJECT,
                 ImmutableMap.<String, Object>builder()
                         .put("int", 1)
                         .put("boolean", true)
@@ -113,7 +130,7 @@ public class EqOperatorTest {
                         .put("boolean", true)
                         .build()
         ));
-        assertFalse(eq(
+        assertFalse(eq(DataTypes.OBJECT,
                 ImmutableMap.<String, Object>builder()
                         .put("int", 1)
                         .put("boolean", true)
@@ -123,8 +140,8 @@ public class EqOperatorTest {
                         .put("boolean", false)
                         .build()
         ));
-        assertNull(eq(null, 1f));
-        assertNull(eq("boing", null));
-        assertNull(eq(null, null));
+        assertNull(eq(DataTypes.FLOAT, null, 1f));
+        assertNull(eq(DataTypes.STRING, "boing", null));
+        assertNull(eq(DataTypes.STRING, null, null));
     }
 }

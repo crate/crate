@@ -71,7 +71,8 @@ public class CastFunction extends Scalar<Object, Object> {
 
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            assert dataTypes.size() == 2;
+            assert dataTypes.size() == 2 :
+                    "CastFunction requires two data types. The first argument will be converted into the type of the second argument/dataType";
             return new CastFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), dataTypes.get(1)));
         }
     }

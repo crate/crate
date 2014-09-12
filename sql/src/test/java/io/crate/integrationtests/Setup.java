@@ -127,9 +127,7 @@ public class Setup {
                         "13",  null, "2013-07-16",  "Galaxy",  6,  "The end of the Galaxy.%", null
                 }
         };
-        for (Object[] args : rows) {
-            transportExecutor.exec(insertStmt, args);
-        }
+        transportExecutor.exec(insertStmt, rows);
     }
 
     public void groupBySetup() throws Exception {

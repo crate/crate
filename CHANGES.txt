@@ -5,6 +5,13 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - All scalar functions can now be used in the WHERE clause in SELECT
+   statements and they may be nested without limitations. In addition it is now
+   possible to compare one scalar function to another.
+
+ - Added support to compare one column with another in the WHERE clause for
+   SELECT statements.
+
  - Implemented regular expression scalar functions and query operator
 
  - Support for accessing items in an array. Please refer to the
