@@ -463,6 +463,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSqlRequestWithNotEqual() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         refresh();
@@ -474,7 +475,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithOneOrFilter() throws Exception {
-        execute("create table test (id string)");
+        execute("create table test (id string) with (number_of_replicas = 0)");
+        ensureGreen();
         execute("insert into test (id) values ('id1'), ('id2'), ('id3')");
         refresh();
         execute("select id from test where id='id1' or id='id3'");
@@ -484,7 +486,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithOneMultipleOrFilter() throws Exception {
-        execute("create table test (id string)");
+        execute("create table test (id string) with (number_of_replicas = 0)");
+        ensureGreen();
         execute("insert into test (id) values ('id1'), ('id2'), ('id3'), ('id4')");
         refresh();
         execute("select id from test where id='id1' or id='id2' or id='id4'");
