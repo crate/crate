@@ -21,9 +21,9 @@
 
 package io.crate.operation.reference.sys.cluster;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.Setting;
 import io.crate.operation.reference.sys.SysClusterObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -31,82 +31,121 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+
 public class ClusterSettingsExpression extends SysClusterObjectReference {
 
     public static final String NAME = "settings";
 
-    abstract class SettingExpression extends SysClusterExpression<Object> {
-        protected SettingExpression(String name) {
-            super(new ColumnIdent(NAME, ImmutableList.of(name)));
+    static class SettingExpression extends SysClusterExpression<Object> {
+        private final Map<String, Object> values;
+        private final String name;
+
+        protected SettingExpression(Setting setting, Map<String, Object> values) {
+            super(new ColumnIdent(NAME, setting.chain()));
+            this.name = setting.settingName();
+            this.values = values;
         }
+
+        @Override
+        public Object value() {
+            return this.values.get(name);
+        }
+
     }
 
-    class ApplySettings implements NodeSettingsService.Listener {
+    static class NestedSettingExpression extends SysClusterObjectReference {
+
+        private final Map<String, Object> values;
+
+        protected NestedSettingExpression(Setting setting, Map<String, Object> values) {
+            super(new ColumnIdent(NAME, setting.chain()));
+            this.values = values;
+            addChildImplementations(setting.children());
+        }
+
+        public void addChildImplementations(List<Setting> childSettings) {
+            for (Setting childSetting : childSettings) {
+                if (childSetting.children().isEmpty()) {
+                    childImplementations.put(childSetting.name(),
+                            new SettingExpression(childSetting, values)
+                    );
+                } else {
+                    childImplementations.put(childSetting.name(),
+                            new NestedSettingExpression(childSetting, values)
+                    );
+                }
+            }
+        }
+
+    }
+
+    static class ApplySettings implements NodeSettingsService.Listener {
+
+        private final Map values;
+        protected final ESLogger logger;
+
+        ApplySettings(Map values) {
+            this.logger = Loggers.getLogger(getClass());
+            this.values = values;
+        }
 
         @Override
         public void onRefreshSettings(Settings settings) {
-            final int newJobsLogSize = CrateSettings.JOBS_LOG_SIZE.extract(settings);
-            if (newJobsLogSize != ClusterSettingsExpression.this.jobsLogSize) {
-                logger.info("updating [{}] from [{}] to [{}]", CrateSettings.JOBS_LOG_SIZE.name(),
-                        ClusterSettingsExpression.this.jobsLogSize, newJobsLogSize);
-                ClusterSettingsExpression.this.jobsLogSize = newJobsLogSize;
-            }
-            final int newOperationsLogSize = CrateSettings.OPERATIONS_LOG_SIZE.extract(settings);
-            if (newOperationsLogSize != ClusterSettingsExpression.this.operationsLogSize) {
-                logger.info("updating [{}] from [{}] to [{}]", CrateSettings.OPERATIONS_LOG_SIZE.name(),
-                        ClusterSettingsExpression.this.operationsLogSize, newOperationsLogSize);
-                ClusterSettingsExpression.this.operationsLogSize = newOperationsLogSize;
-            }
+            applySettings(CrateSettings.CRATE_SETTINGS, settings);
+        }
 
-            final boolean newCollectStats = CrateSettings.COLLECT_STATS.extract(settings);
-            if (newCollectStats != ClusterSettingsExpression.this.collectStats) {
-                logger.info("{} [{}]",
-                        (newCollectStats ? "enabling" : "disabling"),
-                        CrateSettings.COLLECT_STATS.name());
-                ClusterSettingsExpression.this.collectStats = newCollectStats;
+        private void applySettings(List<Setting> clusterSettings, Settings settings) {
+            for (Setting setting : clusterSettings) {
+                String name = setting.settingName();
+                Object newValue = setting.extract(settings);
+                if (settings.get(name) == null) {
+                    applySettings((List<Setting>) setting.children(), settings);
+                }
+                if (!newValue.equals(values.get(name))) {
+                    if (settings.get(name) != null) {
+                        logger.info("updating [{}] from [{}] to [{}]", name, values.get(name), newValue);
+                    }
+                    values.put(name, newValue);
+                }
             }
-
         }
     }
 
-    protected final ESLogger logger;
-    private volatile int jobsLogSize = CrateSettings.JOBS_LOG_SIZE.defaultValue();
-    private volatile int operationsLogSize = CrateSettings.OPERATIONS_LOG_SIZE.defaultValue();
-    private volatile boolean collectStats = CrateSettings.COLLECT_STATS.defaultValue();
+
+    private final ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<>();
 
     @Inject
     public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService) {
         super(NAME);
-        this.logger = Loggers.getLogger(getClass(), settings);
-        nodeSettingsService.addListener(new ApplySettings());
+        nodeSettingsService.addListener(new ApplySettings(values));
         addChildImplementations();
+        applySettings(CrateSettings.CRATE_SETTINGS);
+    }
+
+    private final void applySettings(List<Setting> settings) {
+        for (Setting setting : settings) {
+            String settingName = setting.settingName();
+            values.put(settingName, setting.defaultValue());
+            applySettings((List<Setting>) setting.children());
+        }
     }
 
     private void addChildImplementations() {
         childImplementations.put(
-                CrateSettings.JOBS_LOG_SIZE.name(),
-                new SettingExpression(CrateSettings.JOBS_LOG_SIZE.name()) {
-
-            @Override
-            public Integer value() {
-                return jobsLogSize;
-            }
-        });
+                CrateSettings.STATS.name(),
+                new NestedSettingExpression(CrateSettings.STATS, values));
         childImplementations.put(
-                CrateSettings.OPERATIONS_LOG_SIZE.name(),
-                new SettingExpression(CrateSettings.OPERATIONS_LOG_SIZE.name()) {
-            @Override
-            public Integer value() {
-                return operationsLogSize;
-            }
-        });
+                CrateSettings.CLUSTER.name(),
+                new NestedSettingExpression(CrateSettings.CLUSTER, values));
         childImplementations.put(
-                CrateSettings.COLLECT_STATS.name(),
-                new SettingExpression(CrateSettings.COLLECT_STATS.name()) {
-            @Override
-            public Boolean value() {
-                return collectStats;
-            }
-        });
+                CrateSettings.DISCOVERY.name(),
+                new NestedSettingExpression(CrateSettings.DISCOVERY, values));
+        childImplementations.put(
+                CrateSettings.INDICES.name(),
+                new NestedSettingExpression(CrateSettings.INDICES, values));
     }
 }

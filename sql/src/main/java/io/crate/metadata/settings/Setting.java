@@ -21,14 +21,50 @@
 
 package io.crate.metadata.settings;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
-public interface Setting<T> {
+import java.util.List;
 
-    public String settingName();
-    public String name();
-    public T defaultValue();
-    public T maxValue();
-    public T minValue();
-    public T extract(Settings settings);
+public abstract class Setting<T> {
+
+    private final static Joiner dotJoiner = Joiner.on(".");
+
+    public String settingName() {
+        return dotJoiner.join(chain());
+    }
+
+    public abstract String name();
+
+    public abstract T defaultValue();
+
+    public abstract T extract(Settings settings);
+
+    public List<Setting> children() {
+        return ImmutableList.<Setting>of();
+    }
+
+    @Nullable
+    public Setting parent() {
+        return null;
+    }
+
+    /**
+     * Return a list of setting names up to the uppers parent which will be used
+     * e.g. to compute the full-qualified setting name
+     */
+    public List<String> chain() {
+        Setting parentSetting = parent();
+        if (parentSetting == null) { return ImmutableList.of(name()); }
+        ImmutableList.Builder<String> builder = ImmutableList.builder();
+        builder.add(name());
+        while (parentSetting != null) {
+            builder.add(parentSetting.name());
+            parentSetting = parentSetting.parent();
+        }
+        return builder.build().reverse();
+
+    }
 }

@@ -22,12 +22,20 @@
 package io.crate.metadata.settings;
 
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
 
-public abstract class BoolSetting extends Setting<Boolean> {
+public abstract class ByteSizeSetting extends Setting<ByteSizeValue> {
 
-    @Override
-    public Boolean extract(Settings settings) {
-        return settings.getAsBoolean(settingName(), defaultValue());
+    public long maxValue() {
+        return Long.MAX_VALUE;
     }
 
+    public long minValue() {
+        return Long.MIN_VALUE;
+    }
+
+    @Override
+    public ByteSizeValue extract(Settings settings) {
+        return settings.getAsBytesSize(settingName(), defaultValue());
+    }
 }

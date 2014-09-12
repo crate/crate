@@ -24,63 +24,70 @@ package io.crate.integrationtests;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.junit.Test;
 
 import java.util.Map;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class ClusterSettingsTest extends SQLTransportIntegrationTest {
 
+    @Test
     public void testDynamicTransientSettings() throws Exception {
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
-                .put(CrateSettings.JOBS_LOG_SIZE.settingName(), 1)
-                .put(CrateSettings.OPERATIONS_LOG_SIZE.settingName(), 2)
-                .put(CrateSettings.COLLECT_STATS.settingName(), false);
+                .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
+                .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 2)
+                .put(CrateSettings.STATS_ENABLED.settingName(), false);
         client().admin().cluster().prepareUpdateSettings().setTransientSettings(builder.build()).execute().actionGet();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
-        Map settings = (Map)response.rows()[0][0];
-        assertEquals(1, settings.get(CrateSettings.JOBS_LOG_SIZE.name()));
-        assertEquals(2, settings.get(CrateSettings.OPERATIONS_LOG_SIZE.name()));
-        assertEquals(false, settings.get(CrateSettings.COLLECT_STATS.name()));
+        Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
+        Map stats = settings.get(CrateSettings.STATS.name());
+        assertEquals(1, stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
+        assertEquals(2, stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
+        assertEquals(false, stats.get(CrateSettings.STATS_ENABLED.name()));
 
         cluster().fullRestart();
         ensureGreen();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
-        settings = (Map)response.rows()[0][0];
-        assertEquals(CrateSettings.JOBS_LOG_SIZE.defaultValue(),
-                settings.get(CrateSettings.JOBS_LOG_SIZE.name()));
-        assertEquals(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue(),
-                settings.get(CrateSettings.OPERATIONS_LOG_SIZE.name()));
-        assertEquals(CrateSettings.COLLECT_STATS.defaultValue(),
-                settings.get(CrateSettings.COLLECT_STATS.name()));
+        settings = (Map<String, Map>)response.rows()[0][0];
+        stats = settings.get(CrateSettings.STATS.name());
+        assertEquals(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue(),
+                stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
+        assertEquals(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue(),
+                stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
+        assertEquals(CrateSettings.STATS_ENABLED.defaultValue(),
+                stats.get(CrateSettings.STATS_ENABLED.name()));
     }
 
+    @Test
     public void testDynamicPersistentSettings() throws Exception {
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
-                .put(CrateSettings.JOBS_LOG_SIZE.settingName(), 1)
-                .put(CrateSettings.OPERATIONS_LOG_SIZE.settingName(), 2)
-                .put(CrateSettings.COLLECT_STATS.settingName(), false);
+                .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
+                .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 2)
+                .put(CrateSettings.STATS_ENABLED.settingName(), false);
         client().admin().cluster().prepareUpdateSettings().setPersistentSettings(builder.build()).execute().actionGet();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
-        Map settings = (Map)response.rows()[0][0];
-        assertEquals(1, settings.get(CrateSettings.JOBS_LOG_SIZE.name()));
-        assertEquals(2, settings.get(CrateSettings.OPERATIONS_LOG_SIZE.name()));
-        assertEquals(false, settings.get(CrateSettings.COLLECT_STATS.name()));
+        Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
+        Map stats = settings.get(CrateSettings.STATS.name());
+        assertEquals(1, stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
+        assertEquals(2, stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
+        assertEquals(false, stats.get(CrateSettings.STATS_ENABLED.name()));
 
         cluster().fullRestart();
         ensureGreen();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
-        settings = (Map)response.rows()[0][0];
-        assertEquals(1, settings.get(CrateSettings.JOBS_LOG_SIZE.name()));
-        assertEquals(2, settings.get(CrateSettings.OPERATIONS_LOG_SIZE.name()));
-        assertEquals(false, settings.get(CrateSettings.COLLECT_STATS.name()));
+        settings = (Map<String, Map>)response.rows()[0][0];
+        stats = settings.get(CrateSettings.STATS.name());
+        assertEquals(1, stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
+        assertEquals(2, stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
+        assertEquals(false, stats.get(CrateSettings.STATS_ENABLED.name()));
     }
 
 }

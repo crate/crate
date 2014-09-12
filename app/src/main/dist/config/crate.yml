@@ -24,6 +24,44 @@
 #
 # cluster.name: crate
 
+# The graceful_stop namespace defines settings for a graceful stop
+# procedure of nodes within the cluster.
+#
+# The minimum data availability the cluster needs to ensure when a certain node
+# is shut down. By default the cluster ensures availability of primary shards
+# but not replicas. Other options are "all" and "none".
+#
+# cluster.graceful_stop.min_availability: primaries
+#
+# The cluster may reallocate shards to ensure minimum data availabillity before
+# a certain node shuts down.
+#
+# cluster.graceful_stop.reallocate: true
+#
+# The time to wait for the reallocation process to be finished.
+#
+# cluster.graceful_stop.timeout: 2h
+#
+# The force setting allows you to force a shutdown of a node when the graceful
+# shutdown process runs into the cluster.graceful_stop.timeout.
+#
+# cluster.graceful_stop.force: false
+#
+# By default the regular stop procedure does not consider the graceful_stop
+# settings, but only sending the USR2 signal to the process does.
+#
+# cluster.graceful_stop.is_default: false
+#
+# You may want to set the is_default to true if you need to run the graceful
+# stop process whenever you stop a node regularly.
+# cluster.graceful_stop.is_default: true
+
+# In most cases you want to allow all kinds of shards allocations.
+# cluster.routing.allocation.enable = all
+#
+# However, you can limit shard allocations to certain kinds of shards,
+# for example if you perform a rolling cluster upgrade.
+# cluster.routing.allocation.enable = new_primaries
 
 #################################### Node #####################################
 
@@ -247,6 +285,48 @@
 #
 # indices.recovery.concurrent_streams: 5
 
+# Specifies the chunk size used to copy the shard data from the
+# source shard.
+#
+# indices.recovery.file_chunk_size: 512kb
+
+# Specifies how many transaction log lines should be transfered
+# between shards in a single request during the recovery process.
+# Ignored if indices.recovery.translog_size is reached first.
+#
+# indices.recovery.translog_ops: 1000
+
+# Specifies how much data of the transaction log should be
+# transfered between shards in a single request during the recovery
+# process.
+#
+# indices.recovery.translog_size: 512kb
+
+# Define if transferred data should be compressed during the
+# recovery process.
+#
+# indices.recovery.compress: true
+
+# Specifies the maximum number of bytes that can be transferred
+# during shard recovery per seconds. Limiting
+# can be disabled by setting it to `0`. Higher values
+# may result in higher network utilization, but also faster recovery process.
+#
+# indices.recovery.max_bytes_per_sec: 20mb
+
+############################ Store Level Throttling ###########################
+
+# Allows to throttle `merge` (or `all`) process of the store
+# module. Options are: `all | merge | none`
+#
+# indices.store.throttle.type: merge
+
+# If throttling is enabled by indices.store.throttle.type, this
+# setting specifies the maximum bytes per second a store module
+# process can operate with.
+#
+# indices.store.throttle.max_bytes_per_sec: 20mb
+
 
 ################################## Discovery ##################################
 
@@ -268,6 +348,12 @@
 # to minimize discovery failures:
 #
 # discovery.zen.ping.timeout: 3s
+#
+
+# Time a node is waiting for responses from other nodes to a published
+# cluster state.
+#
+# discovery.zen.publish_timeout: 30s
 
 # Unicast discovery allows to explicitly control which nodes will be used
 # to discover the cluster. It can be used when multicast is not present,
@@ -293,6 +379,162 @@
 # discovery.zen.fd.ping_timeout: 30s
 # discovery.zen.fd.ping_retries: 3
 # discovery.zen.fd.ping_interval: 1s
+#
+############################# Routing Allocation #############################
+
+# Allows to control shard allocation.
+# Options are: `all | new_primaries`
+#
+# `all` allows all shard allocations, the cluster can allocate all kinds of
+# shards.
+#
+# `new_primaries` allows allocations for new primary shards only. This means
+# that for example a newly added node will not allocate any replicas. However
+# it is still possible to allocate new primary shards for new indices.
+# Whenever you want to perform a zero downtime upgrade of your cluster
+# you need to set this value before gracefully stopping the first
+# node and reset it to `all` after starting the last updated node.
+#
+# cluster.routing.allocation.enable: all
+
+# Allow to control when rebalancing will happen based on the total
+# state of all the indices shards in the cluster. Defaulting to
+# `indices_all_active` to reduce chatter during initial recovery.
+# Options are: `always | indices_primary_active | indices_all_active`
+#
+# cluster.routing.allocation.allow_rebalance: indices_all_active
+
+# Define how many concurrent rebalancing tasks are allowed cluster
+# wide.
+#
+# cluster.routing.allocation.cluster_concurrent_rebalance: 2
+
+# Define the number of initial recoveries of primaries that are
+# allowed per node. Since most times local gateway is used, those
+# should be fast and we can handle more of those per node without
+# creating load.
+#
+# cluster.routing.allocation.node_initial_primaries_recoveries: 4
+
+# How many concurrent recoveries are allowed to happen on a node.
+#
+# cluster.routing.allocation.node_concurrent_recoveries: 2
+
+################################## Awareness #################################
+
+# Cluster allocation awareness allows to configure shard and replicas
+# allocation across generic attributes associated with nodes.
+
+# Define node attributes which will be used to do awareness based
+# on the allocation of a shard and its replicas.
+# Shards will relocate to even the number of shards across
+# the nodes, but a shard and its replica will not be allocated in
+# the same rack_id value.
+# The awareness attributes can hold several values
+#
+# cluster.routing.allocation.awareness.attributes:
+
+# Node attributes on which shard allocation will be forced.
+# If you know in advance the number of values an awareness attribute
+# can have and you would like to never have more replicas then
+# needed allocated on a specific group of nodes with the same awareness
+# attribute value. For that, we can force awareness on specific attributes.
+#
+# cluster.routing.allocation.awareness.force.<attribute>.values:
+
+############################### Balanced Shards ##############################
+
+# Defines the weight factor for shards allocated on a node
+# (float).
+#
+# cluster.routing.allocation.balance.shard: 0.45f
+
+# Defines a factor to the number of shards per index allocated on a
+# specific node (float).
+#
+# cluster.routing.allocation.balance.index: 0.5f
+
+# Defines a weight factor for the number of primaries of a specific
+# index allocated on a node (float).
+#
+# cluster.routing.allocation.balance.primary: 0.05f
+
+# Minimal optimization value of operations that should be performed
+# (non negative float).
+#
+# cluster.routing.allocation.balance.threshold: 1.0f
+
+####################### Cluster-Wide Allocation Filtering ####################
+
+# Place new shards only on nodes where one of the specified
+# values matches the attribute.
+#
+# cluster.routing.allocation.include.<attribute>:
+
+# Place new shards only on nodes where none of the specified
+# values matches the attribute.
+#
+# cluster.routing.allocation.exclude.<attribute>:
+
+# used to specify a number of rules, which all MUST match for
+# a node in order to allocate a shard on it.
+# This is in contrast to include which will include a node
+# if ANY rule matches.
+#
+# cluster.routing.allocation.require.<attribute>:
+
+########################## Disk-based Shard Allocation #######################
+
+# Prevent shard allocation on nodes depending on the disk
+# usage.
+#
+# cluster.routing.allocation.disk.threshold_enabled: true
+
+# Defines the lower disk threshold limit for shard allocations.
+# New shards will not be allocated on nodes with
+# disk usage greater than this value. It can also be set to an
+# absolute bytes value (like e.g. `500mb`)
+#
+# cluster.routing.allocation.disk.watermark.low: 85%
+
+# Defines the higher disk threshold limit for shard allocations.
+# The cluster will attempt to relocate existing
+# shards to another node if the disk usage on a node rises above this
+# value. It can also be set to an absolute bytes value (like e.g. `500mb`)
+#
+# cluster.routing.allocation.disk.watermark.high: 90%
+
+
+########################## Field Data Circuit Breaker #########################
+
+# The field data circuit breaker allows estimation of needed memory
+# required for loading field data into memory.
+
+# Specifies the limit for the fielddata breaker.
+#
+# indices.fielddata.breaker.limit: 60%
+
+# A constant that all field data estimations are multiplied with to
+# determine a final estimation.
+#
+# indices.fielddata.breaker.overhead: 1.0.3
+
+################################# Threadpools ################################
+
+# Every node holds several thread pools to improve how threads are
+# managed within a node. There are several pools, but the important
+# ones include: index, search, bulk, refresh
+#
+# threadpool.index.type: fixed
+# threadpool.index.queue_size: 200
+
+################################## Metadata ##################################
+
+# Defines how often the cluster collection metadata information
+# (e.g. disk usages etc.) if no concrete  event is triggered.
+#
+# cluster.info.update.interval: 30s
+
 
 ################################## Slow Log ##################################
 

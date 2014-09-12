@@ -596,7 +596,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse response= executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L)); // default length is zero
 
-        executor.exec("set global transient collect_stats = true, jobs_log_size=1");
+        executor.exec("set global transient stats.enabled = true, stats.jobs_log_size=1");
 
         executor.exec("select id from sys.cluster");
         executor.exec("select id from sys.cluster");
@@ -608,14 +608,14 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat(response.rowCount(), Matchers.lessThanOrEqualTo(2L));
         assertThat((String)response.rows()[0][0], is("select id from sys.cluster"));
 
-        executor.exec("reset global collect_stats, jobs_log_size");
+        executor.exec("reset global stats.enabled, stats.jobs_log_size");
         response= executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L));
     }
 
     @Test
     public void testQueryNameFromSysOperations() throws Exception {
-        executor.exec("set global collect_stats = true");
+        executor.exec("set global stats.enabled = true");
         SQLResponse resp = executor.exec("select name, job_id from sys.operations order by name asc");
 
         // usually this should return collect on 2 nodes, localMerge on 1 node
@@ -629,74 +629,70 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         }
         Collections.sort(names);
         assertTrue(names.contains("collect"));
-        executor.exec("set global collect_stats = false");
+        executor.exec("set global stats.enabled = false");
     }
 
     @Test
     public void testSetSingleStatement() throws Exception {
-        SQLResponse response = executor.exec("select settings['jobs_log_size'] from sys.cluster");
+        SQLResponse response = executor.exec("select settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(CrateSettings.JOBS_LOG_SIZE.defaultValue()));
+        assertThat((Integer)response.rows()[0][0], is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
 
-        response = executor.exec("set global persistent collect_stats = true, jobs_log_size=7");
+        response = executor.exec("set global persistent stats.enabled= true, stats.jobs_log_size=7");
         assertThat(response.rowCount(), is(1L));
 
-        response = executor.exec("select settings['jobs_log_size'] from sys.cluster");
+        response = executor.exec("select settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer)response.rows()[0][0], is(7));
 
-        response = executor.exec("reset global collect_stats, jobs_log_size");
+        response = executor.exec("reset global stats.enabled, stats.jobs_log_size");
         assertThat(response.rowCount(), is(1L));
 
-        response = executor.exec("select settings['collect_stats'], settings['jobs_log_size'] from sys.cluster");
+        response = executor.exec("select settings['stats']['enabled'], settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Boolean)response.rows()[0][0], is(CrateSettings.COLLECT_STATS.defaultValue()));
-        assertThat((Integer)response.rows()[0][1], is(CrateSettings.JOBS_LOG_SIZE.defaultValue()));
+        assertThat((Boolean)response.rows()[0][0], is(CrateSettings.STATS_ENABLED.defaultValue()));
+        assertThat((Integer)response.rows()[0][1], is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
 
     }
 
     @Test
     public void testSetMultipleStatement() throws Exception {
         SQLResponse response = executor.exec(
-                "select settings['operations_log_size'], settings['collect_stats'] from sys.cluster");
+                "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue()));
-        assertThat((Boolean)response.rows()[0][1], is(CrateSettings.COLLECT_STATS.defaultValue()));
+        assertThat((Integer)response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
+        assertThat((Boolean)response.rows()[0][1], is(CrateSettings.STATS_ENABLED.defaultValue()));
 
-        response = executor.exec("set global persistent operations_log_size=1024, collect_stats=false");
+        response = executor.exec("set global persistent stats.operations_log_size=1024, stats.enabled=false");
         assertThat(response.rowCount(), is(1L));
 
         response = executor.exec(
-                "select settings['operations_log_size'], settings['collect_stats'] from sys.cluster");
+                "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer)response.rows()[0][0], is(1024));
         assertThat((Boolean)response.rows()[0][1], is(false));
 
-        response = executor.exec("reset global operations_log_size, collect_stats");
+        response = executor.exec("reset global stats.operations_log_size, stats.enabled");
         assertThat(response.rowCount(), is(1L));
 
         response = executor.exec(
-                "select settings['operations_log_size'], settings['collect_stats'] from sys.cluster");
+                "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer)response.rows()[0][0], is(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue()));
-        assertThat((Boolean)response.rows()[0][1], is(CrateSettings.COLLECT_STATS.defaultValue()));
-
-        // clean up, reset to default
-        response = executor.exec("reset global collect_stats, jobs_log_size, operations_log_size");
-        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
+        assertThat((Boolean)response.rows()[0][1], is(CrateSettings.STATS_ENABLED.defaultValue()));
     }
 
     @Test
     public void testSetStatementInvalid() throws Exception {
         try {
-            executor.exec("set global persistent operations_log_size=-1024");
+            executor.exec("set global persistent stats.operations_log_size=-1024");
             fail("expected SQLActionException, none was thrown");
         } catch (SQLActionException e) {
-            assertThat(e.getMessage(), is("Invalid value for argument 'cluster.operations_log_size'"));
+            assertThat(e.getMessage(), is("Invalid value for argument 'stats.operations_log_size'"));
 
-            SQLResponse response = executor.exec("select settings['operations_log_size'] from sys.cluster");
+            SQLResponse response = executor.exec("select settings['stats']['operations_log_size'] from sys.cluster");
             assertThat(response.rowCount(), is(1L));
-            assertThat((Integer) response.rows()[0][0], is(CrateSettings.OPERATIONS_LOG_SIZE.defaultValue()));
+            assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
         }
     }
 
@@ -707,7 +703,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse resp = executor.exec("select count(*) from sys.operations_log");
         assertThat((Long)resp.rows()[0][0], is(0L));
 
-        executor.exec("set global transient collect_stats = true, operations_log_size=10");
+        executor.exec("set global transient stats.enabled = true, stats.operations_log_size=10");
 
         executor.exec(
             "select count(*), race from characters group by race order by count(*) desc limit 2");
@@ -721,39 +717,39 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertTrue(names.contains("distributed merge"));
         assertTrue(names.contains("localMerge"));
 
-        executor.exec("reset global collect_stats, operations_log_size");
+        executor.exec("reset global stats.enabled, stats.operations_log_size");
         resp = executor.exec("select count(*) from sys.operations_log");
         assertThat((Long) resp.rows()[0][0], is(0L));
     }
 
     @Test
     public void testEmptyJobsInLog() throws Exception {
-        executor.exec("set global transient collect_stats = true");
+        executor.exec("set global transient stats.enabled = true");
         executor.exec("insert into characters (name) values ('sysjobstest')");
         executor.exec("delete from characters where name = 'sysjobstest'");
 
         SQLResponse response = executor.exec(
                 "select * from sys.jobs_log where stmt like 'insert into%' or stmt like 'delete%'");
         assertThat(response.rowCount(), is(2L));
-        executor.exec("set global transient collect_stats = false");
+        executor.exec("set global transient stats.enabled = false");
     }
 
     @Test
     public void testSelectFromJobsLogWithLimit() throws Exception {
         // this is an regression test to verify that the CollectionTerminatedException is handled correctly
-        executor.exec("set global transient collect_stats = true");
+        executor.exec("set global transient stats.enabled = true");
         executor.exec("select * from sys.jobs");
         executor.exec("select * from sys.jobs");
         executor.exec("select * from sys.jobs");
         executor.exec("select * from sys.jobs_log limit 1");
-        executor.exec("set global transient collect_stats = false");
+        executor.exec("set global transient stats.enabled = false");
     }
 
     @Test
     public void testDistinctSysOperations() throws Exception {
         // this tests a distributing collect without shards but DOC level granularity
         SQLResponse response = executor.exec("select distinct name  from sys.operations");
-        // no data since collect_stats is disabled
+        // no data since stats.enabled is disabled
         assertThat(response.rowCount(), is(0L));
     }
 

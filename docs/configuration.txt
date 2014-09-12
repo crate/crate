@@ -43,41 +43,533 @@ will overwrite the prior one:
  3. options from config file
  4. command-line properties
 
+Node Specific settings
+======================
+
+.. _cluster.name:
+
+**cluster.name**
+  | *Default:*    ``crate``
+  | *Runtime:*   ``no``
+
+  The name of the Crate Data cluster the node should join to.
+
+.. _conf_hosts:
 
 Hosts
-=====
+-----
 
-Per default Crate Data will bind itself to the ``0.0.0.0`` address.
-If you want to change this behaviour, adjust the ``network.host`` setting.
+.. _network.host:
 
-This setting sets both the ``network.bind_host`` and ``network.publish_host`` values.
+**network.host**
+  | *Default:*    ``0.0.0.0``
+  | *Runtime:*   ``no``
 
-``network.bind_host`` is ``0.0.0.0`` by default.
-This setting determines to which address crate should bind itself to.
-To only bind to localhost, set it to any local address or ``_local_``.
+  The IP address Crate Data will bind itself to. This setting sets
+  both the `network.bind_host`_ and `network.publish_host`_ values.
 
-The ``network.publish_host`` value is used
-by the crate node to publish its own address to the rest of the cluster.
-Per default it is the first non local address.
+.. _network.bind_host:
 
-To explicitly bind crate to a specific interface use the interface name between underscores.
-For example ``_eth0_``.
+**network.bind_host**
+  | *Default:*    ``0.0.0.0``
+  | *Runtime:*   ``no``
 
-This resolves to the ip address of this interface. With ``_eth0:ipv{4,6}_`` you explicitly listen on
- an ipv6 or ipv4 address.
+  This setting determines to which address crate should bind itself
+  to. To only bind to localhost, set it to any local address or ``_local_``.
+
+.. _network.publish_host:
+
+**network.publish_host**
+  | *Runtime:*   ``no``
+
+  This setting is used by a Crate Data node to publish its own address
+  to the rest of the cluster. Per default it is the first non local address.
+
+  To explicitly bind crate to a specific interface use the interface
+  name between underscores. For example ``_eth0_``. This resolves to
+  the ip address of this interface. With ``_eth0:ipv{4,6}_`` you
+  explicitly listen on an ipv6 or ipv4 address.
+
+.. _conf_ports:
 
 Ports
-=====
+-----
 
-Per default Crate Data will listen to the first free port in the range of ``4200-4300`` for HTTP Requests.
-If there is no crate process already running on that machine, it will usually be ``4200``.
+.. _http.port:
 
-You can change the HTTP port range by adjusting the ``http.port`` setting.
+**http.port**
+  | *Runtime:*   ``no``
 
-For internal cluster communication crate uses TCP and listens on the first free port
-in the range of ``4300-4400``.
+  Per default Crate Data will listen to the first free port in the
+  range of ``4200-4300`` for HTTP Requests. If there is no crate
+  process already running on that machine, it will usually be
+  ``4200``.
 
-You can change the TCP port range by adjusting the ``transport.tcp.port`` setting.
+.. _transport.tcp.port:
+
+**transport.tcp.port**
+  | *Runtime:*   ``no``
+
+  For internal cluster communication crate uses TCP and listens on the
+  first free port in the range of ``4300-4400``.
+
+.. _conf-cluster-settings:
+
+Cluster wide settings
+=====================
+All current applied cluster settings can be read by querying the
+:ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
+cluster settings can be changed at runtime using the
+:ref:`SET/RESET<ddl-set-reset>` statement. This is documented at each setting.
+
+.. _conf_collecting_stats:
+
+Collecting Stats
+----------------
+.. _stats.enabled:
+
+**stats.enabled**
+  | *Default:*    ``false``
+  | *Runtime:*   ``yes``
+
+  A boolean indicating whether or not to collect statistical
+  information about the cluster.
+
+.. _stats. jobs_log_size:
+
+**stats.jobs_log_size**
+  | *Default:*   ``10000``
+  | *Runtime:*  ``yes``
+
+  The number of jobs kept in the ``sys.jobs_log`` table on each node
+  for performance analytics. Older entries will be deleted when the
+  ``jobs_log_size`` is reached. A single SQL statement results in a
+  job to be executed on the cluster. A higher number results in more
+  expressive results but also in more occupied RAM. Setting it to
+  ``0`` disables collecting job information.
+
+.. _stats.operations_log_size:
+
+**stats.operations_log_size**
+  | *Default:*   ``10000``
+  | *Runtime:*  ``yes``
+
+  The number of operations to keep in the ``sys.operations_log`` table
+  on each node for performance analytics. Older entries will be
+  deleted when the ``operations_log_size`` is reached. A job consists
+  of one or many operations. A higher number results in more
+  expressive results but also in more occupied RAM. Setting it to
+  ``0`` disables collecting operation information.
+
+Discovery
+---------
+.. _discovery.zen.minimum_master_nodes:
+
+**discovery.zen.minimum_master_nodes**
+  | *Default:*   ``1``
+  | *Runtime:*  ``yes``
+
+  Set to ensure a node sees N other master eligible nodes to be
+  considered operational within the cluster. It's recommended to set
+  it to a higher value than 1 when running more than 2 nodes in the cluster.
+
+.. _discovery.zen.ping_timeout:
+
+**discovery.zen.ping_timeout**
+  | *Default:*   ``3s``
+  | *Runtime:*  ``yes``
+
+  Set the time to wait for ping responses from other nodes when
+  discovering. Set this option to a higher value on a slow or congested network to minimize discovery failures.
+
+.. _discovery.zen.publish_timeout:
+
+**discovery.zen.publish_timeout**
+  | *Default:*   ``30s``
+  | *Runtime:*  ``yes``
+
+  Time a node is waiting for responses from other nodes to a published
+  cluster state.
+
+.. _conf_routing:
+
+Routing Allocation
+------------------
+.. _cluster.routing.allocation.enable:
+
+**cluster.routing.allocation.enable**
+  | *Default:*   ``all``
+  | *Runtime:*  ``yes``
+  | *Allowed Values:* ``all | new_primaries``
+
+  ``all`` allows all shard allocations, the cluster can allocate all
+  kinds of shards.
+
+  ``new_primaries`` allows allocations for new primary shards
+  only. This means that for example a newly added node will not
+  allocate any replicas. However it is still possible to allocate new
+  primary shards for new indices. Whenever you want to perform a zero
+  downtime upgrade of your cluster you need to set this value before
+  gracefully stopping the first node and reset it to ``all`` after
+  starting the last updated node.
+
+.. _cluster.routing.allocation.allow_rebalance:
+
+**cluster.routing.allocation.allow_rebalance**
+  | *Default:*   ``indices_all_active``
+  | *Runtime:*  ``yes``
+  | *Allowed Values:* ``always | indices_primary_active | indices_all_active``
+
+  Allow to control when rebalancing will happen based on the total
+  state of all the indices shards in the cluster. Defaulting to
+  ``indices_all_active`` to reduce chatter during initial recovery.
+
+.. _cluster.routing.allocation.cluster_concurrent_rebalance:
+
+**cluster.routing.allocation.cluster_concurrent_rebalance**
+  | *Default:*   ``2``
+  | *Runtime:*  ``yes``
+
+  Define how many concurrent rebalancing tasks are allowed cluster wide.
+
+.. _cluster.routing.allocation.node_initial_primaries_recoveries:
+
+**cluster.routing.allocation.node_initial_primaries_recoveries**
+  | *Default:*   ``4``
+  | *Runtime:*  ``yes``
+
+  Define the number of initial recoveries of primaries that are
+  allowed per node. Since most times local gateway is used, those
+  should be fast and we can handle more of those per node without
+  creating load.
+
+.. _cluster.routing.allocation.node_concurrent_recoveries:
+
+**cluster.routing.allocation.node_concurrent_recoveries**
+  | *Default:*   ``2``
+  | *Runtime:*  ``yes``
+    How many concurrent recoveries are allowed to happen on a node.
+
+Awareness
+~~~~~~~~~
+Cluster allocation awareness allows to configure shard and replicas
+allocation across generic attributes associated with nodes.
+
+.. _cluster.routing.allocation.awareness.attributes:
+
+**cluster.routing.allocation.awareness.attributes**
+  | *Runtime:*  ``no``
+
+  Define node attributes which will be used to do awareness based on
+  the allocation of a shard and its replicas. For example, let's say
+  we have defined an attribute `rack_id` and we start 2 nodes with
+  `node.rack_id` set to rack_one, and deploy a single index with 5
+  shards and 1 replica. The index will be fully deployed on the
+  current nodes (5 shards and 1 replica each, total of 10 shards).
+  | Now, if we start two more nodes, with node.rack_id set to
+  rack_two, shards will relocate to even the number of shards across
+  the nodes, but a shard and its replica will not be allocated in the
+  same rack_id value.
+  | The awareness attributes can hold several values
+
+.. _cluster.routing.allocation.awareness.force.*.values:
+
+**cluster.routing.allocation.awareness.force.\*.values**
+  | *Runtime:*  ``no``
+
+  Attributes on which shard allocation will be forced. ``*`` is a
+  placeholder for the awareness attribute, which can be defined using
+  the `cluster.routing.allocation.awareness.attributes`_
+  setting. Let's say we configured an awareness attribute ``zone`` and
+  the values ``zone1, zone2`` here, start 2 nodes with ``node.zone``
+  set to ``zone1`` and create an index with 5 shards and 1
+  replica. The index will be created, but only 5 shards will be
+  allocated (with no replicas). Only when we start more shards with
+  ``node.zone`` set to ``zone2`` the replicas will be allocated.
+
+Balanced Shards
+~~~~~~~~~~~~~~~
+All these values are relative to one another. The first three are used
+to compose a three separate weighting functions into one. The cluster
+is balanced when no allowed action can bring the weights of each node
+closer together by more then the fourth setting. Actions might not be
+allowed, for instance, due to forced awareness or allocation filtering.
+
+.. _cluster.routing.allocation.balance.shard:
+
+**cluster.routing.allocation.balance.shard**
+  | *Default:*   ``0.45f``
+  | *Runtime:*  ``yes``
+
+  Defines the weight factor for shards allocated on a node
+  (float). Raising this raises the tendency to equalize the number of
+  shards across all nodes in the cluster.
+
+.. _cluster.routing.allocation.balance.index:
+
+**cluster.routing.allocation.balance.index**
+  | *Default:*   ``0.5f``
+  | *Runtime:*  ``yes``
+
+  Defines a factor to the number of shards per index allocated on a
+  specific node (float). Increasing this value raises the tendency to
+  equalize the number of shards per index across all nodes in the cluster.
+
+.. _cluster.routing.allocation.balance.primary:
+
+**cluster.routing.allocation.balance.primary**
+  | *Default:*   ``0.05f``
+  | *Runtime:*  ``yes``
+
+  Defines a weight factor for the number of primaries of a specific
+  index allocated on a node (float). Increasing this value raises the
+  tendency to equalize the number of primary shards across all nodes
+  in the cluster.
+
+.. _cluster.routing.allocation.balance.threshold:
+
+**cluster.routing.allocation.balance.threshold**
+  | *Default:*   ``1.0f``
+  | *Runtime:*  ``yes``
+
+  Minimal optimization value of operations that should be performed
+  (non negative float). Increasing this value will cause the cluster
+  to be less aggressive about optimising the shard balance.
+
+Cluster-Wide Allocation Filtering
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Allow to control the allocation of all shards based on include/exclude
+filters.
+E.g. this could be used to allocate all the new shards on the nodes
+with specific IP addresses or custom attributes.
+
+.. _cluster.routing.allocation.include.*:
+
+**cluster.routing.allocation.include.\***
+  | *Runtime:*  ``no``
+
+  Place new shards only on nodes where one of the specified values
+  matches the attribute. e.g.:
+  cluster.routing.allocation.include.zone: "zone1,zone2"
+
+.. _cluster.routing.allocation.exclude.*:
+
+**cluster.routing.allocation.exclude.\***
+  | *Runtime:*  ``no``
+
+  Place new shards only on nodes where none of the specified values
+  matches the attribute. e.g.:
+  cluster.routing.allocation.exclude.zone: "zone1"
+
+.. _cluster.routing.allocation.require.*:
+
+**cluster.routing.allocation.require. \***
+  | *Runtime:*  ``no``
+
+  Used to specify a number of rules, which all MUST match for a node
+  in order to allocate a shard on it. This is in contrast to include
+  which will include a node if ANY rule matches.
+
+Disk-based Shard Allocation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _cluster.routing.allocation.disk.threshold_enabled:
+
+**cluster.routing.allocation.disk.threshold_enabled**
+  | *Default:*   ``true``
+  | *Runtime:*  ``yes``
+
+  Prevent shard allocation on nodes depending of the disk usage.
+
+.. _cluster.routing.allocation.disk.watermark.low:
+
+**cluster.routing.allocation.disk.watermark.low**
+  | *Default:*   ``85%``
+  | *Runtime:*  ``yes``
+
+  Defines the lower disk threshold limit for shard allocations. New
+  shards will not be allocated on nodes with disk usage greater
+  than this value. It can also be set to an absolute bytes value (like
+  e.g. ``500mb``) to prevent the cluster from allocating new shards on
+  node with less free disk space than this value.
+
+.. _cluster.routing.allocation.disk.watermark.high:
+
+**cluster.routing.allocation.disk.watermark.high**
+  | *Default:*   ``90%``
+  | *Runtime:*  ``yes``
+
+  Defines the higher disk threshold limit for shard allocations. The
+  cluster will attempt to relocate existing shards to another node if
+  the disk usage on a node rises above this value. It can also be set
+  to an absolute bytes value (like e.g. ``500mb``) to relocate shards
+  from nodes with less free disk space than this value.
+
+By default, the cluster will retrieve information about the disk usage
+of the nodes every 30 seconds. This can also be changed by setting the
+`cluster.info.update.interval`_ setting.
+
+Recovery
+--------
+.. _indices.recovery.concurrent_streams:
+
+**indices.recovery.concurrent_streams**
+  | *Default:*   ``3``
+  | *Runtime:*  ``yes``
+
+  Limits the number of open concurrent streams when recovering a shard
+  from a peer.
+
+.. _indices.recovery.file_chunk_size:
+
+**indices.recovery.file_chunk_size**
+  | *Default:*   ``512kb``
+  | *Runtime:*  ``yes``
+
+  Specifies the chunk size used to copy the shard data from the source
+  shard. It is compressed if `indices.recovery.compress`_ is set to ``true``.
+
+.. _indices.recovery.translog_ops:
+
+**indices.recovery.translog_ops**
+  | *Default:*   ``1000``
+  | *Runtime:*  ``yes``
+
+  Specifies how many transaction log lines should be transfered
+  between shards in a single request during the recovery process. If
+  `indices.recovery.translog_size`_ is reached first, value is ignored
+  for this request.
+
+.. _indices.recovery.translog_size:
+
+**indices.recovery.translog_size**
+  | *Default:*   ``512kb``
+  | *Runtime:*  ``yes``
+
+  Specifies how much data of the transaction log should be transfered
+  betweem shards in a single request during the recovery process. If
+  ``indices.recovery.translog_op`` is reached first, value is ignored
+  for this request.
+
+.. _indices.recovery.compress:
+
+**indices.recovery.compress**
+  | *Default:*   ``true``
+  | *Runtime:*  ``yes``
+
+  Define if transferred data should be compressed during the recovery
+  process. Setting it to ``false`` may lower the pressure on the CPU
+  while resulting in more data being transfererd over the network.
+
+.. _indices.recovery.max_bytes_per_sec:
+
+**indices.recovery.max_bytes_per_sec**
+  | *Default:*   ``20mb``
+  | *Runtime:*  ``yes``
+
+  Specifies the maximum number of bytes that can be transferred during
+  shard recovery per seconds. Limiting can be disabled by setting it
+  to ``0``. Similiar to `indices.recovery.concurrent_streams`_ this
+  setting allows to control the network usage of the recovery
+  process. Higher values may result in higher network utilization, but
+  also faster recovery process.
+
+Store Level Throttling
+----------------------
+.. _indices.store.throttle.type:
+
+**indices.store.throttle.type**
+  | *Default:*   ``merge``
+  | *Runtime:*  ``yes``
+  | *Allowed Values:*  ``all | merge | none``
+
+  Allows to throttle ``merge`` (or ``all``) processes of the store module.
+
+.. _indices.store.throttle.max_bytes_per_sec:
+
+**indices.store.throttle.max_bytes_per_sec**
+  | *Default:*   ``20mb``
+  | *Runtime:*  ``yes``
+
+  If throttling is enabled by `indices.store.throttle.type`_, this
+  setting specifies the maximum bytes per second a store module
+  process can operate with.
+
+Field Data Circuit Breaker
+--------------------------
+The field data circuit breaker allows estimation of needed memory
+required for loading field data into memory. If a certain limit
+is reached an exception is raised.
+
+.. _indices.fielddata.breaker.limit:
+
+**indices.fielddata.breaker.limit**
+  | *Default:*   ``60%``
+  | *Runtime:*  ``yes``
+
+  Specifies the JVM heap limit for the fielddata breaker.
+
+.. _indices.fielddata.breaker.overhead:
+
+**indices.fielddata.breaker.overhead**
+  | *Default:*   ``1.03``
+  | *Runtime:*  ``yes``
+
+  A constant that all field data estimations are multiplied with to
+  determine a final estimation.
+
+Threadpools
+-----------
+Every node holds several thread pools to improve how threads are
+managed within a node. There are several pools, but the important ones include:
+
+    * index: For index/delete operations, defaults to fixed
+    * search: For count/search operations, defaults to fixed
+    * bulk: For bulk operations, defaults to fixed
+    * refresh: For refresh operations, defaults to cache
+
+.. _threadpool.<threadpool>.type:
+
+**threadpool.<threadpool>.type**
+  | *Runtime:*  ``no``
+  | *Allowed Values:* ``fixed | cache``
+
+  ``fixed`` holds a fixed size of threads to handle the requests. It
+  also has a queue for pending requests if no threads are available.
+
+  ``cache`` will spawn a thread if there are pending requests (unbounded).
+
+Fixed Threadpool Settings
+~~~~~~~~~~~~~~~~~~~~~~~~~
+If the type of a threadpool is set to ``fixed`` there are a few
+optional settings.
+
+.. _threadpool.<threadpool>.size:
+
+**threadpool.<threadpool>.size**
+  | *Default:*  ``<number-of-cores> * 5``
+  | *Runtime:*  ``no``
+
+  Number of threads.
+
+.. _threadpool.<threadpool>.queue_size:
+
+**threadpool.<threadpool>.queue_size**
+  | *Default:*  ``-1``
+  | *Runtime:*  ``no``
+
+  Size of the queue for pending requests. A value of ``-1`` sets it to
+  unbounded.
+
+Metadata
+--------
+.. _cluster.info.update.interval:
+
+**cluster.info.update.interval**
+  | *Default:*  ``30s``
+  | *Runtime:*  ``yes``
+
+  Defines how often the cluster collect metadata information
+  (e.g. disk usages etc.) if no concrete  event is triggered.
 
 Logging
 =======
@@ -156,3 +648,4 @@ example::
 .. _Log4j: https://logging.apache.org/log4j/1.2/
 
 .. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
+

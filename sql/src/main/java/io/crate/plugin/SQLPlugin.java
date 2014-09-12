@@ -33,6 +33,7 @@ import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.doc.MetaDataDocModule;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.Setting;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -62,6 +63,7 @@ import org.elasticsearch.script.ScriptModule;
 import org.elasticsearch.search.facet.FacetModule;
 
 import java.util.Collection;
+import java.util.List;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -143,13 +145,19 @@ public class SQLPlugin extends AbstractPlugin {
     public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {
         // add our dynamic cluster settings
         clusterDynamicSettingsModule.addDynamicSettings(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
+        registerSettings(clusterDynamicSettingsModule, CrateSettings.CRATE_SETTINGS);
+    }
 
-        clusterDynamicSettingsModule.addDynamicSetting(
-                CrateSettings.JOBS_LOG_SIZE.settingName(), Validator.NON_NEGATIVE_INTEGER);
-        clusterDynamicSettingsModule.addDynamicSetting(
-                CrateSettings.OPERATIONS_LOG_SIZE.settingName(), Validator.NON_NEGATIVE_INTEGER);
-        clusterDynamicSettingsModule.addDynamicSetting(
-                CrateSettings.COLLECT_STATS.settingName(), Validator.BOOLEAN);
+    private void registerSettings(ClusterDynamicSettingsModule clusterDynamicSettingsModule, List<Setting> settings) {
+        for (Setting setting : settings) {
+            /**
+             * validation is done in
+             * {@link io.crate.analyze.SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.ImmutableSettings.Builder, Object[], io.crate.sql.tree.Expression)}
+             * here we use Validator.EMPTY, since ES ignores invalid settings silently
+             */
+            clusterDynamicSettingsModule.addDynamicSetting(setting.settingName(), Validator.EMPTY);
+            registerSettings(clusterDynamicSettingsModule, setting.children());
+        }
     }
 
     public void onModule(ScriptModule scriptModule) {

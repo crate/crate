@@ -21,13 +21,45 @@
 
 package io.crate.metadata.settings;
 
+import com.google.common.base.Joiner;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class BoolSetting extends Setting<Boolean> {
+import java.util.Set;
 
-    @Override
-    public Boolean extract(Settings settings) {
-        return settings.getAsBoolean(settingName(), defaultValue());
+public abstract class StringSetting extends Setting<String> {
+
+    protected Set<String> allowedValues;
+
+    protected StringSetting(Set<String> allowedValues) {
+        this.allowedValues = allowedValues;
     }
 
+    protected StringSetting() {
+        this.allowedValues = null;
+    }
+
+    @Override
+    public String defaultValue() {
+        return "";
+    }
+
+    @Override
+    public String extract(Settings settings) {
+        return settings.get(settingName(), defaultValue());
+    }
+
+    /**
+     * @return Error message if not valid, else null.
+     */
+    @Nullable
+    public String validate(String value) {
+        if (allowedValues != null && !allowedValues.contains(value)) {
+            return String.format("'%s' is not an allowed value. Allowed values are: %s",
+                    value, Joiner.on(", ").join(allowedValues)
+
+            );
+        }
+        return null;
+    }
 }

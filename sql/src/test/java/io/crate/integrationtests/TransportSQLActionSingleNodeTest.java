@@ -136,7 +136,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         ensureGreen();
         refresh();
         execute("select o['i'], o['name'] from t");
-        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((Integer) response.rows()[0][0], is(1));
         execute("select distinct table_name, partition_ident from sys.shards where table_name = 't'");
         assertEquals("t| 04132\n", TestingHelpers.printedTable(response.rows()));
     }
@@ -222,27 +222,27 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
     @Test
     public void testSetResetGlobalSetting() throws Exception {
-        execute("set global persistent collect_stats = true");
-        execute("select settings['collect_stats'] from sys.cluster");
+        execute("set global persistent stats.enabled = true");
+        execute("select settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Boolean)response.rows()[0][0], is(true));
 
-        execute("reset global collect_stats");
-        execute("select settings['collect_stats'] from sys.cluster");
+        execute("reset global stats.enabled");
+        execute("select settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Boolean)response.rows()[0][0], is(false));
 
-        execute("set global transient collect_stats = true, jobs_log_size = 3, operations_log_size = 4");
-        execute("select settings['collect_stats'], settings['jobs_log_size']," +
-                "settings['operations_log_size'] from sys.cluster");
+        execute("set global transient stats = { enabled = true, jobs_log_size = 3, operations_log_size = 4 }");
+        execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
+                "settings['stats']['operations_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Boolean)response.rows()[0][0], is(true));
         assertThat((Integer)response.rows()[0][1], is(3));
         assertThat((Integer)response.rows()[0][2], is(4));
 
-        execute("reset global collect_stats, jobs_log_size, operations_log_size");
-        execute("select settings['collect_stats'], settings['jobs_log_size']," +
-                "settings['operations_log_size'] from sys.cluster");
+        execute("reset global stats");
+        execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
+                "settings['stats']['operations_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Boolean)response.rows()[0][0], is(false));
         assertThat((Integer)response.rows()[0][1], is(10_000));

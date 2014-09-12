@@ -21,14 +21,19 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.settings.BoolSetting;
-import io.crate.metadata.settings.IntSetting;
+import com.google.common.base.Joiner;
+import io.crate.metadata.settings.*;
 import io.crate.sql.tree.Expression;
-import io.crate.types.DataTypes;
+import io.crate.sql.tree.ObjectLiteral;
+import io.crate.types.*;
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.Locale;
+import java.util.Map;
 
 public class SettingsAppliers {
 
@@ -46,6 +51,14 @@ public class SettingsAppliers {
             return defaultSettings;
         }
 
+        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+            settingsBuilder.put(name, validate(value));
+        }
+
+        protected Object validate(Object value) {
+            return value;
+        }
+
         public IllegalArgumentException invalidException(Exception cause) {
             return new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid value for argument '%s'", name), cause);
@@ -54,6 +67,74 @@ public class SettingsAppliers {
         public IllegalArgumentException invalidException() {
             return new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid value for argument '%s'", name));
+        }
+    }
+
+    public static abstract class NumberSettingsApplier extends AbstractSettingsApplier{
+
+        protected final Setting setting;
+
+        public NumberSettingsApplier(Setting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+            this.setting = setting;
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            try {
+                applyValue(settingsBuilder, ExpressionToNumberVisitor.convert(expression, parameters));
+            } catch (IllegalArgumentException e) {
+                throw invalidException(e);
+            }
+        }
+
+    }
+
+    public static class ObjectSettingsApplier extends AbstractSettingsApplier {
+
+        public ObjectSettingsApplier(NestedSetting settings) {
+            super(settings.settingName(),
+                    ImmutableSettings.builder().put(settings.settingName(), settings.defaultValue()).build());
+        }
+
+        static final Joiner dotJoiner = Joiner.on('.');
+
+        protected void flattenSettings(ImmutableSettings.Builder settingsBuilder,
+                                                      String key, Object value){
+            if(value instanceof Map){
+                for(Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()){
+                    flattenSettings(settingsBuilder, dotJoiner.join(key, setting.getKey()),
+                            setting.getValue());
+                }
+            } else {
+                SettingsApplier settingsApplier = CrateSettings.getSetting(key);
+                if (settingsApplier == null) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", key));
+                }
+                settingsApplier.applyValue(settingsBuilder, value);
+            }
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            Object value = null;
+            try {
+                value = ExpressionToObjectVisitor.convert(expression, parameters);
+            } catch (IllegalArgumentException e) {
+                throw invalidException(e);
+            }
+            if (!(value instanceof Map)) {
+                throw new IllegalArgumentException(
+                        String.format("Only object values are allowed at '%s'", name));
+            }
+            flattenSettings(settingsBuilder, this.name, value);
+        }
+
+        @Override
+        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+            throw new IllegalArgumentException(
+                    String.format("Only object values are allowed at '%s'", name));
         }
     }
 
@@ -66,48 +147,205 @@ public class SettingsAppliers {
 
         @Override
         public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
-            Boolean value;
             try {
-                value = DataTypes.BOOLEAN.value(ExpressionToObjectVisitor.convert(expression, parameters));
+                applyValue(settingsBuilder, ExpressionToObjectVisitor.convert(expression, parameters));
             } catch (IllegalArgumentException e) {
                 throw invalidException(e);
             }
-            settingsBuilder.put(name, value);
+        }
+
+        @Override
+        protected Object validate(Object value) {
+            return BooleanType.INSTANCE.value(value);
         }
     }
 
-    public static class IntSettingsApplier extends AbstractSettingsApplier {
-
-        private final IntSetting setting;
+    public static class IntSettingsApplier extends NumberSettingsApplier {
 
         public IntSettingsApplier(IntSetting setting) {
+            super(setting);
+        }
+
+        @Override
+        protected Object validate(Object value) {
+            Integer convertedValue = IntegerType.INSTANCE.value(value);
+            IntSetting setting = (IntSetting) this.setting;
+            if (convertedValue < setting.minValue() || convertedValue > setting.maxValue()) {
+                throw invalidException();
+            }
+            return convertedValue;
+        }
+    }
+
+    public static class FloatSettingsApplier extends NumberSettingsApplier {
+
+        public FloatSettingsApplier(FloatSetting setting) {
+            super(setting);
+        }
+
+        @Override
+        protected Object validate(Object value) {
+            Float convertedValue = FloatType.INSTANCE.value(value);
+            FloatSetting setting = (FloatSetting) this.setting;
+            if (convertedValue < setting.minValue() || convertedValue > setting.maxValue()) {
+                throw invalidException();
+            }
+            return convertedValue;
+        }
+    }
+
+    public static class DoubleSettingsApplier extends NumberSettingsApplier {
+
+        public DoubleSettingsApplier(DoubleSetting setting) {
+            super(setting);
+        }
+
+        @Override
+        protected Object validate(Object value) {
+            Double convertedValue = DoubleType.INSTANCE.value(value);
+            DoubleSetting setting = (DoubleSetting) this.setting;
+            if (convertedValue < setting.minValue() || convertedValue > setting.maxValue()) {
+                throw invalidException();
+            }
+            return convertedValue;
+        }
+    }
+
+    public static class ByteSizeSettingsApplier extends AbstractSettingsApplier {
+
+        private final ByteSizeSetting setting;
+
+        public ByteSizeSettingsApplier(ByteSizeSetting setting) {
             super(setting.settingName(),
                     ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
 
-        private void validate(long num) {
+        private long validate(long num) {
             if (num < setting.minValue() || num > setting.maxValue()) {
                 throw invalidException();
             }
+            return num;
         }
 
         @Override
         public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
-            Number num;
+            ByteSizeValue byteSizeValue;
             try {
-                num = ExpressionToNumberVisitor.convert(expression, parameters);
+                byteSizeValue = ExpressionToByteSizeValueVisitor.convert(expression, parameters);
             } catch (IllegalArgumentException e) {
                 throw invalidException(e);
             }
 
-            if (num == null) {
+            if (byteSizeValue == null) {
                 throw new IllegalArgumentException(String.format(
                         "'%s' does not support null values", name));
             }
-            int value = num.intValue();
-            validate(value);
-            settingsBuilder.put(this.name, value);
+
+            applyValue(settingsBuilder, byteSizeValue.bytes());
+        }
+
+        public void applyValue(ImmutableSettings.Builder settingsBuilder, long value) {
+            settingsBuilder.put(this.name, validate(value));
+        }
+
+        @Override
+        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+            ByteSizeValue byteSizeValue;
+            if (value instanceof Number) {
+                byteSizeValue = new ByteSizeValue(((Number) value).longValue());
+            } else if (value instanceof String) {
+                try {
+                    byteSizeValue = ByteSizeValue.parseBytesSizeValue((String) value,
+                            ExpressionToByteSizeValueVisitor.DEFAULT_VALUE);
+                } catch (ElasticsearchParseException e) {
+                    throw invalidException(e);
+                }
+            } else {
+                throw invalidException();
+            }
+            applyValue(settingsBuilder, byteSizeValue.bytes());
+        }
+    }
+
+    public static class StringSettingsApplier extends AbstractSettingsApplier {
+
+        private final StringSetting setting;
+
+        public StringSettingsApplier(StringSetting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+            this.setting = setting;
+        }
+
+
+        @Override
+        protected Object validate(Object value) {
+            String validation = this.setting.validate((String) value);
+            if (validation != null) {
+                throw new IllegalArgumentException(validation);
+            }
+            return value;
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            if (expression instanceof ObjectLiteral) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "Object values are not allowed at '%s'", name));
+            }
+            applyValue(settingsBuilder, ExpressionToStringVisitor.convert(expression, parameters));
+        }
+    }
+
+    public static class TimeSettingsApplier extends AbstractSettingsApplier {
+
+        private final TimeSetting setting;
+
+        public TimeSettingsApplier(TimeSetting setting) {
+            super(setting.settingName(),
+                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+            this.setting = setting;
+        }
+
+        private long validate(long value) {
+            if (value < setting.minValue().getMillis() || value > setting.maxValue().getMillis()) {
+                throw invalidException();
+            }
+            return value;
+        }
+
+        @Override
+        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+            TimeValue time;
+            try {
+                time = ExpressionToTimeValueVisitor.convert(expression, parameters);
+            } catch (IllegalArgumentException e) {
+                throw invalidException(e);
+            }
+            applyValue(settingsBuilder, time.millis());
+        }
+
+        public void applyValue(ImmutableSettings.Builder settingsBuilder, long value) {
+            settingsBuilder.put(name, validate(value));
+        }
+
+        @Override
+        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+            TimeValue timeValue;
+            if (value instanceof String) {
+                try {
+                    timeValue = TimeValue.parseTimeValue((String) value, ExpressionToTimeValueVisitor.DEFAULT_VALUE);
+                } catch (ElasticsearchParseException e) {
+                    throw invalidException(e);
+                }
+
+            } else if (value instanceof Number) {
+                timeValue = new TimeValue(((Number) value).longValue());
+            } else {
+                throw invalidException();
+            }
+            applyValue(settingsBuilder, timeValue.millis());
         }
     }
 }

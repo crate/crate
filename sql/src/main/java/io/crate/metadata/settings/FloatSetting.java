@@ -23,11 +23,18 @@ package io.crate.metadata.settings;
 
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class BoolSetting extends Setting<Boolean> {
+public abstract class FloatSetting extends Setting<Float> {
 
-    @Override
-    public Boolean extract(Settings settings) {
-        return settings.getAsBoolean(settingName(), defaultValue());
+    public Float maxValue() {
+        return Float.MAX_VALUE;
     }
 
+    public Float minValue() {
+        return Float.MIN_VALUE;
+    }
+
+    @Override
+    public Float extract(Settings settings) {
+        return settings.getAsFloat(settingName(), defaultValue());
+    }
 }

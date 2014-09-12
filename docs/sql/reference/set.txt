@@ -5,53 +5,38 @@
 SET / RESET
 ===========
 
-Alter and restore global cluster configuration values at runtime.
+Alter and restore global cluster setting values at runtime.
+For a list of the possible settings see
+:ref:`conf-cluster-settings`. Only settings documented with
+*Runtime:*  ``yes`` can be changed.
+
 
 Synopsis
 ========
 
 ::
 
-    SET GLOBAL [ PERSISTENT | TRANSIENT ] parameter = value [ , ... ]
+    SET GLOBAL [ PERSISTENT | TRANSIENT ] setting_ident = value [ , ... ]
 
-    RESET GLOBAL parameter [ , ... ]
+    RESET GLOBAL setting_ident [ , ... ]
 
 Description
 ===========
 
-Using the ``SET`` and ``RESET`` statements it is possible to configure the
-crate cluster at runtime.
+Using the ``SET`` and ``RESET`` statements it is possible to configure
+the crate cluster at runtime.
 
-``SET`` can be used to change a configuration parameter to a different value.
-Using ``RESET`` will reset the parameter to its default value.
+``SET`` can be used to change a configuration setting ident to a
+different value. Using ``RESET`` will reset the setting to its
+default value or, if the setting was defined at the configuration
+file on node start-up, to this value.
 
 Parameters
 ==========
 
-:parameter: The name of the configuration parameter to set / reset.
+:setting_ident: The full qualified setting ident of the setting to set / reset.
 
-:value: the value to set for the configuration parameter
-
-
-Supported Configuration Parameters
-==================================
-
-:collect_stats: a boolean indicating whether or not to collect statistical information
-                about the cluster.
-
-:jobs_log_size: the number of jobs kept in the ``sys.jobs_log`` table on each node for performance analytics.
-                Older entries will be deleted when the ``jobs_log_size`` is reached.
-                A single SQL statement results in a job to be executed on the cluster.
-                A higher number results in more expressive results but also in more
-                occupied RAM. Setting it to ``0`` disables collecting job information.
-
-:operations_log_size: the number of operations to keep in the ``sys.operations_log`` table
-                on each node for performance analytics.
-                Older entries will be deleted when the ``operations_log_size`` is reached.
-                A job consists of one or many operations.
-                A higher number results in more expressive results but also in more
-                occupied RAM.
-                Setting it to ``0`` disables collecting operation information.
+:value: The value to set for the configuration setting.
 
 Persistence
 ===========

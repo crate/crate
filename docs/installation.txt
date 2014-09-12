@@ -11,6 +11,8 @@ In case the network doesn't support multicast, a unicast configuration is
 required. Please refer to our article on `Multi Node Setup`_ in order to learn
 how to setup the unicast configuration.
 
+.. _install_targz:
+
 Install via tar.gz
 ==================
 
@@ -60,6 +62,7 @@ We provide a Docker image for Crate for easy installation::
 The images are hosted on the `Docker Hub Registry`_. There is additional information
 on how to run Crate in a Docker container on the `docker-crate`_ Github repository.
 
+.. _install_production:
 
 Install Crate Data for Production
 =================================

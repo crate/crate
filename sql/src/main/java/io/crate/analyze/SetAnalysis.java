@@ -21,29 +21,21 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.Setting;
+import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 public class SetAnalysis extends Analysis {
 
-    public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
-        .put(CrateSettings.JOBS_LOG_SIZE.settingName(),
-                new SettingsAppliers.IntSettingsApplier(CrateSettings.JOBS_LOG_SIZE))
-        .put(CrateSettings.OPERATIONS_LOG_SIZE.settingName(),
-                new SettingsAppliers.IntSettingsApplier(CrateSettings.OPERATIONS_LOG_SIZE))
-        .put(CrateSettings.COLLECT_STATS.settingName(),
-                new SettingsAppliers.BooleanSettingsApplier(CrateSettings.COLLECT_STATS))
-            .build();
 
     private Settings settings;
     private Set<String> settingsToRemove;
@@ -89,24 +81,6 @@ public class SetAnalysis extends Analysis {
 
     public void persistent(boolean persistent) {
         this.persistent = persistent;
-    }
-
-    public @Nullable SettingsApplier getSetting(String name) {
-        return SUPPORTED_SETTINGS.get(name);
-    }
-
-    public Set<String> settingNamesByPrefix(String prefix) {
-        Set<String> settingNames = Sets.newHashSet();
-        if (SUPPORTED_SETTINGS.containsKey(prefix)) {
-            settingNames.add(prefix);
-        }
-        prefix += ".";
-        for (String name : SUPPORTED_SETTINGS.keySet()) {
-            if (name.startsWith(prefix)) {
-                settingNames.add(name);
-            }
-        }
-        return settingNames;
     }
 
     @Override
