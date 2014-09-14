@@ -44,10 +44,8 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
 import org.elasticsearch.common.inject.Key;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.zen.ping.multicast.MulticastZenPing;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -63,7 +61,6 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-        Loggers.getLogger(MulticastZenPing.class).setLevel("DEBUG");
     }
 
     private TransportExecutor executor;

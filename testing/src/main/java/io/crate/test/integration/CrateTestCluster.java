@@ -133,8 +133,6 @@ public class CrateTestCluster implements Iterable<Client> {
             .put("cluster.name", clusterName)
                 // decrease the routing schedule so new nodes will be added quickly - some random value between 30 and 80 ms
             .put("cluster.routing.schedule", "30ms")
-            .put("network.bind_host", "127.0.0.1")
-            .put("network.publish_host", "127.0.0.1")
             .put("http.port", "44200-44300")
             .put("transport.tcp.port", "44300-44400");
 

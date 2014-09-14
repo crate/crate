@@ -227,15 +227,6 @@ Graceful Stop
   if it runs into the timeout which is specified with the
   `cluster.graceful_stop.timeout`_ setting.
 
-.. _cluster.graceful_stop.is_default:
-
-**cluster.graceful_stop.is_default**
-  | *Default:*   ``false``
-  | *Runtime:*  ``yes``
-
-  This options defines whether the ``stop`` command of the ``crate``
-  executable uses the graceful-stop option by default.
-
 Discovery
 ---------
 .. _discovery.zen.minimum_master_nodes:
