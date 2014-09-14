@@ -81,6 +81,11 @@ currently applied cluster settings.
     | settings['discovery']['zen']['ping_timeout']                                      | long      |
     | settings['discovery']['zen']['publish_timeout']                                   | long      |
     | settings['cluster']                                                               | object    |
+    | settings['cluster']['graceful_stop']                                              | object    |
+    | settings['cluster']['graceful_stop']['min_availability']                          | string    |
+    | settings['cluster']['graceful_stop']['reallocate']                                | boolean   |
+    | settings['cluster']['graceful_stop']['timeout']                                   | long      |
+    | settings['cluster']['graceful_stop']['force']                                     | boolean   |
     | settings['cluster']['routing']                                                    | object    |
     | settings['cluster']['routing']['allocation']                                      | object    |
     | settings['cluster']['routing']['allocation']['enable']                            | string    |
@@ -133,7 +138,7 @@ currently applied cluster settings.
     | settings['cluster']['info']['update']                                             | object    |
     | settings['cluster']['info']['update']['interval']                                 | long      |
     +-----------------------------------------------------------------------------------+-----------+
-    SELECT 62 rows in set (... sec)
+    SELECT 67 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 
@@ -643,18 +648,12 @@ Note, that querying a time setting will always return a ``string`` value::
     cr> SET GLOBAL TRANSIENT cluster.graceful_stop = {force=true};
     SET OK (... sec)
 
-Non existent parameters are ignored when set as an object::
-
-    cr> SET GLOBAL TRANSIENT cluster.graceful_stop = {not_a_setting='foo'};
-    SET OK (... sec)
-
-::
 
     cr> select settings['cluster']['graceful_stop'] from sys.cluster;
     +---------------------------------------------------...-------------------+
     | settings['cluster']['graceful_stop']                                    |
     +---------------------------------------------------...-------------------+
-    | {"force": false, "min_availability": "primaries", ... "timeout": "30m"} |
+    | {"force": true, "min_availability": "primaries", ... "timeout": "30m"} |
     +---------------------------------------------------...-------------------+
     SELECT 1 row in set (... sec)
 
@@ -672,6 +671,5 @@ The default configuration in ``crate.yml`` looks like:
     reallocate: true
     timeout: 2h
     force: false
-
 
 .. _configuration: ../configuration.html

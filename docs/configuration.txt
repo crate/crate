@@ -161,6 +161,81 @@ Collecting Stats
   expressive results but also in more occupied RAM. Setting it to
   ``0`` disables collecting operation information.
 
+.. _conf_graceful_stop:
+
+Graceful Stop
+-------------
+.. _cluster.graceful_stop.min_availability:
+
+**cluster.graceful_stop.min_availability**
+  | *Default:*   ``primaries``
+  | *Runtime:*  ``yes``
+  | *Allowed Values:*   ``none | primaries | full``
+
+  ``none``: No minimum data availability is required. The node may
+  shut down even if records are missing after shutdown.
+
+  ``primaries``: At least all primary shards need to be availabe after
+  the node has shut down. Replicas may be missing.
+
+  ``full``: All records and all replicas need to be available after
+  the node has shut down. Data availability is full.
+
+  .. note::
+
+    This option is ignored if there is only 1 node in a cluster!
+
+.. _cluster.graceful_stop.reallocate:
+
+**cluster.graceful_stop.reallocate**
+  | *Default:*   ``true``
+  | *Runtime:*  ``yes``
+
+  ``true``: The ``graceful stop`` command allows shards to be
+  reallocated before shutting down the node in order to ensure minimum
+  data availability set with ``min_availability``.
+
+  ``false``: The ``graceful stop`` command will fail if the cluster
+  would need to reallocate shards in order to ensure the minimum data
+  availability set with ``min_availability``.
+
+  .. note::
+
+    Make sure you have enough nodes and enough disk space for the reallocation.
+
+.. _cluster.graceful_stop.timeout:
+
+**cluster.graceful_stop.timeout**
+  | *Default:*   ``2h``
+  | *Runtime:*  ``yes``
+
+  Defines the maximum waiting time in milliseconds for the
+  reallocation process to finish. The ``force`` setting will define
+  the behaviour when the shutdown process runs into this timeout.
+
+  The timeout expects a time value either as a long or double or
+  alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+
+.. _cluster.graceful_stop.force:
+
+**cluster.graceful_stop.force**
+  | *Default:*   ``false``
+  | *Runtime:*  ``yes``
+
+  Defines whether ``graceful stop`` should force stopping of the node
+  if it runs into the timeout which is specified with the
+  `cluster.graceful_stop.timeout`_ setting.
+
+.. _cluster.graceful_stop.is_default:
+
+**cluster.graceful_stop.is_default**
+  | *Default:*   ``false``
+  | *Runtime:*  ``yes``
+
+  This options defines whether the ``stop`` command of the ``crate``
+  executable uses the graceful-stop option by default.
+
 Discovery
 ---------
 .. _discovery.zen.minimum_master_nodes:

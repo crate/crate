@@ -5,6 +5,7 @@
 Zero Downtime Upgrade
 =====================
 
+
 Crate Data provides an easy way to perform a cluster upgrade with zero
 downtime.
 
@@ -119,11 +120,10 @@ all shards off the node before shutting down.
 Keep in mind that reallocating shards might take some time depending
 on the amount of shards and the amount and size of records (and/or blob data).
 For that reason you should set the ``timeout`` setting to a reasonable
-time. By default the shutdown process aborts in case of a timeout or an exception
-and the cluster will start distributing shards evenly again.
-If you want to force a shutdown after the timeout,
-even if the reallocating is not finished,
-you can set the ``force`` setting to ``true``.
+time. By default the shutdown process aborts and the cluster will start
+distributing shards evenly again. If you want to force a shutdown after
+the timeout, even if the reallocating is not finished, you can set the
+``force`` setting to ``true``.
 
 .. warning::
 
@@ -151,7 +151,6 @@ into timeout during reallocation.
 
 By default, only the ``graceful stop`` command considers the cluster settings
 described at :ref:`ref_set_graceful_stop`.
-
 
 Step 3: Upgrade Crate
 =====================

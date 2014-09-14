@@ -11,3 +11,4 @@ This is a collection of best practice examples how to use Crate Data in the wild
 
    data_import
    cluster_upgrade
+

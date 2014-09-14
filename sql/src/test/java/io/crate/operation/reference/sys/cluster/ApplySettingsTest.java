@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class ApplySettingsTest {
 
@@ -41,10 +41,8 @@ public class ApplySettingsTest {
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
                 .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
                 .put(CrateSettings.STATS_ENABLED.settingName(), false)
-                /*
                 .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(), "full")
                 .put(CrateSettings.GRACEFUL_STOP_TIMEOUT.settingName(), "1m")
-                */
                 .put(CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName(), 2);
         Settings settings = builder.build();
         applySettings.onRefreshSettings(settings);
@@ -55,14 +53,11 @@ public class ApplySettingsTest {
         name = CrateSettings.STATS_ENABLED.settingName();
         assertEquals(values.get(name), settings.getAsBoolean(name, true));
 
-        /*
-
         name = CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName();
         assertEquals(values.get(name), settings.get(name, "none"));
 
         name = CrateSettings.GRACEFUL_STOP_TIMEOUT.settingName();
-        assertEquals(values.get(name), settings.getAsTime(name, new TimeValue(1_000)));
-        */
+        assertEquals(values.get(name), settings.get(name, "1h"));
 
         name = CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName();
         assertEquals(values.get(name), settings.getAsInt(name, 2));
