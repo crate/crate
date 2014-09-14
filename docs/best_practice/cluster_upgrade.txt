@@ -108,6 +108,11 @@ E.g. like that::
 
   sh$ service crate graceful-stop
 
+Depending on the size of your cluster this might take a while.
+You might want to check your server logs to see, if the graceful stop
+process is going well. In case of an error or a timeout, the node will stay up,
+signalling the error in its log files (or wherever you put your log messages).
+
 Using the default settings the node would shut down by moving all primary shards
 off the node first. This will ensure that no data is lost. However, the cluster
 health will go most likely to yellow, because replicas that lived on that node
