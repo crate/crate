@@ -266,10 +266,16 @@ Routing Allocation
 **cluster.routing.allocation.enable**
   | *Default:*   ``all``
   | *Runtime:*  ``yes``
-  | *Allowed Values:* ``all | new_primaries``
+  | *Allowed Values:* ``all | none | primaries | new_primaries``
 
   ``all`` allows all shard allocations, the cluster can allocate all
   kinds of shards.
+
+  ``none`` allows no shard allocations at all. No shard will be moved
+  or created.
+
+  ``primaries`` only primaries can be moved or created. This includes existing
+  primary shards.
 
   ``new_primaries`` allows allocations for new primary shards
   only. This means that for example a newly added node will not

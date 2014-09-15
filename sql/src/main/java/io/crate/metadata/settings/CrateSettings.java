@@ -331,7 +331,7 @@ public class CrateSettings {
     };
 
     public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting(
-            Sets.newHashSet("all", "new_primaries")
+            Sets.newHashSet("none", "primaries", "all", "new_primaries")
     ) {
         @Override
         public String name() { return "enable"; }
