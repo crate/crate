@@ -25,6 +25,7 @@ import io.crate.Version;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -230,6 +231,15 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         Map<String, Object> someData = (Map<String, Object>)data[0];
         assertThat(someData.keySet().size(), is(2));
         assertThat(someData.keySet(), hasItems("dev", "path"));
+    }
+
+    @Test
+    public void testSysNodesObjectArrayStringChildColumn() throws Exception {
+        SQLResponse response = executor.exec("select fs['data']['path'] from sys.nodes");
+        assertThat(response.rowCount(), Matchers.is(2L));
+        for (Object path : (Object[])response.rows()[0][0]) {
+            assertThat(path, instanceOf(String.class));
+        }
     }
 
     @Test

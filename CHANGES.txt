@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: properly return elements of object arrays in system tables
+   like sys.nodes.fs['data']['path']
+
 2014/09/11 0.43.0
 =================
 
