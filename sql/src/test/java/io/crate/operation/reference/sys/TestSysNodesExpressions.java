@@ -33,6 +33,7 @@ import io.crate.operation.Input;
 import io.crate.operation.reference.sys.node.NodeVersionExpression;
 import io.crate.operation.reference.sys.node.SysNodeExpression;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
+import io.crate.operation.reference.sys.node.fs.NodeFsDataExpression;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
@@ -395,6 +396,12 @@ public class TestSysNodesExpressions {
 
         assertThat((String)((Map<String, Object>)data[1]).get("dev"), is("/dev/sda2"));
         assertThat((String)((Map<String, Object>)data[1]).get("path"), is("/bar"));
+
+        ident = new ReferenceIdent(SysNodesTableInfo.IDENT, NodeFsExpression.NAME, ImmutableList.of(NodeFsDataExpression.NAME, "dev"));
+        SysExpression<Object[]> fsData = (SysExpression<Object[]>)resolver.getImplementation(ident);
+        for (Object arrayElement : fsData.value()) {
+            assertThat(arrayElement, instanceOf(BytesRef.class));
+        }
 
     }
 
