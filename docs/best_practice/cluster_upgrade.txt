@@ -155,7 +155,7 @@ node. This can prevent long waiting times until the shutdown process runs
 into timeout during reallocation.
 
 By default, only the ``graceful stop`` command considers the cluster settings
-described at :ref:`ref_set_graceful_stop`.
+described at :ref:`conf_graceful_stop`.
 
 Step 3: Upgrade Crate
 =====================
