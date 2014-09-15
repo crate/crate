@@ -8,6 +8,9 @@ Unreleased
  - fix: properly return elements of object arrays in system tables
    like sys.nodes.fs['data']['path']
 
+ - fix: filtering on system column ``_score`` is only valid by using a
+   ``>=`` comparison, throw error if used otherwise
+
 2014/09/11 0.43.0
 =================
 

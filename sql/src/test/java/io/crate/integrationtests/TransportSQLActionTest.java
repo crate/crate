@@ -2174,7 +2174,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
-                "and \"_score\" > 0.98");
+                "and \"_score\" >= 0.98");
         assertEquals(1L, response.rowCount());
         assertEquals(1, ((Float) response.rows()[0][1]).compareTo(0.98f));
     }

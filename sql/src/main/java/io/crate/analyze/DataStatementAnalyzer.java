@@ -59,6 +59,10 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
             .build();
 
+    private final static String _SCORE = "_score";
+
+    private boolean insideNotPredicate = false;
+
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, T context) {
         List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
@@ -115,6 +119,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             // we currently have no dynamics
             return Literal.NULL;
         }
+        validateSystemColumnPredicate(left);
 
         Set<Object> rightValues = new HashSet<>();
         for (Expression expression : ((InListExpression)node.getValueList()).getValues()) {
@@ -148,6 +153,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     @Override
     protected Symbol visitIsNotNullPredicate(IsNotNullPredicate node, T context) {
         Symbol argument = process(node.getValue(), context);
+        validateSystemColumnPredicate(argument);
         DataType argumentType = DataTypeVisitor.fromSymbol(argument);
 
         FunctionIdent isNullIdent =
@@ -191,7 +197,9 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
     @Override
     protected Symbol visitNotExpression(NotExpression node, T context) {
+        insideNotPredicate = true;
         Symbol argument = process(node.getValue(), context);
+        insideNotPredicate = false;
         if (argument.symbolType() == SymbolType.PARAMETER) {
             argument = Literal.fromParameter((Parameter) argument);
         }
@@ -207,8 +215,43 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
         Comparison comparison = new Comparison(node.getType(), left, right);
         comparison.normalize(context);
+        validateSystemColumnComparison(comparison);
         FunctionInfo info = context.getFunctionInfo(comparison.toFunctionIdent());
         return context.allocateFunction(info, comparison.arguments());
+    }
+
+    /**
+     * Validates comparison of system columns like e.g. '_score'.
+     * Must be called AFTER comparison normalization.
+     */
+    protected void validateSystemColumnComparison(Comparison comparison) {
+        if (comparison.left.symbolType() == SymbolType.REFERENCE) {
+            Reference reference = (Reference) comparison.left;
+            // _score column can only be used by > comparator
+            if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)
+                    && (comparison.comparisonExpressionType != ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
+                        || insideNotPredicate)) {
+                throw new UnsupportedOperationException(
+                        String.format(Locale.ENGLISH,
+                                "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
+                                _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()));
+            }
+        }
+    }
+
+    /**
+     * Validates usage of system columns (e.g. '_score') within predicates.
+     */
+    protected void validateSystemColumnPredicate(Symbol node) {
+        if (node.symbolType() == SymbolType.REFERENCE) {
+            Reference reference = (Reference) node;
+            if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)) {
+                throw new UnsupportedOperationException(
+                        String.format(Locale.ENGLISH,
+                                "System column '%s' cannot be used within a predicate",
+                                _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()));
+            }
+        }
     }
 
     @Override
@@ -355,6 +398,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         if (value.symbolType() == SymbolType.DYNAMIC_REFERENCE){
             return Literal.NULL;
         }
+        validateSystemColumnPredicate(value);
+
         FunctionIdent functionIdent =
                 new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME,
                         ImmutableList.of(DataTypeVisitor.fromSymbol((value))));
