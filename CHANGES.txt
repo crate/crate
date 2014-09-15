@@ -11,6 +11,8 @@ Unreleased
  - fix: properly return elements of object arrays in system tables
    like sys.nodes.fs['data']['path']
 
+ - implemented the graceful-stop command to enable zero downtime upgrades
+
  - exposed a lot of cluster settings, most of them are changeable at
    runtime by using ``SET/RESET``
 
@@ -67,6 +69,7 @@ Unreleased
    either ``.yml`` or ``.yaml`` to be read. The previous behaviour was to read
    all files starting with ``logging.`` which incorrectly also read ``.rpmnew``
    or ``.bak`` files.
+
 
 2014/08/25 0.42.0
 =================

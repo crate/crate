@@ -82,5 +82,4 @@ public class ExpressionToTimeValueVisitor extends AstVisitor<TimeValue, Object[]
     protected TimeValue visitNode(Node node, Object[] context) {
         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid time value %s", node));
     }
-
 }

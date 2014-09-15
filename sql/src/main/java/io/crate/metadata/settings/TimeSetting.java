@@ -43,5 +43,4 @@ public abstract class TimeSetting extends Setting<TimeValue, String> {
     public String extract(Settings settings) {
         return settings.getAsTime(settingName(), defaultValue()).toString();
     }
-
 }

@@ -28,6 +28,7 @@ import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
+import jsr166e.LongAdder;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
@@ -66,6 +67,20 @@ public class StatsTables {
     protected volatile int lastOperationsLogSize;
     protected volatile int lastJobsLogSize;
     protected volatile boolean lastIsEnabled;
+
+    private final LongAdder activeRequests = new LongAdder();
+
+    public void activeRequestsInc() {
+        activeRequests.increment();
+    }
+
+    public void activeRequestsDec() {
+        activeRequests.decrement();
+    }
+
+    public long activeRequests() {
+        return activeRequests.longValue();
+    }
 
     public interface IterableGetter {
         public Iterable<?> getIterable();

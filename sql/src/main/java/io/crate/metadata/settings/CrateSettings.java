@@ -119,9 +119,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            // TODO: un-comment at graceful-stop branch
-            //return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO);
-            return ImmutableList.<Setting>of(ROUTING, CLUSTER_INFO);
+            return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO);
         }
     };
 
@@ -141,8 +139,7 @@ public class CrateSettings {
                     GRACEFUL_STOP_MIN_AVAILABILITY,
                     GRACEFUL_STOP_REALLOCATE,
                     GRACEFUL_STOP_TIMEOUT,
-                    GRACEFUL_STOP_FORCE,
-                    GRACEFUL_STOP_IS_DEFAULT);
+                    GRACEFUL_STOP_FORCE);
         }
     };
 
@@ -197,23 +194,6 @@ public class CrateSettings {
         @Override
         public String name() {
             return "force";
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return false;
-        }
-
-        @Override
-        public Setting parent() {
-            return GRACEFUL_STOP;
-        }
-    };
-
-    public static final BoolSetting GRACEFUL_STOP_IS_DEFAULT = new BoolSetting() {
-        @Override
-        public String name() {
-            return "is_default";
         }
 
         @Override
@@ -351,7 +331,7 @@ public class CrateSettings {
     };
 
     public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting(
-            Sets.newHashSet("all", "new_primaries")
+            Sets.newHashSet("none", "primaries", "all", "new_primaries")
     ) {
         @Override
         public String name() { return "enable"; }
@@ -508,6 +488,7 @@ public class CrateSettings {
             return ROUTING_ALLOCATION_EXCLUDE;
         }
     };
+
 
     public static final StringSetting ROUTING_ALLOCATION_EXCLUDE_NAME = new StringSetting() {
         @Override
@@ -989,6 +970,7 @@ public class CrateSettings {
         @Override
         public TimeValue defaultValue() {
             return new TimeValue(30, TimeUnit.SECONDS);
+
         }
 
         @Override
@@ -1020,8 +1002,6 @@ public class CrateSettings {
                     new SettingsAppliers.BooleanSettingsApplier(CrateSettings.GRACEFUL_STOP_FORCE))
             .put(CrateSettings.GRACEFUL_STOP_TIMEOUT.settingName(),
                     new SettingsAppliers.TimeSettingsApplier(CrateSettings.GRACEFUL_STOP_TIMEOUT))
-            .put(CrateSettings.GRACEFUL_STOP_IS_DEFAULT.settingName(),
-                    new SettingsAppliers.BooleanSettingsApplier(CrateSettings.GRACEFUL_STOP_IS_DEFAULT))
             .put(CrateSettings.DISCOVERY.settingName(),
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.DISCOVERY))
             .put(CrateSettings.DISCOVERY_ZEN.settingName(),
@@ -1157,5 +1137,4 @@ public class CrateSettings {
         }
         return settingNames;
     }
-
 }

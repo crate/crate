@@ -80,7 +80,6 @@ public class ClusterSettingsExpression extends SysClusterObjectReference {
                 }
             }
         }
-
     }
 
     static class ApplySettings implements NodeSettingsService.Listener {

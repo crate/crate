@@ -150,9 +150,6 @@ public class TestGlobalSysExpressions {
                 stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
 
         Map cluster = (Map) settings.get(CrateSettings.CLUSTER.name());
-
-        // TODO: un-comment at graceful-stop branch
-        /*
         Map gracefulStop = (Map) cluster.get(CrateSettings.GRACEFUL_STOP.name());
         assertEquals(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.defaultValue(),
                 gracefulStop.get(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.name()));
@@ -164,10 +161,6 @@ public class TestGlobalSysExpressions {
                 gracefulStop.get(CrateSettings.GRACEFUL_STOP_FORCE.name()));
         assertEquals(CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue(),
                 gracefulStop.get(CrateSettings.GRACEFUL_STOP_TIMEOUT.name()));
-        assertEquals(CrateSettings.GRACEFUL_STOP_IS_DEFAULT.defaultValue(),
-                gracefulStop.get(CrateSettings.GRACEFUL_STOP_IS_DEFAULT.name()));
-        */
-
         Map routing = (Map) cluster.get(CrateSettings.ROUTING.name());
         Map routingAllocation = (Map) routing.get(CrateSettings.ROUTING_ALLOCATION.name());
         assertEquals(CrateSettings.ROUTING_ALLOCATION_ENABLE.defaultValue(),
