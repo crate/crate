@@ -328,14 +328,14 @@ Filter By :ref:`_score <sql_ddl_system_column_score>`
 It is possible to filter results by the :ref:`_score <sql_ddl_system_column_score>` column
 but as it's value is a ratio related to the highest score of all result and thus never
 absolute and directly comparable across searches its use-case is very limited if any.
-It is only possible to filter by greater-than or greater-equals operator on the
+It is only possible to filter by the greater-than-or-equals('>=') operator on the
 :ref:`_score <sql_ddl_system_column_score>` column.
 
 Anyway let's do it here for demonstration purpose::
 
     cr> select name, _score
     ... from locations where match(name_description_ft, 'time')
-    ... and _score > 0.9;
+    ... and _score >= 0.9;
     +--------+-----------+
     | name   | _score    |
     +--------+-----------+

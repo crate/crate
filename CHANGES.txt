@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: filtering on system column ``_score`` is only valid by using a
+   ``>=`` comparison, throw error if used otherwise
+
  - exposed a lot of cluster settings, most of them are changeable at
    runtime by using ``SET/RESET``
 
