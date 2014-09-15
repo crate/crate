@@ -21,39 +21,37 @@
 
 package io.crate.action.sql.query;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
-import io.crate.executor.transport.task.elasticsearch.ESQueryBuilder;
+import io.crate.core.StringUtils;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Routing;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
-import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.search.FieldComparator;
-import org.apache.lucene.search.Sort;
-import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.*;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.indices.IndicesLifecycle;
@@ -65,6 +63,7 @@ import org.elasticsearch.search.MultiValueMode;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.dfs.DfsPhase;
 import org.elasticsearch.search.fetch.FetchPhase;
+import org.elasticsearch.search.fetch.source.FetchSourceContext;
 import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
@@ -78,10 +77,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class CrateSearchService extends InternalSearchService {
 
-    private static final ESQueryBuilder ESQueryBuilder = new ESQueryBuilder();
+    private final LuceneQueryBuilder luceneQueryBuilder;
     private final SortSymbolVisitor sortSymbolVisitor;
 
     @Inject
@@ -104,6 +104,7 @@ public class CrateSearchService extends InternalSearchService {
                 threadPool,
                 scriptService,
                 cacheRecycler, pageCacheRecycler, bigArrays, dfsPhase, queryPhase, fetchPhase);
+        luceneQueryBuilder = new LuceneQueryBuilder(functions);
         CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
                 new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
         sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
@@ -190,33 +191,19 @@ public class CrateSearchService extends InternalSearchService {
         SearchContext.setCurrent(context);
 
         try {
-            QueryThenFetchNode searchNode = new QueryThenFetchNode(
-                    new Routing(null),
-                    request.outputs(),
-                     // can omit sort because it's added below using generateLuceneSort
-                    ImmutableList.<Symbol>of(),
-                    new boolean[0],
-                    new Boolean[0],
-                    request.limit(),
-                    request.offset(),
-                    request.whereClause(),
-                    request.partitionBy()
-            );
+            luceneQueryBuilder.searchContext(context);
+            Query query = luceneQueryBuilder.convert(request.whereClause());
+            context.parsedQuery(new ParsedQuery(query, ImmutableMap.<String, Filter>of()));
 
-            // TODO: remove xcontent
-            BytesReference source = ESQueryBuilder.convert(searchNode);
-            parseSource(context, source);
+            // the OUTPUTS_VISITOR sets the sourceFetchContext / version / minScore onto the SearchContext
+            OutputContext outputContext = new OutputContext(context, request.partitionBy());
+            OUTPUTS_VISITOR.process(request.outputs(), outputContext);
 
             context.sort(generateLuceneSort(
                     context, request.orderBy(), request.reverseFlags(), request.nullsFirst()));
 
-            // if the from and size are still not set, default them
-            if (context.from() == -1) {
-                context.from(0);
-            }
-            if (context.size() == -1) {
-                context.size(10);
-            }
+            context.from(request.offset());
+            context.size(request.limit());
 
             // pre process
             dfsPhase.preProcess(context);
@@ -231,6 +218,64 @@ public class CrateSearchService extends InternalSearchService {
             throw ExceptionsHelper.convertToRuntime(e);
         }
         return context;
+    }
+
+    private static final OutputSymbolVisitor OUTPUTS_VISITOR = new OutputSymbolVisitor();
+
+    private static class OutputContext {
+        private final SearchContext searchContext;
+        private final List<ReferenceInfo> partitionBy;
+        private final List<String> fields = new ArrayList<>();
+        public boolean needWholeSource = false;
+
+        private OutputContext(SearchContext searchContext, List<ReferenceInfo> partitionBy) {
+            this.searchContext = searchContext;
+            this.partitionBy = partitionBy;
+        }
+    }
+
+    private static class OutputSymbolVisitor extends SymbolVisitor<OutputContext, Void> {
+
+        public void process(List<Symbol> outputs, OutputContext context) {
+            for (Symbol output : outputs) {
+                process(output, context);
+            }
+            if (!context.needWholeSource) {
+                if (context.fields.isEmpty()) {
+                    context.searchContext.fetchSourceContext(new FetchSourceContext(false));
+                } else {
+                    Set<String> fields = StringUtils.commonAncestors(context.fields);
+                    context.searchContext.fetchSourceContext(
+                            new FetchSourceContext(fields.toArray(new String[fields.size()])));
+                }
+            }
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, OutputContext context) {
+            ColumnIdent columnIdent = symbol.info().ident().columnIdent();
+            if (columnIdent.isSystemColumn()) {
+                if (DocSysColumns.VERSION.equals(columnIdent)) {
+                    context.searchContext.version(true);
+                } else {
+                    context.needWholeSource = true;
+                }
+            } else if (!context.partitionBy.contains(symbol.info())) {
+                context.fields.add(columnIdent.fqn());
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitDynamicReference(DynamicReference symbol, OutputContext context) {
+            return visitReference(symbol, context);
+        }
+
+        @Override
+        protected Void visitSymbol(Symbol symbol, OutputContext context) {
+            throw new UnsupportedOperationException(SymbolFormatter.format(
+                    "Can't use %s as an output", symbol));
+        }
     }
 
     private static final Map<DataType, SortField.Type> luceneTypeMap = ImmutableMap.<DataType, SortField.Type>builder()

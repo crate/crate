@@ -25,10 +25,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import org.elasticsearch.common.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,6 +60,27 @@ public class StringUtils {
         }
 
         return PATH_JOINER.join(s);
+    }
+
+    public static Set<String> commonAncestors(List<String> fields){
+        int idx = 0;
+        String previous = null;
+
+        Collections.sort(fields);
+        Set<String> result = new HashSet<>(fields.size());
+        for (String field : fields) {
+            if (idx>0){
+                if (!field.startsWith(previous + '.')){
+                    previous = field;
+                    result.add(field);
+                }
+            } else {
+                result.add(field);
+                previous = field;
+            }
+            idx++;
+        }
+        return result;
     }
 
     /**
