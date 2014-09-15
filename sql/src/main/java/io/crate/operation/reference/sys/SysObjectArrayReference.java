@@ -49,12 +49,7 @@ public abstract class SysObjectArrayReference extends SysExpression<Object[]>
                 if (info == null) {
                     info = child.info();
                 }
-                // convert nested columns of type e.getValue().value() to String here
-                // as we do not want to convert them when building the response
                 Object value = child.value();
-                if (value != null && value instanceof BytesRef) {
-                    value = ((BytesRef)value).utf8ToString();
-                }
                 values[i++] = value;
             }
         }
