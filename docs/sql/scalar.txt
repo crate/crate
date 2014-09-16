@@ -377,10 +377,18 @@ Regular Expression Functions
 The regular expression functions in crate use `Java Regular Expressions`_.
 See the api documentation for more details.
 
+.. note:
+
+   Be aware that, in contrast to the functions, the
+   :ref:`sql_ddl_regexp <regular expression operator>` is using
+   `Lucene Regular Expressions`_.
+
+.. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
+
 .. _scalar-regexp-matches:
 
 regexp_matches(source, pattern [, flags]) returns string_array
--------------------------------------------------------------
+--------------------------------------------------------------
 
 This function uses the regular expression pattern in ``pattern``
 to match against the ``source`` string.
@@ -410,6 +418,19 @@ The ``regexp_matches`` function will return all groups as a string array::
     +------------------------------------+
     | ["alcatraz", "alcatraz", "lcatra"] |
     +------------------------------------+
+    SELECT 1 row in set (... sec)
+
+Through array element access functionality, a group can be selected
+directly. See :ref:`sql_dql_object_arrays_select` for details.
+
+::
+
+    cr> select regexp_matches('alcatraz', '^(a(.+)z)$')[3] as third_group from sys.cluster;
+    +-------------+
+    | third_group |
+    +-------------+
+    | lcatra      |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 .. _scalar-regexp-matches-flags:
@@ -467,7 +488,7 @@ Examples
     SELECT 1 row in set (... sec)
 
 regexp_replace(source, pattern, replacement [, flags]) returns string
---------------------------------------------------------------------
+---------------------------------------------------------------------
 
 ``regexp_replace`` can be used to replace every (or only the first) occurence of
 a subsequence matching ``pattern`` in the ``source`` string with the ``replacement``
@@ -478,7 +499,7 @@ string. If no subsequence in ``source`` matches the regular expression ``pattern
 see `Java Regular Expressions`_.
 
 The ``replacement`` string may contain expressions like ``$N``
-where ``N`` is a digit between 0 and 9. It references the *N*th matched group of
+where ``N`` is a digit between 0 and 9. It references the *N*\ th matched group of
 ``pattern`` and the matching subsequence of that group will be inserted
 in the returned string. The expression ``$0`` will insert the whole matching
 ``source`` a.k.a. group No. 0.
@@ -504,17 +525,17 @@ Examples
 
 ::
 
-   cr> select regexp_replace(name, '(\w+)(\b\w+)+', '$1') as replaced from locations
+   cr> select name, regexp_replace(name, '(\w+)\s(\w+)+', '$1 - $2') as replaced from locations
    ... order by name limit 5;
-    +---------------------+
-    | replaced            |
-    +---------------------+
-    |                     |
-    | Aldebaran           |
-    | Algol               |
-    | Allosimanius Syneca |
-    | Alpha Centauri      |
-    +---------------------+
+    +---------------------+-----------------------+
+    | name                | replaced              |
+    +---------------------+-----------------------+
+    |                     |                       |
+    | Aldebaran           | Aldebaran             |
+    | Algol               | Algol                 |
+    | Allosimanius Syneca | Allosimanius - Syneca |
+    | Alpha Centauri      | Alpha - Centauri      |
+    +---------------------+-----------------------+
     SELECT 5 rows in set (... sec)
 
 ::
@@ -530,17 +551,17 @@ Examples
 
 ::
 
-   cr> select regexp_replace(name, '([A-Z]\w+) .+', '$1', 'ig') as replaced from locations
+   cr> select name, regexp_replace(name, '([A-Z]\w+) .+', '$1', 'ig') as replaced from locations
    ... order by name limit 5;
-    +--------------+
-    | replaced     |
-    +--------------+
-    |              |
-    | Aldebaran    |
-    | Algol        |
-    | Allosimanius |
-    | Alpha        |
-    +--------------+
+    +---------------------+--------------+
+    | name                | replaced     |
+    +---------------------+--------------+
+    |                     |              |
+    | Aldebaran           | Aldebaran    |
+    | Algol               | Algol        |
+    | Allosimanius Syneca | Allosimanius |
+    | Alpha Centauri      | Alpha        |
+    +---------------------+--------------+
     SELECT 5 rows in set (... sec)
 
 .. _Java Regular Expressions: http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html

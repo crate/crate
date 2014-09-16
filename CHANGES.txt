@@ -5,7 +5,13 @@ Changes for Crate Data
 Unreleased
 ==========
 
-- Renamed NullType to UndefinedType in order to avoid confusion
+ - Implemented regular expression scalar functions and query operator
+
+ - Support for accessing items in an array. Please refer to the
+   ``Crate SQL -> Querying Crate -> Retrieving Data -> Object Arrays``
+   documentation section for details and limitations.
+
+ - Renamed NullType to UndefinedType in order to avoid confusion
    about its usage
 
 2014/09/23 0.44.1

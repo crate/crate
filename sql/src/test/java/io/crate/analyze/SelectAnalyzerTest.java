@@ -47,8 +47,10 @@ import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
 import io.crate.operation.scalar.CollectionCountFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
+import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.testing.TestingHelpers;
@@ -100,6 +102,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_MULTI_PK.name())).thenReturn(userTableInfoMultiPk);
+            when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name()))
@@ -208,7 +211,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analyze = (SelectAnalysis)analyze("select * from sys.nodes where port['http'] = -400");
         Function whereClause = (Function)analyze.whereClause().query();
         Symbol symbol = whereClause.arguments().get(1);
-        assertThat((Integer)((Literal) symbol).value(), is(-400));
+        assertThat((Integer) ((Literal) symbol).value(), is(-400));
     }
 
     @Test
@@ -298,7 +301,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(LteOperator.NAME, right.info().ident().name());
         assertThat(right.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(right.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
-        assertSame(((Literal)left.arguments().get(1)).valueType(), DataTypes.DOUBLE);
+        assertSame(((Literal) left.arguments().get(1)).valueType(), DataTypes.DOUBLE);
     }
 
     @Test
@@ -323,13 +326,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(EqOperator.NAME, function.info().ident().name());
         assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
-        assertEquals(DataTypes.DOUBLE, ((Literal)function.arguments().get(1)).valueType());
+        assertEquals(DataTypes.DOUBLE, ((Literal) function.arguments().get(1)).valueType());
 
         function = (Function) whereClause.arguments().get(1);
         assertEquals(EqOperator.NAME, function.info().ident().name());
         assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
-        assertEquals(DataTypes.STRING, ((Literal)function.arguments().get(1)).valueType());
+        assertEquals(DataTypes.STRING, ((Literal) function.arguments().get(1)).valueType());
     }
 
     @Test
@@ -656,7 +659,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> outputSymbols = analysis.outputSymbols;
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(Literal.class));
-        assertThat((Long)((Literal) outputSymbols.get(0)).value(), is(0L));
+        assertThat((Long) ((Literal) outputSymbols.get(0)).value(), is(0L));
     }
 
     @Test
@@ -773,7 +776,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{map});
         Function whereClause = (Function)analysis.whereClause().query();
         assertThat(whereClause.arguments().get(1), instanceOf(Literal.class));
-        assertTrue(((Object)((Literal) whereClause.arguments().get(1)).value()).equals(map));
+        assertTrue(((Object) ((Literal) whereClause.arguments().get(1)).value()).equals(map));
     }
 
     @Test
@@ -789,7 +792,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
         Literal stringLiteral = (Literal) whereClause.arguments().get(1);
-        assertThat((BytesRef)stringLiteral.value(), is(new BytesRef(("foo"))));
+        assertThat((BytesRef) stringLiteral.value(), is(new BytesRef(("foo"))));
     }
 
     @Test(expected = UnsupportedOperationException.class) // ESCAPE is not supported yet.
@@ -807,7 +810,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
         Literal stringLiteral = (Literal) whereClause.arguments().get(1);
-        assertThat((BytesRef)stringLiteral.value(), is(new BytesRef("1")));
+        assertThat((BytesRef) stringLiteral.value(), is(new BytesRef("1")));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -830,7 +833,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Literal expressionLiteral = (Literal) function.arguments().get(0);
         Literal patternLiteral = (Literal) function.arguments().get(1);
         assertThat((BytesRef)expressionLiteral.value(), is(new BytesRef("1")));
-        assertThat((BytesRef)patternLiteral.value(), is(new BytesRef("2")));
+        assertThat((BytesRef) patternLiteral.value(), is(new BytesRef("2")));
     }
 
     @Test
@@ -1781,8 +1784,75 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRegexpMatch() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select * from users where name ~ '.*foo(bar)?'");
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where name ~ '.*foo(bar)?'");
         assertThat(analysis.whereClause().hasQuery(), is(true));
-        assertThat(((Function)analysis.whereClause().query()).info().ident().name(), is("op_~"));
+        assertThat(((Function) analysis.whereClause().query()).info().ident().name(), is("op_~"));
+    }
+
+    @Test
+    public void testSubscriptArray() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select tags[1] from users");
+        assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
+        List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
+        assertThat(arguments.size(), is(2));
+        assertThat(arguments.get(0), isReference("tags"));
+        assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
+    }
+
+    @Test
+    public void testSubscriptArrayInvalidIndexMin() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Array index must be in range 1 to 2147483648");
+        analyze("select tags[0] from users");
+    }
+
+    @Test
+    public void testSubscriptArrayInvalidIndexMax() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Array index must be in range 1 to 2147483648");
+        analyze("select tags[2147483649] from users");
+    }
+
+    @Test
+    public void testSubscriptArrayNested() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select tags[1]['name'] from deeply_nested");
+        assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
+        List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
+        assertThat(arguments.size(), is(2));
+        assertThat(arguments.get(0), isReference("tags.name"));
+        assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
+    }
+
+    @Test
+    public void testSubscriptArrayInvalidNesting() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Nested array access is not supported");
+        analyze("select tags[1]['metadata'][2] from deeply_nested");
+    }
+
+    @Test
+    public void testSubscriptArrayAsAlias() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select tags[1] as t_alias from users");
+        assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
+        List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
+        assertThat(arguments.size(), is(2));
+        assertThat(arguments.get(0), isReference("tags"));
+        assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
+    }
+
+    @Test
+    public void testSubscriptArrayOnScalarResult() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select regexp_matches(text, '.*')[1] as t_alias from users");
+        assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
+        List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
+        assertThat(arguments.size(), is(2));
+
+        assertThat(arguments.get(0), isFunction(MatchesFunction.NAME));
+        assertThat(arguments.get(1), isLiteral(0, DataTypes.INTEGER));
+
+        List<Symbol> scalarArguments = ((Function) arguments.get(0)).arguments();
+        assertThat(scalarArguments.size(), is(2));
+        assertThat(scalarArguments.get(0), isReference("text"));
+        assertThat(scalarArguments.get(1), isLiteral(".*", DataTypes.STRING));
     }
 }

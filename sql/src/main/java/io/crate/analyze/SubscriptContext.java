@@ -21,15 +21,19 @@
 
 package io.crate.analyze;
 
+import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SubscriptContext {
 
     private QualifiedName qName;
+    private FunctionCall functionCall;
     private List<String> parts = new ArrayList<>();
+    private Integer index;
 
     public QualifiedName qName() {
         return qName;
@@ -45,5 +49,23 @@ public class SubscriptContext {
 
     public void add(String part) {
         parts.add(0, part);
+    }
+
+    public void index(Integer index) {
+        this.index = index;
+    }
+
+    @Nullable
+    public Integer index() {
+        return index;
+    }
+
+    @Nullable
+    public FunctionCall functionCall() {
+        return functionCall;
+    }
+
+    public void functionCall(FunctionCall functionCall) {
+        this.functionCall = functionCall;
     }
 }
