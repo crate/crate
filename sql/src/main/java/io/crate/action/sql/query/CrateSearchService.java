@@ -192,8 +192,12 @@ public class CrateSearchService extends InternalSearchService {
 
         try {
             luceneQueryBuilder.searchContext(context);
-            Query query = luceneQueryBuilder.convert(request.whereClause());
-            context.parsedQuery(new ParsedQuery(query, ImmutableMap.<String, Filter>of()));
+            LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(request.whereClause());
+            context.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
+            Float minScore = ctx.minScore();
+            if (minScore != null) {
+                context.minimumScore(minScore);
+            }
 
             // the OUTPUTS_VISITOR sets the sourceFetchContext / version / minScore onto the SearchContext
             OutputContext outputContext = new OutputContext(context, request.partitionBy());

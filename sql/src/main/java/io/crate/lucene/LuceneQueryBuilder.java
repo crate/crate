@@ -47,14 +47,13 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
-import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.elasticsearch.common.lucene.search.NotFilter;
+import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -73,17 +72,55 @@ public class LuceneQueryBuilder {
         visitor.searchContext = searchContext;
     }
 
-    public Query convert(WhereClause whereClause) {
+    public Context convert(WhereClause whereClause) {
+        Context ctx = new Context();
         if (whereClause.noMatch()) {
-            return new MatchNoDocsQuery();
+            ctx.query = Queries.newMatchNoDocsQuery();
+        } else if (!whereClause.hasQuery()) {
+            ctx.query = Queries.newMatchAllQuery();
+        } else {
+            ctx.query = visitor.process(whereClause.query(), ctx);
         }
-        if (!whereClause.hasQuery()) {
-            return new MatchAllDocsQuery();
-        }
-        return visitor.process(whereClause.query(), null);
+        return ctx;
     }
 
-    static class Visitor extends SymbolVisitor<Void, Query> {
+    public static class Context {
+        Query query;
+        final Map<String, Object> filteredFieldValues = new HashMap<>();
+
+        public Query query() {
+            return this.query;
+        }
+
+        @Nullable
+        public Float minScore() {
+            Object score = filteredFieldValues.get("_score");
+            if (score == null) {
+                return null;
+            }
+            return ((Number) score).floatValue();
+        }
+
+        /**
+         * These fields are ignored in the whereClause.
+         * If a filtered field is encountered the value of the literal is written into filteredFieldValues
+         * (only applies to Function with 2 arguments and if left == reference and right == literal)
+         */
+        final static Set<String> FILTERED_FIELDS = new HashSet<String>(){{ add("_score"); }};
+
+        /**
+         * key = columnName
+         * value = error message
+         * <p/>
+         * (in the _version case if the primary key is present a GetPlan is built from the planner and
+         * the LuceneQueryBuilder is never used)
+         */
+        final static Map<String, String> UNSUPPORTED_FIELDS = ImmutableMap.<String, String>builder()
+                .put("_version", "\"_version\" column is only valid in the WHERE clause if the primary key column is also present")
+                .build();
+    }
+
+    static class Visitor extends SymbolVisitor<Context, Query> {
 
         private SearchContext searchContext;
         private final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
@@ -94,7 +131,7 @@ public class LuceneQueryBuilder {
 
 
         abstract class FunctionToQuery {
-            public abstract Query apply (Function input) throws IOException;
+            public abstract Query apply (Function input, Context context) throws IOException;
         }
 
         abstract class CmpQuery extends FunctionToQuery {
@@ -123,7 +160,7 @@ public class LuceneQueryBuilder {
         class AnyNeqQuery extends CmpQuery {
 
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> tuple = prepare(input);
                 Reference reference = tuple.v1();
                 Object value = tuple.v2().value();
@@ -151,7 +188,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> prepare = prepare(input);
                 String notLike = negateWildcard(
                         ESQueryBuilder.convertWildcardToRegex(BytesRefs.toString(prepare.v2().value())));
@@ -166,7 +203,7 @@ public class LuceneQueryBuilder {
         class LikeQuery extends CmpQuery {
 
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> tuple = prepare(input);
                 String columnName = tuple.v1().info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
@@ -177,12 +214,12 @@ public class LuceneQueryBuilder {
         class NotQuery extends FunctionToQuery {
 
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 assert input != null;
                 assert input.arguments().size() == 1;
                 BooleanQuery query = new BooleanQuery();
 
-                query.add(process(input.arguments().get(0), null), BooleanClause.Occur.MUST_NOT);
+                query.add(process(input.arguments().get(0), context), BooleanClause.Occur.MUST_NOT);
                 query.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
 
                 return query;
@@ -192,7 +229,7 @@ public class LuceneQueryBuilder {
         class IsNullQuery extends FunctionToQuery {
 
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 assert input != null;
                 assert input.arguments().size() == 1;
                 Symbol arg = input.arguments().get(0);
@@ -210,7 +247,7 @@ public class LuceneQueryBuilder {
 
         class EqQuery extends CmpQuery {
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
                 String columnName = tuple.v1().info().ident().columnIdent().fqn();
@@ -221,11 +258,11 @@ public class LuceneQueryBuilder {
 
         class AndQuery extends FunctionToQuery {
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 assert input != null;
                 BooleanQuery query = new BooleanQuery();
                 for (Symbol symbol : input.arguments()) {
-                    query.add(process(symbol, null), BooleanClause.Occur.MUST);
+                    query.add(process(symbol, context), BooleanClause.Occur.MUST);
                 }
                 return query;
             }
@@ -233,12 +270,12 @@ public class LuceneQueryBuilder {
 
         class OrQuery extends FunctionToQuery {
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 assert input != null;
                 BooleanQuery query = new BooleanQuery();
                 query.setMinimumNumberShouldMatch(1);
                 for (Symbol symbol : input.arguments()) {
-                    query.add(process(symbol, null), BooleanClause.Occur.SHOULD);
+                    query.add(process(symbol, context), BooleanClause.Occur.SHOULD);
                 }
                 return query;
             }
@@ -247,7 +284,7 @@ public class LuceneQueryBuilder {
         class LtQuery extends CmpQuery {
 
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
                 String columnName = tuple.v1().info().ident().columnIdent().fqn();
@@ -259,7 +296,7 @@ public class LuceneQueryBuilder {
         class LteQuery extends CmpQuery {
 
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
                 String columnName = tuple.v1().info().ident().columnIdent().fqn();
@@ -271,7 +308,7 @@ public class LuceneQueryBuilder {
         class GtQuery extends CmpQuery {
 
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
                 String columnName = tuple.v1().info().ident().columnIdent().fqn();
@@ -283,7 +320,7 @@ public class LuceneQueryBuilder {
         class GteQuery extends CmpQuery {
 
             @Override
-            public Query apply(Function input) {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
                 String columnName = tuple.v1().info().ident().columnIdent().fqn();
@@ -295,7 +332,7 @@ public class LuceneQueryBuilder {
         class ToMatchQuery extends FunctionToQuery {
 
             @Override
-            public Query apply(Function input) throws IOException {
+            public Query apply(Function input, Context context) throws IOException {
                 List<Symbol> arguments = input.arguments();
                 assert arguments.size() == 4 : "invalid number of arguments";
                 assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT);
@@ -347,20 +384,46 @@ public class LuceneQueryBuilder {
                 .build();
 
         @Override
-        public Query visitFunction(Function function, Void context) {
+        public Query visitFunction(Function function, Context context) {
             assert function != null;
+
+            if (fieldIgnored(function, context)) {
+                return Queries.newMatchAllQuery();
+            }
+
             FunctionToQuery toQuery = functions.get(function.info().ident().name());
 
             if (toQuery == null) {
                 return genericFunctionQuery(function);
             }
             try {
-                return toQuery.apply(function);
+                return toQuery.apply(function, context);
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToRuntime(e);
             } catch (UnsupportedOperationException e) { // TODO: don't use try/catch for fallback but check before-hand?
                 return genericFunctionQuery(function);
             }
+        }
+
+        private boolean fieldIgnored(Function function, Context context) {
+            if (function.arguments().size() != 2) {
+                return false;
+            }
+
+            Symbol left = function.arguments().get(0);
+            Symbol right = function.arguments().get(1);
+            if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
+                String columnName = ((Reference) left).info().ident().columnIdent().name();
+                if (Context.FILTERED_FIELDS.contains(columnName)) {
+                    context.filteredFieldValues.put(columnName, ((Input) right).value());
+                    return true;
+                }
+                String unsupportedMessage = Context.UNSUPPORTED_FIELDS.get(columnName);
+                if (unsupportedMessage != null) {
+                    throw new UnsupportedOperationException(unsupportedMessage);
+                }
+            }
+            return false;
         }
 
         private Query genericFunctionQuery(Function function) {
@@ -430,7 +493,7 @@ public class LuceneQueryBuilder {
         }
 
         @Override
-        public Query visitReference(Reference symbol, Void context) {
+        public Query visitReference(Reference symbol, Context context) {
             // called for queries like: where boolColumn
             if (symbol.valueType() == DataTypes.BOOLEAN) {
                 return QueryBuilderHelper.forType(DataTypes.BOOLEAN).eq(symbol.info().ident().columnIdent().fqn(), true);
@@ -439,7 +502,7 @@ public class LuceneQueryBuilder {
         }
 
         @Override
-        protected Query visitSymbol(Symbol symbol, Void context) {
+        protected Query visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException(
                     SymbolFormatter.format("Can't build query from symbol %s", symbol));
         }
