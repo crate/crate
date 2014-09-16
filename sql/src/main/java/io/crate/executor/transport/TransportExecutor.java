@@ -165,7 +165,8 @@ public class TransportExecutor implements Executor {
                     clusterService,
                     transportActionProvider.transportQueryShardAction(),
                     transportActionProvider.searchServiceTransportAction(),
-                    searchPhaseController));
+                    searchPhaseController,
+                    threadPool));
             return null;
         }
 

@@ -81,8 +81,8 @@ import java.util.Set;
 
 public class CrateSearchService extends InternalSearchService {
 
-    private final LuceneQueryBuilder luceneQueryBuilder;
     private final SortSymbolVisitor sortSymbolVisitor;
+    private final Functions functions;
 
     @Inject
     public CrateSearchService(Settings settings,
@@ -104,7 +104,7 @@ public class CrateSearchService extends InternalSearchService {
                 threadPool,
                 scriptService,
                 cacheRecycler, pageCacheRecycler, bigArrays, dfsPhase, queryPhase, fetchPhase);
-        luceneQueryBuilder = new LuceneQueryBuilder(functions);
+        this.functions = functions;
         CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
                 new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
         sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
@@ -191,8 +191,8 @@ public class CrateSearchService extends InternalSearchService {
         SearchContext.setCurrent(context);
 
         try {
-            luceneQueryBuilder.searchContext(context);
-            LuceneQueryBuilder.Context ctx = luceneQueryBuilder.convert(request.whereClause());
+            LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, context, indexService.cache());
+            LuceneQueryBuilder.Context ctx = builder.convert(request.whereClause());
             context.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
             Float minScore = ctx.minScore();
             if (minScore != null) {
