@@ -97,6 +97,7 @@ all simple data types:
     !=                not equal - same as <>
     like              matches a part of the given value
     ~                 regular expression match
+    !~                negated regular expression match
     ================  =================================
 
 For strings a lexicographical comparison is performed based on the
@@ -181,11 +182,18 @@ Regular Expressions
 
 ::
 
- 'source' ~ 'pattern'
+  'source' ~ 'pattern'
+
+::
+
+  'source' !~ 'pattern'
 
 The ``~`` operator can be used to match a string against a regular expression.
 It returns ``true`` if ``source`` matches, ``false`` if not,
 and ``NULL`` if ``source`` is ``NULL``.
+
+To negate the matching, use the optional ``!`` prefix. The operator returns ``true``
+if ``source`` does not match ``pattern``, ``false`` otherwise.
 
 The regular expression ``pattern`` is implicitly anchored, that means that
 the whole ``source`` string must match, not a single subsequence.
@@ -209,6 +217,10 @@ Examples::
 
     cr> select 'matches' from sys.cluster where
     ... 'gcc --std=c99 -Wall source.c' ~ '[A-Za-z0-9] (-|--[A-Za-z0-9]+ )*([^ ] )*';
+
+::
+
+    cr> select 'matches' from sys.cluster where 'foobaz' !~ '\w+(bar)$';
 
 
 .. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
