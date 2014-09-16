@@ -60,7 +60,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class LuceneQueryBuilder {
 
     private final Visitor visitor;
-    private SearchContext searchContext;
 
     public LuceneQueryBuilder(Functions functions) {
         CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
@@ -68,6 +67,7 @@ public class LuceneQueryBuilder {
         visitor = new Visitor(inputSymbolVisitor);
     }
 
+    // TODO: move to ctor because of thread safety?
     public void searchContext(SearchContext searchContext) {
         visitor.searchContext = searchContext;
     }

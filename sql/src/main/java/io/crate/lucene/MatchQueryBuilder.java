@@ -21,6 +21,7 @@
 
 package io.crate.lucene;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import io.crate.operation.predicate.MatchPredicate;
 import org.apache.lucene.analysis.Analyzer;
@@ -31,10 +32,13 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.QueryBuilder;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
 import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.support.QueryParsers;
 import org.elasticsearch.index.search.MatchQuery;
 import org.elasticsearch.search.internal.SearchContext;
 
@@ -55,6 +59,13 @@ public class MatchQueryBuilder {
     private Float groupTieBreaker = null;
     private String minimumShouldMatch;
     private String analyzer;
+    private int phraseSlop = 0;
+    private int maxExpansions = FuzzyQuery.defaultMaxExpansions;
+    private Fuzziness fuzziness = null;
+    private int fuzzyPrefixLength = FuzzyQuery.defaultPrefixLength;
+    private boolean transpositions = false;
+    private MultiTermQuery.RewriteMethod rewriteMethod;
+    private MultiTermQuery.RewriteMethod fuzzyRewriteMethod;
 
     private static class Types {
         private static final BytesRef BOOLEAN = new BytesRef("boolean");
@@ -80,9 +91,13 @@ public class MatchQueryBuilder {
             query = multiQuery(type, fields, queryString);
         }
 
-        Number boost = (Number) options.get("boost");
+        Number boost = (Number) options.remove("boost");
         if (boost != null) {
             query.setBoost(boost.floatValue());
+        }
+        if (!options.isEmpty()) {
+            throw new IllegalArgumentException(String.format(
+                    "match predicate doesn't support the options \"%s\"", Joiner.on(",").join(options.keySet())));
         }
     }
 
@@ -116,11 +131,35 @@ public class MatchQueryBuilder {
     }
 
     private void parseOptions(Map options) {
-        zeroTermsQuery((String) options.get("zero_terms_query"));
-        commonTermsCutoff((Float) options.get("cutoff_frequency"));
-        operator((String) options.get("operator"));
-        minimumShouldMatch((String) options.get("minimum_should_match"));
-        this.analyzer = (String) options.get("analyzer");
+        zeroTermsQuery((String) options.remove("zero_terms_query"));
+        commonTermsCutoff((Float) options.remove("cutoff_frequency"));
+        operator((String) options.remove("operator"));
+        minimumShouldMatch((String) options.remove("minimum_should_match"));
+        phraseSlop(options.remove("slop"));
+        maxExpansions(options.remove("max_expansions"));
+        this.analyzer = (String) options.remove("analyzer");
+        fuzziness(options.remove("fuzziness"));
+        fuzzyRewrite((String) options.remove("fuzzy_rewrite"));
+    }
+
+    private void fuzzyRewrite(@Nullable String fuzzyRewrite) {
+        this.fuzzyRewriteMethod = QueryParsers.parseRewriteMethod(fuzzyRewrite, null);
+    }
+
+    private void fuzziness(Object fuzziness) {
+        // TODO:
+    }
+
+    private void maxExpansions(Object maxExpansions) {
+        if (maxExpansions != null) {
+            this.maxExpansions = ((Number) maxExpansions).intValue();
+        }
+    }
+
+    private void phraseSlop(Object slop) {
+        if (slop != null) {
+            phraseSlop = ((Number) slop).intValue();
+        }
     }
 
     private void minimumShouldMatch(String minimumShouldMatch) {
@@ -193,10 +232,11 @@ public class MatchQueryBuilder {
             field = fieldName;
         }
 
-        if (mapper != null && mapper.useTermQueryWithQueryString()) { // !forceAnalyzeQueryString?
-        }
+        // if (mapper != null && mapper.useTermQueryWithQueryString()) { // !forceAnalyzeQueryString?
+        //        termQuery stuff
+        // }
         Analyzer analyzer = getAnalyzer(mapper, smartNameFieldMappers);
-        InnerMatchQueryBuilder builder = new InnerMatchQueryBuilder(analyzer);
+        InnerMatchQueryBuilder builder = new InnerMatchQueryBuilder(analyzer, mapper);
 
         Query query;
         switch (type) {
@@ -210,11 +250,13 @@ public class MatchQueryBuilder {
                 break;
 
             case PHRASE:
-                throw new UnsupportedOperationException("NYI match phrase");
+                query = builder.createPhraseQuery(field, BytesRefs.toString(queryString), phraseSlop);
+                break;
             case PHRASE_PREFIX:
-                throw new UnsupportedOperationException("NYI match phrase prefix");
+                query = builder.createPhrasePrefixQuery(field, BytesRefs.toString(queryString), phraseSlop, maxExpansions);
+                break;
             default:
-                throw new UnsupportedOperationException("invalid type");
+                throw new IllegalArgumentException("invalid type");
         }
 
         if (query == null) {
@@ -339,7 +381,7 @@ public class MatchQueryBuilder {
                     boost = boost == null ? Float.valueOf(1.0f) : boost;
                     groups.get(actualAnalyzer).add(new FieldAndMapper(name, smartNameFieldMappers.mapper(), boost));
                 } else {
-                    missing.add(new Tuple(name, entry.getValue()));
+                    missing.add(new Tuple<>(name, toFloat(entry.getValue())));
                 }
             }
             List<Query> queries = new ArrayList<>();
@@ -382,22 +424,54 @@ public class MatchQueryBuilder {
             this.boost = boost;
         }
 
-        public Term newTerm(String value) {
-            try {
-                final BytesRef bytesRef = mapper.indexedValueForSearch(value);
-                return new Term(field, bytesRef);
-            } catch (Exception ex) {
-                // we can't parse it just use the incoming value -- it will
-                // just have a DF of 0 at the end of the day and will be ignored
-            }
-            return new Term(field, value);
-        }
+       // public Term newTerm(String value) {
+       //     try {
+       //         final BytesRef bytesRef = mapper.indexedValueForSearch(value);
+       //         return new Term(field, bytesRef);
+       //     } catch (Exception ex) {
+       //         // we can't parse it just use the incoming value -- it will
+       //         // just have a DF of 0 at the end of the day and will be ignored
+       //     }
+       //     return new Term(field, value);
+//        }
     }
 
-    private static class InnerMatchQueryBuilder extends QueryBuilder {
+    protected Query blendTermQuery(Term term, FieldMapper mapper) {
+       if (fuzziness != null) {
+           if (mapper != null) {
+               Query query = mapper.fuzzyQuery(term.text(), fuzziness, fuzzyPrefixLength, maxExpansions, transpositions);
+               if (query instanceof FuzzyQuery) {
+                   QueryParsers.setRewriteMethod((FuzzyQuery) query, fuzzyRewriteMethod);
+               }
+           }
+           int edits = fuzziness.asDistance(term.text());
+           FuzzyQuery query = new FuzzyQuery(term, edits, fuzzyPrefixLength, maxExpansions, transpositions);
+           QueryParsers.setRewriteMethod(query, rewriteMethod);
+           return query;
+       }
+       if (mapper != null) {
+           Query termQuery = mapper.queryStringTermQuery(term);
+           if (termQuery != null) {
+               return termQuery;
+           }
+       }
+       return new TermQuery(term);
+    }
 
-        public InnerMatchQueryBuilder(Analyzer analyzer) {
+
+    private class InnerMatchQueryBuilder extends QueryBuilder {
+
+        @Nullable
+        private final FieldMapper mapper;
+
+        public InnerMatchQueryBuilder(Analyzer analyzer, @Nullable FieldMapper mapper) {
             super(analyzer);
+            this.mapper = mapper;
+        }
+
+        @Override
+        protected Query newTermQuery(Term term) {
+            return blendTermQuery(term, mapper);
         }
 
         public Query createCommonTermsQuery(String field,
@@ -422,10 +496,37 @@ public class MatchQueryBuilder {
             }
             return booleanQuery;
         }
+
+        public Query createPhrasePrefixQuery(String field, String queryText, int phraseSlop, int maxExpansions) {
+            final Query query = createFieldQuery(getAnalyzer(), BooleanClause.Occur.MUST, field, queryText, true, phraseSlop);
+            final MultiPhrasePrefixQuery prefixQuery = new MultiPhrasePrefixQuery();
+            prefixQuery.setMaxExpansions(maxExpansions);
+            prefixQuery.setSlop(phraseSlop);
+            if (query instanceof PhraseQuery) {
+                PhraseQuery pq = (PhraseQuery)query;
+                Term[] terms = pq.getTerms();
+                int[] positions = pq.getPositions();
+                for (int i = 0; i < terms.length; i++) {
+                    prefixQuery.add(new Term[] {terms[i]}, positions[i]);
+                }
+                return prefixQuery;
+            } else if (query instanceof MultiPhraseQuery) {
+                MultiPhraseQuery pq = (MultiPhraseQuery)query;
+                List<Term[]> terms = pq.getTermArrays();
+                int[] positions = pq.getPositions();
+                for (int i = 0; i < terms.size(); i++) {
+                    prefixQuery.add(terms.get(i), positions[i]);
+                }
+                return prefixQuery;
+            } else if (query instanceof TermQuery) {
+                prefixQuery.add(((TermQuery) query).getTerm());
+                return prefixQuery;
+            }
+            return query;
+        }
     }
 
     public Query query() {
         return query;
     }
-
 }

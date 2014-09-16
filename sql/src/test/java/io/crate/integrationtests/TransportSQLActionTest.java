@@ -90,6 +90,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectKeepsOrder() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         refresh();
         execute("select \"_id\" as b, \"_version\" as a from test");
@@ -228,6 +229,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "firstName", "type=string",
                         "lastName", "type=string")
                 .execute().actionGet();
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
                 .execute().actionGet();
@@ -2197,7 +2199,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectMatchAnd() throws Exception {
         execute("create table quotes (id int, quote string, " +
-                "index quote_fulltext using fulltext(quote) with (analyzer='english'))");
+                "index quote_fulltext using fulltext(quote) with (analyzer='english')) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
