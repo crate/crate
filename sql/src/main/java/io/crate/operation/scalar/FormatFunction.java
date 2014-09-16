@@ -35,7 +35,7 @@ import org.apache.lucene.util.BytesRef;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FormatFunction implements Scalar<BytesRef, Object>, DynamicFunctionResolver {
+public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicFunctionResolver {
 
     public static final String NAME = "format";
     private FunctionInfo info;

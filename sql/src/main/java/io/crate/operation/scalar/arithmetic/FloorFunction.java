@@ -33,7 +33,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public abstract class FloorFunction implements Scalar<Number, Number> {
+public abstract class FloorFunction extends Scalar<Number, Number> {
 
     public static final String NAME = "floor";
 

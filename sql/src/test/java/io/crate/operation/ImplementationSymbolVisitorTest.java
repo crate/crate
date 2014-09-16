@@ -51,7 +51,7 @@ public class ImplementationSymbolVisitorTest {
 
     private ImplementationSymbolVisitor visitor;
 
-    static class MultiplyFunction implements Scalar<Long, Object> {
+    static class MultiplyFunction extends Scalar<Long, Object> {
 
         public final static String NAME = "dummy_multiply";
         public static FunctionInfo INFO = new FunctionInfo(

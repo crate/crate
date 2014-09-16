@@ -35,7 +35,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class SubstrFunction implements Scalar<BytesRef, Object>, DynamicFunctionResolver {
+public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicFunctionResolver {
 
     public static final String NAME = "substr";
     private FunctionInfo info;
@@ -183,5 +183,4 @@ public class SubstrFunction implements Scalar<BytesRef, Object>, DynamicFunction
         Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.size() < 4 && dataTypes.get(0) == DataTypes.STRING);
         return new SubstrFunction(createInfo(dataTypes));
     }
-
 }

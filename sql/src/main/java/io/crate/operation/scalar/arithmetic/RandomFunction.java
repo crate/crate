@@ -35,7 +35,7 @@ import io.crate.types.DataTypes;
 import java.util.Collections;
 import java.util.Random;
 
-public class RandomFunction implements Scalar<Double, Void> {
+public class RandomFunction extends Scalar<Double, Void> {
 
     public static final String NAME = "random";
 
@@ -68,5 +68,4 @@ public class RandomFunction implements Scalar<Double, Void> {
         assert args.length == 0;
         return this.random.nextDouble();
     }
-
 }

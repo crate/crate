@@ -23,12 +23,23 @@ package io.crate.metadata;
 
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
+
+import java.util.List;
 
 /**
  * evaluable function implementation
  * @param <ReturnType> the class of the returned value
  */
-public interface Scalar<ReturnType, InputType> extends FunctionImplementation<Function> {
+public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation<Function> {
 
-    public ReturnType evaluate(Input<InputType>... args);
+    public abstract ReturnType evaluate(Input<InputType>... args);
+
+    /**
+     * Returns a optional compiled version of the scalar implementation.
+     *
+     */
+    public Scalar<ReturnType, InputType> compile(List<Symbol> arguments) {
+        return this;
+    }
 }

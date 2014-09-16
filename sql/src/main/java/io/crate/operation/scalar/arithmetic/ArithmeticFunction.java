@@ -38,7 +38,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-abstract class ArithmeticFunction implements Scalar<Number, Number> {
+abstract class ArithmeticFunction extends Scalar<Number, Number> {
 
     private final static Set<DataType> NUMERIC_WITH_DECIMAL =
             Sets.<DataType>newHashSet(DataTypes.FLOAT, DataTypes.DOUBLE);
@@ -96,4 +96,5 @@ abstract class ArithmeticFunction implements Scalar<Number, Number> {
         }
         return false;
     }
+
 }

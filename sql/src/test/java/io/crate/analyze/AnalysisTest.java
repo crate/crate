@@ -77,7 +77,7 @@ public class AnalysisTest {
             .build();
 
 
-    static class AbsFunction implements Scalar<Double, Number> {
+    static class AbsFunction extends Scalar<Double, Number> {
 
         @Override
         public Double evaluate(Input<Number>... args) {

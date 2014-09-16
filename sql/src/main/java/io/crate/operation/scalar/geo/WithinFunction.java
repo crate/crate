@@ -39,7 +39,7 @@ import io.crate.types.DataTypes;
 import java.util.Arrays;
 import java.util.List;
 
-public class WithinFunction implements Scalar<Boolean, Object> {
+public class WithinFunction extends Scalar<Boolean, Object> {
 
     public static final String NAME = "within";
 

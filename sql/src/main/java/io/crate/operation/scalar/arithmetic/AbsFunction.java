@@ -36,7 +36,7 @@ import io.crate.types.DataTypes;
 import java.util.List;
 import java.util.Set;
 
-public class AbsFunction implements Scalar<Number, Number> {
+public class AbsFunction extends Scalar<Number, Number> {
 
     public static final String NAME = "abs";
     private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()

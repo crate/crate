@@ -185,6 +185,10 @@ public class Literal<ReturnType>
         return new Literal<>(DataTypes.OBJECT, value);
     }
 
+    public static Literal<Object[]> newLiteral(Object[] value, DataType dataType) {
+        return new Literal<>(dataType, value);
+    }
+
     public static Literal<Long> newLiteral(Long value) {
         return new Literal<>(DataTypes.LONG, value);
     }
