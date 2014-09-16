@@ -28,7 +28,6 @@ import io.crate.PartitionName;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLResponse;
 import io.crate.executor.TaskResult;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -199,7 +198,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectWithParams() throws Exception {
-        execute("create table test (first_name string, last_name string, age double)");
+        execute("create table test (first_name string, last_name string, age double) with (number_of_replicas = 0)");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"first_name\":\"Youri\",\"last_name\":\"Zoon\", \"age\": 38}")
                 .execute().actionGet();
@@ -373,6 +373,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testIdSelectWithResult() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         refresh();
         execute("select \"_id\" from test");
@@ -1995,7 +1996,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectNotMatch() throws Exception {
-        execute("create table quotes (quote string)");
+        execute("create table quotes (quote string) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2032,7 +2034,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithInlineDefaultIndex() throws Exception {
-        execute("create table quotes (quote string index using plain)");
+        execute("create table quotes (quote string index using plain) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2052,7 +2055,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithInlineIndex() throws Exception {
-        execute("create table quotes (quote string index using fulltext)");
+        execute("create table quotes (quote string index using fulltext) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2072,7 +2076,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithIndexOff() throws Exception {
-        execute("create table quotes (id int, quote string index off)");
+        execute("create table quotes (id int, quote string index off) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2091,7 +2096,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithIndex() throws Exception {
         execute("create table quotes (quote string, " +
-                "index quote_fulltext using fulltext(quote) with (analyzer='english'))");
+                "index quote_fulltext using fulltext(quote) with (analyzer='english')) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2112,7 +2118,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithCompositeIndex() throws Exception {
         execute("create table novels (title string, description string, " +
                 "index title_desc_fulltext using fulltext(title, description) " +
-                "with(analyzer='english'))");
+                "with(analyzer='english')) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("novels"))
                 .actionGet().isExists());
 
@@ -2144,7 +2151,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectScoreMatchAll() throws Exception {
-        execute("create table quotes (quote string)");
+        execute("create table quotes (quote string) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2247,8 +2255,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "id integer primary key, " +
                 "quote string index off, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
-                ") clustered by (id) into 3 shards");
-        refresh();
+                ") clustered by (id) into 3 shards with (number_of_replicas = 0)");
+        ensureGreen();
         execute("insert into quotes (id, quote) values (1, '\"Nothing particularly exciting," +
                 "\" it admitted, \"but they are alternatives.\"')");
         execute("insert into quotes (id, quote) values (2, '\"Have another drink," +
@@ -2319,22 +2327,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void selectOrderByNonExistingColumn() throws Exception {
-        nonExistingColumnSetup();
-        execute("SELECT * from quotes");
-        SQLResponse responseWithoutOrder = response;
-        execute("SELECT * from quotes order by something");
-        assertEquals(responseWithoutOrder.rowCount(), response.rowCount());
-        for (int i = 0; i < response.rowCount(); i++) {
-            assertArrayEquals(responseWithoutOrder.rows()[i], response.rows()[i]);
-        }
-    }
-
-    @Test
     public void testCopyFromFile() throws Exception {
         execute("create table quotes (id int primary key, " +
-                "quote string index using fulltext)");
-        refresh();
+                "quote string index using fulltext) with (number_of_replicas = 0)");
+        ensureGreen();
 
         String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{filePath});
@@ -3614,6 +3610,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("insert into foo (id, date, foo) values (1, '2014-01-01', 'foo')");
         execute("insert into foo (id, date, bar) values (2, '2014-02-01', 'bar')");
+        refresh();
+        ensureGreen();
 
         // schema updates are async and cannot reliably be forced
         int retry = 0;
@@ -4448,15 +4446,24 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectOrderByArithmeticScalar() throws Exception {
-        execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
+    public void testSelectOrderByScalar() throws Exception {
+        execute("create table t (d double, i integer, name string) clustered into 1 shards with (number_of_replicas=0)");
         ensureGreen();
-        execute("insert into t (d) values (?), (?), (?)", new Object[]{1.3d, 1.6d, 2.2d});
+        execute("insert into t (d, name) values (?, ?)", new Object[][] {
+                new Object[] {1.3d, "Arthur" },
+                new Object[] {1.6d, null },
+                new Object[] {2.2d, "Marvin" }
+        });
         execute("refresh table t");
 
-        execute("select * from t order by round(d)");
+        execute("select * from t order by round(d) * 2 + 3");
         assertThat(response.rowCount(), is(3L));
         assertThat((Double) response.rows()[0][0], is(1.3d));
+
+        execute("select name from t order by substr(name, 1, 1) nulls first");
+        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rows()[0][0], nullValue());
+        assertThat((String) response.rows()[1][0], is("Arthur"));
 
         execute("select * from t order by ceil(d), d");
         assertThat(response.rowCount(), is(3L));

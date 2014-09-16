@@ -28,68 +28,65 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Routing;
 import io.crate.planner.node.PlanVisitor;
-import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
 
-public class ESSearchNode extends ESDQLPlanNode {
+public class QueryThenFetchNode extends ESDQLPlanNode {
 
     private final List<Symbol> orderBy;
     private final int limit;
     private final int offset;
     private final boolean[] reverseFlags;
     private final WhereClause whereClause;
-    private final String[] indices;
 
     private final List<ReferenceInfo> partitionBy;
     private final Boolean[] nullsFirst;
+    private final Routing routing;
+
+    private static final Boolean[] EMPTY_OBJ_BOOLEAN_ARR = new Boolean[0];
+    private static final boolean[] EMPTY_VALUE_BOOLEAN_ARR = new boolean[0];
 
     /**
      *
      * @param partitionBy list of columns
      *                    the queried is partitioned by
      */
-    public ESSearchNode(String[] indices,
-                        List<Symbol> outputs,
-                        @Nullable List<Symbol> orderBy,
-                        @Nullable boolean[] reverseFlags,
-                        @Nullable Boolean[] nullsFirst,
-                        @Nullable Integer limit,
-                        @Nullable Integer offset,
-                        WhereClause whereClause,
-                        @Nullable List<ReferenceInfo> partitionBy
-                        ) {
-        assert indices != null && indices.length > 0;
+    public QueryThenFetchNode(Routing routing,
+                              List<Symbol> outputs,
+                              @Nullable List<Symbol> orderBy,
+                              @Nullable boolean[] reverseFlags,
+                              @Nullable Boolean[] nullsFirst,
+                              @Nullable Integer limit,
+                              @Nullable Integer offset,
+                              WhereClause whereClause,
+                              @Nullable List<ReferenceInfo> partitionBy
+    ) {
+        this.routing = routing;
+        assert routing != null;
         assert outputs != null;
         assert whereClause != null;
-        this.indices = indices;
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
-        this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
-        this.nullsFirst = Objects.firstNonNull(nullsFirst, new Boolean[0]);
+        this.reverseFlags = Objects.firstNonNull(reverseFlags, EMPTY_VALUE_BOOLEAN_ARR);
+        this.nullsFirst = Objects.firstNonNull(nullsFirst, EMPTY_OBJ_BOOLEAN_ARR);
         Preconditions.checkArgument(this.orderBy.size() == this.reverseFlags.length,
                 "orderBy size doesn't match with reverseFlag length");
 
         this.whereClause = whereClause;
         this.outputs = outputs;
 
-        // TODO: move constant to some other location?
         this.limit = Objects.firstNonNull(limit, Constants.DEFAULT_SELECT_LIMIT);
         this.offset = Objects.firstNonNull(offset, 0);
 
         this.partitionBy = Objects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
     }
 
-    public String[] indices(){
-        return indices;
-    }
-
-    @Override
-    public List<? extends Reference> outputs() {
-        return (List<? extends Reference>) super.outputs();
+    public Routing routing() {
+        return routing;
     }
 
     public int limit() {

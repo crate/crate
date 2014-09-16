@@ -5,6 +5,12 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Support usage of all scalar functions in the ORDER BY clause without
+   limitations.
+
+ - Using a column name that doesn't exist in the ORDER BY clause will throw an
+   error instead of silently ignoring it.
+
  - fix: filtering on system column ``_score`` is only valid by using a
    ``>=`` comparison, throw error if used otherwise
 

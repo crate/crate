@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,23 +21,34 @@
 
 package io.crate.executor.transport;
 
-import io.crate.action.sql.query.CrateSearchService;
-import io.crate.action.sql.query.TransportQueryShardAction;
-import io.crate.executor.Executor;
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.search.SearchService;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.transport.BaseTransportResponseHandler;
+import org.elasticsearch.transport.TransportException;
+import org.elasticsearch.transport.TransportResponse;
 
-public class TransportExecutorModule extends AbstractModule {
+public abstract class DefaultTransportResponseHandler<TResponse extends TransportResponse>
+        extends BaseTransportResponseHandler<TResponse> {
+
+    private final ActionListener<TResponse> listener;
+    private final String executor;
+
+    protected DefaultTransportResponseHandler(ActionListener<TResponse> listener, String executor) {
+        this.listener = listener;
+        this.executor = executor;
+    }
 
     @Override
-    protected void configure() {
-        bind(TransportActionProvider.class).asEagerSingleton();
-        bind(Executor.class).to(TransportExecutor.class).asEagerSingleton();
-        bind(TransportCollectNodeAction.class).asEagerSingleton();
-        bind(TransportMergeNodeAction.class).asEagerSingleton();
-        bind(TransportQueryShardAction.class).asEagerSingleton();
+    public void handleResponse(TResponse response) {
+        listener.onResponse(response);
+    }
 
-        bind(SearchService.class).to(CrateSearchService.class).asEagerSingleton();
+    @Override
+    public void handleException(TransportException exp) {
+        listener.onFailure(exp);
+    }
+
+    @Override
+    public String executor() {
+        return executor;
     }
 }

@@ -33,6 +33,7 @@ import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.operator.AndOperator;
@@ -51,6 +52,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.test.integration.CrateTestCluster;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -85,6 +87,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     private ClusterService clusterService;
     private ClusterName clusterName;
     private TransportExecutor executor;
+    private DocSchemaInfo docSchemaInfo;
 
     TableIdent table = new TableIdent(null, "characters");
     Reference id_ref = new Reference(new ReferenceInfo(
@@ -104,9 +107,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Before
     public void transportSetUp() {
-        clusterService = cluster().getInstance(ClusterService.class);
-        clusterName = cluster().getInstance(ClusterName.class);
-        executor = cluster().getInstance(TransportExecutor.class);
+        CrateTestCluster cluster = cluster();
+        clusterService = cluster.getInstance(ClusterService.class);
+        clusterName = cluster.getInstance(ClusterName.class);
+        executor = cluster.getInstance(TransportExecutor.class);
+
+        docSchemaInfo = cluster.getInstance(DocSchemaInfo.class);
     }
 
     private void insertCharacters() {
@@ -144,7 +150,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Symbol reference = new Reference(load1);
 
         CollectNode collectNode = new CollectNode("collect", routing);
-        collectNode.toCollect(Arrays.<Symbol>asList(reference));
+        collectNode.toCollect(Arrays.asList(reference));
         collectNode.outputTypes(asList(load1.type()));
         collectNode.maxRowGranularity(RowGranularity.NODE);
 
@@ -239,8 +245,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void testESSearchTask() throws Exception {
         insertCharacters();
 
-        ESSearchNode node = new ESSearchNode(
-                new String[]{"characters"},
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+
+        QueryThenFetchNode node = new QueryThenFetchNode(
+                characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Symbol>asList(name_ref),
                 new boolean[]{false},
@@ -251,7 +259,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
-        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
+        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get().rows();
@@ -276,8 +284,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Ford")));
 
-        ESSearchNode node = new ESSearchNode(
-                new String[]{"characters"},
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+        QueryThenFetchNode node = new QueryThenFetchNode(
+                characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Symbol>asList(name_ref),
                 new boolean[]{false},
@@ -289,7 +298,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
-        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
+        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get().rows();
@@ -330,8 +339,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(id_ref, Literal.newLiteral(2))
         );
 
-        ESSearchNode node = new ESSearchNode(
-                new String[]{"searchf"},
+        DocTableInfo searchf = docSchemaInfo.getTableInfo("searchf");
+        QueryThenFetchNode node = new QueryThenFetchNode(
+                searchf.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, date_ref),
                 Arrays.<Symbol>asList(id_ref),
                 new boolean[]{false},
@@ -368,8 +378,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ImmutableOpenMap<String, List<AliasMetaData>> aliases =
                 client().admin().indices().prepareGetAliases().addAliases("parted")
                         .execute().actionGet().getAliases();
-        ESSearchNode node = new ESSearchNode(
-                aliases.keys().toArray(String.class),
+
+        DocTableInfo parted = docSchemaInfo.getTableInfo("parted");
+        QueryThenFetchNode node = new QueryThenFetchNode(
+                parted.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(parted_id_ref, parted_name_ref, parted_date_ref),
                 Arrays.<Symbol>asList(name_ref),
                 new boolean[]{false},
@@ -381,7 +393,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
-        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
+        QueryThenFetchTask task = (QueryThenFetchTask) job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get().rows();
@@ -424,8 +436,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(taskResult.rowCount(), is(-1L));
 
         // verify deletion
-        ESSearchNode searchNode = new ESSearchNode(
-                new String[]{"characters"},
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+                characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Symbol>asList(name_ref),
                 new boolean[]{false},
@@ -437,7 +450,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         plan = new Plan();
         plan.add(searchNode);
         job = executor.newJob(plan);
-        ESSearchTask searchTask = (ESSearchTask) job.tasks().get(0);
+        QueryThenFetchTask searchTask = (QueryThenFetchTask) job.tasks().get(0);
 
         searchTask.start();
         rows = searchTask.result().get(0).get().rows();
@@ -779,8 +792,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(name_ref, Literal.newLiteral("mostly harmless")));
-        ESSearchNode node = new ESSearchNode(
-                new String[]{"characters"},
+
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+        QueryThenFetchNode node = new QueryThenFetchNode(
+                characters.getRouting(WhereClause.MATCH_ALL),
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 ImmutableList.<Symbol>of(id_ref),
                 new boolean[]{false},

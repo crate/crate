@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.action.SQLXContentQueryParser;
+import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
@@ -81,6 +82,7 @@ import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.InternalSearchService;
 import org.elasticsearch.search.SearchService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -205,7 +207,7 @@ public class LocalDataCollectTest {
             bind(ThreadPool.class).toInstance(testThreadPool);
 
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
-            bind(SearchService.class).toInstance(mock(SearchService.class));
+            bind(SearchService.class).toInstance(mock(InternalSearchService.class));
             bind(AllocationService.class).toInstance(mock(AllocationService.class));
             bind(DynamicSettings.class).annotatedWith(ClusterDynamicSettings.class).toInstance(mock(DynamicSettings.class));
             bind(MetaDataDeleteIndexService.class).toInstance(mock(MetaDataDeleteIndexService.class));
@@ -214,6 +216,7 @@ public class LocalDataCollectTest {
 
             bind(TransportShardBulkAction.class).toInstance(mock(TransportShardBulkAction.class));
             bind(TransportCreateIndexAction.class).toInstance(mock(TransportCreateIndexAction.class));
+            bind(TransportQueryShardAction.class).toInstance(mock(TransportQueryShardAction.class));
 
             bind(SQLXContentQueryParser.class).toInstance(mock(SQLXContentQueryParser.class));
 

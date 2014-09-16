@@ -45,6 +45,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -77,6 +78,11 @@ public class PlannerTest {
 
     Routing nodesRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
+            .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
+            .build());
+
+    final Routing partedRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of(".partitioned.parted.04232chj", ImmutableSet.of(1, 2)))
             .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
             .build());
 
@@ -173,7 +179,7 @@ public class PlannerTest {
                     .clusteredBy("id")
                     .build();
             TableIdent partedTableIdent = new TableIdent(null, "parted");
-            TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
+            TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, partedRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .add("date", DataTypes.TIMESTAMP, null, true)
@@ -499,8 +505,8 @@ public class PlannerTest {
         Plan plan = plan("select name from users where name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESSearchNode.class));
-        ESSearchNode searchNode = (ESSearchNode) planNode;
+        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
+        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
 
         assertThat(searchNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
@@ -516,10 +522,15 @@ public class PlannerTest {
         Plan plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESSearchNode.class));
-        ESSearchNode searchNode = (ESSearchNode) planNode;
+        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
+        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
 
-        assertThat(searchNode.indices(), arrayContaining(
+        List<String> indices = new ArrayList<>();
+        Map<String, Map<String, Set<Integer>>> locations = searchNode.routing().locations();
+        for (Map.Entry<String, Map<String, Set<Integer>>> entry : locations.entrySet()) {
+            indices.addAll(entry.getValue().keySet());
+        }
+        assertThat(indices, Matchers.contains(
                 new PartitionName("parted", Arrays.asList(new BytesRef("123"))).stringValue()));
         assertThat(searchNode.outputTypes().size(), is(3));
         assertTrue(searchNode.whereClause().hasQuery());
@@ -535,11 +546,11 @@ public class PlannerTest {
         Plan plan = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESSearchNode.class));
-        ESSearchNode searchNode = (ESSearchNode) planNode;
+        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
+        QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
 
         assertThat(searchNode.outputs().size(), is(1));
-        assertThat(searchNode.outputs().get(0).info().ident().columnIdent().fqn(), is("name"));
+        assertThat(((Reference) searchNode.outputs().get(0)).info().ident().columnIdent().fqn(), is("name"));
 
         assertThat(searchNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
@@ -1111,7 +1122,7 @@ public class PlannerTest {
         Plan plan = plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESSearchNode.class));
+        assertThat(planNode, instanceOf(QueryThenFetchNode.class));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));

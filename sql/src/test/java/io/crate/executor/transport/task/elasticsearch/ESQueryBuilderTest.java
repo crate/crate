@@ -40,7 +40,7 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dql.ESSearchNode;
+import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -397,7 +397,7 @@ public class ESQueryBuilderTest {
                 DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(minScore_ref, Literal.newLiteral(0.4))
         );
-        ESSearchNode node = new ESSearchNode(new String[]{"something"},
+        QueryThenFetchNode node = new QueryThenFetchNode(new Routing(),
                 ImmutableList.<Symbol>of(), null, null, null, null, null, new WhereClause(whereClause), null);
         BytesReference bytesReference = generator.convert(node);
 
@@ -410,8 +410,8 @@ public class ESQueryBuilderTest {
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataTypes.STRING)));
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, Literal.newLiteral("Marvin")));
 
-        ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+                new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(),
                 new boolean[0],
@@ -454,8 +454,8 @@ public class ESQueryBuilderTest {
     @Test
     public void testSelect_OnlyVersion() throws Exception {
         Reference version_ref = createReference("_version", DataTypes.INTEGER);
-        ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+                new Routing(),
                 ImmutableList.<Symbol>of(version_ref),
                 null,
                 null,
@@ -490,8 +490,8 @@ public class ESQueryBuilderTest {
         Reference age = createReference(
                 ColumnIdent.getChild(author.info().ident().columnIdent(), "age"), DataTypes.INTEGER);
 
-        ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+                new Routing(),
                 ImmutableList.<Symbol>of(author, age),
                 null,
                 null,
@@ -510,8 +510,8 @@ public class ESQueryBuilderTest {
     @Test
     public void testSelect_excludePartitionedColumns() throws Exception {
         PartitionName partitionName = new PartitionName(characters.name(), Arrays.asList(new BytesRef("0.5")));
-        ESSearchNode searchNode = new ESSearchNode(
-                new String[]{partitionName.stringValue()},
+        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+                new Routing(),
                 ImmutableList.<Symbol>of(name_ref, weight_ref),
                 null,
                 null,
@@ -654,8 +654,8 @@ public class ESQueryBuilderTest {
                         Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
                 )
         );
-        ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+                new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(distanceFunction),
                 new boolean[] { false },
@@ -667,56 +667,7 @@ public class ESQueryBuilderTest {
         BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
         assertThat(actual, is(
-                "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}},\"sort\":[{\"_geo_distance\":{\"location\":[10.0,20.0],\"order\":\"asc\"}}],\"from\":0,\"size\":10000}"));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testConvertESSearchNodeWithOrderByDistanceSwappedArgs() throws Exception {
-        // ref must be the first argument
-        Function distanceFunction = new Function(
-                new FunctionInfo(
-                        new FunctionIdent(DistanceFunction.NAME, Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT)),
-                        DataTypes.DOUBLE),
-                Arrays.<Symbol>asList(
-                        Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
-                        createReference("location", DataTypes.GEO_POINT)
-                )
-        );
-        ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
-                ImmutableList.<Symbol>of(name_ref),
-                ImmutableList.<Symbol>of(distanceFunction),
-                new boolean[] { false },
-                new Boolean[] { null },
-                null,
-                null,
-                WhereClause.MATCH_ALL,
-                null);
-        BytesReference reference = generator.convert(searchNode);
-    }
-
-    @Test (expected = IllegalArgumentException.class)
-    public void testConvertESSearchNodeWithOrderByDistanceTwoReferences() throws Exception {
-        Function distanceFunction = new Function(
-                new FunctionInfo(
-                        new FunctionIdent(DistanceFunction.NAME, Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT)),
-                        DataTypes.DOUBLE),
-                Arrays.<Symbol>asList(
-                        createReference("location", DataTypes.GEO_POINT),
-                        createReference("location2", DataTypes.GEO_POINT)
-                )
-        );
-        ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
-                ImmutableList.<Symbol>of(name_ref),
-                ImmutableList.<Symbol>of(distanceFunction),
-                new boolean[] { false },
-                new Boolean[] { null },
-                null,
-                null,
-                WhereClause.MATCH_ALL,
-                null);
-        generator.convert(searchNode);
+                "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}},\"from\":0,\"size\":10000}"));
     }
 
     @Test
@@ -727,8 +678,8 @@ public class ESQueryBuilderTest {
                         DataTypes.LONG),
                 Arrays.<Symbol>asList(createReference("price", DataTypes.DOUBLE))
         );
-        ESSearchNode searchNode = new ESSearchNode(
-                new String[]{characters.name()},
+        QueryThenFetchNode searchNode = new QueryThenFetchNode(
+                new Routing(),
                 ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Symbol>of(scalarFunction),
                 new boolean[] { false },
@@ -741,11 +692,6 @@ public class ESQueryBuilderTest {
         String actual = reference.toUtf8();
         assertThat(actual, is(
                 "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"match_all\":{}}," +
-                        "\"sort\":[{\"_script\":{\"script\":\"numeric_scalar_sort\"," +
-                        "\"lang\":\"native\",\"type\":\"number\",\"order\":\"asc\"," +
-                        "\"params\":{\"missing\":\"_last\",\"scalar\":" +
-                        "{\"scalar_name\":\"round\",\"type\":10,\"args\":[" +
-                        "{\"field_name\":\"price\",\"type\":6}]}}}}]," +
                         "\"from\":0,\"size\":10000}"));
     }
 

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,25 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.executor.transport.task.elasticsearch;
 
-import io.crate.action.sql.query.CrateSearchService;
-import io.crate.action.sql.query.TransportQueryShardAction;
-import io.crate.executor.Executor;
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.search.SearchService;
 
-public class TransportExecutorModule extends AbstractModule {
 
-    @Override
-    protected void configure() {
-        bind(TransportActionProvider.class).asEagerSingleton();
-        bind(Executor.class).to(TransportExecutor.class).asEagerSingleton();
-        bind(TransportCollectNodeAction.class).asEagerSingleton();
-        bind(TransportMergeNodeAction.class).asEagerSingleton();
-        bind(TransportQueryShardAction.class).asEagerSingleton();
+public class SortOrder {
 
-        bind(SearchService.class).to(CrateSearchService.class).asEagerSingleton();
+    private String order;
+    private String missing;
+
+    public SortOrder(boolean reverseFlag, Boolean nullFirst) {
+        order = "asc";
+        missing = "_last";
+        if (reverseFlag) {
+            order = "desc";
+            missing = "_first";     // null > 'anyValue'; null values at the beginning.
+        }
+        if (nullFirst != null) {
+            missing = nullFirst ? "_first" : "_last";
+        }
+    }
+
+    public String order() {
+        return order;
+    }
+
+    public String missing() {
+        return missing;
     }
 }
