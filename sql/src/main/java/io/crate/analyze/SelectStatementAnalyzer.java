@@ -310,6 +310,24 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         return super.visitQuery(node, context);
     }
 
+    @Override
+    protected DataTypeSymbol resolveSubscriptSymbol(SubscriptContext subscriptContext, SelectAnalysis context) {
+        DataTypeSymbol dataTypeSymbol = null;
+        // resolve possible alias
+        if (subscriptContext.parts().size() == 0) {
+            Symbol symbol = context.symbolFromAlias(subscriptContext.qName().getSuffix());
+            if (symbol != null) {
+                dataTypeSymbol = (DataTypeSymbol) symbol;
+            }
+        }
+
+        if (dataTypeSymbol == null) {
+            dataTypeSymbol = super.resolveSubscriptSymbol(subscriptContext, context);
+        }
+        return dataTypeSymbol;
+    }
+
+
     static class AggregationSearcherContext {
         boolean found = false;
     }

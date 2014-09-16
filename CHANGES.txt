@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Support selecting of array elements. Please refer to the ``Crate SQL
+   -> Querying Crate -> Retrieving Data -> Object Arrays``
+   documentation section for details and limitations.
+
  - Support usage of all scalar functions in the ORDER BY clause without
    limitations.
 

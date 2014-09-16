@@ -31,6 +31,9 @@ import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.HashMap;
+
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -249,4 +252,44 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat((Integer)response.rows()[0][2], is(10_000));
     }
 
+    @Test
+    public void testSubscriptArray() throws Exception {
+        execute("create table test (id integer primary key, names array(string)) " +
+                "clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into test (id, names) values (?, ?)",
+                new Object[]{1, Arrays.asList("Arthur", "Ford")});
+        refresh();
+        execute("select names[1] from test");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("Arthur"));
+    }
+
+    @Test
+    public void testSubscriptArrayNesting() throws Exception {
+        execute("create table test (id integer primary key, names array(object as (surname string))) " +
+                "clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into test (id, names) values (?, ?)",
+                new Object[]{1, Arrays.asList(
+                        new HashMap<String, String>(){{ put("surname", "Adams"); }}
+                )});
+        refresh();
+        execute("select names[1]['surname'] from test");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("Adams"));
+    }
+
+    @Test
+    public void testSelectRegexpMatchesGroup() throws Exception {
+        execute("create table test (id integer primary key, text string) " +
+                "clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into test (id, text) values (1, 'Time is an illusion')");
+        refresh();
+        execute("select regexp_matches(text, '(\\w+)\\s(\\w+).*')[1], regexp_matches(text, '(\\w+)\\s(\\w+).*')[2] as matched from test");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("Time is an illusion"));
+        assertThat((String) response.rows()[0][1], is("Time"));
+    }
 }
