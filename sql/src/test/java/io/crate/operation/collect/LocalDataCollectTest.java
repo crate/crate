@@ -24,7 +24,6 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import io.crate.action.SQLXContentQueryParser;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
@@ -217,8 +216,6 @@ public class LocalDataCollectTest {
             bind(TransportShardBulkAction.class).toInstance(mock(TransportShardBulkAction.class));
             bind(TransportCreateIndexAction.class).toInstance(mock(TransportCreateIndexAction.class));
             bind(TransportQueryShardAction.class).toInstance(mock(TransportQueryShardAction.class));
-
-            bind(SQLXContentQueryParser.class).toInstance(mock(SQLXContentQueryParser.class));
 
             discoveryService = mock(DiscoveryService.class);
             DiscoveryNode discoveryNode = mock(DiscoveryNode.class);

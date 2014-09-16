@@ -1,6 +1,5 @@
 package io.crate.lucene;
 
-import io.crate.executor.transport.task.elasticsearch.ESQueryBuilder;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -189,7 +188,7 @@ public abstract class QueryBuilderHelper {
         @Override
         public Query like(String columnName, Object value) {
             return new WildcardQuery(
-                    new Term(columnName, ESQueryBuilder.convertWildcard(BytesRefs.toString(value))));
+                    new Term(columnName, LuceneQueryBuilder.convertWildcard(BytesRefs.toString(value))));
         }
     }
 }

@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableSet;
-import io.crate.action.SQLXContentQueryParser;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
@@ -161,8 +160,6 @@ public class DistributingCollectTest {
             DiscoveryService discoveryService = mock(DiscoveryService.class);
             when(discoveryService.localNode()).thenReturn(testNode);
             bind(DiscoveryService.class).toInstance(discoveryService);
-
-            bind(SQLXContentQueryParser.class).toInstance(mock(SQLXContentQueryParser.class));
 
             IndicesService indicesService = mock(IndicesService.class);
             bind(IndicesService.class).toInstance(indicesService);
