@@ -222,6 +222,10 @@ public class TestStatementBuilder
 
         printStatement("select * from t where 'value' LIKE ANY (col)");
         printStatement("select * from t where 'value' NOT LIKE ANY (col)");
+        printStatement("select * from t where 'source' ~ 'pattern'");
+        printStatement("select * from t where 'source' !~ 'pattern'");
+        printStatement("select * from t where source_column ~ pattern_column");
+        printStatement("select * from t where ? !~ ?");
     }
 
     @Test
