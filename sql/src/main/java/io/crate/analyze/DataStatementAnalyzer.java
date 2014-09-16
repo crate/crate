@@ -36,6 +36,7 @@ import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.*;
+import io.crate.operation.scalar.CastFunction;
 import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
@@ -702,21 +703,34 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 right = DataTypeSymbol.toDataTypeSymbol(right, rightType);
                 return;
             }
-            if (left instanceof Reference && right instanceof Reference) {
-                // TODO: throw an error here?
-                return;
-            }
 
-            assert right instanceof DataTypeSymbol || right instanceof Parameter;
-            try {
+            if (!left.symbolType().isValueSymbol() && !right.symbolType().isValueSymbol()) {
+                // no value symbol -> wrap in cast function because eager cast isn't possible.
                 left = DataTypeSymbol.toDataTypeSymbol(left, leftType);
-                right = DataTypeSymbol.toDataTypeSymbol(right, leftType);
-            } catch (ClassCastException e) {
-                throw new IllegalArgumentException(SymbolFormatter.format(
-                        "type of \"%s\" doesn't match type of \"%s\" and cannot be cast implicitly",
-                        left,
-                        right
-                ));
+                if (rightType.isConvertableTo(leftType)) {
+                    FunctionIdent castIdent = new FunctionIdent(CastFunction.NAME, ImmutableList.of(rightType, leftType));
+                    // second arg is dummy argument - required because num arguments must match number of data types
+                    ImmutableList<Symbol> arguments = ImmutableList.of(right, Literal.newLiteral(leftType, null));
+                    right = new Function(new FunctionInfo(castIdent, leftType), arguments);
+                } else {
+                    throw new IllegalArgumentException(SymbolFormatter.format(
+                            "type of \"%s\" doesn't match type of \"%s\" and cannot be cast implicitly",
+                            left,
+                            right
+                    ));
+                }
+            } else {
+                assert right instanceof DataTypeSymbol || right instanceof Parameter;
+                try {
+                    left = DataTypeSymbol.toDataTypeSymbol(left, leftType);
+                    right = DataTypeSymbol.toDataTypeSymbol(right, leftType);
+                } catch (ClassCastException e) {
+                    throw new IllegalArgumentException(SymbolFormatter.format(
+                            "type of \"%s\" doesn't match type of \"%s\" and cannot be cast implicitly",
+                            left,
+                            right
+                    ));
+                }
             }
             rightType = leftType;
         }

@@ -79,35 +79,65 @@ public abstract class QueryBuilderHelper {
 
     static final class FloatQueryBuilder extends QueryBuilderHelper {
 
+        static Float toFloat(Object value) {
+            if (value == null) {
+                return null;
+            }
+            if (value instanceof Float) {
+                return (Float) value;
+            }
+            return ((Number) value).floatValue();
+        }
+
         @Override
         public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeFilter.newFloatRange(columnName, (Float)from, (Float)to, includeLower, includeUpper);
+            return NumericRangeFilter.newFloatRange(columnName, toFloat(from), toFloat(to), includeLower, includeUpper);
         }
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeQuery.newFloatRange(columnName, (Float)from, (Float)to, includeLower, includeUpper);
+            return NumericRangeQuery.newFloatRange(columnName, toFloat(from), toFloat(to), includeLower, includeUpper);
         }
     }
 
     static final class DoubleQueryBuilder extends QueryBuilderHelper {
 
+        static Double toDouble(Object value) {
+            if (value == null) {
+                return null;
+            }
+            if (value instanceof Double) {
+                return (Double) value;
+            }
+            return ((Number) value).doubleValue();
+        }
+
         @Override
         public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeFilter.newDoubleRange(columnName, (Double) from, (Double) to, includeLower, includeUpper);
+            return NumericRangeFilter.newDoubleRange(columnName, toDouble(from), toDouble(to), includeLower, includeUpper);
         }
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeQuery.newDoubleRange(columnName, (Double)from, (Double)to, includeLower, includeUpper);
+            return NumericRangeQuery.newDoubleRange(columnName, toDouble(from), toDouble(to), includeLower, includeUpper);
         }
     }
 
     static final class LongQueryBuilder extends QueryBuilderHelper {
 
+        static Long toLong(Object value) {
+            if (value == null) {
+                return null;
+            }
+            if (value instanceof Long) {
+                return (Long) value;
+            }
+            return ((Number) value).longValue();
+        }
+
         @Override
         public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeFilter.newLongRange(columnName, (Long) from, (Long) to, includeLower, includeUpper);
+            return NumericRangeFilter.newLongRange(columnName, toLong(from), toLong(to), includeLower, includeUpper);
         }
 
         @Override
@@ -117,14 +147,25 @@ public abstract class QueryBuilderHelper {
     }
 
     static final class IntegerQueryBuilder extends QueryBuilderHelper {
+
+        static Integer toInt(Object value) {
+            if (value == null) {
+                return null;
+            }
+            if (value instanceof Integer) {
+                return (Integer) value;
+            }
+            return ((Number) value).intValue();
+        }
+
         @Override
         public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeFilter.newIntRange(columnName, (Integer) from, (Integer) to, includeLower, includeUpper);
+            return NumericRangeFilter.newIntRange(columnName, toInt(from), toInt(to), includeLower, includeUpper);
         }
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeQuery.newIntRange(columnName, (Integer) from, (Integer) to, includeLower, includeUpper);
+            return NumericRangeQuery.newIntRange(columnName, toInt(from), toInt(to), includeLower, includeUpper);
         }
     }
 
