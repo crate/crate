@@ -19,11 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.scalar;
+package io.crate.operation.scalar.regex;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -32,14 +33,10 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.CharsRef;
-import org.apache.lucene.util.UnicodeUtil;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-public class RegexpMatchesFunction extends Scalar<String[], Object> implements DynamicFunctionResolver {
+public class MatchesFunction extends Scalar<BytesRef[], Object> implements DynamicFunctionResolver {
 
     public static final String NAME = "regexp_matches";
 
@@ -49,16 +46,16 @@ public class RegexpMatchesFunction extends Scalar<String[], Object> implements D
         return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
     }
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new RegexpMatchesFunction());
+        module.register(NAME, new MatchesFunction());
     }
 
     private FunctionInfo info;
     private RegexMatcher regexMatcher;
 
-    private RegexpMatchesFunction() {
+    private MatchesFunction() {
     }
 
-    public RegexpMatchesFunction(FunctionInfo info) {
+    public MatchesFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -99,7 +96,7 @@ public class RegexpMatchesFunction extends Scalar<String[], Object> implements D
     }
 
     @Override
-    public Scalar<String[], Object> compile(List<Symbol> arguments) {
+    public Scalar<BytesRef[], Object> compile(List<Symbol> arguments) {
         assert arguments.size() > 1;
         String pattern = null;
         if (arguments.get(1).symbolType() == SymbolType.LITERAL) {
@@ -110,13 +107,10 @@ public class RegexpMatchesFunction extends Scalar<String[], Object> implements D
             }
             pattern = ((BytesRef) patternVal).utf8ToString();
         }
-        int flags = 0;
+        BytesRef flags = null;
         if (arguments.size() == 3) {
             assert arguments.get(2).symbolType() == SymbolType.LITERAL;
-            Object flagsVal = ((Literal) arguments.get(2)).value();
-            if (flagsVal != null) {
-                flags = parseFlags((BytesRef) flagsVal);
-            }
+            flags = (BytesRef) ((Literal) arguments.get(2)).value();
         }
 
         if (pattern != null) {
@@ -128,7 +122,7 @@ public class RegexpMatchesFunction extends Scalar<String[], Object> implements D
     }
 
     @Override
-    public String[] evaluate(Input[] args) {
+    public BytesRef[] evaluate(Input[] args) {
         assert (args.length > 1 && args.length < 4);
         Object val = args[0].value();
         final Object patternValue = args[1].value();
@@ -144,12 +138,9 @@ public class RegexpMatchesFunction extends Scalar<String[], Object> implements D
         RegexMatcher matcher;
         if (regexMatcher == null) {
             String pattern = ((BytesRef) patternValue).utf8ToString();
-            int flags = 0;
+            BytesRef flags = null;
             if (args.length == 3) {
-                Object flagsVal = args[2].value();
-                if (flagsVal != null) {
-                    flags = parseFlags((BytesRef) flagsVal);
-                }
+                flags = (BytesRef) args[2].value();
             }
             matcher = new RegexMatcher(pattern, flags);
         } else {
@@ -162,48 +153,6 @@ public class RegexpMatchesFunction extends Scalar<String[], Object> implements D
         return null;
     }
 
-    private int parseFlags(BytesRef flagsString) {
-        int flags = 0;
-        for (char flag : flagsString.utf8ToString().toCharArray()) {
-            switch (flag) {
-                case 'i':
-                    flags = flags | Pattern.CASE_INSENSITIVE;
-                    break;
-                case 'u':
-                    flags = flags | Pattern.UNICODE_CASE;
-                    break;
-                case 'U':
-                    flags = flags | Pattern.UNICODE_CHARACTER_CLASS;
-                    break;
-                case 's':
-                    flags = flags | Pattern.DOTALL;
-                    break;
-                case 'm':
-                    flags = flags | Pattern.MULTILINE;
-                    break;
-                case 'x':
-                    flags = flags | Pattern.COMMENTS;
-                    break;
-                case 'd':
-                    flags = flags | Pattern.UNIX_LINES;
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        return flags;
-    }
-
-    private static boolean anyNonLiterals(List<Symbol> arguments) {
-        for (Symbol symbol : arguments) {
-            if (!symbol.symbolType().isValueSymbol()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Override
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.size() < 4
@@ -211,38 +160,7 @@ public class RegexpMatchesFunction extends Scalar<String[], Object> implements D
         if (dataTypes.size() == 3) {
             Preconditions.checkArgument(dataTypes.get(2) == DataTypes.STRING);
         }
-        return new RegexpMatchesFunction(createInfo(dataTypes));
-    }
-
-    static class RegexMatcher {
-
-        private final Pattern pattern;
-        private final Matcher matcher;
-        private final CharsRef utf16 = new CharsRef(10);
-
-        public RegexMatcher(String regex, int flags) {
-            this.pattern = Pattern.compile(regex, flags);
-            this.matcher = this.pattern.matcher(utf16);
-        }
-
-        public boolean match(BytesRef term) {
-            UnicodeUtil.UTF8toUTF16(term.bytes, term.offset, term.length, utf16);
-            return matcher.reset().matches();
-        }
-
-        public String[] groups() {
-            try {
-                String[] groups = new String[matcher.groupCount() + 1];
-                for (int i = 0; i <= matcher.groupCount(); i++) {
-                    groups[i] = matcher.group(i);
-                }
-                return groups;
-            } catch (IllegalStateException e) {
-                // no match -> no groups
-            }
-            return null;
-        }
-
+        return new MatchesFunction(createInfo(dataTypes));
     }
 
 

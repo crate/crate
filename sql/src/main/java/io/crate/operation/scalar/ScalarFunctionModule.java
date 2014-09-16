@@ -27,6 +27,8 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.scalar.arithmetic.*;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
+import io.crate.operation.scalar.regex.MatchesFunction;
+import io.crate.operation.scalar.regex.ReplaceFunction;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -54,7 +56,8 @@ public class ScalarFunctionModule extends AbstractModule {
         DateTruncTimeZoneAwareFunction.register(this);
         FormatFunction.register(this);
         SubstrFunction.register(this);
-        RegexpMatchesFunction.register(this);
+        MatchesFunction.register(this);
+        ReplaceFunction.register(this);
 
         AddFunction.register(this);
         SubtractFunction.register(this);
