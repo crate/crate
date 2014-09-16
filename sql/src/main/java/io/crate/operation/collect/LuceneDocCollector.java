@@ -21,6 +21,11 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.collect.ImmutableMap;
+import io.crate.Constants;
+import io.crate.analyze.WhereClause;
+import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -29,15 +34,13 @@ import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.search.*;
-import io.crate.Constants;
-import io.crate.action.SQLXContentQueryParser;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
+import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
@@ -103,10 +106,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                               CacheRecycler cacheRecycler,
                               PageCacheRecycler pageCacheRecycler,
                               BigArrays bigArrays,
-                              SQLXContentQueryParser sqlxContentQueryParser,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
-                              BytesReference querySource,
+                              Functions functions,
+                              WhereClause whereClause,
                               Projector downStreamProjector) throws Exception {
         downstream(downStreamProjector);
         SearchShardTarget searchShardTarget = new SearchShardTarget(
@@ -117,7 +120,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
 
         ShardSearchRequest shardSearchRequest = new ShardSearchRequest();
         shardSearchRequest.types(new String[]{Constants.DEFAULT_MAPPING_TYPE});
-        shardSearchRequest.source(querySource);
         IndexShard indexShard = indexService.shardSafe(shardId.id());
         searchContext = new DefaultSearchContext(0, shardSearchRequest,
                 searchShardTarget,
@@ -129,7 +131,13 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                 pageCacheRecycler,
                 bigArrays
         );
-        sqlxContentQueryParser.parse(searchContext, querySource);
+        LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, searchContext, indexService.cache());
+        LuceneQueryBuilder.Context ctx = builder.convert(whereClause);
+        searchContext.parsedQuery(new ParsedQuery(ctx.query(), ImmutableMap.<String, Filter>of()));
+        Float minScore = ctx.minScore();
+        if (minScore != null) {
+            searchContext.minimumScore(minScore);
+        }
     }
 
     @Override

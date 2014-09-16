@@ -23,7 +23,8 @@ package io.crate.lucene;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
-import io.crate.executor.transport.task.elasticsearch.ESQueryBuilder;
+import io.crate.lucene.match.MatchQueryBuilder;
+import io.crate.lucene.match.MultiMatchQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
@@ -49,6 +50,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
 import org.elasticsearch.common.lucene.search.NotFilter;
 import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.search.internal.SearchContext;
 
@@ -60,15 +62,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class LuceneQueryBuilder {
 
     private final Visitor visitor;
+    private final IndexCache indexCache;
 
-    public LuceneQueryBuilder(Functions functions) {
+    public LuceneQueryBuilder(Functions functions, SearchContext searchContext, IndexCache indexCache) {
         CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
                 new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
-        visitor = new Visitor(inputSymbolVisitor);
-    }
-
-    // TODO: move to ctor because of thread safety?
-    public void searchContext(SearchContext searchContext) {
+        visitor = new Visitor(inputSymbolVisitor, indexCache);
+        this.indexCache = indexCache;
         visitor.searchContext = searchContext;
     }
 
@@ -120,15 +120,43 @@ public class LuceneQueryBuilder {
                 .build();
     }
 
+    public static String convertWildcardToRegex(String wildcardString) {
+        // lucene uses * and ? as wildcard characters
+        // but via SQL they are used as % and _
+        // here they are converted back.
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)%", ".*");
+        wildcardString = wildcardString.replaceAll("\\\\%", "%");
+
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)_", ".");
+        return wildcardString.replaceAll("\\\\_", "_");
+    }
+
+    public static String convertWildcard(String wildcardString) {
+        // lucene uses * and ? as wildcard characters
+        // but via SQL they are used as % and _
+        // here they are converted back.
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)%", "*");
+        wildcardString = wildcardString.replaceAll("\\\\%", "%");
+
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
+        wildcardString = wildcardString.replaceAll("(?<!\\\\)_", "?");
+        return wildcardString.replaceAll("\\\\_", "_");
+    }
+
     static class Visitor extends SymbolVisitor<Context, Query> {
 
         private SearchContext searchContext;
         private final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
+        private final IndexCache indexCache;
 
-        public Visitor(CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor) {
+        public Visitor(CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor,
+                       IndexCache indexCache) {
             this.inputSymbolVisitor = inputSymbolVisitor;
+            this.indexCache = indexCache;
         }
-
 
         abstract class FunctionToQuery {
             public abstract Query apply (Function input, Context context) throws IOException;
@@ -143,7 +171,7 @@ public class LuceneQueryBuilder {
                 Symbol left = input.arguments().get(0);
                 Symbol right = input.arguments().get(1);
 
-                if (left.symbolType() == SymbolType.FUNCTION || right.symbolType() == SymbolType.FUNCTION) {
+                if (!(left instanceof Reference) || !(right.symbolType().isValueSymbol())) {
                     raiseUnsupported(input);
                 }
 
@@ -191,7 +219,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> prepare = prepare(input);
                 String notLike = negateWildcard(
-                        ESQueryBuilder.convertWildcardToRegex(BytesRefs.toString(prepare.v2().value())));
+                        convertWildcardToRegex(BytesRefs.toString(prepare.v2().value())));
 
                 return new RegexpQuery(new Term(
                         prepare.v1().info().ident().columnIdent().fqn(),
@@ -348,9 +376,13 @@ public class LuceneQueryBuilder {
 
                 checkArgument(queryString != null, "cannot use NULL as query term in match predicate");
 
-                io.crate.lucene.MatchQueryBuilder queryBuilder = new io.crate.lucene.MatchQueryBuilder(
-                        searchContext, fields, queryString, matchType, options);
-                return queryBuilder.query();
+                MatchQueryBuilder queryBuilder;
+                if (fields.size() == 1) {
+                    queryBuilder = new MatchQueryBuilder(searchContext, indexCache, matchType, options);
+                } else {
+                    queryBuilder = new MultiMatchQueryBuilder(searchContext, indexCache, matchType, options);
+                }
+                return queryBuilder.query(fields, queryString);
             }
         }
 
@@ -442,7 +474,7 @@ public class LuceneQueryBuilder {
             for (LuceneCollectorExpression expression : expressions) {
                 expression.startCollect(collectorContext);
             }
-            return new FilteredQuery(new MatchAllDocsQuery(), new Filter() {
+            Filter filter = new Filter() {
                 @Override
                 public DocIdSet getDocIdSet(AtomicReaderContext context, Bits acceptDocs) throws IOException {
                     for (LuceneCollectorExpression expression : expressions) {
@@ -457,7 +489,9 @@ public class LuceneQueryBuilder {
                             ),
                             acceptDocs);
                 }
-            });
+            };
+            Filter cachedFilter = indexCache.filter().cache(filter);
+            return new FilteredQuery(Queries.newMatchAllQuery(), cachedFilter);
         }
 
         static class FunctionDocSet extends MatchDocIdSet {

@@ -51,6 +51,7 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.action.SearchServiceListener;
@@ -61,6 +62,7 @@ import org.elasticsearch.search.fetch.FetchSearchResult;
 import org.elasticsearch.search.internal.InternalSearchResponse;
 import org.elasticsearch.search.query.QueryPhaseExecutionException;
 import org.elasticsearch.search.query.QuerySearchResult;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.*;
@@ -74,6 +76,7 @@ public class QueryThenFetchTask implements Task<QueryResult> {
     private final TransportQueryShardAction transportQueryShardAction;
     private final SearchServiceTransportAction searchServiceTransportAction;
     private final SearchPhaseController searchPhaseController;
+    private final ThreadPool threadPool;
     private final SettableFuture<QueryResult> result;
     private final List<ListenableFuture<QueryResult>> results;
 
@@ -101,11 +104,13 @@ public class QueryThenFetchTask implements Task<QueryResult> {
                               ClusterService clusterService,
                               TransportQueryShardAction transportQueryShardAction,
                               SearchServiceTransportAction searchServiceTransportAction,
-                              SearchPhaseController searchPhaseController) {
+                              SearchPhaseController searchPhaseController,
+                              ThreadPool threadPool) {
         this.searchNode = searchNode;
         this.transportQueryShardAction = transportQueryShardAction;
         this.searchServiceTransportAction = searchServiceTransportAction;
         this.searchPhaseController = searchPhaseController;
+        this.threadPool = threadPool;
 
         state = clusterService.state();
         nodes = state.nodes();
@@ -306,21 +311,34 @@ public class QueryThenFetchTask implements Task<QueryResult> {
 
     private void finish() {
         try {
-            // TODO: run in threadpool
-            // see https://github.com/elasticsearch/elasticsearch/pull/7624/files
-            InternalSearchResponse response = searchPhaseController.merge(sortedShardList, firstResults, fetchResults);
-            final SearchHit[] hits = response.hits().hits();
-            final Object[][] rows = new Object[hits.length][numColumns];
+            threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        InternalSearchResponse response = searchPhaseController.merge(sortedShardList, firstResults, fetchResults);
+                        final SearchHit[] hits = response.hits().hits();
+                        final Object[][] rows = new Object[hits.length][numColumns];
 
-            for (int r = 0; r < hits.length; r++) {
-                rows[r] = new Object[numColumns];
-                for (int c = 0; c < numColumns; c++) {
-                    rows[r][c] = extractor[c].extract(hits[r]);
+                        for (int r = 0; r < hits.length; r++) {
+                            rows[r] = new Object[numColumns];
+                            for (int c = 0; c < numColumns; c++) {
+                                rows[r][c] = extractor[c].extract(hits[r]);
+                            }
+                        }
+                        result.set(new QueryResult(rows));
+                    } catch (Throwable t) {
+                        result.setException(t);
+                    } finally {
+                        releaseIrrelevantSearchContexts(firstResults, docIdsToLoad);
+                    }
                 }
+            });
+        } catch (EsRejectedExecutionException e) {
+            try {
+                releaseIrrelevantSearchContexts(firstResults, docIdsToLoad);
+            } finally {
+                result.setException(e);
             }
-            result.set(new QueryResult(rows));
-        } finally {
-            releaseIrrelevantSearchContexts(firstResults, docIdsToLoad);
         }
     }
 

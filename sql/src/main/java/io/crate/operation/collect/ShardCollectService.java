@@ -21,12 +21,10 @@
 
 package io.crate.operation.collect;
 
-import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.executor.transport.task.elasticsearch.ESQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
@@ -44,7 +42,6 @@ import io.crate.planner.symbol.Literal;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -62,12 +59,11 @@ public class ShardCollectService {
     private final CacheRecycler cacheRecycler;
     private final PageCacheRecycler pageCacheRecycler;
     private final BigArrays bigArrays;
-    private final SQLXContentQueryParser sqlxContentQueryParser;
-    private final ESQueryBuilder queryBuilder;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final boolean isBlobShard;
+    private final Functions functions;
     private final BlobIndices blobIndices;
 
     @Inject
@@ -80,7 +76,6 @@ public class ShardCollectService {
                                CacheRecycler cacheRecycler,
                                PageCacheRecycler pageCacheRecycler,
                                BigArrays bigArrays,
-                               SQLXContentQueryParser sqlxContentQueryParser,
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
@@ -93,10 +88,7 @@ public class ShardCollectService {
         this.cacheRecycler = cacheRecycler;
         this.pageCacheRecycler = pageCacheRecycler;
         this.bigArrays = bigArrays;
-        this.sqlxContentQueryParser = sqlxContentQueryParser;
-
-        this.queryBuilder = new ESQueryBuilder();
-
+        this.functions = functions;
         this.blobIndices = blobIndices;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
@@ -173,7 +165,6 @@ public class ShardCollectService {
 
     private CrateCollector getLuceneIndexCollector(CollectNode collectNode, Projector downstream) throws Exception {
         CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
-        BytesReference querySource = queryBuilder.convert(collectNode.whereClause());
         return new LuceneDocCollector(
                 clusterService,
                 shardId,
@@ -182,10 +173,10 @@ public class ShardCollectService {
                 cacheRecycler,
                 pageCacheRecycler,
                 bigArrays,
-                sqlxContentQueryParser,
                 docCtx.topLevelInputs(),
                 docCtx.docLevelExpressions(),
-                querySource,
+                functions,
+                collectNode.whereClause(),
                 downstream);
     }
 }
