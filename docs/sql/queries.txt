@@ -210,18 +210,39 @@ for more details.
 
 Examples::
 
-    cr> select name from locations where name ~ '([A-Z][a-z0-9]+)+';
-
+    cr> select name from locations where name ~ '([A-Z][a-z0-9]+)+'
+    ... order by name;
+    +------------+
+    | name       |
+    +------------+
+    | Aldebaran  |
+    | Algol      |
+    | Altair     |
+    | Argabuthon |
+    | Bartledan  |
+    +------------+
+    SELECT 5 rows in set (... sec)
 
 ::
 
     cr> select 'matches' from sys.cluster where
-    ... 'gcc --std=c99 -Wall source.c' ~ '[A-Za-z0-9] (-|--[A-Za-z0-9]+ )*([^ ] )*';
+    ... 'gcc --std=c99 -Wall source.c' ~ '[A-Za-z0-9]+ ((-|--)[A-Za-z0-9]+ )*([^ ] ?)*';
+    +-----------+
+    | 'matches' |
+    +-----------+
+    | matches   |
+    +-----------+
+    SELECT 1 row in set (... sec)
 
 ::
 
-    cr> select 'matches' from sys.cluster where 'foobaz' !~ '\w+(bar)$';
-
+    cr> select 'no_match' from sys.cluster where 'foobaz' !~ '(foo)?(bar)$';
+    +------------+
+    | 'no_match' |
+    +------------+
+    | no_match   |
+    +------------+
+    SELECT 1 row in set (... sec)
 
 .. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 .. _POSIX Extended Regular Expressions: http://en.wikipedia.org/wiki/Regular_expression#POSIX_extended

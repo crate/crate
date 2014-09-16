@@ -254,4 +254,12 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         assertThat(response.rows()[0][2], instanceOf(String.class));
         assertThat((Boolean)response.rows()[0][3], is(Version.CURRENT.snapshot()));
     }
+
+    @Test
+    public void testRegexpMatchOnNode() throws Exception {
+        SQLResponse response = executor.exec("select name from sys.nodes where name ~ 'node_[0-9]{1,2}' order by name");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((String)response.rows()[0][0], is("node_0"));
+        assertThat((String)response.rows()[1][0], is("node_1"));
+    }
 }

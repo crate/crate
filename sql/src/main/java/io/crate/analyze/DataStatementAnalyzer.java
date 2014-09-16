@@ -22,10 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -649,6 +646,10 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
     private static class Comparison {
 
+        private static Set<ComparisonExpression.Type> NEGATING_TYPES = ImmutableSet.of(
+                ComparisonExpression.Type.REGEX_NO_MATCH,
+                ComparisonExpression.Type.NOT_EQUAL);
+
         private ComparisonExpression.Type comparisonExpressionType;
         private Symbol left;
         private Symbol right;
@@ -669,7 +670,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         void normalize(AbstractDataAnalysis context) {
             swapIfNecessary();
             castTypes();
-            rewriteNotEquals(context);
+            rewriteNegatingOperators(context);
         }
 
         /**
@@ -711,7 +712,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             try {
                 left = DataTypeSymbol.toDataTypeSymbol(left, leftType);
                 right = DataTypeSymbol.toDataTypeSymbol(right, leftType);
-            } catch (ClassCastException e) {
+            } catch (ClassCastException|NumberFormatException e) {
                 throw new IllegalArgumentException(SymbolFormatter.format(
                         "type of \"%s\" doesn't match type of \"%s\" and cannot be cast implicitly",
                         left,
@@ -723,21 +724,26 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
         /**
          * rewrite   exp1 != exp2  to not(eq(exp1, exp2))
+         * and       exp1 !~ exp2  to not(~(exp1, exp2))
          * does nothing if operator != not equals
          */
-        private void rewriteNotEquals(AbstractDataAnalysis context) {
-            if (comparisonExpressionType != ComparisonExpression.Type.NOT_EQUAL) {
+        private void rewriteNegatingOperators(AbstractDataAnalysis context) {
+            if (!NEGATING_TYPES.contains(comparisonExpressionType)) {
                 return;
             }
-            FunctionIdent ident = new FunctionIdent(EqOperator.NAME, Arrays.asList(leftType, rightType));
+            String opName = comparisonExpressionType.equals(ComparisonExpression.Type.NOT_EQUAL)
+                    ? EqOperator.NAME : RegexpMatchOperator.NAME;
+            DataType opType = comparisonExpressionType.equals(ComparisonExpression.Type.NOT_EQUAL)
+                    ? EqOperator.RETURN_TYPE : RegexpMatchOperator.RETURN_TYPE;
+            FunctionIdent ident = new FunctionIdent(opName, Arrays.asList(leftType, rightType));
             left = context.allocateFunction(
-                    new FunctionInfo(ident, EqOperator.RETURN_TYPE),
+                    new FunctionInfo(ident, opType),
                     Arrays.asList(left, right)
             );
             right = null;
             rightType = null;
             functionIdent = NotPredicate.INFO.ident();
-            leftType = DataTypes.BOOLEAN;
+            leftType = opType;
             operatorName = NotPredicate.NAME;
         }
 
