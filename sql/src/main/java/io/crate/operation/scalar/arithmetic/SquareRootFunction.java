@@ -35,7 +35,7 @@ import io.crate.types.DataTypes;
 import java.util.List;
 import java.util.Set;
 
-public abstract class SquareRootFunction implements Scalar<Number, Number> {
+public abstract class SquareRootFunction extends Scalar<Number, Number> {
 
     public static final String NAME = "sqrt";
     private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()

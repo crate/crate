@@ -228,7 +228,7 @@ public abstract class BaseAnalyzerTest {
         }
     }
 
-    static class AbsFunction implements Scalar<Long, Number> {
+    static class AbsFunction extends Scalar<Long, Number> {
 
         @Override
         public Long evaluate(Input<Number>... args) {
@@ -253,7 +253,7 @@ public abstract class BaseAnalyzerTest {
         }
     }
 
-    static class YearFunction implements Scalar<String, Long> {
+    static class YearFunction extends Scalar<String, Long> {
 
         @Override
         public String evaluate(Input<Long>... args) {

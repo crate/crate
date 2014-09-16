@@ -33,7 +33,7 @@ import io.crate.types.DataTypes;
 
 import java.util.List;
 
-public class IsNullPredicate<T> implements Scalar<Boolean, T> {
+public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
     private final FunctionInfo info;

@@ -11,7 +11,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public abstract class Operator<I> implements FunctionImplementation<Function>, Scalar<Boolean, I> {
+public abstract class Operator<I> extends Scalar<Boolean, I> implements FunctionImplementation<Function> {
 
     public static final io.crate.types.DataType RETURN_TYPE = DataTypes.BOOLEAN;
 

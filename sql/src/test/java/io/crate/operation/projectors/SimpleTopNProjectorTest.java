@@ -47,7 +47,7 @@ public class SimpleTopNProjectorTest {
     private static final Input<Integer> input = new InputCollectExpression<>(0);
     private static final Object[] row = new Object[]{42};
 
-    private static class TestFunction implements Scalar<Integer, Integer> {
+    private static class TestFunction extends Scalar<Integer, Integer> {
 
         public static final String NAME = "signum";
         public static final FunctionInfo INFO = new FunctionInfo(

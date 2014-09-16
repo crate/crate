@@ -36,7 +36,7 @@ import io.crate.types.DataTypes;
 import java.util.Arrays;
 import java.util.Set;
 
-public abstract class LogFunction implements Scalar<Number,Number> {
+public abstract class LogFunction extends Scalar<Number,Number> {
 
     public static final String NAME = "log";
     private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()

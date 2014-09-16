@@ -34,7 +34,7 @@ import io.crate.types.SetType;
 
 import java.util.Set;
 
-public class CollectionAverageFunction implements Scalar<Double, Set<Number>> {
+public class CollectionAverageFunction extends Scalar<Double, Set<Number>> {
 
     public static final String NAME = "collection_avg";
     private final FunctionInfo info;

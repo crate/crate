@@ -33,7 +33,7 @@ import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 
-public class NotPredicate implements Scalar<Boolean, Boolean> {
+public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
     public static final FunctionInfo INFO = new FunctionInfo(

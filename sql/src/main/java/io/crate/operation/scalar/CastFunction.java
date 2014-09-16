@@ -30,7 +30,7 @@ import io.crate.types.DataType;
 
 import java.util.List;
 
-public class CastFunction implements Scalar<Object, Object> {
+public class CastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "cast";
 

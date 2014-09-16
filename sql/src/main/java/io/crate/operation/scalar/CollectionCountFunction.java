@@ -33,7 +33,7 @@ import io.crate.types.SetType;
 import java.util.Collection;
 import java.util.List;
 
-public class CollectionCountFunction implements Scalar<Long, Collection<DataType>> {
+public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> {
 
     public static final String NAME = "collection_count";
     private final FunctionInfo info;

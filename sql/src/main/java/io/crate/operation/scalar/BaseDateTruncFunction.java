@@ -32,7 +32,7 @@ import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.TimeZoneRounding;
 import org.joda.time.DateTimeZone;
 
-public abstract class BaseDateTruncFunction implements Scalar<Long, Object> {
+public abstract class BaseDateTruncFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "date_trunc";
 
@@ -91,5 +91,4 @@ public abstract class BaseDateTruncFunction implements Scalar<Long, Object> {
                 .build();
         return tzRounding.round(ts);
     }
-
 }

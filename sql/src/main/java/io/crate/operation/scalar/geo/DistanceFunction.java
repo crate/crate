@@ -41,7 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public class DistanceFunction implements Scalar<Double, Object> {
+public class DistanceFunction extends Scalar<Double, Object> {
 
     public static final String NAME = "distance";
 

@@ -92,10 +92,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -135,7 +132,7 @@ public class LocalDataCollectTest {
         }
     }
 
-    static class TestFunction implements Scalar<Integer, Object> {
+    static class TestFunction extends Scalar<Integer, Object> {
         public static final FunctionIdent ident = new FunctionIdent("twoTimes", Arrays.<DataType>asList(DataTypes.INTEGER));
         public static final FunctionInfo info = new FunctionInfo(ident, DataTypes.INTEGER);
 
