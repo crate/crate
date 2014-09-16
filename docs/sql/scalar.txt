@@ -380,7 +380,7 @@ See the api documentation for more details.
 .. _scalar-regexp-matches:
 
 regexp_matches(source, pattern [, flags]) returns string_array
--------------------------------------------------------------
+--------------------------------------------------------------
 
 This function uses the regular expression pattern in ``pattern``
 to match against the ``source`` string.
@@ -467,7 +467,7 @@ Examples
     SELECT 1 row in set (... sec)
 
 regexp_replace(source, pattern, replacement [, flags]) returns string
---------------------------------------------------------------------
+---------------------------------------------------------------------
 
 ``regexp_replace`` can be used to replace every (or only the first) occurence of
 a subsequence matching ``pattern`` in the ``source`` string with the ``replacement``
@@ -478,7 +478,7 @@ string. If no subsequence in ``source`` matches the regular expression ``pattern
 see `Java Regular Expressions`_.
 
 The ``replacement`` string may contain expressions like ``$N``
-where ``N`` is a digit between 0 and 9. It references the *N*th matched group of
+where ``N`` is a digit between 0 and 9. It references the *N*\ th matched group of
 ``pattern`` and the matching subsequence of that group will be inserted
 in the returned string. The expression ``$0`` will insert the whole matching
 ``source`` a.k.a. group No. 0.

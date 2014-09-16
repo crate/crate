@@ -43,7 +43,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
     private static final DataType arrayStringType = new ArrayType(DataTypes.STRING);
 
     private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
+        return new FunctionInfo(new FunctionIdent(NAME, types), new ArrayType(types.get(0)));
     }
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new MatchesFunction());

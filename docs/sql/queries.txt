@@ -611,6 +611,34 @@ Examples::
     +-------------------+
     SELECT 2 rows in set (... sec)
 
+Selecting Array Elements
+........................
+
+Array elements can be selected directly using a integer value greater
+or equal than **1**. The maximum supported array index is
+**2147483648**. Using an index greater than the actual array size
+results in an error.
+
+::
+
+    cr> select name, information[1]['population'] as population from locations
+    ... where information['population'] is not null
+    ... order by name;
+    +-------------------+------------+
+    | name              | population |
+    +-------------------+------------+
+    | Berlin            |    3600001 |
+    | North West Ripple |         12 |
+    | Outer Eastern Rim | 5673745846 |
+    +-------------------+------------+
+    SELECT 3 rows in set (... sec)
+
+.. note::
+
+   Only 1 array notation inside a subscript expression is supported,
+   e.g. following won't work:
+
+   ``select information[1][tags][1] from locations;``
 
 .. _sql_dql_aggregation:
 

@@ -32,13 +32,12 @@ import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
-import io.crate.operation.predicate.*;
+import io.crate.operation.predicate.NotPredicate;
+import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
-import io.crate.sql.tree.IsNullPredicate;
-import io.crate.sql.tree.MatchPredicate;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
@@ -166,11 +165,31 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     protected Symbol visitSubscriptExpression(SubscriptExpression node, T context) {
         SubscriptContext subscriptContext = new SubscriptContext();
         node.accept(visitor, subscriptContext);
-        ReferenceIdent ident = context.getReference(
-                subscriptContext.qName(),
-                subscriptContext.parts()
-        );
-        return context.allocateReference(ident);
+        return resolveSubscriptSymbol(subscriptContext, context);
+    }
+
+    protected DataTypeSymbol resolveSubscriptSymbol(SubscriptContext subscriptContext, T context) {
+        // TODO: support nested subscripts as soon as DataTypes.OBJECT elements can be typed
+        DataTypeSymbol subscriptSymbol;
+        if (subscriptContext.qName() != null && subscriptContext.functionCall() == null) {
+            ReferenceIdent ident = context.getReference(
+                    subscriptContext.qName(),
+                    subscriptContext.parts()
+            );
+            subscriptSymbol = context.allocateReference(ident);
+        } else if (subscriptContext.functionCall() != null) {
+            subscriptSymbol = (DataTypeSymbol) visitFunctionCall(subscriptContext.functionCall(), context);
+        } else {
+            throw new UnsupportedOperationException("Only references or function calls are valid subscript symbols");
+        }
+        if (subscriptContext.index() != null) {
+            // rewrite array access to subscript scalar
+            FunctionIdent functionIdent = new FunctionIdent(SubscriptFunction.NAME,
+                    ImmutableList.of(subscriptSymbol.valueType(), DataTypes.INTEGER));
+            return context.allocateFunction(context.getFunctionInfo(functionIdent),
+                    Arrays.asList(subscriptSymbol, (Symbol) Literal.newLiteral(subscriptContext.index())));
+        }
+        return subscriptSymbol;
     }
 
     @Override
