@@ -404,11 +404,11 @@ results in these groups:
 
 The ``regexp_matches`` function will return all groups as a string array::
 
-    cr> select regexp_matches('alcatraz', '^(a(.+)z)$') as match from sys.cluster;
+    cr> select regexp_matches('alcatraz', '^(a(.+)z)$') as matched from sys.cluster;
     +------------------------------------+
-    | match                              |
+    | matched                            |
     +------------------------------------+
-    | ['alcatraz', 'alcatraz', 'lcatra'] |
+    | ["alcatraz", "alcatraz", "lcatra"] |
     +------------------------------------+
     SELECT 1 row in set (... sec)
 
@@ -447,22 +447,22 @@ Examples
 
 ::
 
-    cr> select regexp_matches('foobar', '^(a(.+)z)$') as match from sys.cluster;
-    +-------+
-    | match |
-    +-------+
-    | NULL  |
-    +-------+
+    cr> select regexp_matches('foobar', '^(a(.+)z)$') as matched from sys.cluster;
+    +---------+
+    | matched |
+    +---------+
+    | NULL    |
+    +---------+
     SELECT 1 row in set (... sec)
 
 ::
 
-    cr> select regexp_matches('99 bottles of beer on the wall', '(?\b[A-Z](?\w+))', 'ixU')
-    ... as match from sys.cluster;
+    cr> select regexp_matches('99 bottles of beer on the wall', '\d{2}\s(\w+).*', 'ixU')
+    ... as matched from sys.cluster;
     +-----------------------------------------------+
-    | match                                         |
+    | matched                                       |
     +-----------------------------------------------+
-    | ['99 bottles of beer on the wall', 'bottles'] |
+    | ["99 bottles of beer on the wall", "bottles"] |
     +-----------------------------------------------+
     SELECT 1 row in set (... sec)
 
@@ -477,10 +477,10 @@ string. If no subsequence in ``source`` matches the regular expression ``pattern
 ``pattern`` is a java regular expression. For details on the regexp syntax,
 see `Java Regular Expressions`_.
 
-The ``replacement`` string may contain expressions like ``\N``
-where ``N`` is a digit between 1 and 9. It references the *N*th matched group of
+The ``replacement`` string may contain expressions like ``$N``
+where ``N`` is a digit between 0 and 9. It references the *N*th matched group of
 ``pattern`` and the matching subsequence of that group will be inserted
-in the returned string. The expression ``\$`` will insert the whole matching
+in the returned string. The expression ``$0`` will insert the whole matching
 ``source`` a.k.a. group No. 0.
 
 Per default, only the first occurrence of a subsequence matching ``pattern``
@@ -504,17 +504,43 @@ Examples
 
 ::
 
-   cr> select regexp_replace(name, '(\w+)(\b\w+)+', '\1') as replaced from locations
+   cr> select regexp_replace(name, '(\w+)(\b\w+)+', '$1') as replaced from locations
    ... order by name limit 5;
+    +---------------------+
+    | replaced            |
+    +---------------------+
+    |                     |
+    | Aldebaran           |
+    | Algol               |
+    | Allosimanius Syneca |
+    | Alpha Centauri      |
+    +---------------------+
+    SELECT 5 rows in set (... sec)
 
 ::
 
-   cr> select regexp_replace('alcatraz', '(foo)(bar)+', '\1baz') as replaced
+   cr> select regexp_replace('alcatraz', '(foo)(bar)+', '$1baz') as replaced
    ... from sys.cluster;
+    +----------+
+    | replaced |
+    +----------+
+    | alcatraz |
+    +----------+
+    SELECT 1 row in set (... sec)
 
 ::
 
-   cr> select regexp_replace(name, '([A-Z]\w+) .+', '\1', 'ig') as replaced from locations
+   cr> select regexp_replace(name, '([A-Z]\w+) .+', '$1', 'ig') as replaced from locations
    ... order by name limit 5;
+    +--------------+
+    | replaced     |
+    +--------------+
+    |              |
+    | Aldebaran    |
+    | Algol        |
+    | Allosimanius |
+    | Alpha        |
+    +--------------+
+    SELECT 5 rows in set (... sec)
 
 .. _Java Regular Expressions: http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html

@@ -42,4 +42,13 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
     public Scalar<ReturnType, InputType> compile(List<Symbol> arguments) {
         return this;
     }
+
+    protected static boolean anyNonLiterals(List<Symbol> arguments) {
+        for (Symbol symbol : arguments) {
+            if (!symbol.symbolType().isValueSymbol()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
