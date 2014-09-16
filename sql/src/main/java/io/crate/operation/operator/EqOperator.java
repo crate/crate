@@ -30,7 +30,7 @@ import io.crate.types.DataTypes;
 
 import java.util.List;
 
-public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {
+public class EqOperator extends CmpOperator {
 
     public static final String NAME = "op_=";
 
@@ -50,7 +50,7 @@ public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {
     }
 
     @Override
-    public Boolean evaluate(Input<Object>... args) {
+    public Boolean evaluate(Input[] args) {
         assert args.length == 2;
         Object left = args[0].value();
         if (left == null){
@@ -68,7 +68,8 @@ public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 2);
-            return new EqOperator(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.BOOLEAN));
+            FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.BOOLEAN);
+            return new EqOperator(info);
         }
     }
 }
