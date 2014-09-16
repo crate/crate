@@ -369,62 +369,56 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
-.. _scalar-regex:
+.. _scalar-regexp:
 
 Regular Expression Functions
 ============================
 
-.. _scalar-regex-matches:
+The regular expression functions in crate use `Java Regular Expressions`_.
+See the api documentation for more details.
 
-regex_matches(source, pattern [, flags]) returns string_array
+.. _scalar-regexp-matches:
+
+regexp_matches(source, pattern [, flags]) returns string_array
 -------------------------------------------------------------
 
-This function uses the regular expression pattern in ``pattern``,
-to find a matching subsequence of the ``source`` string.
+This function uses the regular expression pattern in ``pattern``
+to match against the ``source`` string.
 
-If any subsequence of ``source`` matches, it returns an array of the matched
-regular expression groups. If no subsequence matches, not even the
-whole string, it returns ``NULL``.
+If ``source`` matches, an array of the matched regular expression groups is returned.
+If ``source`` does not match, this function returns ``NULL``.
 
 A regular expression group is formed by a subexpression that is surrounded by parentheses.
-The position of a group is determined by the position of its opening brackets.
+The position of a group is determined by the position of its opening parenthesis.
 For example when matching the pattern ``\b([A-Z]).*`` a match for the
-subexpression ``([A-Z])`` would create group No. 1.
+subexpression ``([A-Z])`` would create group No. 1. Group No. 0 consists of
+the whole matched ``source``. If you want to group stuff with parentheses,
+but without grouping, use ``(?...)``.
 
-If the regular expression in given ``pattern`` does not contain any groups,
-the subsequence of ``source`` matching the whole pattern will be returned
-as single array element. This subsequence if also known as group No. 0.
-If you want to group stuff with parentheses, but no group shall be created,
-use ``(?...)``.
-
-For example matching the regular expression ``^([Aa](.+)z)$ against ``alcatraz``, results in these groups:
+For example matching the regular expression ``^([Aa](.+)z)$ against ``alcatraz``,
+results in these groups:
 
  * group 0: ``alcatraz`` (the whole string, if it matched)
- * group 1: ``alcatraz`` (from first to last bracket)
- * group 2: ``lcatra`` (beginning at second brace)
+ * group 1: ``alcatraz`` (from first to last parenthesis)
+ * group 2: ``lcatra`` (beginning at second parenthesis)
 
-The ``regex_matches`` function will only return groups 1 and 2::
+The ``regexp_matches`` function will return all groups as a string array::
 
-    cr> select regex_matches('alcatraz', '^(a(.+)z)$') as match from sys.cluster;
-    +------------------------+
-    | match                  |
-    +------------------------+
-    | ['alcatraz', 'lcatra'] |
-    +------------------------+
+    cr> select regexp_matches('alcatraz', '^(a(.+)z)$') as match from sys.cluster;
+    +------------------------------------+
+    | match                              |
+    +------------------------------------+
+    | ['alcatraz', 'alcatraz', 'lcatra'] |
+    +------------------------------------+
     SELECT 1 row in set (... sec)
 
-.. note::
-
-   ``regex_matches`` supports `Java Regular Expressions`_. See the api documentation
-   for more details.
-
-.. _scalar-regex-matches-flags:
+.. _scalar-regexp-matches-flags:
 
 Flags
 .....
 
 This function takes a number of flags as optional third parameter.
-These flags are given as a string of any the characters listed below.
+These flags are given as a string containing any of the characters listed below.
 Order does not matter.
 
 +-------+---------------------------------------------------------------------+
@@ -434,11 +428,11 @@ Order does not matter.
 +-------+---------------------------------------------------------------------+
 | u     | enable unicode case folding when used together with ``i``           |
 +-------+---------------------------------------------------------------------+
-| U     | enable unicode support for character classes like \W                |
+| U     | enable unicode support for character classes like ``\W``            |
 +-------+---------------------------------------------------------------------+
 | s     | make ``.`` match line terminators, too                              |
 +-------+---------------------------------------------------------------------+
-| m , n | make ``^`` and ``$`` match on the beginning or end of a line        |
+| m     | make ``^`` and ``$`` match on the beginning or end of a line        |
 |       | too.                                                                |
 +-------+---------------------------------------------------------------------+
 | x     | permit whitespace and line comments starting with ``#``             |
@@ -453,7 +447,7 @@ Examples
 
 ::
 
-    cr> select regex_matches('foobar', '^(a(.+)z)$') as match from sys.cluster;
+    cr> select regexp_matches('foobar', '^(a(.+)z)$') as match from sys.cluster;
     +-------+
     | match |
     +-------+
@@ -463,30 +457,31 @@ Examples
 
 ::
 
-    cr> select regex_matches('99 bottles of beer on the wall', '(?\b[A-Z](?\w+))', 'i') as match from sys.cluster;
-    +-------------+
-    | match       |
-    +-------------+
-    | ['bottles'] |
-    +-------------+
+    cr> select regexp_matches('99 bottles of beer on the wall', '(?\b[A-Z](?\w+))', 'ixU')
+    ... as match from sys.cluster;
+    +-----------------------------------------------+
+    | match                                         |
+    +-----------------------------------------------+
+    | ['99 bottles of beer on the wall', 'bottles'] |
+    +-----------------------------------------------+
     SELECT 1 row in set (... sec)
 
-regex_replace(source, pattern, replacement [, flags]) returns string
+regexp_replace(source, pattern, replacement [, flags]) returns string
 --------------------------------------------------------------------
 
-``regex_replace`` can be used to replace every (or only the first) occurence of
+``regexp_replace`` can be used to replace every (or only the first) occurence of
 a subsequence matching ``pattern`` in the ``source`` string with the ``replacement``
 string. If no subsequence in ``source`` matches the regular expression ``pattern``,
 ``source`` is returned unchanged.
 
-``pattern`` is a java regular expression. For details on the regexp syntac,
+``pattern`` is a java regular expression. For details on the regexp syntax,
 see `Java Regular Expressions`_.
 
-The ``replacement`` string may contain expressions like ``\n``
-where ``n`` is a digit between 1 and 9. It references the nth matched group of
+The ``replacement`` string may contain expressions like ``\N``
+where ``N`` is a digit between 1 and 9. It references the *N*th matched group of
 ``pattern`` and the matching subsequence of that group will be inserted
 in the returned string. The expression ``\$`` will insert the whole matching
-subsequence for ``pattern`` a.k.a. group No. 0.
+``source`` a.k.a. group No. 0.
 
 Per default, only the first occurrence of a subsequence matching ``pattern``
 will be replaced. If all occurrences shall be replaced use the ``g`` flag.
@@ -494,8 +489,8 @@ will be replaced. If all occurrences shall be replaced use the ``g`` flag.
 Flags
 .....
 
-``regex_replace`` supports the same flags than ``regex_matches``,
-see `scalar-regex-matches-flags`_ and additionally the ``g`` flag:
+``regexp_replace`` supports the same flags than ``regexp_matches``,
+see `scalar-regexp-matches-flags`_ and additionally the ``g`` flag:
 
 +-------+---------------------------------------------------------------------+
 | Flag  | Description                                                         |
@@ -509,13 +504,17 @@ Examples
 
 ::
 
-   cr> select regex_replace(name, '(\w+)\b\w+', '\1') as replaced from locations
+   cr> select regexp_replace(name, '(\w+)(\b\w+)+', '\1') as replaced from locations
    ... order by name limit 5;
 
 ::
 
-   cr> select regex_replace('alcatraz', '(foo)(bar)+', '\1baz') as replaced
+   cr> select regexp_replace('alcatraz', '(foo)(bar)+', '\1baz') as replaced
    ... from sys.cluster;
 
+::
+
+   cr> select regexp_replace(name, '([A-Z]\w+) .+', '\1', 'ig') as replaced from locations
+   ... order by name limit 5;
 
 .. _Java Regular Expressions: http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html
