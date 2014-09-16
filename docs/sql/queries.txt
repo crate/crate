@@ -96,6 +96,7 @@ all simple data types:
     <>                not equal
     !=                not equal - same as <>
     like              matches a part of the given value
+    ~                 regular expression match
     ================  =================================
 
 For strings a lexicographical comparison is performed based on the
@@ -139,7 +140,6 @@ For custom date types, or defined date formats in the object mapping
 the corresponding format should be used for a comparison. Otherwise
 the operation may fail.
 
-
 .. _predicates:
 
 Predicates
@@ -172,6 +172,47 @@ The following predicates extend the range of possible conditions to use in the w
     Not all predicates can utilize the index efficiently. For example ``is
     null`` can't use the index at all and will therefor perform worse than
     other operators.
+
+
+.. _sql_ddl_regexp:
+
+Regular Expressions
+-------------------
+
+::
+
+ 'source' ~ 'pattern'
+
+The ``~`` operator can be used to match a string against a regular expression.
+It returns ``true`` if ``source`` matches, ``false`` if not,
+and ``NULL`` if ``source`` is ``NULL``.
+
+The regular expression ``pattern`` is implicitly anchored, that means that
+the whole ``source`` string must match, not a single subsequence.
+The match is always case sensitive, all unicode characters are allowed.
+
+Internally the ``~`` operator uses `Lucene Regular Expressions`_ which are
+optimized for fast regular expression matching on lucene terms.
+
+`Lucene Regular Expressions`_ are basically `POSIX Extended Regular Expressions`_
+without the character classes and with some extensions,
+like a metacharacter for the empty string ``#`` or ``~`` for negation and others.
+By default all Lucene extension are enabled. See the Lucene documentation
+for more details.
+
+Examples::
+
+    cr> select name from locations where name ~ '([A-Z][a-z0-9]+)+';
+
+
+::
+
+    cr> select 'matches' from sys.cluster where
+    ... 'gcc --std=c99 -Wall source.c' ~ '[A-Za-z0-9] (-|--[A-Za-z0-9]+ )*([^ ] )*';
+
+
+.. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
+.. _POSIX Extended Regular Expressions: http://en.wikipedia.org/wiki/Regular_expression#POSIX_extended
 
 
 .. _sql_dql_like:
