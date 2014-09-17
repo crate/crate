@@ -22,7 +22,6 @@
 package io.crate.operation.operator;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.operation.operator.input.BytesRefInput;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -67,7 +66,7 @@ public class RegexpMatchOperatortest {
 
     private Boolean regexpEvaluate(String source, String pattern) {
         RegexpMatchOperator op = new RegexpMatchOperator();
-        return op.evaluate(new BytesRefInput(source),new BytesRefInput(pattern));
+        return op.evaluate(Literal.newLiteral(source), Literal.newLiteral(pattern));
     }
 
     @Test

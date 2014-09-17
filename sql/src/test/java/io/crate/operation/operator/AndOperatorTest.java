@@ -1,6 +1,5 @@
 package io.crate.operation.operator;
 
-import io.crate.operation.operator.input.BooleanInput;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -56,7 +55,7 @@ public class AndOperatorTest {
 
     private Boolean and(Boolean left, Boolean right) {
         AndOperator operator = new AndOperator();
-        return operator.evaluate(new BooleanInput(left), new BooleanInput(right));
+        return operator.evaluate(Literal.newLiteral(left), Literal.newLiteral(right));
     }
 
     @Test
