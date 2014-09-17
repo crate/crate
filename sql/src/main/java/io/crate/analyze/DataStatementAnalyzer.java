@@ -646,7 +646,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
     private static class Comparison {
 
-        private static Set<ComparisonExpression.Type> NEGATING_TYPES = ImmutableSet.of(
+        private static final Set<ComparisonExpression.Type> NEGATING_TYPES = ImmutableSet.of(
                 ComparisonExpression.Type.REGEX_NO_MATCH,
                 ComparisonExpression.Type.NOT_EQUAL);
 

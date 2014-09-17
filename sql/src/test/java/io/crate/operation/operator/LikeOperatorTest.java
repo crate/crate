@@ -21,7 +21,6 @@
 package io.crate.operation.operator;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.operation.operator.input.BytesRefInput;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -140,7 +139,7 @@ public class LikeOperatorTest {
         LikeOperator op = new LikeOperator(
                 LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
-        return op.evaluate(new BytesRefInput(expression),new BytesRefInput(pattern));
+        return op.evaluate(Literal.newLiteral(expression), Literal.newLiteral(pattern));
     }
 
     @Test
@@ -154,9 +153,9 @@ public class LikeOperatorTest {
                 LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
         BytesRef nullValue = null;
-        BytesRefInput brNullValue = new BytesRefInput(nullValue);
-        assertNull(op.evaluate(brNullValue, new BytesRefInput("foobarbaz")));
-        assertNull(op.evaluate(new BytesRefInput("foobarbaz"), brNullValue));
+        Literal<BytesRef> brNullValue = Literal.newLiteral(nullValue);
+        assertNull(op.evaluate(brNullValue, Literal.newLiteral("foobarbaz")));
+        assertNull(op.evaluate(Literal.newLiteral("foobarbaz"), brNullValue));
     }
 
 }
