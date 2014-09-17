@@ -26,7 +26,7 @@ import org.apache.lucene.util.BytesRef;
 public class BytesRefInput implements Input<BytesRef> {
     private BytesRef value;
     public BytesRefInput(String value) {
-        this(new BytesRef(value));
+        this(value == null ? null : new BytesRef(value));
     }
     public BytesRefInput(BytesRef value) {
         this.value = value;

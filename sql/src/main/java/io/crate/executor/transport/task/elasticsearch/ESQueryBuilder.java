@@ -279,6 +279,7 @@ public class ESQueryBuilder {
                     .put(AnyLikeOperator.NAME, new LikeConverter())
                     .put(AnyNotLikeOperator.NAME, new AnyNotLikeConverter())
                     .put(WithinFunction.NAME, new WithinConverter())
+                    .put(RegexpMatchOperator.NAME, new RegexpMatchConverter())
                     .build();
 
             NumericScalarConverter numericScalarConverter = new NumericScalarConverter();
@@ -785,6 +786,26 @@ public class ESQueryBuilder {
                         .startObject(tuple.v1()).field(operator, tuple.v2()).endObject()
                         .endObject();
                 return true;
+            }
+        }
+
+        class RegexpMatchConverter extends CmpConverter {
+
+            @Override
+            public boolean convert(Function function, Context context) throws IOException {
+                Tuple<String, Object> tuple = super.prepare(function);
+                if (tuple == null) {
+                    return false;
+                }
+                Preconditions.checkArgument(
+                        tuple.v2() == null || tuple.v2() instanceof String,
+                        "Can only use ~ with patterns of type string");
+                context.builder.startObject("regexp").startObject(tuple.v1())
+                        .field("value", tuple.v2())
+                        .field("flags", "ALL")
+                        .endObject()
+                .endObject();
+                return false;
             }
         }
 

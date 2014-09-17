@@ -433,6 +433,26 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testRewriteRegexpNoMatch() throws Exception {
+        String statement = "select * from sys.nodes where sys.nodes.name !~ '[sS]omething'";
+        SelectAnalysis analysis = (SelectAnalysis) analyze(statement);
+        WhereClause whereClause = analysis.whereClause();
+
+        Function notFunction = (Function) whereClause.query();
+        assertThat(notFunction.info().ident().name(), is(NotPredicate.NAME));
+        assertThat(notFunction.arguments().size(), is(1));
+
+        Function eqFunction = (Function) notFunction.arguments().get(0);
+        assertThat(eqFunction.info().ident().name(), is(RegexpMatchOperator.NAME));
+        assertThat(eqFunction.arguments().size(), is(2));
+
+        List<Symbol> eqArguments = eqFunction.arguments();
+        assertThat(eqArguments.get(0), instanceOf(Reference.class));
+        assertLiteralSymbol(eqArguments.get(1), "[sS]omething");
+
+    }
+
+    @Test
     public void testClusteredBy() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select name from users where id=1");
         assertEquals(ImmutableList.of("1"), analysis.routingValues());
@@ -1303,7 +1323,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(query.arguments().size(), is(2));
         assertThat(query.arguments().get(0), Matchers.instanceOf(Reference.class));
-        assertThat(((Reference)query.arguments().get(0)).info().ident().columnIdent().fqn(), is("tags"));
+        assertThat(((Reference) query.arguments().get(0)).info().ident().columnIdent().fqn(), is("tags"));
         assertThat(query.arguments().get(1), instanceOf(Literal.class));
         assertThat(((Literal<?>) query.arguments().get(1)).value(), Matchers.<Object>is(new BytesRef("awesome")));
     }
@@ -1559,11 +1579,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 is("best_fields"));
         assertThat(getMatchType((Function)most_fields_analysis.whereClause.query()),
                 is("most_fields"));
-        assertThat(getMatchType((Function)cross_fields_analysis.whereClause.query()),
+        assertThat(getMatchType((Function) cross_fields_analysis.whereClause.query()),
                 is("cross_fields"));
-        assertThat(getMatchType((Function)phrase_analysis.whereClause.query()),
+        assertThat(getMatchType((Function) phrase_analysis.whereClause.query()),
                 is("phrase"));
-        assertThat(getMatchType((Function)phrase_prefix_analysis.whereClause.query()),
+        assertThat(getMatchType((Function) phrase_prefix_analysis.whereClause.query()),
                 is("phrase_prefix"));
     }
 
@@ -1743,5 +1763,26 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("System column '_score' cannot be used within a predicate");
         analyze("select * from users where \"_score\" is not null");
+    }
+
+    @Test
+    public void testRegexpMatchInvalidArg() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("type of \"users.floats\" doesn't match type of \"'foo'\" and cannot be cast implicitly");
+        analyze("select * from users where floats ~ 'foo'");
+    }
+
+    @Test
+    public void testRegexpMatchNull() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select * from users where name ~ null");
+        assertThat(analysis.whereClause().hasQuery(), is(false));
+        assertThat(analysis.whereClause().noMatch(), is(true));
+    }
+
+    @Test
+    public void testRegexpMatch() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select * from users where name ~ '.*foo(bar)?'");
+        assertThat(analysis.whereClause().hasQuery(), is(true));
+        assertThat(((Function)analysis.whereClause().query()).info().ident().name(), is("op_~"));
     }
 }

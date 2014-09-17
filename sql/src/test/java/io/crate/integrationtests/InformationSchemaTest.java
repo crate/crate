@@ -886,4 +886,16 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(expected, TestingHelpers.printedTable(response.rows()));
     }
 
+    @Test
+    public void testRegexpMatch() throws Exception {
+        serviceSetup();
+        execute("create blob table blob_t1 with (number_of_replicas=0)");
+        ensureYellow();
+        execute("select distinct schema_name from information_schema.tables " +
+                "where schema_name ~ '[a-z]+o[a-z]' order by schema_name");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((String)response.rows()[0][0], is("blob"));
+        assertThat((String)response.rows()[1][0], is("doc"));
+    }
+
 }
