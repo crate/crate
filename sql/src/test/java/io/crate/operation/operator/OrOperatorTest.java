@@ -1,6 +1,5 @@
 package io.crate.operation.operator;
 
-import io.crate.operation.operator.input.BooleanInput;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -50,7 +49,7 @@ public class OrOperatorTest {
 
     private Boolean or(Boolean left, Boolean right) {
         OrOperator operator = new OrOperator();
-        return operator.evaluate(new BooleanInput(left), new BooleanInput(right));
+        return operator.evaluate(Literal.newLiteral(left), Literal.newLiteral(right));
     }
 
     @Test
