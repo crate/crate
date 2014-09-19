@@ -15,6 +15,11 @@ using the ``graceful stop`` procedure.
 This procedure will disable a node, which will cause it to reject any new
 requests but will make sure that any pending requests are finished.
 
+.. note::
+
+   Nonetheless, due to the distributed execution of requests, some client requests
+   might fail during this procedure.
+
 In addition it will ensure a certain data availability. Which can either be
 ``none``, ``primaries`` or ``full`` and can be configured using :ref:`ref-set`.
 
@@ -156,6 +161,68 @@ into timeout during reallocation.
 
 By default, only the ``graceful stop`` command considers the cluster settings
 described at :ref:`conf_graceful_stop`.
+
+Observing the Reallocation
+--------------------------
+
+If you want to observe the reallocation process triggered by a
+``full`` or ``primaries`` graceful-stop, you can issue the following sql queries
+regularly.
+
+Get the number of shards remaining on your deallocating node:
+
+.. code-block:: psql
+
+  cr> SELECT count(*) as remaining_shards from sys.shards
+  ... where sys.nodes.name = 'your_node_name';
+  +------------------+
+  | remaining_shards |
+  +------------------+
+  |                0 |
+  +------------------+
+  SELECT 1 row in set (... sec)
+
+
+Get some more detail about what shards are remaining on your node:
+
+.. code-block:: psql
+
+  cr> SELECT schema_name as schema, table_name as "table", id, "primary", state
+  ... FROM sys.shards
+  ... WHERE sys.nodes.name = 'your_node_name' AND schema_name IN ('blob', 'doc')
+  ... ORDER BY schema, "table", id, "primary", state;
+  +--------+---------------------+----+---------+---------+
+  | schema | table               | id | primary | state   |
+  +--------+---------------------+----+---------+---------+
+  ...
+  +--------+---------------------+----+---------+---------+
+  SELECT ... rows in set (... sec)
+
+In case of ``primaries`` availability only the primary shards of tables with
+0 replicas will be reallocated. Use this query to find out, for which shards to
+look:
+
+.. code-block:: psql
+
+   cr> SELECT schema_name as schema, table_name as "table"
+   ... FROM information_schema.tables
+   ... WHERE number_of_replicas = 0 and schema_name in ('blob', 'doc')
+   ... ORDER BY schema, "table" ;
+   +--------+-------------------+
+   | schema | table             |
+   +--------+-------------------+
+   ...
+   +--------+-------------------+
+   SELECT ... rows in set (... sec)
+
+
+.. note::
+
+   If you observe the graceful-stop process using the admin-ui, you might see
+   the cluster turning red for a small instant when a node finally shuts down.
+   This is due to the way the admin ui determines the cluster state. If a query
+   fails due to a missing node, the admin-ui may falsely consider the cluster to
+   be in a critical state.
 
 Step 3: Upgrade Crate
 =====================
