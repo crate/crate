@@ -22,14 +22,11 @@
 package io.crate.operation.reference.information;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
-
-import java.util.Set;
 
 public abstract class InformationTableConstraintsExpression<T> extends InformationCollectorExpression<TableInfo, T> {
     private static final BytesRef PRIMARY_KEY = new BytesRef("PRIMARY_KEY");
@@ -47,14 +44,15 @@ public abstract class InformationTableConstraintsExpression<T> extends Informati
                             return new BytesRef(row.ident().name());
                         }
                     })
-                    .add(new InformationTableConstraintsExpression<Set<BytesRef>>("constraint_name") {
+                    .add(new InformationTableConstraintsExpression<BytesRef[]>("constraint_name") {
                         @Override
-                        public Set<BytesRef> value() {
-                            ImmutableSet.Builder<BytesRef> builder = ImmutableSet.builder();
-                            for (ColumnIdent primaryKeyColumn : row.primaryKey()) {
-                                builder.add(new BytesRef(primaryKeyColumn.fqn()));
+                        public BytesRef[] value() {
+                            BytesRef[] values = new BytesRef[row.primaryKey().size()];
+                            java.util.List<ColumnIdent> primaryKey = row.primaryKey();
+                            for (int i = 0, primaryKeySize = primaryKey.size(); i < primaryKeySize; i++) {
+                                values[i] = new BytesRef(primaryKey.get(i).fqn());
                             }
-                            return builder.build();
+                            return values;
                         }
                     })
                     .add(new InformationTableConstraintsExpression<BytesRef>("constraint_type") {

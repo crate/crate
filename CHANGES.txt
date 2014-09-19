@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: change the type of ``information_schema.table_constraints.constraint_name``
+   to array of string
+
  - fix: properly return elements of object arrays in system tables
    like sys.nodes.fs['data']['path']
 
