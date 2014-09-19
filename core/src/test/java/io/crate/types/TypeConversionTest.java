@@ -21,52 +21,107 @@
 
 package io.crate.types;
 
-import net.java.quickcheck.generator.iterable.Iterables;
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+import jsr166e.LongAdder;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.concurrent.Callable;
 
-import static net.java.quickcheck.generator.PrimitiveGenerators.*;
-import static org.junit.Assert.*;
+public class TypeConversionTest extends RandomizedTest{
 
-public class TypeConversionTest {
+    private static class Repeater<T> implements Iterable<T>, Iterator<T> {
+
+        private final LongAdder repeated;
+        private final Callable<T> repeatMe;
+
+        public Repeater(Callable<T> repeatMe, long times) {
+            this.repeated = new LongAdder();
+            this.repeated.add(times);
+            this.repeatMe = repeatMe;
+        }
+
+        @Override
+        public Iterator<T> iterator() {
+            return this;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return repeated.longValue() > 0;
+        }
+
+        @Override
+        public T next() {
+            repeated.decrement();
+            try {
+                return repeatMe.call();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void remove() {
+            // ignore
+        }
+    }
+
+    private Iterable<Byte> bytes(int num) {
+        return new Repeater<>(new Callable<Byte>() {
+            @Override
+            public Byte call() throws Exception {
+                return randomByte();
+            }
+        }, num);
+    }
+
+    private Iterable<Integer> integers(final int lower, final int upper, int num) {
+        return new Repeater<>(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                return randomIntBetween(lower, upper);
+            }
+        }, num);
+    }
 
     @Test
     public void numberConversionTest() throws Exception {
-        for (Byte byteVal : Iterables.toIterable(bytes())) {
+
+        for (Byte byteVal : bytes(10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.BYTE.id())) {
                 t.value(byteVal);
             }
         }
 
-        for (Integer shortVal : Iterables.toIterable(integers(
-                (int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE))) {
+        for (Integer shortVal : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
                 t.value(shortVal.shortValue());
             }
         }
 
-        for (Integer intValue : Iterables.toIterable(integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE))) {
+        for (Integer intValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.INTEGER.id())) {
                 t.value(intValue);
             }
         }
 
-        for (Long longValue : Iterables.toIterable(longs((long) Byte.MIN_VALUE, (long) Byte.MAX_VALUE))) {
+        for (Integer longValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.LONG.id())) {
-                t.value(longValue);
+                t.value(longValue.longValue());
             }
         }
 
-        for (Double floatVal : Iterables.toIterable(doubles((double)Byte.MIN_VALUE, (double)Byte.MAX_VALUE))) {
+        for (Integer floatValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.FLOAT.id())) {
-                t.value(floatVal.floatValue());
+                t.value(floatValue.floatValue());
             }
         }
 
-        for (Double doubleVal : Iterables.toIterable(doubles((double) Byte.MIN_VALUE, (double) Byte.MAX_VALUE))) {
+        for (Integer doubleValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.DOUBLE.id())) {
-                t.value(doubleVal);
+                t.value(doubleValue.doubleValue());
             }
         }
     }
@@ -85,7 +140,6 @@ public class TypeConversionTest {
     public void testShortOutOfRangePositive() throws Exception {
         DataTypes.SHORT.value(Integer.MAX_VALUE);
     }
-
     @Test(expected = IllegalArgumentException.class)
     public void testShortOutOfRangeNegative() throws Exception {
         DataTypes.SHORT.value(Integer.MIN_VALUE);
