@@ -191,6 +191,20 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testSetInvalidBooleanValue() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'stats.enabled'");
+        analyze("SET GLOBAL TRANSIENT stats.enabled = 'hello'");
+    }
+
+    @Test
+    public void testSetInvalidNumberValue() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'stats.jobs_log_size'");
+        analyze("SET GLOBAL TRANSIENT stats = { jobs_log_size = 'hello' }");
+    }
+
+    @Test
     public void testReset() throws Exception {
         SetAnalysis analysis = (SetAnalysis) analyze("RESET GLOBAL stats.enabled");
         assertThat(analysis.isReset(), is(true));

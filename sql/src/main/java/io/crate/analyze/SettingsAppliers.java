@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.amazonaws.services.cloudfront.model.InvalidArgumentException;
 import com.google.common.base.Joiner;
 import io.crate.metadata.settings.*;
 import io.crate.sql.tree.Expression;
@@ -52,7 +53,13 @@ public class SettingsAppliers {
         }
 
         public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
-            settingsBuilder.put(name, validate(value));
+            try {
+                settingsBuilder.put(name, validate(value));
+            } catch (InvalidSettingValueContentException e) {
+                throw new IllegalArgumentException(e.getMessage());
+            } catch (IllegalArgumentException e) {
+                throw invalidException(e);
+            }
         }
 
         protected Object validate(Object value) {
@@ -283,7 +290,7 @@ public class SettingsAppliers {
         protected Object validate(Object value) {
             String validation = this.setting.validate((String) value);
             if (validation != null) {
-                throw new IllegalArgumentException(validation);
+                throw new InvalidSettingValueContentException(validation);
             }
             return value;
         }
@@ -346,6 +353,12 @@ public class SettingsAppliers {
                 throw invalidException();
             }
             applyValue(settingsBuilder, timeValue.millis());
+        }
+    }
+
+    static class InvalidSettingValueContentException extends InvalidArgumentException {
+        InvalidSettingValueContentException(String message) {
+            super(message);
         }
     }
 }
