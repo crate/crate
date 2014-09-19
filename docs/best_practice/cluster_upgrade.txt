@@ -166,7 +166,8 @@ Observing the Reallocation
 --------------------------
 
 If you want to observe the reallocation process triggered by a
-``full`` or ``primaries`` graceful-stop, you can issue the following sql queries.
+``full`` or ``primaries`` graceful-stop, you can issue the following sql queries
+regularly.
 
 Get the number of shards remaining on your deallocating node:
 
@@ -188,7 +189,7 @@ Get some more detail about what shards are remaining on your node:
 
   cr> SELECT schema_name as schema, table_name as "table", id, "primary", state
   ... FROM sys.shards
-  ... WHERE sys.nodes.name = 'crate' AND schema_name IN ('blob', 'doc')
+  ... WHERE sys.nodes.name = 'your_node_name' AND schema_name IN ('blob', 'doc')
   ... ORDER BY schema, "table", id, "primary", state;
   +--------+---------------------+----+---------+---------+
   | schema | table               | id | primary | state   |
@@ -214,6 +215,14 @@ look:
    +--------+-------------------+
    SELECT ... rows in set (... sec)
 
+
+.. note::
+
+   If you observe the graceful-stop process using the admin-ui, you might see
+   the cluster turning red for a small instant when a node finally shuts down.
+   This is due to the way the admin ui determines the cluster state. If a query
+   fails due to a missing node, the admin-ui may falsely consider the cluster to
+   be in a critical state.
 
 Step 3: Upgrade Crate
 =====================
