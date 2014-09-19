@@ -15,6 +15,11 @@ using the ``graceful stop`` procedure.
 This procedure will disable a node, which will cause it to reject any new
 requests but will make sure that any pending requests are finished.
 
+.. note::
+
+   Nonetheless, due to the distributed execution of requests, some client requests
+   might fail during this procedure.
+
 In addition it will ensure a certain data availability. Which can either be
 ``none``, ``primaries`` or ``full`` and can be configured using :ref:`ref-set`.
 
