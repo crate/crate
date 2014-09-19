@@ -5,24 +5,10 @@ from crate.testing.layer import CrateLayer
 import os
 import shutil
 import re
-
+import process_test
+from .paths import crate_path, project_path
 from crate.crash.command import CrateCmd
 cmd = CrateCmd()
-
-
-here = os.path.dirname(__file__)
-
-
-def project_path(*parts):
-    return os.path.join(os.path.dirname(docs_path()), *parts)
-
-
-def docs_path(*parts):
-    return os.path.join(os.path.dirname(os.path.dirname(here)), *parts)
-
-
-def crate_path(*parts):
-    return docs_path('tmp', 'crate', *parts)
 
 
 def bash_transform(s):
@@ -133,6 +119,8 @@ def tearDownDropQuotes(test):
 
 def test_suite():
     suite = unittest.TestSuite()
+    processSuite = unittest.TestLoader().loadTestsFromModule(process_test)
+    suite.addTest(processSuite)
     s = doctest.DocFileSuite('../../blob.txt',
                              parser=bash_parser,
                              setUp=setUp,
