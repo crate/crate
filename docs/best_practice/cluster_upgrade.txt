@@ -162,6 +162,59 @@ into timeout during reallocation.
 By default, only the ``graceful stop`` command considers the cluster settings
 described at :ref:`conf_graceful_stop`.
 
+Observing the Reallocation
+--------------------------
+
+If you want to observe the reallocation process triggered by a
+``full`` or ``primaries`` graceful-stop, you can issue the following sql queries.
+
+Get the number of shards remaining on your deallocating node:
+
+.. code-block:: psql
+
+  cr> SELECT count(*) as remaining_shards from sys.shards
+  ... where sys.nodes.name = 'your_node_name';
+  +------------------+
+  | remaining_shards |
+  +------------------+
+  |                0 |
+  +------------------+
+  SELECT 1 row in set (... sec)
+
+
+Get some more detail about what shards are remaining on your node:
+
+.. code-block:: psql
+
+  cr> SELECT schema_name as schema, table_name as "table", id, "primary", state
+  ... FROM sys.shards
+  ... WHERE sys.nodes.name = 'crate' AND schema_name IN ('blob', 'doc')
+  ... ORDER BY schema, "table", id, "primary", state;
+  +--------+---------------------+----+---------+---------+
+  | schema | table               | id | primary | state   |
+  +--------+---------------------+----+---------+---------+
+  ...
+  +--------+---------------------+----+---------+---------+
+  SELECT ... rows in set (... sec)
+
+In case of ``primaries`` availability only the primary shards of tables with
+0 replicas will be reallocated. Use this query to find out, for which shards to
+look:
+
+.. code-block:: psql
+
+   cr> SELECT schema_name as schema, table_name as "table"
+   ... FROM information_schema.tables
+   ... WHERE number_of_replicas = 0 and schema_name in ('blob', 'doc')
+   ... ORDER BY schema, "table" ;
+   +--------+-------------------+
+   | schema | table             |
+   +--------+-------------------+
+   ...
+   +--------+-------------------+
+   SELECT ... rows in set (... sec)
+
+
 Step 3: Upgrade Crate
 =====================
 
