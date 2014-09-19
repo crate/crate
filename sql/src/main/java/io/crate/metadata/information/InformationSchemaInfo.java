@@ -26,7 +26,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -68,7 +67,7 @@ public class InformationSchemaInfo implements SchemaInfo {
     public static final InformationTableInfo TABLE_INFO_TABLE_CONSTRAINTS = new InformationTableInfo.Builder("table_constraints")
             .add("schema_name", DataTypes.STRING, null)
             .add("table_name", DataTypes.STRING, null)
-            .add("constraint_name", new SetType(DataTypes.STRING), null)
+            .add("constraint_name", new ArrayType(DataTypes.STRING), null)
             .add("constraint_type", DataTypes.STRING, null)
             .build();
 

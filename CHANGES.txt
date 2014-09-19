@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: change the type of ``information_schema.table_constraints.constraint_name``
+   to array of string
+
  - Support usage of all scalar functions in the ORDER BY clause without
    limitations.
 
