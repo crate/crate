@@ -5,20 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: change the type of ``information_schema.table_constraints.constraint_name``
-   to array of string
-
  - Support usage of all scalar functions in the ORDER BY clause without
    limitations.
 
  - Using a column name that doesn't exist in the ORDER BY clause will throw an
    error instead of silently ignoring it.
-
- - fix: filtering on system column ``_score`` is only valid by using a
-   ``>=`` comparison, throw error if used otherwise
-
- - fix: properly return elements of object arrays in system tables
-   like sys.nodes.fs['data']['path']
 
  - implemented the graceful-stop command to enable zero downtime upgrades
 
@@ -32,6 +23,18 @@ Unreleased
      - operations_log_size to stats.operations_log_size
    please refer to the ``Configuration`` section in the documentation
    for more details
+
+2014/09/22 0.43.1
+=================
+
+ - fix: change the type of ``information_schema.table_constraints.constraint_name``
+   to array of string
+
+ - fix: properly return elements of object arrays in system tables
+   like sys.nodes.fs['data']['path']
+
+ - fix: filtering on system column ``_score`` is only valid by using a
+   ``>=`` comparison, throw error if used otherwise
 
 2014/09/11 0.43.0
 =================
