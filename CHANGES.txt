@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/09/22 0.43.1
+=================
+
  - fix: change the type of ``information_schema.table_constraints.constraint_name``
    to array of string
 
