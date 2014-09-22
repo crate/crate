@@ -4563,7 +4563,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select regexp_matches(s, '^(bar).*') from regex_noindex order by i");
         assertThat(response.rows()[0][0], nullValue());
-        assertThat(((BytesRef[]) response.rows()[1][0])[0].utf8ToString(), is("bar"));
+        assertThat(((String[]) response.rows()[1][0])[0], is("bar"));
         assertThat(response.rows()[2][0], nullValue());
     }
 
@@ -4587,25 +4587,25 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((String) response.rows()[3][0], is("crate was greater"));
 
         execute("select regexp_matches(s, '(\\w+) is (\\w+)') from regex_fulltext order by i");
-        BytesRef[] match1 = (BytesRef[]) response.rows()[0][0];
-        assertThat(match1[0].utf8ToString(), is("foo is first"));
-        assertThat(match1[1].utf8ToString(), is("foo"));
-        assertThat(match1[2].utf8ToString(), is("first"));
+        String[] match1 = (String[]) response.rows()[0][0];
+        assertThat(match1[0], is("foo is first"));
+        assertThat(match1[1], is("foo"));
+        assertThat(match1[2], is("first"));
 
-        BytesRef[] match2 = (BytesRef[]) response.rows()[1][0];
-        assertThat(match2[0].utf8ToString(), is("bar is second"));
-        assertThat(match2[1].utf8ToString(), is("bar"));
-        assertThat(match2[2].utf8ToString(), is("second"));
+        String[] match2 = (String[]) response.rows()[1][0];
+        assertThat(match2[0], is("bar is second"));
+        assertThat(match2[1], is("bar"));
+        assertThat(match2[2], is("second"));
 
-        BytesRef[] match3 = (BytesRef[]) response.rows()[2][0];
-        assertThat(match3[0].utf8ToString(), is("foobar is great"));
-        assertThat(match3[1].utf8ToString(), is("foobar"));
-        assertThat(match3[2].utf8ToString(), is("great"));
+        String[] match3 = (String[]) response.rows()[2][0];
+        assertThat(match3[0], is("foobar is great"));
+        assertThat(match3[1], is("foobar"));
+        assertThat(match3[2], is("great"));
 
-        BytesRef[] match4 = (BytesRef[]) response.rows()[3][0];
-        assertThat(match4[0].utf8ToString(), is("crate is greater"));
-        assertThat(match4[1].utf8ToString(), is("crate"));
-        assertThat(match4[2].utf8ToString(), is("greater"));
+        String[] match4 = (String[]) response.rows()[3][0];
+        assertThat(match4[0], is("crate is greater"));
+        assertThat(match4[1], is("crate"));
+        assertThat(match4[2], is("greater"));
     }
 
     @Test
