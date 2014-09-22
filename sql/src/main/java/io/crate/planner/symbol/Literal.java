@@ -213,6 +213,9 @@ public class Literal<ReturnType>
     }
 
     public static Literal<Boolean> newLiteral(Boolean value) {
+        if (value == null) {
+            return new Literal<>(DataTypes.BOOLEAN, null);
+        }
         return value ? BOOLEAN_TRUE : BOOLEAN_FALSE;
     }
 
