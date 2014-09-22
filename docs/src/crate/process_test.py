@@ -16,56 +16,6 @@ def public_ip():
 
 class GracefulStopCrateLayer(CrateLayer):
 
-    def __init__(self,
-                 name,
-                 crate_home,
-                 crate_config=None,
-                 port=4200,
-                 keep_running=False,
-                 transport_port=None,
-                 crate_exec=None,
-                 cluster_name=None,
-                 host='localhost'):
-        """
-        TODO: replace with new CrateLayer when new crate-python release is out
-
-        :param name: layer name, is also used as the cluser name
-        :param crate_home: path to home directory of the crate installation
-        :param port: port on which crate should run
-        :param keep_running: do not shut down the crate instance for every
-                            single test instead just delete all indices
-        :param transport_port: port on which transport layer for crate should run
-        :param crate_exec: alternative executable command
-        :param crate_config: alternative crate config file location
-        :param cluster_name: the name of the cluster this node should be part of
-        """
-        self.keep_running = keep_running
-        crate_home = os.path.abspath(crate_home)
-        servers = ['%s:%s' % (host, port)]
-        self.crate_servers = ['http://%s:%s' % (host, port)]
-        if crate_exec is None:
-            crate_exec = os.path.join(crate_home, 'bin', 'crate')
-        if crate_config is None:
-            crate_config = os.path.join(crate_home, 'config', 'crate.yml')
-        if cluster_name is None:
-            cluster_name = 'Testing{0}'.format(port)
-        start_cmd = (
-            crate_exec,
-            '-Des.index.storage.type=memory',
-            '-Des.node.name=%s' % name,
-            '-Des.cluster.name=%s' % cluster_name,
-            '-Des.http.port=%s-%s' % (port, port),
-            '-Des.network.host=%s' % host,
-            '-Des.discovery.type=zen',
-            '-Des.discovery.zen.ping.multicast.enabled=true',
-            '-Des.config=%s' % crate_config,
-            '-Des.path.conf=%s' % os.path.dirname(crate_config),
-        )
-        if transport_port:
-            start_cmd += ('-Des.transport.tcp.port=%s' % transport_port,)
-        super(CrateLayer, self).__init__(name, servers=servers, start_cmd=start_cmd)
-        self.setUpWD()
-
     def stop(self):
         """do not care if process already died"""
         try:
@@ -93,6 +43,7 @@ class GracefulStopTest(unittest.TestCase):
                            host=public_ip(),
                            port=44200+i,
                            transport_port=44300+i,
+                           multicast=True,
                            cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
             self.crates.append(layer)
