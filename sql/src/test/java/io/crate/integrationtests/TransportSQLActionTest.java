@@ -248,11 +248,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "message", "type=string",
                         "person", "type=object")
                 .execute().actionGet();
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"message\":\"I'm addicted to kite\", " +
                         "\"person\": { \"name\": \"Youri\", \"addresses\": [ { \"city\": " +
                         "\"Dirksland\", \"country\": \"NL\" } ] }}")
                 .execute().actionGet();
+        refresh();
 
         execute("select message, person['name'], person['addresses']['city'] from test " +
                 "where person['name'] = 'Youri'");
