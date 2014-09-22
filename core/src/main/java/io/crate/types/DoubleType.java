@@ -61,6 +61,9 @@ public class DoubleType extends DataType<Double> implements Streamer<Double>, Da
         if (value instanceof BytesRef) {
             return Double.valueOf(((BytesRef)value).utf8ToString());
         }
+        if (value instanceof Double) {
+            return (Double) value;
+        }
         return ((Number)value).doubleValue();
     }
 
