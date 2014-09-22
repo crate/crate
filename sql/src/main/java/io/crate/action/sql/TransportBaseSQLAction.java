@@ -197,7 +197,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         Futures.addCallback(future, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long rowCount) {
-                listener.onResponse(createResponseFromResult(
+                sendResponse(listener, createResponseFromResult(
                         request,
                         outputNames,
                         rowCount,
@@ -230,8 +230,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
             UUID jobId = UUID.randomUUID();
             statsTables.jobStarted(jobId, request.stmt());
-            listener.onResponse(
-                emptyResponse(request,
+            sendResponse(listener, emptyResponse(request,
                     outputNames,
                     plan.outputTypes().toArray(new DataType[plan.outputTypes().size()])
                 )
