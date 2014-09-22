@@ -25,7 +25,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
-import io.crate.types.NullType;
+import io.crate.types.UndefinedType;
 
 public class DynamicReference extends Reference {
 
@@ -43,7 +43,7 @@ public class DynamicReference extends Reference {
     }
 
     public DynamicReference(ReferenceIdent ident, RowGranularity rowGranularity) {
-        this.info = new ReferenceInfo(ident, rowGranularity, NullType.INSTANCE);
+        this.info = new ReferenceInfo(ident, rowGranularity, UndefinedType.INSTANCE);
     }
 
     public void valueType(DataType dataType) {

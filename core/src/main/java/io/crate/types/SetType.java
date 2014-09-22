@@ -68,7 +68,7 @@ public class SetType extends DataType implements CollectionType, Streamer<Set> {
 
     @Override
     public boolean isConvertableTo(DataType other) {
-        return other.id() == NullType.ID ||
+        return other.id() == UndefinedType.ID ||
                 ((other instanceof SetType)
                 && this.innerType.isConvertableTo(((SetType) other).innerType));
     }
