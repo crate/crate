@@ -72,6 +72,7 @@ public class SQLService extends AbstractLifecycleComponent<SQLService> {
         transportSQLAction.disable();
         transportSQLBulkAction.disable();
         while (statsTables.activeRequests() > 0) {
+            logger.debug("still processing {} SQL requests...", statsTables.activeRequests());
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {
