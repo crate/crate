@@ -4566,6 +4566,69 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testNonIndexedColumnInRegexScalar() throws Exception {
+        execute("create table regex_noindex (i integer, s string INDEX OFF) clustered into 3 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into regex_noindex (i, s) values (?, ?)", new Object[][]{
+                new Object[]{1, "foo"},
+                new Object[]{2, "bar"},
+                new Object[]{3, "foobar"}
+        });
+        refresh();
+        execute("select regexp_replace(s, 'foo', 'crate') from regex_noindex order by i");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((String) response.rows()[0][0], is("crate"));
+        assertThat((String) response.rows()[1][0], is("bar"));
+        assertThat((String) response.rows()[2][0], is("cratebar"));
+
+        execute("select regexp_matches(s, '^(bar).*') from regex_noindex order by i");
+        assertThat(response.rows()[0][0], nullValue());
+        assertThat(((BytesRef[]) response.rows()[1][0])[0].utf8ToString(), is("bar"));
+        assertThat(response.rows()[2][0], nullValue());
+    }
+
+    @Test
+    public void testFulltextColumnInRegexScalar() throws Exception {
+        execute("create table regex_fulltext (i integer, s string INDEX USING FULLTEXT) clustered into 3 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into regex_fulltext (i, s) values (?, ?)", new Object[][]{
+                new Object[]{1, "foo is first"},
+                new Object[]{2, "bar is second"},
+                new Object[]{3, "foobar is great"},
+                new Object[]{4, "crate is greater"}
+        });
+        refresh();
+
+        execute("select regexp_replace(s, 'is', 'was') from regex_fulltext order by i");
+        assertThat(response.rowCount(), is(4L));
+        assertThat((String) response.rows()[0][0], is("foo was first"));
+        assertThat((String) response.rows()[1][0], is("bar was second"));
+        assertThat((String) response.rows()[2][0], is("foobar was great"));
+        assertThat((String) response.rows()[3][0], is("crate was greater"));
+
+        execute("select regexp_matches(s, '(\\w+) is (\\w+)') from regex_fulltext order by i");
+        BytesRef[] match1 = (BytesRef[]) response.rows()[0][0];
+        assertThat(match1[0].utf8ToString(), is("foo is first"));
+        assertThat(match1[1].utf8ToString(), is("foo"));
+        assertThat(match1[2].utf8ToString(), is("first"));
+
+        BytesRef[] match2 = (BytesRef[]) response.rows()[1][0];
+        assertThat(match2[0].utf8ToString(), is("bar is second"));
+        assertThat(match2[1].utf8ToString(), is("bar"));
+        assertThat(match2[2].utf8ToString(), is("second"));
+
+        BytesRef[] match3 = (BytesRef[]) response.rows()[2][0];
+        assertThat(match3[0].utf8ToString(), is("foobar is great"));
+        assertThat(match3[1].utf8ToString(), is("foobar"));
+        assertThat(match3[2].utf8ToString(), is("great"));
+
+        BytesRef[] match4 = (BytesRef[]) response.rows()[3][0];
+        assertThat(match4[0].utf8ToString(), is("crate is greater"));
+        assertThat(match4[1].utf8ToString(), is("crate"));
+        assertThat(match4[2].utf8ToString(), is("greater"));
+    }
+
+    @Test
     public void testSelectRandomTwoTimes() throws Exception {
         execute("select random(), random() from sys.cluster limit 1");
         assertThat(response.rows()[0][0], is(not(response.rows()[0][1])));
