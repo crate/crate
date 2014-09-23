@@ -8,23 +8,26 @@ Unreleased
  - Renamed NullType to UndefinedType in order to avoid confusion
    about its usage
 
+2014/09/22 0.44.0
+=================
+
  - Support usage of all scalar functions in the ORDER BY clause without
-   limitations.
+   limitations
 
  - Using a column name that doesn't exist in the ORDER BY clause will throw an
-   error instead of silently ignoring it.
+   error instead of silently ignoring it
 
- - implemented the graceful-stop command to enable zero downtime upgrades
+ - Implemented the graceful-stop command to enable zero downtime upgrades
 
- - exposed a lot of cluster settings, most of them are changeable at
+ - Exposed a lot of cluster settings, most of them are changeable at
    runtime by using ``SET/RESET``
 
  - BREAKING:
-   existing cluster settings have been renamed:
+   Existing cluster settings have been renamed:
      - collect_stats to stats.enabled
      - jobs_log_size to stats.jobs_log_size
      - operations_log_size to stats.operations_log_size
-   please refer to the ``Configuration`` section in the documentation
+   Please refer to the ``Configuration`` section in the documentation
    for more details
 
 2014/09/22 0.43.1
