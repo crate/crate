@@ -37,6 +37,7 @@ import java.util.Locale;
 public class BlobEnvironment {
 
     public static final String SETTING_BLOBS_PATH = "blobs.path";
+    public static final String BLOBS_SUB_PATH = "blobs";
 
     private final Settings settings;
     private final NodeEnvironment nodeEnvironment;
@@ -99,7 +100,7 @@ public class BlobEnvironment {
      */
     public File shardLocation(ShardId shardId) {
         if (blobsPath == null) {
-            return nodeEnvironment.shardLocations(shardId)[0];
+            return new File(nodeEnvironment.shardLocations(shardId)[0], BLOBS_SUB_PATH);
         }
         return shardLocation(shardId, blobsPath);
     }
@@ -115,7 +116,7 @@ public class BlobEnvironment {
         File shardLocation = nodeEnvironment.shardLocations(shardId)[0];
         String dataPath = settings.getAsArray("path.data")[0];
         String shardLocationSuffix = shardLocation.getAbsolutePath().substring(dataPath.length());
-        return new File(new File(path, shardLocationSuffix), "blobs");
+        return new File(new File(path, shardLocationSuffix), BLOBS_SUB_PATH);
     }
 
     /**
