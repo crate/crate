@@ -118,7 +118,7 @@ public class CompoundLiteralTest extends BaseAnalyzerTest {
     public void testArrayLiteral() throws Exception {
         Literal emptyArray = (Literal) analyzeExpression("[]");
         assertThat((Object[])emptyArray.value(), is(new Object[0]));
-        assertThat(emptyArray.valueType(), is((DataType)new ArrayType(NullType.INSTANCE)));
+        assertThat(emptyArray.valueType(), is((DataType)new ArrayType(UndefinedType.INSTANCE)));
 
         Literal singleArray = (Literal) analyzeExpression("[1]");
         assertThat(singleArray.valueType(), is((DataType)new ArrayType(LongType.INSTANCE)));

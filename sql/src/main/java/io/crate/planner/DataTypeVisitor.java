@@ -24,7 +24,7 @@ package io.crate.planner;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.NullType;
+import io.crate.types.UndefinedType;
 
 public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
 
@@ -38,7 +38,7 @@ public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
     @Override
     public DataType visitAggregation(Aggregation symbol, Void context) {
         if (symbol.toStep() == Aggregation.Step.PARTIAL) {
-            return NullType.INSTANCE; // TODO: change once we have aggregationState types
+            return UndefinedType.INSTANCE; // TODO: change once we have aggregationState types
         }
         return symbol.functionInfo().returnType();
     }

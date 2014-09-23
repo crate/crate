@@ -34,7 +34,7 @@ import java.util.*;
 
 public class DataTypes {
 
-    public final static NullType NULL = NullType.INSTANCE;
+    public final static UndefinedType NULL = UndefinedType.INSTANCE;
     public final static NotSupportedType NOT_SUPPORTED = NotSupportedType.INSTANCE;
 
     public final static ByteType BYTE = ByteType.INSTANCE;
@@ -78,7 +78,7 @@ public class DataTypes {
     );
 
     public static final ImmutableMap<Integer, DataTypeFactory> typeRegistry = ImmutableMap.<Integer, DataTypeFactory>builder()
-        .put(NullType.ID, NULL)
+        .put(UndefinedType.ID, NULL)
         .put(NotSupportedType.ID, NOT_SUPPORTED)
         .put(ByteType.ID, BYTE)
         .put(BooleanType.ID, BOOLEAN)

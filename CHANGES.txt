@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Renamed NullType to UndefinedType in order to avoid confusion
+   about its usage
+
  - Support usage of all scalar functions in the ORDER BY clause without
    limitations.
 

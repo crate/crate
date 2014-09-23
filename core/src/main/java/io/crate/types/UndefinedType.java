@@ -27,12 +27,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class NullType extends DataType<Void> implements DataTypeFactory, Streamer<Void> {
+public class UndefinedType extends DataType<Void> implements DataTypeFactory, Streamer<Void> {
 
     public static final int ID = 0;
 
-    public static final NullType INSTANCE = new NullType();
-    private NullType() {}
+    public static final UndefinedType INSTANCE = new UndefinedType();
+    private UndefinedType() {}
 
     @Override
     public int id() {

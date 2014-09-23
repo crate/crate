@@ -86,7 +86,7 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
 
     @Override
     public boolean isConvertableTo(DataType other) {
-        return other.id() == NullType.ID ||
+        return other.id() == UndefinedType.ID ||
                 ((other instanceof ArrayType)
                 && this.innerType.isConvertableTo(((ArrayType) other).innerType));
     }
