@@ -5,6 +5,14 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - BREAKING IF UPGRADING FROM 0.42:
+    The sub-folder in which blobs are saved by default has accidentily
+    been changed with 0.42, this change is now being reverted. For
+    users upgrading from 0.42 this means that they have to move
+    the directories ``tmp`` + ``var`` from the shard folders to
+    subfolder named ``blobs``. Users who upgrade from a version priour
+    to 0.42 can upgrade without worries.
+
 2014/09/22 0.43.1
 =================
 
