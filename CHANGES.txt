@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/09/23 0.44.1
+=================
+
  - BREAKING IF UPGRADING FROM 0.42:
     The sub-folder in which blobs are saved by default has accidentily
     been changed with 0.42, this change is now being reverted. For
