@@ -25,10 +25,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import org.elasticsearch.common.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,6 +60,39 @@ public class StringUtils {
         }
 
         return PATH_JOINER.join(s);
+    }
+
+    /**
+     * Return the common ancestors of a list of fields.<br />
+     * A field is a string that can use the dotted-notation to indicate nesting.<br />
+     *
+     * <pre>
+     * fields:  [ "a", "a.b", "b.c", "b.c.d"]
+     * returns: [ "a", "b.c" ]
+     * </pre>
+     *
+     * @param fields a list of strings where each string may contain dots as its separator
+     * @return a list of strings with only the common ancestors.
+     */
+    public static Set<String> commonAncestors(List<String> fields){
+        int idx = 0;
+        String previous = null;
+
+        Collections.sort(fields);
+        Set<String> result = new HashSet<>(fields.size());
+        for (String field : fields) {
+            if (idx>0){
+                if (!field.startsWith(previous + '.')){
+                    previous = field;
+                    result.add(field);
+                }
+            } else {
+                result.add(field);
+                previous = field;
+            }
+            idx++;
+        }
+        return result;
     }
 
     /**

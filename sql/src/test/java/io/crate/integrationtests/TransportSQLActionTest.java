@@ -90,6 +90,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectKeepsOrder() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         refresh();
         execute("select \"_id\" as b, \"_version\" as a from test");
@@ -228,6 +229,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "firstName", "type=string",
                         "lastName", "type=string")
                 .execute().actionGet();
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
                 .execute().actionGet();
@@ -412,6 +414,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectObject() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1")
                 .setSource("{\"a\":{\"nested\":2}}")
                 .execute().actionGet();
@@ -461,11 +464,14 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithNotEqual() throws Exception {
-        createIndex("test");
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
+        execute("create table test (id string primary key) with (number_of_replicas = 0)");
+        ensureGreen();
+        execute("insert into test (id) values (?)", new Object[][] {
+                new Object[] { "id1" },
+                new Object[] { "id2" }
+        });
         refresh();
-        execute("select \"_id\" from test where \"_id\"!='id1'");
+        execute("select id from test where id != 'id1'");
         assertEquals(1, response.rowCount());
         assertEquals("id2", response.rows()[0][0]);
     }
@@ -473,7 +479,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithOneOrFilter() throws Exception {
-        execute("create table test (id string)");
+        execute("create table test (id string) with (number_of_replicas = 0)");
+        ensureGreen();
         execute("insert into test (id) values ('id1'), ('id2'), ('id3')");
         refresh();
         execute("select id from test where id='id1' or id='id3'");
@@ -483,7 +490,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithOneMultipleOrFilter() throws Exception {
-        execute("create table test (id string)");
+        execute("create table test (id string) with (number_of_replicas = 0)");
+        ensureGreen();
         execute("insert into test (id) values ('id1'), ('id2'), ('id3'), ('id4')");
         refresh();
         execute("select id from test where id='id1' or id='id2' or id='id4'");
@@ -2171,7 +2179,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereScore() throws Exception {
         execute("create table quotes (quote string, " +
-                "index quote_ft using fulltext(quote))");
+                "index quote_ft using fulltext(quote)) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2190,7 +2199,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectMatchAnd() throws Exception {
         execute("create table quotes (id int, quote string, " +
-                "index quote_fulltext using fulltext(quote) with (analyzer='english'))");
+                "index quote_fulltext using fulltext(quote) with (analyzer='english')) with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
