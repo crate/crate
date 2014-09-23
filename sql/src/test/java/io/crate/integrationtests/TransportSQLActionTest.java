@@ -474,6 +474,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSqlRequestWithOneOrFilter() throws Exception {
         execute("create table test (id string)");
+        ensureGreen();
         execute("insert into test (id) values ('id1'), ('id2'), ('id3')");
         refresh();
         execute("select id from test where id='id1' or id='id3'");
@@ -484,6 +485,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSqlRequestWithOneMultipleOrFilter() throws Exception {
         execute("create table test (id string)");
+        ensureGreen();
         execute("insert into test (id) values ('id1'), ('id2'), ('id3'), ('id4')");
         refresh();
         execute("select id from test where id='id1' or id='id2' or id='id4'");
@@ -1800,6 +1802,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test(expected = SQLActionException.class)
     public void testCreateTableAlreadyExistsException() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
         execute("create table test (col1 integer primary key, col2 string)");
     }
 
@@ -2191,6 +2194,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSelectMatchAnd() throws Exception {
         execute("create table quotes (id int, quote string, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='english'))");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2212,7 +2216,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "quote string index off, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
                 ") clustered by (id) into 3 shards with (number_of_replicas=10)");
-        refresh();
 
         execute("select table_name, number_of_shards, number_of_replicas, clustered_by from " +
                 "information_schema.tables " +
@@ -2368,7 +2371,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table quotes (id integer primary key, " +
                 "quote string index using fulltext) partitioned by (id)");
         ensureGreen();
-        refresh();
 
         String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{filePath});
@@ -2502,6 +2504,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testCountWithGroupByTableAlias() throws Exception {
         execute("create table characters_guide (race string, gender string, name string)");
+        ensureGreen();
         execute("insert into characters_guide (race, gender, name) values ('Human', 'male', 'Arthur Dent')");
         execute("insert into characters_guide (race, gender, name) values ('Android', 'male', 'Marving')");
         execute("insert into characters_guide (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
@@ -2509,6 +2512,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("create table characters_life (race string, gender string, name string)");
+        ensureGreen();
         execute("insert into characters_life (race, gender, name) values ('Rabbit', 'male', 'Agrajag')");
         execute("insert into characters_life (race, gender, name) values ('Human', 'male', 'Ford Perfect')");
         execute("insert into characters_life (race, gender, name) values ('Human', 'female', 'Trillian')");
@@ -2535,7 +2539,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "content string)",
                 tableName
         ));
-        refresh();
+        ensureGreen();
         client().admin().indices().prepareAliases().addAlias(tableName,
                 tableAlias).execute().actionGet();
         refresh();
@@ -2671,6 +2675,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testInsertWithClusteredByNull() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, quote) values(?, ?)",
                 new Object[]{null, "I'd far rather be happy than right any day."});
     }
@@ -2679,6 +2684,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testInsertWithClusteredByWithoutValue() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (quote) values(?)",
                 new Object[]{"I'd far rather be happy than right any day."});
     }
@@ -2687,6 +2693,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testInsertSelectWithClusteredBy() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, quote) values(?, ?)",
                 new Object[]{1, "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -2704,6 +2711,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testInsertSelectWithAutoGeneratedId() throws Exception {
         execute("create table quotes (id integer, quote string)" +
                 "with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, quote) values(?, ?)",
                 new Object[]{1, "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -2721,6 +2729,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testInsertSelectWithPrimaryKey() throws Exception {
         execute("create table quotes (id integer primary key, quote string)" +
                 "with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, quote) values(?, ?)",
                 new Object[]{1, "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -2740,6 +2749,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testInsertSelectWithMultiplePrimaryKey() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, author, quote) values(?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -2755,6 +2765,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testInsertSelectWithMultiplePrimaryKeyAndClusteredBy() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) clustered by(author) with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, author, quote) values(?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -2770,6 +2781,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testInsertSelectWithMultiplePrimaryOnePkSame() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) clustered by(author) with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
                         1, "Douglas", "Don't panic"}
@@ -2789,6 +2801,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testUpdateByIdWithMultiplePrimaryKeyAndClusteredBy() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) clustered by(author) with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, author, quote) values(?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -2807,6 +2820,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testUpdateByQueryWithMultiplePrimaryKeyAndClusteredBy() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) clustered by(author) with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, author, quote) values(?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -2826,6 +2840,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testDeleteByIdWithMultiplePrimaryKey() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
                         1, "Douglas", "Don't panic"}
@@ -2845,6 +2860,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testDeleteByQueryWithMultiplePrimaryKey() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) with (number_of_replicas=0)");
+        ensureGreen();
         execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
                         1, "Douglas", "Don't panic"}
@@ -2864,6 +2880,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereBoolean() {
         execute("create table a (v boolean)");
+        ensureGreen();
+
         execute("insert into a values (true)");
         execute("insert into a values (true)");
         execute("insert into a values (true)");
@@ -2887,6 +2905,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereBooleanPK() {
         execute("create table b (v boolean primary key) clustered by (v)");
+        ensureGreen();
+
         execute("insert into b values (true)");
         execute("insert into b values (false)");
         refresh();
