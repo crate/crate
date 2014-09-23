@@ -22,6 +22,11 @@
 package io.crate.lucene;
 
 import com.google.common.collect.ImmutableMap;
+import com.spatial4j.core.context.jts.JtsSpatialContext;
+import com.spatial4j.core.shape.Rectangle;
+import com.spatial4j.core.shape.Shape;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
@@ -37,6 +42,7 @@ import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.operation.scalar.geo.DistanceFunction;
+import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
@@ -60,6 +66,8 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
 import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.index.search.geo.GeoDistanceRangeFilter;
+import org.elasticsearch.index.search.geo.GeoPolygonFilter;
+import org.elasticsearch.index.search.geo.InMemoryGeoBoundingBoxFilter;
 import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
@@ -165,13 +173,13 @@ public class LuceneQueryBuilder {
             this.indexCache = indexCache;
         }
 
-        abstract class FunctionToQuery {
+        interface FunctionToQuery {
 
             @Nullable
-            public abstract Query apply (Function input, Context context) throws IOException;
+            public Query apply (Function input, Context context) throws IOException;
         }
 
-        abstract class CmpQuery extends FunctionToQuery {
+        abstract class CmpQuery implements FunctionToQuery {
 
             @Nullable
             protected Tuple<Reference, Literal> prepare(Function input) {
@@ -184,7 +192,6 @@ public class LuceneQueryBuilder {
                 if (!(left instanceof Reference) || !(right.symbolType().isValueSymbol())) {
                     return null;
                 }
-
                 assert right.symbolType() == SymbolType.LITERAL;
                 return new Tuple<>((Reference)left, (Literal)right);
             }
@@ -256,7 +263,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class NotQuery extends FunctionToQuery {
+        class NotQuery implements FunctionToQuery {
 
             @Override
             public Query apply(Function input, Context context) {
@@ -271,7 +278,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class IsNullQuery extends FunctionToQuery {
+        class IsNullQuery implements FunctionToQuery {
 
             @Override
             public Query apply(Function input, Context context) {
@@ -304,7 +311,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class AndQuery extends FunctionToQuery {
+        class AndQuery implements FunctionToQuery {
             @Override
             public Query apply(Function input, Context context) {
                 assert input != null;
@@ -316,7 +323,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class OrQuery extends FunctionToQuery {
+        class OrQuery implements FunctionToQuery {
             @Override
             public Query apply(Function input, Context context) {
                 assert input != null;
@@ -389,7 +396,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class ToMatchQuery extends FunctionToQuery {
+        class ToMatchQuery implements FunctionToQuery {
 
             @Override
             public Query apply(Function input, Context context) throws IOException {
@@ -418,12 +425,88 @@ public class LuceneQueryBuilder {
             }
         }
 
-        abstract class InnerFunctionToQuery {
+        /**
+         * interface for functions that can be used to generate a query from inner functions.
+         * Has only a single method {@link #apply(io.crate.planner.symbol.Function, io.crate.planner.symbol.Function, io.crate.lucene.LuceneQueryBuilder.Context)}
+         *
+         * e.g. in a query like
+         * <pre>
+         *     where distance(p1, 'POINT (10 20)') = 20
+         * </pre>
+         *
+         * The first parameter (parent) would be the "eq" function.
+         * The second parameter (inner) would be the "distance" function.
+         *
+         * The returned Query must "contain" both the parent and inner functions.
+         */
+         interface InnerFunctionToQuery {
 
-            public abstract Query apply(Function parent, Function inner, Context context) throws IOException;
+            /**
+             * returns a query for the given functions or null if it can't build a query.
+             */
+            @Nullable
+            public Query apply(Function parent, Function inner, Context context) throws IOException;
         }
 
-        class DistanceQuery extends InnerFunctionToQuery {
+        /**
+         * for where within(shape1, shape2) = [ true | false ]
+         */
+        class WithinQuery implements FunctionToQuery, InnerFunctionToQuery {
+
+            @Override
+            public Query apply(Function parent, Function inner, Context context) throws IOException {
+                FunctionLiteralPair outerPair = new FunctionLiteralPair(parent);
+                if (!outerPair.isValid()) {
+                    return null;
+                }
+                Query query = getQuery(inner);
+                if (query == null) return null;
+                Boolean negate = !(Boolean) outerPair.input().value();
+                if (negate) {
+                    BooleanQuery booleanQuery = new BooleanQuery();
+                    booleanQuery.add(query, BooleanClause.Occur.MUST_NOT);
+                    return booleanQuery;
+                } else {
+                    return query;
+                }
+            }
+
+            private Query getQuery(Function inner) {
+                RefLiteralPair innerPair = new RefLiteralPair(inner);
+                if (!innerPair.isValid()) {
+                    return null;
+                }
+                GeoPointFieldMapper mapper = getGeoPointFieldMapper(innerPair.reference().info().ident().columnIdent().fqn());
+                Shape shape = (Shape) innerPair.input().value();
+                Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
+                IndexGeoPointFieldData<?> fieldData = searchContext.fieldData().getForField(mapper);
+                Filter filter;
+                if (geometry.isRectangle()) {
+                    Rectangle boundingBox = shape.getBoundingBox();
+                    filter = new InMemoryGeoBoundingBoxFilter(
+                            new GeoPoint(boundingBox.getMaxY(), boundingBox.getMinX()),
+                            new GeoPoint(boundingBox.getMinY(), boundingBox.getMaxX()),
+                            fieldData
+                    );
+                } else {
+                    Coordinate[] coordinates = geometry.getCoordinates();
+                    GeoPoint[] points = new GeoPoint[coordinates.length];
+                    for (int i = 0; i < coordinates.length; i++) {
+                        Coordinate coordinate = coordinates[i];
+                        points[i] = new GeoPoint(coordinate.y, coordinate.x);
+                    }
+                    filter = new GeoPolygonFilter(fieldData, points);
+                }
+                return new FilteredQuery(Queries.newMatchAllQuery(), indexCache.filter().cache(filter));
+            }
+
+            @Override
+            public Query apply(Function input, Context context) throws IOException {
+                return getQuery(input);
+            }
+        }
+
+        class DistanceQuery implements InnerFunctionToQuery {
 
             final GeoDistance geoDistance = GeoDistance.DEFAULT;
             final String optimizeBox = "memory";
@@ -453,7 +536,7 @@ public class LuceneQueryBuilder {
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
                 String fieldName = distanceRefLiteral.reference().info().ident().columnIdent().fqn();
-                FieldMapper mapper = getFieldMapper(fieldName);
+                FieldMapper mapper = getGeoPointFieldMapper(fieldName);
                 GeoPointFieldMapper geoMapper = ((GeoPointFieldMapper) mapper);
                 IndexGeoPointFieldData<?> fieldData = searchContext.fieldData().getForField(mapper);
 
@@ -508,18 +591,18 @@ public class LuceneQueryBuilder {
                 );
                 return new FilteredQuery(Queries.newMatchAllQuery(), indexCache.filter().cache(filter));
             }
+        }
 
-            private FieldMapper getFieldMapper(String fieldName) {
-                MapperService.SmartNameFieldMappers smartMappers = searchContext.smartFieldMappers(fieldName);
-                if (smartMappers == null || !smartMappers.hasMapper()) {
-                    throw new IllegalArgumentException(String.format("column \"%s\" doesn't exist", fieldName));
-                }
-                FieldMapper mapper = smartMappers.mapper();
-                if (!(mapper instanceof GeoPointFieldMapper)) {
-                    throw new IllegalArgumentException(String.format("column \"%s\" isn't of type geo_point", fieldName));
-                }
-                return mapper;
+        private GeoPointFieldMapper getGeoPointFieldMapper(String fieldName) {
+            MapperService.SmartNameFieldMappers smartMappers = searchContext.smartFieldMappers(fieldName);
+            if (smartMappers == null || !smartMappers.hasMapper()) {
+                throw new IllegalArgumentException(String.format("column \"%s\" doesn't exist", fieldName));
             }
+            FieldMapper mapper = smartMappers.mapper();
+            if (!(mapper instanceof GeoPointFieldMapper)) {
+                throw new IllegalArgumentException(String.format("column \"%s\" isn't of type geo_point", fieldName));
+            }
+            return (GeoPointFieldMapper) mapper;
         }
 
         private final EqQuery eqQuery = new EqQuery();
@@ -528,8 +611,10 @@ public class LuceneQueryBuilder {
         private final GtQuery gtQuery = new GtQuery();
         private final GteQuery gteQuery = new GteQuery();
         private final LikeQuery likeQuery = new LikeQuery();
+        private final WithinQuery withinQuery = new WithinQuery();
         private final ImmutableMap<String, FunctionToQuery> functions =
                 ImmutableMap.<String, FunctionToQuery>builder()
+                        .put(WithinFunction.NAME, withinQuery)
                         .put(AndOperator.NAME, new AndQuery())
                         .put(OrOperator.NAME, new OrQuery())
                         .put(EqOperator.NAME, eqQuery)
@@ -554,6 +639,7 @@ public class LuceneQueryBuilder {
         private final ImmutableMap<String, InnerFunctionToQuery> innerFunctions =
                 ImmutableMap.<String, InnerFunctionToQuery>builder()
                         .put(DistanceFunction.NAME, new DistanceQuery())
+                        .put(WithinFunction.NAME, withinQuery)
                         .build();
 
         @Override
