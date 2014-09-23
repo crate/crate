@@ -49,6 +49,7 @@ public class BlobEnvironmentTest {
     private static Path dataPath;
     private static File testFile;
     private BlobEnvironment blobEnvironment;
+    private NodeEnvironment nodeEnvironment;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -59,7 +60,7 @@ public class BlobEnvironmentTest {
         Settings settings = ImmutableSettings.builder()
                 .put("path.data", dataPath.toAbsolutePath()).build();
         Environment environment = new Environment(settings);
-        NodeEnvironment nodeEnvironment = new NodeEnvironment(settings, environment);
+        nodeEnvironment = new NodeEnvironment(settings, environment);
         blobEnvironment = new BlobEnvironment(settings, nodeEnvironment, new ClusterName("test"));
     }
 
@@ -79,6 +80,14 @@ public class BlobEnvironmentTest {
         File shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0), blobsPath);
         assertThat(shardLocation.getAbsolutePath().substring(0, blobsPath.getAbsolutePath().length()),
                 is(blobsPath.getAbsolutePath()));
+    }
+
+    @Test
+    public void testShardLocationWithoutCustomPath() throws Exception {
+        File shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0));
+        File nodeShardLocation = nodeEnvironment.shardLocations(new ShardId(".blob_test", 0))[0];
+        assertThat(shardLocation.getAbsolutePath().substring(nodeShardLocation.getAbsolutePath().length()),
+                is("/"+BlobEnvironment.BLOBS_SUB_PATH));
     }
 
     @Test
