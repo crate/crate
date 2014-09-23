@@ -50,6 +50,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
@@ -425,6 +426,24 @@ public class LuceneQueryBuilder {
             }
         }
 
+        class RegexpMatchQuery extends CmpQuery {
+
+            @Override
+            public Query apply(Function input, Context context) throws IOException {
+                Tuple<Reference, Literal> prepare = prepare(input);
+                if (prepare == null) { return null; }
+                String fieldName = prepare.v1().info().ident().columnIdent().fqn();
+                Object value = prepare.v2().value();
+                if (value instanceof String) {
+                    return new RegexpQuery(new Term(fieldName, (String) value), RegExp.ALL);
+                }
+                if (value instanceof BytesRef) {
+                    return new RegexpQuery(new Term(fieldName, (BytesRef) value), RegExp.ALL);
+                }
+                throw new IllegalArgumentException("Can only use ~ with patterns of type string");
+            }
+        }
+
         /**
          * interface for functions that can be used to generate a query from inner functions.
          * Has only a single method {@link #apply(io.crate.planner.symbol.Function, io.crate.planner.symbol.Function, io.crate.lucene.LuceneQueryBuilder.Context)}
@@ -634,6 +653,7 @@ public class LuceneQueryBuilder {
                         .put(AnyGtOperator.NAME, gtQuery)
                         .put(AnyLikeOperator.NAME, likeQuery)
                         .put(AnyNotLikeOperator.NAME, new AnyNotLikeQuery())
+                        .put(RegexpMatchOperator.NAME, new RegexpMatchQuery())
                         .build();
 
         private final ImmutableMap<String, InnerFunctionToQuery> innerFunctions =
