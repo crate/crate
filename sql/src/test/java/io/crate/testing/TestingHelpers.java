@@ -183,6 +183,11 @@ public class TestingHelpers {
                 if (!((Literal) item).valueType().equals(type)) {
                     mismatchDescription.appendText("wrong type ").appendValue(type.toString());
                 }
+                if (((Literal) item).value() == null && expectedValue != null) {
+                    mismatchDescription.appendText("wrong value ").appendValue(((Literal) item).value());
+                } else if (((Literal) item).value() == null && expectedValue == null) {
+                    return true;
+                }
                 if (!((Literal) item).value().equals(expectedValue)) {
                     mismatchDescription.appendText("wrong value ").appendValue(((Literal) item).value());
                 }

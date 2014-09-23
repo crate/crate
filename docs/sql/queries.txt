@@ -620,7 +620,7 @@ Selecting Array Elements
 Array elements can be selected directly using a integer value greater
 than or equal to **1**. The maximum supported array index is
 **2147483648**. Using an index greater than the actual array size
-results in an error.
+results in a NULL value.
 
 ::
 

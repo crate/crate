@@ -120,9 +120,6 @@ public class SubscriptFunctionTest {
 
     @Test
     public void testIndexOutOfRange() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Array index out of range: 3");
-
         final Literal<Object[]> term = Literal.newLiteral(
                 new BytesRef[]{ new BytesRef("Youri"), new BytesRef("Ruben") },
                 new ArrayType(DataTypes.STRING));
@@ -133,7 +130,8 @@ public class SubscriptFunctionTest {
         Function function = createFunction(SubscriptFunction.NAME, DataTypes.STRING, arguments);
         SubscriptFunction subscriptFunction = (SubscriptFunction) functions.get(function.info().ident());
 
-        subscriptFunction.normalizeSymbol(function);
+        Symbol result = subscriptFunction.normalizeSymbol(function);
+        assertThat(result, isLiteral(null, DataTypes.STRING));
     }
 
 }

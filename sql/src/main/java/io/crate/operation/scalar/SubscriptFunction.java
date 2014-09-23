@@ -100,7 +100,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Dynam
             }
             return ((Object[]) element)[idx];
         } catch (IndexOutOfBoundsException e) {
-            throw new IllegalArgumentException("Array index out of range: " + index);
+            return null;
         }
     }
 
