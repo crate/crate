@@ -428,8 +428,18 @@ public class LuceneQueryBuilder {
              final GeoDistance geoDistance = GeoDistance.DEFAULT;
              final String optimizeBox = "memory";
 
+             /**
+              *
+              * @param parent the outer function. E.g. in the case of
+              *     <pre>where distance(p1, POINT (10 20)) > 20</pre>
+              *     this would be
+              *     <pre>gt( \<inner function\>,  20)</pre>
+              * @param inner has to be the distance function
+              */
              @Override
              public Query apply(Function parent, Function inner, Context context) {
+                 assert inner.info().ident().name().equals(DistanceFunction.NAME);
+
                  RefLiteralPair distanceRefLiteral = new RefLiteralPair(inner);
                  if (!distanceRefLiteral.isValid()) {
                      // can't use distance filter without literal, fallback to genericFunction
