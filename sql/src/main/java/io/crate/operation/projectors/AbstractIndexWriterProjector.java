@@ -132,6 +132,9 @@ public abstract class AbstractIndexWriterProjector implements Projector {
             indexName = getIndexName();
         }
 
+        if (id == null) {
+            throw new IllegalArgumentException("Primary key value must not be NULL");
+        }
         return bulkShardProcessor.add(indexName, source, id, clusteredByValue);
     }
 

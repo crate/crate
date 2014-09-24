@@ -104,6 +104,7 @@ public class BulkShardProcessor {
     }
 
     public boolean add(String indexName, BytesReference source, String id, @Nullable String routing) {
+        assert id != null : "id must not be null";
         pending.incrementAndGet();
         Throwable throwable = failure.get();
         if (throwable != null) {
