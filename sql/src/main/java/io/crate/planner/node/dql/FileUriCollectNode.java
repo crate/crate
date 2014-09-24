@@ -23,7 +23,7 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.Objects;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.planner.projection.Projection;

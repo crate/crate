@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,32 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dml;
+package io.crate.analyze.relation;
 
-import io.crate.analyze.where.WhereClause;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.metadata.table.TableInfo;
 
-public class ESDeleteByQueryNode extends DMLPlanNode {
+import java.util.List;
 
-    private final String[] indices;
-    private final WhereClause whereClause;
+public interface AnalyzedRelation {
 
-    public ESDeleteByQueryNode(String[] indices, WhereClause whereClause) {
-        assert whereClause != null;
-        this.indices = indices;
-        this.whereClause = whereClause;
-    }
+    public List<AnalyzedRelation> children();
 
-    public String[] indices() {
-        return indices;
-    }
+    /**
+     * return the number of relations this one is made up
+     * including itself
+     */
+    public int numRelations();
 
-    public WhereClause whereClause() {
-        return whereClause;
-    }
+    /**
+     * A list of tables this relation references.
+     * If this is itself a table, it returns an empty list.
+     */
+    public List<TableInfo> tables();
 
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESDeleteByQueryNode(this, context);
-    }
+    public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context);
 }

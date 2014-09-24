@@ -22,7 +22,7 @@
 package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.operation.Input;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.symbol.Reference;
