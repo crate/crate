@@ -24,75 +24,41 @@ package io.crate.metadata.information;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Collection;
 import java.util.Iterator;
 
+@Singleton
 public class InformationSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "information_schema";
 
-    public static final InformationTableInfo TABLE_INFO_TABLES = new InformationTableInfo.Builder("tables")
-            .add("schema_name", DataTypes.STRING, null)
-            .add("table_name", DataTypes.STRING, null)
-            .add("number_of_shards", DataTypes.INTEGER, null)
-            .add("number_of_replicas", DataTypes.STRING, null)
-            .add("clustered_by", DataTypes.STRING, null)
-            .add("partitioned_by", new ArrayType(DataTypes.STRING), null)
-            .add("blobs_path", DataTypes.STRING, null)
-            .addPrimaryKey("schema_name")
-            .addPrimaryKey("table_name")
-            .build();
+    public final ImmutableMap<String, InformationTableInfo> tableInfoMap;
 
-    public static final InformationTableInfo TABLE_INFO_TABLE_PARTITIONS = new InformationTableInfo.Builder("table_partitions")
-            .add("table_name", DataTypes.STRING, null)
-            .add("schema_name", DataTypes.STRING, null)
-            .add("partition_ident", DataTypes.STRING, null)
-            .add("values", DataTypes.OBJECT, null)
-            .build();
-
-    public static final InformationTableInfo TABLE_INFO_COLUMNS = new InformationTableInfo.Builder("columns")
-            .add("schema_name", DataTypes.STRING, null)
-            .add("table_name", DataTypes.STRING, null)
-            .add("column_name", DataTypes.STRING, null)
-            .add("ordinal_position", DataTypes.SHORT, null)
-            .add("data_type", DataTypes.STRING, null)
-            .addPrimaryKey("schema_name")
-            .addPrimaryKey("table_name")
-            .addPrimaryKey("column_name")
-            .build();
-
-    public static final InformationTableInfo TABLE_INFO_TABLE_CONSTRAINTS = new InformationTableInfo.Builder("table_constraints")
-            .add("schema_name", DataTypes.STRING, null)
-            .add("table_name", DataTypes.STRING, null)
-            .add("constraint_name", new ArrayType(DataTypes.STRING), null)
-            .add("constraint_type", DataTypes.STRING, null)
-            .build();
-
-    public static final InformationTableInfo TABLE_INFO_ROUTINES = new InformationTableInfo.Builder("routines")
-            .add("routine_name", DataTypes.STRING, null)
-            .add("routine_type", DataTypes.STRING, null)
-            .build();
-
-    public static final ImmutableMap<String, TableInfo> TABLE_INFOS =
-            ImmutableMap.<String, TableInfo>builder()
-                    .put(TABLE_INFO_TABLES.ident().name(), TABLE_INFO_TABLES)
-                    .put(TABLE_INFO_TABLE_PARTITIONS.ident().name(), TABLE_INFO_TABLE_PARTITIONS)
-                    .put(TABLE_INFO_COLUMNS.ident().name(), TABLE_INFO_COLUMNS)
-                    .put(TABLE_INFO_TABLE_CONSTRAINTS.ident().name(), TABLE_INFO_TABLE_CONSTRAINTS)
-                    .put(TABLE_INFO_ROUTINES.ident().name(), TABLE_INFO_ROUTINES)
-                    .build();
+    public InformationSchemaInfo() {
+        this.tableInfoMap = ImmutableMap.<String, InformationTableInfo>builder()
+                .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo(this))
+                .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo(this))
+                .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(this))
+                .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo(this))
+                .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo(this))
+        .build();
+    }
 
     @Override
     public TableInfo getTableInfo(String name) {
-        return TABLE_INFOS.get(name);
+        return tableInfoMap.get(name);
     }
 
     @Override
     public Collection<String> tableNames() {
-        return TABLE_INFOS.keySet();
+        return tableInfoMap.keySet();
+    }
+
+    @Override
+    public String name() {
+        return NAME;
     }
 
     @Override
@@ -101,7 +67,7 @@ public class InformationSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public Iterator<TableInfo> iterator() {
-        return TABLE_INFOS.values().iterator();
+    public Iterator<? extends TableInfo> iterator() {
+        return tableInfoMap.values().iterator();
     }
 }

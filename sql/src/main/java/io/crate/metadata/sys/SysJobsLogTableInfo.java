@@ -50,8 +50,8 @@ public class SysJobsLogTableInfo extends SysTableInfo {
     }
 
     @Inject
-    public SysJobsLogTableInfo(ClusterService clusterService) {
-        super(clusterService);
+    public SysJobsLogTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
+        super(clusterService, sysSchemaInfo);
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {

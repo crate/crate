@@ -20,11 +20,10 @@
  */
 package io.crate.operation.reference.information;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TablePartitionInfo;
 import io.crate.metadata.information.InformationCollectorExpression;
-import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.InformationPartitionsTableInfo;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
@@ -32,35 +31,54 @@ import java.util.Map;
 public abstract class InformationTablePartitionsExpression<T>
         extends InformationCollectorExpression<TablePartitionInfo, T> {
 
-    public static final ImmutableList<InformationTablePartitionsExpression<?>> IMPLEMENTATIONS
-            = ImmutableList.<InformationTablePartitionsExpression<?>>builder()
-            .add(new InformationTablePartitionsExpression<BytesRef>("table_name") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.tableName());
-                }
-            })
-            .add(new InformationTablePartitionsExpression<BytesRef>("schema_name") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.schemaName());
-                }
-            })
-            .add(new InformationTablePartitionsExpression<BytesRef>("partition_ident") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.partitionIdent());
-                }
-            })
-            .add(new InformationTablePartitionsExpression<Map<String, Object>>("values") {
-                @Override
-                public Map<String, Object> value() {
-                    return row.values();
-                }
-            })
-            .build();
+    public static final PartitionsTableNameExpression TABLE_NAME_EXPRESSION = new PartitionsTableNameExpression();
+    public static final PartitionsSchemaNameExpression SCHEMA_NAME_EXPRESSION = new PartitionsSchemaNameExpression();
+    public static final PartitionsPartitionIdentExpression PARTITION_IDENT_EXPRESSION = new PartitionsPartitionIdentExpression();
+    public static final PartitionsValuesExpression VALUES_EXPRESSION = new PartitionsValuesExpression();
 
-    protected InformationTablePartitionsExpression(String name) {
-        super(InformationSchemaInfo.TABLE_INFO_TABLE_PARTITIONS.getColumnInfo(new ColumnIdent(name)));
+    protected InformationTablePartitionsExpression(ReferenceInfo info) {
+        super(info);
+    }
+
+    public static class PartitionsTableNameExpression extends InformationTablePartitionsExpression<BytesRef> {
+        protected PartitionsTableNameExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.TABLE_NAME);
+        }
+
+        @Override
+        public BytesRef value() {
+            return new BytesRef(row.tableName());
+        }
+    }
+
+    public static class PartitionsSchemaNameExpression extends InformationTablePartitionsExpression<BytesRef> {
+        protected PartitionsSchemaNameExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.SCHEMA_NAME);
+        }
+
+        @Override
+        public BytesRef value() {
+            return new BytesRef(row.schemaName());
+        }
+    }
+    public static class PartitionsPartitionIdentExpression extends InformationTablePartitionsExpression<BytesRef> {
+        protected PartitionsPartitionIdentExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.PARTITION_IDENT);
+        }
+
+        @Override
+        public BytesRef value() {
+            return new BytesRef(row.partitionIdent());
+        }
+    }
+    public static class PartitionsValuesExpression extends InformationTablePartitionsExpression<Map<String, Object>> {
+        protected PartitionsValuesExpression() {
+            super(InformationPartitionsTableInfo.ReferenceInfos.VALUES);
+        }
+
+        @Override
+        public Map<String, Object> value() {
+            return row.values();
+        }
     }
 }

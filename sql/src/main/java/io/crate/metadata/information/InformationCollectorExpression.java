@@ -51,5 +51,4 @@ public abstract class InformationCollectorExpression<R, T> implements ReferenceI
     public void setNextRow(R row) {
         this.row = row;
     }
-
 }

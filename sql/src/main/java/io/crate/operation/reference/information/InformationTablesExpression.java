@@ -21,85 +21,136 @@
 
 package io.crate.operation.reference.information;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.InformationCollectorExpression;
-import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.InformationTablesTableInfo;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
+
+import java.util.List;
 
 
 public abstract class InformationTablesExpression<T>
         extends InformationCollectorExpression<TableInfo, T> {
 
-    public static final ImmutableList<InformationTablesExpression<?>> IMPLEMENTATIONS
-            = ImmutableList.<InformationTablesExpression<?>>builder()
-            .add(new InformationTablesExpression<BytesRef>("schema_name") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(Objects.firstNonNull(row.ident().schema(),
-                            DocSchemaInfo.NAME));
-                }
-            })
-            .add(new InformationTablesExpression<BytesRef>("table_name") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.ident().name());
-                }
-            })
-            .add(new InformationTablesExpression<BytesRef>("clustered_by") {
-                @Override
-                public BytesRef value() {
-                    if (row.clusteredBy() != null) {
-                        return new BytesRef(row.clusteredBy().fqn());
-                    } else {
-                        return null;
-                    }
-                }
-            })
-            .add(new InformationTablesExpression<BytesRef[]>("partitioned_by") {
-                @Override
-                public BytesRef[] value() {
-                    int numPartitionedByCols = row.partitionedBy().size();
-                    if (row.partitionedBy() != null && numPartitionedByCols > 0) {
-                        BytesRef[] partitions = new BytesRef[numPartitionedByCols];
-                        for (int i = 0; i < numPartitionedByCols; i++) {
-                            partitions[i] = new BytesRef(row.partitionedBy().get(i).fqn());
-                        }
-                        return partitions;
-                    } else {
-                        return null;
-                    }
-                }
-            })
-            .add(new InformationTablesExpression<Integer>("number_of_shards") {
-                @Override
-                public Integer value() {
-                    return row.numberOfShards();
-                }
-            })
-            .add(new InformationTablesExpression<BytesRef>("number_of_replicas") {
-                @Override
-                public BytesRef value() {
-                    return row.numberOfReplicas();
-                }
-            })
-            .add(new InformationTablesExpression<BytesRef>("blobs_path") {
-                @Override
-                public BytesRef value() {
-                    if (row instanceof BlobTableInfo) {
-                        return ((BlobTableInfo)row).blobsPath();
-                    }
-                    return null;
-                }
-            })
-            .build();
+    public static final TablesSchemaNameExpression SCHEMA_NAME_EXPRESSION = new TablesSchemaNameExpression();
+    public static final TablesTableNameExpression TABLE_NAME_EXPRESSION = new TablesTableNameExpression();
+    public static final TablesNumberOfShardsExpression NUMBER_OF_SHARDS_EXPRESSION = new TablesNumberOfShardsExpression();
+    public static final TablesNumberOfReplicasExpression NUMBER_OF_REPLICAS_EXPRESSION = new TablesNumberOfReplicasExpression();
+    public static final TablesClusteredByExpression CLUSTERED_BY_EXPRESSION = new TablesClusteredByExpression();
+    public static final TablesPartitionByExpression PARTITION_BY_EXPRESSION = new TablesPartitionByExpression();
+    public static final TablesBlobPathExpression BLOB_PATH_EXPRESSION = new TablesBlobPathExpression();
 
-    protected InformationTablesExpression(String name) {
-        super(InformationSchemaInfo.TABLE_INFO_TABLES.getColumnInfo(new ColumnIdent(name)));
+    public InformationTablesExpression(ReferenceInfo info) {
+        super(info);
     }
 
+    public static class TablesSchemaNameExpression extends InformationTablesExpression<BytesRef> {
+
+        static final BytesRef DOC_SCHEMA_INFO = new BytesRef(DocSchemaInfo.NAME);
+
+        public TablesSchemaNameExpression() {
+            super(InformationTablesTableInfo.ReferenceInfos.SCHEMA_NAME);
+        }
+
+        @Override
+        public BytesRef value() {
+            String schema = row.ident().schema();
+            if (schema == null) {
+                return DOC_SCHEMA_INFO;
+            }
+            return new BytesRef(row.ident().schema());
+        }
+    }
+
+    public static class TablesTableNameExpression extends InformationTablesExpression<BytesRef> {
+
+        public TablesTableNameExpression() {
+            super(InformationTablesTableInfo.ReferenceInfos.TABLE_NAME);
+        }
+
+        @Override
+        public BytesRef value() {
+            assert row.ident().name() != null : "table name should never be null";
+            return new BytesRef(row.ident().name());
+        }
+    }
+
+    public static class TablesNumberOfShardsExpression extends InformationTablesExpression<Integer> {
+
+        protected TablesNumberOfShardsExpression() {
+            super(InformationTablesTableInfo.ReferenceInfos.NUMBER_OF_SHARDS);
+        }
+
+        @Override
+        public Integer value() {
+            return row.numberOfShards();
+        }
+    }
+
+    public static class TablesNumberOfReplicasExpression extends InformationTablesExpression<BytesRef> {
+
+        public TablesNumberOfReplicasExpression() {
+            super(InformationTablesTableInfo.ReferenceInfos.NUMBER_OF_REPLICAS);
+        }
+
+        @Override
+        public BytesRef value() {
+            return row.numberOfReplicas();
+        }
+    }
+
+    public static class TablesClusteredByExpression extends InformationTablesExpression<BytesRef> {
+        public TablesClusteredByExpression() {
+            super(InformationTablesTableInfo.ReferenceInfos.CLUSTERED_BY);
+        }
+
+        @Override
+        public BytesRef value() {
+            ColumnIdent clusteredBy = row.clusteredBy();
+            if (clusteredBy == null) {
+                return null;
+            }
+            return new BytesRef(clusteredBy.fqn());
+        }
+    }
+
+    public static class TablesPartitionByExpression extends InformationTablesExpression<BytesRef[]> {
+        public TablesPartitionByExpression() {
+            super(InformationTablesTableInfo.ReferenceInfos.PARTITIONED_BY);
+        }
+
+        @Override
+        public BytesRef[] value() {
+            List<ColumnIdent> partitionedBy = row.partitionedBy();
+            if (partitionedBy == null || partitionedBy.isEmpty()) {
+                return null;
+            }
+
+            BytesRef[] partitions = new BytesRef[partitionedBy.size()];
+            for (int i = 0; i < partitions.length; i++) {
+                partitions[i] = new BytesRef(partitionedBy.get(i).fqn());
+            }
+            return partitions;
+        }
+    }
+
+    public static class TablesBlobPathExpression extends InformationTablesExpression<BytesRef> {
+
+        public TablesBlobPathExpression() {
+            super(InformationTablesTableInfo.ReferenceInfos.BLOBS_PATH);
+        }
+
+        @Override
+        public BytesRef value() {
+            if (row instanceof BlobTableInfo) {
+                return ((BlobTableInfo) row).blobsPath();
+            }
+            return null;
+        }
+    }
 }
+

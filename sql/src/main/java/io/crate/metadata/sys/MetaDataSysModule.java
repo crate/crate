@@ -27,24 +27,11 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 public class MetaDataSysModule extends AbstractModule {
 
-    protected MapBinder<String, SysTableInfo> tableInfoBinder;
     protected MapBinder<String, SchemaInfo> schemaBinder;
 
     @Override
     protected void configure() {
         schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
-        tableInfoBinder = MapBinder.newMapBinder(binder(), String.class, SysTableInfo.class);
         schemaBinder.addBinding(SysSchemaInfo.NAME).to(SysSchemaInfo.class).asEagerSingleton();
-        bindTableInfos();
-    }
-
-    protected void bindTableInfos() {
-        tableInfoBinder.addBinding(SysClusterTableInfo.IDENT.name()).to(SysClusterTableInfo.class).asEagerSingleton();
-        tableInfoBinder.addBinding(SysNodesTableInfo.IDENT.name()).to(SysNodesTableInfo.class).asEagerSingleton();
-        tableInfoBinder.addBinding(SysShardsTableInfo.IDENT.name()).to(SysShardsTableInfo.class).asEagerSingleton();
-        tableInfoBinder.addBinding(SysJobsTableInfo.IDENT.name()).to(SysJobsTableInfo.class).asEagerSingleton();
-        tableInfoBinder.addBinding(SysJobsLogTableInfo.IDENT.name()).to(SysJobsLogTableInfo.class).asEagerSingleton();
-        tableInfoBinder.addBinding(SysOperationsTableInfo.IDENT.name()).to(SysOperationsTableInfo.class).asEagerSingleton();
-        tableInfoBinder.addBinding(SysOperationsLogTableInfo.IDENT.name()).to(SysOperationsLogTableInfo.class).asEagerSingleton();
     }
 }

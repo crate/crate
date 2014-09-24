@@ -20,33 +20,41 @@
  */
 package io.crate.operation.reference.information;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.information.InformationCollectorExpression;
-import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.InformationRoutinesTableInfo;
 import org.apache.lucene.util.BytesRef;
 
 public abstract class InformationRoutinesExpression<T>
     extends InformationCollectorExpression<RoutineInfo, T> {
 
-    public static final ImmutableList<InformationRoutinesExpression<?>> IMPLEMENTATIONS
-            = ImmutableList.<InformationRoutinesExpression<?>>builder()
-            .add(new InformationRoutinesExpression<BytesRef>("routine_name") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.name());
-                }
-            })
-            .add(new InformationRoutinesExpression<BytesRef>("routine_type") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.type());
-                }
-            })
-            .build();
+    public static final RoutineNameExpression ROUTINE_NAME_EXPRESSION = new RoutineNameExpression();
+    public static final RoutineTypeExpression ROUTINE_TYPE_EXPRESSION = new RoutineTypeExpression();
 
-    protected InformationRoutinesExpression(String name) {
-        super(InformationSchemaInfo.TABLE_INFO_ROUTINES.getColumnInfo(new ColumnIdent(name)));
+    protected InformationRoutinesExpression(ReferenceInfo info) {
+        super(info);
+    }
+
+    public static class RoutineNameExpression extends InformationRoutinesExpression<BytesRef> {
+        protected RoutineNameExpression() {
+            super(InformationRoutinesTableInfo.ReferenceInfos.ROUTINE_NAME);
+        }
+
+        @Override
+        public BytesRef value() {
+            return new BytesRef(row.name());
+        }
+    }
+
+    public static class RoutineTypeExpression extends InformationRoutinesExpression<BytesRef> {
+        protected RoutineTypeExpression() {
+            super(InformationRoutinesTableInfo.ReferenceInfos.ROUTINE_TYPE);
+        }
+
+        @Override
+        public BytesRef value() {
+            return new BytesRef(row.type());
+        }
     }
 }

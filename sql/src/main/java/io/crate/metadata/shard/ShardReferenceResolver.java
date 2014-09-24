@@ -46,6 +46,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
 
     @Inject
     public ShardReferenceResolver(Index index,
+                                  DocSchemaInfo docSchemaInfo,
                                   ClusterService clusterService,
                                   final TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                                   final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
@@ -60,6 +61,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
             if (clusterService.state().metaData().hasConcreteIndex(tableName)) {
                 // get DocTableInfo for virtual partitioned table
                 DocTableInfo info = new DocTableInfoBuilder(
+                        docSchemaInfo,
                         new TableIdent(DocSchemaInfo.NAME, tableName),
                         clusterService, transportPutIndexTemplateAction, true).build();
                 assert info.isPartitioned();

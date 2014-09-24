@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
@@ -45,6 +46,7 @@ import java.util.*;
 
 public class BlobTableInfo implements TableInfo {
 
+    private final BlobSchemaInfo blobSchemaInfo;
     private final TableIdent ident;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
@@ -62,12 +64,14 @@ public class BlobTableInfo implements TableInfo {
                 .add(new Tuple<String, DataType>("last_modified", DataTypes.TIMESTAMP))
                 .build();
 
-    public BlobTableInfo(TableIdent ident,
-                        String index,
-                        ClusterService clusterService,
-                        int numberOfShards,
-                        BytesRef numberOfReplicas,
-                        BytesRef blobsPath) {
+    public BlobTableInfo(BlobSchemaInfo blobSchemaInfo,
+                         TableIdent ident,
+                         String index,
+                         ClusterService clusterService,
+                         int numberOfShards,
+                         BytesRef numberOfReplicas,
+                         BytesRef blobsPath) {
+        this.blobSchemaInfo = blobSchemaInfo;
         this.ident = ident;
         this.index = index;
         this.clusterService = clusterService;
@@ -76,6 +80,11 @@ public class BlobTableInfo implements TableInfo {
         this.blobsPath = blobsPath;
 
         registerStaticColumns();
+    }
+
+    @Override
+    public SchemaInfo schemaInfo() {
+        return blobSchemaInfo;
     }
 
     @Nullable

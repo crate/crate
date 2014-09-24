@@ -24,70 +24,37 @@ package io.crate.metadata.information;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
 public class InformationTableInfo extends AbstractTableInfo {
 
-    public static class Builder {
-
-        private final ImmutableList.Builder<ReferenceInfo> columns = ImmutableList.builder();
-        private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> references = ImmutableMap.builder();
-        private final ImmutableList.Builder<ColumnIdent> primaryKey = ImmutableList.builder();
-
-        private final TableIdent ident;
-
-        public Builder(String name) {
-            this.ident = new TableIdent(InformationSchemaInfo.NAME, name);
-        }
-
-        public Builder add(String column, DataType type, List<String> path) {
-            return add(column, type, path, ReferenceInfo.ObjectType.STRICT);
-        }
-
-        public Builder add(String column, DataType type, List<String> path, ReferenceInfo.ObjectType objectType) {
-            ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path),
-                    RowGranularity.DOC, type, objectType, ReferenceInfo.IndexType.NOT_ANALYZED);
-            if (info.ident().isColumn()) {
-                columns.add(info);
-            }
-            references.put(info.ident().columnIdent(), info);
-            return this;
-        }
-
-        public Builder addPrimaryKey(String column) {
-            primaryKey.add(ColumnIdent.fromPath(column));
-            return this;
-        }
-
-        public InformationTableInfo build() {
-            return new InformationTableInfo(ident, columns.build(), references.build(), primaryKey.build());
-        }
-
-
-    }
-
-    private final Routing routing;
-    private final TableIdent ident;
-    private final ImmutableList<ColumnIdent> primaryKey;
+    protected final TableIdent ident;
+    private final ImmutableList<ColumnIdent> primaryKeyIdentList;
+    protected final Routing routing;
 
     private final ImmutableMap<ColumnIdent, ReferenceInfo> references;
     private final ImmutableList<ReferenceInfo> columns;
+    private final String[] concreteIndices;
 
-
-    private InformationTableInfo(TableIdent ident,
-                                 ImmutableList<ReferenceInfo> columns,
+    protected InformationTableInfo(InformationSchemaInfo schemaInfo,
+                                 TableIdent ident,
+                                 ImmutableList<ColumnIdent> primaryKeyIdentList,
                                  ImmutableMap<ColumnIdent, ReferenceInfo> references,
-                                 ImmutableList<ColumnIdent> primaryKey) {
+                                 ImmutableList<ReferenceInfo> columns) {
+        super(schemaInfo);
         this.ident = ident;
-        this.columns = columns;
+        this.primaryKeyIdentList = primaryKeyIdentList;
         this.references = references;
-        this.primaryKey = primaryKey;
+        this.columns = columns;
+        this.concreteIndices = new String[]{ident.name()};
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(1);
         Map<String, Set<Integer>> tableLocation = new HashMap<>(1);
         tableLocation.put(ident.fqn(), null);
@@ -123,12 +90,12 @@ public class InformationTableInfo extends AbstractTableInfo {
 
     @Override
     public List<ColumnIdent> primaryKey() {
-        return primaryKey;
+        return primaryKeyIdentList;
     }
 
     @Override
     public String[] concreteIndices() {
-        return new String[]{ident.name()};
+        return concreteIndices;
     }
 
     @Override

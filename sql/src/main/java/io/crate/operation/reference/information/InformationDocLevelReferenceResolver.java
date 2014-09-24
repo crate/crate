@@ -21,50 +21,66 @@
 
 package io.crate.operation.reference.information;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.operation.reference.DocLevelReferenceResolver;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Singleton
 public class InformationDocLevelReferenceResolver implements DocLevelReferenceResolver<InformationCollectorExpression<?, ?>> {
 
-    public static final InformationDocLevelReferenceResolver INSTANCE = new InformationDocLevelReferenceResolver();
+    private final ImmutableMap<ReferenceIdent, InformationCollectorExpression<?, ?>> implementations;
 
-    private static final Map<ReferenceIdent, InformationCollectorExpression<?, ?>> implementations = new HashMap<>();
+    @Inject
+    public InformationDocLevelReferenceResolver() {
+        ImmutableMap.Builder<ReferenceIdent, InformationCollectorExpression<?, ?>> builder =
+                ImmutableMap.builder();
 
-    static {
-        for (InformationCollectorExpression<?, ?> implementation : InformationTablesExpression.IMPLEMENTATIONS) {
-            implementations.put(implementation.info().ident(), implementation);
-        }
-        for (InformationCollectorExpression<?, ?> implementation : InformationTablePartitionsExpression.IMPLEMENTATIONS) {
-            implementations.put(implementation.info().ident(), implementation);
-        }
-        for (InformationCollectorExpression<?, ?> implementation : InformationColumnsExpression.IMPLEMENTATIONS) {
-            implementations.put(implementation.info().ident(), implementation);
-        }
-        for (InformationCollectorExpression<?, ?> implementation : InformationTableConstraintsExpression.IMPLEMENTATIONS) {
-            implementations.put(implementation.info().ident(), implementation);
-        }
-        for (InformationCollectorExpression<?, ?> implementation : InformationRoutinesExpression.IMPLEMENTATIONS) {
-            implementations.put(implementation.info().ident(), implementation);
-        }
+        // information_schema.tables
+        add(builder, InformationTablesExpression.SCHEMA_NAME_EXPRESSION);
+        add(builder, InformationTablesExpression.TABLE_NAME_EXPRESSION);
+        add(builder, InformationTablesExpression.NUMBER_OF_SHARDS_EXPRESSION);
+        add(builder, InformationTablesExpression.NUMBER_OF_REPLICAS_EXPRESSION);
+        add(builder, InformationTablesExpression.CLUSTERED_BY_EXPRESSION);
+        add(builder, InformationTablesExpression.PARTITION_BY_EXPRESSION);
+        add(builder, InformationTablesExpression.BLOB_PATH_EXPRESSION);
+
+                // information_schema.columns
+        add(builder, InformationColumnsExpression.SCHEMA_NAME_EXPRESSION);
+        add(builder, InformationColumnsExpression.TABLE_NAME_EXPRESSION);
+        add(builder, InformationColumnsExpression.COLUMN_NAME_EXPRESSION);
+        add(builder, InformationColumnsExpression.ORDINAL_EXPRESSION);
+        add(builder, InformationColumnsExpression.DATA_TYPE_EXPRESSION);
+
+        // information_schema.table_partitions
+        add(builder, InformationTablePartitionsExpression.TABLE_NAME_EXPRESSION);
+        add(builder, InformationTablePartitionsExpression.SCHEMA_NAME_EXPRESSION);
+        add(builder, InformationTablePartitionsExpression.PARTITION_IDENT_EXPRESSION);
+        add(builder, InformationTablePartitionsExpression.VALUES_EXPRESSION);
+
+        // information_schema.table_constraints
+        add(builder, InformationTableConstraintsExpression.SCHEMA_NAME_EXPRESSION);
+        add(builder, InformationTableConstraintsExpression.TABLE_NAME_EXPRESSION);
+        add(builder, InformationTableConstraintsExpression.CONSTRAINT_NAME_EXPRESSION);
+        add(builder, InformationTableConstraintsExpression.CONSTRAINT_TYPE_EXPRESSION);
+
+        // information_schema.routines
+        add(builder, InformationRoutinesExpression.ROUTINE_NAME_EXPRESSION);
+        add(builder, InformationRoutinesExpression.ROUTINE_TYPE_EXPRESSION);
+
+        implementations = builder.build();
     }
 
-    /**
-     * This is a singleton Use the static INSTANCE attribute
-     */
-    private InformationDocLevelReferenceResolver() {
-
+    private static void add(ImmutableMap.Builder<ReferenceIdent, InformationCollectorExpression<?, ?>> builder,
+                            InformationCollectorExpression<?, ?> expression) {
+        builder.put(expression.info().ident(), expression);
     }
 
     @Override
     public InformationCollectorExpression<?, ?> getImplementation(ReferenceInfo info) {
         return implementations.get(info.ident());
     }
-
 }

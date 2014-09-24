@@ -32,10 +32,12 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 
 public class BlobTableInfoTest {
 
     static BlobTableInfo info = new BlobTableInfo(
+            mock(BlobSchemaInfo.class),
             new TableIdent("blob", "dummy"),
             "dummy",
             null,

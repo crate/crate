@@ -61,8 +61,8 @@ public class SysOperationsTableInfo extends SysTableInfo {
     }
 
     @Inject
-    public SysOperationsTableInfo(ClusterService clusterService) {
-        super(clusterService);
+    public SysOperationsTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
+        super(clusterService, sysSchemaInfo);
     }
 
     @Nullable

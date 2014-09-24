@@ -21,49 +21,83 @@
 
 package io.crate.operation.reference.information;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.information.InformationCollectorExpression;
-import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.InformationTableConstraintsTableInfo;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 
-public abstract class InformationTableConstraintsExpression<T> extends InformationCollectorExpression<TableInfo, T> {
-    private static final BytesRef PRIMARY_KEY = new BytesRef("PRIMARY_KEY");
-    public static final ImmutableList<InformationTableConstraintsExpression<?>> IMPLEMENTATIONS =
-            ImmutableList.<InformationTableConstraintsExpression<?>>builder()
-                    .add(new InformationTableConstraintsExpression<BytesRef>("schema_name") {
-                        @Override
-                        public BytesRef value() {
-                            return new BytesRef(row.ident().schema());
-                        }
-                    })
-                    .add(new InformationTableConstraintsExpression<BytesRef>("table_name") {
-                        @Override
-                        public BytesRef value() {
-                            return new BytesRef(row.ident().name());
-                        }
-                    })
-                    .add(new InformationTableConstraintsExpression<BytesRef[]>("constraint_name") {
-                        @Override
-                        public BytesRef[] value() {
-                            BytesRef[] values = new BytesRef[row.primaryKey().size()];
-                            java.util.List<ColumnIdent> primaryKey = row.primaryKey();
-                            for (int i = 0, primaryKeySize = primaryKey.size(); i < primaryKeySize; i++) {
-                                values[i] = new BytesRef(primaryKey.get(i).fqn());
-                            }
-                            return values;
-                        }
-                    })
-                    .add(new InformationTableConstraintsExpression<BytesRef>("constraint_type") {
-                        @Override
-                        public BytesRef value() {
-                            return PRIMARY_KEY;
-                        }
-                    })
-                    .build();
+import java.util.List;
 
-    protected InformationTableConstraintsExpression(String name) {
-        super(InformationSchemaInfo.TABLE_INFO_TABLE_CONSTRAINTS.getColumnInfo(new ColumnIdent(name)));
+public abstract class InformationTableConstraintsExpression<T> extends InformationCollectorExpression<TableInfo, T> {
+
+    private static final BytesRef PRIMARY_KEY = new BytesRef("PRIMARY_KEY");
+
+    public static final TableConstraintsSchemaNameExpression SCHEMA_NAME_EXPRESSION = new TableConstraintsSchemaNameExpression();
+    public static final TableConstraintsTableNameExpression TABLE_NAME_EXPRESSION = new TableConstraintsTableNameExpression();
+    public static final TableConstraintsConstraintNameExpression CONSTRAINT_NAME_EXPRESSION = new TableConstraintsConstraintNameExpression();
+    public static final TableConstraintsConstraintTypeExpression CONSTRAINT_TYPE_EXPRESSION = new TableConstraintsConstraintTypeExpression();
+
+    protected InformationTableConstraintsExpression(ReferenceInfo info) {
+        super(info);
+    }
+
+    public static class TableConstraintsSchemaNameExpression
+            extends InformationTableConstraintsExpression<BytesRef> {
+
+        protected TableConstraintsSchemaNameExpression() {
+            super(InformationTableConstraintsTableInfo.ReferenceInfos.SCHEMA_NAME);
+        }
+
+        @Override
+        public BytesRef value() {
+            return new BytesRef(row.schemaInfo().name());
+        }
+    }
+
+    public static class TableConstraintsTableNameExpression
+            extends InformationTableConstraintsExpression<BytesRef> {
+
+        protected TableConstraintsTableNameExpression() {
+            super(InformationTableConstraintsTableInfo.ReferenceInfos.TABLE_NAME);
+        }
+
+        @Override
+        public BytesRef value() {
+            assert row.ident().name() != null : "table name must not be null";
+            return new BytesRef(row.ident().name());
+        }
+    }
+
+    public static class TableConstraintsConstraintNameExpression
+            extends InformationTableConstraintsExpression<BytesRef[]> {
+
+        protected TableConstraintsConstraintNameExpression() {
+            super(InformationTableConstraintsTableInfo.ReferenceInfos.CONSTRAINT_NAME);
+        }
+
+        @Override
+        public BytesRef[] value() {
+            BytesRef[] values = new BytesRef[row.primaryKey().size()];
+            List<ColumnIdent> primaryKey = row.primaryKey();
+            for (int i = 0, primaryKeySize = primaryKey.size(); i < primaryKeySize; i++) {
+                values[i] = new BytesRef(primaryKey.get(i).fqn());
+            }
+            return values;
+        }
+    }
+
+    public static class TableConstraintsConstraintTypeExpression
+            extends InformationTableConstraintsExpression<BytesRef> {
+
+        protected TableConstraintsConstraintTypeExpression() {
+            super(InformationTableConstraintsTableInfo.ReferenceInfos.CONSTRAINT_TYPE);
+        }
+
+        @Override
+        public BytesRef value() {
+            return PRIMARY_KEY;
+        }
     }
 }

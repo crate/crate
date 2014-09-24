@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
@@ -13,9 +12,9 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -86,60 +85,6 @@ public class PlannerTest {
             .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
             .build());
 
-
-    class TestClusterTableInfo extends SysClusterTableInfo {
-
-        public TestClusterTableInfo() {
-            super(null);
-        }
-
-        // granularity < DOC is already handled different
-        // here we want a table with handlerSideRouting and DOC granularity.
-
-        @Override
-        public RowGranularity rowGranularity() {
-            return RowGranularity.DOC;
-        }
-    }
-
-    class TestShardsTableInfo extends SysShardsTableInfo {
-
-
-        public TestShardsTableInfo() {
-            super(null);
-        }
-
-        @Override
-        public Routing getRouting(WhereClause whereClause) {
-            return shardRouting;
-        }
-    }
-
-    class TestNodesTableInfo extends SysNodesTableInfo {
-
-        public TestNodesTableInfo() {
-            super(null);
-        }
-
-        @Override
-        public Routing getRouting(WhereClause whereClause) {
-            return nodesRouting;
-        }
-    }
-
-    class TestSysModule extends MetaDataSysModule {
-
-        @Override
-        protected void bindTableInfos() {
-            tableInfoBinder.addBinding(TestNodesTableInfo.IDENT.name()).toInstance(
-                    new TestNodesTableInfo());
-            tableInfoBinder.addBinding(TestShardsTableInfo.IDENT.name()).toInstance(
-                    new TestShardsTableInfo());
-            tableInfoBinder.addBinding(TestClusterTableInfo.IDENT.name()).toInstance(
-                    new TestClusterTableInfo());
-        }
-    }
-
     class TestModule extends MetaDataModule {
 
         @Override
@@ -206,6 +151,36 @@ public class PlannerTest {
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
             when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
+        }
+
+        private SchemaInfo mockSysSchemaInfo() {
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+
+            TableInfo sysClusterTableInfo = TestingTableInfo.builder(
+                    SysClusterTableInfo.IDENT,
+                    // granularity < DOC is already handled different
+                    // here we want a table with handlerSideRouting and DOC granularity.
+                    RowGranularity.DOC,
+                    SysClusterTableInfo.ROUTING
+            ).add("name", DataTypes.STRING, null).build();
+            when(schemaInfo.getTableInfo(sysClusterTableInfo.ident().name())).thenReturn(sysClusterTableInfo);
+
+            TableInfo sysNodesTableInfo = TestingTableInfo.builder(
+                    SysNodesTableInfo.IDENT,
+                    RowGranularity.NODE,
+                    nodesRouting)
+                    .add("name", DataTypes.STRING, null).build();
+            when(schemaInfo.getTableInfo(sysNodesTableInfo.ident().name())).thenReturn(sysNodesTableInfo);
+
+            TableInfo sysShardsTableInfo = TestingTableInfo.builder(
+                    SysShardsTableInfo.IDENT,
+                    RowGranularity.SHARD,
+                    nodesRouting
+            ).add("id", DataTypes.INTEGER, null).build();
+            when(schemaInfo.getTableInfo(sysShardsTableInfo.ident().name())).thenReturn(sysShardsTableInfo);
+            when(schemaInfo.systemSchema()).thenReturn(true);
+            return schemaInfo;
         }
     }
 
@@ -213,7 +188,6 @@ public class PlannerTest {
     public void setUp() throws Exception {
         injector = new ModulesBuilder()
                 .add(new TestModule())
-                .add(new TestSysModule())
                 .add(new AggregationImplModule())
                 .add(new ScalarFunctionModule())
                 .add(new OperatorModule())

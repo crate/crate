@@ -22,6 +22,7 @@
 package io.crate.metadata.information;
 
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.operation.reference.information.InformationDocLevelReferenceResolver;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -33,6 +34,7 @@ public class MetaDataInformationModule extends AbstractModule {
     protected void configure() {
         schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
         schemaBinder.addBinding(InformationSchemaInfo.NAME).to(InformationSchemaInfo.class).asEagerSingleton();
-    }
 
+        bind(InformationDocLevelReferenceResolver.class).asEagerSingleton();
+    }
 }

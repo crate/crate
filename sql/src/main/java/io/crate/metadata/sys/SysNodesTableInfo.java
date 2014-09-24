@@ -134,8 +134,8 @@ public class SysNodesTableInfo extends SysTableInfo {
     }
 
     @Inject
-    public SysNodesTableInfo(ClusterService service) {
-        super(service);
+    public SysNodesTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo) {
+        super(service, sysSchemaInfo);
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {

@@ -83,7 +83,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     private BlobTableInfo innerGetTableInfo(String name) {
-        BlobTableInfoBuilder builder = new BlobTableInfoBuilder(
+        BlobTableInfoBuilder builder = new BlobTableInfoBuilder(this,
                 new TableIdent(NAME, name), clusterService, blobEnvironment, environment);
         return builder.build();
     }
@@ -100,6 +100,11 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     @Override
     public Collection<String> tableNames() {
         return tableNamesIterable().toList();
+    }
+
+    @Override
+    public String name() {
+        return NAME;
     }
 
     @Override

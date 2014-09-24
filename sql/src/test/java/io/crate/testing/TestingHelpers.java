@@ -78,8 +78,6 @@ public class TestingHelpers {
         return os.toString();
     }
 
-
-
     public static Function createFunction(String functionName, DataType returnType, Symbol... arguments) {
         return createFunction(functionName, returnType, Arrays.asList(arguments));
     }

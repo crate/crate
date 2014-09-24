@@ -20,6 +20,7 @@
  */
 package io.crate.metadata;
 
+import javax.annotation.Nonnull;
 import java.util.Map;
 
 public class TablePartitionInfo {
@@ -32,20 +33,27 @@ public class TablePartitionInfo {
                               String schemaName,
                               String partitionIdent,
                               Map<String, Object> values) {
+        assert tableName != null;
+        assert partitionIdent != null;
+        assert schemaName != null;
+
         this.tableName = tableName;
         this.schemaName = schemaName;
         this.partitionIdent = partitionIdent;
         this.values = values;
     }
 
+    @Nonnull
     public String tableName() {
         return tableName;
     }
 
+    @Nonnull
     public String schemaName() {
         return schemaName;
     }
 
+    @Nonnull
     public String partitionIdent() {
         return partitionIdent;
     }

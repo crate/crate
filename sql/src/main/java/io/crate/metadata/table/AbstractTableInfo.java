@@ -16,6 +16,16 @@ import java.util.List;
 public abstract class AbstractTableInfo implements TableInfo {
 
     private static final BytesRef ZERO_REPLICAS = new BytesRef("0");
+    private final SchemaInfo schemaInfo;
+
+    protected AbstractTableInfo(SchemaInfo schemaInfo) {
+        this.schemaInfo = schemaInfo;
+    }
+
+    @Override
+    public SchemaInfo schemaInfo() {
+        return schemaInfo;
+    }
 
     @Override
     public int numberOfShards() {

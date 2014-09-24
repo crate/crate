@@ -20,19 +20,25 @@
  */
 package io.crate.metadata;
 
+import javax.annotation.Nonnull;
+
 public class RoutineInfo {
     private String name;
     private String type;
 
     public RoutineInfo(String name, String type) {
+        assert name != null;
+        assert type != null;
         this.name = name;
         this.type = type;
     }
 
+    @Nonnull
     public String name() {
         return name;
     }
 
+    @Nonnull
     public String type() {
         return type;
     }

@@ -21,55 +21,93 @@
 
 package io.crate.operation.reference.information;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.InformationCollectorExpression;
-import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.InformationColumnsTableInfo;
 import org.apache.lucene.util.BytesRef;
 
 
 public abstract class InformationColumnsExpression<T>
         extends InformationCollectorExpression<ColumnContext, T> {
 
-    public static final ImmutableList<InformationColumnsExpression<?>> IMPLEMENTATIONS
-            = ImmutableList.<InformationColumnsExpression<?>>builder()
-            .add(new InformationColumnsExpression<BytesRef>("schema_name") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(Objects.firstNonNull(row.info.ident().tableIdent().schema(),
-                            DocSchemaInfo.NAME));
-                }
-            })
-            .add(new InformationColumnsExpression<BytesRef>("table_name") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.info.ident().tableIdent().name());
-                }
-            })
-            .add(new InformationColumnsExpression<BytesRef>("column_name") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.info.ident().columnIdent().sqlFqn());
-                }
-            })
-            .add(new InformationColumnsExpression<Short>("ordinal_position") {
-                @Override
-                public Short value() {
-                    return row.ordinal;
-                }
-            })
-            .add(new InformationColumnsExpression<BytesRef>("data_type") {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.info.type().getName());
-                }
-            })
-            .build();
+    public static final ColumnsSchemaNameExpression SCHEMA_NAME_EXPRESSION = new ColumnsSchemaNameExpression();
+    public static final ColumnsTableNameExpression TABLE_NAME_EXPRESSION = new ColumnsTableNameExpression();
+    public static final ColumnsColumnNameExpression COLUMN_NAME_EXPRESSION = new ColumnsColumnNameExpression();
+    public static final ColumnsOrdinalExpression ORDINAL_EXPRESSION = new ColumnsOrdinalExpression();
+    public static final ColumnsDataTypeExpression DATA_TYPE_EXPRESSION = new ColumnsDataTypeExpression();
 
-    protected InformationColumnsExpression(String name) {
-        super(InformationSchemaInfo.TABLE_INFO_COLUMNS.getColumnInfo(new ColumnIdent(name)));
+    protected InformationColumnsExpression(ReferenceInfo info) {
+        super(info);
     }
 
+    public static class ColumnsSchemaNameExpression extends InformationColumnsExpression<BytesRef> {
+
+        static final BytesRef DOC_SCHEMA_INFO = new BytesRef(DocSchemaInfo.NAME);
+
+        public ColumnsSchemaNameExpression() {
+            super(InformationColumnsTableInfo.ReferenceInfos.SCHEMA_NAME);
+        }
+
+        @Override
+        public BytesRef value() {
+            String schema = row.info.ident().tableIdent().schema();
+            if (schema == null) {
+                return DOC_SCHEMA_INFO;
+            }
+            return new BytesRef(schema);
+        }
+    }
+
+    public static class ColumnsTableNameExpression extends InformationColumnsExpression<BytesRef> {
+
+        public ColumnsTableNameExpression() {
+            super(InformationColumnsTableInfo.ReferenceInfos.TABLE_NAME);
+        }
+
+        @Override
+        public BytesRef value() {
+            assert row.info.ident().tableIdent().name() != null : "table name can't be null";
+            return new BytesRef(row.info.ident().tableIdent().name());
+        }
+    }
+
+
+    public static class ColumnsColumnNameExpression extends InformationColumnsExpression<BytesRef> {
+
+        public ColumnsColumnNameExpression() {
+            super(InformationColumnsTableInfo.ReferenceInfos.COLUMN_NAME);
+        }
+
+        @Override
+        public BytesRef value() {
+            assert row.info.ident().tableIdent().name() != null : "column name name can't be null";
+            return new BytesRef(row.info.ident().columnIdent().sqlFqn());
+        }
+    }
+
+    public static class ColumnsOrdinalExpression extends InformationColumnsExpression<Short> {
+
+        public ColumnsOrdinalExpression() {
+            super(InformationColumnsTableInfo.ReferenceInfos.ORDINAL_POSITION);
+        }
+
+        @Override
+        public Short value() {
+            return row.ordinal;
+        }
+    }
+
+    public static class ColumnsDataTypeExpression extends InformationColumnsExpression<BytesRef> {
+
+        public ColumnsDataTypeExpression() {
+            super(InformationColumnsTableInfo.ReferenceInfos.DATA_TYPE);
+        }
+
+        @Override
+        public BytesRef value() {
+            assert row.info.type() != null && row.info.type().getName() != null : "columns must always have a type and the type must have a name";
+            return new BytesRef(row.info.type().getName());
+        }
+    }
 }

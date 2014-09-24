@@ -304,8 +304,8 @@ public class SysClusterTableInfo extends SysTableInfo {
     }
 
     @Inject
-    protected SysClusterTableInfo(ClusterService clusterService) {
-        super(clusterService);
+    protected SysClusterTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
+        super(clusterService, sysSchemaInfo);
     }
 
     public static ReferenceInfo register(String column, DataType type, List<String> path) {

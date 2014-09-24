@@ -65,8 +65,8 @@ public class SysOperationsLogTableInfo extends SysTableInfo {
     }
 
     @Inject
-    protected SysOperationsLogTableInfo(ClusterService clusterService) {
-        super(clusterService);
+    protected SysOperationsLogTableInfo(ClusterService clusterService, SysSchemaInfo sysSchemaInfo) {
+        super(clusterService, sysSchemaInfo);
     }
 
     @Nullable

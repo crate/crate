@@ -21,22 +21,33 @@
 
 package io.crate.metadata.sys;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Map;
 
+@Singleton
 public class SysSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "sys";
-    private final Map<String, ? extends TableInfo> tableInfos;
+    private final ImmutableMap<String, SysTableInfo> tableInfos;
 
     @Inject
-    public SysSchemaInfo(Map<String, SysTableInfo> infos) {
-        tableInfos = infos;
+    public SysSchemaInfo(ClusterService clusterService) {
+        tableInfos = ImmutableMap.<String, SysTableInfo>builder()
+            .put(SysClusterTableInfo.IDENT.name(), new SysClusterTableInfo(clusterService, this))
+            .put(SysNodesTableInfo.IDENT.name(), new SysNodesTableInfo(clusterService, this))
+            .put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo(clusterService, this))
+            .put(SysJobsTableInfo.IDENT.name(), new SysJobsTableInfo(clusterService, this))
+            .put(SysJobsLogTableInfo.IDENT.name(), new SysJobsLogTableInfo(clusterService, this))
+            .put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo(clusterService, this))
+            .put(SysOperationsLogTableInfo.IDENT.name(), new SysOperationsLogTableInfo(clusterService, this))
+        .build();
     }
 
     @Override
@@ -50,12 +61,17 @@ public class SysSchemaInfo implements SchemaInfo {
     }
 
     @Override
+    public String name() {
+        return NAME;
+    }
+
+    @Override
     public boolean systemSchema() {
         return true;
     }
 
     @Override
-    public Iterator<TableInfo> iterator() {
-        return (Iterator<TableInfo>) tableInfos.values().iterator();
+    public Iterator<? extends TableInfo> iterator() {
+        return tableInfos.values().iterator();
     }
 }

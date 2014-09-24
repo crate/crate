@@ -62,8 +62,8 @@ public class SysShardsTableInfo extends SysTableInfo {
     }
 
     @Inject
-    public SysShardsTableInfo(ClusterService service) {
-        super(service);
+    public SysShardsTableInfo(ClusterService service, SysSchemaInfo sysSchemaInfo) {
+        super(service, sysSchemaInfo);
     }
 
     private static ReferenceInfo register(String column, DataType type, List<String> path) {

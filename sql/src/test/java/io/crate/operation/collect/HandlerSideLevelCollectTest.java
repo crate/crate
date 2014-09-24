@@ -27,6 +27,7 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
@@ -84,8 +85,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         ).map());
         CollectNode collectNode = new CollectNode("tablesCollect", routing);
 
+        InformationSchemaInfo schemaInfo =  cluster().getInstance(InformationSchemaInfo.class);
+        TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
         List<Symbol> toCollect = new ArrayList<>();
-        for (ReferenceInfo info : InformationSchemaInfo.TABLE_INFO_TABLES.columns()) {
+        for (ReferenceInfo info : tablesTableInfo.columns()) {
             toCollect.add(new Reference(info));
         }
         Symbol tableNameRef = toCollect.get(1);
@@ -111,8 +114,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         ).map());
         CollectNode collectNode = new CollectNode("columnsCollect", routing);
 
+        InformationSchemaInfo schemaInfo =  cluster().getInstance(InformationSchemaInfo.class);
+        TableInfo tableInfo = schemaInfo.getTableInfo("columns");
         List<Symbol> toCollect = new ArrayList<>();
-        for (ReferenceInfo info : InformationSchemaInfo.TABLE_INFO_COLUMNS.columns()) {
+        for (ReferenceInfo info : tableInfo.columns()) {
             toCollect.add(new Reference(info));
         }
         collectNode.toCollect(toCollect);

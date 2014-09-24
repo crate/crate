@@ -32,12 +32,15 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.mockito.Answers;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import static org.mockito.Mockito.mock;
 
 public class TestingTableInfo extends AbstractTableInfo {
 
@@ -213,6 +216,7 @@ public class TestingTableInfo extends AbstractTableInfo {
                             boolean isAlias,
                             List<ColumnIdent> partitionedBy,
                             List<PartitionName> partitions) {
+        super(mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get()));
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
         this.indexColumns = indexColumns;

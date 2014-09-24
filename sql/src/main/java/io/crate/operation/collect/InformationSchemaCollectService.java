@@ -58,12 +58,13 @@ public class InformationSchemaCollectService implements CollectService {
     private final Iterable<TablePartitionInfo> tablePartitionsIterable;
 
     @Inject
-    protected InformationSchemaCollectService(Functions functions, ReferenceInfos referenceInfos,
+    protected InformationSchemaCollectService(Functions functions,
+                                              ReferenceInfos referenceInfos,
+                                              InformationDocLevelReferenceResolver refResolver,
                                               FulltextAnalyzerResolver ftResolver) {
 
         RoutineInfos routineInfos = new RoutineInfos(ftResolver);
-        this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
-                InformationDocLevelReferenceResolver.INSTANCE);
+        this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, refResolver);
 
         tablesIterable = FluentIterable.from(referenceInfos)
                 .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {

@@ -96,8 +96,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private DocTableInfo innerGetTableInfo(String name) {
         boolean checkAliasSchema = clusterService.state().metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
-                new TableIdent(NAME, name), clusterService,
-                transportPutIndexTemplateAction, checkAliasSchema);
+                this,
+                new TableIdent(NAME, name),
+                clusterService,
+                transportPutIndexTemplateAction,
+                checkAliasSchema);
         return builder.build();
     }
 
@@ -132,6 +135,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         }
 
         return tables;
+    }
+
+    @Override
+    public String name() {
+        return NAME;
     }
 
     @Override

@@ -29,6 +29,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
@@ -58,8 +59,8 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
         this.name = name;
     }
 
+    @Nullable
     public String schema() {
-        // return Optional<String> ?
         return schema;
     }
 

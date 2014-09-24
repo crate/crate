@@ -14,6 +14,7 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 
 public class DocTableInfoTest {
 
@@ -21,6 +22,7 @@ public class DocTableInfoTest {
     public void testGetColumnInfo() throws Exception {
 
         DocTableInfo info = new DocTableInfo(
+                mock(DocSchemaInfo.class),
                 new TableIdent(null, "dummy"),
                 ImmutableList.<ReferenceInfo>of(),
                 ImmutableList.<ReferenceInfo>of(),
@@ -62,6 +64,7 @@ public class DocTableInfoTest {
                 .build();
 
         DocTableInfo info = new DocTableInfo(
+                mock(DocSchemaInfo.class),
                 dummy,
                 ImmutableList.<ReferenceInfo>of(strictParent),
                 ImmutableList.<ReferenceInfo>of(),
