@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.dml;
 
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.planner.node.PlanVisitor;
 
 public class ESDeleteByQueryNode extends DMLPlanNode {

@@ -21,9 +21,12 @@
 
 package io.crate.metadata.doc;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.relation.AnalyzedRelation;
+import io.crate.analyze.relation.RelationVisitor;
+import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.metadata.*;
@@ -300,5 +303,25 @@ public class DocTableInfo implements TableInfo {
     @Override
     public Iterator<ReferenceInfo> iterator() {
         return references.values().iterator();
+    }
+
+    @Override
+    public List<AnalyzedRelation> children() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public int numChildren() {
+        return 1;
+    }
+
+    @Override
+    public List<AnalyzedRelation> tables() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context) {
+        return relationVisitor.visitTableInfo(this, context);
     }
 }

@@ -23,6 +23,11 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;

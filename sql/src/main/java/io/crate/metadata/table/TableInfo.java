@@ -22,7 +22,8 @@
 package io.crate.metadata.table;
 
 import io.crate.PartitionName;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.relation.AnalyzedRelation;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
@@ -32,7 +33,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
-public interface TableInfo extends Iterable<ReferenceInfo> {
+public interface TableInfo extends Iterable<ReferenceInfo>, AnalyzedRelation {
 
     /**
      * returns information about a column with the given ident.
