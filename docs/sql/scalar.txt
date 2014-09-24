@@ -408,7 +408,7 @@ subexpression ``([A-Z])`` would create group No. 1. Group No. 0 consists of
 the whole matched ``source``. If you want to group stuff with parentheses,
 but without grouping, use ``(?...)``.
 
-For example matching the regular expression ``^([Aa](.+)z)$ against ``alcatraz``,
+For example matching the regular expression ``^([Aa](.+)z)$`` against ``alcatraz``,
 results in these groups:
 
  * group 0: ``alcatraz`` (the whole string, if it matched)
@@ -516,7 +516,7 @@ Flags
 .....
 
 ``regexp_replace`` supports the same flags than ``regexp_matches``,
-see `scalar-regexp-matches-flags`_ and additionally the ``g`` flag:
+see :ref:`regexp_matches Flags <scalar-regexp-matches-flags>` and additionally the ``g`` flag:
 
 +-------+---------------------------------------------------------------------+
 | Flag  | Description                                                         |
