@@ -4808,6 +4808,67 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.02338146\n"));
     }
 
+    @Test
+    public void testMatchTypes() throws Exception {
+        this.setup.setUpLocations();
+        refresh();
+
+        execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') using best_fields");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("Alpha Centauri| 0.22184466\n| 0.21719791\nAllosimanius Syneca| 0.09626817\nBartledan| 0.08423465\nGalactic Sector QQ7 Active J Gamma| 0.08144922\n"));
+
+        execute("select name, _score from locations where match((kind 0.6, name_description_ft 0.8), 'planet earth') using most_fields");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("Alpha Centauri| 0.12094267\n| 0.1035407\nAllosimanius Syneca| 0.05248235\nBartledan| 0.045922056\nGalactic Sector QQ7 Active J Gamma| 0.038827762\n"));
+
+        execute("select name, _score from locations where match((kind 0.4, name_description_ft 1.0), 'planet earth') using cross_fields");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("Alpha Centauri| 0.14147125\n| 0.116184436\nAllosimanius Syneca| 0.061390605\nBartledan| 0.05371678\nGalactic Sector QQ7 Active J Gamma| 0.043569162\n"));
+
+        execute("select name, _score from locations where match((kind 1.0, name_description_ft 0.4), 'Alpha Centauri') using phrase");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("Alpha Centauri| 0.94653714\n"));
+
+        execute("select name, _score from locations where match(name_description_ft, 'Alpha Centauri') using phrase_prefix");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("Alpha Centauri| 1.5739591\n"));
+    }
+
+    @Test
+    public void testMatchOptions() throws Exception {
+        this.setup.setUpLocations();
+        refresh();
+
+        execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
+                "using best_fields with (analyzer='english') order by _score desc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("NULL| 0.6417877\nAltair| 0.2895972\nNorth West Ripple| 0.25339755\nOuter Eastern Rim| 0.2246257\n"));
+
+        execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
+                "using best_fields with (fuzziness=0.5) order by _score desc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("Outer Eastern Rim| 1.4109559\nNULL| 1.4109559\nNorth West Ripple| 1.2808706\nGalactic Sector QQ7 Active J Gamma| 1.2808706\nAltair| 0.3842612\nAlgol| 0.25617412\n"));
+
+        execute("select name, _score from locations where match((kind, name_description_ft), 'gala') " +
+                "using best_fields with (operator='or', minimum_should_match=2) order by _score desc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is(""));
+
+        execute("select name, _score from locations where match((kind, name_description_ft), 'gala') " +
+                "using phrase_prefix with (slop=1) order by _score desc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("NULL| 0.664469\nOuter Eastern Rim| 0.5898516\nGalactic Sector QQ7 Active J Gamma| 0.34636837\nAlgol| 0.32655922\nAltair| 0.32655922\nNorth West Ripple| 0.2857393\n"));
+
+        execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
+                "using phrase with (tie_breaker=2.0) order by _score desc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("NULL| 0.40825456\nAltair| 0.18054473\nNorth West Ripple| 0.15797664\nOuter Eastern Rim| 0.1428891\n"));
+
+        execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
+                "using best_fields with (zero_terms_query='all') order by _score desc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+                is("NULL| 0.6417877\nAltair| 0.2895972\nNorth West Ripple| 0.25339755\nOuter Eastern Rim| 0.2246257\n"));
+    }
 
     @Test
     public void testTestGroupByOnClusteredByColumn() throws Exception {
