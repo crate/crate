@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.analyze.*;
+import io.crate.analyze.where.WhereClause;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.executor.Executor;
