@@ -916,7 +916,7 @@ like in the result columns::
 Comparison Operators
 ~~~~~~~~~~~~~~~~~~~~
 
-The having clause supports the same operators as the :ref:`sql_dql_where_clause`::
+The having clause supports the same operators as the :ref:`sql_dql_where_clause`:
 
     ================  =================================
     Operator          Description
@@ -929,6 +929,8 @@ The having clause supports the same operators as the :ref:`sql_dql_where_clause`
     <>                not equal
     !=                not equal - same as <>
     like              matches a part of the given value
+    ~                 regular expression match
+    !~                negated regular expression match
     ================  =================================
 
 Predicates
@@ -936,7 +938,7 @@ Predicates
 
 The having supports almost the same predicates as the :ref:`sql_dql_where_clause`
 excpet the `match` predicate, which is not supported.
-The following :ref:`predicates` are supported::
+The following :ref:`predicates` are supported:
 
     ==========================  ===========================================================
     Predicate                   Description
