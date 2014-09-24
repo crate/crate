@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Improved error handling when trying to import data using COPY FROM
+   where primary key is a NULL value
+
 2014/09/23 0.43.2
 =================
 
