@@ -27,19 +27,29 @@ import io.crate.metadata.table.TableInfo;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CrossJoinRelation implements AnalyzedRelation {
+public class JoinRelation implements AnalyzedRelation {
 
+    private final Type type;
     private final AnalyzedRelation left;
     private final AnalyzedRelation right;
     private final List<AnalyzedRelation> children;
     private final List<TableInfo> tables;
 
-    public CrossJoinRelation(AnalyzedRelation left, AnalyzedRelation right) {
+    public enum Type {
+        CROSS_JOIN
+    }
+
+    public JoinRelation(Type type, AnalyzedRelation left, AnalyzedRelation right) {
+        this.type = type;
         this.left = left;
         this.right = right;
         this.children = ImmutableList.of(left, right);
         this.tables = new ArrayList<>(left.tables());
         this.tables.addAll(right.tables());
+    }
+
+    public Type type() {
+        return type;
     }
 
     public AnalyzedRelation left() {

@@ -21,13 +21,11 @@
 
 package io.crate.analyze.where;
 
-import io.crate.metadata.relation.AnalyzedRelation;
-import io.crate.metadata.relation.CrossJoinRelation;
 import io.crate.metadata.*;
+import io.crate.metadata.relation.AnalyzedRelation;
+import io.crate.metadata.relation.JoinRelation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -36,9 +34,6 @@ import io.crate.planner.symbol.SymbolType;
 import io.crate.testing.QueryPrinter;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
@@ -64,17 +59,8 @@ public class WhereClauseSplitterTest {
             .addPrimaryKey("id")
             .add("name", DataTypes.STRING, null)
             .build();
-    private CrossJoinRelation joinRelation = new CrossJoinRelation(tableInfoEmps, tableInfoDeps);
-    private Functions functions;
-
-    @Before
-    public void setUp() throws Exception {
-        Injector injector = new ModulesBuilder()
-                .add(new OperatorModule(), new ScalarFunctionModule())
-                .createInjector();
-        functions = injector.getInstance(Functions.class);
-
-    }
+    private JoinRelation joinRelation =
+            new JoinRelation(JoinRelation.Type.CROSS_JOIN,tableInfoEmps, tableInfoDeps);
 
     private Reference ref(TableInfo relation, String name, DataType type) {
         return new Reference(
