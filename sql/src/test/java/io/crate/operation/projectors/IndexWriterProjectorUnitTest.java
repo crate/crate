@@ -98,7 +98,9 @@ public class IndexWriterProjectorUnitTest {
 
     @Test
     public void testNullPKValue() throws Throwable {
-        // this test jus verifies that the idInput which returns a null value doesn't cause a NullPointerException
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Primary key value must not be NULL");
+
         CollectingProjector collectingProjector = new CollectingProjector();
         InputCollectExpression<Object> idInput = new InputCollectExpression<>(0);
         InputCollectExpression<Object> sourceInput = new InputCollectExpression<>(1);
