@@ -23,6 +23,11 @@ package io.crate.testing;
 
 import com.google.common.collect.Lists;
 import io.crate.metadata.*;
+import io.crate.operation.operator.AndOperator;
+import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.OrOperator;
+import io.crate.operation.predicate.NotPredicate;
+import io.crate.operation.scalar.SubstrFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
@@ -93,6 +98,31 @@ public class TestingHelpers {
         });
         return new Function(
                 new FunctionInfo(new FunctionIdent(functionName, dataTypes), returnType), arguments);
+    }
+
+    public static Function eq(Symbol left, Symbol right) {
+        return createFunction(EqOperator.NAME, DataTypes.BOOLEAN, Arrays.asList(left, right));
+    }
+
+    public static Function and(Symbol left, Symbol right) {
+        return new Function(AndOperator.INFO,
+                Arrays.asList(left, right)
+        );
+    }
+
+    public static Function or(Symbol left, Symbol right) {
+        return new Function(OrOperator.INFO, Arrays.asList(left, right));
+    }
+
+    public static Function not(Symbol negated) {
+        return new Function(NotPredicate.INFO, Arrays.asList(negated));
+    }
+
+    public static Function substr(Symbol str, int n) {
+        return createFunction(
+                SubstrFunction.NAME,
+                DataTypes.STRING,
+                Arrays.asList(str, Literal.newLiteral(n)));
     }
 
     public static Reference createReference(String columnName, DataType dataType) {

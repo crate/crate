@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.PartitionName;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.elasticsearch.*;

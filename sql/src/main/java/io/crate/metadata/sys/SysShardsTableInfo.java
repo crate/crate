@@ -22,7 +22,7 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.types.*;
