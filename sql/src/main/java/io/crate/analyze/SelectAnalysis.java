@@ -26,6 +26,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.metadata.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
@@ -48,8 +49,18 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     protected boolean selectFromFieldCache = false;
 
     private Symbol havingClause;
+    private AnalyzedRelation relation;
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
+
+
+    public AnalyzedRelation relation() {
+        return relation;
+    }
+
+    public void relation(AnalyzedRelation relation) {
+        this.relation = relation;
+    }
 
     public Query query() {
         return query;
