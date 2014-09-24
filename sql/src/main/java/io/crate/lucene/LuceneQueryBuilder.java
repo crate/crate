@@ -27,7 +27,7 @@ import com.spatial4j.core.shape.Rectangle;
 import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
 import io.crate.metadata.Functions;

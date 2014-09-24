@@ -25,7 +25,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanVisitor;
