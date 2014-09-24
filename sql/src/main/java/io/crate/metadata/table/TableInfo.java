@@ -22,9 +22,9 @@
 package io.crate.metadata.table;
 
 import io.crate.PartitionName;
-import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.*;
+import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;

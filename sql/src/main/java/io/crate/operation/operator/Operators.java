@@ -19,27 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.relation;
+package io.crate.operation.operator;
 
-import io.crate.metadata.table.TableInfo;
+import com.google.common.collect.ImmutableSet;
+import io.crate.operation.predicate.NotPredicate;
 
-import javax.annotation.Nullable;
+public class Operators {
 
-public class RelationVisitor<C, R> {
+    public static final ImmutableSet<String> LOGICAL_OPERATORS = ImmutableSet.of(
+            AndOperator.NAME, OrOperator.NAME, NotPredicate.NAME
+    );
 
-    public R process(AnalyzedRelation relation, @Nullable C context) {
-        return relation.accept(this, context);
-    }
-
-    public R visitRelation(AnalyzedRelation relation, C context) {
-        return null;
-    }
-
-    public R visitTableInfo(TableInfo tableRelation, C context) {
-        return visitRelation(tableRelation, context);
-    }
-
-    public R visitCrossJoinRelation(JoinRelation joinRelation, C context) {
-        return visitRelation(joinRelation, context);
-    }
+    public static final ImmutableSet<String> COMPARATORS = ImmutableSet.<String>builder()
+            .add(EqOperator.NAME)
+            .add(GteOperator.NAME)
+            .add(GtOperator.NAME)
+            .add(LikeOperator.NAME)
+            .add(LteOperator.NAME)
+            .add(LtOperator.NAME)
+            .build();
 }

@@ -437,6 +437,9 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         return negativeLiteralVisitor.process(process(node.getValue(), context), null);
     }
 
+    /**
+     * Generates the whereClause from the given expression and writes it onto the context.
+     */
     protected void processWhereClause(Expression whereExpression, T context) {
         WhereClause whereClause = context.whereClause(process(whereExpression, context));
         if (whereClause.hasQuery()){
