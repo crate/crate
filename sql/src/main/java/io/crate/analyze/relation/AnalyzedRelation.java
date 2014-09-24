@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,42 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dql;
+package io.crate.analyze.relation;
 
-import io.crate.analyze.where.WhereClause;
-import io.crate.planner.node.PlanVisitor;
-import io.crate.types.DataType;
-import io.crate.types.LongType;
-
-import java.util.Arrays;
 import java.util.List;
 
-public class ESCountNode extends ESDQLPlanNode {
+public interface AnalyzedRelation {
+    public List<AnalyzedRelation> children();
 
-    private final List<DataType> outputTypes = Arrays.<DataType>asList(LongType.INSTANCE);
-    private final String indexName;
-    private final WhereClause whereClause;
+    /**
+     * return the number of children including itself
+     */
+    public int numChildren();
 
-    public ESCountNode(String indexName, WhereClause whereClause) {
-        this.indexName = indexName;
-        this.whereClause = whereClause;
-    }
+    /**
+     * A list of tables this relation references.
+     * If this is itself a table, it returns an empty list.
+     */
+    public List<AnalyzedRelation> tables();
 
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESCountNode(this, context);
-    }
-
-    public String indexName() {
-        return indexName;
-    }
-
-    public WhereClause whereClause() {
-        return whereClause;
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return outputTypes;
-    }
+    public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context);
 }

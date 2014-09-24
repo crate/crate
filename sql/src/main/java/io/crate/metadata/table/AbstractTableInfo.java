@@ -2,6 +2,8 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
+import io.crate.analyze.relation.AnalyzedRelation;
+import io.crate.analyze.relation.RelationVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
@@ -77,5 +79,25 @@ public abstract class AbstractTableInfo implements TableInfo {
     @Override
     public List<ColumnIdent> partitionedBy() {
         return ImmutableList.of();
+    }
+
+    @Override
+    public List<AnalyzedRelation> children() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public int numChildren() {
+        return 1;
+    }
+
+    @Override
+    public List<AnalyzedRelation> tables() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context) {
+        return relationVisitor.visitTableInfo(this, context);
     }
 }

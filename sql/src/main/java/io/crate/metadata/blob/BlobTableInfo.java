@@ -23,7 +23,9 @@ package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.relation.AnalyzedRelation;
+import io.crate.analyze.relation.RelationVisitor;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -229,4 +231,25 @@ public class BlobTableInfo implements TableInfo {
         return blobsPath;
     }
 
+    // AnalyzedRelation stuff
+
+    @Override
+    public List<AnalyzedRelation> children() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public int numChildren() {
+        return 1;
+    }
+
+    @Override
+    public List<AnalyzedRelation> tables() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context) {
+        return relationVisitor.visitTableInfo(this, context);
+    }
 }
