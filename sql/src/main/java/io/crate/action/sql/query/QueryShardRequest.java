@@ -21,7 +21,7 @@
 
 package io.crate.action.sql.query;
 
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.ActionRequest;

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,43 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dql;
+package io.crate.analyze.relation;
 
 import io.crate.metadata.table.TableInfo;
-import io.crate.analyze.where.WhereClause;
-import io.crate.planner.node.PlanVisitor;
-import io.crate.types.DataType;
-import io.crate.types.LongType;
 
-import java.util.Arrays;
-import java.util.List;
+import javax.annotation.Nullable;
 
-public class ESCountNode extends ESDQLPlanNode {
+public class RelationVisitor<C, R> {
 
-    private final List<DataType> outputTypes = Arrays.<DataType>asList(LongType.INSTANCE);
-    private final TableInfo tableInfo;
-    private final WhereClause whereClause;
-
-    public ESCountNode(TableInfo tableInfo, WhereClause whereClause) {
-        this.tableInfo = tableInfo;
-        this.whereClause = whereClause;
+    public R process(AnalyzedRelation relation, @Nullable C context) {
+        return relation.accept(this, context);
     }
 
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESCountNode(this, context);
+    public R visitRelation(AnalyzedRelation relation, C context) {
+        return null;
     }
 
-    public TableInfo tableInfo() {
-        return tableInfo;
+    public R visitTableInfo(TableInfo tableRelation, C context) {
+        return visitRelation(tableRelation, context);
     }
 
-    public WhereClause whereClause() {
-        return whereClause;
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return outputTypes;
+    public R visitCrossJoinRelation(CrossJoinRelation crossJoinRelation, C context) {
+        return visitRelation(crossJoinRelation, context);
     }
 }

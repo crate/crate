@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.action.sql.query.TransportQueryShardAction;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
