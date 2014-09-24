@@ -31,6 +31,7 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.analyze.*;
+import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;

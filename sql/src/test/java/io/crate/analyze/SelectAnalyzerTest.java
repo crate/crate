@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.PartitionName;
+import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
