@@ -24,6 +24,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.*;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysSchemaInfo;
