@@ -23,12 +23,12 @@ package io.crate.analyze.where;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.metadata.relation.RelationVisitor;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.AndOperator;
+import io.crate.operation.operator.Operators;
 import io.crate.operation.operator.OrOperator;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.symbol.*;
@@ -91,10 +91,6 @@ import java.util.*;
  * or other intermediate relations.
  */
 public class WhereClauseSplitter extends SymbolVisitor<WhereClauseSplitter.Context, WhereClauseSplitter.ReferencedTables> {
-
-    private static final ImmutableSet<String> LOGICAL_OPERATORS = ImmutableSet.of(
-            AndOperator.NAME, OrOperator.NAME, NotPredicate.NAME
-    );
 
     public static class ReferencedTables {
         private static final ReferencedTables EMPTY = new ReferencedTables();
@@ -239,7 +235,7 @@ public class WhereClauseSplitter extends SymbolVisitor<WhereClauseSplitter.Conte
         @Override
         public Void visitTableInfo(TableInfo tableRelation, RelationVisitorCtx context) {
             Stack<Symbol> stack = context.whereClauseContext.relationStack(tableRelation);
-            if (LOGICAL_OPERATORS.contains(context.symbol.info().ident().name())) {
+            if (Operators.LOGICAL_OPERATORS.contains(context.symbol.info().ident().name())) {
                 switch (context.symbol.info().ident().name()) {
                     case AndOperator.NAME:
                         assert stack.size() >= 2 : "stack too small";
