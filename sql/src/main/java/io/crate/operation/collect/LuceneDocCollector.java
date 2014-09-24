@@ -23,7 +23,7 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;

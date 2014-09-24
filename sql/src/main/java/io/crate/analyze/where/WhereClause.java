@@ -19,10 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.analyze.where;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
