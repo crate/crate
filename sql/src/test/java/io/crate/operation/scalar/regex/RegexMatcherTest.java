@@ -25,6 +25,7 @@ import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -32,26 +33,32 @@ public class RegexMatcherTest {
 
     @Test
     public void testMatch() throws Exception {
-        String pattern = "ba";
+        String pattern = "hello";
         BytesRef text = new BytesRef("foobarbequebaz");
         RegexMatcher regexMatcher = new RegexMatcher(pattern);
         assertEquals(false, regexMatcher.match(text));
+        assertArrayEquals(null, regexMatcher.groups());
 
-        pattern = ".*ba.*";
+        pattern = "ba";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(), arrayContaining(new BytesRef("foobarbequebaz")));
+        assertThat(regexMatcher.groups(), arrayContaining(new BytesRef("ba")));
+
+        pattern = "(ba)";
+        regexMatcher = new RegexMatcher(pattern);
+        assertEquals(true, regexMatcher.match(text));
+        assertThat(regexMatcher.groups(), arrayContaining(new BytesRef("ba")));
 
         pattern = ".*(ba).*";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(), arrayContaining(new BytesRef("foobarbequebaz"), new BytesRef("ba")));
+        assertThat(regexMatcher.groups(), arrayContaining(new BytesRef("ba")));
 
-        pattern = ".*?(\\w+?)(ba).*";
+        pattern = "((\\w+?)(ba))";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
         assertThat(regexMatcher.groups(),
-                arrayContaining(new BytesRef("foobarbequebaz"), new BytesRef("foo"), new BytesRef("ba")));
+                arrayContaining(new BytesRef("fooba"), new BytesRef("foo"), new BytesRef("ba")));
     }
 
     @Test

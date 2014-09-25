@@ -67,7 +67,7 @@ public class MatchesFunctionTest {
 
         assertThat(regexpImpl.regexMatcher(), instanceOf(RegexMatcher.class));
         assertEquals(true, regexpImpl.regexMatcher().match(new BytesRef("foobarbequebaz bar")));
-        assertThat(regexpImpl.regexMatcher().groups(), arrayContaining(new BytesRef("foobarbequebaz bar"), new BytesRef("ba")));
+        assertThat(regexpImpl.regexMatcher().groups(), arrayContaining(new BytesRef("ba")));
 
         arguments = Arrays.<Symbol>asList(
                 createReference("text", DataTypes.STRING),
@@ -78,8 +78,7 @@ public class MatchesFunctionTest {
 
         assertThat(regexpImpl.regexMatcher(), instanceOf(RegexMatcher.class));
         assertEquals(true, regexpImpl.regexMatcher().match(new BytesRef("foobarbequebaz bar")));
-        assertThat(regexpImpl.regexMatcher().groups(),
-                arrayContaining(new BytesRef("foobarbequebaz bar"), new BytesRef("ba")));
+        assertThat(regexpImpl.regexMatcher().groups(), arrayContaining(new BytesRef("ba")));
     }
 
     @Test
@@ -111,7 +110,7 @@ public class MatchesFunctionTest {
 
         BytesRef[] result = regexpImpl.evaluate(args);
 
-        assertThat(result, arrayContaining(new BytesRef("foobarbequebaz bar"),new BytesRef( "ba")));
+        assertThat(result, arrayContaining(new BytesRef( "ba")));
     }
 
     @Test
@@ -141,7 +140,7 @@ public class MatchesFunctionTest {
 
         BytesRef[] result = regexpImpl.evaluate(args);
 
-        assertThat(result, arrayContaining(new BytesRef("foobarbequebaz bar"), new BytesRef("ba")));
+        assertThat(result, arrayContaining(new BytesRef("ba")));
     }
 
     @Test
@@ -178,7 +177,7 @@ public class MatchesFunctionTest {
 
         BytesRef[] result = regexpImpl.evaluate(args);
 
-        assertThat(result, arrayContaining(new BytesRef("foobarbequebaz bar"), new BytesRef("ba")));
+        assertThat(result, arrayContaining(new BytesRef("ba")));
     }
 
     @Test
@@ -191,9 +190,7 @@ public class MatchesFunctionTest {
         MatchesFunction regexpImpl = (MatchesFunction) functions.get(function.info().ident());
 
         Symbol result = regexpImpl.normalizeSymbol(function);
-        BytesRef[] expected = new BytesRef[]{
-                new BytesRef("foobarbequebaz bar"),
-                new BytesRef("ba")};
+        BytesRef[] expected = new BytesRef[]{ new BytesRef("ba") };
         assertLiteralSymbol(result, expected, new ArrayType(DataTypes.STRING));
 
         arguments = Arrays.<Symbol>asList(
@@ -219,9 +216,7 @@ public class MatchesFunctionTest {
         MatchesFunction regexpImpl = (MatchesFunction) functions.get(function.info().ident());
 
         Symbol result = regexpImpl.normalizeSymbol(function);
-        BytesRef[] expected = new BytesRef[]{
-                new BytesRef("foobarbequebaz bar"),
-                new BytesRef("ba")};
+        BytesRef[] expected = new BytesRef[]{ new BytesRef("ba") };
         assertLiteralSymbol(result, expected, new ArrayType(DataTypes.STRING));
     }
 }

@@ -398,31 +398,43 @@ regexp_matches(source, pattern [, flags]) returns string_array
 This function uses the regular expression pattern in ``pattern``
 to match against the ``source`` string.
 
-If ``source`` matches, an array of the matched regular expression groups is returned.
+If ``source`` matches, an array of the matched regular expression
+groups is returned.
+If no regular expression group was used, the whole pattern is used as
+a group.
 If ``source`` does not match, this function returns ``NULL``.
 
-A regular expression group is formed by a subexpression that is surrounded by parentheses.
-The position of a group is determined by the position of its opening parenthesis.
-For example when matching the pattern ``\b([A-Z]).*`` a match for the
-subexpression ``([A-Z])`` would create group No. 1. Group No. 0 consists of
-the whole matched ``source``. If you want to group stuff with parentheses,
-but without grouping, use ``(?...)``.
+A regular expression group is formed by a subexpression that is
+surrounded by parentheses.The position of a group is determined by the
+position of its opening parenthesis.
+For example when matching the pattern ``\b([A-Z])`` a match for the
+subexpression ``([A-Z])`` would create group No. 1. If you want to
+group stuff with parentheses, but without grouping, use ``(?...)``.
 
-For example matching the regular expression ``^([Aa](.+)z)$`` against ``alcatraz``,
-results in these groups:
+For example matching the regular expression ``([Aa](.+)z)`` against
+``alcatraz``, results in these groups:
 
- * group 0: ``alcatraz`` (the whole string, if it matched)
- * group 1: ``alcatraz`` (from first to last parenthesis)
+ * group 1: ``alcatraz`` (from first to last parenthesis or whole pattern)
  * group 2: ``lcatra`` (beginning at second parenthesis)
 
 The ``regexp_matches`` function will return all groups as a string array::
 
-    cr> select regexp_matches('alcatraz', '^(a(.+)z)$') as matched from sys.cluster;
-    +------------------------------------+
-    | matched                            |
-    +------------------------------------+
-    | ["alcatraz", "alcatraz", "lcatra"] |
-    +------------------------------------+
+    cr> select regexp_matches('alcatraz', '(a(.+)z)') as matched from sys.cluster;
+    +------------------------+
+    | matched                |
+    +------------------------+
+    | ["alcatraz", "lcatra"] |
+    +------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select regexp_matches('alcatraz', 'traz') as matched from sys.cluster;
+    +----------+
+    | matched  |
+    +----------+
+    | ["traz"] |
+    +----------+
     SELECT 1 row in set (... sec)
 
 Through array element access functionality, a group can be selected
@@ -430,12 +442,12 @@ directly. See :ref:`sql_dql_object_arrays_select` for details.
 
 ::
 
-    cr> select regexp_matches('alcatraz', '^(a(.+)z)$')[3] as third_group from sys.cluster;
-    +-------------+
-    | third_group |
-    +-------------+
-    | lcatra      |
-    +-------------+
+    cr> select regexp_matches('alcatraz', '(a(.+)z)')[2] as second_group from sys.cluster;
+    +--------------+
+    | second_group |
+    +--------------+
+    | lcatra       |
+    +--------------+
     SELECT 1 row in set (... sec)
 
 .. _scalar-regexp-matches-flags:
@@ -485,11 +497,11 @@ Examples
 
     cr> select regexp_matches('99 bottles of beer on the wall', '\d{2}\s(\w+).*', 'ixU')
     ... as matched from sys.cluster;
-    +-----------------------------------------------+
-    | matched                                       |
-    +-----------------------------------------------+
-    | ["99 bottles of beer on the wall", "bottles"] |
-    +-----------------------------------------------+
+    +-------------+
+    | matched     |
+    +-------------+
+    | ["bottles"] |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 regexp_replace(source, pattern, replacement [, flags]) returns string
@@ -507,7 +519,7 @@ The ``replacement`` string may contain expressions like ``$N``
 where ``N`` is a digit between 0 and 9. It references the *N*\ th matched group of
 ``pattern`` and the matching subsequence of that group will be inserted
 in the returned string. The expression ``$0`` will insert the whole matching
-``source`` a.k.a. group No. 0.
+``source``.
 
 Per default, only the first occurrence of a subsequence matching ``pattern``
 will be replaced. If all occurrences shall be replaced use the ``g`` flag.

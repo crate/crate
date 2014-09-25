@@ -52,15 +52,19 @@ public class RegexMatcher {
 
     public boolean match(BytesRef term) {
         UnicodeUtil.UTF8toUTF16(term.bytes, term.offset, term.length, utf16);
-        return matcher.reset().matches();
+        return matcher.reset().find();
     }
 
     @Nullable
     public BytesRef[] groups() {
         try {
-            BytesRef[] groups = new BytesRef[matcher.groupCount() + 1];
-            for (int i = 0; i <= matcher.groupCount(); i++) {
-                groups[i] = new BytesRef(matcher.group(i));
+            if (matcher.groupCount() == 0) {
+                return new BytesRef[]{ new BytesRef(matcher.group()) };
+            }
+            BytesRef[] groups = new BytesRef[matcher.groupCount()];
+            // skip first group (the original string)
+            for (int i = 1; i <= matcher.groupCount(); i++) {
+                groups[i-1] = new BytesRef(matcher.group(i));
             }
             return groups;
         } catch (IllegalStateException e) {

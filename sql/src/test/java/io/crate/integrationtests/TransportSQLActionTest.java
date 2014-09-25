@@ -4618,24 +4618,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select regexp_matches(s, '(\\w+) is (\\w+)') from regex_fulltext order by i");
         String[] match1 = (String[]) response.rows()[0][0];
-        assertThat(match1[0], is("foo is first"));
-        assertThat(match1[1], is("foo"));
-        assertThat(match1[2], is("first"));
+        assertThat(match1[0], is("foo"));
+        assertThat(match1[1], is("first"));
 
         String[] match2 = (String[]) response.rows()[1][0];
-        assertThat(match2[0], is("bar is second"));
-        assertThat(match2[1], is("bar"));
-        assertThat(match2[2], is("second"));
+        assertThat(match2[0], is("bar"));
+        assertThat(match2[1], is("second"));
 
         String[] match3 = (String[]) response.rows()[2][0];
-        assertThat(match3[0], is("foobar is great"));
-        assertThat(match3[1], is("foobar"));
-        assertThat(match3[2], is("great"));
+        assertThat(match3[0], is("foobar"));
+        assertThat(match3[1], is("great"));
 
         String[] match4 = (String[]) response.rows()[3][0];
-        assertThat(match4[0], is("crate is greater"));
-        assertThat(match4[1], is("crate"));
-        assertThat(match4[2], is("greater"));
+        assertThat(match4[0], is("crate"));
+        assertThat(match4[1], is("greater"));
     }
 
     @Test
