@@ -24,8 +24,8 @@ package io.crate.analyze.where;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.relation.AnalyzedRelation;
-import io.crate.analyze.relation.RelationVisitor;
+import io.crate.metadata.relation.AnalyzedRelation;
+import io.crate.metadata.relation.RelationVisitor;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.AndOperator;
@@ -76,7 +76,7 @@ import java.util.*;
  *
  * </p>
  *
- * We get the following map back from the {@linkplain #split(WhereClause, io.crate.analyze.relation.AnalyzedRelation)} method:
+ * We get the following map back from the {@linkplain #split(WhereClause, io.crate.metadata.relation.AnalyzedRelation)} method:
  * <p>
  *
  *      <code>
