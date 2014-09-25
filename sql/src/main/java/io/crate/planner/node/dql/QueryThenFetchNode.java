@@ -26,7 +26,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
 import io.crate.planner.node.PlanVisitor;
