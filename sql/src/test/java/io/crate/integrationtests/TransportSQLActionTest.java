@@ -1994,7 +1994,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectMatch() throws Exception {
-        execute("create table quotes (quote string)");
+        execute("create table quotes (quote string) clustered into 1 shards with (number_of_replicas = 0)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 

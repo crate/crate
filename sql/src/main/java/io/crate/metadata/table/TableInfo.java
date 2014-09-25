@@ -22,7 +22,7 @@
 package io.crate.metadata.table;
 
 import io.crate.PartitionName;
-import io.crate.analyze.relation.AnalyzedRelation;
+import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
