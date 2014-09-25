@@ -187,6 +187,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "firstName", "type=string",
                         "lastName", "type=string")
                 .execute().actionGet();
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
                 .execute().actionGet();
