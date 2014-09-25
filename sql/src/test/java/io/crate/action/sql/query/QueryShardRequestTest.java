@@ -22,7 +22,7 @@
 package io.crate.action.sql.query;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.symbol.Function;
