@@ -23,8 +23,8 @@ package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
-import io.crate.analyze.relation.AnalyzedRelation;
-import io.crate.analyze.relation.RelationVisitor;
+import io.crate.metadata.relation.AnalyzedRelation;
+import io.crate.metadata.relation.RelationVisitor;
 import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;

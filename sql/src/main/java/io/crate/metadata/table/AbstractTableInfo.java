@@ -2,8 +2,8 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
-import io.crate.analyze.relation.AnalyzedRelation;
-import io.crate.analyze.relation.RelationVisitor;
+import io.crate.metadata.relation.AnalyzedRelation;
+import io.crate.metadata.relation.RelationVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
