@@ -21,8 +21,8 @@
 
 package io.crate.analyze.where;
 
-import io.crate.analyze.relation.AnalyzedRelation;
-import io.crate.analyze.relation.CrossJoinRelation;
+import io.crate.metadata.relation.AnalyzedRelation;
+import io.crate.metadata.relation.CrossJoinRelation;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;

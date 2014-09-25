@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze.relation;
+package io.crate.metadata.relation;
 
 import io.crate.metadata.table.TableInfo;
 
