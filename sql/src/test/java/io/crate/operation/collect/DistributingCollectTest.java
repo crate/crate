@@ -23,7 +23,7 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.query.TransportQueryShardAction;
-import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.TaskResult;
