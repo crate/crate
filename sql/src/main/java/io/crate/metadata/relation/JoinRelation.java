@@ -77,6 +77,6 @@ public class JoinRelation implements AnalyzedRelation {
 
     @Override
     public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context) {
-        return relationVisitor.visitCrossJoinRelation(this, context);
+        return relationVisitor.visitJoinRelation(this, context);
     }
 }
