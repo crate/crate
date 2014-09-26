@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/09/26 0.44.2
+=================
+
  - Track correct transient cluster setting for routing allocation
    when performing graceful shutdown
 
