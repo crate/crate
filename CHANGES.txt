@@ -5,12 +5,6 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - Track correct transient cluster setting for routing allocation
-   when performing graceful shutdown
-
- - Improved error handling when trying to import data using COPY FROM
-   where primary key is a NULL value
-
  - All scalar functions can now be used in the WHERE clause in SELECT
    statements and they may be nested without limitations. In addition it is now
    possible to compare one scalar function to another.
@@ -26,6 +20,16 @@ Unreleased
 
  - Renamed NullType to UndefinedType in order to avoid confusion
    about its usage
+
+2014/09/26 0.44.2
+2014/09/26 0.43.3
+=================
+
+ - Track correct transient cluster setting for routing allocation
+   when performing graceful shutdown
+
+ - Improved error handling when trying to import data using COPY FROM
+   where primary key is a NULL value
 
 2014/09/23 0.44.1
 2014/09/23 0.43.2
