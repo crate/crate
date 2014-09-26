@@ -34,7 +34,9 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public class MatchesFunction extends Scalar<BytesRef[], Object> implements DynamicFunctionResolver {
 
@@ -156,7 +158,10 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
     @Override
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.size() < 4
-                && dataTypes.get(0) == DataTypes.STRING && dataTypes.get(1) == DataTypes.STRING);
+                && dataTypes.get(0) == DataTypes.STRING && dataTypes.get(1) == DataTypes.STRING,
+                String.format(Locale.ENGLISH,
+                        "[%s] Function implementation not found for argument types %s",
+                        NAME, Arrays.toString(dataTypes.toArray())));
         if (dataTypes.size() == 3) {
             Preconditions.checkArgument(dataTypes.get(2) == DataTypes.STRING);
         }

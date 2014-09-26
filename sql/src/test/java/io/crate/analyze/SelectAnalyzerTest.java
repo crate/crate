@@ -1842,8 +1842,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSubscriptArrayOnScalarResult() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis) analyze("select regexp_matches(text, '.*')[1] as t_alias from users");
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select regexp_matches(name, '.*')[1] as t_alias from users order by t_alias");
         assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
+        assertThat(analysis.sortSymbols().get(0), is(analysis.outputSymbols().get(0)));
         List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
         assertThat(arguments.size(), is(2));
 
@@ -1852,7 +1853,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         List<Symbol> scalarArguments = ((Function) arguments.get(0)).arguments();
         assertThat(scalarArguments.size(), is(2));
-        assertThat(scalarArguments.get(0), isReference("text"));
+        assertThat(scalarArguments.get(0), isReference("name"));
         assertThat(scalarArguments.get(1), isLiteral(".*", DataTypes.STRING));
     }
+
 }

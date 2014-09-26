@@ -370,8 +370,8 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         @Override
         public Void visitFunction(Function symbol, SortContext context) {
             try {
-                context.inFunction = true;
-                if (!DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
+                if (context.inFunction == false
+                        && !DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
                     throw new UnsupportedOperationException(
                             String.format(Locale.ENGLISH,
                                     "Cannot ORDER BY '%s': invalid return type '%s'.",
@@ -385,6 +385,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                             "%s predicate cannot be used in an ORDER BY clause", symbol.info().ident().name()));
                 }
 
+                context.inFunction = true;
                 for (Symbol arg : symbol.arguments()) {
                     process(arg, context);
                 }

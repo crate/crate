@@ -287,7 +287,8 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         ensureGreen();
         execute("insert into test (id, text) values (1, 'Time is an illusion')");
         refresh();
-        execute("select regexp_matches(text, '(\\w+)\\s(\\w+)')[1], regexp_matches(text, '(\\w+)\\s(\\w+)')[2] as matched from test");
+        execute("select regexp_matches(text, '(\\w+)\\s(\\w+)')[1] as first_word," +
+                "regexp_matches(text, '(\\w+)\\s(\\w+)')[2] as matched from test order by first_word");
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("Time"));
         assertThat((String) response.rows()[0][1], is("is"));
