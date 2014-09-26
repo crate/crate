@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Track correct transient cluster setting for routing allocation
+   when performing graceful shutdown
+
  - Improved error handling when trying to import data using COPY FROM
    where primary key is a NULL value
 
