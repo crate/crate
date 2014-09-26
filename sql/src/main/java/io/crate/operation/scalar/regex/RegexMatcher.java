@@ -64,7 +64,12 @@ public class RegexMatcher {
             BytesRef[] groups = new BytesRef[matcher.groupCount()];
             // skip first group (the original string)
             for (int i = 1; i <= matcher.groupCount(); i++) {
-                groups[i-1] = new BytesRef(matcher.group(i));
+                String group = matcher.group(i);
+                if (group != null) {
+                    groups[i - 1] = new BytesRef(group);
+                } else {
+                    groups[i - 1] = null;
+                }
             }
             return groups;
         } catch (IllegalStateException e) {

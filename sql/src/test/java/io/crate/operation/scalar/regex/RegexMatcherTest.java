@@ -92,4 +92,14 @@ public class RegexMatcherTest {
         RegexMatcher regexMatcher = new RegexMatcher(pattern, new BytesRef("g"));
         assertEquals(new BytesRef("fooCraterbequeCratez"), regexMatcher.replace(text, replacement));
     }
+
+    @Test
+    public void testMatchesNullGroup() throws Exception {
+        String pattern = "\\w+( --?\\w+)*( \\w+)*";
+        BytesRef text = new BytesRef("gcc -Wall --std=c99 -o source source.c");
+        RegexMatcher regexMatcher = new RegexMatcher(pattern);
+        assertEquals(true, regexMatcher.match(text));
+        assertThat(regexMatcher.groups(),
+                arrayContaining(new BytesRef(" --std"), null));
+    }
 }
