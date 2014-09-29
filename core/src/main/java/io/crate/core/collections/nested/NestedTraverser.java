@@ -19,26 +19,15 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.core.collections.nested;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import com.google.common.collect.TreeTraverser;
 
-public class Job {
+public class NestedTraverser<T extends Nested> extends TreeTraverser<T> {
 
-    private final UUID id = UUID.randomUUID();
-    private final List<Task> tasks = new ArrayList<>();
-
-    public UUID id() {
-        return id;
-    }
-
-    public void addTask(Task task) {
-        tasks.add(task);
-    }
-
-    public List<Task> tasks() {
-        return tasks;
+    @Override
+    @SuppressWarnings("unchecked")
+    public Iterable<T> children(T root) {
+        return root.children();
     }
 }

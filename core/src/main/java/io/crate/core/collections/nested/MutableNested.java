@@ -19,26 +19,8 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.core.collections.nested;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-public class Job {
-
-    private final UUID id = UUID.randomUUID();
-    private final List<Task> tasks = new ArrayList<>();
-
-    public UUID id() {
-        return id;
-    }
-
-    public void addTask(Task task) {
-        tasks.add(task);
-    }
-
-    public List<Task> tasks() {
-        return tasks;
-    }
+public interface MutableNested<T extends MutableNested> extends Nested<T> {
+    public void addChild(T child);
 }

@@ -48,6 +48,7 @@ import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -123,6 +124,12 @@ public class TransportExecutor implements Executor {
     }
 
     class Visitor extends PlanVisitor<Job, Void> {
+
+        @Override
+        public Void visitNestedLoopNode(NestedLoopNode node, Job context) {
+
+            throw new UnsupportedOperationException("Nested Loop not implemented yet");
+        }
 
         @Override
         public Void visitCollectNode(CollectNode node, Job context) {
