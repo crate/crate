@@ -105,19 +105,15 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     }
 
     protected Symbol visitQuerySpecification(QuerySpecification node, SelectAnalysis context) {
-        // visit the from first, since this qualifies the select
         int numTables = node.getFrom() == null ? 0 : node.getFrom().size();
         if (numTables != 1) {
             throw new SQLParseException(
-                    "Only exactly one table is allowed in the from clause, got: " + numTables
-            );
+                    "Only exactly one table is allowed in the from clause, got: " + numTables);
         }
         process(node.getFrom().get(0), context);
 
-        context.limit(intFromOptionalExpression(node.getLimit(), context.parameters()));
-        context.offset(Objects.firstNonNull(
-                intFromOptionalExpression(node.getOffset(), context.parameters()), 0));
-
+        Integer limit = intFromOptionalExpression(node.getLimit(), context.parameters());
+        Integer offset = intFromOptionalExpression(node.getOffset(), context.parameters());
 
         context.whereClause(generateWhereClause(node.getWhere(), context));
 
@@ -144,11 +140,12 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             rewriteGlobalDistinct(context);
         }
 
+        Symbol having = null;
         if (node.getHaving().isPresent()) {
             if (node.getGroupBy().isEmpty() && !context.hasAggregates()) {
                 throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
             }
-            processHavingClause(node.getHaving().get(), context);
+            having = generateHaving(node.getHaving().get(), context);
         }
 
         if (node.getOrderBy().size() > 0) {
@@ -163,23 +160,23 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                 context.table(),
                 context.whereClause(),
                 context.groupBy(),
-                context.havingClause(),
+                having,
                 context.sortSymbols(),
-                context.limit(),
-                context.offset()
+                limit,
+                offset
         );
         context.querySpecification(relation);
-        return null;
+        return new RelationSymbol(relation);
     }
 
-    private void processHavingClause(Expression expression, SelectAnalysis context) {
+    private Symbol generateHaving(Expression expression, SelectAnalysis context) {
         Symbol havingQuery = process(expression, context);
 
         // validate having symbols
         HavingSymbolValidator.HavingContext havingContext = new HavingSymbolValidator.HavingContext(context.groupBy());
         havingSymbolValidator.process(havingQuery, havingContext);
 
-        context.havingClause(havingQuery);
+        return context.normalizer.normalize(havingQuery);
     }
 
     private void addSorting(List<SortItem> orderBy, SelectAnalysis context) {
@@ -315,7 +312,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     @Override
     protected Symbol visitQuery(Query node, SelectAnalysis context) {
-        context.query(node);
         return super.visitQuery(node, context);
     }
 

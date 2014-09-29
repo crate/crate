@@ -21,6 +21,7 @@
 
 package io.crate.planner.symbol;
 
+import io.crate.metadata.relation.AnalyzedRelation;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -34,6 +35,17 @@ public class RelationSymbol extends Symbol {
             return new RelationSymbol();
         }
     };
+    private AnalyzedRelation relation;
+
+    protected RelationSymbol() {}
+
+    public RelationSymbol(AnalyzedRelation relation) {
+        this.relation = relation;
+    }
+
+    public AnalyzedRelation relation() {
+        return relation;
+    }
 
     @Override
     public SymbolType symbolType() {

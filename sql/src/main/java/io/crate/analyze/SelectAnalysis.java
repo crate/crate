@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
@@ -32,7 +33,6 @@ import io.crate.metadata.relation.AnalyzedQuerySpecification;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
-import io.crate.sql.tree.Query;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -40,21 +40,20 @@ import java.util.List;
 
 public class SelectAnalysis extends AbstractDataAnalysis {
 
-    private Query query;
-
-    private Integer limit;
-    private int offset = 0;
     private List<Symbol> groupBy;
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;
     private List<Symbol> sortSymbols;
     protected boolean selectFromFieldCache = false;
 
-    private Symbol havingClause;
     private AnalyzedQuerySpecification querySpecification;
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
 
+    public SelectAnalysis(ReferenceInfos referenceInfos, Functions functions,
+                          Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
+        super(referenceInfos, functions, parameterContext, referenceResolver);
+    }
 
     public AnalyzedQuerySpecification querySpecification() {
         return querySpecification;
@@ -64,33 +63,24 @@ public class SelectAnalysis extends AbstractDataAnalysis {
         this.querySpecification = relation;
     }
 
-    public Query query() {
-        return query;
+    @Deprecated
+    @Override
+    public WhereClause whereClause() {
+        return whereClause;
     }
 
-    public void query(Query query) {
-        this.query = query;
-    }
-
-    public SelectAnalysis(ReferenceInfos referenceInfos, Functions functions,
-                          Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameterContext, referenceResolver);
-    }
-
-    public void limit(Integer limit) {
-        this.limit = limit;
-    }
-
+    @Deprecated
     public Integer limit() {
-        return limit;
+        return querySpecification.limit();
     }
 
+    @Deprecated
     public int offset() {
-        return offset;
+        return querySpecification.offset();
     }
 
     public boolean isLimited() {
-        return limit != null || offset > 0;
+        return limit() != null || offset() > 0;
     }
 
     public void groupBy(List<Symbol> groupBy) {
@@ -109,13 +99,10 @@ public class SelectAnalysis extends AbstractDataAnalysis {
         return groupBy != null && groupBy.size() > 0;
     }
 
+    @Deprecated
     @Nullable
     public Symbol havingClause() {
-        return havingClause;
-    }
-
-    public void havingClause(Symbol clause) {
-        this.havingClause = normalizer.process(clause, null);
+        return querySpecification.having().orNull();
     }
 
     public void reverseFlags(boolean[] reverseFlags) {
@@ -132,6 +119,7 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     @Override
     public boolean hasNoResult() {
+        Symbol havingClause = havingClause();
         if (havingClause != null && havingClause.symbolType() == SymbolType.LITERAL) {
             Literal havingLiteral = (Literal)havingClause;
             if (havingLiteral.value() == false) {
@@ -160,10 +148,6 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     public boolean hasAggregates() {
         return hasAggregates;
-    }
-
-    public void offset(int offset) {
-        this.offset = offset;
     }
 
     public void addAlias(String alias, Symbol symbol) {
