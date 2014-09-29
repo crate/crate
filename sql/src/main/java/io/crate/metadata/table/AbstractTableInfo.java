@@ -110,4 +110,9 @@ public abstract class AbstractTableInfo implements TableInfo {
     public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context) {
         return relationVisitor.visitTableInfo(this, context);
     }
+
+    @Override
+    public boolean resolvesToName(String relationName) {
+        return ident().name().equals(relationName);
+    }
 }
