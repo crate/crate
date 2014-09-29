@@ -119,7 +119,7 @@ public class DocTableInfo implements TableInfo {
      */
     @Override
     @Nullable
-    public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
+    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
         return references.get(columnIdent);
     }
 
@@ -132,7 +132,7 @@ public class DocTableInfo implements TableInfo {
             ReferenceInfo parentInfo = null;
 
             while (parentIdent != null) {
-                parentInfo = getColumnInfo(parentIdent);
+                parentInfo = getReferenceInfo(parentIdent);
                 if (parentInfo != null) {
                     break;
                 }

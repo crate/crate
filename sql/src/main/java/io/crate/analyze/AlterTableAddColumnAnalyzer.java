@@ -68,7 +68,7 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
 
     private void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
         if ((!column.isObjectExtension() || column.children().isEmpty())
-                && tableInfo.getColumnInfo(column.ident()) != null) {
+                && tableInfo.getReferenceInfo(column.ident()) != null) {
             throw new IllegalArgumentException(String.format(
                     "The table \"%s\" already has a column named \"%s\"",
                     tableInfo.ident().name(),
@@ -84,7 +84,7 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
             if (pkIdent.name().equals("_id")) {
                 continue;
             }
-            ReferenceInfo pkInfo = context.table().getColumnInfo(pkIdent);
+            ReferenceInfo pkInfo = context.table().getReferenceInfo(pkIdent);
             assert pkInfo != null;
 
             AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null);

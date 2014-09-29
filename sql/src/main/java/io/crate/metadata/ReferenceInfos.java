@@ -83,7 +83,7 @@ public class ReferenceInfos implements Iterable<SchemaInfo>{
     public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
         TableInfo tableInfo = getTableInfo(ident.tableIdent());
         if (tableInfo != null) {
-            return tableInfo.getColumnInfo(ident.columnIdent());
+            return tableInfo.getReferenceInfo(ident.columnIdent());
         }
         return null;
     }

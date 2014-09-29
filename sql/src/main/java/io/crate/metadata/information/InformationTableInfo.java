@@ -64,7 +64,7 @@ public class InformationTableInfo extends AbstractTableInfo {
 
     @Nullable
     @Override
-    public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
+    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
         return references.get(columnIdent);
     }
 

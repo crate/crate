@@ -318,7 +318,7 @@ public class SysClusterTableInfo extends SysTableInfo {
     }
 
     @Override
-    public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
+    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
         return INFOS.get(columnIdent);
     }
 

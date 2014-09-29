@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
@@ -48,7 +49,7 @@ public class ReferenceIdent implements Comparable<ReferenceIdent>, Streamable {
         this(tableIdent, new ColumnIdent(column));
     }
 
-    public ReferenceIdent(TableIdent tableIdent, String column, List<String> path) {
+    public ReferenceIdent(TableIdent tableIdent, String column, @Nullable List<String> path) {
         this(tableIdent, new ColumnIdent(column, path));
     }
 

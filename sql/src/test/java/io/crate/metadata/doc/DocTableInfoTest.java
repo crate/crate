@@ -39,7 +39,7 @@ public class DocTableInfoTest {
                 ImmutableList.<ColumnIdent>of(),
                 ImmutableList.<PartitionName>of());
 
-        ReferenceInfo foobar = info.getColumnInfo(new ColumnIdent("foobar"));
+        ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("foobar"));
         assertNull(foobar);
         DynamicReference reference = info.getDynamic(new ColumnIdent("foobar"));
         assertNotNull(reference);
@@ -84,7 +84,7 @@ public class DocTableInfoTest {
 
         try {
             ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
-            assertNull(info.getColumnInfo(columnIdent));
+            assertNull(info.getReferenceInfo(columnIdent));
             info.getDynamic(columnIdent);
             fail();
         } catch (ColumnUnknownException e) {
@@ -92,13 +92,13 @@ public class DocTableInfoTest {
         }
         try {
             ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo"));
-            assertNull(info.getColumnInfo(columnIdent));
+            assertNull(info.getReferenceInfo(columnIdent));
             info.getDynamic(columnIdent);
             fail();
         } catch (ColumnUnknownException e) {
 
         }
-        ReferenceInfo colInfo = info.getColumnInfo(new ColumnIdent("foobar"));
+        ReferenceInfo colInfo = info.getReferenceInfo(new ColumnIdent("foobar"));
         assertNotNull(colInfo);
     }
 }

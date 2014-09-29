@@ -44,7 +44,7 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      * returns null if this table contains no such column.
      */
     @Nullable
-    public ReferenceInfo getColumnInfo(ColumnIdent columnIdent);
+    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent);
 
     /**
      * returns the top level columns of this table with predictable order

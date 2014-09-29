@@ -47,7 +47,7 @@ public class BlobTableInfoTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        ReferenceInfo foobar = info.getColumnInfo(new ColumnIdent("digest"));
+        ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("digest"));
         assertNotNull(foobar);
         assertEquals(DataTypes.STRING, foobar.type());
 

@@ -20,7 +20,6 @@
  */
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -217,7 +216,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
                               Predicate<ReferenceInfo> parentMatchPredicate) {
         ColumnIdent parent = info.ident().columnIdent().getParent();
         while (parent != null) {
-            ReferenceInfo parentInfo = table.getColumnInfo(parent);
+            ReferenceInfo parentInfo = table.getReferenceInfo(parent);
             if (parentMatchPredicate.apply(parentInfo)) {
                 return true;
             }
@@ -227,23 +226,11 @@ public abstract class AbstractDataAnalysis extends Analysis {
     }
 
     public FunctionInfo getFunctionInfo(FunctionIdent ident) {
-        FunctionImplementation implementation = functions.get(ident);
-        if (implementation == null) {
-            throw new UnsupportedOperationException(
-                    String.format("unknown function: %s(%s)", ident.name(),
-                            Joiner.on(", ").join(ident.argumentTypes())));
-        }
-        return implementation.info();
+        return functions.getSafe(ident).info();
     }
 
     public FunctionImplementation getFunctionImplementation(FunctionIdent ident) {
-        FunctionImplementation implementation = functions.get(ident);
-        if (implementation == null) {
-            throw new UnsupportedOperationException(
-                    String.format("unknown function: %s(%s)", ident.name(),
-                            Joiner.on(", ").join(ident.argumentTypes())));
-        }
-        return implementation;
+        return functions.getSafe(ident);
     }
 
     public Collection<Reference> references() {
@@ -421,7 +408,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
     private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
-            ReferenceInfo nestedInfo = table.getColumnInfo(nestedIdent);
+            ReferenceInfo nestedInfo = table.getReferenceInfo(nestedIdent);
             if (nestedInfo == null) {
                 if (info.objectType() == ReferenceInfo.ObjectType.IGNORED) {
                     continue;

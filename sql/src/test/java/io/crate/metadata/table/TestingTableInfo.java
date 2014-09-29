@@ -233,7 +233,7 @@ public class TestingTableInfo extends AbstractTableInfo {
     }
 
     @Override
-    public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
+    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
         return references.get(columnIdent);
     }
 
@@ -307,7 +307,7 @@ public class TestingTableInfo extends AbstractTableInfo {
     public DynamicReference getDynamic(ColumnIdent ident) {
         if (!ident.isColumn()) {
             ColumnIdent parentIdent = ident.getParent();
-            ReferenceInfo parentInfo = getColumnInfo(parentIdent);
+            ReferenceInfo parentInfo = getReferenceInfo(parentIdent);
             if (parentInfo != null && parentInfo.objectType() == ReferenceInfo.ObjectType.STRICT) {
                 throw new ColumnUnknownException(ident().name(), ident.fqn());
             }

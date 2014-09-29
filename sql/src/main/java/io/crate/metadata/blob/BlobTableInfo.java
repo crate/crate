@@ -89,7 +89,7 @@ public class BlobTableInfo implements TableInfo {
 
     @Nullable
     @Override
-    public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
+    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
         return INFOS.get(columnIdent);
     }
 

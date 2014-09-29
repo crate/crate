@@ -274,16 +274,16 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                         new Object[]{"Jeltz", 0, friends, "9"});
         assertThat(analysis.assignments().size(), is(3));
         assertLiteralSymbol(
-                analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("name")))),
+                analysis.assignments().get(new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("name")))),
                 "Jeltz"
         );
         assertLiteralSymbol(
-                analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("friends")))),
+                analysis.assignments().get(new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("friends")))),
                 friends,
                 new ArrayType(DataTypes.OBJECT)
         );
         assertLiteralSymbol(
-                analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("other_id")))),
+                analysis.assignments().get(new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("other_id")))),
                 0L
         );
 
@@ -309,7 +309,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{ new Map[0], 0 });
 
         Literal friendsLiteral = (Literal)analysis.assignments().get(
-                new Reference(userTableInfo.getColumnInfo(new ColumnIdent("friends"))));
+                new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("friends"))));
         assertThat(friendsLiteral.valueType().id(), is(ArrayType.ID));
         assertEquals(DataTypes.OBJECT, ((ArrayType)friendsLiteral.valueType()).innerType());
         assertThat(((Object[])friendsLiteral.value()).length, is(0));

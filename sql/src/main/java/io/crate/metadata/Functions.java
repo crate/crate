@@ -21,9 +21,9 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.Joiner;
 import org.elasticsearch.common.inject.Inject;
 
-import java.util.Collection;
 import java.util.Map;
 
 public class Functions {
@@ -38,6 +38,28 @@ public class Functions {
         this.functionResolvers = functionResolvers;
     }
 
+    /**
+     * <p>
+     *     returns the functionImplementation for the given ident.
+     * </p>
+     *
+     * same as {@link #get(FunctionIdent)} but will throw an UnsupportedOperationException
+     * if no implementation is found.
+     */
+    public FunctionImplementation getSafe(FunctionIdent ident)
+            throws IllegalArgumentException, UnsupportedOperationException {
+        FunctionImplementation implementation = get(ident);
+        if (implementation == null) {
+            throw new UnsupportedOperationException(
+                    String.format("unknown function: %s(%s)", ident.name(),
+                            Joiner.on(", ").join(ident.argumentTypes())));
+        }
+        return implementation;
+    }
+
+    /**
+     * returns the functionImplementation for the given ident.
+     */
     public FunctionImplementation get(FunctionIdent ident) throws IllegalArgumentException {
         FunctionImplementation implementation = functionImplementations.get(ident);
         if (implementation != null) {
@@ -49,9 +71,5 @@ public class Functions {
             return dynamicResolver.getForTypes(ident.argumentTypes());
         }
         return null;
-    }
-
-    public Collection<FunctionImplementation> functions() {
-        return functionImplementations.values();
     }
 }

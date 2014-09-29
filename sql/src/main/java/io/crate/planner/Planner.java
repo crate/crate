@@ -231,14 +231,14 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             Reference sourceRef;
             if (analysis.table().isPartitioned() && analysis.partitionIdent() == null) {
                 // table is partitioned, insert partitioned columns into the output
-                sourceRef = new Reference(analysis.table().getColumnInfo(DocSysColumns.DOC));
+                sourceRef = new Reference(analysis.table().getReferenceInfo(DocSysColumns.DOC));
                 Map<ColumnIdent, Symbol> overwrites = new HashMap<>();
                 for (ReferenceInfo referenceInfo : analysis.table().partitionedByColumns()) {
                     overwrites.put(referenceInfo.ident().columnIdent(), new Reference(referenceInfo));
                 }
                 projection.overwrites(overwrites);
             } else {
-                sourceRef = new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW));
+                sourceRef = new Reference(analysis.table().getReferenceInfo(DocSysColumns.RAW));
             }
             contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(sourceRef));
         }
@@ -292,29 +292,29 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         // add primaryKey columns
         for (ColumnIdent primaryKey : analysis.table().primaryKey()) {
             toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(primaryKey))
+                    new Reference(analysis.table().getReferenceInfo(primaryKey))
             );
         }
 
         // add partitioned columns (if not part of primaryKey)
         for (String partitionedColumn : partitionedByNames) {
             toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(ColumnIdent.fromPath(partitionedColumn)))
+                    new Reference(analysis.table().getReferenceInfo(ColumnIdent.fromPath(partitionedColumn)))
             );
         }
 
         // add clusteredBy column (if not part of primaryKey)
         if (clusteredByPrimaryKeyIdx == -1) {
             toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(analysis.table().clusteredBy()))
+                    new Reference(analysis.table().getReferenceInfo(analysis.table().clusteredBy()))
             );
         }
 
         // finally add _raw or _doc
         if (analysis.table().isPartitioned() && analysis.partitionIdent() == null) {
-            toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.DOC)));
+            toCollect.add(new Reference(analysis.table().getReferenceInfo(DocSysColumns.DOC)));
         } else {
-            toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW)));
+            toCollect.add(new Reference(analysis.table().getReferenceInfo(DocSysColumns.RAW)));
         }
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
