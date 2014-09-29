@@ -23,6 +23,7 @@ package io.crate.analyze.where;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.ReferencedTables;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.metadata.relation.RelationVisitor;
@@ -90,50 +91,7 @@ import java.util.*;
  * TODO: currently we only build separate queries for table relation, not for joins
  * or other intermediate relations.
  */
-public class WhereClauseSplitter extends SymbolVisitor<WhereClauseSplitter.Context, WhereClauseSplitter.ReferencedTables> {
-
-    public static class ReferencedTables {
-        private static final ReferencedTables EMPTY = new ReferencedTables();
-        private final Set<TableIdent> idents;
-
-        public ReferencedTables(TableIdent ... idents) {
-            this.idents = new HashSet<>();
-            Collections.addAll(this.idents, idents);
-        }
-
-        public void merge(ReferencedTables tables) {
-            idents.addAll(tables.idents);
-        }
-
-        public boolean referencesMany() {
-            return idents.size() > 1;
-        }
-
-        public boolean referencesOnly(TableIdent ident) {
-            return idents.size() == 1 && references(ident);
-        }
-
-        public boolean references(TableIdent ident) {
-            return idents.contains(ident);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            ReferencedTables that = (ReferencedTables) o;
-
-            if (!idents.equals(that.idents)) return false;
-
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            return idents.hashCode();
-        }
-    }
+public class WhereClauseSplitter extends SymbolVisitor<WhereClauseSplitter.Context, ReferencedTables> {
 
     public static class Context {
         private final AnalyzedRelation relation;
@@ -294,7 +252,7 @@ public class WhereClauseSplitter extends SymbolVisitor<WhereClauseSplitter.Conte
         }
     }
 
-    private Visitor relationVisitor = new Visitor();
+    private final Visitor relationVisitor = new Visitor();
 
     /**
      * create new queries from the given whereClause and return them in a map
