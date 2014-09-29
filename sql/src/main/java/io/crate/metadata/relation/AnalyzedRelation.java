@@ -21,8 +21,11 @@
 
 package io.crate.metadata.relation;
 
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public interface AnalyzedRelation {
@@ -36,10 +39,40 @@ public interface AnalyzedRelation {
     public int numRelations();
 
     /**
+     * returns the referenceInfo for a given columnIdent or null if the table doesn't contain that column
+     */
+    @Nullable
+    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent);
+
+    /**
      * A list of tables this relation references.
      * If this is itself a table, it returns an empty list.
      */
     public List<TableInfo> tables();
 
     public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context);
+
+    /**
+     * <p>
+     * This method returns true if a relation resvoles directly to a tableName or alias.
+     * </p>
+     *
+     * <p>
+     * <b>Example</b>:<br />
+     *  join relation: <code>join(cross_join, a, b)</code> can resolve both tableNames "a" and "b"
+     * </p>
+     *
+     * <p>
+     * <b>Example</b>: <br />
+     *   sub select: <code>select a.name from (select "firstName" as name from users) a</code>
+     *   <br /><br />
+     *   In this case the AliasedAnalyzedRelation (alias=a, child=...) can resolve to alias "a"
+     * </p>
+     *
+     * Implementations should only resolve to one level (so the second example wouldn't resolve to users)
+     *
+     * @param relationName tableName or alias
+     * @return true or false
+     */
+    boolean resolvesToName(String relationName);
 }

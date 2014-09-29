@@ -27,74 +27,54 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.List;
 
-public class JoinRelation implements AnalyzedRelation {
+public class AliasedAnalyzedRelation implements AnalyzedRelation {
 
-    private final Type type;
-    private final AnalyzedRelation left;
-    private final AnalyzedRelation right;
-    private final List<AnalyzedRelation> children;
-    private final List<TableInfo> tables;
+    private final String alias;
+    private final AnalyzedRelation child;
+    private ImmutableList<AnalyzedRelation> children;
 
-    public enum Type {
-        CROSS_JOIN
-    }
-
-    public JoinRelation(Type type, AnalyzedRelation left, AnalyzedRelation right) {
-        this.type = type;
-        this.left = left;
-        this.right = right;
-        this.children = ImmutableList.of(left, right);
-        this.tables = new ArrayList<>(left.tables());
-        this.tables.addAll(right.tables());
-    }
-
-    public Type type() {
-        return type;
-    }
-
-    public AnalyzedRelation left() {
-        return left;
-    }
-
-    public AnalyzedRelation right() {
-        return right;
+    public AliasedAnalyzedRelation(String alias, AnalyzedRelation child) {
+        this.alias = alias;
+        this.child = child;
     }
 
     @Override
     public List<AnalyzedRelation> children() {
+        if (children == null) {
+            children = ImmutableList.of(child);
+        }
         return children;
+    }
+
+    public String alias() {
+        return alias;
     }
 
     @Override
     public int numRelations() {
-        return 3;
+        return child.numRelations();
     }
 
     @Nullable
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        ReferenceInfo referenceInfo = left.getReferenceInfo(columnIdent);
-        if (referenceInfo == null) {
-            return right.getReferenceInfo(columnIdent);
-        }
-        return referenceInfo;
+        return child.getReferenceInfo(columnIdent);
     }
 
     @Override
     public List<TableInfo> tables() {
-        return tables;
+        return child.tables();
     }
 
     @Override
     public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context) {
-        return relationVisitor.visitCrossJoinRelation(this, context);
+        return relationVisitor.visitAliasedRelation(this, context);
     }
 
     @Override
     public boolean resolvesToName(String relationName) {
-        return left.resolvesToName(relationName) || right.resolvesToName(relationName);
+        return alias.equals(relationName);
     }
 }

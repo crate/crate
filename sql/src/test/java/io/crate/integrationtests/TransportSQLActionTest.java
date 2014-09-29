@@ -929,6 +929,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "message", "type=string,store=true,index=not_analyzed",
                         "person", "type=object,store=true")
                 .execute().actionGet();
+        ensureGreen();
 
         Map<String, String> person = new HashMap<String, String>();
         person.put("first_name", "Youri");

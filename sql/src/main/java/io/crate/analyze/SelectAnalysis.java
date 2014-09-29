@@ -24,9 +24,11 @@ package io.crate.analyze;
 import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
-import io.crate.metadata.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
-import io.crate.metadata.relation.AnalyzedRelation;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.relation.AnalyzedQuerySpecification;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
@@ -49,17 +51,17 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     protected boolean selectFromFieldCache = false;
 
     private Symbol havingClause;
-    private AnalyzedRelation relation;
+    private AnalyzedQuerySpecification querySpecification;
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
 
 
-    public AnalyzedRelation relation() {
-        return relation;
+    public AnalyzedQuerySpecification querySpecification() {
+        return querySpecification;
     }
 
-    public void relation(AnalyzedRelation relation) {
-        this.relation = relation;
+    public void querySpecification(AnalyzedQuerySpecification relation) {
+        this.querySpecification = relation;
     }
 
     public Query query() {
