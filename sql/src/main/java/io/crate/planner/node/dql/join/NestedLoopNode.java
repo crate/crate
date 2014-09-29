@@ -22,18 +22,22 @@
 package io.crate.planner.node.dql.join;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.core.collections.nested.Nested;
+import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class NestedLoopNode extends AbstractDQLPlanNode {
+public class NestedLoopNode extends AbstractDQLPlanNode implements Nested<PlanNode> {
 
     private Optional<UUID> jobId = Optional.absent();
 
@@ -41,6 +45,7 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
 
     private final DQLPlanNode left;
     private final DQLPlanNode right;
+    private final List<PlanNode> children;
 
     public NestedLoopNode(String id,
                           DQLPlanNode left,
@@ -49,8 +54,7 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
         super(id);
         this.left = left;
         this.right = right;
-        addChild(left);
-        addChild(right);
+        this.children = ImmutableList.<PlanNode>of(left, right);
         this.projections = projections;
     }
 
@@ -86,5 +90,11 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
 
     public List<Projection> projections() {
         return projections;
+    }
+
+
+    @Override
+    public Collection<PlanNode> children() {
+        return children;
     }
 }

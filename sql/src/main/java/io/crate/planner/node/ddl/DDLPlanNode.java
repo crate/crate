@@ -5,7 +5,6 @@ import io.crate.planner.node.PlanNode;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 
-import java.util.Collection;
 import java.util.List;
 
 public abstract class DDLPlanNode implements PlanNode {
@@ -20,15 +19,5 @@ public abstract class DDLPlanNode implements PlanNode {
 
     @Override
     public void outputTypes(List<DataType> outputTypes) {
-    }
-
-    @Override
-    public Collection<PlanNode> children() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public void addChild(PlanNode child) {
-        // ignore
     }
 }
