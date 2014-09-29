@@ -70,11 +70,6 @@ public class RefreshTableAnalysis extends AbstractDDLAnalysis {
     }
 
     @Override
-    public SchemaInfo schema() {
-        return schemaInfo;
-    }
-
-    @Override
     public void normalize() {
 
     }

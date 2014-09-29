@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.Settings;
 
@@ -88,13 +87,6 @@ public class SetAnalysis extends Analysis {
     public TableInfo table() {
         throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "table() not supported on %s", getClass().getSimpleName()));
-    }
-
-    @Override
-    public SchemaInfo schema() {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "schema() not supported on %s", getClass().getSimpleName())
-        );
     }
 
     @Override
