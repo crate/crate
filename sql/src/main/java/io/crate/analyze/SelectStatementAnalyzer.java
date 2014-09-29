@@ -25,6 +25,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import io.crate.exceptions.SQLParseException;
 import io.crate.metadata.*;
+import io.crate.metadata.relation.AnalyzedQuerySpecification;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
@@ -165,6 +166,21 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         if (node.getOrderBy().size() > 0) {
             addSorting(node.getOrderBy(), context);
         }
+
+        // TODO: this is just a temporary solution to make the relation usable in the Planner and other places
+        // the analyzer will be changed to create the relation directly
+        // instead of setting all attributes onto the context..
+        AnalyzedQuerySpecification relation = new AnalyzedQuerySpecification(
+                context.outputSymbols(),
+                context.table(),
+                context.whereClause(),
+                context.groupBy(),
+                context.havingClause(),
+                context.sortSymbols(),
+                context.limit(),
+                context.offset()
+        );
+        context.querySpecification(relation);
         return null;
     }
 
