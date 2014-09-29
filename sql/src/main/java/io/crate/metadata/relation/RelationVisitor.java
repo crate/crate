@@ -39,7 +39,15 @@ public class RelationVisitor<C, R> {
         return visitRelation(tableRelation, context);
     }
 
-    public R visitJoinRelation(JoinRelation joinRelation, C context) {
+    public R visitCrossJoinRelation(JoinRelation joinRelation, C context) {
         return visitRelation(joinRelation, context);
+    }
+
+    public R visitQuerySpecification(AnalyzedQuerySpecification relation, C context) {
+        return visitRelation(relation, context);
+    }
+
+    public R visitAliasedRelation(AliasedAnalyzedRelation relation, C context) {
+        return visitRelation(relation, context);
     }
 }
