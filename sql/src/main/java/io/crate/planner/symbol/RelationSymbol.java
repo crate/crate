@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,29 +21,38 @@
 
 package io.crate.planner.symbol;
 
-public enum SymbolType {
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-    AGGREGATION(Aggregation.FACTORY),
-    REFERENCE(Reference.FACTORY),
-    FUNCTION(Function.FACTORY),
-    LITERAL(Literal.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY),
-    PARAMETER(Parameter.FACTORY),
-    DYNAMIC_REFERENCE(DynamicReference.FACTORY),
-    VALUE(Value.FACTORY),
-    RELATION(RelationSymbol.FACTORY);
+import java.io.IOException;
 
-    private final Symbol.SymbolFactory factory;
+public class RelationSymbol extends Symbol {
 
-    SymbolType(Symbol.SymbolFactory factory) {
-        this.factory = factory;
+    public static final SymbolFactory<RelationSymbol> FACTORY = new SymbolFactory<RelationSymbol>() {
+        @Override
+        public RelationSymbol newInstance() {
+            return new RelationSymbol();
+        }
+    };
+
+    @Override
+    public SymbolType symbolType() {
+        return SymbolType.RELATION;
     }
 
-    public Symbol newInstance() {
-        return factory.newInstance();
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitRelationSymbol(this, context);
     }
 
-    public boolean isValueSymbol() {
-        return ordinal() == LITERAL.ordinal() || ordinal() == PARAMETER.ordinal();
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        throw new UnsupportedOperationException("Relation cannot be serialized");
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        throw new UnsupportedOperationException("Relation cannot be serialized");
     }
 }
+
