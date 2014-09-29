@@ -47,9 +47,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                     for (Assignment assignment : node.assignements()) {
                         process(assignment, context);
                     }
-                    if (node.whereClause().isPresent()) {
-                        processWhereClause(node.whereClause().get(), context);
-                    }
+                    context.whereClause(generateWhereClause(node.whereClause(), context));
                     return null;
                 }
 

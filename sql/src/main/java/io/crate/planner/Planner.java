@@ -592,7 +592,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             // we must create a deep copy of references if they are function arguments
             // or they will be replaced with InputColumn instances by the context builder
             if (analysis.whereClause().hasQuery()) {
-               analysis.whereClause(functionArgumentCopier.process(analysis.whereClause().query()));
+               analysis.whereClause(new WhereClause(functionArgumentCopier.process(analysis.whereClause().query())));
             }
             List<Symbol> sortSymbols = analysis.sortSymbols();
 

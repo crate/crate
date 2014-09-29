@@ -281,12 +281,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
     }
 
     public WhereClause whereClause(WhereClause whereClause) {
-        this.whereClause = whereClause.normalize(normalizer);
-        return this.whereClause;
-    }
-
-    public WhereClause whereClause(Symbol whereClause) {
-        this.whereClause = new WhereClause(normalizer.process(whereClause, null));
+        this.whereClause = whereClause;
         return this.whereClause;
     }
 

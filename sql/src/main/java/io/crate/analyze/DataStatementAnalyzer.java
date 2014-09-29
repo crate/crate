@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -432,8 +433,13 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         return negativeLiteralVisitor.process(process(node.getValue(), context), null);
     }
 
-    protected void processWhereClause(Expression whereExpression, T context) {
-        WhereClause whereClause = context.whereClause(process(whereExpression, context));
+    protected WhereClause generateWhereClause(Optional<Expression> whereExpression, T context) {
+        if (!whereExpression.isPresent()) {
+            return WhereClause.MATCH_ALL;
+        }
+
+        WhereClause whereClause = new WhereClause(
+                context.normalizer.normalize(process(whereExpression.get(), context)));
         if (whereClause.hasQuery()){
             if (!context.sysExpressionsAllowed && context.hasSysExpressions) {
                 throw new UnsupportedOperationException("Filtering system columns is currently " +
@@ -444,17 +450,16 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             if (pkc != null) {
                 if (pkc.hasPartitionedColumn) {
                     // query was modified, normalize it again
-                    whereClause = new WhereClause(pkc.whereClause());
-                    whereClause = context.whereClause(whereClause);
+                    whereClause = new WhereClause(context.normalizer.normalize(pkc.whereClause()));
                 }
                 whereClause.clusteredByLiteral(pkc.clusteredByLiteral());
                 if (pkc.noMatch) {
-                    context.whereClause(WhereClause.NO_MATCH);
+                    whereClause = WhereClause.NO_MATCH;
                 } else {
                     whereClause.version(pkc.version());
 
                     if (pkc.keyLiterals() != null) {
-                        processPrimaryKeyLiterals(pkc.keyLiterals(), context);
+                        processPrimaryKeyLiterals(pkc.keyLiterals(), whereClause, context);
                     }
 
                     if (pkc.partitionLiterals() != null) {
@@ -463,9 +468,10 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 }
             }
         }
+        return whereClause;
     }
 
-    protected void processPrimaryKeyLiterals(List primaryKeyLiterals, T context) {
+    protected void processPrimaryKeyLiterals(List primaryKeyLiterals, WhereClause whereClause, T context) {
         List<List<BytesRef>> primaryKeyValuesList = new ArrayList<>(primaryKeyLiterals.size());
         primaryKeyValuesList.add(new ArrayList<BytesRef>(context.table().primaryKey().size()));
 
@@ -507,7 +513,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         for (List<BytesRef> primaryKeyValues : primaryKeyValuesList) {
-            context.addIdAndRouting(primaryKeyValues, context.whereClause().clusteredBy().orNull());
+            context.addIdAndRouting(primaryKeyValues, whereClause.clusteredBy().orNull());
         }
     }
 

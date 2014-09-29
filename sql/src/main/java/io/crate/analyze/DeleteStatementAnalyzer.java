@@ -33,10 +33,7 @@ public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, D
         @Override
         public Symbol visitDelete(Delete node, DeleteAnalysis.NestedDeleteAnalysis context) {
             process(node.getRelation(), context);
-
-            if (node.getWhere().isPresent()) {
-                processWhereClause(node.getWhere().get(), context);
-            }
+            context.whereClause(generateWhereClause(node.getWhere(), context));
 
             return null;
         }

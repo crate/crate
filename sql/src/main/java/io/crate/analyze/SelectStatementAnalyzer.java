@@ -113,16 +113,12 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         }
         process(node.getFrom().get(0), context);
 
-        if (node.getLimit().isPresent()) {
-            context.limit(extractIntegerFromNode(node.getLimit().get(), "limit", context));
-        }
-        if (node.getOffset().isPresent()) {
-            context.offset(extractIntegerFromNode(node.getOffset().get(), "offset", context));
-        }
+        context.limit(intFromOptionalExpression(node.getLimit(), context.parameters()));
+        context.offset(Objects.firstNonNull(
+                intFromOptionalExpression(node.getOffset(), context.parameters()), 0));
 
-        if (node.getWhere().isPresent()) {
-            processWhereClause(node.getWhere().get(), context);
-        }
+
+        context.whereClause(generateWhereClause(node.getWhere(), context));
 
         if (!node.getGroupBy().isEmpty()) {
             context.selectFromFieldCache = true;
@@ -134,7 +130,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         for (Symbol symbol : context.outputSymbols()) {
             selectSymbolVisitor.process(symbol, new SelectSymbolValidator.SelectContext(context.selectFromFieldCache));
         }
-
 
         if (!node.getGroupBy().isEmpty()) {
             analyzeGroupBy(node.getGroupBy(), context);
@@ -238,18 +233,16 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         }
     }
 
-    private Integer extractIntegerFromNode(Expression expression, String clauseName, SelectAnalysis context) {
-        Symbol symbol = process(expression, context);
-        assert symbol.symbolType().isValueSymbol(); // due to parser this must be a parameterNode or integer
-        try {
-            if (symbol.symbolType() == SymbolType.PARAMETER) {
-                return DataTypes.INTEGER.value(((Parameter) symbol).value());
+    @Nullable
+    private Integer intFromOptionalExpression(Optional<Expression> limit, Object[] parameters) {
+       if (limit.isPresent()) {
+            Number number = ExpressionToNumberVisitor.convert(limit.get(), parameters);
+            if (number instanceof Integer) {
+                return (Integer) number;
             }
-            return DataTypes.INTEGER.value(((Literal) symbol).value());
-        } catch (Exception e) {
-            throw new IllegalArgumentException(String.format(
-                    "The parameter %s that was passed to %s has an invalid type", SymbolFormatter.format(symbol), clauseName), e);
+            return number.intValue();
         }
+        return null;
     }
 
     private void analyzeGroupBy(List<Expression> groupByExpressions, SelectAnalysis context) {
