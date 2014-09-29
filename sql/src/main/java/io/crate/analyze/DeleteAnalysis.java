@@ -27,7 +27,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
@@ -74,11 +73,6 @@ public class DeleteAnalysis extends Analysis {
 
     @Override
     public TableInfo table() {
-        throw new UnsupportedOperationException("use nested analysis");
-    }
-
-    @Override
-    public SchemaInfo schema() {
         throw new UnsupportedOperationException("use nested analysis");
     }
 

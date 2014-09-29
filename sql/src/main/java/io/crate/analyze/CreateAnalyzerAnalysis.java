@@ -21,10 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.Constants;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -57,12 +56,6 @@ public class CreateAnalyzerAnalysis extends AbstractDDLAnalysis {
     @Nullable
     @Override
     public TableInfo table() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public SchemaInfo schema() {
         return null;
     }
 
