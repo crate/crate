@@ -105,14 +105,6 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public Task newTask(PlanNode node) {
-        final Job job = new Job();
-        node.accept(visitor, job);
-        assert job.tasks().size() == 1 : "no task created";
-        return job.tasks().get(0);
-    }
-
-    @Override
     @SuppressWarnings("unchecked")
     public List<ListenableFuture<TaskResult>> execute(Job job) {
         assert job.tasks().size() > 0;
