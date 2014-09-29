@@ -39,7 +39,6 @@ public class AlterTableAnalysis extends AbstractDDLAnalysis {
     private Settings settings;
     private TableInfo tableInfo;
     private Optional<PartitionName> partitionName = Optional.absent();
-    private SchemaInfo schemaInfo;
 
     public AlterTableAnalysis(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
         super(parameterContext);
@@ -50,7 +49,7 @@ public class AlterTableAnalysis extends AbstractDDLAnalysis {
     public void table(TableIdent tableIdent) {
         this.tableIdent = tableIdent;
 
-        schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
         if (schemaInfo == null) {
             throw new SchemaUnknownException(tableIdent.schema());
         }
@@ -67,11 +66,6 @@ public class AlterTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public TableInfo table() {
         return tableInfo;
-    }
-
-    @Override
-    public SchemaInfo schema() {
-        return schemaInfo;
     }
 
     public void partitionName(@Nullable PartitionName partitionName) {

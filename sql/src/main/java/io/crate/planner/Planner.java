@@ -552,7 +552,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
 
         List<Symbol> toCollect;
-        if (analysis.schema().systemSchema()) {
+        if (analysis.table().schemaInfo().systemSchema()) {
             toCollect = contextBuilder.toCollect();
         } else {
             toCollect = new ArrayList<>();

@@ -85,11 +85,6 @@ public class AddColumnAnalysis extends AbstractDDLAnalysis {
     }
 
     @Override
-    public SchemaInfo schema() {
-        return referenceInfos.getSchemaInfo(tableIdent.schema());
-    }
-
-    @Override
     public void normalize() {
 
     }

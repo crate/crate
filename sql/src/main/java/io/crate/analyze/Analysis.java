@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 import java.util.List;
@@ -50,8 +49,6 @@ public abstract class Analysis {
     public abstract void table(TableIdent tableIdent);
 
     public abstract TableInfo table();
-
-    public abstract SchemaInfo schema();
 
     public abstract boolean hasNoResult();
 
