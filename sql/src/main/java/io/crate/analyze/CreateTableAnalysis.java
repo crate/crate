@@ -28,7 +28,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -74,11 +73,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     @Override
     public TableInfo table() {
-        return null;
-    }
-
-    @Override
-    public SchemaInfo schema() {
         return null;
     }
 
