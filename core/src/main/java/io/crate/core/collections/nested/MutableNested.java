@@ -19,19 +19,8 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.core.collections.nested;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.planner.Plan;
-import io.crate.planner.node.PlanNode;
-
-import java.util.List;
-
-public interface Executor {
-
-    public Job newJob(Plan node);
-
-    public Task newTask(PlanNode node);
-
-    public List<ListenableFuture<TaskResult>> execute(Job job);
+public interface MutableNested<T extends MutableNested> extends Nested<T> {
+    public void addChild(T child);
 }

@@ -24,6 +24,7 @@ package io.crate.planner.node.dql;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import io.crate.planner.node.PlanNode;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -33,6 +34,8 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
@@ -41,6 +44,8 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
     protected List<Projection> projections = ImmutableList.of();
     protected List<DataType> outputTypes = ImmutableList.of();
     private List<DataType> inputTypes;
+
+    protected final List<PlanNode> children = new LinkedList<>();
 
     public AbstractDQLPlanNode() {
 
@@ -53,6 +58,18 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
     public String id() {
         return id;
     }
+
+    @Override
+    public Collection<PlanNode> children() {
+        return children;
+    }
+
+    @Override
+    public void addChild(PlanNode child) {
+        children.add(child);
+    }
+
+
 
     public boolean hasProjections() {
         return projections != null && projections.size() > 0;

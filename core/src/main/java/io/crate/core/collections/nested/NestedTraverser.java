@@ -19,19 +19,15 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.core.collections.nested;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.planner.Plan;
-import io.crate.planner.node.PlanNode;
+import com.google.common.collect.TreeTraverser;
 
-import java.util.List;
+public class NestedTraverser<T extends Nested> extends TreeTraverser<T> {
 
-public interface Executor {
-
-    public Job newJob(Plan node);
-
-    public Task newTask(PlanNode node);
-
-    public List<ListenableFuture<TaskResult>> execute(Job job);
+    @Override
+    @SuppressWarnings("unchecked")
+    public Iterable<T> children(T root) {
+        return root.children();
+    }
 }

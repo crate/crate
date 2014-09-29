@@ -23,10 +23,12 @@ package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.planner.node.PlanNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -77,5 +79,15 @@ public abstract class ESDQLPlanNode implements DQLPlanNode {
     @Override
     public List<DataType> outputTypes() {
         return outputTypes;
+    }
+
+    @Override
+    public Collection<PlanNode> children() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public void addChild(PlanNode child) {
+        // ignore
     }
 }

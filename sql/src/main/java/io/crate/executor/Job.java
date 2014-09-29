@@ -28,7 +28,7 @@ import java.util.UUID;
 public class Job {
 
     private final UUID id = UUID.randomUUID();
-    private List<Task> tasks = new ArrayList<>();
+    private final List<Task> tasks = new ArrayList<>();
 
     public UUID id() {
         return id;

@@ -23,11 +23,13 @@ package io.crate.planner.node.dml;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -71,5 +73,15 @@ public abstract class DMLPlanNode implements DQLPlanNode {
     @Override
     public void outputTypes(List<DataType> outputTypes) {
         throw new UnsupportedOperationException("outputTypes cannot be modified on DMLPlanNodes");
+    }
+
+    @Override
+    public Collection<PlanNode> children() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public void addChild(PlanNode child) {
+        // ignore
     }
 }
