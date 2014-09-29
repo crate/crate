@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -39,11 +38,6 @@ public class CreateBlobTableAnalysis extends AbstractDDLAnalysis {
 
     @Override
     public TableInfo table() {
-        return null;
-    }
-
-    @Override
-    public SchemaInfo schema() {
         return null;
     }
 
