@@ -130,6 +130,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         updateRowGranularity(table.rowGranularity());
     }
 
+    @Deprecated
     @Override
     public TableInfo table() {
         return this.table;
