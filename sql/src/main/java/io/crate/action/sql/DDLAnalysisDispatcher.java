@@ -328,7 +328,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     @Override
     public ListenableFuture<Long> visitRefreshTableAnalysis(RefreshTableAnalysis analysis, Void context) {
         String[] indexNames = getIndexNames(analysis.table(), analysis.partitionName());
-        if (analysis.schema().systemSchema() || indexNames.length == 0) {
+        if (analysis.table().schemaInfo().systemSchema() || indexNames.length == 0) {
             // shortcut when refreshing on system tables
             // or empty partitioned tables
             return Futures.immediateFuture(null);

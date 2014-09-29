@@ -62,7 +62,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     protected final ReferenceInfos referenceInfos;
     private final Functions functions;
-    protected SchemaInfo schema;
     protected TableInfo table;
     protected final List<String> ids = new ArrayList<>();
     protected final List<String> routingValues = new ArrayList<>();
@@ -100,7 +99,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
             throw new TableUnknownException(tableIdent.name());
         }
         // if we have a system schema, queries require scalar functions, since those are not using lucene
-        schema = schemaInfo;
         onlyScalarsAllowed = schemaInfo.systemSchema();
         sysExpressionsAllowed = schemaInfo.systemSchema();
         table = tableInfo;
@@ -123,7 +121,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
             throw new UnsupportedOperationException(
                     String.format("aliases are read only cannot modify \"%s\"", tableIdent.name()));
         }
-        schema = schemaInfo;
         table = tableInfo;
         updateRowGranularity(table.rowGranularity());
     }
@@ -132,11 +129,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
     @Override
     public TableInfo table() {
         return this.table;
-    }
-
-    @Override
-    public SchemaInfo schema() {
-        return this.schema;
     }
 
     private Reference allocateReference(ReferenceIdent ident, boolean unique) {

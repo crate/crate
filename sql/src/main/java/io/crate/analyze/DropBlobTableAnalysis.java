@@ -60,11 +60,6 @@ public class DropBlobTableAnalysis extends AbstractDDLAnalysis {
     }
 
     @Override
-    public SchemaInfo schema() {
-        return schemaInfo;
-    }
-
-    @Override
     public void normalize() {
 
     }
