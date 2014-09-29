@@ -64,11 +64,6 @@ public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
     }
 
     @Override
-    public SchemaInfo schema() {
-        return schemaInfo;
-    }
-
-    @Override
     public void normalize() {
 
     }
