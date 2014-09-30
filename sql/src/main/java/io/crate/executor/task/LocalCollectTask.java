@@ -40,7 +40,7 @@ import java.util.List;
 /**
  * A collect task which returns one future and runs a  collectOperation locally and synchronous
  */
-public class LocalCollectTask implements Task<QueryResult> {
+public class LocalCollectTask extends Task<QueryResult> {
 
     private final CollectNode collectNode;
     private final CollectOperation collectOperation;
@@ -48,6 +48,7 @@ public class LocalCollectTask implements Task<QueryResult> {
     private final SettableFuture<QueryResult> result;
 
     public LocalCollectTask(CollectOperation<Object[][]> collectOperation, CollectNode collectNode) {
+        super(jobId);
         this.collectNode = collectNode;
         this.collectOperation = collectOperation;
         this.resultList = new ArrayList<>(1);

@@ -32,6 +32,7 @@ import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.support.IndicesOptions;
 
 import java.util.List;
+import java.util.UUID;
 
 public class ESDeleteIndexTask extends AbstractChainedTask {
 
@@ -67,8 +68,10 @@ public class ESDeleteIndexTask extends AbstractChainedTask {
         }
     }
 
-    public ESDeleteIndexTask(TransportDeleteIndexAction transport, ESDeleteIndexNode node) {
-        super();
+    public ESDeleteIndexTask(UUID jobId,
+                             TransportDeleteIndexAction transport,
+                             ESDeleteIndexNode node) {
+        super(jobId);
         this.transport = transport;
         this.request = new DeleteIndexRequest(node.index());
         this.request.indicesOptions(IndicesOptions.strictExpandOpen());

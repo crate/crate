@@ -36,8 +36,9 @@ import org.elasticsearch.action.count.TransportCountAction;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
-public class ESCountTask implements Task<QueryResult> {
+public class ESCountTask extends Task<QueryResult> {
 
     private final TransportCountAction transportCountAction;
     private final List<ListenableFuture<QueryResult>> results;
@@ -45,7 +46,8 @@ public class ESCountTask implements Task<QueryResult> {
     private final ActionListener<CountResponse> listener;
     private final static ESQueryBuilder queryBuilder = new ESQueryBuilder();
 
-    public ESCountTask(ESCountNode node, TransportCountAction transportCountAction) {
+    public ESCountTask(UUID jobId, ESCountNode node, TransportCountAction transportCountAction) {
+        super(jobId);
         this.transportCountAction = transportCountAction;
         assert node != null;
 

@@ -40,18 +40,21 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.UUID;
 
-public class ESBulkIndexTask implements Task<RowCountResult> {
+public class ESBulkIndexTask extends Task<RowCountResult> {
 
     private final BulkShardProcessor bulkShardProcessor;
     private final ESIndexNode node;
     private final ArrayList<ListenableFuture<RowCountResult>> resultList;
 
-    public ESBulkIndexTask(ClusterService clusterService,
+    public ESBulkIndexTask(UUID jobId,
+                           ClusterService clusterService,
                            Settings settings,
                            TransportShardBulkAction transportShardBulkAction,
                            TransportCreateIndexAction transportCreateIndexAction,
                            ESIndexNode node) {
+        super(jobId);
         this.node = node;
         this.bulkShardProcessor = new BulkShardProcessor(
                 clusterService,

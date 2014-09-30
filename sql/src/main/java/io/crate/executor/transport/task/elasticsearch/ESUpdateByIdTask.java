@@ -32,6 +32,8 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
+import java.util.UUID;
+
 public class ESUpdateByIdTask extends AbstractESUpdateTask {
 
     private final TransportUpdateAction transport;
@@ -66,8 +68,9 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
         }
     }
 
-    public ESUpdateByIdTask(TransportUpdateAction transport, ESUpdateNode node) {
-        super(node);
+    public ESUpdateByIdTask(UUID jobId,
+                            TransportUpdateAction transport, ESUpdateNode node) {
+        super(jobId, node);
         this.transport = transport;
 
         assert node.ids().size() == 1;
