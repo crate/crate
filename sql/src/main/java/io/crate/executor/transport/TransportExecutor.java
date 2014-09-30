@@ -153,7 +153,7 @@ public class TransportExecutor implements Executor {
                     transportActionProvider.transportCollectNodeAction(),
                     handlerSideDataCollectOperation);
             } else {
-                return new LocalCollectTask(handlerSideDataCollectOperation, node);
+                return new LocalCollectTask(jobId, handlerSideDataCollectOperation, node);
             }
         }
 

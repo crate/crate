@@ -35,6 +35,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 
 /**
@@ -47,7 +48,7 @@ public class LocalCollectTask extends Task<QueryResult> {
     private final List<ListenableFuture<QueryResult>> resultList;
     private final SettableFuture<QueryResult> result;
 
-    public LocalCollectTask(CollectOperation<Object[][]> collectOperation, CollectNode collectNode) {
+    public LocalCollectTask(UUID jobId, CollectOperation<Object[][]> collectOperation, CollectNode collectNode) {
         super(jobId);
         this.collectNode = collectNode;
         this.collectOperation = collectOperation;
