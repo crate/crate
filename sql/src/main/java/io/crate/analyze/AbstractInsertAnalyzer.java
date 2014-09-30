@@ -23,10 +23,10 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.RelationSymbol;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.Table;
@@ -72,8 +72,6 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
         if (clusteredBy != null && !clusteredBy.name().equalsIgnoreCase("_id") && context.routingColumnIndex() < 0) {
             throw new IllegalArgumentException("Clustered by value is required but is missing from the insert statement");
         }
-
-
     }
 
     @Override
@@ -85,7 +83,7 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
         if (context.table().isAlias() && !context.table().isPartitioned()) {
             throw new IllegalArgumentException("Table alias not allowed in INSERT statement.");
         }
-        return null;
+        return new RelationSymbol(context.table());
     }
 
     /**
@@ -96,17 +94,7 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
      */
     protected Reference addColumn(String column, T context, int i) {
         assert context.table() != null;
-        return addColumn(new ReferenceIdent(context.table().ident(), column), context, i);
-    }
-
-    /**
-     * validates the column and sets primary key / partitioned by / routing information as well as a
-     * column Reference to the context.
-     *
-     * the created column reference is returned
-     */
-    protected Reference addColumn(ReferenceIdent ident, T context, int i) {
-        final ColumnIdent columnIdent = ident.columnIdent();
+        final ColumnIdent columnIdent = new ColumnIdent(column);
         Preconditions.checkArgument(!columnIdent.name().startsWith("_"), "Inserting system columns is not allowed");
 
         // set primary key column if found
@@ -130,8 +118,18 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
         }
 
         // ensure that every column is only listed once
-        Reference columnReference = context.allocateUniqueReference(ident);
-        context.columns().add(columnReference);
-        return columnReference;
+        ReferenceInfo referenceInfo = context.table().getReferenceInfo(columnIdent);
+        Reference reference;
+        if (referenceInfo == null) {
+            reference = context.table().dynamicReference(columnIdent);
+            context.allocationContext().allocatedReferences.put(reference.info(), reference);
+        } else if (context.allocationContext().allocatedReferences.containsKey(referenceInfo)) {
+            throw new IllegalArgumentException(String.format(
+                    "Column \"%s\" is more than 1 times in the column list", columnIdent.sqlFqn()));
+        } else {
+            reference = context.allocationContext().allocateReference(referenceInfo);
+        }
+        context.columns().add(reference);
+        return reference;
     }
 }

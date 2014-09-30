@@ -62,14 +62,10 @@ public class ReferenceInfos implements Iterable<SchemaInfo>{
      * @throws io.crate.exceptions.TableUnknownException if table given in <code>ident</code> does
      *         not exist in the given schema
      */
-    public TableInfo getTableInfoUnsafe(TableIdent ident) {
+    public TableInfo getTableInfoSafe(TableIdent ident) {
         TableInfo info;
-        SchemaInfo schemaInfo = getSchemaInfo(ident.schema());
-        if (schemaInfo == null) {
-            throw new SchemaUnknownException(ident.schema());
-        }
         try {
-            info = schemaInfo.getTableInfo(ident.name());
+            info = getSchemaInfoSafe(ident.schema()).getTableInfo(ident.name());
             if (info == null) {
                 throw new TableUnknownException(ident.name());
             }
@@ -79,13 +75,21 @@ public class ReferenceInfos implements Iterable<SchemaInfo>{
         return info;
     }
 
-    @Nullable
-    public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
-        TableInfo tableInfo = getTableInfo(ident.tableIdent());
-        if (tableInfo != null) {
-            return tableInfo.getReferenceInfo(ident.columnIdent());
+    /**
+     * returns the schemaInfo for the given schemaName
+     *
+     * similar to {@link #getSchemaInfo(String)} but will throw an SchemaUnknownException
+     * if the schema doesn't exist.
+     */
+    public SchemaInfo getSchemaInfoSafe(@Nullable String schemaName) throws SchemaUnknownException {
+        if (schemaName == null) {
+            return defaultSchemaInfo;
         }
-        return null;
+        SchemaInfo schemaInfo = schemas.get(schemaName);
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(schemaName);
+        }
+        return schemaInfo;
     }
 
     @Nullable

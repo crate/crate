@@ -25,9 +25,12 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.where.WhereClause;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
@@ -127,6 +130,12 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
         return sourceRelation.getReferenceInfo(columnIdent);
     }
 
+    @Nullable
+    @Override
+    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
+        return sourceRelation.getIndexReferenceInfo(columnIdent);
+    }
+
     @Override
     public List<TableInfo> tables() {
         return sourceRelation.tables();
@@ -138,7 +147,17 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
     }
 
     @Override
-    public boolean resolvesToName(String relationName) {
-        return sourceRelation.resolvesToName(relationName);
+    public boolean addressedBy(String relationName) {
+        return sourceRelation.addressedBy(relationName);
+    }
+
+    @Override
+    public boolean addressedBy(@Nullable String schemaName, String tableName) {
+        return sourceRelation.addressedBy(schemaName, tableName);
+    }
+
+    @Override
+    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
+        return sourceRelation.dynamicReference(columnIdent);
     }
 }

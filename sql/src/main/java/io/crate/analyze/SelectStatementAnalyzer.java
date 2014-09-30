@@ -25,9 +25,10 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import io.crate.exceptions.SQLParseException;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.relation.AliasedAnalyzedRelation;
 import io.crate.metadata.relation.AnalyzedQuerySpecification;
+import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
@@ -83,7 +84,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         for (ReferenceInfo referenceInfo : context.table().columns()) {
             // ignore NOT_SUPPORTED columns
             if (referenceInfo.type() != DataTypes.NOT_SUPPORTED) {
-                symbol = context.allocateReference(referenceInfo.ident());
+                symbol = context.allocationContext().allocateReference(referenceInfo);
                 context.outputSymbols().add(symbol);
                 context.addAlias(referenceInfo.ident().columnIdent().name(), symbol);
             }
@@ -100,17 +101,40 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                 return symbol;
             }
         }
-        ReferenceIdent ident = context.getReference(node.getName());
-        return context.allocateReference(ident);
+
+        return context.allocationContext().resolveReference(node.getName());
     }
 
     protected Symbol visitQuerySpecification(QuerySpecification node, SelectAnalysis context) {
-        int numTables = node.getFrom() == null ? 0 : node.getFrom().size();
-        if (numTables != 1) {
-            throw new SQLParseException(
-                    "Only exactly one table is allowed in the from clause, got: " + numTables);
+        List<Relation> from = node.getFrom();
+        if (from == null) {
+            throw new SQLParseException("FROM clause is missing in SELECT statement");
         }
-        process(node.getFrom().get(0), context);
+        if (from.size() != 1) {
+            throw new SQLParseException(
+                    "Only exactly one table is allowed in the from clause, got: " + from.size());
+        }
+
+        // TODO: remove 1 table limitation and build joins...
+//        List<AnalyzedRelation> analyzedRelations = new ArrayList<>(from.size());
+//        for (Relation relation : from) {
+//            analyzedRelations.add(convert(relation));
+//        }
+//        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+//                functions, referenceInfos, analyzedRelations);
+//
+//        WhereClause whereClause = getWhereClause(node.getWhere());
+//        AnalyzedRelation sourceRelation = JoinDetector.buildRelation(analyzedRelations, whereClause);
+
+        RelationSymbol relationSymbol = (RelationSymbol) process(from.get(0), context);
+        AnalyzedRelation analyzedRelation = relationSymbol.relation();
+
+        // TODO: remove context.table
+        if (analyzedRelation instanceof TableInfo) {
+            context.table = (TableInfo) analyzedRelation;
+        } else if (analyzedRelation instanceof AliasedAnalyzedRelation) {
+            context.table = (TableInfo) analyzedRelation.children().get(0);
+        }
 
         Integer limit = intFromOptionalExpression(node.getLimit(), context.parameters());
         Integer offset = intFromOptionalExpression(node.getOffset(), context.parameters());
@@ -120,7 +144,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         if (!node.getGroupBy().isEmpty()) {
             context.selectFromFieldCache = true;
         }
-
         process(node.getSelect(), context);
 
         // validate select symbols
@@ -152,12 +175,15 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             addSorting(node.getOrderBy(), context);
         }
 
+        // TODO: re-write aliasedRelations to non-aliased because alias isn't required anymore
+        // at this point as all references have been resolved
+
         // TODO: this is just a temporary solution to make the relation usable in the Planner and other places
         // the analyzer will be changed to create the relation directly
         // instead of setting all attributes onto the context..
         AnalyzedQuerySpecification relation = new AnalyzedQuerySpecification(
                 context.outputSymbols(),
-                context.table(),
+                analyzedRelation,
                 context.whereClause(),
                 context.groupBy(),
                 having,

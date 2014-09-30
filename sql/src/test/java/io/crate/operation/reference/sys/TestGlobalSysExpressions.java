@@ -28,6 +28,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
@@ -44,6 +45,7 @@ import org.elasticsearch.node.service.NodeService;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -100,24 +102,31 @@ public class TestGlobalSysExpressions {
         referenceInfos = injector.getInstance(ReferenceInfos.class);
     }
 
+    @Nullable
+    private ReferenceInfo refInfo(ReferenceIdent ident) {
+        TableInfo tableInfo = referenceInfos.getTableInfo(ident.tableIdent());
+        if (tableInfo == null) {
+            return null;
+        }
+        return tableInfo.getReferenceInfo(ident.columnIdent());
+    }
+
     @Test
     public void testWrongSchema() throws Exception {
         // unsupported schema
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("something", "sometable"), "somecolumn");
-        assertNull(referenceInfos.getReferenceInfo(ident));
+        assertNull(refInfo(ident));
 
     }
 
 
     @Test
     public void testInfoLookup() throws Exception {
-
         ReferenceIdent ident = LOAD_INFO.ident();
-        assertEquals(LOAD_INFO, referenceInfos.getReferenceInfo(ident));
+        assertEquals(LOAD_INFO, refInfo(ident));
 
         ident = LOAD1_INFO.ident();
-        assertEquals(referenceInfos.getReferenceInfo(ident), LOAD1_INFO);
-
+        assertEquals(refInfo(ident), LOAD1_INFO);
     }
 
     @Test
