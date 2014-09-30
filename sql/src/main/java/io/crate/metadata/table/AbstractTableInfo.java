@@ -2,12 +2,11 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
-import io.crate.metadata.relation.AnalyzedRelation;
-import io.crate.metadata.relation.RelationVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.symbol.DynamicReference;
+import io.crate.metadata.relation.AnalyzedRelation;
+import io.crate.metadata.relation.RelationVisitor;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
@@ -66,18 +65,7 @@ public abstract class AbstractTableInfo implements TableInfo {
 
     @Nullable
     @Override
-    public IndexReferenceInfo indexColumn(ColumnIdent ident) {
-        return null;
-    }
-
-    @Nullable
-    @Override
     public ColumnIdent clusteredBy() {
-        return null;
-    }
-
-    @Override
-    public DynamicReference getDynamic(ColumnIdent ident) {
         return null;
     }
 
@@ -112,7 +100,15 @@ public abstract class AbstractTableInfo implements TableInfo {
     }
 
     @Override
-    public boolean resolvesToName(String relationName) {
+    public boolean addressedBy(String relationName) {
         return ident().name().equals(relationName);
+    }
+
+    @Override
+    public boolean addressedBy(@Nullable String schemaName, String tableName) {
+        if (schemaName != null) {
+            return schemaName.equals(schemaInfo().name()) && addressedBy(tableName);
+        }
+        return addressedBy(tableName);
     }
 }

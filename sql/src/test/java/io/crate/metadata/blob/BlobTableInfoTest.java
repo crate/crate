@@ -21,13 +21,16 @@
 
 package io.crate.metadata.blob;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 
@@ -45,13 +48,20 @@ public class BlobTableInfoTest {
             new BytesRef("0"),
             new BytesRef("/tmp/blobs_path"));
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @Test
     public void testGetColumnInfo() throws Exception {
         ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("digest"));
         assertNotNull(foobar);
         assertEquals(DataTypes.STRING, foobar.type());
+    }
 
-        DynamicReference reference = info.getDynamic(new ColumnIdent("foobar"));
+    @Test
+    public void testUnknownColumn() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        DynamicReference reference = info.dynamicReference(new ColumnIdent("foobar"));
         assertNull(reference);
     }
 

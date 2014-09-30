@@ -32,32 +32,26 @@ public abstract class Analysis {
     private final Analyzer.ParameterContext parameterContext;
     private List<String> outputNames = ImmutableList.of();
 
-    protected String tableAlias;
-
-    public void tableAlias(String tableAlias) {
-        this.tableAlias = tableAlias;
-    }
-
-    public String tableAlias() {
-        return tableAlias;
-    }
-
     protected Analysis(Analyzer.ParameterContext parameterContext) {
         this.parameterContext = parameterContext;
     }
 
+    @Deprecated
     public abstract void table(TableIdent tableIdent);
 
+    @Deprecated
     public abstract TableInfo table();
 
     public abstract boolean hasNoResult();
 
     public abstract void normalize();
 
+    @Deprecated
     public void outputNames(List<String> outputNames) {
         this.outputNames = outputNames;
     }
 
+    @Deprecated
     public List<String> outputNames() {
         return outputNames;
     }

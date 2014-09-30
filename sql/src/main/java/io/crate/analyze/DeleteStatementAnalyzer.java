@@ -26,6 +26,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.TableIdent;
+import io.crate.planner.symbol.RelationSymbol;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Table;
@@ -54,7 +55,8 @@ public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, D
         protected Symbol visitTable(Table node, DeleteAnalysis.NestedDeleteAnalysis context) {
             Preconditions.checkState(context.table() == null, "deleting multiple tables is not supported");
             context.editableTable(TableIdent.of(node));
-            return null;
+
+            return new RelationSymbol(context.table());
         }
     };
 

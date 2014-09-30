@@ -41,7 +41,7 @@ public class DocTableInfoTest {
 
         ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("foobar"));
         assertNull(foobar);
-        DynamicReference reference = info.getDynamic(new ColumnIdent("foobar"));
+        DynamicReference reference = info.dynamicReference(new ColumnIdent("foobar"));
         assertNotNull(reference);
         assertSame(reference.valueType(), DataTypes.UNDEFINED);
     }
@@ -85,7 +85,7 @@ public class DocTableInfoTest {
         try {
             ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
             assertNull(info.getReferenceInfo(columnIdent));
-            info.getDynamic(columnIdent);
+            info.dynamicReference(columnIdent);
             fail();
         } catch (ColumnUnknownException e) {
 
@@ -93,7 +93,7 @@ public class DocTableInfoTest {
         try {
             ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo"));
             assertNull(info.getReferenceInfo(columnIdent));
-            info.getDynamic(columnIdent);
+            info.dynamicReference(columnIdent);
             fail();
         } catch (ColumnUnknownException e) {
 
