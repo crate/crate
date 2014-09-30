@@ -26,7 +26,6 @@ import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
@@ -55,9 +54,6 @@ public interface TableInfo extends Iterable<ReferenceInfo>, AnalyzedRelation {
     public List<ReferenceInfo> partitionedByColumns();
 
     public Collection<IndexReferenceInfo> indexColumns();
-
-    @Nullable
-    public IndexReferenceInfo indexColumn(ColumnIdent ident);
 
     public RowGranularity rowGranularity();
 
@@ -100,14 +96,4 @@ public interface TableInfo extends Iterable<ReferenceInfo>, AnalyzedRelation {
      * up this virtual partitioned table
      */
     public boolean isPartitioned();
-
-    /**
-     * return a Dynamic Reference used when a column does not exist in the table mapping
-     * but we need a reference
-     *
-     * @param ident
-     * @return
-     */
-    DynamicReference getDynamic(ColumnIdent ident);
-
 }

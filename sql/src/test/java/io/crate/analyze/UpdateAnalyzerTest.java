@@ -31,6 +31,7 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.relation.AliasedAnalyzedRelation;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -360,7 +361,8 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         UpdateAnalysis.NestedAnalysis actualAnalysis = analyze(
                 "update users as u set u.awesome=true where u.awesome=false");
 
-        assertEquals(actualAnalysis.tableAlias(), "u");
+        assertThat(actualAnalysis.allocationContext().currentRelation, instanceOf(AliasedAnalyzedRelation.class));
+        assertThat(((AliasedAnalyzedRelation) actualAnalysis.allocationContext().currentRelation).alias(), is("u"));
         assertEquals(
                 expectedAnalysis.assignments(),
                 actualAnalysis.assignments()
@@ -369,7 +371,6 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 ((Function) expectedAnalysis.whereClause().query()).arguments().get(0),
                 ((Function) actualAnalysis.whereClause().query()).arguments().get(0)
         );
-        System.out.println();
     }
 
     @Test(expected = IllegalArgumentException.class)

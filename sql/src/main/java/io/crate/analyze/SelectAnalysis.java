@@ -169,7 +169,7 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     @Override
     public void normalize() {
-        if (!sysExpressionsAllowed && hasSysExpressions) {
+        if (!sysExpressionsAllowed && hasSysExpressions()) {
             throw new UnsupportedOperationException("Selecting system columns from regular " +
                     "tables is currently only supported by queries using group-by or " +
                     "global aggregates.");

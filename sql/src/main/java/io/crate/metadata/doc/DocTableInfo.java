@@ -126,37 +126,10 @@ public class DocTableInfo implements TableInfo {
         return references.get(columnIdent);
     }
 
+    @Nullable
     @Override
-    public DynamicReference getDynamic(ColumnIdent ident) {
-        boolean parentIsIgnored = false;
-        if (!ident.isColumn()) {
-            // see if parent is strict object
-            ColumnIdent parentIdent = ident.getParent();
-            ReferenceInfo parentInfo = null;
-
-            while (parentIdent != null) {
-                parentInfo = getReferenceInfo(parentIdent);
-                if (parentInfo != null) {
-                    break;
-                }
-                parentIdent = parentIdent.getParent();
-            }
-
-            if (parentInfo != null) {
-                switch (parentInfo.objectType()) {
-                    case STRICT:
-                        throw new ColumnUnknownException(ident().name(), ident.fqn());
-                    case IGNORED:
-                        parentIsIgnored = true;
-                        break;
-                }
-            }
-        }
-        DynamicReference reference = new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
-        if (parentIsIgnored) {
-            reference.objectType(ReferenceInfo.ObjectType.IGNORED);
-        }
-        return reference;
+    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
+        return indexColumns.get(columnIdent);
     }
 
     @Override
@@ -304,10 +277,6 @@ public class DocTableInfo implements TableInfo {
         return indexColumns.values();
     }
 
-    @Override
-    public IndexReferenceInfo indexColumn(ColumnIdent ident) {
-        return indexColumns.get(ident);
-    }
 
     @Override
     public Iterator<ReferenceInfo> iterator() {
@@ -335,7 +304,49 @@ public class DocTableInfo implements TableInfo {
     }
 
     @Override
-    public boolean resolvesToName(String relationName) {
+    public boolean addressedBy(String relationName) {
         return ident().name().equals(relationName);
+    }
+
+    @Override
+    public boolean addressedBy(@Nullable String schemaName, String tableName) {
+        if (schemaName == null) {
+            return addressedBy(tableName);
+        }
+        return schemaInfo.name().equals(schemaName) && addressedBy(tableName);
+    }
+
+    @Override
+    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
+        boolean parentIsIgnored = false;
+        if (!columnIdent.isColumn()) {
+            // see if parent is strict object
+            ColumnIdent parentIdent = columnIdent.getParent();
+            ReferenceInfo parentInfo = null;
+
+            while (parentIdent != null) {
+                parentInfo = getReferenceInfo(parentIdent);
+                if (parentInfo != null) {
+                    break;
+                }
+                parentIdent = parentIdent.getParent();
+            }
+
+            if (parentInfo != null) {
+                switch (parentInfo.objectType()) {
+                    case STRICT:
+                        throw new ColumnUnknownException(ident().name(), columnIdent.fqn());
+                    case IGNORED:
+                        parentIsIgnored = true;
+                        break;
+                }
+            }
+        }
+        DynamicReference reference = new DynamicReference(
+                new ReferenceIdent(ident(), columnIdent), rowGranularity());
+        if (parentIsIgnored) {
+            reference.objectType(ReferenceInfo.ObjectType.IGNORED);
+        }
+        return reference;
     }
 }
