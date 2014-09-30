@@ -26,6 +26,8 @@ import io.crate.PartitionName;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.relation.AliasedAnalyzedRelation;
+import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.EqOperator;
@@ -45,6 +47,7 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -135,11 +138,16 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         DeleteAnalysis.NestedDeleteAnalysis actualAnalysis = analyze(
                 "delete from users as u where u.name='Trillian'");
 
-        assertEquals(actualAnalysis.tableAlias(), "u");
+        assertAliasedRelation(actualAnalysis.allocationContext().currentRelation, "u");
         assertEquals(
                 ((Function)expectedAnalysis.whereClause().query()).arguments().get(0),
                 ((Function)actualAnalysis.whereClause().query()).arguments().get(0)
         );
+    }
+
+    private void assertAliasedRelation(AnalyzedRelation analyzedRelation, String alias) {
+        assertThat(analyzedRelation, instanceOf(AliasedAnalyzedRelation.class));
+        assertThat(((AliasedAnalyzedRelation) analyzedRelation).alias(), is(alias));
     }
 
     @Test(expected = IllegalArgumentException.class)

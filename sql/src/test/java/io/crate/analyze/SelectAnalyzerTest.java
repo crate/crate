@@ -33,6 +33,8 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.relation.AliasedAnalyzedRelation;
+import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -1207,8 +1209,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertLiteralSymbol(anyFunction.arguments().get(1), 5L);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testAnyOnArrayInObjectArray() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
         analyze("select * from users where 'vogon lyric lovers' = ANY (friends['groups'])");
     }
 
@@ -1224,9 +1227,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis actualAnalysisOptionalAs =  analyze("select awesome a " +
                 "from users u where u.awesome = true");
 
-        assertEquals("u", actualAnalysis.tableAlias());
-        assertEquals("u", actualAnalysisColAliased.tableAlias());
-        assertEquals("u", actualAnalysisOptionalAs.tableAlias());
+        assertIsAliasedRelation(actualAnalysis.querySpecification().sourceRelation(), "u");
+        assertIsAliasedRelation(actualAnalysisColAliased.querySpecification().sourceRelation(), "u");
+        assertIsAliasedRelation(actualAnalysisOptionalAs.querySpecification().sourceRelation(), "u");
         assertEquals(
                 ((Function)expectedAnalysis.whereClause().query()).arguments().get(0),
                 ((Function)actualAnalysis.whereClause().query()).arguments().get(0)
@@ -1239,6 +1242,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 ((Function) expectedAnalysis.whereClause().query()).arguments().get(0),
                 ((Function) actualAnalysisOptionalAs.whereClause().query()).arguments().get(0)
         );
+    }
+
+    private void assertIsAliasedRelation(AnalyzedRelation relation, String alias) {
+        assertThat(relation, instanceOf(AliasedAnalyzedRelation.class));
+        assertThat(((AliasedAnalyzedRelation) relation).alias(), is(alias));
     }
 
     @Test(expected = UnsupportedOperationException.class)

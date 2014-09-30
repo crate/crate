@@ -23,6 +23,7 @@ package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.metadata.relation.RelationVisitor;
 import io.crate.analyze.where.WhereClause;
@@ -95,6 +96,12 @@ public class BlobTableInfo implements TableInfo {
         return INFOS.get(columnIdent);
     }
 
+    @Nullable
+    @Override
+    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
+        return null;
+    }
+
     @Override
     public Collection<ReferenceInfo> columns() {
         return columns;
@@ -108,11 +115,6 @@ public class BlobTableInfo implements TableInfo {
     @Override
     public Collection<IndexReferenceInfo> indexColumns() {
         return ImmutableList.of();
-    }
-
-    @Override
-    public IndexReferenceInfo indexColumn(ColumnIdent ident) {
-        return null;
     }
 
     @Override
@@ -216,11 +218,6 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public DynamicReference getDynamic(ColumnIdent ident) {
-        return null;
-    }
-
-    @Override
     public Iterator<ReferenceInfo> iterator() {
         return columns.iterator();
     }
@@ -263,7 +260,20 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public boolean resolvesToName(String relationName) {
+    public boolean addressedBy(String relationName) {
         return ident.name().equals(relationName);
+    }
+
+    @Override
+    public boolean addressedBy(@Nullable String schemaName, String tableName) {
+        if (schemaName == null) {
+            return addressedBy(tableName);
+        }
+        return schemaName.equals(blobSchemaInfo.name()) && addressedBy(tableName);
+    }
+
+    @Override
+    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
+        throw new ColumnUnknownException(columnIdent.sqlFqn());
     }
 }

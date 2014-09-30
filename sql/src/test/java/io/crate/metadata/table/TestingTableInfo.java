@@ -237,11 +237,28 @@ public class TestingTableInfo extends AbstractTableInfo {
         return references.get(columnIdent);
     }
 
+    @Nullable
+    @Override
+    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
+        return indexColumns.get(columnIdent);
+    }
+
+    @Override
+    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
+        if (!columnIdent.isColumn()) {
+             ColumnIdent parentIdent = columnIdent.getParent();
+             ReferenceInfo parentInfo = getReferenceInfo(parentIdent);
+             if (parentInfo != null && parentInfo.objectType() == ReferenceInfo.ObjectType.STRICT) {
+                 throw new ColumnUnknownException(ident().name(), ident.fqn());
+             }
+        }
+        return new DynamicReference(new ReferenceIdent(ident(), columnIdent), rowGranularity());
+    }
+
     @Override
     public Collection<ReferenceInfo> columns() {
         return columns;
     }
-
 
     @Override
     public List<ReferenceInfo> partitionedByColumns() {
@@ -251,11 +268,6 @@ public class TestingTableInfo extends AbstractTableInfo {
     @Override
     public Collection<IndexReferenceInfo> indexColumns() {
         return indexColumns.values();
-    }
-
-    @Override
-    public IndexReferenceInfo indexColumn(ColumnIdent ident) {
-        return indexColumns.get(ident);
     }
 
     @Override
@@ -301,18 +313,6 @@ public class TestingTableInfo extends AbstractTableInfo {
     @Override
     public String[] concreteIndices() {
         return new String[]{ident.name()};
-    }
-
-    @Override
-    public DynamicReference getDynamic(ColumnIdent ident) {
-        if (!ident.isColumn()) {
-            ColumnIdent parentIdent = ident.getParent();
-            ReferenceInfo parentInfo = getReferenceInfo(parentIdent);
-            if (parentInfo != null && parentInfo.objectType() == ReferenceInfo.ObjectType.STRICT) {
-                throw new ColumnUnknownException(ident().name(), ident.fqn());
-            }
-        }
-        return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
     }
 
     @Override

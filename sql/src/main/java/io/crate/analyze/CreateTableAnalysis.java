@@ -58,7 +58,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public void table(TableIdent tableIdent) {
         try {
-            TableInfo existingTable = referenceInfos.getTableInfoUnsafe(tableIdent);
+            TableInfo existingTable = referenceInfos.getTableInfoSafe(tableIdent);
             // no exception thrown, table exists
             // is it an orphaned alias? allow it,
             // as it will be deleted before the actual table creation

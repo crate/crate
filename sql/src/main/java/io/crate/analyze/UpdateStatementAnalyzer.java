@@ -28,6 +28,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.RelationSymbol;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Table;
@@ -55,7 +56,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                 protected Symbol visitTable(Table node, UpdateAnalysis.NestedAnalysis context) {
                     Preconditions.checkState(context.table() == null, "updating multiple tables is not supported");
                     context.editableTable(TableIdent.of(node));
-                    return null;
+                    return new RelationSymbol(context.table());
                 }
 
                 @Override
