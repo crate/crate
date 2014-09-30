@@ -35,19 +35,21 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 
 /**
  * A collect task which returns one future and runs a  collectOperation locally and synchronous
  */
-public class LocalCollectTask implements Task<QueryResult> {
+public class LocalCollectTask extends Task<QueryResult> {
 
     private final CollectNode collectNode;
     private final CollectOperation collectOperation;
     private final List<ListenableFuture<QueryResult>> resultList;
     private final SettableFuture<QueryResult> result;
 
-    public LocalCollectTask(CollectOperation<Object[][]> collectOperation, CollectNode collectNode) {
+    public LocalCollectTask(UUID jobId, CollectOperation<Object[][]> collectOperation, CollectNode collectNode) {
+        super(jobId);
         this.collectNode = collectNode;
         this.collectOperation = collectOperation;
         this.resultList = new ArrayList<>(1);

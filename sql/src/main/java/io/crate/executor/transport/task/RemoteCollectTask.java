@@ -40,8 +40,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-public class RemoteCollectTask implements Task<QueryResult> {
+public class RemoteCollectTask extends Task<QueryResult> {
 
     private final CollectNode collectNode;
     private final List<ListenableFuture<QueryResult>> result;
@@ -49,9 +50,11 @@ public class RemoteCollectTask implements Task<QueryResult> {
     private final TransportCollectNodeAction transportCollectNodeAction;
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
 
-    public RemoteCollectTask(CollectNode collectNode,
+    public RemoteCollectTask(UUID jobId,
+                             CollectNode collectNode,
                              TransportCollectNodeAction transportCollectNodeAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation) {
+        super(jobId);
         this.collectNode = collectNode;
         this.transportCollectNodeAction = transportCollectNodeAction;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;

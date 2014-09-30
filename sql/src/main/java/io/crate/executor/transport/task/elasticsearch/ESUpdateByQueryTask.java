@@ -34,6 +34,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
 
 import java.io.IOException;
+import java.util.UUID;
 
 public class ESUpdateByQueryTask extends AbstractESUpdateTask {
 
@@ -63,8 +64,8 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
     private final SearchRequest request;
     private final ESQueryBuilder queryBuilder;
 
-    public ESUpdateByQueryTask(TransportSearchAction transport, ESUpdateNode node) {
-        super(node);
+    public ESUpdateByQueryTask(UUID jobId, TransportSearchAction transport, ESUpdateNode node) {
+        super(jobId, node);
         this.transport = transport;
         this.queryBuilder = new ESQueryBuilder();
 

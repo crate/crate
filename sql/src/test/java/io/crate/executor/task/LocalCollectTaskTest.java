@@ -63,7 +63,9 @@ public class LocalCollectTaskTest {
                 return result;
             }
         };
-        LocalCollectTask collectTask = new LocalCollectTask(collectOperation, collectNode);
+        LocalCollectTask collectTask = new LocalCollectTask(UUID.randomUUID(),
+                collectOperation,
+                collectNode);
         collectTask.start();
         List<ListenableFuture<QueryResult>> results = collectTask.result();
         assertThat(results.size(), is(1));

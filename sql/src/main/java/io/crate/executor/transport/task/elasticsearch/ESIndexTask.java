@@ -30,6 +30,7 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
 
 import java.util.List;
+import java.util.UUID;
 
 public class ESIndexTask extends AbstractESIndexTask {
 
@@ -60,9 +61,10 @@ public class ESIndexTask extends AbstractESIndexTask {
      * @param transport         the transportAction to run the actual ES operation on
      * @param node              the plan node
      */
-    public ESIndexTask(TransportIndexAction transport,
+    public ESIndexTask(UUID jobId,
+                       TransportIndexAction transport,
                        ESIndexNode node) {
-        super(node);
+        super(jobId, node);
         this.transport = transport;
 
         assert node.indices().length == 1 : "invalid number of indices";
