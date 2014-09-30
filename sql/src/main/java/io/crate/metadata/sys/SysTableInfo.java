@@ -24,6 +24,7 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.AbstractTableInfo;
@@ -33,6 +34,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.MapBuilder;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,11 +49,11 @@ public abstract class SysTableInfo extends AbstractTableInfo {
         this.clusterService = clusterService;
     }
 
+    @Nullable
     @Override
-    public DynamicReference getDynamic(ColumnIdent ident) {
-        return new DynamicReference(new ReferenceIdent(ident(),ident), rowGranularity());
+    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
+        return null;
     }
-
 
     protected Routing tableRouting(WhereClause whereClause) {
         DiscoveryNodes nodes = clusterService.state().nodes();
@@ -63,5 +65,10 @@ public abstract class SysTableInfo extends AbstractTableInfo {
             );
         }
         return new Routing(builder.build());
+    }
+
+    @Override
+    public DynamicReference dynamicReference(ColumnIdent columnIdent) {
+        return new DynamicReference(new ReferenceIdent(ident(), columnIdent), rowGranularity());
     }
 }

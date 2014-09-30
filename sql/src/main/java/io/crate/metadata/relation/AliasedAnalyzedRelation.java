@@ -23,8 +23,10 @@ package io.crate.metadata.relation;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.symbol.DynamicReference;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -63,6 +65,12 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation {
         return child.getReferenceInfo(columnIdent);
     }
 
+    @Nullable
+    @Override
+    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
+        return child.getIndexReferenceInfo(columnIdent);
+    }
+
     @Override
     public List<TableInfo> tables() {
         return child.tables();
@@ -74,7 +82,20 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation {
     }
 
     @Override
-    public boolean resolvesToName(String relationName) {
+    public boolean addressedBy(String relationName) {
         return alias.equals(relationName);
+    }
+
+    @Override
+    public boolean addressedBy(@Nullable String schemaName, String tableName) {
+        if (schemaName != null) {
+            return false;
+        }
+        return addressedBy(tableName);
+    }
+
+    @Override
+    public DynamicReference dynamicReference(ColumnIdent columnIdent) {
+        return child.dynamicReference(columnIdent);
     }
 }

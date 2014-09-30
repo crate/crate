@@ -29,6 +29,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.shard.ShardPartitionIdentExpression;
 import io.crate.operation.reference.sys.shard.ShardPartitionOrphanedExpression;
@@ -145,7 +146,11 @@ public class SysShardsExpressionsTest {
     @Test
     public void testShardInfoLookup() throws Exception {
         ReferenceInfo info = SysShardsTableInfo.INFOS.get(new ColumnIdent("id"));
-        assertEquals(info, referenceInfos.getReferenceInfo(info.ident()));
+
+        TableInfo tableInfo = referenceInfos.getTableInfo(info.ident().tableIdent());
+        assert tableInfo != null;
+        ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(info.ident().columnIdent());
+        assertEquals(info, referenceInfo);
     }
 
     @Test

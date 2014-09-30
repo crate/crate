@@ -22,9 +22,12 @@
 package io.crate.metadata.relation;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.symbol.DynamicReference;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -76,11 +79,28 @@ public class JoinRelation implements AnalyzedRelation {
     @Nullable
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        ReferenceInfo referenceInfo = left.getReferenceInfo(columnIdent);
-        if (referenceInfo == null) {
+        ReferenceInfo leftInfo = left.getReferenceInfo(columnIdent);
+        if (leftInfo == null) {
             return right.getReferenceInfo(columnIdent);
+        } else {
+            ReferenceInfo rightInfo = right.getReferenceInfo(columnIdent);
+            if (rightInfo == null) {
+                return leftInfo;
+            }
         }
-        return referenceInfo;
+
+        throw new UnsupportedOperationException(String.format(
+                "column \"%s\" is ambiguous and exists in both \"%s\" and \"%s\"",
+                columnIdent.sqlFqn(),
+                left,
+                right)
+        );
+    }
+
+    @Nullable
+    @Override
+    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
+        return null;
     }
 
     @Override
@@ -94,7 +114,19 @@ public class JoinRelation implements AnalyzedRelation {
     }
 
     @Override
-    public boolean resolvesToName(String relationName) {
-        return left.resolvesToName(relationName) || right.resolvesToName(relationName);
+    public boolean addressedBy(String relationName) {
+        return left.addressedBy(relationName) || right.addressedBy(relationName);
+    }
+
+    @Override
+    public boolean addressedBy(@Nullable String schemaName, String tableName) {
+        return left.addressedBy(schemaName, tableName) || right.addressedBy(schemaName, tableName);
+    }
+
+    @Override
+    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
+        // dynamicReference is only called if neither left nor right knew the table
+        // -> means it's not possible to determine to which source the columnIdent belongs to...
+        throw new ColumnUnknownException(columnIdent.sqlFqn());
     }
 }

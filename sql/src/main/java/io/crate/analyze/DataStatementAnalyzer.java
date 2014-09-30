@@ -25,13 +25,10 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import io.crate.PartitionName;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
+import io.crate.metadata.relation.AliasedAnalyzedRelation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
@@ -47,6 +44,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.Table;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
@@ -69,6 +67,31 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     private final static DataTypeAnalyzer dataTypeAnalyzer = new DataTypeAnalyzer();
 
     private boolean insideNotPredicate = false;
+
+
+    @Override
+    protected Symbol visitTable(Table node, T context) {
+        TableIdent tableIdent = TableIdent.of(node);
+        TableInfo tableInfo = context.referenceInfos.getTableInfoSafe(tableIdent);
+        boolean systemSchema = tableInfo.schemaInfo().systemSchema();
+        context.onlyScalarsAllowed = systemSchema;
+        context.sysExpressionsAllowed = systemSchema;
+        context.allocationContext().currentRelation = tableInfo;
+
+        context.updateRowGranularity(tableInfo.rowGranularity());
+        return new RelationSymbol(tableInfo);
+    }
+
+    @Override
+    protected Symbol visitAliasedRelation(AliasedRelation node, T context) {
+        Symbol symbol = process(node.getRelation(), context);
+        assert symbol instanceof RelationSymbol;
+
+        AliasedAnalyzedRelation aliasedAnalyzedRelation =
+                new AliasedAnalyzedRelation(node.getAlias(), ((RelationSymbol) symbol).relation());
+        context.allocationContext().currentRelation = aliasedAnalyzedRelation;
+        return new RelationSymbol(aliasedAnalyzedRelation);
+    }
 
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, T context) {
@@ -171,12 +194,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 Arrays.asList(left, Literal.newLiteral(setType, rightValues)));
     }
 
-    @Override
-    protected Symbol visitAliasedRelation(AliasedRelation node, T context) {
-        process(node.getRelation(), context);
-        context.tableAlias(node.getAlias());
-        return null;
-    }
 
     @Override
     protected Symbol visitIsNotNullPredicate(IsNotNullPredicate node, T context) {
@@ -205,11 +222,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         DataTypeSymbol subscriptSymbol;
         Expression subscriptExpression = subscriptContext.expression();
         if (subscriptContext.qName() != null && subscriptExpression == null) {
-            ReferenceIdent ident = context.getReference(
-                    subscriptContext.qName(),
-                    subscriptContext.parts()
-            );
-            subscriptSymbol = context.allocateReference(ident);
+            subscriptSymbol = context.allocationContext().resolveReference(
+                    subscriptContext.qName(), subscriptContext.parts());
         } else if (subscriptExpression != null) {
             subscriptSymbol = (DataTypeSymbol) subscriptExpression.accept(this, context);
         } else {
@@ -482,7 +496,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         WhereClause whereClause = new WhereClause(
                 context.normalizer.normalize(process(whereExpression.get(), context)));
         if (whereClause.hasQuery()){
-            if (!context.sysExpressionsAllowed && context.hasSysExpressions) {
+            if (!context.sysExpressionsAllowed && context.hasSysExpressions()) {
                 throw new UnsupportedOperationException("Filtering system columns is currently " +
                         "only supported by queries using group-by or global aggregates.");
             }
@@ -691,8 +705,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
     @Override
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, T context) {
-        ReferenceIdent ident = context.getReference(node.getName());
-        return context.allocateReference(ident);
+        return context.allocationContext().resolveReference(node.getName());
     }
 
     @Override
