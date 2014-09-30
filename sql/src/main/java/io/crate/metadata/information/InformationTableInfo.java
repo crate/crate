@@ -24,12 +24,11 @@ package io.crate.metadata.information;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.where.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.*;
 import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.DynamicReference;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -66,6 +65,17 @@ public class InformationTableInfo extends AbstractTableInfo {
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
         return references.get(columnIdent);
+    }
+
+    @Nullable
+    @Override
+    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
+        return null;
+    }
+
+    @Override
+    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
+        throw new ColumnUnknownException(columnIdent.sqlFqn());
     }
 
     @Override

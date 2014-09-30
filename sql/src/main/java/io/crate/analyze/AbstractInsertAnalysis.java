@@ -98,12 +98,4 @@ public abstract class AbstractInsertAnalysis extends AbstractDataAnalysis {
             return table().clusteredBy();
         }
     }
-
-    @Nullable
-    @Override
-    public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
-        // fields of object arrays interpreted as they were created
-        return referenceInfos.getReferenceInfo(ident);
-    }
-
 }

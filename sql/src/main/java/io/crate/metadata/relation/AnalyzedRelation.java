@@ -21,9 +21,12 @@
 
 package io.crate.metadata.relation;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.symbol.DynamicReference;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -44,6 +47,9 @@ public interface AnalyzedRelation {
     @Nullable
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent);
 
+    @Nullable
+    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent);
+
     /**
      * A list of tables this relation references.
      * If this is itself a table, it returns an empty list.
@@ -54,7 +60,7 @@ public interface AnalyzedRelation {
 
     /**
      * <p>
-     * This method returns true if a relation resvoles directly to a tableName or alias.
+     * This method returns true if a relation can be addressed by a tableName or alias
      * </p>
      *
      * <p>
@@ -74,5 +80,19 @@ public interface AnalyzedRelation {
      * @param relationName tableName or alias
      * @return true or false
      */
-    boolean resolvesToName(String relationName);
+    boolean addressedBy(String relationName);
+
+    /**
+     * returns true if the relation resolves to schemaName and tableName
+     *
+     * See also {@link #addressedBy(String)}
+     */
+    boolean addressedBy(@Nullable String schemaName, String tableName);
+
+    /**
+     * returns a DynamicReference if the relation supports it
+     *
+     * @throws io.crate.exceptions.ColumnUnknownException in case the relation doesn't support DynamicReferences
+     */
+    DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException;
 }
