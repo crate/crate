@@ -94,6 +94,10 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
         return groupBy;
     }
 
+    public boolean hasGroupBy() {
+        return groupBy.size() > 0;
+    }
+
     public Optional<Symbol> having() {
         return having;
     }

@@ -1,17 +1,19 @@
 package io.crate.planner;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.SelectAnalysis;
+import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.relation.AnalyzedQuerySpecification;
+import io.crate.metadata.relation.JoinRelation;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -34,6 +36,7 @@ import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
@@ -70,6 +73,12 @@ public class PlannerTest {
     private Injector injector;
     private Analyzer analyzer;
     private Planner planner;
+    private TableInfo charactersTableInfo;
+    private TableInfo userTableInfo;
+    private ReferenceInfos referenceInfos;
+    private ReferenceResolver resolver;
+    private Functions functions;
+
     Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
             .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
@@ -109,7 +118,7 @@ public class PlannerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             TableIdent userTableIdent = new TableIdent(null, "users");
-            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
+            userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.LONG, null)
                     .add("date", DataTypes.TIMESTAMP, null)
@@ -117,7 +126,7 @@ public class PlannerTest {
                     .clusteredBy("id")
                     .build();
             TableIdent charactersTableIdent = new TableIdent(null, "characters");
-            TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, RowGranularity.DOC, shardRouting)
+            charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
                     .add("id", DataTypes.STRING, null)
                     .addPrimaryKey("id")
@@ -194,6 +203,10 @@ public class PlannerTest {
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
+
+        referenceInfos = injector.getInstance(ReferenceInfos.class);
+        resolver = injector.getInstance(ReferenceResolver.class);
+        functions = injector.getInstance(Functions.class);
     }
 
     private Plan plan(String statement) {
@@ -1263,4 +1276,41 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(ESCountNode.class));
     }
 
+    @Test
+    public void testVisitSelectUnsupportedSourceRelation() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("sourceRelation must be of type TableInfo");
+
+        AnalyzedQuerySpecification querySpec = new AnalyzedQuerySpecification(ImmutableList.<Symbol>of(),
+                new JoinRelation(JoinRelation.Type.CROSS_JOIN, userTableInfo, charactersTableInfo),
+                WhereClause.MATCH_ALL,
+                null, null, null, 100, 0);
+        SelectAnalysis analysis = new SelectAnalysis(
+                referenceInfos,
+                functions,
+                new Analyzer.ParameterContext(new Object[0], new Object[0][]),
+                resolver);
+        analysis.querySpecification(querySpec);
+        planner.visitSelectAnalysis(analysis, new Planner.Context(null));
+    }
+
+    @Test
+    public void testVisitSelectGroupByUnsupportedSourceRelation() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("sourceRelation must be of type TableInfo");
+
+        Reference groupBy = TestingHelpers.createReference("users",
+                new ColumnIdent("id"), DataTypes.LONG);
+        AnalyzedQuerySpecification querySpec = new AnalyzedQuerySpecification(ImmutableList.<Symbol>of(),
+                new JoinRelation(JoinRelation.Type.CROSS_JOIN, userTableInfo, charactersTableInfo),
+                WhereClause.MATCH_ALL, Arrays.<Symbol>asList(groupBy), null, null, 100, 0);
+
+        SelectAnalysis analysis = new SelectAnalysis(
+                referenceInfos,
+                functions,
+                new Analyzer.ParameterContext(new Object[0], new Object[0][]),
+                resolver);
+        analysis.querySpecification(querySpec);
+        planner.visitSelectAnalysis(analysis, new Planner.Context(null));
+    }
 }
