@@ -24,12 +24,14 @@ package io.crate.executor.transport.task.elasticsearch;
 import io.crate.executor.transport.task.AsyncChainedTask;
 import io.crate.planner.node.dml.ESUpdateNode;
 
+import java.util.UUID;
+
 public abstract class AbstractESUpdateTask extends AsyncChainedTask {
 
     protected final ESUpdateNode node;
 
-    protected AbstractESUpdateTask(ESUpdateNode node) {
-        super();
+    protected AbstractESUpdateTask(UUID jobId, ESUpdateNode node) {
+        super(jobId);
         this.node = node;
     }
 }

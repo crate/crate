@@ -23,12 +23,19 @@ package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.planner.Plan;
+import io.crate.planner.node.PlanNode;
 
+import javax.annotation.Nullable;
 import java.util.List;
+import java.util.UUID;
 
 public interface Executor {
 
     public Job newJob(Plan node);
 
-    public List<ListenableFuture<TaskResult>> execute(Job job);
+    public <T extends TaskResult> List<ListenableFuture<T>> execute(Job job);
+
+    public Task newTask(PlanNode planNode, UUID jobId);
+
+    public <T extends TaskResult> List<ListenableFuture<T>> execute(Task<T> task, @Nullable Task upstreamTask);
 }

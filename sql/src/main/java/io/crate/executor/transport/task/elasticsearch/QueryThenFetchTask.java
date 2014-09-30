@@ -68,7 +68,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class QueryThenFetchTask implements Task<QueryResult> {
+public class QueryThenFetchTask extends Task<QueryResult> {
 
     private final ESLogger logger = Loggers.getLogger(this.getClass());
 
@@ -100,12 +100,14 @@ public class QueryThenFetchTask implements Task<QueryResult> {
     private final static SearchRequest EMPTY_SEARCH_REQUEST = new SearchRequest();
 
 
-    public QueryThenFetchTask(QueryThenFetchNode searchNode,
+    public QueryThenFetchTask(UUID jobId,
+                              QueryThenFetchNode searchNode,
                               ClusterService clusterService,
                               TransportQueryShardAction transportQueryShardAction,
                               SearchServiceTransportAction searchServiceTransportAction,
                               SearchPhaseController searchPhaseController,
                               ThreadPool threadPool) {
+        super(jobId);
         this.searchNode = searchNode;
         this.transportQueryShardAction = transportQueryShardAction;
         this.searchServiceTransportAction = searchServiceTransportAction;

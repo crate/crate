@@ -54,7 +54,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.search.controller.SearchPhaseController;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.List;
+import java.util.UUID;
 
 public class TransportExecutor implements Executor {
 
@@ -98,14 +100,21 @@ public class TransportExecutor implements Executor {
     public Job newJob(Plan node) {
         final Job job = new Job();
         for (PlanNode planNode : node) {
-            planNode.accept(visitor, job);
+            job.addTask(
+                    planNode.accept(visitor, job.id())
+            );
         }
         return job;
     }
 
     @Override
+    public Task newTask(PlanNode planNode, UUID jobId) {
+        return planNode.accept(visitor, jobId);
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
-    public List<ListenableFuture<TaskResult>> execute(Job job) {
+    public <T extends TaskResult> List<ListenableFuture<T>> execute(Job job) {
         assert job.tasks().size() > 0;
 
         Task lastTask = null;
@@ -119,163 +128,194 @@ public class TransportExecutor implements Executor {
         }
 
         assert lastTask != null;
-        return (List<ListenableFuture<TaskResult>>)lastTask.result();
+        return (List<ListenableFuture<T>>)lastTask.result();
     }
 
-    class Visitor extends PlanVisitor<Job, Void> {
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends TaskResult> List<ListenableFuture<T>> execute(Task<T> task, @Nullable Task upstreamTask) {
+        if (upstreamTask != null) {
+            task.upstreamResult(upstreamTask.result());
+        }
+        task.start();
+        return task.result();
+    }
+
+    class Visitor extends PlanVisitor<UUID, Task> {
 
         @Override
-        public Void visitCollectNode(CollectNode node, Job context) {
-            node.jobId(context.id()); // add jobId to collectNode
+        public Task visitCollectNode(CollectNode node, UUID jobId) {
+            node.jobId(jobId); // add jobId to collectNode
             if (node.isRouted()) {
-                context.addTask(new RemoteCollectTask(
+               return new RemoteCollectTask(
+                    jobId,
                     node,
                     transportActionProvider.transportCollectNodeAction(),
-                    handlerSideDataCollectOperation));
+                    handlerSideDataCollectOperation);
             } else {
-                context.addTask(new LocalCollectTask(handlerSideDataCollectOperation, node));
+                return new LocalCollectTask(jobId, handlerSideDataCollectOperation, node);
             }
-            return null;
         }
 
         @Override
-        public Void visitMergeNode(MergeNode node, Job context) {
-            node.contextId(context.id());
+        public Task visitMergeNode(MergeNode node, UUID jobId) {
+            node.contextId(jobId);
             if (node.executionNodes().isEmpty()) {
-                context.addTask(new LocalMergeTask(
+                return new LocalMergeTask(
+                        jobId,
                         threadPool,
                         clusterService,
                         settings,
                         transportActionProvider,
                         new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
                         node,
-                        statsTables));
+                        statsTables);
             } else {
-                context.addTask(new DistributedMergeTask(
-                        transportActionProvider.transportMergeNodeAction(), node));
+                return new DistributedMergeTask(
+                        jobId,
+                        transportActionProvider.transportMergeNodeAction(),
+                        node);
             }
 
-            return null;
+            
         }
 
         @Override
-        public Void visitESSearchNode(QueryThenFetchNode node, Job context) {
-            context.addTask(new QueryThenFetchTask(
+        public Task visitESSearchNode(QueryThenFetchNode node, UUID jobId) {
+            return new QueryThenFetchTask(
+                    jobId,
                     node,
                     clusterService,
                     transportActionProvider.transportQueryShardAction(),
                     transportActionProvider.searchServiceTransportAction(),
                     searchPhaseController,
-                    threadPool));
-            return null;
+                    threadPool);
+            
         }
 
         @Override
-        public Void visitESGetNode(ESGetNode node, Job context) {
-            context.addTask(new ESGetTask(
+        public Task visitESGetNode(ESGetNode node, UUID jobId) {
+            return new ESGetTask(
+                    jobId,
                     transportActionProvider.transportMultiGetAction(),
                     transportActionProvider.transportGetAction(),
-                    node));
-            return null;
+                    node);
+            
         }
 
         @Override
-        public Void visitESDeleteByQueryNode(ESDeleteByQueryNode node, Job context) {
-            context.addTask(new ESDeleteByQueryTask(node,
-                    transportActionProvider.transportDeleteByQueryAction()));
-            return null;
+        public Task visitESDeleteByQueryNode(ESDeleteByQueryNode node, UUID jobId) {
+            return new ESDeleteByQueryTask(
+                    jobId,
+                    node,
+                    transportActionProvider.transportDeleteByQueryAction());
+            
         }
 
         @Override
-        public Void visitESDeleteNode(ESDeleteNode node, Job context) {
-            context.addTask(new ESDeleteTask(
+        public Task visitESDeleteNode(ESDeleteNode node, UUID jobId) {
+            return new ESDeleteTask(
+                    jobId,
                     transportActionProvider.transportDeleteAction(),
-                    node));
-            return null;
+                    node);
+            
         }
 
         @Override
-        public Void visitCreateTableNode(CreateTableNode node, Job context) {
-            context.addTask(new CreateTableTask(clusterService,
+        public Task visitCreateTableNode(CreateTableNode node, UUID jobId) {
+            return new CreateTableTask(
+                jobId,
+                clusterService,
                 transportActionProvider.transportCreateIndexAction(),
                 transportActionProvider.transportDeleteIndexAction(),
                 transportActionProvider.transportPutIndexTemplateAction(),
-                node)
-            );
-            return null;
+                node);
         }
 
         @Override
-        public Void visitESCreateTemplateNode(ESCreateTemplateNode node, Job context) {
-            context.addTask(new ESCreateTemplateTask(node,
-                    transportActionProvider.transportPutIndexTemplateAction()));
-            return null;
+        public Task visitESCreateTemplateNode(ESCreateTemplateNode node, UUID jobId) {
+            return new ESCreateTemplateTask(
+                    jobId,
+                    node,
+                    transportActionProvider.transportPutIndexTemplateAction());
+            
         }
 
         @Override
-        public Void visitESCountNode(ESCountNode node, Job context) {
-            context.addTask(new ESCountTask(node,
-                    transportActionProvider.transportCountAction()));
-            return null;
+        public Task visitESCountNode(ESCountNode node, UUID jobId) {
+            return new ESCountTask(
+                    jobId,
+                    node,
+                    transportActionProvider.transportCountAction());
+            
         }
 
         @Override
-        public Void visitESIndexNode(ESIndexNode node, Job context) {
+        public Task visitESIndexNode(ESIndexNode node, UUID jobId) {
             if (node.sourceMaps().size() > 1) {
-                context.addTask(new ESBulkIndexTask(clusterService, settings,
+                return new ESBulkIndexTask(
+                        jobId,
+                        clusterService,
+                        settings,
                         transportActionProvider.transportShardBulkAction(),
                         transportActionProvider.transportCreateIndexAction(),
-                        node));
+                        node);
             } else {
-                context.addTask(new ESIndexTask(
+                return new ESIndexTask(
+                        jobId,
                         transportActionProvider.transportIndexAction(),
-                        node));
+                        node);
             }
-            return null;
+            
         }
 
         @Override
-        public Void visitESUpdateNode(ESUpdateNode node, Job context) {
+        public Task visitESUpdateNode(ESUpdateNode node, UUID jobId) {
             // update with _version currently only possible in update by query
             if (node.ids().size() == 1 && node.routingValues().size() == 1) {
-                context.addTask(new ESUpdateByIdTask(
+                return new ESUpdateByIdTask(
+                        jobId,
                         transportActionProvider.transportUpdateAction(),
-                        node));
+                        node);
             } else {
-                context.addTask(new ESUpdateByQueryTask(
+                return new ESUpdateByQueryTask(
+                        jobId,
                         transportActionProvider.transportSearchAction(),
-                        node));
+                        node);
             }
-            return null;
+            
         }
 
         @Override
-        public Void visitDropTableNode(DropTableNode node, Job context) {
-            context.addTask(new DropTableTask(
+        public Task visitDropTableNode(DropTableNode node, UUID jobId) {
+            return new DropTableTask(
+                    jobId,
                     transportActionProvider.transportDeleteIndexTemplateAction(),
                     transportActionProvider.transportDeleteIndexAction(),
-                    node));
-            return null;
+                    node);
+            
         }
 
         @Override
-        public Void visitESDeleteIndexNode(ESDeleteIndexNode node, Job context) {
-            context.addTask(new ESDeleteIndexTask(
+        public Task visitESDeleteIndexNode(ESDeleteIndexNode node, UUID jobId) {
+            return new ESDeleteIndexTask(
+                    jobId,
                     transportActionProvider.transportDeleteIndexAction(),
-                    node));
-            return null;
+                    node);
+            
         }
 
         @Override
-        public Void visitESClusterUpdateSettingsNode(ESClusterUpdateSettingsNode node, Job context) {
-            context.addTask(new ESClusterUpdateSettingsTask(
+        public Task visitESClusterUpdateSettingsNode(ESClusterUpdateSettingsNode node, UUID jobId) {
+            return new ESClusterUpdateSettingsTask(
+                    jobId,
                     transportActionProvider.transportClusterUpdateSettingsAction(),
-                    node));
-            return null;
+                    node);
+            
         }
 
         @Override
-        protected Void visitPlanNode(PlanNode node, Job context) {
+        protected Task visitPlanNode(PlanNode node, UUID jobId) {
             throw new UnsupportedOperationException(
                     String.format("Can't generate job/task for planNode %s", node));
         }
