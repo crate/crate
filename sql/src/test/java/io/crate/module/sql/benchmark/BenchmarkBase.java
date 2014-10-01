@@ -26,7 +26,6 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.test.integration.NodeSettingsSource;
-import junit.framework.TestCase;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -34,6 +33,7 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.test.ElasticsearchTestCase;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -52,7 +52,7 @@ import static io.crate.test.integration.PathAccessor.bytesFromPath;
 
 @RunWith(JUnit4.class)
 @Ignore
-public class BenchmarkBase extends TestCase {
+public class BenchmarkBase {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -92,7 +92,7 @@ public class BenchmarkBase extends TestCase {
         }
 
         if (!indexExists()) {
-            execute("create table countries (" +
+            execute("create table \"" + INDEX_NAME + "\" (" +
                     " \"areaInSqKm\" float," +
                     " capital string," +
                     " continent string," +
@@ -110,15 +110,22 @@ public class BenchmarkBase extends TestCase {
                     " \"isoNumeric\" string," +
                     " population integer" +
                     ") clustered into 2 shards with (number_of_replicas=0)", new Object[0], false);
+            client().admin().cluster().prepareHealth(INDEX_NAME).setWaitForGreenStatus().execute().actionGet();
             refresh(client());
             if (loadData()) {
                 doLoadData();
             }
+
         }
     }
 
     @AfterClass
     public static void tearDownClass() throws IOException {
+        try {
+            cluster.client().admin().indices().prepareDelete(INDEX_NAME).execute().actionGet();
+        } catch (IndexMissingException e) {
+            // fine
+        }
         cluster.afterTest();
     }
 
@@ -157,8 +164,8 @@ public class BenchmarkBase extends TestCase {
         return builder.build();
     }
 
-    public Client getClient(boolean queryPlannerEnabled) {
-        return queryPlannerEnabled ? cluster.client(NODE1) : cluster.client(NODE2);
+    public Client getClient(boolean firstNode) {
+        return firstNode ? cluster.client(NODE1) : cluster.client(NODE2);
     }
 
     public void loadBulk(String path, boolean queryPlannerEnabled) throws Exception {

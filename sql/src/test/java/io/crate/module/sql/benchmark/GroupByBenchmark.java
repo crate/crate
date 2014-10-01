@@ -24,6 +24,7 @@ package io.crate.module.sql.benchmark;
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
+import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
@@ -47,12 +48,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertFalse;
+
 @AxisRange(min = 0)
+@BenchmarkHistoryChart(filePrefix="benchmark-groupby-history")
 @BenchmarkMethodChart(filePrefix = "benchmark-groupby")
 public class GroupByBenchmark extends BenchmarkBase {
 
     public ESLogger logger = Loggers.getLogger(getClass());
-    public static final int NUMBER_OF_DOCUMENTS = 1000000;
+    public static final int NUMBER_OF_DOCUMENTS = 500_000; // was 1_000_000
     public static final int BENCHMARK_ROUNDS = 1000;
 
     public static SQLRequest maxRequest = new SQLRequest(String.format("select max(\"areaInSqKm\") from %s group by continent", INDEX_NAME));
@@ -130,6 +134,8 @@ public class GroupByBenchmark extends BenchmarkBase {
             executor.shutdown();
             executor.awaitTermination(2L, TimeUnit.MINUTES);
             executor.shutdownNow();
+            getClient(true).admin().indices().prepareFlush(INDEX_NAME).setFull(true).execute().actionGet();
+            getClient(false).admin().indices().prepareFlush(INDEX_NAME).setFull(true).execute().actionGet();
             refresh(client());
             dataGenerated = true;
             logger.info("{} documents generated.", NUMBER_OF_DOCUMENTS);

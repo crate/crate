@@ -25,9 +25,12 @@ package io.crate.module.sql.benchmark;
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
+import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLBulkAction;
+import io.crate.action.sql.SQLBulkRequest;
 import io.crate.action.sql.SQLRequest;
 import io.crate.analyze.Id;
 import io.crate.metadata.ColumnIdent;
@@ -37,6 +40,7 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.client.Client;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,6 +50,7 @@ import org.junit.rules.TestRule;
 import java.util.HashMap;
 
 @AxisRange(min = 0)
+@BenchmarkHistoryChart(filePrefix="benchmark-bulk-delete-history")
 @BenchmarkMethodChart(filePrefix = "benchmark-bulk-delete")
 public class BulkDeleteBenchmark extends BenchmarkBase{
 
@@ -83,6 +88,11 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
 
     }
 
+    @AfterClass
+    public static void afterClass() {
+        cluster.client().admin().indices().prepareDelete("users").execute().actionGet();
+    }
+
     @Override
     public boolean indexExists() {
         return getClient(false).admin().indices().exists(new IndicesExistsRequest(INDEX_NAME)).actionGet().isExists();
@@ -99,8 +109,8 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
             Id esId = new Id(ImmutableList.of(new ColumnIdent("id")), ImmutableList.of(new BytesRef(id)), new ColumnIdent("id"), true);
             ids.put(id, esId.stringValue());
         }
-        SQLRequest request = new SQLRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
-        client().execute(SQLAction.INSTANCE, request).actionGet();
+        SQLBulkRequest request = new SQLBulkRequest(SINGLE_INSERT_SQL_STMT, bulkArgs);
+        client().execute(SQLBulkAction.INSTANCE, request).actionGet();
         refresh(client());
         return ids;
     }

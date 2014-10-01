@@ -25,6 +25,7 @@ package io.crate.module.sql.benchmark;
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
+import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.*;
@@ -37,6 +38,7 @@ import org.junit.rules.TestRule;
 import java.util.Collections;
 
 @AxisRange(min = 0)
+@BenchmarkHistoryChart(filePrefix="benchmark-bulk-insert-history")
 @BenchmarkMethodChart(filePrefix = "benchmark-bulk-insert")
 public class BulkInsertBenchmark extends BenchmarkBase {
 

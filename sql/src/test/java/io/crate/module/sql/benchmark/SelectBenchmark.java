@@ -24,6 +24,7 @@ package io.crate.module.sql.benchmark;
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
+import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import io.crate.action.sql.*;
 import org.elasticsearch.action.get.*;
@@ -42,7 +43,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 @AxisRange(min = 0)
+@BenchmarkHistoryChart(filePrefix="benchmark-select-history")
 @BenchmarkMethodChart(filePrefix = "benchmark-select")
 public class SelectBenchmark extends BenchmarkBase {
 
@@ -135,7 +140,7 @@ public class SelectBenchmark extends BenchmarkBase {
     }
 
     public SearchRequest getApiSearchRequest() {
-        return new SearchRequest(new String[]{INDEX_NAME}, searchSource);
+        return new SearchRequest(new String[]{INDEX_NAME}, searchSource).types("default");
     }
 
     public SQLRequest getSqlSearchRequest() {
@@ -192,21 +197,6 @@ public class SelectBenchmark extends BenchmarkBase {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testGetSingleResultSqlQueryPlannerEnabled() {
-        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLRequest request = getSqlGetRequest(true);
-            SQLResponse response = getClient(true).execute(SQLAction.INSTANCE, request).actionGet();
-            assertEquals(
-                    String.format("Queried row '%s' does not exist (SQL). Round: %d", request.args()[0], sqlGetRound),
-                    1,
-                    response.rows().length
-            );
-            sqlGetRound++;
-        }
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
     public void testGetMultipleResultsApi() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SearchResponse response = getClient(false).execute(SearchAction.INSTANCE, getApiSearchRequest()).actionGet();
@@ -221,19 +211,6 @@ public class SelectBenchmark extends BenchmarkBase {
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testGetMultipleResultsSql() {
-        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlSearchRequest()).actionGet();
-            assertEquals(
-                    "Did not find the three wanted rows (SQL).",
-                    3,
-                    response.rows().length
-            );
-        }
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
-    public void testGetMultipleResultsSqlQueryPlannerEnabled() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlSearchRequest()).actionGet();
             assertEquals(
@@ -262,19 +239,6 @@ public class SelectBenchmark extends BenchmarkBase {
     public void testGetMultiGetSql() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getMultiGetSqlRequest(false)).actionGet();
-            assertEquals(
-                    "Did not find the three wanted rows (SQL, MultiGet)",
-                    3,
-                    response.rowCount()
-            );
-        }
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
-    public void testGetMultiGetSqlQueryPlannerEnabled() {
-        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = getClient(true).execute(SQLAction.INSTANCE, getMultiGetSqlRequest(true)).actionGet();
             assertEquals(
                     "Did not find the three wanted rows (SQL, MultiGet)",
                     3,

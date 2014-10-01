@@ -1072,9 +1072,11 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private void ESIndex(InsertFromValuesAnalysis analysis, Plan plan) {
-        String[] indices = new String[]{analysis.table().ident().name()};
+        String[] indices;
         if (analysis.table().isPartitioned()) {
             indices = analysis.partitions().toArray(new String[analysis.partitions().size()]);
+        } else {
+            indices = new String[]{ analysis.table().ident().name() };
         }
 
         ESIndexNode indexNode = new ESIndexNode(
