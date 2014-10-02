@@ -117,6 +117,15 @@ public class WhereClause implements Streamable {
         }
     }
 
+    /**
+     * Returns a predefined list of partitions this query can be executed on
+     * instead of the entire partition set.
+     *
+     * If the list is empty no prefiltering can be done.
+     *
+     * Note that the NO_MATCH case has to be tested separately.
+     *
+     */
     public List<String> partitions() {
         return partitions;
     }

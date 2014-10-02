@@ -28,6 +28,7 @@ import io.crate.PartitionName;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
+import io.crate.action.sql.SQLResponse;
 import io.crate.executor.TaskResult;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -3350,6 +3351,118 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select id, quote from quotes");
         assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void testDeleteFromPartitionedTableUnknownPartition() throws Exception {
+        this.setup.partitionTableSetup();
+        SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
+                "where table_name='parted' and schema_name='doc'" +
+                "order by partition_ident");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((String)response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1388534400000"))).ident()));
+        assertThat((String)response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1391212800000"))).ident()));
+
+        execute("delete from parted where date = '2014-03-01'");
+        refresh();
+        // Test that no partitions were deleted
+        SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
+                "where table_name='parted' and schema_name='doc'" +
+                "order by partition_ident");
+        assertThat(newResponse.rows(), is(response.rows()));
+    }
+
+    @Test
+    public void testDeleteFromPartitionedTableWrongPartitionedColumn() throws Exception {
+        this.setup.partitionTableSetup();
+
+        SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
+                "where table_name='parted' and schema_name='doc'" +
+                "order by partition_ident");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((String)response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1388534400000"))).ident()));
+        assertThat((String)response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1391212800000"))).ident()));
+
+        execute("delete from parted where dat = '2014-03-01'");
+        refresh();
+        // Test that no partitions were deleted
+        SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
+                "where table_name='parted' and schema_name='doc'" +
+                "order by partition_ident");
+        assertThat(newResponse.rows(), is(response.rows()));
+    }
+
+    @Test
+    public void testDeleteFromPartitionedTableDeleteByQuery() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{3, "I'd far rather be happy than right any day", 1396303200000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{4, "Now panic", 1395874800000L});
+        ensureGreen();
+        refresh();
+
+        SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
+                "where table_name='quotes' and schema_name='doc'" +
+                "order by partition_ident");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((String)response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395874800000"))).ident()));
+        assertThat((String)response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1395961200000"))).ident()));
+        assertThat((String)response.rows()[2][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1396303200000"))).ident()));
+
+        execute("delete from quotes where quote = 'Don''t panic'");
+        refresh();
+
+        execute("select * from quotes where quote = 'Don''t panic'");
+        assertThat(this.response.rowCount(), is(0L));
+
+        // Test that no partitions were deleted
+        SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
+                "where table_name='quotes' and schema_name='doc'" +
+                "order by partition_ident");
+        assertThat(newResponse.rows(), is(response.rows()));
+    }
+
+    @Test
+    public void testDeleteFromPartitionedTableDeleteByPartitionAndByQuery() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{3, "I'd far rather be happy than right any day", 1396303200000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{4, "Now panic", 1395874800000L});
+        ensureGreen();
+        refresh();
+
+        // does not match
+        execute("delete from quotes where quote = 'Don''t panic' and timestamp=?", new Object[]{1396303200000L});
+        refresh();
+        execute("select * from quotes where timestamp=?", new Object[]{1396303200000L});
+        assertThat(response.rowCount(), is(1L));
+
+        // matches
+        execute("delete from quotes where quote = 'I''d far rather be happy than right any day' and timestamp=?", new Object[]{1396303200000L});
+        refresh();
+        execute("select * from quotes where timestamp=?", new Object[]{1396303200000L});
+        assertThat(response.rowCount(), is(0L));
+
+        execute("delete from quotes where timestamp=? and x=5", new Object[]{1395874800000L});
+        refresh();
+        execute("select * from quotes where timestamp=?", new Object[]{1395874800000L});
+        assertThat(response.rowCount(), is(2L));
+
+
     }
 
     @Test
