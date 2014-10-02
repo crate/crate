@@ -65,5 +65,9 @@ public class SymbolVisitor<C, R> {
     public R visitValue(Value symbol, C context) {
         return visitSymbol(symbol, context);
     }
+
+    public R visitReferencePlaceHolder(ReferencePlaceHolder symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
 }
 
