@@ -2,8 +2,8 @@
 Changes for Crate Data
 ======================
 
-Unreleased
-==========
+2014/10/02 0.42.4
+=================
 
  - Fix: Copy from using the PARTITION clause imported into a ``null`` partition
    instead of using the partition clause.
