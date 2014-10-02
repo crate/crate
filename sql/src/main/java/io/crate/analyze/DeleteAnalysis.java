@@ -36,10 +36,10 @@ import java.util.List;
 
 public class DeleteAnalysis extends Analysis {
 
-    private static final Predicate<NestedDeleteAnalysis> NO_MATCH_PREDICATE = new Predicate<NestedDeleteAnalysis>() {
+    private static final Predicate<NestedDeleteAnalysis> HAS_NO_RESULT_PREDICATE = new Predicate<NestedDeleteAnalysis>() {
         @Override
         public boolean apply(@Nullable NestedDeleteAnalysis input) {
-            return input != null && input.noMatch();
+            return input != null && input.hasNoResult();
         }
     };
 
@@ -84,7 +84,7 @@ public class DeleteAnalysis extends Analysis {
 
     @Override
     public boolean hasNoResult() {
-        return Iterables.all(nestedAnalysisList, NO_MATCH_PREDICATE);
+        return Iterables.all(nestedAnalysisList, HAS_NO_RESULT_PREDICATE);
     }
 
     @Override
@@ -100,6 +100,11 @@ public class DeleteAnalysis extends Analysis {
 
         public NestedDeleteAnalysis(ReferenceInfos referenceInfos, Functions functions, Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
             super(referenceInfos, functions, parameterContext, referenceResolver);
+        }
+
+        @Override
+        public boolean hasNoResult() {
+            return whereClause.noMatch();
         }
 
         @Override

@@ -101,6 +101,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
      * @return plan
      */
     public Plan plan(Analysis analysis) {
+        assert !analysis.hasNoResult() : "analysis has no result. we're wrong here";
         return process(analysis, EMPTY_CONTEXT);
     }
 
@@ -176,14 +177,16 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     protected Plan visitUpdateAnalysis(UpdateAnalysis analysis, Context context) {
         Plan plan = new Plan();
         for (UpdateAnalysis.NestedAnalysis nestedAnalysis : analysis.nestedAnalysis()) {
-            ESUpdateNode node = new ESUpdateNode(
-                    indices(nestedAnalysis),
-                    nestedAnalysis.assignments(),
-                    nestedAnalysis.whereClause(),
-                    nestedAnalysis.ids(),
-                    nestedAnalysis.routingValues()
-            );
-            plan.add(node);
+            if (!nestedAnalysis.hasNoResult()) {
+                ESUpdateNode node = new ESUpdateNode(
+                        indices(nestedAnalysis),
+                        nestedAnalysis.assignments(),
+                        nestedAnalysis.whereClause(),
+                        nestedAnalysis.ids(),
+                        nestedAnalysis.routingValues()
+                );
+                plan.add(node);
+            }
         }
         plan.expectsAffectedRows(true);
         return plan;
