@@ -29,11 +29,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
+import io.crate.PartitionName;
 import io.crate.analyze.*;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.projectors.TopN;
@@ -160,7 +162,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 analysis.partitionedByIndices(),
                 analysis.routingColumn(),
                 analysis.routingColumnIndex(),
-                ImmutableSettings.EMPTY // TODO: define reasonable writersettings
+                ImmutableSettings.EMPTY, // TODO: define reasonable writersettings
+                analysis.table().isPartitioned()
         );
 
         SelectAnalysis subQueryAnalysis = analysis.subQueryAnalysis();
@@ -255,65 +258,80 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private void copyFromPlan(CopyAnalysis analysis, Plan plan) {
-        int clusteredByPrimaryKeyIdx = analysis.table().primaryKey().indexOf(analysis.table().clusteredBy());
+        /**
+         * copy from has two "modes":
+         *
+         * 1: non-partitioned tables or partitioned tables with partition ident --> import into single es index
+         *    -> collect raw source and import as is
+         *
+         * 2: partitioned table without partition ident
+         *    -> collect document and partition by values
+         *    -> exclude partitioned by columns from document
+         *    -> insert into es index (partition determined by partition by value)
+         */
+
+        TableInfo table = analysis.table();
+        int clusteredByPrimaryKeyIdx = table.primaryKey().indexOf(analysis.table().clusteredBy());
         List<String> partitionedByNames;
-        String tableName = analysis.table().ident().name();
+        List<ColumnIdent> partitionByColumns;
+        String tableName;
+
         if (analysis.partitionIdent() == null) {
-            partitionedByNames = Lists.newArrayList(
-                    Lists.transform(analysis.table().partitionedBy(), ColumnIdent.GET_FQN_NAME_FUNCTION)
-            );
+            tableName = table.ident().name();
+            if (table.isPartitioned()) {
+                partitionedByNames = Lists.newArrayList(
+                        Lists.transform(table.partitionedBy(), ColumnIdent.GET_FQN_NAME_FUNCTION));
+                partitionByColumns = table.partitionedBy();
+            } else {
+                partitionedByNames = Collections.emptyList();
+                partitionByColumns = Collections.emptyList();
+            }
         } else {
-            /*
-             * if there is a partitionIdent in the analysis this means that the file doesn't include
-             * the partition ident in the rows.
-             *
-             * Therefore there is no need to exclude the partition columns from the source and
-             * it is possible to import into the partitioned index directly.
-             */
-            partitionedByNames = Arrays.asList();
+            assert table.isPartitioned() : "table must be partitioned if partitionIdent is set";
+            // partitionIdent is present -> possible to index raw source into concrete es index
+            tableName = PartitionName.fromPartitionIdent(table.ident().name(), analysis.partitionIdent()).stringValue();
+            partitionedByNames = Collections.emptyList();
+            partitionByColumns = Collections.emptyList();
         }
-        List<Projection> projections = Arrays.<Projection>asList(new SourceIndexWriterProjection(
+
+        SourceIndexWriterProjection sourceIndexWriterProjection = new SourceIndexWriterProjection(
                 tableName,
-                analysis.table().primaryKey(),
-                analysis.table().partitionedBy(),
-                analysis.table().clusteredBy(),
+                table.primaryKey(),
+                partitionByColumns,
+                table.clusteredBy(),
                 clusteredByPrimaryKeyIdx,
                 analysis.settings(),
                 null,
-                partitionedByNames.size() > 0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null
-        ));
-
-        partitionedByNames.removeAll(Lists.transform(analysis.table().primaryKey(), ColumnIdent.GET_FQN_NAME_FUNCTION));
-
-        int referencesSize = analysis.table().primaryKey().size() + partitionedByNames.size() + 1;
+                partitionedByNames.size() > 0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null,
+                table.isPartitioned() // autoCreateIndices
+        );
+        List<Projection> projections = Arrays.<Projection>asList(sourceIndexWriterProjection);
+        partitionedByNames.removeAll(Lists.transform(table.primaryKey(), ColumnIdent.GET_FQN_NAME_FUNCTION));
+        int referencesSize = table.primaryKey().size() + partitionedByNames.size() + 1;
         referencesSize = clusteredByPrimaryKeyIdx == -1 ? referencesSize + 1 : referencesSize;
+
         List<Symbol> toCollect = new ArrayList<>(referencesSize);
         // add primaryKey columns
-        for (ColumnIdent primaryKey : analysis.table().primaryKey()) {
-            toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(primaryKey))
-            );
+        for (ColumnIdent primaryKey : table.primaryKey()) {
+            toCollect.add(new Reference(table.getColumnInfo(primaryKey)));
         }
 
         // add partitioned columns (if not part of primaryKey)
         for (String partitionedColumn : partitionedByNames) {
             toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(ColumnIdent.fromPath(partitionedColumn)))
+                    new Reference(table.getColumnInfo(ColumnIdent.fromPath(partitionedColumn)))
             );
         }
-
         // add clusteredBy column (if not part of primaryKey)
         if (clusteredByPrimaryKeyIdx == -1) {
             toCollect.add(
-                    new Reference(analysis.table().getColumnInfo(analysis.table().clusteredBy()))
-            );
+                    new Reference(table.getColumnInfo(table.clusteredBy())));
         }
-
         // finally add _raw or _doc
-        if (analysis.table().isPartitioned() && analysis.partitionIdent() == null) {
-            toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.DOC)));
+        if (table.isPartitioned() && analysis.partitionIdent() == null) {
+            toCollect.add(new Reference(table.getColumnInfo(DocSysColumns.DOC)));
         } else {
-            toCollect.add(new Reference(analysis.table().getColumnInfo(DocSysColumns.RAW)));
+            toCollect.add(new Reference(table.getColumnInfo(DocSysColumns.RAW)));
         }
 
         DiscoveryNodes allNodes = clusterService.state().nodes();

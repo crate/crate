@@ -80,7 +80,8 @@ public abstract class AbstractIndexWriterProjector implements Projector {
                                            @Nullable ColumnIdent clusteredBy,
                                            @Nullable Input<?> routingInput,
                                            CollectExpression<?>[] collectExpressions,
-                                           @Nullable Integer bulkActions) {
+                                           @Nullable Integer bulkActions,
+                                           boolean autoCreateIndices) {
         this.tableName = tableName;
         this.primaryKeys = primaryKeys;
         this.collectExpressions = collectExpressions;
@@ -93,7 +94,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
                 settings,
                 transportShardBulkAction,
                 transportCreateIndexAction,
-                partitionedByInputs.size() > 0, // autoCreate indices if this is a partitioned table
+                autoCreateIndices,
                 false,
                 Objects.firstNonNull(bulkActions, 100)
         );

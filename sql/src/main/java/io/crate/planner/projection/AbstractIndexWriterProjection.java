@@ -55,15 +55,19 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     protected List<Symbol> partitionedBySymbols;
     protected @Nullable Symbol clusteredBySymbol;
 
+    protected boolean autoCreateIndices;
+
     protected AbstractIndexWriterProjection() {}
 
     protected AbstractIndexWriterProjection(String tableName,
                                             List<ColumnIdent> primaryKeys,
                                             @Nullable ColumnIdent clusteredByColumn,
-                                            Settings settings) {
+                                            Settings settings,
+                                            boolean autoCreateIndices) {
         this.tableName = tableName;
         this.primaryKeys = primaryKeys;
         this.clusteredByColumn = clusteredByColumn;
+        this.autoCreateIndices = autoCreateIndices;
 
         this.bulkActions = settings.getAsInt(BULK_SIZE, BULK_SIZE_DEFAULT);
         Preconditions.checkArgument(bulkActions > 0, "\"bulk_size\" must be greater than 0.");
@@ -85,6 +89,10 @@ public abstract class AbstractIndexWriterProjection extends Projection {
 
     public List<Symbol> partitionedBySymbols() {
         return partitionedBySymbols;
+    }
+
+    public boolean autoCreateIndices() {
+        return autoCreateIndices;
     }
 
     /**
@@ -189,6 +197,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             clusteredByColumn = ident;
         }
         bulkActions = in.readVInt();
+        autoCreateIndices = in.readBoolean();
     }
 
     @Override
@@ -221,5 +230,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             clusteredByColumn.writeTo(out);
         }
         out.writeVInt(bulkActions);
+        out.writeBoolean(autoCreateIndices);
     }
 }

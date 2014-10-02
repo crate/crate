@@ -226,7 +226,8 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 projection.bulkActions(),
                 projection.includes(),
-                projection.excludes()
+                projection.excludes(),
+                projection.autoCreateIndices()
         );
     }
 
@@ -263,7 +264,8 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 projection.columnIdents(),
                 columnInputs,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
-                projection.bulkActions()
+                projection.bulkActions(),
+                projection.autoCreateIndices()
         );
     }
 }

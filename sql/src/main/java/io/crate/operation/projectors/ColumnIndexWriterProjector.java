@@ -61,11 +61,12 @@ public class ColumnIndexWriterProjector extends AbstractIndexWriterProjector {
                                          List<ColumnIdent> columnIdents,
                                          List<Input<?>> columnInputs,
                                          CollectExpression<?>[] collectExpressions,
-                                         @Nullable Integer bulkActions) {
+                                         @Nullable Integer bulkActions,
+                                         boolean autoCreateIndices) {
         super(clusterService, settings, transportShardBulkAction,
                 transportCreateIndexAction, tableName, primaryKeys, idInputs,
                 partitionedByInputs, routingIdent, routingInput, collectExpressions,
-                bulkActions);
+                bulkActions, autoCreateIndices);
         assert columnIdents.size() == columnInputs.size();
         this.columnIdents = columnIdents;
         this.columnInputs = columnInputs;
