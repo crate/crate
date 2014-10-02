@@ -2362,9 +2362,24 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
         execute("copy quotes partition (date=1400507539938) from ?", new Object[]{filePath});
         refresh();
-        execute("select count(*) from quotes");
-        assertEquals(1L, response.rowCount());
-        assertThat((Long) response.rows()[0][0], is(3L));
+        execute("select id, date, quote from quotes order by id asc");
+        assertEquals(3L, response.rowCount());
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((Long) response.rows()[0][1], is(1400507539938L));
+        assertThat((String) response.rows()[0][2], is("Don't pañic."));
+
+        execute("select count(*) from information_schema.table_partitions where table_name = 'quotes'");
+        assertThat((Long) response.rows()[0][0], is(1L));
+
+        execute("copy quotes partition (date=1800507539938) from ?", new Object[]{filePath});
+        refresh();
+
+        execute("select partition_ident from information_schema.table_partitions " +
+                "where table_name = 'quotes' " +
+                "order by partition_ident");
+        assertThat(response.rowCount(), is(2L));
+        assertThat((String) response.rows()[0][0], is("04732d1g60qj0dpl6csjicpo"));
+        assertThat((String) response.rows()[1][0], is("04732e1g60qj0dpl6csjicpo"));
     }
 
     @Test
