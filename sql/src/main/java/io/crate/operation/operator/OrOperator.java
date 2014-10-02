@@ -26,13 +26,22 @@ public class OrOperator extends Operator<Boolean> {
     public Symbol normalizeSymbol(Function function) {
         assert (function != null);
 
+        if (containsNull(function.arguments().get(0), function.arguments().get(1))) {
+            return Literal.NULL;
+        }
+        int falseOperands = 0;
         for (Symbol symbol : function.arguments()) {
             if (symbol.symbolType() == SymbolType.LITERAL
                     && ((Literal)symbol).valueType() == DataTypes.BOOLEAN) {
                 if ((Boolean)((Literal)symbol).value()) {
                     return Literal.newLiteral(true);
+                } else {
+                    falseOperands++;
                 }
             }
+        }
+        if (falseOperands == 2) {
+            return Literal.newLiteral(false);
         }
         return function;
     }
