@@ -56,6 +56,8 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         Symbol arg = symbol.arguments().get(0);
         if (Symbol.isLiteral(arg, DataTypes.BOOLEAN)) {
             return Literal.newLiteral(!(Boolean)((Literal)arg).value());
+        } else if (arg.symbolType().isValueSymbol() && ((Input)arg).value() == null) {
+            return Literal.NULL;
         }
         return symbol;
     }

@@ -57,6 +57,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
     };
 
     protected final EvaluatingNormalizer normalizer;
+    protected final PartitionVisitor partitionVisitor;
     private boolean onlyScalarsAllowed;
 
     protected final ReferenceInfos referenceInfos;
@@ -86,6 +87,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         this.referenceInfos = referenceInfos;
         this.functions = functions;
         this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
+        this.partitionVisitor = new PartitionVisitor(this.normalizer);
     }
 
     @Override

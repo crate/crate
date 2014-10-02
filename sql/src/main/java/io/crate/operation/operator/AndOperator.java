@@ -50,6 +50,11 @@ public class AndOperator extends Operator<Boolean> {
         boolean result = true;
         int booleanCount = 0;
         int stripSymbolIdx = -1;
+
+        if (containsNull(function.arguments().get(0), function.arguments().get(1))) {
+            return Literal.NULL;
+        }
+
         for (int i=0; i < function.arguments().size(); i++) {
             Symbol symbol = function.arguments().get(i);
 

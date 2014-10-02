@@ -3337,7 +3337,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUpdateUnknownPartition() throws Exception {
+    public void testUpdatePartitionedUnknownPartition() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureGreen();
@@ -3356,7 +3356,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUpdateUnknownColumn() throws Exception {
+    public void testUpdatePartitionedUnknownColumn() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureGreen();
@@ -3375,7 +3375,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUpdateUnknownColumnKnownValue() throws Exception {
+    public void testUpdatePartitionedUnknownColumnKnownValue() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureGreen();
