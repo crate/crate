@@ -5,12 +5,16 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: updating a partitioned table with a WHERE clause querying for a
+   non existent column of for a non existent partition value led to
+   updating all partitions of the queried table
+
  - fix: deleting on a partitioned table with a WHERE clause querying for a
    non existent column or for a non existent partition value led to
    deletion of all partitions of the queried table
 
  - Fix: Copy from using the PARTITION clause imported into a ``null`` partition
-   instead of using the partition clause. 
+   instead of using the partition clause.
 
  - All scalar functions can now be used in the WHERE clause in SELECT
    statements and they may be nested without limitations. In addition it is now

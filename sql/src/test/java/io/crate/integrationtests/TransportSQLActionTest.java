@@ -3337,6 +3337,45 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testUpdateUnknownPartition() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        ensureGreen();
+        refresh();
+
+        execute("update quotes set quote='now panic' where timestamp = ?", new Object[]{ 1395874800123L });
+        refresh();
+
+        execute("select * from quotes where quote = 'now panic'");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testUpdateUnknownColumn() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        ensureGreen();
+        refresh();
+
+        execute("update quotes set quote='now panic' where timestam = ?", new Object[]{ 1395874800123L });
+        refresh();
+
+        execute("select * from quotes where quote = 'now panic'");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+
+    @Test
     public void testDeleteFromPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
