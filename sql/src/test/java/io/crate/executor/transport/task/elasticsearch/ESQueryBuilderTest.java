@@ -366,6 +366,19 @@ public class ESQueryBuilderTest {
     }
 
     @Test
+    public void testWhereNoMatch() throws Exception {
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("A where clause with no match should not result in an ES query");
+
+        generator.convert(WhereClause.NO_MATCH);
+    }
+
+    @Test
+    public void testWhereMatchAll() throws Exception {
+        assertThat(generator.convert(WhereClause.MATCH_ALL).toUtf8(), is("{\"query\":{\"match_all\":{}}}"));
+    }
+
+    @Test
     public void testWhereReferenceAnyLike() throws Exception {
         FunctionIdent functionIdent = new FunctionIdent(AnyLikeOperator.NAME,
                 Arrays.<DataType>asList(new ArrayType(DataTypes.STRING), DataTypes.STRING));

@@ -328,6 +328,11 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         return function;
     }
 
+    @Override
+    protected Symbol visitSymbol(Symbol symbol, Context context) {
+        return symbol;
+    }
+
     private void setPrimaryKey(Context context, Literal right, int idx) {
         if (context.currentBucket.keyParts[idx] == null) {
             context.currentBucket.keyParts[idx] = right;
