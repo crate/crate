@@ -438,28 +438,21 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     private void ESDeleteByQuery(DeleteAnalysis.NestedDeleteAnalysis analysis, Plan plan) {
         String[] indices = indices(analysis);
 
-        if (!analysis.whereClause().hasQuery() && analysis.table().isPartitioned()) {
-            if (indices.length == 0) {
-                // collect all partitions to drop
-                indices = new String[analysis.table().partitions().size()];
-                for (int i=0; i < analysis.table().partitions().size(); i++) {
-                    indices[i] = analysis.table().partitions().get(i).stringValue();
-                }
-            }
-
-            if (!analysis.table().partitions().isEmpty()) {
+        if (indices.length > 0 && !analysis.whereClause().noMatch()) {
+            if (!analysis.whereClause().hasQuery() && analysis.table().isPartitioned()) {
                 for (String index : indices) {
                     plan.add(new ESDeleteIndexNode(index, true));
                 }
+
+            } else {
+                // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
+                // forbidden through analysis, we must issue deleteByQuery request in addition
+                // to above deleteIndex request(s)
+                ESDeleteByQueryNode node = new ESDeleteByQueryNode(
+                        indices,
+                        analysis.whereClause());
+                plan.add(node);
             }
-        } else {
-            // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
-            // forbidden through analysis, we must issue deleteByQuery request in addition
-            // to above deleteIndex request(s)
-            ESDeleteByQueryNode node = new ESDeleteByQueryNode(
-                    indices,
-                    analysis.whereClause());
-            plan.add(node);
         }
         plan.expectsAffectedRows(true);
     }
@@ -1051,12 +1044,27 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         return type;
     }
 
+    /**
+     * return the ES index names the query should go to
+     */
     private String[] indices(AbstractDataAnalysis analysis) {
         String[] indices;
-        if (analysis.whereClause().partitions().size() == 0) {
-            indices = new String[]{analysis.table().ident().name()};
+
+        if (analysis.noMatch()) {
+            indices = org.elasticsearch.common.Strings.EMPTY_ARRAY;
+        } else if (!analysis.table().isPartitioned()) {
+            // table name for non-partitioned tables
+            indices = new String[]{ analysis.table().ident().name() };
+        } else if (analysis.whereClause().partitions().size() == 0) {
+            // all partitions
+            indices = new String[analysis.table().partitions().size()];
+            for (int i = 0; i < analysis.table().partitions().size(); i++) {
+                indices[i] = analysis.table().partitions().get(i).stringValue();
+            }
+
         } else {
-            indices = analysis.whereClause().partitions().toArray(new String[]{});
+            indices = analysis.whereClause().partitions().toArray(
+                    new String[analysis.whereClause().partitions().size()]);
         }
         return indices;
     }

@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: deleting on a partitioned table with a WHERE clause querying for a
+   non existent column or for a non existent partition value led to
+   deletion of all partitions of the queried table
+
  - fix: filtering on system column ``_score`` is only valid by using a
    ``>=`` comparison, throw error if used otherwise
 

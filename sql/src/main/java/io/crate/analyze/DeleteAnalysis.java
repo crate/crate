@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
@@ -28,10 +30,18 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DeleteAnalysis extends Analysis {
+
+    private static final Predicate<NestedDeleteAnalysis> NO_MATCH_PREDICATE = new Predicate<NestedDeleteAnalysis>() {
+        @Override
+        public boolean apply(@Nullable NestedDeleteAnalysis input) {
+            return input != null && input.noMatch();
+        }
+    };
 
     List<NestedDeleteAnalysis> nestedAnalysisList;
 
@@ -74,7 +84,7 @@ public class DeleteAnalysis extends Analysis {
 
     @Override
     public boolean hasNoResult() {
-        return false;
+        return Iterables.all(nestedAnalysisList, NO_MATCH_PREDICATE);
     }
 
     @Override
