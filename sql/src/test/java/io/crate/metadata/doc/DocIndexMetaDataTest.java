@@ -644,7 +644,11 @@ public class DocIndexMetaDataTest {
         ClusterService clusterService = mock(ClusterService.class);
         CreateTableAnalysis analysis = new CreateTableAnalysis(
                 new ReferenceInfos(
-                        ImmutableMap.<String, SchemaInfo>of("doc", new DocSchemaInfo(clusterService, mock(TransportPutIndexTemplateAction.class)))),
+                        ImmutableMap.<String, SchemaInfo>of("doc",
+                                new DocSchemaInfo(clusterService,
+                                        mock(Functions.class),
+                                        mock(ReferenceResolver.class),
+                                        mock(TransportPutIndexTemplateAction.class)))),
                 new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
                 new Analyzer.ParameterContext(new Object[0], new Object[0][]));
         analysis.analyzedTableElements(new AnalyzedTableElements());

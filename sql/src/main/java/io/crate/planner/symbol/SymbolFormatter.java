@@ -42,7 +42,12 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
     public static String format(String messageTmpl, Symbol ... symbols) {
         Object[] formattedSymbols = new String[symbols.length];
         for (int i = 0; i < symbols.length; i++) {
-            formattedSymbols[i] = symbols[i].accept(INSTANCE, null);
+            Symbol s = symbols[i];
+            if (s == null) {
+                formattedSymbols[i] = "null";
+            } else {
+                formattedSymbols[i] = s.accept(INSTANCE, null);
+            }
         }
         return String.format(Locale.ENGLISH, messageTmpl, formattedSymbols);
     }

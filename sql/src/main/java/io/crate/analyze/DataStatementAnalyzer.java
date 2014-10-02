@@ -35,18 +35,17 @@ import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
-import io.crate.operation.predicate.*;
+import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
-import io.crate.sql.tree.IsNullPredicate;
-import io.crate.sql.tree.MatchPredicate;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -162,7 +161,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
         return context.allocateFunction(
                 NotPredicate.INFO,
-                ImmutableList.<Symbol>of(context.allocateFunction(isNullInfo, ImmutableList.of(argument))));
+                ImmutableList.<Symbol>of(context.allocateFunction(isNullInfo, Arrays.asList(argument))));
     }
 
     @Override
@@ -404,7 +403,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME,
                         ImmutableList.of(DataTypeVisitor.fromSymbol((value))));
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
-        return context.allocateFunction(functionInfo, ImmutableList.of(value));
+        return context.allocateFunction(functionInfo, Arrays.asList(value));
     }
 
     @Override
@@ -425,11 +424,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
             PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context, whereClause.query());
             if (pkc != null) {
-                if (pkc.hasPartitionedColumn) {
-                    // query was modified, normalize it again
-                    whereClause = new WhereClause(pkc.whereClause());
-                    whereClause = context.whereClause(whereClause);
-                }
                 whereClause.clusteredByLiteral(pkc.clusteredByLiteral());
                 if (pkc.noMatch) {
                     context.whereClause(WhereClause.NO_MATCH);
@@ -439,11 +433,20 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                     if (pkc.keyLiterals() != null) {
                         processPrimaryKeyLiterals(pkc.keyLiterals(), context);
                     }
-
-                    if (pkc.partitionLiterals() != null) {
-                        whereClause.partitions(pkc.partitionLiterals());
-                    }
                 }
+            }
+
+            // TODO: THIS IS ONLY HERE FOR BACKWARDS COMPATIBILITY DURING WIP STATUS
+            if (context.table().isPartitioned()) {
+                PartitionVisitor.Context ctx = context.partitionVisitor.process(whereClause, context.table());
+                whereClause = ctx.whereClause(); // might have changes
+                whereClause.partitions(Lists.transform(ctx.partitions(), new com.google.common.base.Function<String, Literal>() {
+                    @Nullable
+                    @Override
+                    public Literal apply(@Nullable String input) {
+                        return Literal.newLiteral(input);
+                    }
+                }));
             }
         }
     }
