@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
@@ -30,9 +32,17 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class UpdateAnalysis extends Analysis {
+
+    private static final Predicate<NestedAnalysis> HAS_NO_RESULT_PREDICATE = new Predicate<NestedAnalysis>() {
+        @Override
+        public boolean apply(@Nullable NestedAnalysis input) {
+            return input != null && input.hasNoResult();
+        }
+    };
 
     List<NestedAnalysis> nestedAnalysisList;
 
@@ -75,7 +85,7 @@ public class UpdateAnalysis extends Analysis {
 
     @Override
     public boolean hasNoResult() {
-        return false;
+        return Iterables.all(nestedAnalysisList, HAS_NO_RESULT_PREDICATE);
     }
 
     @Override
@@ -101,6 +111,11 @@ public class UpdateAnalysis extends Analysis {
                               Analyzer.ParameterContext parameterContext,
                               ReferenceResolver referenceResolver) {
             super(referenceInfos, functions, parameterContext, referenceResolver);
+        }
+
+        @Override
+        public boolean hasNoResult() {
+            return whereClause().noMatch();
         }
 
         public Map<Reference, Symbol> assignments() {
