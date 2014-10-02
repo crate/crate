@@ -83,7 +83,8 @@ public class IndexWriterProjectorUnitTest {
                 sourceInput,
                 collectExpressions,
                 20,
-                null, null
+                null, null,
+                false
         );
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);
@@ -120,7 +121,8 @@ public class IndexWriterProjectorUnitTest {
                 sourceInput,
                 collectExpressions,
                 20,
-                null, null
+                null, null,
+                false
         );
         indexWriter.downstream(collectingProjector);
         indexWriter.registerUpstream(null);

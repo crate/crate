@@ -9,6 +9,9 @@ Unreleased
    non existent column or for a non existent partition value led to
    deletion of all partitions of the queried table
 
+ - Fix: Copy from using the PARTITION clause imported into a ``null`` partition
+   instead of using the partition clause. 
+
  - All scalar functions can now be used in the WHERE clause in SELECT
    statements and they may be nested without limitations. In addition it is now
    possible to compare one scalar function to another.
