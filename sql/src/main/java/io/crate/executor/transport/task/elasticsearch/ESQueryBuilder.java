@@ -98,7 +98,6 @@ public class ESQueryBuilder {
             visitor.process(whereClause.query(), context);
         } else {
             context.builder.field("match_all", Collections.emptyMap());
-
         }
         context.builder.endObject();
     }

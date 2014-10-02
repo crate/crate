@@ -67,8 +67,9 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        IntSet partitionedByIndices,
                                        @Nullable ColumnIdent clusteredByColumn,
                                        int clusteredByIndex,
-                                       Settings settings) {
-        super(tableName, primaryKeys, clusteredByColumn, settings);
+                                       Settings settings,
+                                       boolean autoCreateIndices) {
+        super(tableName, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
         generateSymbols(primaryKeyIndices.toArray(), partitionedByIndices.toArray(), clusteredByIndex);
 
         this.columnIdents = Lists.newArrayList(columns);

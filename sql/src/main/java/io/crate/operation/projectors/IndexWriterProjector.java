@@ -65,11 +65,12 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 CollectExpression<?>[] collectExpressions,
                                 @Nullable Integer bulkActions,
                                 @Nullable String[] includes,
-                                @Nullable String[] excludes) {
+                                @Nullable String[] excludes,
+                                boolean autoCreateIndices) {
         super(clusterService, settings, transportShardBulkAction,
                 transportCreateIndexAction, tableName, primaryKeys, idInputs, partitionedByInputs,
                 routingIdent, routingInput,
-                collectExpressions, bulkActions);
+                collectExpressions, bulkActions, autoCreateIndices);
         this.sourceInput = sourceInput;
         this.includes = includes;
         this.excludes = excludes;

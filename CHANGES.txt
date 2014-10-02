@@ -9,6 +9,9 @@ Unreleased
    non existent column or for a non existent partition value led to
    deletion of all partitions of the queried table
 
+ - Fix: Copy from using the PARTITION clause imported into a ``null`` partition
+   instead of using the partition clause.
+
 2014/09/26 0.44.2
 =================
 

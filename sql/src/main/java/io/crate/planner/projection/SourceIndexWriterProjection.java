@@ -60,8 +60,9 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        int clusteredByIdx,
                                        Settings settings,
                                        @Nullable String[] includes,
-                                       @Nullable String[] excludes) {
-        super(tableName, primaryKeys, clusteredByColumn, settings);
+                                       @Nullable String[] excludes,
+                                       boolean autoCreateIndices) {
+        super(tableName, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
 
         this.includes = includes;
         this.excludes = excludes;
