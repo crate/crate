@@ -1,5 +1,6 @@
 package io.crate.operation.operator;
 
+import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -12,9 +13,7 @@ import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 public class CmpOperatorTest {
 
@@ -22,10 +21,12 @@ public class CmpOperatorTest {
     private GteOperator op_gte_double;
     private LtOperator op_lt_int;
     private LteOperator op_lte_long;
+    private LtOperator op_lt_string;
 
     @Before
     public void setUp() {
         op_gt_string = new GtOperator(Operator.generateInfo(GtOperator.NAME, DataTypes.STRING));
+        op_lt_string = new LtOperator(Operator.generateInfo(LtOperator.NAME, DataTypes.STRING));
         op_gte_double = new GteOperator(Operator.generateInfo(GteOperator.NAME, DataTypes.DOUBLE));
         op_lt_int = new LtOperator(Operator.generateInfo(LtOperator.NAME, DataTypes.INTEGER));
         op_lte_long = new LteOperator(Operator.generateInfo(LteOperator.NAME, DataTypes.LONG));
@@ -85,6 +86,16 @@ public class CmpOperatorTest {
     public void testGtNormalizeSymbolTwoLiteralFalse() throws Exception {
         Symbol symbol = normalize(op_gt_string, Literal.newLiteral("aa"), Literal.newLiteral("bbb"));
         assertLiteralSymbol(symbol, false);
+    }
+
+    @Test
+    public void testCisGtThanA() throws Exception {
+        assertTrue(op_gt_string.evaluate((Input) Literal.newLiteral("c"), (Input) Literal.newLiteral("a")));
+    }
+
+    @Test
+    public void testAisLtThanC() throws Exception {
+        assertTrue(op_lt_string.evaluate((Input) Literal.newLiteral("a"), (Input) Literal.newLiteral("c")));
     }
 
     @Test
