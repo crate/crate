@@ -23,7 +23,7 @@ package io.crate.operation.reference.information;
 
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.information.InformationCollectorExpression;
+import io.crate.metadata.information.RowCollectExpression;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -31,26 +31,26 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Singleton
-public class InformationDocLevelReferenceResolver implements DocLevelReferenceResolver<InformationCollectorExpression<?, ?>> {
+public class InformationDocLevelReferenceResolver implements DocLevelReferenceResolver<RowCollectExpression<?, ?>> {
 
     public static final InformationDocLevelReferenceResolver INSTANCE = new InformationDocLevelReferenceResolver();
 
-    private static final Map<ReferenceIdent, InformationCollectorExpression<?, ?>> implementations = new HashMap<>();
+    private static final Map<ReferenceIdent, RowCollectExpression<?, ?>> implementations = new HashMap<>();
 
     static {
-        for (InformationCollectorExpression<?, ?> implementation : InformationTablesExpression.IMPLEMENTATIONS) {
+        for (RowCollectExpression<?, ?> implementation : InformationTablesExpression.IMPLEMENTATIONS) {
             implementations.put(implementation.info().ident(), implementation);
         }
-        for (InformationCollectorExpression<?, ?> implementation : InformationTablePartitionsExpression.IMPLEMENTATIONS) {
+        for (RowCollectExpression<?, ?> implementation : InformationTablePartitionsExpression.IMPLEMENTATIONS) {
             implementations.put(implementation.info().ident(), implementation);
         }
-        for (InformationCollectorExpression<?, ?> implementation : InformationColumnsExpression.IMPLEMENTATIONS) {
+        for (RowCollectExpression<?, ?> implementation : InformationColumnsExpression.IMPLEMENTATIONS) {
             implementations.put(implementation.info().ident(), implementation);
         }
-        for (InformationCollectorExpression<?, ?> implementation : InformationTableConstraintsExpression.IMPLEMENTATIONS) {
+        for (RowCollectExpression<?, ?> implementation : InformationTableConstraintsExpression.IMPLEMENTATIONS) {
             implementations.put(implementation.info().ident(), implementation);
         }
-        for (InformationCollectorExpression<?, ?> implementation : InformationRoutinesExpression.IMPLEMENTATIONS) {
+        for (RowCollectExpression<?, ?> implementation : InformationRoutinesExpression.IMPLEMENTATIONS) {
             implementations.put(implementation.info().ident(), implementation);
         }
     }
@@ -63,8 +63,7 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
     }
 
     @Override
-    public InformationCollectorExpression<?, ?> getImplementation(ReferenceInfo info) {
+    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo info) {
         return implementations.get(info.ident());
     }
-
 }

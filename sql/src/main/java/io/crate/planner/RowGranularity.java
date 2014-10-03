@@ -31,12 +31,13 @@ import java.io.IOException;
  *
  * order from large-grained to fine-grained:
  *
- * CLUSTER > NODE > SHARD > DOC
+ * CLUSTER > PARTITION > NODE > SHARD > DOC
  */
 public enum RowGranularity {
 
     // a higher ordinal represents a higher granularity, so order matters here
     CLUSTER,
+    PARTITION,
     NODE,
     SHARD,
     DOC;

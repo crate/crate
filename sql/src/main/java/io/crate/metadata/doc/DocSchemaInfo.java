@@ -33,16 +33,11 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
 import io.crate.PartitionName;
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.PartitionVisitor;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.RowGranularity;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
@@ -62,7 +57,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     public static final String NAME = "doc";
     private final ClusterService clusterService;
-    private final PartitionVisitor partitionVisitor;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
 
     private static final Predicate<String> tablesFilter = new Predicate<String>() {
@@ -86,14 +80,9 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     @Inject
     public DocSchemaInfo(ClusterService clusterService,
-                         Functions functions,
-                         ReferenceResolver referenceResolver,
                          TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
         this.clusterService = clusterService;
         clusterService.add(this);
-        this.partitionVisitor = new PartitionVisitor(
-                new EvaluatingNormalizer(functions,
-                        RowGranularity.CLUSTER, referenceResolver));
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
@@ -102,10 +91,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 return getTableInfo(input);
             }
         };
-    }
-
-    public PartitionVisitor partitionVisitor() {
-        return partitionVisitor;
     }
 
     private DocTableInfo innerGetTableInfo(String name) {

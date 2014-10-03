@@ -257,7 +257,8 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testGlobalAggregateUnknownOrderBy() throws Exception {
-        // order is ignored because global aggregates return only 1 row
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot order by \"sys.shards.lol\". The column doesn't exist.");
         transportExecutor.exec("select sum(num_docs) from sys.shards order by lol");
     }
 }

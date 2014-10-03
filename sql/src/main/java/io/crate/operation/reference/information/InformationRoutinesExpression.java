@@ -23,12 +23,12 @@ package io.crate.operation.reference.information;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RoutineInfo;
-import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.RowCollectExpression;
 import org.apache.lucene.util.BytesRef;
 
 public abstract class InformationRoutinesExpression<T>
-    extends InformationCollectorExpression<RoutineInfo, T> {
+    extends RowCollectExpression<RoutineInfo, T> {
 
     public static final ImmutableList<InformationRoutinesExpression<?>> IMPLEMENTATIONS
             = ImmutableList.<InformationRoutinesExpression<?>>builder()

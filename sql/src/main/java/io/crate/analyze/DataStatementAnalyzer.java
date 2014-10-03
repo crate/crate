@@ -26,26 +26,28 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import io.crate.PartitionName;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.*;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
+import io.crate.operation.reference.partitioned.PartitionExpression;
 import io.crate.planner.DataTypeVisitor;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -57,6 +59,10 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             .put(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ComparisonExpression.Type.LESS_THAN_OR_EQUAL)
             .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
             .build();
+
+    private final static String _SCORE = "_score";
+
+    private boolean insideNotPredicate = false;
 
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, T context) {
@@ -88,7 +94,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             FunctionInfo innerInfo = context.getFunctionInfo(innerIdent);
             Function innerFunction = context.allocateFunction(innerInfo, arguments);
 
-            // define the outer function which contains the inner function as arugment.
+            // define the outer function which contains the inner function as argument.
             String nodeName = "collection_" + node.getName().toString();
             List<Symbol> outerArguments = Arrays.<Symbol>asList(innerFunction);
             ImmutableList<DataType> outerArgumentTypes =
@@ -155,7 +161,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
         return context.allocateFunction(
                 NotPredicate.INFO,
-                ImmutableList.<Symbol>of(context.allocateFunction(isNullInfo, Arrays.asList(argument))));
+                ImmutableList.<Symbol>of(context.allocateFunction(isNullInfo, ImmutableList.of(argument))));
     }
 
     @Override
@@ -191,7 +197,22 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     @Override
     protected Symbol visitNotExpression(NotExpression node, T context) {
         Symbol argument = process(node.getValue(), context);
-        if (argument.symbolType() == SymbolType.PARAMETER) {
+//<<<<<<< HEAD
+//        if (argument.symbolType() == SymbolType.PARAMETER) {
+//=======
+        insideNotPredicate = false;
+        if (argument instanceof DataTypeSymbol) {
+            DataType dataType = ((DataTypeSymbol) argument).valueType();
+            if (!dataType.equals(DataTypes.BOOLEAN) && !dataType.equals(DataTypes.NULL)) {
+                throw new IllegalArgumentException(String.format(
+                    "Invalid argument of type \"%s\" passed to %s predicate. Argument must resolve to boolean or null",
+                    dataType,
+                    node
+                ));
+            }
+        }
+        if (argument instanceof Parameter) {
+//>>>>>>> 902f1a0... resolve partitions using normalizer and partitionExpression
             argument = Literal.fromParameter((Parameter) argument);
         }
         return new Function(NotPredicate.INFO, Arrays.asList(argument));
@@ -210,6 +231,42 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         return context.allocateFunction(info, comparison.arguments());
     }
 
+//<<<<<<< HEAD
+//=======
+    /**
+     * Validates comparison of system columns like e.g. '_score'.
+     * Must be called AFTER comparison normalization.
+     */
+    protected void validateSystemColumnComparison(Comparison comparison) {
+        if (comparison.left.symbolType() == SymbolType.REFERENCE) {
+            Reference reference = (Reference) comparison.left;
+            // _score column can only be used by > comparator
+            if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)
+                    && (comparison.comparisonExpressionType != ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
+                        || insideNotPredicate)) {
+                throw new UnsupportedOperationException(
+                        String.format(Locale.ENGLISH,
+                                "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
+                                _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()));
+            }
+        }
+    }
+
+    /**
+     * Validates usage of system columns (e.g. '_score') within predicates.
+     */
+    protected void validateSystemColumnPredicate(Symbol node) {
+        if (node.symbolType() == SymbolType.REFERENCE) {
+            Reference reference = (Reference) node;
+            if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)) {
+                throw new UnsupportedOperationException(
+                        String.format(Locale.ENGLISH,
+                                "System column '%s' cannot be used within a predicate", _SCORE));
+            }
+        }
+    }
+
+//>>>>>>> 902f1a0... resolve partitions using normalizer and partitionExpression
     @Override
     public Symbol visitArrayComparisonExpression(ArrayComparisonExpression node, T context) {
         if (node.quantifier().equals(ArrayComparisonExpression.Quantifier.ALL)) {
@@ -358,7 +415,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME,
                         ImmutableList.of(DataTypeVisitor.fromSymbol((value))));
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
-        return context.allocateFunction(functionInfo, Arrays.asList(value));
+        return context.allocateFunction(functionInfo, ImmutableList.of(value));
     }
 
     @Override
@@ -381,32 +438,142 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             if (pkc != null) {
                 whereClause.clusteredByLiteral(pkc.clusteredByLiteral());
                 if (pkc.noMatch) {
-                    context.whereClause(WhereClause.NO_MATCH);
+                    whereClause = WhereClause.NO_MATCH;
                 } else {
                     whereClause.version(pkc.version());
 
                     if (pkc.keyLiterals() != null) {
-                        processPrimaryKeyLiterals(pkc.keyLiterals(), context);
+                        processPrimaryKeyLiterals(pkc.keyLiterals(), whereClause, context);
                     }
                 }
             }
 
-            // TODO: THIS IS ONLY HERE FOR BACKWARDS COMPATIBILITY DURING WIP STATUS
+            // TODO: this should be part of the getRouting on tableInfo
             if (context.table().isPartitioned()) {
-                PartitionVisitor.Context ctx = context.partitionVisitor.process(whereClause, context.table());
-                whereClause = ctx.whereClause(); // might have changes
-                whereClause.partitions(Lists.transform(ctx.partitions(), new com.google.common.base.Function<String, Literal>() {
-                    @Nullable
-                    @Override
-                    public Literal apply(@Nullable String input) {
-                        return Literal.newLiteral(input);
-                    }
-                }));
+                whereClause = resolvePartitions(
+                        context.referenceResolver,
+                        context.functions, whereClause, context.table());
             }
         }
+        context.whereClause(whereClause);
     }
 
-    protected void processPrimaryKeyLiterals(List primaryKeyLiterals, T context) {
+    private PartitionReferenceResolver preparePartitionResolver(
+            ReferenceResolver referenceResolver, List<ReferenceInfo> partitionColumns) {
+        List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
+        int idx = 0;
+        for (ReferenceInfo partitionedByColumn : partitionColumns) {
+            partitionExpressions.add(new PartitionExpression(partitionedByColumn, idx));
+            idx++;
+        }
+        return new PartitionReferenceResolver(referenceResolver, partitionExpressions);
+    }
+
+    private WhereClause resolvePartitions(ReferenceResolver referenceResolver,
+                                          Functions functions,
+                                          WhereClause whereClause,
+                                          TableInfo table) {
+        assert table.isPartitioned() : "table must be partitioned in order to resolve partitions";
+        if (table.partitions().isEmpty()) {
+            return WhereClause.NO_MATCH; // table is partitioned but has no data / no partitions
+        }
+        PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
+                referenceResolver,
+                table.partitionedByColumns());
+        EvaluatingNormalizer normalizer =
+                new EvaluatingNormalizer(functions, RowGranularity.PARTITION, partitionReferenceResolver);
+
+        Symbol normalized = null;
+        Map<Symbol, List<Literal>> queryPartitionMap = new HashMap<>();
+
+        for (PartitionName partitionName : table.partitions()) {
+            for (PartitionExpression partitionExpression : partitionReferenceResolver.expressions()) {
+                partitionExpression.setNextRow(partitionName);
+            }
+            normalized = normalizer.normalize(whereClause.query());
+            assert normalized != null : "normalizing a query must not return null";
+
+            if (normalized.equals(whereClause.query())) {
+                return whereClause; // no partition columns inside the where clause
+            }
+
+            boolean canMatch = WhereClause.canMatch(normalized);
+            if (canMatch) {
+                List<Literal> partitions = queryPartitionMap.get(normalized);
+                if (partitions == null) {
+                    partitions = new ArrayList<>();
+                    queryPartitionMap.put(normalized, partitions);
+                }
+                partitions.add(Literal.newLiteral(partitionName.stringValue()));
+            }
+        }
+
+        if (queryPartitionMap.size() == 1) {
+            Map.Entry<Symbol, List<Literal>> entry = queryPartitionMap.entrySet().iterator().next();
+            whereClause = new WhereClause(entry.getKey());
+            whereClause.partitions(entry.getValue());
+        } else if (queryPartitionMap.size() > 0) {
+            whereClause = tieBreakPartitionQueries(normalizer, queryPartitionMap);
+        } else {
+            whereClause = WhereClause.NO_MATCH;
+        }
+
+        return whereClause;
+    }
+
+    private WhereClause tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
+                                                 Map<Symbol, List<Literal>> queryPartitionMap) throws UnsupportedOperationException{
+        /**
+         * Got multiple normalized queries which all could match.
+         * This might be the case if one partition resolved to null
+         *
+         * e.g.
+         *
+         *  p = 1 and x = 2
+         *
+         * might lead to
+         *
+         *  null and x = 2
+         *  true and x = 2
+         *
+         * At this point it is unknown if they really match.
+         * In order to figure out if they could potentially match all conditions involving references are now set to true
+         *
+         *  null and true   -> can't match
+         *  true and true   -> can match, can use this query + partition
+         *
+         * If there is still more than 1 query that can match it's not possible to execute the query :(
+         */
+
+        List<Tuple<Symbol, List<Literal>>> canMatch = new ArrayList<>();
+        ReferenceToTrueVisitor referenceToTrueVisitor = new ReferenceToTrueVisitor();
+        for (Map.Entry<Symbol, List<Literal>> entry : queryPartitionMap.entrySet()) {
+            Symbol query = entry.getKey();
+            List<Literal> partitions = entry.getValue();
+
+            Symbol symbol = referenceToTrueVisitor.process(query, null);
+            Symbol normalized = normalizer.normalize(symbol);
+
+            assert normalized instanceof Literal && ((Literal) normalized).valueType().equals(DataTypes.BOOLEAN) :
+                "after normalization and replacing all reference occurrences with true there must only be a boolean left";
+
+            Object value = ((Literal) normalized).value();
+            if (value != null && (Boolean) value) {
+                canMatch.add(new Tuple<>(query, partitions));
+            }
+        }
+        if (canMatch.size() == 1) {
+            Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
+            WhereClause whereClause = new WhereClause(symbolListTuple.v1());
+            whereClause.partitions(symbolListTuple.v2());
+            return whereClause;
+        }
+        throw new UnsupportedOperationException(
+            "logical conjunction of the conditions in the WHERE clause which " +
+                "involve partitioned columns led to a query that can't be executed.");
+    }
+
+    protected void processPrimaryKeyLiterals(List primaryKeyLiterals, WhereClause whereClause, T context) {
         List<List<BytesRef>> primaryKeyValuesList = new ArrayList<>(primaryKeyLiterals.size());
         primaryKeyValuesList.add(new ArrayList<BytesRef>(context.table().primaryKey().size()));
 
@@ -448,7 +615,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         for (List<BytesRef> primaryKeyValues : primaryKeyValuesList) {
-            context.addIdAndRouting(primaryKeyValues, context.whereClause().clusteredBy().orNull());
+            context.addIdAndRouting(primaryKeyValues, whereClause.clusteredBy().orNull());
         }
     }
 
@@ -597,11 +764,11 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
         FunctionInfo functionInfo = context.getFunctionInfo(io.crate.operation.predicate.MatchPredicate.IDENT);
         return context.allocateFunction(functionInfo,
-                Arrays.<Symbol>asList(
-                        Literal.newLiteral(identBoostMap),
-                        Literal.newLiteral(queryTerm),
-                        Literal.newLiteral(matchType),
-                        Literal.newLiteral(options)));
+            Arrays.<Symbol>asList(
+                Literal.newLiteral(identBoostMap),
+                Literal.newLiteral(queryTerm),
+                Literal.newLiteral(matchType),
+                Literal.newLiteral(options)));
     }
 
 

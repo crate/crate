@@ -389,6 +389,12 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         }
 
         @Override
+        public Void visitDynamicReference(DynamicReference symbol, SortContext context) {
+            throw new UnsupportedOperationException(
+                    SymbolFormatter.format("Cannot order by \"%s\". The column doesn't exist.", symbol));
+        }
+
+        @Override
         public Void visitSymbol(Symbol symbol, SortContext context) {
             return null;
         }
