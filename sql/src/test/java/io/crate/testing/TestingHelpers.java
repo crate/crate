@@ -23,9 +23,6 @@ package io.crate.testing;
 
 import com.google.common.collect.Lists;
 import io.crate.metadata.*;
-import io.crate.operation.operator.*;
-import io.crate.operation.predicate.NotPredicate;
-import io.crate.operation.scalar.SubstrFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
@@ -100,47 +97,6 @@ public class TestingHelpers {
                 new FunctionInfo(new FunctionIdent(functionName, dataTypes), returnType), arguments);
     }
 
-    public static Function eq(Symbol left, Symbol right) {
-        return createFunction(EqOperator.NAME, DataTypes.BOOLEAN, Arrays.asList(left, right));
-    }
-
-    public static Function gt(Symbol left, Symbol right) {
-        return createFunction(GtOperator.NAME, DataTypes.BOOLEAN, Arrays.asList(left, right));
-    }
-
-    public static Function lt(Symbol left, Symbol right) {
-        return createFunction(LtOperator.NAME, DataTypes.BOOLEAN, Arrays.asList(left, right));
-    }
-
-    public static Function and(Symbol left, Symbol right) {
-        return new Function(AndOperator.INFO,
-                Arrays.asList(left, right)
-        );
-    }
-
-    public static Function or(Symbol left, Symbol right) {
-        return new Function(OrOperator.INFO, Arrays.asList(left, right));
-    }
-
-    public static Function not(Symbol negated) {
-        return new Function(NotPredicate.INFO, Arrays.asList(negated));
-    }
-
-    public static Reference ref(TableIdent tableIdent, String columnName, DataType dataType) {
-        return createReference(tableIdent, ColumnIdent.fromPath(columnName), dataType, RowGranularity.DOC);
-    }
-
-    public static Reference ref(TableIdent tableIdent, String columnName, DataType dataType, RowGranularity granularity) {
-        return createReference(tableIdent, ColumnIdent.fromPath(columnName), dataType, granularity);
-    }
-
-    public static Function substr(Symbol str, int n) {
-        return createFunction(
-                SubstrFunction.NAME,
-                DataTypes.STRING,
-                Arrays.asList(str, Literal.newLiteral(n)));
-    }
-
     public static Reference createReference(String columnName, DataType dataType) {
         return createReference("dummyTable", new ColumnIdent(columnName), dataType);
     }
@@ -150,13 +106,9 @@ public class TestingHelpers {
     }
 
     public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType dataType) {
-        return createReference(new TableIdent(null, tableName), columnIdent, dataType, RowGranularity.DOC);
-    }
-
-    public static Reference createReference(TableIdent table, ColumnIdent columnIdent, DataType dataType, RowGranularity granularity) {
         return new Reference(new ReferenceInfo(
-                new ReferenceIdent(table, columnIdent),
-                granularity,
+                new ReferenceIdent(new TableIdent(null, tableName), columnIdent),
+                RowGranularity.DOC,
                 dataType
         ));
     }

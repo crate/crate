@@ -26,14 +26,14 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 
 
 public abstract class InformationTablesExpression<T>
-        extends InformationCollectorExpression<TableInfo, T> {
+        extends RowCollectExpression<TableInfo, T> {
 
     public static final ImmutableList<InformationTablesExpression<?>> IMPLEMENTATIONS
             = ImmutableList.<InformationTablesExpression<?>>builder()

@@ -158,10 +158,6 @@ public class DocIndexMetaData {
         }
     }
 
-    private void add(ColumnIdent column, DataType type) {
-        add(column, type, ReferenceInfo.ObjectType.DYNAMIC, ReferenceInfo.IndexType.NOT_ANALYZED, false);
-    }
-
     private void addPartitioned(ColumnIdent column, DataType type) {
         add(column, type, ReferenceInfo.ObjectType.DYNAMIC, ReferenceInfo.IndexType.NOT_ANALYZED, true);
     }
@@ -182,26 +178,16 @@ public class DocIndexMetaData {
         }
     }
 
-    private ReferenceInfo newInfo(ColumnIdent column, DataType type,
+    private ReferenceInfo newInfo(ColumnIdent column,
+                                  DataType type,
                                   ReferenceInfo.ObjectType objectType,
                                   ReferenceInfo.IndexType indexType) {
         RowGranularity granularity = RowGranularity.DOC;
         if (partitionedBy.contains(column)) {
-            granularity = RowGranularity.SHARD;
+            granularity = RowGranularity.PARTITION;
         }
         return new ReferenceInfo(new ReferenceIdent(ident, column), granularity, type,
                 objectType, indexType);
-    }
-
-    private IndexReferenceInfo newIndexInfo(ColumnIdent column,
-                                            String analyzer,
-                                            ReferenceInfo.IndexType indexType,
-                                            ReferenceInfo ... sourceColumns) {
-        return new IndexReferenceInfo(
-                new ReferenceIdent(ident, column),
-                indexType,
-                Arrays.asList(sourceColumns),
-                analyzer);
     }
 
     /**

@@ -23,14 +23,14 @@ package io.crate.operation.reference.information;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TablePartitionInfo;
-import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.RowCollectExpression;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
 
 public abstract class InformationTablePartitionsExpression<T>
-        extends InformationCollectorExpression<TablePartitionInfo, T> {
+        extends RowCollectExpression<TablePartitionInfo, T> {
 
     public static final ImmutableList<InformationTablePartitionsExpression<?>> IMPLEMENTATIONS
             = ImmutableList.<InformationTablePartitionsExpression<?>>builder()

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,37 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.information;
+package io.crate.operation.reference.partitioned;
 
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.PartitionName;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.operation.Input;
+import io.crate.metadata.information.RowCollectExpression;
 
-/**
- * Base class for information_schema expressions.
- * @param <T> The returnType of the expression
- */
-public abstract class InformationCollectorExpression<R, T> implements ReferenceImplementation, Input<T> {
+public class PartitionExpression extends RowCollectExpression<PartitionName, Object> {
 
-    protected final ReferenceInfo info;
-    protected R row;
+    private final int valuesIndex;
 
-    public InformationCollectorExpression(ReferenceInfo info) {
-        this.info = info;
+    public PartitionExpression(ReferenceInfo info, int valuesIndex) {
+        super(info);
+        this.valuesIndex = valuesIndex;
     }
 
     @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
+    public Object value() {
+        assert row != null : "row shouldn't be null for PartitionExpression";
+        return info.type().value(row.values().get(valuesIndex));
     }
-
-    @Override
-    public ReferenceInfo info() {
-        return info;
-    }
-
-    public void setNextRow(R row) {
-        this.row = row;
-    }
-
 }

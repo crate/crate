@@ -25,13 +25,13 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.RowCollectExpression;
 import org.apache.lucene.util.BytesRef;
 
 
 public abstract class InformationColumnsExpression<T>
-        extends InformationCollectorExpression<ColumnContext, T> {
+        extends RowCollectExpression<ColumnContext, T> {
 
     public static final ImmutableList<InformationColumnsExpression<?>> IMPLEMENTATIONS
             = ImmutableList.<InformationColumnsExpression<?>>builder()

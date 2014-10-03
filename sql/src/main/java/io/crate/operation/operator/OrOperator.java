@@ -5,7 +5,6 @@ import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import io.crate.types.DataTypes;
 
 public class OrOperator extends Operator<Boolean> {
@@ -25,24 +24,46 @@ public class OrOperator extends Operator<Boolean> {
     @Override
     public Symbol normalizeSymbol(Function function) {
         assert (function != null);
+        assert function.arguments().size() == 2;
 
-        if (containsNull(function.arguments().get(0), function.arguments().get(1))) {
-            return Literal.NULL;
+        Symbol left = function.arguments().get(0);
+        Symbol right = function.arguments().get(1);
+
+        if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
+            return Literal.newLiteral(evaluate((Input) left, (Input) right));
         }
-        int falseOperands = 0;
-        for (Symbol symbol : function.arguments()) {
-            if (symbol.symbolType() == SymbolType.LITERAL
-                    && ((Literal)symbol).valueType() == DataTypes.BOOLEAN) {
-                if ((Boolean)((Literal)symbol).value()) {
-                    return Literal.newLiteral(true);
-                } else {
-                    falseOperands++;
-                }
+
+        /***
+         * true  or x    -> true
+         * false or x    -> x
+         * null  or x    -> null or true -> return function as is
+         */
+        if (left instanceof Input) {
+            Object value = ((Input) left).value();
+            if (value == null) {
+                return function;
+            }
+            assert value instanceof Boolean;
+            if ((Boolean) value) {
+                return Literal.newLiteral(true);
+            } else {
+                return right;
             }
         }
-        if (falseOperands == 2) {
-            return Literal.newLiteral(false);
+
+        if (right instanceof Input) {
+            Object value = ((Input) right).value();
+            if (value == null) {
+                return function;
+            }
+            assert value instanceof Boolean;
+            if ((Boolean) value) {
+                return Literal.newLiteral(true);
+            } else {
+                return left;
+            }
         }
+
         return function;
     }
 

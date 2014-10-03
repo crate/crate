@@ -54,10 +54,14 @@ public class NotPredicate implements Scalar<Boolean, Boolean> {
         assert (symbol.arguments().size() == 1);
 
         Symbol arg = symbol.arguments().get(0);
-        if (Symbol.isLiteral(arg, DataTypes.BOOLEAN)) {
-            return Literal.newLiteral(!(Boolean)((Literal)arg).value());
-        } else if (arg.symbolType().isValueSymbol() && ((Input)arg).value() == null) {
-            return Literal.NULL;
+        if (arg instanceof Input) {
+            Object value = ((Input) arg).value();
+            if (value == null) {
+                return Literal.newLiteral(DataTypes.BOOLEAN, null);
+            }
+            if (value instanceof Boolean) {
+                return Literal.newLiteral(!((Boolean) value));
+            }
         }
         return symbol;
     }
@@ -65,6 +69,10 @@ public class NotPredicate implements Scalar<Boolean, Boolean> {
     @Override
     public Boolean evaluate(Input<Boolean>... args) {
         assert args.length == 1;
-        return !args[0].value();
+        Boolean value = args[0].value();
+        if (value == null) {
+            return null;
+        }
+        return !value;
     }
 }

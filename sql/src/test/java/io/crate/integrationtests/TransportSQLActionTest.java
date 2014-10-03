@@ -4165,6 +4165,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateVersionHandling() throws Exception {
         execute("create table test (id int primary key, c int) with (number_of_replicas=0, refresh_interval=0)");
+        ensureGreen();
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
         execute("select _version, c from test");

@@ -48,7 +48,6 @@ import static org.mockito.Mockito.verify;
 
 public class DocIndexMetaDataTest {
 
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -646,8 +645,6 @@ public class DocIndexMetaDataTest {
                 new ReferenceInfos(
                         ImmutableMap.<String, SchemaInfo>of("doc",
                                 new DocSchemaInfo(clusterService,
-                                        mock(Functions.class),
-                                        mock(ReferenceResolver.class),
                                         mock(TransportPutIndexTemplateAction.class)))),
                 new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
                 new Analyzer.ParameterContext(new Object[0], new Object[0][]));
