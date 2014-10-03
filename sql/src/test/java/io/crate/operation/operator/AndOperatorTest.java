@@ -16,6 +16,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 public class AndOperatorTest {
+
     @Test
     public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {
         AndOperator operator = new AndOperator();

@@ -30,11 +30,10 @@ public class OrOperatorTest {
     @Test
     public void testNormalizeSymbolReferenceAndLiteralFalse() throws Exception {
         OrOperator operator = new OrOperator();
-
         Function function = new Function(
                 operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.newLiteral(false)));
         Symbol normalizedSymbol = operator.normalizeSymbol(function);
-        assertThat(normalizedSymbol, instanceOf(Function.class));
+        assertThat(normalizedSymbol, instanceOf(Reference.class));
     }
 
     @Test

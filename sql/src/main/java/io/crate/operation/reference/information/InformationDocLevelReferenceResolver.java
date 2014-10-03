@@ -24,19 +24,19 @@ package io.crate.operation.reference.information;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.information.InformationCollectorExpression;
+import io.crate.metadata.information.RowCollectExpression;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 @Singleton
-public class InformationDocLevelReferenceResolver implements DocLevelReferenceResolver<InformationCollectorExpression<?, ?>> {
+public class InformationDocLevelReferenceResolver implements DocLevelReferenceResolver<RowCollectExpression<?, ?>> {
 
-    private final ImmutableMap<ReferenceIdent, InformationCollectorExpression<?, ?>> implementations;
+    private final ImmutableMap<ReferenceIdent, RowCollectExpression<?, ?>> implementations;
 
     @Inject
     public InformationDocLevelReferenceResolver() {
-        ImmutableMap.Builder<ReferenceIdent, InformationCollectorExpression<?, ?>> builder =
+        ImmutableMap.Builder<ReferenceIdent, RowCollectExpression<?, ?>> builder =
                 ImmutableMap.builder();
 
         // information_schema.tables
@@ -74,13 +74,13 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
         implementations = builder.build();
     }
 
-    private static void add(ImmutableMap.Builder<ReferenceIdent, InformationCollectorExpression<?, ?>> builder,
-                            InformationCollectorExpression<?, ?> expression) {
+    private static void add(ImmutableMap.Builder<ReferenceIdent, RowCollectExpression<?, ?>> builder,
+                            RowCollectExpression<?, ?> expression) {
         builder.put(expression.info().ident(), expression);
     }
 
     @Override
-    public InformationCollectorExpression<?, ?> getImplementation(ReferenceInfo info) {
+    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo info) {
         return implementations.get(info.ident());
     }
 }

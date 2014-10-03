@@ -47,36 +47,41 @@ public class AndOperator extends Operator<Boolean> {
         assert (function != null);
         assert function.arguments().size() == 2;
 
-        boolean result = true;
-        int booleanCount = 0;
-        int stripSymbolIdx = -1;
+        Symbol left = function.arguments().get(0);
+        Symbol right = function.arguments().get(1);
 
-        if (containsNull(function.arguments().get(0), function.arguments().get(1))) {
-            return Literal.NULL;
+        if (left instanceof Input && right instanceof Input) {
+            return Literal.newLiteral(evaluate((Input) left, (Input) right));
         }
 
-        for (int i=0; i < function.arguments().size(); i++) {
-            Symbol symbol = function.arguments().get(i);
-
-            if (Symbol.isLiteral(symbol, DataTypes.BOOLEAN)) {
-                booleanCount++;
-                boolean value = (Boolean)((Literal) symbol).value();
-                if (stripSymbolIdx == -1 && value) {
-                    stripSymbolIdx = i;
-                }
-                result = result && value;
+        /**
+         * true  and x  -> x
+         * false and x  -> false
+         * null  and x  -> false or null -> function as is
+         */
+        if (left instanceof Input) {
+            Object value = ((Input) left).value();
+            if (value == null) {
+                return function;
+            }
+            if ((Boolean) value) {
+                return right;
+            } else {
+                return Literal.newLiteral(false);
             }
         }
-
-        if (stripSymbolIdx == -1 && booleanCount < 2 && result) {
-            return function; // can't optimize -> return unmodified symbol
-        } else if (!result) {
-            return Literal.newLiteral(false);
-        } else if (booleanCount == 2) {
-            return Literal.newLiteral(true);
+        if (right instanceof Input) {
+            Object value = ((Input) right).value();
+            if (value == null) {
+                return function;
+            }
+            if ((Boolean) value) {
+                return left;
+            } else {
+                return Literal.newLiteral(false);
+            }
         }
-        int returnSymbolIdx = stripSymbolIdx == 0 ? 1 : 0;
-        return function.arguments().get(returnSymbolIdx);
+        return function;
     }
 
     @Override

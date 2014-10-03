@@ -22,14 +22,14 @@ package io.crate.operation.reference.information;
 
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TablePartitionInfo;
-import io.crate.metadata.information.InformationCollectorExpression;
+import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.information.InformationPartitionsTableInfo;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
 
 public abstract class InformationTablePartitionsExpression<T>
-        extends InformationCollectorExpression<TablePartitionInfo, T> {
+        extends RowCollectExpression<TablePartitionInfo, T> {
 
     public static final PartitionsTableNameExpression TABLE_NAME_EXPRESSION = new PartitionsTableNameExpression();
     public static final PartitionsSchemaNameExpression SCHEMA_NAME_EXPRESSION = new PartitionsSchemaNameExpression();

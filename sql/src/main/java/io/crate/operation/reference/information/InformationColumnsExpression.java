@@ -23,13 +23,13 @@ package io.crate.operation.reference.information;
 
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.information.InformationCollectorExpression;
+import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.information.InformationColumnsTableInfo;
 import org.apache.lucene.util.BytesRef;
 
 
 public abstract class InformationColumnsExpression<T>
-        extends InformationCollectorExpression<ColumnContext, T> {
+        extends RowCollectExpression<ColumnContext, T> {
 
     public static final ColumnsSchemaNameExpression SCHEMA_NAME_EXPRESSION = new ColumnsSchemaNameExpression();
     public static final ColumnsTableNameExpression TABLE_NAME_EXPRESSION = new ColumnsTableNameExpression();

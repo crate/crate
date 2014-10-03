@@ -57,11 +57,11 @@ public abstract class AbstractDataAnalysis extends Analysis {
     };
 
     protected final EvaluatingNormalizer normalizer;
-    protected final PartitionVisitor partitionVisitor;
     private boolean onlyScalarsAllowed;
 
     protected final ReferenceInfos referenceInfos;
-    private final Functions functions;
+    protected final Functions functions;
+    protected final ReferenceResolver referenceResolver;
     protected SchemaInfo schema;
     protected TableInfo table;
     protected final List<String> ids = new ArrayList<>();
@@ -86,8 +86,8 @@ public abstract class AbstractDataAnalysis extends Analysis {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
         this.functions = functions;
+        this.referenceResolver = referenceResolver;
         this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
-        this.partitionVisitor = new PartitionVisitor(this.normalizer);
     }
 
     @Override

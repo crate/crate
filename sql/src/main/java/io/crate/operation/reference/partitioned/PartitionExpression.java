@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,30 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.operation.reference.partitioned;
 
-public enum SymbolType {
+import io.crate.PartitionName;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.information.RowCollectExpression;
 
-    AGGREGATION(Aggregation.FACTORY),
-    REFERENCE(Reference.FACTORY),
-    FUNCTION(Function.FACTORY),
-    LITERAL(Literal.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY),
-    PARAMETER(Parameter.FACTORY),
-    DYNAMIC_REFERENCE(DynamicReference.FACTORY),
-    VALUE(Value.FACTORY);
+public class PartitionExpression extends RowCollectExpression<PartitionName, Object> {
 
-    private final Symbol.SymbolFactory factory;
+    private final int valuesIndex;
 
-    SymbolType(Symbol.SymbolFactory factory) {
-        this.factory = factory;
+    public PartitionExpression(ReferenceInfo info, int valuesIndex) {
+        super(info);
+        this.valuesIndex = valuesIndex;
     }
 
-    public Symbol newInstance() {
-        return factory.newInstance();
-    }
-
-    public boolean isValueSymbol() {
-        return ordinal() == LITERAL.ordinal() || ordinal() == PARAMETER.ordinal();
+    @Override
+    public Object value() {
+        assert row != null : "row shouldn't be null for PartitionExpression";
+        return info.type().value(row.values().get(valuesIndex));
     }
 }

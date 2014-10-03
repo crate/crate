@@ -25,7 +25,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.information.InformationCollectorExpression;
+import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.information.InformationTablesTableInfo;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
@@ -34,7 +34,7 @@ import java.util.List;
 
 
 public abstract class InformationTablesExpression<T>
-        extends InformationCollectorExpression<TableInfo, T> {
+        extends RowCollectExpression<TableInfo, T> {
 
     public static final TablesSchemaNameExpression SCHEMA_NAME_EXPRESSION = new TablesSchemaNameExpression();
     public static final TablesTableNameExpression TABLE_NAME_EXPRESSION = new TablesTableNameExpression();

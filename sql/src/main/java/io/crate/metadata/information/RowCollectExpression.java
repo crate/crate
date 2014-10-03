@@ -29,12 +29,12 @@ import io.crate.operation.Input;
  * Base class for information_schema expressions.
  * @param <T> The returnType of the expression
  */
-public abstract class InformationCollectorExpression<R, T> implements ReferenceImplementation, Input<T> {
+public abstract class RowCollectExpression<R, T> implements ReferenceImplementation, Input<T> {
 
     protected final ReferenceInfo info;
     protected R row;
 
-    public InformationCollectorExpression(ReferenceInfo info) {
+    public RowCollectExpression(ReferenceInfo info) {
         this.info = info;
     }
 
