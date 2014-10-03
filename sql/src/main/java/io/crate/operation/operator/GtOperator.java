@@ -20,6 +20,6 @@ public class GtOperator extends CmpOperator {
 
     @Override
     protected boolean compare(int comparisonResult) {
-        return comparisonResult == 1;
+        return comparisonResult > 0;
     }
 }
