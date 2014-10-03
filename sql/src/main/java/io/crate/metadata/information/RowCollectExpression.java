@@ -19,30 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.metadata.information;
 
-public enum SymbolType {
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.operation.Input;
 
-    AGGREGATION(Aggregation.FACTORY),
-    REFERENCE(Reference.FACTORY),
-    FUNCTION(Function.FACTORY),
-    LITERAL(Literal.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY),
-    PARAMETER(Parameter.FACTORY),
-    DYNAMIC_REFERENCE(DynamicReference.FACTORY),
-    VALUE(Value.FACTORY);
+/**
+ * Base class for information_schema expressions.
+ * @param <T> The returnType of the expression
+ */
+public abstract class RowCollectExpression<R, T> implements ReferenceImplementation, Input<T> {
 
-    private final Symbol.SymbolFactory factory;
+    protected final ReferenceInfo info;
+    protected R row;
 
-    SymbolType(Symbol.SymbolFactory factory) {
-        this.factory = factory;
+    public RowCollectExpression(ReferenceInfo info) {
+        this.info = info;
     }
 
-    public Symbol newInstance() {
-        return factory.newInstance();
+    @Override
+    public ReferenceImplementation getChildImplementation(String name) {
+        return null;
     }
 
-    public boolean isValueSymbol() {
-        return ordinal() == LITERAL.ordinal() || ordinal() == PARAMETER.ordinal();
+    @Override
+    public ReferenceInfo info() {
+        return info;
     }
+
+    public void setNextRow(R row) {
+        this.row = row;
+    }
+
 }

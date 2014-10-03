@@ -270,6 +270,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectIgnoredAddedColumnOrderBy() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot order by \"ot.details['weight']\". The column doesn't exist.");
         Map<String, Object> detailMap = new HashMap<String, Object>(){{
             put("num_pages", 240);
             put("publishing_date", "1982-01-01");

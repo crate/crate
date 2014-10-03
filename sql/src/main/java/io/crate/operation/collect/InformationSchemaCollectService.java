@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.information.InformationCollectorExpression;
+import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
@@ -52,7 +52,7 @@ public class InformationSchemaCollectService implements CollectService {
     private final Iterable<TableInfo> tableConstraintsIterable;
     private final Iterable<RoutineInfo> routinesIterable;
 
-    private final CollectInputSymbolVisitor<InformationCollectorExpression<?, ?>> docInputSymbolVisitor;
+    private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> docInputSymbolVisitor;
     private final ImmutableMap<String, Iterable<?>> iterables;
 
     private final Iterable<TablePartitionInfo> tablePartitionsIterable;
@@ -158,13 +158,13 @@ public class InformationSchemaCollectService implements CollectService {
     static class InformationSchemaCollector<R> implements CrateCollector {
 
         private final List<Input<?>> inputs;
-        private final List<InformationCollectorExpression<R, ?>> collectorExpressions;
+        private final List<RowCollectExpression<R, ?>> collectorExpressions;
         private Projector downstream;
         private final Iterable<R> rows;
         private final Input<Boolean> condition;
 
         protected InformationSchemaCollector(List<Input<?>> inputs,
-                                             List<InformationCollectorExpression<R, ?>> collectorExpressions,
+                                             List<RowCollectExpression<R, ?>> collectorExpressions,
                                              Projector downstream,
                                              Iterable<R> rows,
                                              Input<Boolean> condition) {
@@ -179,7 +179,7 @@ public class InformationSchemaCollectService implements CollectService {
         @Override
         public void doCollect() throws Exception {
             for (R row : rows) {
-                for (InformationCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
+                for (RowCollectExpression<R, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
                 }
                 Boolean match = condition.value();

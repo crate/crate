@@ -24,11 +24,15 @@ package io.crate.analyze;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.*;
-import io.crate.types.BooleanType;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.StringValueSymbolVisitor;
+import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.io.stream.*;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,16 +69,25 @@ public class WhereClause implements Streamable {
 
     public WhereClause(Symbol normalizedQuery) {
         if (normalizedQuery.symbolType().isValueSymbol()) {
-            if (((DataTypeSymbol)normalizedQuery).valueType().id() == BooleanType.ID) {
-                noMatch = !((Boolean)((Input<?>)normalizedQuery).value());
-            } else if (((Input<?>)normalizedQuery).value() == null) {
-                noMatch = true;
+            noMatch = !canMatch(normalizedQuery);
+        } else {
+            query = normalizedQuery;
+        }
+    }
+
+    public static boolean canMatch(Symbol query) {
+        if (query.symbolType().isValueSymbol()) {
+            Object value = ((Input) query).value();
+            if (value == null) {
+                return false;
+            }
+            if (value instanceof Boolean) {
+                return (Boolean) value;
             } else {
                 throw new RuntimeException("Symbol normalized to an invalid value");
             }
-        } else {
-            this.query = normalizedQuery;
         }
+        return true;
     }
 
     public WhereClause normalize(EvaluatingNormalizer normalizer) {
@@ -98,12 +111,14 @@ public class WhereClause implements Streamable {
     }
 
     public void clusteredByLiteral(@Nullable Literal clusteredByLiteral) {
+        assert this != NO_MATCH && this != MATCH_ALL: "may not set clusteredByLiteral on MATCH_ALL/NO_MATCH singleton";
         if (clusteredByLiteral != null) {
             clusteredBy = StringValueSymbolVisitor.INSTANCE.process(clusteredByLiteral);
         }
     }
 
     public void version(@Nullable Long version) {
+        assert this != NO_MATCH && this != MATCH_ALL: "may not set version on MATCH_ALL/NO_MATCH singleton";
         this.version = version;
     }
 
@@ -112,6 +127,7 @@ public class WhereClause implements Streamable {
     }
 
     public void partitions(List<Literal> partitions) {
+        assert this != NO_MATCH && this != MATCH_ALL: "may not set partitions on MATCH_ALL/NO_MATCH singleton";
         for (Literal partition : partitions) {
             this.partitions.add(StringValueSymbolVisitor.INSTANCE.process(partition));
         }
@@ -199,17 +215,31 @@ public class WhereClause implements Streamable {
         return helper.toString();
     }
 
-    /**
-     * Create a deep copy of this class by serialize/un-serialize
-     *
-     * @return
-     */
-    public WhereClause deepCopy() throws IOException {
-        BytesStreamOutput out = new BytesStreamOutput();
-        writeTo(out);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
-        WhereClause whereClause = new WhereClause();
-        whereClause.readFrom(in);
-        return whereClause;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof WhereClause)) return false;
+
+        WhereClause that = (WhereClause) o;
+
+        if (noMatch != that.noMatch) return false;
+        if (clusteredBy != null ? !clusteredBy.equals(that.clusteredBy) : that.clusteredBy != null)
+            return false;
+        if (partitions != null ? !partitions.equals(that.partitions) : that.partitions != null)
+            return false;
+        if (query != null ? !query.equals(that.query) : that.query != null) return false;
+        if (version != null ? !version.equals(that.version) : that.version != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = query != null ? query.hashCode() : 0;
+        result = 31 * result + (noMatch ? 1 : 0);
+        result = 31 * result + (clusteredBy != null ? clusteredBy.hashCode() : 0);
+        result = 31 * result + (version != null ? version.hashCode() : 0);
+        result = 31 * result + (partitions != null ? partitions.hashCode() : 0);
+        return result;
     }
 }

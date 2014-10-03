@@ -23,12 +23,13 @@ package io.crate.operation.reference.information;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 
-public abstract class InformationTableConstraintsExpression<T> extends InformationCollectorExpression<TableInfo, T> {
+public abstract class InformationTableConstraintsExpression<T> extends RowCollectExpression<TableInfo, T> {
+
     private static final BytesRef PRIMARY_KEY = new BytesRef("PRIMARY_KEY");
     public static final ImmutableList<InformationTableConstraintsExpression<?>> IMPLEMENTATIONS =
             ImmutableList.<InformationTableConstraintsExpression<?>>builder()
