@@ -28,15 +28,10 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
-
-//<<<<<<< HEAD
 import java.util.Set;
 //
-//public abstract class InformationTableConstraintsExpression<T> extends InformationCollectorExpression<TableInfo, T> {
-//=======
 public abstract class InformationTableConstraintsExpression<T> extends RowCollectExpression<TableInfo, T> {
 
-//>>>>>>> 902f1a0... resolve partitions using normalizer and partitionExpression
     private static final BytesRef PRIMARY_KEY = new BytesRef("PRIMARY_KEY");
     public static final ImmutableList<InformationTableConstraintsExpression<?>> IMPLEMENTATIONS =
             ImmutableList.<InformationTableConstraintsExpression<?>>builder()

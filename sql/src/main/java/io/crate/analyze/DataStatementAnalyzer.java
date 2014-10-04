@@ -197,9 +197,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     @Override
     protected Symbol visitNotExpression(NotExpression node, T context) {
         Symbol argument = process(node.getValue(), context);
-//<<<<<<< HEAD
-//        if (argument.symbolType() == SymbolType.PARAMETER) {
-//=======
         insideNotPredicate = false;
         if (argument instanceof DataTypeSymbol) {
             DataType dataType = ((DataTypeSymbol) argument).valueType();
@@ -212,7 +209,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             }
         }
         if (argument instanceof Parameter) {
-//>>>>>>> 902f1a0... resolve partitions using normalizer and partitionExpression
             argument = Literal.fromParameter((Parameter) argument);
         }
         return new Function(NotPredicate.INFO, Arrays.asList(argument));
@@ -231,8 +227,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         return context.allocateFunction(info, comparison.arguments());
     }
 
-//<<<<<<< HEAD
-//=======
     /**
      * Validates comparison of system columns like e.g. '_score'.
      * Must be called AFTER comparison normalization.
@@ -266,7 +260,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
     }
 
-//>>>>>>> 902f1a0... resolve partitions using normalizer and partitionExpression
     @Override
     public Symbol visitArrayComparisonExpression(ArrayComparisonExpression node, T context) {
         if (node.quantifier().equals(ArrayComparisonExpression.Quantifier.ALL)) {
