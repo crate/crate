@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/10/04 0.44.4
+=================
+
  - Fix: The ``>`` and ``<`` operators didn't behave correctly in some cases for
    string values if used on a system table or if both operands were literals.
 
