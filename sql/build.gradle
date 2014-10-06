@@ -59,7 +59,7 @@ test {
 task bench(type: Test) {
     description = 'Run the Crate JUnit Benchmarks'
     group = 'crate'
-    def benchmark_dir = '/tmp/crate-junit-benchmarks/'
+    def benchmark_dir = project.buildDir.path + '/reports/bench/'
 
     // Properties for JUnit Benchmarks
     systemProperty 'jub.consumers', 'CONSOLE,H2,XML'
