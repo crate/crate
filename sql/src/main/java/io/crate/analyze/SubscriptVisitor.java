@@ -22,24 +22,42 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import io.crate.planner.symbol.*;
 import io.crate.sql.tree.*;
 
 import java.util.Locale;
+import java.util.Set;
 
 
 public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
 
+    private static final Long MAX_VALUE = Integer.MAX_VALUE + 1L;
+    private static final Set<Class<?>> SUBSCRIPT_NAME_CLASSES = ImmutableSet.<Class<?>>of(
+            SubscriptExpression.class,
+            QualifiedNameReference.class,
+            FunctionCall.class,
+            ArrayLiteral.class
+    );
+    private static final Set<Class<?>> SUBSCRIPT_INDEX_CLASSES = ImmutableSet.<Class<?>>of(
+            StringLiteral.class,
+            LongLiteral.class,
+            NegativeExpression.class,
+            ParameterExpression.class
+    );
+
     @Override
     protected Void visitSubscriptExpression(SubscriptExpression node, SubscriptContext context) {
         Preconditions.checkArgument(
-                node.index() == null || node.index() instanceof StringLiteral || node.index() instanceof LongLiteral,
-                "index of subscript has to be a string or long literal. Any other index expression is not supported"
+                node.index() == null
+                        || SUBSCRIPT_INDEX_CLASSES.contains(node.index().getClass()),
+                "index of subscript has to be a string or long literal or parameter. " +
+                "Any other index expression is not supported"
         );
         Preconditions.checkArgument(
-                node.name() instanceof SubscriptExpression || node.name() instanceof QualifiedNameReference
-                        || node.name() instanceof FunctionCall,
+                SUBSCRIPT_NAME_CLASSES.contains(node.name().getClass()),
                 "An expression of type %s cannot have an index accessor ([])",
-                node.getClass()
+                node.name().getClass().getSimpleName()
         );
         if (node.index() != null) {
             node.index().accept(this, context);
@@ -62,30 +80,59 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
     }
 
     @Override
+    public Void visitParameterExpression(ParameterExpression node, SubscriptContext context) {
+        validateNestedArrayAccess(context);
+        Parameter parameterSymbol = (Parameter)context.parameterContext().getAsSymbol(node.index());
+        if (parameterSymbol.value() instanceof Number) {
+            context.index(((Number) parameterSymbol.value()).intValue());
+        } else if (parameterSymbol.value() instanceof String) {
+            context.add((String)parameterSymbol.value());
+        } else {
+            throw new IllegalArgumentException("Illegal subscript parameter value");
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitArrayLiteral(ArrayLiteral node, SubscriptContext context) {
+        Preconditions.checkArgument(
+                context.index() != null,
+                "Array literals can only be accessed via numeric index.");
+        context.expression(node);
+        return null;
+    }
+
+    @Override
     protected Void visitLongLiteral(LongLiteral node, SubscriptContext context) {
         validateNestedArrayAccess(context);
         long value = node.getValue();
-        Long max_value = new Long(Integer.MAX_VALUE) + 1;
-        if (value < 1 || value > max_value) {
+
+        if (value < 1 || value > MAX_VALUE) {
             throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
-                            max_value));
+                            MAX_VALUE));
         }
         context.index(new Long(node.getValue()).intValue());
         return null;
     }
 
     @Override
+    protected Void visitNegativeExpression(NegativeExpression node, SubscriptContext context) {
+        throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
+                        MAX_VALUE));
+    }
+
+    @Override
     protected Void visitFunctionCall(FunctionCall node, SubscriptContext context) {
-        context.qName(node.getName());
-        context.functionCall(node);
+        context.expression(node);
         return null;
     }
 
     @Override
     protected Void visitExpression(Expression node, SubscriptContext context) {
         throw new UnsupportedOperationException(String.format(
-                "Expression of type %s is currently not supported within a subscript expression",
+                "Expression of type %s is not supported within a subscript expression",
                 node.getClass()));
     }
 

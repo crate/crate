@@ -307,7 +307,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     protected DataTypeSymbol resolveSubscriptSymbol(SubscriptContext subscriptContext, SelectAnalysis context) {
         DataTypeSymbol dataTypeSymbol = null;
         // resolve possible alias
-        if (subscriptContext.parts().size() == 0) {
+        if (subscriptContext.parts().size() == 0 && subscriptContext.qName() != null) {
             Symbol symbol = context.symbolFromAlias(subscriptContext.qName().getSuffix());
             if (symbol != null) {
                 dataTypeSymbol = (DataTypeSymbol) symbol;
