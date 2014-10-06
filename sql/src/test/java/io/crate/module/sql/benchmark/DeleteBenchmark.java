@@ -24,6 +24,7 @@ package io.crate.module.sql.benchmark;
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
+import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
@@ -43,7 +44,10 @@ import org.junit.rules.TestRule;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.Assert.assertTrue;
+
 @AxisRange(min = 0)
+@BenchmarkHistoryChart(filePrefix="benchmark-delete-history")
 @BenchmarkMethodChart(filePrefix = "benchmark-delete")
 public class DeleteBenchmark extends BenchmarkBase {
 

@@ -24,6 +24,7 @@ package io.crate.module.sql.benchmark;
 import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
+import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
@@ -34,6 +35,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Before;
 import org.junit.Rule;
@@ -45,7 +47,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
+
 @AxisRange(min = 0)
+@BenchmarkHistoryChart(filePrefix="benchmark-update-history")
 @BenchmarkMethodChart(filePrefix = "benchmark-update")
 public class UpdateBenchmark extends BenchmarkBase {
 
@@ -97,23 +102,22 @@ public class UpdateBenchmark extends BenchmarkBase {
     }
 
     public SearchRequest getApiUpdateRequest() throws IOException {
-        SearchRequest request = new SearchRequest(INDEX_NAME);
+        SearchRequest request = new SearchRequest(INDEX_NAME).types("default");
         request.source(
                 XContentFactory.jsonBuilder()
                         .startObject()
-                            .startObject("query")
-                                .startObject("term")
-                                    .field("countryCode", "US")
-                                .endObject()
-                            .endObject()
-                            .startObject("facets")
-                                .startObject("sql")
-                                    .startObject("sql")
-                                        .field("stmt", "UPDATE countries SET population=? WHERE \"countryCode\"=?")
-                                        .field("args", new Object[]{Math.abs(getRandom().nextInt()), updateId})
-                                    .endObject()
-                                .endObject()
-                            .endObject()
+                        .startObject("query")
+                        .startObject("term")
+                        .field("countryCode", "US")
+                        .endObject()
+                        .endObject()
+                        .startObject("facets")
+                        .startObject("update")
+                        .startObject("update")
+                        .field("doc", new MapBuilder<String, Object>().put("population", Math.abs(getRandom().nextInt())).map())
+                        .endObject()
+                        .endObject()
+                        .endObject()
                         .endObject().bytes().toBytes()
         );
         return request;
