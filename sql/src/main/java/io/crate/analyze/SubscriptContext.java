@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -30,10 +30,18 @@ import java.util.List;
 
 public class SubscriptContext {
 
+    private final Analyzer.ParameterContext parameterContext;
+
     private QualifiedName qName;
-    private FunctionCall functionCall;
+
+    private Expression expression;
+
     private List<String> parts = new ArrayList<>();
     private Integer index;
+
+    public SubscriptContext(Analyzer.ParameterContext parameterContext) {
+        this.parameterContext = parameterContext;
+    }
 
     public QualifiedName qName() {
         return qName;
@@ -61,11 +69,15 @@ public class SubscriptContext {
     }
 
     @Nullable
-    public FunctionCall functionCall() {
-        return functionCall;
+    public Expression expression() {
+        return expression;
     }
 
-    public void functionCall(FunctionCall functionCall) {
-        this.functionCall = functionCall;
+    public void expression(Expression expression) {
+        this.expression = expression;
+    }
+
+    public Analyzer.ParameterContext parameterContext() {
+        return parameterContext;
     }
 }

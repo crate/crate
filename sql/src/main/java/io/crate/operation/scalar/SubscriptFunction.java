@@ -27,6 +27,7 @@ import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -36,8 +37,8 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Dynam
 
     public static final String NAME = "subscript";
 
-    private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
+    private static FunctionInfo createInfo(List<DataType> argumentTypes, DataType returnType) {
+        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), returnType);
     }
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new SubscriptFunction());
@@ -109,7 +110,8 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Dynam
         Preconditions.checkArgument(dataTypes.size() == 2
                 && DataTypes.isCollectionType(dataTypes.get(0))
                 && dataTypes.get(1) == DataTypes.INTEGER);
-        return new SubscriptFunction(createInfo(dataTypes));
+        DataType returnType = ((CollectionType)dataTypes.get(0)).innerType();
+        return new SubscriptFunction(createInfo(dataTypes, returnType));
     }
 
 

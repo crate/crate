@@ -168,7 +168,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
     @Override
     protected Symbol visitSubscriptExpression(SubscriptExpression node, T context) {
-        SubscriptContext subscriptContext = new SubscriptContext();
+        SubscriptContext subscriptContext = new SubscriptContext(context.parameterContext());
         node.accept(visitor, subscriptContext);
         return resolveSubscriptSymbol(subscriptContext, context);
     }
@@ -176,16 +176,18 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     protected DataTypeSymbol resolveSubscriptSymbol(SubscriptContext subscriptContext, T context) {
         // TODO: support nested subscripts as soon as DataTypes.OBJECT elements can be typed
         DataTypeSymbol subscriptSymbol;
-        if (subscriptContext.qName() != null && subscriptContext.functionCall() == null) {
+        Expression subscriptExpression = subscriptContext.expression();
+        if (subscriptContext.qName() != null && subscriptExpression == null) {
             ReferenceIdent ident = context.getReference(
                     subscriptContext.qName(),
                     subscriptContext.parts()
             );
             subscriptSymbol = context.allocateReference(ident);
-        } else if (subscriptContext.functionCall() != null) {
-            subscriptSymbol = (DataTypeSymbol) visitFunctionCall(subscriptContext.functionCall(), context);
+        } else if (subscriptExpression != null) {
+            subscriptSymbol = (DataTypeSymbol) subscriptExpression.accept(this, context);
         } else {
-            throw new UnsupportedOperationException("Only references or function calls are valid subscript symbols");
+            throw new UnsupportedOperationException("Only references, function calls or array literals " +
+                                                    "are valid subscript symbols");
         }
         if (subscriptContext.index() != null) {
             // rewrite array access to subscript scalar
@@ -788,11 +790,11 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
         FunctionInfo functionInfo = context.getFunctionInfo(io.crate.operation.predicate.MatchPredicate.IDENT);
         return context.allocateFunction(functionInfo,
-            Arrays.<Symbol>asList(
-                Literal.newLiteral(identBoostMap),
-                Literal.newLiteral(queryTerm),
-                Literal.newLiteral(matchType),
-                Literal.newLiteral(options)));
+                Arrays.<Symbol>asList(
+                        Literal.newLiteral(identBoostMap),
+                        Literal.newLiteral(queryTerm),
+                        Literal.newLiteral(matchType),
+                        Literal.newLiteral(options)));
     }
 
 

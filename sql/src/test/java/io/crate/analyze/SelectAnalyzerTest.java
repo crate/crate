@@ -54,10 +54,7 @@ import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.testing.TestingHelpers;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.SetType;
+import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
@@ -139,6 +136,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Override
     protected SelectAnalysis analyze(String statement) {
         return (SelectAnalysis) super.analyze(statement);
+    }
+
+    @Override
+    protected SelectAnalysis analyze(String statement, Object[] arguments) {
+        return (SelectAnalysis) super.analyze(statement, arguments);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -1890,6 +1892,25 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(scalarArguments.size(), is(2));
         assertThat(scalarArguments.get(0), isReference("name"));
         assertThat(scalarArguments.get(1), isLiteral(".*", DataTypes.STRING));
+    }
+
+    @Test
+    public void testNormalizedSubscriptOnArrayLiteral() throws Exception {
+        SelectAnalysis analysis;
+        for (long l = 1L; l<4; l++) {
+            analysis = analyze("select [1,2,3][?] from sys.cluster", new Object[]{l});
+            assertThat(analysis.outputSymbols().get(0), isLiteral(l, DataTypes.LONG));
+        }
+    }
+
+    @Test
+    public void testParameterSubcript() throws Exception {
+        SelectAnalysis analysis = analyze("select friends[?], counters[?], ['a','b','c'][?] from users",
+                new Object[]{"id",2,3});
+        assertThat(analysis.outputSymbols().get(0), isReference("friends.id", new ArrayType(DataTypes.LONG)));
+        assertThat(analysis.outputSymbols().get(1), isFunction(SubscriptFunction.NAME,
+                Arrays.<DataType>asList(new ArrayType(DataTypes.LONG), DataTypes.INTEGER)));
+        assertThat(analysis.outputSymbols().get(2), isLiteral("c", DataTypes.STRING));
     }
 
 

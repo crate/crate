@@ -330,6 +330,24 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testSubscript() throws Exception {
+        Expression expression = SqlParser.createExpression("a['sub']");
+        assertThat(expression, instanceOf(SubscriptExpression.class));
+        SubscriptExpression subscript = (SubscriptExpression)expression;
+        assertThat(subscript.index(), instanceOf(StringLiteral.class));
+        assertThat(((StringLiteral)subscript.index()).getValue(), is("sub"));
+
+        assertThat(subscript.name(), instanceOf(QualifiedNameReference.class));
+
+        expression = SqlParser.createExpression("[1,2,3][1]");
+        assertThat(expression, instanceOf(SubscriptExpression.class));
+        subscript = (SubscriptExpression)expression;
+        assertThat(subscript.index(), instanceOf(LongLiteral.class));
+        assertThat(((LongLiteral)subscript.index()).getValue(), is(1L));
+        assertThat(subscript.name(), instanceOf(ArrayLiteral.class));
+    }
+
+    @Test
     public void testCaseSensitivity() throws Exception {
         Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
         QualifiedNameReference nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();

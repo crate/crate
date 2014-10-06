@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fix: allow subscript access on array literals and parameters as subscript
+   indices
+
  - Fix: The ``>`` and ``<`` operators didn't behave correctly in some cases for
    string values if used on a system table or if both operands were literals.
 

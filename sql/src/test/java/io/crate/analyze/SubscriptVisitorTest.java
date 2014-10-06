@@ -21,39 +21,118 @@
 
 package io.crate.analyze;
 
+import io.crate.planner.symbol.Parameter;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class SubscriptVisitorTest {
 
     public SubscriptVisitor visitor = new SubscriptVisitor();
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    private Object currentParameter;
+
+    private SubscriptContext analyzeSubscript(String expressionString) {
+        Analyzer.ParameterContext parameterContext = mock(Analyzer.ParameterContext.class);
+        when(parameterContext.getAsSymbol(anyInt())).thenReturn(new Parameter(currentParameter));
+        SubscriptContext context = new SubscriptContext(parameterContext);
+        Expression expression = SqlParser.createExpression(expressionString);
+        expression.accept(visitor, context);
+        return context;
+    }
+
     @Test
     public void testVisitSubscriptExpression() throws Exception {
-        SubscriptContext context = new SubscriptContext();
-        Expression expression = SqlParser.createExpression("a['x']['y']");
-        expression.accept(visitor, context);
+        SubscriptContext context = analyzeSubscript("a['x']['y']");
 
         assertEquals("a", context.qName().getSuffix());
         assertEquals("x", context.parts().get(0));
         assertEquals("y", context.parts().get(1));
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
     public void testInvalidSubscriptExpressionName() throws Exception {
-        SubscriptContext context = new SubscriptContext();
-        Expression expression = SqlParser.createExpression("'a'['x']['y']");
-        expression.accept(visitor, context);
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("An expression of type StringLiteral cannot have an index accessor ([])");
+
+        analyzeSubscript("'a'['x']['y']");
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
     public void testInvalidSubscriptExpressionIndex() throws Exception {
-        SubscriptContext context = new SubscriptContext();
-        Expression expression = SqlParser.createExpression("a[x]['y']");
-        expression.accept(visitor, context);
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("index of subscript has to be a string or long literal or parameter. Any other index expression is not supported");
+
+        analyzeSubscript("a[x]['y']");
     }
+
+    @Test
+    public void testSubscriptParameter() throws Exception {
+        currentParameter = "y";
+        SubscriptContext ctx = analyzeSubscript("a['x'][?]");
+        assertThat(ctx.parts(), hasItems("x", "y"));
+    }
+
+    @Test
+    public void testArraySubscriptParameter() throws Exception {
+        currentParameter = 1;
+        SubscriptContext ctx = analyzeSubscript("a[?]");
+        assertThat(ctx.index(), is(1));
+
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Nested array access is not supported");
+
+        currentParameter = 2;
+        analyzeSubscript("a[1][?]");
+    }
+
+    @Test
+    public void testSubscriptOnArrayLiteral() throws Exception {
+        SubscriptContext context = analyzeSubscript("[1,2,3][1]");
+
+        assertThat(context.expression(), is(notNullValue()));
+        assertThat(context.expression(), instanceOf(ArrayLiteral.class));
+        assertThat(context.index(), is(1));
+    }
+
+    @Test
+    public void testStringSubscriptOnArrayLiteral() throws Exception {
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Array literals can only be accessed via numeric index.");
+
+        analyzeSubscript("[1,2,3]['abc']");
+    }
+
+    @Test
+    public void testNestedArrayAccess() throws Exception {
+
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Nested array access is not supported");
+
+        analyzeSubscript("a[1][2]");
+    }
+
+    @Test
+    public void testNegativeArrayAccess() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Array index must be in range 1 to 2147483648");
+
+        analyzeSubscript("ref[-1]");
+    }
+
 }
