@@ -16,4 +16,12 @@ public interface DQLPlanNode extends PlanNode {
 
     void inputTypes(List<DataType> dataTypes);
     List<DataType> inputTypes();
+
+    /**
+     * called after all everything is settled
+     * validates the properties of this node
+     * and executes some internal configuration stuff
+     */
+    public void configure();
+
 }

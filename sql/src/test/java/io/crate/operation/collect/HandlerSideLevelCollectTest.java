@@ -30,7 +30,7 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -58,6 +58,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     private HandlerSideDataCollectOperation operation;
     private Functions functions;
 
+    private QueryAndFetchNode buildQAFNode(String id, Routing routing) {
+        return new QueryAndFetchNode(id, routing, ImmutableList.<Symbol>of(), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, null, null);
+    }
 
     @Before
     public void prepare() {
@@ -68,12 +72,12 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterLevel() throws Exception {
         Routing routing = SysClusterTableInfo.ROUTING;
-        CollectNode collectNode = new CollectNode("clusterCollect", routing);
+        QueryAndFetchNode queryAndFetchNode = buildQAFNode("clusterCollect", routing);
 
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
-        collectNode.toCollect(Arrays.<Symbol>asList(clusterNameRef));
-        collectNode.maxRowGranularity(RowGranularity.CLUSTER);
-        Object[][] result = operation.collect(collectNode).get();
+        queryAndFetchNode.toCollect(Arrays.<Symbol>asList(clusterNameRef));
+        queryAndFetchNode.maxRowGranularity(RowGranularity.CLUSTER);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertThat(result.length, is(1));
         assertTrue(((BytesRef) result[0][0]).utf8ToString().startsWith("shared-"));
     }
@@ -83,7 +87,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = new Routing(MapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder().put(
                 null, MapBuilder.<String, Set<Integer>>newMapBuilder().put("information_schema.tables", null).map()
         ).map());
-        CollectNode collectNode = new CollectNode("tablesCollect", routing);
+        QueryAndFetchNode queryAndFetchNode = buildQAFNode("tablesCollect", routing);
 
         InformationSchemaInfo schemaInfo =  cluster().getInstance(InformationSchemaInfo.class);
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
@@ -98,10 +102,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Function whereClause = new Function(eqImpl.info(),
                 ImmutableList.of(tableNameRef, Literal.newLiteral("shards")));
 
-        collectNode.whereClause(new WhereClause(whereClause));
-        collectNode.toCollect(toCollect);
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        Object[][] result = operation.collect(collectNode).get();
+        queryAndFetchNode.whereClause(new WhereClause(whereClause));
+        queryAndFetchNode.toCollect(toCollect);
+        queryAndFetchNode.maxRowGranularity(RowGranularity.DOC);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         System.out.println(TestingHelpers.printedTable(result));
         assertEquals("sys| shards| 1| 0| NULL| NULL| NULL\n", TestingHelpers.printedTable(result));
     }
@@ -112,7 +116,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = new Routing(MapBuilder.<String, Map<String, Set<Integer>>>newMapBuilder().put(
                 null, MapBuilder.<String, Set<Integer>>newMapBuilder().put("information_schema.columns", null).map()
         ).map());
-        CollectNode collectNode = new CollectNode("columnsCollect", routing);
+        QueryAndFetchNode queryAndFetchNode = buildQAFNode("columnsCollect", routing);
 
         InformationSchemaInfo schemaInfo =  cluster().getInstance(InformationSchemaInfo.class);
         TableInfo tableInfo = schemaInfo.getTableInfo("columns");
@@ -120,9 +124,9 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         for (ReferenceInfo info : tableInfo.columns()) {
             toCollect.add(new Reference(info));
         }
-        collectNode.toCollect(toCollect);
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        Object[][] result = operation.collect(collectNode).get();
+        queryAndFetchNode.toCollect(toCollect);
+        queryAndFetchNode.maxRowGranularity(RowGranularity.DOC);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
 
 
         String expected = "sys| cluster| id| 1| string\n" +
@@ -135,7 +139,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
         // second time - to check if the internal iterator resets
         System.out.println(TestingHelpers.printedTable(result));
-        result = operation.collect(collectNode).get();
+        result = operation.collect(queryAndFetchNode).get();
         assertTrue(TestingHelpers.printedTable(result).startsWith(expected));
     }
 

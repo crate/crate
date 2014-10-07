@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.where.WhereClause;
@@ -38,7 +39,7 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.reference.sys.shard.ShardIdExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -272,15 +273,22 @@ public class DistributingCollectTest {
         }});
     }
 
+    private QueryAndFetchNode buildQAFNode(String id, Routing routing, List<Symbol> toCollect,
+                                           List<String> downstreamNodes, RowGranularity rowGranularity) {
+        QueryAndFetchNode node = new QueryAndFetchNode(id, routing, toCollect, ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, rowGranularity, null);
+        node.downStreamNodes(downstreamNodes);
+        node.jobId(jobId);
+        return node;
+    }
+
     @Test
     public void testCollectFromShardsToBuckets() throws Exception {
-        CollectNode collectNode = new CollectNode("dcollect", shardRouting(0, 1));
-        collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
-        collectNode.jobId(jobId);
-        collectNode.maxRowGranularity(RowGranularity.SHARD);
-        collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
+        QueryAndFetchNode queryAndFetchNode = buildQAFNode("dcollect", shardRouting(0, 1),
+                Arrays.<Symbol>asList(testShardIdReference), Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID),
+                        RowGranularity.SHARD);
 
-        assertThat(operation.collect(collectNode).get(), is(TaskResult.EMPTY_RESULT.rows()));
+        assertThat(operation.collect(queryAndFetchNode).get(), is(TaskResult.EMPTY_RESULT.rows()));
         Thread.sleep(20); // give the mocked transport time to operate
         assertThat(buckets.size(), is(2));
         assertTrue(buckets.containsKey(TEST_NODE_ID));
@@ -289,29 +297,25 @@ public class DistributingCollectTest {
 
     @Test
     public void testCollectFromNodes() throws Exception {
-        CollectNode collectNode = new CollectNode("dcollect", nodeRouting);
-        collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
-        collectNode.jobId(jobId);
-        collectNode.maxRowGranularity(RowGranularity.NODE);
-        collectNode.toCollect(Arrays.<Symbol>asList(Literal.newLiteral(true)));
-        Object[][] objects = operation.collect(collectNode).get();
+        QueryAndFetchNode queryAndFetchNode = buildQAFNode("dcollect", nodeRouting,
+                Arrays.<Symbol>asList(Literal.newLiteral(true)), Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID),
+                RowGranularity.NODE);
+        Object[][] objects = operation.collect(queryAndFetchNode).get();
         assertThat((Boolean)objects[0][0], is(true));
     }
 
     @Test
     public void testCollectWithFalseWhereClause() throws Exception {
-        CollectNode collectNode = new CollectNode("collect all the things", shardRouting(0, 1));
-        collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
-        collectNode.jobId(jobId);
-        collectNode.maxRowGranularity(RowGranularity.SHARD);
-        collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
+        QueryAndFetchNode queryAndFetchNode = buildQAFNode("collect all the things", shardRouting(0, 1),
+                Arrays.<Symbol>asList(testShardIdReference), Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID),
+                RowGranularity.SHARD);
 
-        collectNode.whereClause(new WhereClause(new Function(
+        queryAndFetchNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(Literal.newLiteral(false), Literal.newLiteral(false))
         )));
 
-        Object[][] pseudoResult = operation.collect(collectNode).get();
+        Object[][] pseudoResult = operation.collect(queryAndFetchNode).get();
         assertThat(pseudoResult, is(TaskResult.EMPTY_RESULT.rows()));
         Thread.sleep(20);
         assertThat(buckets.size(), is(2));

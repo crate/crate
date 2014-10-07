@@ -107,7 +107,7 @@ public class MergeOperationTest {
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 symbolVisitor,
-                mergeNode
+                mergeNode.numUpstreams(), mergeNode.projections()
         );
 
         Object[][] rows = new Object[20][];
@@ -142,7 +142,7 @@ public class MergeOperationTest {
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 symbolVisitor,
-                mergeNode
+                mergeNode.numUpstreams(), mergeNode.projections()
         );
         Object[][] rows = new Object[1][];
         MinimumAggregation.MinimumAggState aggState = minAggFunction.newState();

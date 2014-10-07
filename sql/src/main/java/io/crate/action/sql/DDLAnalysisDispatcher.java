@@ -40,15 +40,13 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -179,17 +177,26 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                 Aggregation.Step.PARTIAL,
                 Aggregation.Step.FINAL);
 
-        CollectNode collectNode = new CollectNode(
-                "count",
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("count",
                 table.getRouting(WhereClause.MATCH_ALL),
                 ImmutableList.<Symbol>of(),
-                Arrays.<Projection>asList(new AggregationProjection(ImmutableList.of(countAggregationPartial))));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.outputTypes(ImmutableList.<DataType>of(DataTypes.UNDEFINED));
-        MergeNode mergeNode = new MergeNode("local count merge", collectNode.executionNodes().size());
+                ImmutableList.<Symbol>of(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                Arrays.<Projection>asList(new AggregationProjection(ImmutableList.of(countAggregationPartial))),
+                null,
+                WhereClause.MATCH_ALL,
+                RowGranularity.DOC,
+                null);
+        queryAndFetchNode.configure();
+
+        MergeNode mergeNode = new MergeNode("local count merge", queryAndFetchNode.executionNodes().size());
         mergeNode.projections(ImmutableList.<Projection>of(new AggregationProjection(ImmutableList.of(countAggregationFinal))));
         Plan plan = new Plan();
-        plan.add(collectNode);
+        plan.add(queryAndFetchNode);
         plan.add(mergeNode);
         return plan;
     }

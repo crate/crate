@@ -1,9 +1,9 @@
 package io.crate.operation.collect;
 
 import io.crate.operation.projectors.Projector;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 
 public interface CollectService {
 
-    public CrateCollector getCollector(CollectNode node, Projector projector);
+    public CrateCollector getCollector(QueryAndFetchNode node, Projector projector);
 }

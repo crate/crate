@@ -22,11 +22,13 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,7 +37,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-public class FileUriCollectNode extends CollectNode {
+public class FileUriCollectNode extends QueryAndFetchNode {
 
     private Symbol targetUri;
     private String compression;
@@ -49,10 +51,11 @@ public class FileUriCollectNode extends CollectNode {
                               Routing routing,
                               Symbol targetUri,
                               List<Symbol> toCollect,
+                              List<Projection> collectorProjections,
                               List<Projection> projections,
                               String compression,
                               Boolean sharedStorage) {
-        super(id, routing, toCollect, projections);
+        super(id, routing, toCollect, ImmutableList.<Symbol>of(new InputColumn(0)), null, null, null, null, null, collectorProjections, projections, null, null, null);
         this.targetUri = targetUri;
         this.compression = compression;
         this.sharedStorage = sharedStorage;
@@ -83,6 +86,7 @@ public class FileUriCollectNode extends CollectNode {
                 routing(),
                 normalizedTargetUri,
                 normalizedToCollect,
+                collectorProjections(),
                 projections(),
                 compression(),
                 sharedStorage());
