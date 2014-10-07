@@ -38,7 +38,7 @@ class PlannerAggregationSplitter extends SymbolVisitor<PlannerContext, Symbol> {
         }
 
         if (context.parent != null && context.parent.symbolType() == SymbolType.AGGREGATION) {
-            // beneath a aggregation. Just mark everything as to collect
+            // beneath a aggregation. Just mark everything as to queryAndFetch
             int idx = 0;
             for (Symbol symbol : function.arguments()) {
                 function.arguments().set(idx, context.allocateToCollect(symbol));

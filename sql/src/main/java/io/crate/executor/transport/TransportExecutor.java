@@ -125,13 +125,17 @@ public class TransportExecutor implements Executor {
     class Visitor extends PlanVisitor<Job, Void> {
 
         @Override
-        public Void visitCollectNode(CollectNode node, Job context) {
+        public Void visitQueryAndFetchNode(QueryAndFetchNode node, Job context) {
             node.jobId(context.id()); // add jobId to collectNode
             if (node.isRouted()) {
-                context.addTask(new RemoteCollectTask(
-                    node,
-                    transportActionProvider.transportCollectNodeAction(),
-                    handlerSideDataCollectOperation));
+                context.addTask(new RemoteCollectTask(node,
+                        clusterService,
+                        settings,
+                        transportActionProvider,
+                        handlerSideDataCollectOperation,
+                        referenceResolver,
+                        functions,
+                        threadPool));
             } else {
                 context.addTask(new LocalCollectTask(handlerSideDataCollectOperation, node));
             }
@@ -159,7 +163,7 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Void visitESSearchNode(QueryThenFetchNode node, Job context) {
+        public Void visitQueryThenFetchNode(QueryThenFetchNode node, Job context) {
             context.addTask(new QueryThenFetchTask(
                     node,
                     clusterService,

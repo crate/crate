@@ -26,9 +26,9 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.PartitionName;
 import io.crate.analyze.AbstractDataAnalysis;
 import io.crate.metadata.Routing;
-import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 
@@ -40,30 +40,14 @@ import java.util.Set;
 
 class PlanNodeBuilder {
 
-    static CollectNode distributingCollect(AbstractDataAnalysis analysis,
-                                           List<Symbol> toCollect,
-                                           List<String> downstreamNodes,
-                                           ImmutableList<Projection> projections) {
-        CollectNode node = new CollectNode("distributing collect", analysis.table().getRouting(analysis.whereClause()));
-        node.whereClause(analysis.whereClause());
-        node.maxRowGranularity(analysis.rowGranularity());
-        node.downStreamNodes(downstreamNodes);
-        node.toCollect(toCollect);
-        node.projections(projections);
-
-        node.isPartitioned(analysis.table().isPartitioned());
-        setOutputTypes(node);
-        return node;
-    }
-
-    static MergeNode distributedMerge(CollectNode collectNode,
+    static MergeNode distributedMerge(QueryAndFetchNode queryAndFetchNode,
                                       ImmutableList<Projection> projections) {
-        MergeNode node = new MergeNode("distributed merge", collectNode.executionNodes().size());
+        MergeNode node = new MergeNode("distributed merge", queryAndFetchNode.executionNodes().size());
         node.projections(projections);
 
-        assert collectNode.downStreamNodes()!=null && collectNode.downStreamNodes().size()>0;
-        node.executionNodes(ImmutableSet.copyOf(collectNode.downStreamNodes()));
-        connectTypes(collectNode, node);
+        assert queryAndFetchNode.downStreamNodes()!=null && queryAndFetchNode.downStreamNodes().size()>0;
+        node.executionNodes(ImmutableSet.copyOf(queryAndFetchNode.downStreamNodes()));
+        connectTypes(queryAndFetchNode, node);
         return node;
     }
 
@@ -79,9 +63,11 @@ class PlanNodeBuilder {
      * calculates the outputTypes using the projections and input types.
      * must be called after projections have been set.
      */
-    static void setOutputTypes(CollectNode node) {
-        if (node.projections().isEmpty()) {
+    static void setOutputTypes(QueryAndFetchNode node) {
+        if (node.projections().isEmpty() && node.collectorProjections().isEmpty()) {
             node.outputTypes(Planner.extractDataTypes(node.toCollect()));
+        } else if (node.projections().isEmpty()) {
+            node.outputTypes(Planner.extractDataTypes(node.collectorProjections(), Planner.extractDataTypes(node.toCollect())));
         } else {
             node.outputTypes(Planner.extractDataTypes(node.projections(), Planner.extractDataTypes(node.toCollect())));
         }
@@ -98,22 +84,41 @@ class PlanNodeBuilder {
         nextNode.outputTypes(Planner.extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
     }
 
-    static CollectNode collect(AbstractDataAnalysis analysis,
-                               List<Symbol> toCollect,
-                               ImmutableList<Projection> projections,
-                               @Nullable String partitionIdent) {
+    /**
+     * create a new QueryAndFetchNode from the given analysis and other information.
+     *
+     * @param analysis the query analysis
+     * @param toCollect the symbols to collect
+     * @param collectorProjections the projections that process the collected results
+     * @param projections projections executed during merge
+     * @param partitionIdent if not null, this query is routed to this partition
+     * @return a QueryAndFetchNode, configured and ready to be added to a plan
+     */
+    static QueryAndFetchNode queryAndFetch(AbstractDataAnalysis analysis,
+                                           List<Symbol> toCollect,
+                                           ImmutableList<Projection> collectorProjections,
+                                           @Nullable List<Projection> projections,
+                                           @Nullable String partitionIdent) {
         Routing routing = analysis.table().getRouting(analysis.whereClause());
         if (partitionIdent != null && routing.hasLocations()) {
             routing = filterRouting(routing, PartitionName.fromPartitionIdent(
                             analysis.table().ident().name(), partitionIdent).stringValue());
         }
-        CollectNode node = new CollectNode("collect", routing);
-        node.whereClause(analysis.whereClause());
-        node.toCollect(toCollect);
-        node.maxRowGranularity(analysis.rowGranularity());
-        node.projections(projections);
-        node.isPartitioned(analysis.table().isPartitioned());
-        setOutputTypes(node);
+        QueryAndFetchNode node = new QueryAndFetchNode("collect",
+                routing,
+                toCollect,
+                ImmutableList.<Symbol>of(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                collectorProjections,
+                projections,
+                analysis.whereClause(),
+                analysis.rowGranularity(),
+                analysis.table().isPartitioned());
+        node.configure();
         return node;
     }
 
@@ -142,9 +147,4 @@ class PlanNodeBuilder {
 
     }
 
-    static CollectNode collect(AbstractDataAnalysis analysis,
-                               List<Symbol> toCollect,
-                               ImmutableList<Projection> projections) {
-        return collect(analysis, toCollect, projections, null);
-    }
 }

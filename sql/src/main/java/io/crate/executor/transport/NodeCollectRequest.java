@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport;
 
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -31,38 +31,38 @@ import java.io.IOException;
 
 public class NodeCollectRequest extends TransportRequest {
 
-    private CollectNode collectNode;
+    private QueryAndFetchNode queryAndFetchNode;
 
     public NodeCollectRequest() {
     }
 
-    public NodeCollectRequest(CollectNode collectNode) {
-        this.collectNode = collectNode;
+    public NodeCollectRequest(QueryAndFetchNode queryAndFetchNode) {
+        this.queryAndFetchNode = queryAndFetchNode;
     }
 
-    public CollectNode collectNode() {
-        return collectNode;
+    public QueryAndFetchNode collectNode() {
+        return queryAndFetchNode;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         if (in.readBoolean()) {
-            collectNode = new FileUriCollectNode();
+            queryAndFetchNode = new FileUriCollectNode();
         } else {
-            collectNode = new CollectNode();
+            queryAndFetchNode = new QueryAndFetchNode();
         }
-        collectNode.readFrom(in);
+        queryAndFetchNode.readFrom(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        if (collectNode instanceof FileUriCollectNode) {
+        if (queryAndFetchNode instanceof FileUriCollectNode) {
             out.writeBoolean(true);
         } else {
             out.writeBoolean(false);
         }
-        collectNode.writeTo(out);
+        queryAndFetchNode.writeTo(out);
     }
 }

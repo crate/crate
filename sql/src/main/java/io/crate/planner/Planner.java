@@ -129,7 +129,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                         ESSearch(analysis, plan, context);
                     }
             } else {
-                normalSelect(analysis, plan, context);
+                collect(analysis, plan, context);
             }
         }
         return plan;
@@ -247,15 +247,16 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             }
             contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(sourceRef));
         }
-        CollectNode collectNode = PlanNodeBuilder.collect(
+        QueryAndFetchNode queryAndFetchNode = PlanNodeBuilder.queryAndFetch(
                 analysis,
                 contextBuilder.toCollect(),
                 ImmutableList.<Projection>of(projection),
+                null,
                 analysis.partitionIdent()
         );
-        plan.add(collectNode);
+        plan.add(queryAndFetchNode);
         MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection(analysis)), collectNode);
+                ImmutableList.<Projection>of(localMergeProjection(analysis)), queryAndFetchNode);
         plan.add(mergeNode);
         plan.expectsAffectedRows(true);
     }
@@ -265,10 +266,10 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
          * copy from has two "modes":
          *
          * 1: non-partitioned tables or partitioned tables with partition ident --> import into single es index
-         *    -> collect raw source and import as is
+         *    -> queryAndFetch raw source and import as is
          *
          * 2: partitioned table without partition ident
-         *    -> collect document and partition by values
+         *    -> queryAndFetch document and partition by values
          *    -> exclude partitioned by columns from document
          *    -> insert into es index (partition determined by partition by value)
          */
@@ -344,13 +345,12 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 analysis.uri(),
                 toCollect,
                 projections,
+                ImmutableList.<Projection>of(localMergeProjection(analysis)),
                 analysis.settings().get("compression", null),
                 analysis.settings().getAsBoolean("shared", null)
         );
-        PlanNodeBuilder.setOutputTypes(collectNode);
+        collectNode.configure();
         plan.add(collectNode);
-        plan.add(PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection(analysis)), collectNode));
         plan.expectsAffectedRows(true);
     }
 
@@ -501,8 +501,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         plan.add(getNode);
 
         // handle sorting, limit and offset
-        if (analysis.isSorted() || analysis.limit() != null
-                || analysis.offset() > 0
+        if (analysis.isSorted() || analysis.isLimited()
                 || context.indexWriterProjection.isPresent()) {
             TopNProjection tnp = new TopNProjection(
                     Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
@@ -520,7 +519,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
     }
 
-    private void normalSelect(SelectAnalysis analysis, Plan plan, Context context) {
+    private void collect(SelectAnalysis analysis, Plan plan, Context context) {
         // node or shard level normal select
 
         // TODO: without locations the localMerge node can be removed and the topN projection
@@ -530,7 +529,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
-        ImmutableList<Projection> projections;
+        ImmutableList.Builder<Projection> collectorProjections = ImmutableList.builder();
+        ImmutableList.Builder<Projection> projections = ImmutableList.builder();
         if (analysis.isLimited()) {
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
@@ -542,12 +542,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     analysis.nullsFirst()
             );
             tnp.outputs(contextBuilder.outputs());
-            projections = ImmutableList.<Projection>of(tnp);
-        } else if(context.indexWriterProjection.isPresent()) {
-            // no limit, projection (index writer) will run on shard/CollectNode
-            projections = ImmutableList.<Projection>of(context.indexWriterProjection.get());
-        } else {
-            projections = ImmutableList.of();
+            collectorProjections.add(tnp);
         }
 
         List<Symbol> toCollect;
@@ -561,10 +556,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             }
         }
 
-        CollectNode collectNode = PlanNodeBuilder.collect(analysis, toCollect, projections);
-        plan.add(collectNode);
-        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.<Projection>builder();
-
         if (!context.indexWriterProjection.isPresent() || analysis.isLimited()) {
             // limit set, apply topN projection
             TopNProjection tnp = new TopNProjection(
@@ -575,16 +566,35 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     analysis.nullsFirst()
             );
             tnp.outputs(contextBuilder.outputs());
-            projectionBuilder.add(tnp);
+            projections.add(tnp);
         }
-        if (context.indexWriterProjection.isPresent() && analysis.isLimited()) {
-            // limit set, context projection (index writer) will run on handler
-            projectionBuilder.add(context.indexWriterProjection.get());
-        } else if (context.indexWriterProjection.isPresent() && !analysis.isLimited()) {
-            // no limit -> no topN projection, use aggregation projection to merge node results
-            projectionBuilder.add(localMergeProjection(analysis));
+
+        if (context.indexWriterProjection.isPresent()) {
+            if (!analysis.isLimited()) {
+                collectorProjections.add(context.indexWriterProjection.get());
+                projections.add(localMergeProjection(analysis));
+            } else {
+                projections.add(context.indexWriterProjection.get());
+            }
         }
-        plan.add(PlanNodeBuilder.localMerge(projectionBuilder.build(), collectNode));
+
+        Routing routing = analysis.table().getRouting(analysis.whereClause());
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("collect",
+                routing,
+                toCollect,
+                contextBuilder.outputs(),
+                contextBuilder.orderBy(),
+                analysis.reverseFlags(),
+                analysis.nullsFirst(),
+                analysis.limit(),
+                analysis.offset(),
+                collectorProjections.build(),
+                projections.build(),
+                analysis.whereClause(),
+                analysis.rowGranularity(),
+                analysis.table().isPartitioned());
+        queryAndFetchNode.configure();
+        plan.add(queryAndFetchNode);
     }
 
     private void ESSearch(SelectAnalysis analysis, Plan plan, Context context) {
@@ -659,7 +669,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             return;
         }
 
-        // global aggregate: collect and partial aggregate on C and final agg on H
+        // global aggregate: queryAndFetch and partial aggregate on C and final agg on H
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2)
                 .output(analysis.outputSymbols());
 
@@ -673,19 +683,17 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             havingClause = contextBuilder.having(analysis.havingClause());
         }
 
+        ImmutableList.Builder<Projection> collectorProjections = ImmutableList.builder();
+        ImmutableList.Builder<Projection> projections = ImmutableList.builder();
+
+
         AggregationProjection ap = new AggregationProjection();
         ap.aggregations(contextBuilder.aggregations());
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                analysis,
-                contextBuilder.toCollect(),
-                ImmutableList.<Projection>of(ap)
-        );
-        plan.add(collectNode);
+        collectorProjections.add(ap);
 
         contextBuilder.nextStep();
 
         //// the handler stuff
-        List<Projection> projections = new ArrayList<>();
 
         projections.add(new AggregationProjection(contextBuilder.aggregations()));
 
@@ -704,7 +712,14 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (context.indexWriterProjection.isPresent()) {
             projections.add(context.indexWriterProjection.get());
         }
-        plan.add(PlanNodeBuilder.localMerge(projections, collectNode));
+        QueryAndFetchNode queryAndFetchNode = PlanNodeBuilder.queryAndFetch(
+                analysis,
+                contextBuilder.toCollect(),
+                collectorProjections.build(),
+                projections.build(),
+                null
+        );
+        plan.add(queryAndFetchNode);
     }
 
     private boolean hasOnlyGlobalCount(List<Symbol> symbols) {
@@ -803,43 +818,43 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             havingClause = contextBuilder.having(analysis.havingClause());
         }
 
-        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
+        ImmutableList.Builder<Projection> collectProjections = ImmutableList.builder();
+        ImmutableList.Builder<Projection> projections = ImmutableList.builder();
         GroupProjection groupProjection =
                 new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
 
         if(groupedByClusteredPk){
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
-
         }
 
         List<Symbol> toCollect = contextBuilder.toCollect();
         contextBuilder.nextStep();
 
-        projectionBuilder.add(groupProjection);
-        boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionBuilder);
+        collectProjections.add(groupProjection);
+        boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, collectProjections);
 
-        CollectNode collectNode = PlanNodeBuilder.collect(
+        QueryAndFetchNode queryAndFetchNode = PlanNodeBuilder.queryAndFetch(
                 analysis,
                 toCollect,
-                projectionBuilder.build()
+                collectProjections.build(),
+                null, // no projections here, added further down FIXME!
+                null
         );
-        plan.add(collectNode);
+        plan.add(queryAndFetchNode);
 
         contextBuilder.nextStep();
 
         // handler
-        ImmutableList.Builder<Projection> builder = ImmutableList.<Projection>builder();
-
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
             fp.outputs(contextBuilder.passThroughOutputs());
             if(groupedByClusteredPk){
                 fp.requiredGranularity(RowGranularity.SHARD);
             }
-            builder.add(fp);
+            projections.add(fp);
         }
         if (numAggregationSteps == 2) {
-            builder.add(new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations()));
+            projections.add(new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations()));
         }
         if (!ignoreSorting) {
             List<Symbol> outputs;
@@ -859,12 +874,12 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     analysis.nullsFirst()
             );
             topN.outputs(outputs);
-            builder.add(topN);
+            projections.add(topN);
         }
         if (context.indexWriterProjection.isPresent()) {
-            builder.add(context.indexWriterProjection.get());
+            projections.add(context.indexWriterProjection.get());
         }
-        plan.add(PlanNodeBuilder.localMerge(builder.build(), collectNode));
+        plan.add(PlanNodeBuilder.localMerge(projections.build(), queryAndFetchNode));
     }
 
     /**
@@ -899,7 +914,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     /**
-     * distributed collect on mapper nodes
+     * distributed queryAndFetch on mapper nodes
      * with merge on reducer to final (they have row authority)
      * <p/>
      * final merge on handler
@@ -916,22 +931,37 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             havingClause = contextBuilder.having(analysis.havingClause());
         }
 
+        ImmutableList.Builder<Projection> collectorProjections = ImmutableList.builder();
+        ImmutableList.Builder<Projection> projections = ImmutableList.builder();
+
         // collector
         GroupProjection groupProjection = new GroupProjection(
                 contextBuilder.groupBy(), contextBuilder.aggregations());
-        CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                analysis,
+        collectorProjections.add(groupProjection);
+
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("distributing collect",
+                analysis.table().getRouting(analysis.whereClause()),
                 contextBuilder.toCollect(),
-                nodesFromTable(analysis),
-                ImmutableList.<Projection>of(groupProjection)
-        );
-        plan.add(collectNode);
+                contextBuilder.outputs(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                collectorProjections.build(),
+                null, // projections added further down FIXME!
+                analysis.whereClause(),
+                analysis.rowGranularity(),
+                analysis.table().isPartitioned()
+                );
+        queryAndFetchNode.downStreamNodes(nodesFromTable(analysis));
+        queryAndFetchNode.configure();
+        plan.add(queryAndFetchNode);
 
         contextBuilder.nextStep();
 
         // mergeNode for reducer
-        ImmutableList.Builder<Projection> projectionsBuilder = ImmutableList.<Projection>builder();
-        projectionsBuilder.add(new GroupProjection(
+        projections.add(new GroupProjection(
                 contextBuilder.groupBy(),
                 contextBuilder.aggregations()));
 
@@ -939,11 +969,11 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
             fp.outputs(contextBuilder.passThroughOutputs());
-            projectionsBuilder.add(fp);
+            projections.add(fp);
         }
 
-        boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionsBuilder);
-        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
+        boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projections);
+        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(queryAndFetchNode, projections.build());
         plan.add(mergeNode);
 
 
@@ -970,7 +1000,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     /**
-     * distributed collect on mapper nodes
+     * distributed queryAndFetch on mapper nodes
      * with merge on reducer to final (they have row authority) and index write
      * if no limit and not offset is set
      * <p/>
@@ -989,22 +1019,38 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             havingClause = contextBuilder.having(analysis.havingClause());
         }
 
+        ImmutableList.Builder<Projection> collectorProjections = ImmutableList.builder();
+        ImmutableList.Builder<Projection> projections = ImmutableList.builder();
+
         // collector
         GroupProjection groupProjection = new GroupProjection(
                 contextBuilder.groupBy(), contextBuilder.aggregations());
-        CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                analysis,
+        collectorProjections.add(groupProjection);
+
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("distributing collect",
+                analysis.table().getRouting(analysis.whereClause()),
                 contextBuilder.toCollect(),
-                nodesFromTable(analysis),
-                ImmutableList.<Projection>of(groupProjection)
+                contextBuilder.outputs(),
+                analysis.sortSymbols(),
+                analysis.reverseFlags(),
+                analysis.nullsFirst(),
+                analysis.limit(),
+                analysis.offset(),
+                collectorProjections.build(),
+                null, // not added here
+                analysis.whereClause(),
+                analysis.rowGranularity(),
+                analysis.table().isPartitioned()
         );
-        plan.add(collectNode);
+        queryAndFetchNode.downStreamNodes(nodesFromTable(analysis));
+        queryAndFetchNode.configure();
+        plan.add(queryAndFetchNode);
 
         contextBuilder.nextStep();
 
         // mergeNode for reducer
-        ImmutableList.Builder<Projection> projectionsBuilder = ImmutableList.builder();
-        projectionsBuilder.add(new GroupProjection(
+
+        projections.add(new GroupProjection(
                 contextBuilder.groupBy(),
                 contextBuilder.aggregations()));
 
@@ -1012,7 +1058,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
             fp.outputs(contextBuilder.passThroughOutputs());
-            projectionsBuilder.add(fp);
+            projections.add(fp);
         }
 
         boolean topNDone = false;
@@ -1026,12 +1072,12 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     analysis.nullsFirst()
             );
             topN.outputs(contextBuilder.outputs());
-            projectionsBuilder.add(topN);
+            projections.add(topN);
         } else {
-            projectionsBuilder.add(writerProjection);
+            projections.add(writerProjection);
         }
 
-        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
+        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(queryAndFetchNode, projections.build());
         plan.add(mergeNode);
 
 

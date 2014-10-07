@@ -37,7 +37,7 @@ import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Literal;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
@@ -118,39 +118,39 @@ public class ShardCollectService {
     /**
      * get a collector
      *
-     * @param collectNode describes the collectOperation
+     * @param queryAndFetchNode describes the collectOperation
      * @param projectorChain the shard projector chain to get the downstream from
      * @return collector wrapping different collect implementations, call {@link CrateCollector#doCollect()} to start
      * collecting with this collector
      */
-    public CrateCollector getCollector(CollectNode collectNode,
+    public CrateCollector getCollector(QueryAndFetchNode queryAndFetchNode,
                                        ShardProjectorChain projectorChain) throws Exception {
-        CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
+        QueryAndFetchNode normalizedQueryAndFetchNode = queryAndFetchNode.normalize(shardNormalizer);
         Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
-        if (normalizedCollectNode.whereClause().noMatch()) {
+        if (normalizedQueryAndFetchNode.whereClause().noMatch()) {
             return CrateCollector.NOOP;
         } else {
-            RowGranularity granularity = normalizedCollectNode.maxRowGranularity();
+            RowGranularity granularity = normalizedQueryAndFetchNode.maxRowGranularity();
             if (granularity == RowGranularity.DOC) {
                 if (isBlobShard) {
-                    return getBlobIndexCollector(normalizedCollectNode, downstream);
+                    return getBlobIndexCollector(normalizedQueryAndFetchNode, downstream);
                 } else {
-                    return getLuceneIndexCollector(normalizedCollectNode, downstream);
+                    return getLuceneIndexCollector(normalizedQueryAndFetchNode, downstream);
                 }
             } else if (granularity == RowGranularity.SHARD) {
-                ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(normalizedCollectNode);
+                ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(normalizedQueryAndFetchNode);
                 return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), downstream);
             }
             throw new UnhandledServerException(String.format("Granularity %s not supported", granularity.name()));
         }
     }
 
-    private CrateCollector getBlobIndexCollector(CollectNode collectNode, Projector downstream) {
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
+    private CrateCollector getBlobIndexCollector(QueryAndFetchNode queryAndFetchNode, Projector downstream) {
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(queryAndFetchNode);
         Input<Boolean> condition;
-        if (collectNode.whereClause().hasQuery()) {
-            condition = (Input)docInputSymbolVisitor.process(collectNode.whereClause().query(), ctx);
+        if (queryAndFetchNode.whereClause().hasQuery()) {
+            condition = (Input)docInputSymbolVisitor.process(queryAndFetchNode.whereClause().query(), ctx);
         } else {
             condition = Literal.newLiteral(true);
         }
@@ -163,8 +163,8 @@ public class ShardCollectService {
         );
     }
 
-    private CrateCollector getLuceneIndexCollector(CollectNode collectNode, Projector downstream) throws Exception {
-        CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
+    private CrateCollector getLuceneIndexCollector(QueryAndFetchNode queryAndFetchNode, Projector downstream) throws Exception {
+        CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(queryAndFetchNode);
         return new LuceneDocCollector(
                 clusterService,
                 shardId,
@@ -176,7 +176,7 @@ public class ShardCollectService {
                 docCtx.topLevelInputs(),
                 docCtx.docLevelExpressions(),
                 functions,
-                collectNode.whereClause(),
+                queryAndFetchNode.whereClause(),
                 downstream);
     }
 }

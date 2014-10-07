@@ -89,7 +89,7 @@ public class TransportMergeNodeAction {
                         settings,
                         transportActionProvider,
                         implementationSymbolVisitor,
-                        node
+                        node.numUpstreams(), node.projections()
                 );
             }
         }, functions, statsTables);

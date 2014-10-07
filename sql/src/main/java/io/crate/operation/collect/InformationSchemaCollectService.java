@@ -35,7 +35,7 @@ import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.operation.reference.information.InformationDocLevelReferenceResolver;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.apache.lucene.search.CollectionTerminatedException;
@@ -216,21 +216,21 @@ public class InformationSchemaCollectService implements CollectService {
     }
 
     @SuppressWarnings("unchecked")
-    public CrateCollector getCollector(CollectNode collectNode, Projector downstream) {
-        if (collectNode.whereClause().noMatch()) {
+    public CrateCollector getCollector(QueryAndFetchNode queryAndFetchNode, Projector downstream) {
+        if (queryAndFetchNode.whereClause().noMatch()) {
             return CrateCollector.NOOP;
         }
-        Routing routing =  collectNode.routing();
+        Routing routing =  queryAndFetchNode.routing();
         assert routing.locations().containsKey(null);
         assert routing.locations().get(null).size() == 1;
         String fqTableName = routing.locations().get(null).keySet().iterator().next();
         Iterable<?> iterator = iterables.get(fqTableName);
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(queryAndFetchNode);
 
         Input<Boolean> condition;
-        if (collectNode.whereClause().hasQuery()) {
+        if (queryAndFetchNode.whereClause().hasQuery()) {
             // TODO: single arg method
-            condition = (Input<Boolean>) docInputSymbolVisitor.process(collectNode.whereClause().query(), ctx);
+            condition = (Input<Boolean>) docInputSymbolVisitor.process(queryAndFetchNode.whereClause().query(), ctx);
         } else {
             condition = Literal.newLiteral(true);
         }

@@ -28,7 +28,7 @@ import io.crate.executor.QueryResult;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import org.junit.Test;
@@ -48,22 +48,22 @@ public class LocalCollectTaskTest {
     @Test
     public void testCollectTask() throws Exception {
 
-        final CollectNode collectNode = new CollectNode("ei-die", CLUSTER_ROUTING);
-        collectNode.maxRowGranularity(RowGranularity.CLUSTER);
-        collectNode.jobId(testJobId);
-        collectNode.toCollect(ImmutableList.<Symbol>of(Literal.newLiteral(4)));
+        final QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("ei-die", CLUSTER_ROUTING,
+                ImmutableList.<Symbol>of(Literal.newLiteral(4)), ImmutableList.<Symbol>of(Literal.newLiteral(4)),
+                null, null, null, null, null, null, null, null, RowGranularity.CLUSTER, null);
+        queryAndFetchNode.jobId(testJobId);
 
 
         CollectOperation collectOperation = new CollectOperation() {
             @Override
-            public ListenableFuture collect(CollectNode cn) {
-                assertEquals(cn, collectNode);
+            public ListenableFuture collect(QueryAndFetchNode cn) {
+                assertEquals(cn, queryAndFetchNode);
                 SettableFuture<Object[][]> result = SettableFuture.create();
                 result.set(new Object[][]{{1}});
                 return result;
             }
         };
-        LocalCollectTask collectTask = new LocalCollectTask(collectOperation, collectNode);
+        LocalCollectTask collectTask = new LocalCollectTask(collectOperation, queryAndFetchNode);
         collectTask.start();
         List<ListenableFuture<QueryResult>> results = collectTask.result();
         assertThat(results.size(), is(1));

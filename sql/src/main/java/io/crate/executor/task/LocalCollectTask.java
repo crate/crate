@@ -29,7 +29,7 @@ import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.operation.collect.CollectOperation;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -42,13 +42,13 @@ import java.util.List;
  */
 public class LocalCollectTask implements Task<QueryResult> {
 
-    private final CollectNode collectNode;
+    private final QueryAndFetchNode queryAndFetchNode;
     private final CollectOperation collectOperation;
     private final List<ListenableFuture<QueryResult>> resultList;
     private final SettableFuture<QueryResult> result;
 
-    public LocalCollectTask(CollectOperation<Object[][]> collectOperation, CollectNode collectNode) {
-        this.collectNode = collectNode;
+    public LocalCollectTask(CollectOperation<Object[][]> collectOperation, QueryAndFetchNode queryAndFetchNode) {
+        this.queryAndFetchNode = queryAndFetchNode;
         this.collectOperation = collectOperation;
         this.resultList = new ArrayList<>(1);
         this.result = SettableFuture.create();
@@ -57,7 +57,7 @@ public class LocalCollectTask implements Task<QueryResult> {
 
     @Override
     public void start() {
-        Futures.addCallback(collectOperation.collect(collectNode), new FutureCallback<Object[][]>() {
+        Futures.addCallback(collectOperation.collect(queryAndFetchNode), new FutureCallback<Object[][]>() {
             @Override
             public void onSuccess(@Nullable Object[][] rows) {
                 result.set(new QueryResult(rows));
