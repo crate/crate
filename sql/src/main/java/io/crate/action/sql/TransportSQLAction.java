@@ -28,6 +28,7 @@ import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.ResponseForwarder;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -149,25 +150,8 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         public void messageReceived(SQLRequest request, final TransportChannel channel) throws Exception {
             // no need for a threaded listener
             request.listenerThreaded(false);
-            execute(request, new ActionListener<SQLResponse>() {
-                @Override
-                public void onResponse(SQLResponse result) {
-                    try {
-                        channel.sendResponse(result);
-                    } catch (Throwable e) {
-                        onFailure(e);
-                    }
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    try {
-                        channel.sendResponse(e);
-                    } catch (Exception e1) {
-                        logger.error("Failed to send response for sql query", e1);
-                    }
-                }
-            });
+            ActionListener<SQLResponse> listener = ResponseForwarder.forwardTo(channel);
+            execute(request, listener);
         }
 
         @Override
