@@ -51,6 +51,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrationTest {
 
@@ -575,6 +576,12 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     }
 
     @Test
+    public void testName() throws Exception {
+        SQLResponse response = executor.exec("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
+        assertEquals(response.rows()[0][0], (Double) response.rows()[0][1] + (Double) response.rows()[0][2]);
+    }
+
+    @Test
     public void testArithmeticFunctions() throws Exception {
         SQLResponse response = executor.exec("select ((2 * 4 - 2 + 1) / 2) % 3 from sys.cluster");
         assertThat(response.cols()[0], is("(((((2 * 4) - 2) + 1) / 2) % 3)"));
@@ -593,7 +600,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testJobLog() throws Exception {
         executor.exec("select name from sys.cluster");
-        SQLResponse response= executor.exec("select * from sys.jobs_log");
+        SQLResponse response = executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L)); // default length is zero
 
         executor.exec("set global transient stats.enabled = true, stats.jobs_log_size=1");
@@ -601,7 +608,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         executor.exec("select id from sys.cluster");
         executor.exec("select id from sys.cluster");
         executor.exec("select id from sys.cluster");
-        response= executor.exec("select stmt from sys.jobs_log order by ended desc");
+        response = executor.exec("select stmt from sys.jobs_log order by ended desc");
 
         // there are 2 nodes so depending on whether both nodes were hit this should be either 1 or 2
         // but never 3 because the queue size is only 1

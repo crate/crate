@@ -41,7 +41,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
 import org.apache.lucene.search.CollectionTerminatedException;
@@ -145,16 +145,16 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      * -> run node level collect (cluster level)
      */
     @Override
-    public ListenableFuture<Object[][]> collect(CollectNode collectNode) {
-        assert collectNode.isRouted(); // not routed collect is not handled here
+    public ListenableFuture<Object[][]> collect(QueryAndFetchNode queryAndFetchNode) {
+        assert queryAndFetchNode.isRouted(); // not routed collect is not handled here
         String localNodeId = clusterService.localNode().id();
-        if (collectNode.executionNodes().contains(localNodeId)) {
-            if (!collectNode.routing().containsShards(localNodeId)) {
+        if (queryAndFetchNode.executionNodes().contains(localNodeId)) {
+            if (!queryAndFetchNode.routing().containsShards(localNodeId)) {
                 // node collect
-                return handleNodeCollect(collectNode);
+                return handleNodeCollect(queryAndFetchNode);
             } else {
                 // shard or doc level
-                return handleShardCollect(collectNode);
+                return handleShardCollect(queryAndFetchNode);
             }
         }
         throw new UnhandledServerException("unsupported routing");
@@ -163,21 +163,21 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     /**
      * collect data on node level only - one row per node expected
      *
-     * @param collectNode {@link io.crate.planner.node.dql.CollectNode} instance containing routing information and symbols to collect
+     * @param queryAndFetchNode {@link io.crate.planner.node.dql.QueryAndFetchNode} instance containing routing information and symbols to collect
      * @return the collect result from this node, one row only so return value is <code>Object[1][]</code>
      */
-    protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
-        collectNode = collectNode.normalize(nodeNormalizer);
-        if (collectNode.whereClause().noMatch()) {
+    protected ListenableFuture<Object[][]> handleNodeCollect(QueryAndFetchNode queryAndFetchNode) {
+        queryAndFetchNode = queryAndFetchNode.normalize(nodeNormalizer);
+        if (queryAndFetchNode.whereClause().noMatch()) {
             return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
         }
 
         FlatProjectorChain projectorChain = new FlatProjectorChain(
-                collectNode.projections(), projectorVisitor);
+                queryAndFetchNode.collectorProjections(), projectorVisitor);
 
         CrateCollector collector;
         try {
-            collector = getCollector(collectNode, projectorChain);
+            collector = getCollector(queryAndFetchNode, projectorChain);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -192,11 +192,11 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         return projectorChain.result();
     }
 
-    private CrateCollector getCollector(CollectNode collectNode,
+    private CrateCollector getCollector(QueryAndFetchNode queryAndFetchNode,
                                         FlatProjectorChain projectorChain) throws Exception {
-        if (collectNode instanceof FileUriCollectNode) {
-            FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.process(collectNode);
-            FileUriCollectNode fileUriCollectNode = (FileUriCollectNode) collectNode;
+        if (queryAndFetchNode instanceof FileUriCollectNode) {
+            FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.process(queryAndFetchNode);
+            FileUriCollectNode fileUriCollectNode = (FileUriCollectNode) queryAndFetchNode;
 
             String[] readers = fileUriCollectNode.executionNodes().toArray(
                     new String[fileUriCollectNode.executionNodes().size()]);
@@ -214,11 +214,11 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     Arrays.binarySearch(readers, clusterService.localNode().id())
             );
         } else {
-            CollectService service = collectServiceResolver.getService(collectNode.routing());
+            CollectService service = collectServiceResolver.getService(queryAndFetchNode.routing());
             if (service != null) {
-                return service.getCollector(collectNode, projectorChain.firstProjector());
+                return service.getCollector(queryAndFetchNode, projectorChain.firstProjector());
             }
-            ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.process(collectNode);
+            ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.process(queryAndFetchNode);
             assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
             return new SimpleOneRowCollector(
                     ctx.topLevelInputs(), ctx.collectExpressions(), projectorChain.firstProjector());
@@ -231,20 +231,20 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      * collects data from each shard in a separate thread,
      * collecting the data into a single state through an {@link java.util.concurrent.ArrayBlockingQueue}.
      *
-     * @param collectNode {@link io.crate.planner.node.dql.CollectNode} containing routing information and symbols to collect
-     * @return the collect results from all shards on this node that were given in {@link io.crate.planner.node.dql.CollectNode#routing}
+     * @param queryAndFetchNode {@link io.crate.planner.node.dql.QueryAndFetchNode} containing routing information and symbols to collect
+     * @return the collect results from all shards on this node that were given in {@link io.crate.planner.node.dql.QueryAndFetchNode#routing}
      */
-    protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
+    protected ListenableFuture<Object[][]> handleShardCollect(QueryAndFetchNode queryAndFetchNode) {
 
         String localNodeId = clusterService.localNode().id();
-        final int numShards = collectNode.routing().numShards(localNodeId);
+        final int numShards = queryAndFetchNode.routing().numShards(localNodeId);
 
-        collectNode = collectNode.normalize(nodeNormalizer);
-        ShardProjectorChain projectorChain = new ShardProjectorChain(numShards, collectNode.projections(), projectorVisitor);
+        queryAndFetchNode = queryAndFetchNode.normalize(nodeNormalizer);
+        ShardProjectorChain projectorChain = new ShardProjectorChain(numShards, queryAndFetchNode.collectorProjections(), projectorVisitor);
 
-        final ShardCollectFuture result = getShardCollectFuture(numShards, projectorChain, collectNode);
+        final ShardCollectFuture result = getShardCollectFuture(numShards, projectorChain, queryAndFetchNode);
 
-        if (collectNode.whereClause().noMatch()) {
+        if (queryAndFetchNode.whereClause().noMatch()) {
             projectorChain.startProjections();
             result.onAllShardsFinished();
             return result;
@@ -253,7 +253,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         final List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
 
         // get shardCollectors from single shards
-        Map<String, Set<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);
+        Map<String, Set<Integer>> shardIdMap = queryAndFetchNode.routing().locations().get(localNodeId);
         for (Map.Entry<String, Set<Integer>> entry : shardIdMap.entrySet()) {
             String indexName = entry.getKey();
             IndexService indexService;
@@ -269,7 +269,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     shardInjector = indexService.shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
                     CrateCollector collector = shardCollectService.getCollector(
-                            collectNode,
+                            queryAndFetchNode,
                             projectorChain
                     );
                     shardCollectors.add(collector);
@@ -287,7 +287,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         // start the projection
         projectorChain.startProjections();
         try {
-            runCollectThreaded(collectNode, result, shardCollectors);
+            runCollectThreaded(queryAndFetchNode, result, shardCollectors);
         } catch (RejectedExecutionException e) {
             // on distributing collects the merge nodes need to be informed about the failure
             // so they can clean up their context
@@ -301,10 +301,10 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         return result;
     }
 
-    private void runCollectThreaded(CollectNode collectNode,
+    private void runCollectThreaded(QueryAndFetchNode queryAndFetchNode,
                                     final ShardCollectFuture result,
                                     final List<CrateCollector> shardCollectors) throws RejectedExecutionException {
-        if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
+        if (queryAndFetchNode.maxRowGranularity() == RowGranularity.SHARD) {
             // run sequential to prevent sys.shards queries from using too many threads
             // and overflowing the threadpool queues
             executor.execute(new Runnable() {
@@ -361,10 +361,10 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      *
      * @param numShards   number of shards until the result is considered complete
      * @param projectorChain  the projector chain to process the collected rows
-     * @param collectNode in case any other properties need to be extracted
+     * @param queryAndFetchNode in case any other properties need to be extracted
      * @return a fancy ShardCollectFuture implementation
      */
-    protected ShardCollectFuture getShardCollectFuture(int numShards, ShardProjectorChain projectorChain, CollectNode collectNode) {
+    protected ShardCollectFuture getShardCollectFuture(int numShards, ShardProjectorChain projectorChain, QueryAndFetchNode queryAndFetchNode) {
         return new SimpleShardCollectFuture(numShards, projectorChain);
     }
 }

@@ -38,7 +38,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -107,6 +107,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                 forwardFailures();
                 return;
             }
+            // set empty result that is returned to RemoteCollectTask
             super.set(TaskResult.EMPTY_RESULT.rows());
 
             BucketingIterator bucketingIterator = new ModuloBucketingIterator(
@@ -240,16 +241,16 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
     }
 
     @Override
-    protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
-        assert collectNode.jobId().isPresent();
-        assert collectNode.hasDownstreams() : "distributing collect without downStreams";
-        ListenableFuture<Object[][]> future = super.handleNodeCollect(collectNode);
+    protected ListenableFuture<Object[][]> handleNodeCollect(QueryAndFetchNode queryAndFetchNode) {
+        assert queryAndFetchNode.jobId().isPresent();
+        assert queryAndFetchNode.hasDownstreams() : "distributing collect without downStreams";
+        ListenableFuture<Object[][]> future = super.handleNodeCollect(queryAndFetchNode);
 
-        final List<DiscoveryNode> downStreams = toDiscoveryNodes(collectNode.downStreamNodes());
+        final List<DiscoveryNode> downStreams = toDiscoveryNodes(queryAndFetchNode.downStreamNodes());
         final List<DistributedResultRequest> requests = genRequests(
-                collectNode.jobId().get(),
+                queryAndFetchNode.jobId().get(),
                 downStreams.size(),
-                streamerVisitor.process(collectNode).outputStreamers()
+                streamerVisitor.process(queryAndFetchNode).outputStreamers()
         );
         sendRequestsOnFinish(future, downStreams, requests);
         return future;
@@ -327,21 +328,21 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
     }
 
     @Override
-    protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
-        assert collectNode.hasDownstreams() : "no downstreams";
-        return super.handleShardCollect(collectNode);
+    protected ListenableFuture<Object[][]> handleShardCollect(QueryAndFetchNode queryAndFetchNode) {
+        assert queryAndFetchNode.hasDownstreams() : "no downstreams";
+        return super.handleShardCollect(queryAndFetchNode);
     }
 
     @Override
     protected ShardCollectFuture getShardCollectFuture(
-            int numShards, ShardProjectorChain projectorChain, CollectNode collectNode) {
-        assert collectNode.jobId().isPresent();
-        Streamer<?>[] streamers = streamerVisitor.process(collectNode).outputStreamers();
+            int numShards, ShardProjectorChain projectorChain, QueryAndFetchNode queryAndFetchNode) {
+        assert queryAndFetchNode.jobId().isPresent();
+        Streamer<?>[] streamers = streamerVisitor.process(queryAndFetchNode).outputStreamers();
         return new DistributingShardCollectFuture(
-                collectNode.jobId().get(),
+                queryAndFetchNode.jobId().get(),
                 numShards,
                 projectorChain,
-                toDiscoveryNodes(collectNode.downStreamNodes()),
+                toDiscoveryNodes(queryAndFetchNode.downStreamNodes()),
                 transportService,
                 streamers
         );

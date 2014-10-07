@@ -36,6 +36,11 @@ public abstract class ESDQLPlanNode implements DQLPlanNode {
     private List<DataType> inputTypes;
     private List<DataType> outputTypes;
 
+    @Override
+    public void configure() {
+        // do nothing
+    }
+
     public List<Symbol> outputs() {
         return outputs;
     }

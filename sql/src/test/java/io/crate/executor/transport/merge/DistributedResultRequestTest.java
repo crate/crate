@@ -56,11 +56,8 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.UUID;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
 public class DistributedResultRequestTest {

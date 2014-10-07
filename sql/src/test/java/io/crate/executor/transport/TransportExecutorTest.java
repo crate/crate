@@ -149,22 +149,21 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ReferenceInfo load1 = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
         Symbol reference = new Reference(load1);
 
-        CollectNode collectNode = new CollectNode("collect", routing);
-        collectNode.toCollect(Arrays.asList(reference));
-        collectNode.outputTypes(asList(load1.type()));
-        collectNode.maxRowGranularity(RowGranularity.NODE);
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("collect", routing,
+                Arrays.asList(reference), Arrays.asList(reference),
+                null, null, null, null, null, null, null, null, RowGranularity.NODE, null);
+        queryAndFetchNode.outputTypes(asList(load1.type()));
 
         Plan plan = new Plan();
-        plan.add(collectNode);
+        plan.add(queryAndFetchNode);
         Job job = executor.newJob(plan);
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
 
-        assertThat(result.size(), is(2));
+        assertThat(result.size(), is(1));
         for (ListenableFuture<TaskResult> nodeResult : result) {
-            assertEquals(1, nodeResult.get().rows().length);
+            assertEquals(2, nodeResult.get().rows().length);
             assertThat((Double) nodeResult.get().rows()[0][0], is(greaterThan(0.0)));
-
         }
     }
 
@@ -173,13 +172,13 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ReferenceInfo clusterNameInfo = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
         Symbol reference = new Reference(clusterNameInfo);
 
-        CollectNode collectNode = new CollectNode("lcollect", new Routing());
-        collectNode.toCollect(asList(reference, Literal.newLiteral(2.3f)));
-        collectNode.outputTypes(asList(clusterNameInfo.type()));
-        collectNode.maxRowGranularity(RowGranularity.CLUSTER);
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("lcollect", new Routing(),
+                asList(reference, Literal.newLiteral(2.3f)), asList(reference, Literal.newLiteral(2.3f)),
+                null, null, null, null, null, null, null, null, RowGranularity.CLUSTER, null);
+        queryAndFetchNode.outputTypes(asList(clusterNameInfo.type()));
 
         Plan plan = new Plan();
-        plan.add(collectNode);
+        plan.add(queryAndFetchNode);
         Job job = executor.newJob(plan);
 
         List<ListenableFuture<TaskResult>> results = executor.execute(job);

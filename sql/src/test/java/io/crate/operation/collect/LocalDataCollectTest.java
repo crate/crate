@@ -41,7 +41,7 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -336,11 +336,11 @@ public class LocalDataCollectTest {
 
     @Test
     public void testCollectExpressions() throws Exception {
-        CollectNode collectNode = new CollectNode("collect", testRouting);
-        collectNode.maxRowGranularity(RowGranularity.NODE);
-        collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("collect", testRouting,
+                Arrays.<Symbol>asList(testNodeReference), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, RowGranularity.NODE, null);
 
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(queryAndFetchNode).get();
 
         assertThat(result.length, equalTo(1));
 
@@ -353,14 +353,17 @@ public class LocalDataCollectTest {
         expectedException.expect(UnhandledServerException.class);
         expectedException.expectMessage("unsupported routing");
 
-        CollectNode collectNode = new CollectNode("wrong", new Routing(new HashMap<String, Map<String, Set<Integer>>>() {{
-            put("bla", new HashMap<String, Set<Integer>>() {{
-                put("my_index", Sets.newHashSet(1));
-                put("my_index", Sets.newHashSet(1));
-            }});
-        }}));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        operation.collect(collectNode);
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("wrong",
+                new Routing(new HashMap<String, Map<String, Set<Integer>>>() {{
+                    put("bla", new HashMap<String, Set<Integer>>() {{
+                        put("my_index", Sets.newHashSet(1));
+                        put("my_index", Sets.newHashSet(1));
+                    }});
+                }}),
+                ImmutableList.<Symbol>of(), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, null, null);
+        queryAndFetchNode.maxRowGranularity(RowGranularity.DOC);
+        operation.collect(queryAndFetchNode);
     }
 
     @Test
@@ -368,7 +371,6 @@ public class LocalDataCollectTest {
         expectedException.expect(UnhandledServerException.class);
         expectedException.expectMessage("Unknown Reference");
 
-        CollectNode collectNode = new CollectNode("unknown", testRouting);
         Reference unknownReference = new Reference(
                 new ReferenceInfo(
                         new ReferenceIdent(
@@ -379,10 +381,11 @@ public class LocalDataCollectTest {
                         DataTypes.BOOLEAN
                 )
         );
-        collectNode.toCollect(Arrays.<Symbol>asList(unknownReference));
-        collectNode.maxRowGranularity(RowGranularity.NODE);
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("unknown", testRouting,
+                Arrays.<Symbol>asList(unknownReference), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, RowGranularity.NODE, null);
         try {
-            operation.collect(collectNode).get();
+            operation.collect(queryAndFetchNode).get();
         } catch (ExecutionException e) {
             throw e.getCause();
         }
@@ -390,14 +393,14 @@ public class LocalDataCollectTest {
 
     @Test
     public void testCollectFunction() throws Exception {
-        CollectNode collectNode = new CollectNode("function", testRouting);
         Function twoTimesTruthFunction = new Function(
                 TestFunction.info,
                 Arrays.<Symbol>asList(testNodeReference)
         );
-        collectNode.toCollect(Arrays.<Symbol>asList(twoTimesTruthFunction, testNodeReference));
-        collectNode.maxRowGranularity(RowGranularity.NODE);
-        Object[][] result = operation.collect(collectNode).get();
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("function", testRouting,
+                Arrays.<Symbol>asList(twoTimesTruthFunction, testNodeReference), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, RowGranularity.NODE, null);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertThat(result.length, equalTo(1));
         assertThat(result[0].length, equalTo(2));
         assertThat((Integer) result[0][0], equalTo(84));
@@ -411,7 +414,6 @@ public class LocalDataCollectTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot find implementation for function unknown()");
 
-        CollectNode collectNode = new CollectNode("unknownFunction", testRouting);
         Function unknownFunction = new Function(
                 new FunctionInfo(
                         new FunctionIdent("unknown", ImmutableList.<DataType>of()),
@@ -419,9 +421,11 @@ public class LocalDataCollectTest {
                 ),
                 ImmutableList.<Symbol>of()
         );
-        collectNode.toCollect(Arrays.<Symbol>asList(unknownFunction));
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("unknownFunction", testRouting,
+                Arrays.<Symbol>asList(unknownFunction), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, null, null);
         try {
-            operation.collect(collectNode).get();
+            operation.collect(queryAndFetchNode).get();
         } catch (ExecutionException e) {
             throw e.getCause();
         }
@@ -429,14 +433,15 @@ public class LocalDataCollectTest {
 
     @Test
     public void testCollectLiterals() throws Exception {
-        CollectNode collectNode = new CollectNode("literals", testRouting);
-        collectNode.toCollect(Arrays.<Symbol>asList(
-                Literal.newLiteral("foobar"),
-                Literal.newLiteral(true),
-                Literal.newLiteral(1),
-                Literal.newLiteral(4.2)
-        ));
-        Object[][] result = operation.collect(collectNode).get();
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("literals", testRouting,
+                Arrays.<Symbol>asList(
+                        Literal.newLiteral("foobar"),
+                        Literal.newLiteral(true),
+                        Literal.newLiteral(1),
+                        Literal.newLiteral(4.2)
+                ), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, null, null);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertThat(result.length, equalTo(1));
         assertThat((BytesRef) result[0][0], equalTo(new BytesRef("foobar")));
         assertThat((Boolean) result[0][1], equalTo(true));
@@ -447,26 +452,25 @@ public class LocalDataCollectTest {
 
     @Test
     public void testCollectWithFalseWhereClause() throws Exception {
-        CollectNode collectNode = new CollectNode("whereClause", testRouting);
-        collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
-        collectNode.whereClause(new WhereClause(new Function(
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("whereClause", testRouting,
+                Arrays.<Symbol>asList(testNodeReference), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, new WhereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(Literal.newLiteral(false), Literal.newLiteral(false))
-        )));
-        Object[][] result = operation.collect(collectNode).get();
+        )), null, null);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertArrayEquals(new Object[0][], result);
     }
 
     @Test
     public void testCollectWithTrueWhereClause() throws Exception {
-        CollectNode collectNode = new CollectNode("whereClause", testRouting);
-        collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
-        collectNode.whereClause(new WhereClause(new Function(
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("whereClause", testRouting,
+                Arrays.<Symbol>asList(testNodeReference), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, new WhereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(true))
-        )));
-        collectNode.maxRowGranularity(RowGranularity.NODE);
-        Object[][] result = operation.collect(collectNode).get();
+        )), RowGranularity.NODE, null);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertThat(result.length, equalTo(1));
         assertThat((Integer) result[0][0], equalTo(42));
 
@@ -476,22 +480,22 @@ public class LocalDataCollectTest {
     public void testCollectWithNullWhereClause() throws Exception {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(
                 EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
-        CollectNode collectNode = new CollectNode("whereClause", testRouting);
-        collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
-        collectNode.whereClause(new WhereClause(new Function(
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("whereClause", testRouting,
+                Arrays.<Symbol>asList(testNodeReference), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, new WhereClause(new Function(
                 op.info(),
                 Arrays.<Symbol>asList(Literal.NULL, Literal.NULL)
-        )));
-        Object[][] result = operation.collect(collectNode).get();
+        )), null, null);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertArrayEquals(new Object[0][], result);
     }
 
     @Test
     public void testCollectShardExpressions() throws Exception {
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
-        collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
-        collectNode.maxRowGranularity(RowGranularity.SHARD);
-        Object[][] result = operation.collect(collectNode).get();
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("shardCollect", shardRouting(0, 1),
+                Arrays.<Symbol>asList(testShardIdReference), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, RowGranularity.SHARD, null);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertThat(result.length, is(equalTo(2)));
         assertThat((Integer) result[0][0], isOneOf(0, 1));
         assertThat((Integer) result[1][0], isOneOf(0, 1));
@@ -503,22 +507,23 @@ public class LocalDataCollectTest {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(
                 EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
 
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
-        collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
-        collectNode.whereClause(new WhereClause(
-                new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, Literal.newLiteral(0)))));
-        collectNode.maxRowGranularity(RowGranularity.SHARD);
-        Object[][] result = operation.collect(collectNode).get();
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("shardCollect", shardRouting(0, 1),
+                Arrays.<Symbol>asList(testShardIdReference), ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, new WhereClause(
+                new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, Literal.newLiteral(0)))
+        ), RowGranularity.SHARD, null);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertThat(result.length, is(equalTo(1)));
         assertThat((Integer) result[0][0], is(0));
     }
 
     @Test
     public void testCollectShardExpressionsLiteralsAndNodeExpressions() throws Exception {
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
-        collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference, Literal.newLiteral(true), testNodeReference));
-        collectNode.maxRowGranularity(RowGranularity.SHARD);
-        Object[][] result = operation.collect(collectNode).get();
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("shardCollect", shardRouting(0, 1),
+                Arrays.<Symbol>asList(testShardIdReference, Literal.newLiteral(true), testNodeReference),
+                ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, RowGranularity.SHARD, null);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertThat(result.length, is(equalTo(2)));
         assertThat(result[0].length, is(equalTo(3)));
         int i, j;
