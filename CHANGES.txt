@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - upgraded ES upstream to v1.3.4
+
  - Fix: allow subscript access on array literals and parameters as subscript
    indices
 
