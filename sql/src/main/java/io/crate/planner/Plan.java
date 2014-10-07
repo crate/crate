@@ -35,6 +35,7 @@ public class Plan implements Iterable<PlanNode> {
     private boolean expectsAffectedRows = false;
 
     public void add(PlanNode node) {
+//        assert nodes.size() < 1 : "Only one plan node allowed";
         nodes.add(node);
     }
 

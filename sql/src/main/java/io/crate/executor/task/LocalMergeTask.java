@@ -105,7 +105,8 @@ public class LocalMergeTask implements Task<TaskResult> {
         }
 
         final MergeOperation mergeOperation = new MergeOperation(
-                clusterService, settings, transportActionProvider, symbolVisitor, mergeNode);
+                clusterService, settings, transportActionProvider, symbolVisitor,
+                mergeNode.numUpstreams(), mergeNode.projections());
         final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
         final UUID operationId = UUID.randomUUID();
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());

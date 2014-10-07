@@ -32,8 +32,9 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.Projector;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -46,6 +47,40 @@ import java.util.Set;
 
 public class HandlerSideDataCollectOperation implements CollectOperation<Object[][]> {
 
+    private static class NoOpCollectService implements CollectService {
+
+        private static class NoOpCollector implements CrateCollector {
+
+            private Projector downstream;
+
+            @Override
+            public void doCollect() throws Exception {
+                // do nothing
+                downstream.upstreamFinished();
+            }
+
+            @Override
+            public void downstream(Projector downstream) {
+                downstream.registerUpstream(this);
+                this.downstream = downstream;
+            }
+
+            @Override
+            public Projector downstream() {
+                return downstream;
+            }
+        }
+
+        @Override
+        public CrateCollector getCollector(QueryAndFetchNode node, Projector projector) {
+            NoOpCollector collector = new NoOpCollector();
+            collector.downstream(projector);
+            return collector;
+        }
+    }
+
+    private static final NoOpCollectService NO_OP_COLLECT_SERVICE = new NoOpCollectService();
+
     private ESLogger logger = Loggers.getLogger(getClass());
 
     private final EvaluatingNormalizer clusterNormalizer;
@@ -53,6 +88,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final InformationSchemaCollectService informationSchemaCollectService;
     private final UnassignedShardsCollectService unassignedShardsCollectService;
+
 
     @Inject
     public HandlerSideDataCollectOperation(ClusterService clusterService,
@@ -73,37 +109,37 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     }
 
     @Override
-    public ListenableFuture<Object[][]> collect(CollectNode collectNode) {
-        if (collectNode.isPartitioned()) {
+    public ListenableFuture<Object[][]> collect(QueryAndFetchNode queryAndFetchNode) {
+        if (queryAndFetchNode.isPartitioned()) {
             // edge case: partitioned table without actual indices
             // no results
-            return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
+            return handleWithService(NO_OP_COLLECT_SERVICE, queryAndFetchNode);
         }
-        if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
+        if (queryAndFetchNode.maxRowGranularity() == RowGranularity.DOC) {
             // we assume information schema here
-            return handleWithService(informationSchemaCollectService, collectNode);
-        } else if (collectNode.maxRowGranularity() == RowGranularity.CLUSTER) {
-            return handleCluster(collectNode);
-        } else if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
-            return handleWithService(unassignedShardsCollectService, collectNode);
+            return handleWithService(informationSchemaCollectService, queryAndFetchNode);
+        } else if (queryAndFetchNode.maxRowGranularity() == RowGranularity.CLUSTER) {
+            return handleCluster(queryAndFetchNode);
+        } else if (queryAndFetchNode.maxRowGranularity() == RowGranularity.SHARD) {
+            return handleWithService(unassignedShardsCollectService, queryAndFetchNode);
         } else {
             return Futures.immediateFailedFuture(new IllegalStateException("unsupported routing"));
         }
     }
 
-    private ListenableFuture<Object[][]> handleCluster(CollectNode collectNode) {
-        collectNode = collectNode.normalize(clusterNormalizer);
-        if (collectNode.whereClause().noMatch()) {
+    private ListenableFuture<Object[][]> handleCluster(QueryAndFetchNode queryAndFetchNode) {
+        queryAndFetchNode = queryAndFetchNode.normalize(clusterNormalizer);
+        if (queryAndFetchNode.whereClause().noMatch()) {
             return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
         }
-        assert collectNode.toCollect().size() > 0;
+        assert queryAndFetchNode.toCollect().size() > 0;
 
         // resolve Implementations
-        ImplementationSymbolVisitor.Context ctx = implementationVisitor.process(collectNode);
+        ImplementationSymbolVisitor.Context ctx = implementationVisitor.process(queryAndFetchNode);
         List<Input<?>> inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
-        FlatProjectorChain projectorChain = new FlatProjectorChain(collectNode.projections(), projectorVisitor);
+        FlatProjectorChain projectorChain = new FlatProjectorChain(queryAndFetchNode.collectorProjections(), projectorVisitor);
         SimpleOneRowCollector collector = new SimpleOneRowCollector(
                 inputs, collectExpressions, projectorChain.firstProjector());
 
@@ -116,8 +152,8 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         return projectorChain.result();
     }
 
-    private ListenableFuture<Object[][]> handleWithService(CollectService collectService, CollectNode node) {
-        FlatProjectorChain projectorChain = new FlatProjectorChain(node.projections(), projectorVisitor);
+    private ListenableFuture<Object[][]> handleWithService(CollectService collectService, QueryAndFetchNode node) {
+        FlatProjectorChain projectorChain = new FlatProjectorChain(node.collectorProjections(), projectorVisitor);
         CrateCollector collector = collectService.getCollector(node, projectorChain.firstProjector());
         projectorChain.startProjections();
         try {

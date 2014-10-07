@@ -111,6 +111,7 @@ public class MapSideDataCollectOperationTest {
                         createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)
                 ),
                 Arrays.<Projection>asList(),
+                Arrays.<Projection>asList(),
                 null,
                 false
         );

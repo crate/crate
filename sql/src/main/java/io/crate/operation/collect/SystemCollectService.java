@@ -31,7 +31,7 @@ import io.crate.metadata.sys.SysOperationsTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Literal;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.common.inject.Inject;
@@ -65,20 +65,20 @@ public class SystemCollectService implements CollectService {
     }
 
     @Override
-    public CrateCollector getCollector(CollectNode collectNode, Projector downstream) {
-        if (collectNode.whereClause().noMatch()) {
+    public CrateCollector getCollector(QueryAndFetchNode queryAndFetchNode, Projector downstream) {
+        if (queryAndFetchNode.whereClause().noMatch()) {
             return CrateCollector.NOOP;
         }
-        Set<String> tables = collectNode.routing().locations().get(discoveryService.localNode().id()).keySet();
+        Set<String> tables = queryAndFetchNode.routing().locations().get(discoveryService.localNode().id()).keySet();
         assert tables.size() == 1;
         StatsTables.IterableGetter iterableGetter = iterableGetters.get(tables.iterator().next());
         assert iterableGetter != null;
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
+        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(queryAndFetchNode);
 
         Input<Boolean> condition;
-        if (collectNode.whereClause().hasQuery()) {
+        if (queryAndFetchNode.whereClause().hasQuery()) {
             // TODO: single arg method
-            condition = (Input<Boolean>) docInputSymbolVisitor.process(collectNode.whereClause().query(), ctx);
+            condition = (Input<Boolean>) docInputSymbolVisitor.process(queryAndFetchNode.whereClause().query(), ctx);
         } else {
             condition = Literal.newLiteral(true);
         }

@@ -211,6 +211,12 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSysShards() throws Exception {
+        exec("select * from sys.shards");
+        assertEquals(79L, response.rowCount());
+    }
+
+    @Test
     public void testIgnoreClosedTables() throws Exception {
         execute("drop table t1");
         execute("drop table t2");

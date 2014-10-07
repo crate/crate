@@ -31,7 +31,7 @@ import io.crate.operation.collect.DistributingCollectOperation;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -94,7 +94,7 @@ public class TransportCollectNodeAction {
 
     private void nodeOperation(final NodeCollectRequest request,
                                final ActionListener<NodeCollectResponse> collectResponse) {
-        final CollectNode node = request.collectNode();
+        final QueryAndFetchNode node = request.collectNode();
         final ListenableFuture<Object[][]> collectResult;
 
         final UUID operationId;

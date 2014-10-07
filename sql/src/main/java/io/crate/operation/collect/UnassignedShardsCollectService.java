@@ -32,7 +32,7 @@ import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Literal;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.cluster.ClusterService;
@@ -116,7 +116,7 @@ public class UnassignedShardsCollectService implements CollectService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public CrateCollector getCollector(CollectNode node, Projector projector) {
+    public CrateCollector getCollector(QueryAndFetchNode node, Projector projector) {
         if (node.whereClause().noMatch()) {
             return CrateCollector.NOOP;
         }

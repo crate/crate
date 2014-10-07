@@ -59,6 +59,7 @@ import java.util.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -218,10 +219,10 @@ public class PlannerTest {
     public void testGroupByWithAggregationStringLiteralArguments() {
         Plan plan = plan("select count('foo'), name from users group by name");
         Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = (CollectNode) iterator.next();
-        // TODO: optimize to not collect literal
+        QueryAndFetchNode collectNode = (QueryAndFetchNode) iterator.next();
+        // TODO: optimize to not queryAndFetch literal
         //assertThat(collectNode.toCollect().size(), is(1));
-        GroupProjection groupProjection = (GroupProjection) collectNode.projections().get(0);
+        GroupProjection groupProjection = (GroupProjection) collectNode.collectorProjections().get(0);
         Aggregation aggregation = groupProjection.values().get(0);
         //assertTrue(aggregation.inputs().get(0).symbolType().isValueSymbol());
     }
@@ -235,18 +236,20 @@ public class PlannerTest {
         Iterator<PlanNode> iterator = plan.iterator();
 
         PlanNode planNode = iterator.next();
-        // distributed collect
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode) planNode;
-        assertThat(collectNode.downStreamNodes().size(), is(2));
-        assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
-        assertThat(collectNode.executionNodes().size(), is(2));
-        assertThat(collectNode.toCollect().size(), is(1));
-        assertThat(collectNode.projections().size(), is(1));
-        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(collectNode.outputTypes().size(), is(2));
-        assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
-        assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
+        // distributed queryAndFetch
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
+        QueryAndFetchNode qafNode = (QueryAndFetchNode) planNode;
+        assertThat(qafNode.downStreamNodes().size(), is(2));
+        assertThat(qafNode.maxRowGranularity(), is(RowGranularity.DOC));
+        assertThat(qafNode.executionNodes().size(), is(2));
+        assertThat(qafNode.toCollect().size(), is(1));
+        assertThat(qafNode.collectorProjections().size(), is(1));
+        assertThat(qafNode.collectorProjections().get(0), instanceOf(GroupProjection.class));
+        assertThat(qafNode.projections().size(), is(0));
+
+        assertThat(qafNode.outputTypes().size(), is(2));
+        assertEquals(DataTypes.STRING, qafNode.outputTypes().get(0));
+        assertEquals(DataTypes.UNDEFINED, qafNode.outputTypes().get(1));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -254,7 +257,7 @@ public class PlannerTest {
 
         assertThat(mergeNode.numUpstreams(), is(2));
         assertThat(mergeNode.executionNodes().size(), is(2));
-        assertEquals(mergeNode.inputTypes(), collectNode.outputTypes());
+        assertEquals(mergeNode.inputTypes(), qafNode.outputTypes());
         assertThat(mergeNode.projections().size(), is(1));
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
 
@@ -402,20 +405,20 @@ public class PlannerTest {
         Iterator<PlanNode> iterator = plan.iterator();
 
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode) planNode;
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
+        QueryAndFetchNode qafNode = (QueryAndFetchNode) planNode;
 
-        assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(0));
-        assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
-        assertThat(collectNode.projections().size(), is(1));
-        assertThat(collectNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertEquals(DataTypes.UNDEFINED, qafNode.intermediateOutputTypes().get(0));
+        assertEquals(DataTypes.LONG, qafNode.outputTypes().get(0));
+        assertThat(qafNode.maxRowGranularity(), is(RowGranularity.DOC));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode) planNode;
+        assertThat(qafNode.collectorProjections().size(), is(1));
+        assertThat(qafNode.collectorProjections().get(0), instanceOf(AggregationProjection.class));
 
-        assertEquals(DataTypes.UNDEFINED, mergeNode.inputTypes().get(0));
-        assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
+        assertThat(qafNode.projections().size(), is(1));
+        assertThat(qafNode.projections().get(0), instanceOf(AggregationProjection.class));
+
+        assertThat(iterator.hasNext(), is(false));
 
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
@@ -429,7 +432,7 @@ public class PlannerTest {
 
         Iterator<PlanNode> iterator = plan.iterator();
 
-        CollectNode collectNode = (CollectNode) iterator.next();
+        QueryAndFetchNode collectNode = (QueryAndFetchNode) iterator.next();
         assertFalse(collectNode.hasDownstreams());
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
         assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
@@ -465,22 +468,11 @@ public class PlannerTest {
 
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode) planNode;
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
+        QueryAndFetchNode collectNode = (QueryAndFetchNode) planNode;
 
         assertEquals(DataTypes.INTEGER, collectNode.outputTypes().get(0));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
-
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode) planNode;
-
-        assertThat(mergeNode.inputTypes().size(), is(1));
-        assertEquals(DataTypes.INTEGER, mergeNode.inputTypes().get(0));
-        assertThat(mergeNode.outputTypes().size(), is(1));
-        assertEquals(DataTypes.INTEGER, mergeNode.outputTypes().get(0));
-
-        assertThat(mergeNode.numUpstreams(), is(2));
 
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
@@ -615,8 +607,8 @@ public class PlannerTest {
     public void testCountDistinctPlan() throws Exception {
         Plan plan = plan("select count(distinct name) from users");
         Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = (CollectNode)iterator.next();
-        Projection projection = collectNode.projections().get(0);
+        QueryAndFetchNode qafNode = (QueryAndFetchNode)iterator.next();
+        Projection projection = qafNode.collectorProjections().get(0);
         assertThat(projection, instanceOf(AggregationProjection.class));
         AggregationProjection aggregationProjection = (AggregationProjection)projection;
         assertThat(aggregationProjection.aggregations().size(), is(1));
@@ -626,26 +618,28 @@ public class PlannerTest {
         Symbol aggregationInput = aggregation.inputs().get(0);
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 
-        assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(((Reference)collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
+        assertThat(qafNode.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(((Reference)qafNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
 
-        MergeNode mergeNode = (MergeNode)iterator.next();
-        assertThat(mergeNode.projections().size(), is(2));
-        Projection projection1 = mergeNode.projections().get(1);
+        assertThat(qafNode.projections().size(), is(2));
+        Projection projection1 = qafNode.projections().get(1);
         assertThat(projection1, instanceOf(TopNProjection.class));
         Symbol collection_count = projection1.outputs().get(0);
         assertThat(collection_count, instanceOf(Function.class));
+
+        assertThat(iterator.hasNext(), is(false));
     }
 
     @Test
     public void testNoDistributedGroupByOnClusteredColumn() throws Exception {
         Plan plan = plan("select count(*), id from users group by id limit 20");
         Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = (CollectNode)iterator.next();
-        assertNull(collectNode.downStreamNodes());
-        assertThat(collectNode.projections().size(), is(2));
-        assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
-        assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        QueryAndFetchNode qafNode = (QueryAndFetchNode)iterator.next();
+        assertNull(qafNode.downStreamNodes());
+        assertThat(qafNode.collectorProjections().size(), is(2));
+        assertThat(qafNode.collectorProjections().get(1), instanceOf(TopNProjection.class));
+        assertThat(qafNode.collectorProjections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(qafNode.projections().size(), is(0));
         MergeNode mergeNode = (MergeNode)iterator.next();
         assertThat(mergeNode.projections().size(), is(1));
         assertFalse(iterator.hasNext());
@@ -655,12 +649,13 @@ public class PlannerTest {
     public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
         Plan plan = plan("select count(*), id, date from empty_parted group by id, date limit 20");
         Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = (CollectNode)iterator.next();
-        assertNull(collectNode.downStreamNodes());
-        assertThat(collectNode.projections().size(), is(2));
-        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(collectNode.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        assertThat(collectNode.projections().get(1), instanceOf(TopNProjection.class));
+        QueryAndFetchNode qafNode = (QueryAndFetchNode)iterator.next();
+        assertNull(qafNode.downStreamNodes());
+        assertThat(qafNode.collectorProjections().size(), is(2));
+        assertThat(qafNode.collectorProjections().get(0), instanceOf(GroupProjection.class));
+        assertThat(qafNode.collectorProjections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(qafNode.collectorProjections().get(1), instanceOf(TopNProjection.class));
+        assertThat(qafNode.projections().size(), is(0));
         MergeNode mergeNode = (MergeNode)iterator.next();
         assertThat(mergeNode.projections().size(), is(1));
         assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
@@ -671,7 +666,7 @@ public class PlannerTest {
     public void testGroupByWithOrderOnAggregate() throws Exception {
         Plan plan = plan("select count(*), name from users group by name order by count(*)");
         Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = (CollectNode)iterator.next();
+        QueryAndFetchNode collectNode = (QueryAndFetchNode)iterator.next();
 
         // reducer
         iterator.next();
@@ -695,7 +690,7 @@ public class PlannerTest {
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         // just testing the dispatching here.. making sure it is not a ESSearchNode
-        assertThat(planNode, instanceOf(CollectNode.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
     }
 
     @Test
@@ -704,7 +699,7 @@ public class PlannerTest {
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         // just testing the dispatching here.. making sure it is not a ESSearchNode
-        assertThat(planNode, instanceOf(CollectNode.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
 
@@ -717,13 +712,13 @@ public class PlannerTest {
         Plan plan = plan("select count(distinct id), name from users group by name order by count(distinct id)");
         Iterator<PlanNode> iterator = plan.iterator();
 
-        // collect
-        CollectNode collectNode = (CollectNode)iterator.next();
-        assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(collectNode.toCollect().size(), is(2));
-        assertThat(((Reference)collectNode.toCollect().get(1)).info().ident().columnIdent().name(), is("id"));
-        assertThat(((Reference)collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
-        Projection projection = collectNode.projections().get(0);
+        // queryAndFetch
+        QueryAndFetchNode qafNode = (QueryAndFetchNode)iterator.next();
+        assertThat(qafNode.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(qafNode.toCollect().size(), is(2));
+        assertThat(((Reference)qafNode.toCollect().get(1)).info().ident().columnIdent().name(), is("id"));
+        assertThat(((Reference)qafNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
+        Projection projection = qafNode.collectorProjections().get(0);
         assertThat(projection, instanceOf(GroupProjection.class));
         GroupProjection groupProjection = (GroupProjection)projection;
         Symbol groupKey = groupProjection.keys().get(0);
@@ -827,7 +822,7 @@ public class PlannerTest {
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(FileUriCollectNode.class));
         FileUriCollectNode collectNode = (FileUriCollectNode)planNode;
-        SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectNode.projections().get(0);
+        SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectNode.collectorProjections().get(0);
         assertThat(indexWriterProjection.bulkActions(), is(30));
         assertThat(collectNode.compression(), is("gzip"));
         assertThat(collectNode.sharedStorage(), is(true));
@@ -843,7 +838,7 @@ public class PlannerTest {
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
         Plan plan = plan("copy users (name) to '/file.ext'");
-        CollectNode node = (CollectNode)plan.iterator().next();
+        QueryAndFetchNode node = (QueryAndFetchNode)plan.iterator().next();
         Reference nameRef = (Reference)node.toCollect().get(0);
 
         assertThat(nameRef.info().ident().columnIdent().name(), is(DocSysColumns.DOC.name()));
@@ -853,8 +848,8 @@ public class PlannerTest {
     @Test
     public void testCopyToWithNonExistentPartitionClause() throws Exception {
         Plan plan = plan("copy parted partition (date=0) to '/foo.txt' ");
-        CollectNode collectNode = (CollectNode) plan.iterator().next();
-        assertFalse(collectNode.routing().hasLocations());
+        QueryAndFetchNode collectNode = (QueryAndFetchNode) plan.iterator().next();
+        assertThat(collectNode.routing().hasLocations(), is(false));
     }
 
     @Test (expected = IllegalArgumentException.class)
@@ -867,8 +862,8 @@ public class PlannerTest {
         Plan plan = plan("select table_name from sys.shards");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode) planNode;
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
+        QueryAndFetchNode collectNode = (QueryAndFetchNode) planNode;
         assertTrue(collectNode.isRouted());
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
     }
@@ -935,7 +930,7 @@ public class PlannerTest {
         Plan plan = plan("insert into users (id, name) (select name, count(*) from sys.nodes where name='Ford' group by name)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -953,7 +948,7 @@ public class PlannerTest {
         Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name order by name limit 10)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -978,7 +973,7 @@ public class PlannerTest {
         Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -1013,7 +1008,7 @@ public class PlannerTest {
         Plan plan = plan("insert into parted (id, date) (select id, date from users group by id, date)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -1051,15 +1046,12 @@ public class PlannerTest {
         Plan plan = plan("insert into users (name, id) (select arbitrary(name), count(*) from users)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
+        QueryAndFetchNode qafNode = (QueryAndFetchNode)planNode;
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode localMergeNode = (MergeNode)planNode;
-
-        assertThat(localMergeNode.projections().size(), is(2));
-        assertThat(localMergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)localMergeNode.projections().get(1);
+        assertThat(qafNode.projections().size(), is(2));
+        assertThat(qafNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection)qafNode.projections().get(1);
 
         assertThat(projection.columnIdents().size(), is(2));
         assertThat(projection.columnIdents().get(0).fqn(), is("name"));
@@ -1073,6 +1065,8 @@ public class PlannerTest {
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
         assertThat(projection.tableName(), is("users"));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
+
+        assertThat(iterator.hasNext(), is(false));
     }
 
     @Test
@@ -1130,17 +1124,14 @@ public class PlannerTest {
         Plan plan = plan("insert into users (date, id, name) (select date, id, name from users)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode)planNode;
-        assertThat(collectNode.projections().size(), is(1));
-        assertThat(collectNode.projections().get(0), instanceOf(ColumnIndexWriterProjection.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
+        QueryAndFetchNode qafNode = (QueryAndFetchNode)planNode;
+        assertThat(qafNode.collectorProjections().size(), is(1));
+        assertThat(qafNode.collectorProjections().get(0), instanceOf(ColumnIndexWriterProjection.class));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode localMergeNode = (MergeNode)planNode;
-
-        assertThat(localMergeNode.projections().size(), is(1));
-        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(qafNode.projections().size(), is(1));
+        assertThat(qafNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertFalse(iterator.hasNext());
     }
 
     @Test
@@ -1148,10 +1139,11 @@ public class PlannerTest {
         Plan plan = plan("select avg(date), name from users group by name having min(date) > '1970-01-01'");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode)planNode;
-        assertThat(collectNode.projections().size(), is(1));
-        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
+        QueryAndFetchNode qafNode = (QueryAndFetchNode)planNode;
+        assertThat(qafNode.collectorProjections().size(), is(1));
+        assertThat(qafNode.collectorProjections().get(0), instanceOf(GroupProjection.class));
+        assertThat(qafNode.projections().size(), is(0));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -1180,7 +1172,7 @@ public class PlannerTest {
         Plan plan = plan("insert into users (id, name) (select name, count(*) from users group by name having count(*) > 3)");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -1216,10 +1208,11 @@ public class PlannerTest {
         Plan plan = plan("select id from users group by id having id > 0");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode)planNode;
-        assertThat(collectNode.projections().size(), is(1));
-        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
+        QueryAndFetchNode qafNode = (QueryAndFetchNode)planNode;
+        assertThat(qafNode.collectorProjections().size(), is(1));
+        assertThat(qafNode.collectorProjections().get(0), instanceOf(GroupProjection.class));
+        assertThat(qafNode.projections().size(), is(0));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -1242,31 +1235,29 @@ public class PlannerTest {
         Plan plan = plan("select avg(date) from users having min(date) > '1970-01-01'");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-        CollectNode collectNode = (CollectNode)planNode;
-        assertThat(collectNode.projections().size(), is(1));
-        assertThat(collectNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(planNode, instanceOf(QueryAndFetchNode.class));
+        QueryAndFetchNode qafNode = (QueryAndFetchNode)planNode;
+        assertThat(qafNode.collectorProjections().size(), is(1));
+        assertThat(qafNode.collectorProjections().get(0), instanceOf(AggregationProjection.class));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode localMergeNode = (MergeNode)planNode;
+        assertThat(qafNode.projections().size(), is(3));
+        assertThat(qafNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(qafNode.projections().get(1), instanceOf(FilterProjection.class));
+        assertThat(qafNode.projections().get(2), instanceOf(TopNProjection.class));
 
-        assertThat(localMergeNode.projections().size(), is(3));
-        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
-        assertThat(localMergeNode.projections().get(1), instanceOf(FilterProjection.class));
-        assertThat(localMergeNode.projections().get(2), instanceOf(TopNProjection.class));
-
-        AggregationProjection aggregationProjection = (AggregationProjection)localMergeNode.projections().get(0);
+        AggregationProjection aggregationProjection = (AggregationProjection)qafNode.projections().get(0);
         assertThat(aggregationProjection.aggregations().size(), is(2));
 
-        FilterProjection filterProjection = (FilterProjection)localMergeNode.projections().get(1);
+        FilterProjection filterProjection = (FilterProjection)qafNode.projections().get(1);
         assertThat(filterProjection.outputs().size(), is(1));
         assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
         InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
         assertThat(inputColumn.index(), is(0));
 
-        TopNProjection topNProjection = (TopNProjection)localMergeNode.projections().get(2);
+        TopNProjection topNProjection = (TopNProjection)qafNode.projections().get(2);
         assertThat(topNProjection.outputs().size(), is(1));
+
+        assertThat(iterator.hasNext(), is(false));
     }
 
     @Test
