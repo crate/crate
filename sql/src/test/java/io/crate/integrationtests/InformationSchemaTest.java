@@ -419,7 +419,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "columns", "table_name", ordinal++, "string"});
         assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "columns", "column_name", ordinal++, "string"});
         assertArrayEquals(response.rows()[3], new Object[]{"information_schema", "columns", "ordinal_position", ordinal++, "short"});
-        assertArrayEquals(response.rows()[4], new Object[]{"information_schema", "columns", "data_type", ordinal++, "string"});
+        assertArrayEquals(response.rows()[4], new Object[]{"information_schema", "columns", "data_type", ordinal, "string"});
     }
 
     @Test
@@ -648,7 +648,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(ordinal_position++, response.rows()[2][1]);
 
         assertEquals("title", response.rows()[3][0]);
-        assertEquals(ordinal_position++, response.rows()[3][1]);
+        assertEquals(ordinal_position, response.rows()[3][1]);
 
         execute("insert into t4 (stuff) values (?)", new Object[]{
                 new HashMap<String, Object>() {{
@@ -658,9 +658,17 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 }}
         });
         execute("refresh table t4");
-
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
+        int numRetries = 0;
+        while (response.rowCount() < 5 && numRetries < 10) {
+            // mapping still being updated - retry
+            execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
+            Thread.sleep(10 * numRetries);
+            numRetries++;
+        }
         assertEquals(5, response.rowCount());
+
+
         assertEquals("stuff", response.rows()[0][0]);
         ordinal_position = 1;
         assertEquals(ordinal_position++, response.rows()[0][1]);
@@ -676,7 +684,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
 
         assertEquals("title", response.rows()[4][0]);
-        assertEquals(ordinal_position++, response.rows()[4][1]);
+        assertEquals(ordinal_position, response.rows()[4][1]);
     }
 
     @Test
@@ -702,7 +710,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(ordinal_position++, response.rows()[2][1]);
 
         assertEquals("title", response.rows()[3][0]);
-        assertEquals(ordinal_position++, response.rows()[3][1]);
+        assertEquals(ordinal_position, response.rows()[3][1]);
 
         execute("insert into t4 (stuff) values (?)", new Object[]{
                 new HashMap<String, Object>() {{
@@ -726,7 +734,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(ordinal_position++, response.rows()[2][1]);
 
         assertEquals("title", response.rows()[3][0]);
-        assertEquals(ordinal_position++, response.rows()[3][1]);
+        assertEquals(ordinal_position, response.rows()[3][1]);
     }
 
     @Test
