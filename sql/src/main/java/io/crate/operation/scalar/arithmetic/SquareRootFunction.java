@@ -40,7 +40,7 @@ public abstract class SquareRootFunction extends Scalar<Number, Number> {
     public static final String NAME = "sqrt";
     private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()
             .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
-            .add(DataTypes.NULL)
+            .add(DataTypes.UNDEFINED)
             .build();
 
     private final FunctionInfo info;

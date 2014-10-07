@@ -152,14 +152,14 @@ public class SymbolFormatterTest {
     @Test
     public void testProcess() throws Exception {
         Function f = new Function(new FunctionInfo(
-                new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.NULL)), DataTypes.DOUBLE),
+                new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED)), DataTypes.DOUBLE),
                 Arrays.<Symbol>asList(Literal.newLiteral("bar"), Literal.newLiteral(3.4)));
         assertThat(SymbolFormatter.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo(string, null)"));
     }
 
     @Test
     public void testNull() throws Exception {
-        assertFormat(Literal.newLiteral(DataTypes.NULL, null) , "NULL");
+        assertFormat(Literal.newLiteral(DataTypes.UNDEFINED, null) , "NULL");
     }
 
     @Test

@@ -44,7 +44,7 @@ public abstract class FloorFunction extends Scalar<Number, Number> {
         module.register(new NoopFloorFunction(DataTypes.INTEGER));
         module.register(new NoopFloorFunction(DataTypes.SHORT));
         module.register(new NoopFloorFunction(DataTypes.BYTE));
-        module.register(new NoopFloorFunction(DataTypes.NULL));
+        module.register(new NoopFloorFunction(DataTypes.UNDEFINED));
     }
 
     @Override

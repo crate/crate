@@ -44,7 +44,7 @@ public abstract class RoundFunction extends Scalar<Number, Number> {
         module.register(new NoopRoundFunction(DataTypes.INTEGER));
         module.register(new NoopRoundFunction(DataTypes.SHORT));
         module.register(new NoopRoundFunction(DataTypes.BYTE));
-        module.register(new NoopRoundFunction(DataTypes.NULL));
+        module.register(new NoopRoundFunction(DataTypes.UNDEFINED));
     }
 
     @Override

@@ -169,7 +169,7 @@ public class TypeConversionTest extends RandomizedTest{
     public void selfConversionTest() throws Exception {
         for (DataType type : com.google.common.collect.Iterables.concat(
                 DataTypes.PRIMITIVE_TYPES,
-                Arrays.asList(DataTypes.NULL, DataTypes.GEO_POINT, DataTypes.OBJECT))) {
+                Arrays.asList(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.OBJECT))) {
 
             assertTrue(type.isConvertableTo(type));
 
@@ -194,10 +194,10 @@ public class TypeConversionTest extends RandomizedTest{
     public void testToNullConversions() throws Exception {
         for (DataType type : com.google.common.collect.Iterables.concat(
                 DataTypes.PRIMITIVE_TYPES,
-                Arrays.asList(DataTypes.NULL, DataTypes.GEO_POINT, DataTypes.OBJECT))) {
+                Arrays.asList(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.OBJECT))) {
 
-            assertTrue(type.isConvertableTo(DataTypes.NULL));
-            assertTrue(DataTypes.NULL.isConvertableTo(type));
+            assertTrue(type.isConvertableTo(DataTypes.UNDEFINED));
+            assertTrue(DataTypes.UNDEFINED.isConvertableTo(type));
         }
     }
 

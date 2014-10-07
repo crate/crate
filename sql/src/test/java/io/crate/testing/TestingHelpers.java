@@ -161,7 +161,7 @@ public class TestingHelpers {
     }
 
     public static void assertNullLiteral(Symbol symbol) {
-        assertLiteral(symbol, null, DataTypes.NULL);
+        assertLiteral(symbol, null, DataTypes.UNDEFINED);
     }
 
     public static void assertLiteralSymbol(Symbol symbol, Object expectedValue, DataType type) {

@@ -51,7 +51,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         MergeNode mergeNode = new MergeNode("merge1", 2);
         mergeNode.contextId(UUID.randomUUID());
         mergeNode.executionNodes(nodes);
-        mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.NULL, DataTypes.STRING));
+        mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING));
 
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(1)));
@@ -68,7 +68,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         mergeNode.projections(Arrays.asList(groupProjection, topNProjection));
-        mergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.NULL));
+        mergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED));
 
         Streamer<?>[] mapperOutputStreamer = new Streamer[] {
                 new AggregationStateStreamer(countAggregation),

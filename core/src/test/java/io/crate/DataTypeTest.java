@@ -127,6 +127,6 @@ public class DataTypeTest {
     public void testForValueWithEmptyList() {
         List<Object> objects = Arrays.<Object>asList();
         DataType type = DataTypes.guessType(objects);
-        assertEquals(type, new ArrayType(DataTypes.NULL));
+        assertEquals(type, new ArrayType(DataTypes.UNDEFINED));
     }
 }

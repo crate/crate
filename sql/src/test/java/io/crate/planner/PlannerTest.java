@@ -232,7 +232,7 @@ public class PlannerTest {
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectNode.outputTypes().size(), is(2));
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
-        assertEquals(DataTypes.NULL, collectNode.outputTypes().get(1));
+        assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -391,7 +391,7 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(CollectNode.class));
         CollectNode collectNode = (CollectNode) planNode;
 
-        assertEquals(DataTypes.NULL, collectNode.outputTypes().get(0));
+        assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(0));
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectNode.projections().size(), is(1));
         assertThat(collectNode.projections().get(0), instanceOf(AggregationProjection.class));
@@ -400,7 +400,7 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(MergeNode.class));
         MergeNode mergeNode = (MergeNode) planNode;
 
-        assertEquals(DataTypes.NULL, mergeNode.inputTypes().get(0));
+        assertEquals(DataTypes.UNDEFINED, mergeNode.inputTypes().get(0));
         assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
 
         PlanPrinter pp = new PlanPrinter();
@@ -418,7 +418,7 @@ public class PlannerTest {
         CollectNode collectNode = (CollectNode) iterator.next();
         assertFalse(collectNode.hasDownstreams());
         assertEquals(DataTypes.STRING, collectNode.outputTypes().get(0));
-        assertEquals(DataTypes.NULL, collectNode.outputTypes().get(1));
+        assertEquals(DataTypes.UNDEFINED, collectNode.outputTypes().get(1));
 
         MergeNode mergeNode = (MergeNode) iterator.next();
         assertThat(mergeNode.numUpstreams(), is(2));

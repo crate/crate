@@ -44,7 +44,7 @@ public abstract class CeilFunction extends Scalar<Number, Number> {
         module.register(new NoopCeilFunction(DataTypes.INTEGER));
         module.register(new NoopCeilFunction(DataTypes.SHORT));
         module.register(new NoopCeilFunction(DataTypes.BYTE));
-        module.register(new NoopCeilFunction(DataTypes.NULL));
+        module.register(new NoopCeilFunction(DataTypes.UNDEFINED));
     }
 
     @Override

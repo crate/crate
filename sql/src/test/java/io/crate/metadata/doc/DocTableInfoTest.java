@@ -43,7 +43,7 @@ public class DocTableInfoTest {
         assertNull(foobar);
         DynamicReference reference = info.getDynamic(new ColumnIdent("foobar"));
         assertNotNull(reference);
-        assertSame(reference.valueType(), DataTypes.NULL);
+        assertSame(reference.valueType(), DataTypes.UNDEFINED);
     }
 
     @Test

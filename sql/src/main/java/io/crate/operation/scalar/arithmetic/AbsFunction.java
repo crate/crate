@@ -41,7 +41,7 @@ public class AbsFunction extends Scalar<Number, Number> {
     public static final String NAME = "abs";
     private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()
             .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
-            .add(DataTypes.NULL)
+            .add(DataTypes.UNDEFINED)
             .build();
 
     public static void register(ScalarFunctionModule module) {

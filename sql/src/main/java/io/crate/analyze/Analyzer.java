@@ -92,7 +92,7 @@ public class Analyzer {
                     DataType expectedType = bulkTypes[i];
                     DataType guessedType = guessTypeSafe(o);
 
-                    if (expectedType == DataTypes.NULL) {
+                    if (expectedType == DataTypes.UNDEFINED) {
                         bulkTypes[i] = guessedType;
                     } else if (o != null && !bulkTypes[i].equals(guessedType)) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,

@@ -102,7 +102,7 @@ public class CmpOperatorTest {
     public void testNormalizeSymbolWithNull() throws Exception {
         Literal literal = (Literal)normalize(op_gt_string, Literal.NULL, Literal.newLiteral("aa"));
         assertNull(literal.value());
-        assertEquals(DataTypes.NULL, literal.valueType());
+        assertEquals(DataTypes.UNDEFINED, literal.valueType());
     }
 
     @Test

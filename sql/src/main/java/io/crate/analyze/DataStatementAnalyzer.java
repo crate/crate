@@ -115,7 +115,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     protected Symbol visitInPredicate(InPredicate node, T context) {
         Symbol left = process(node.getValue(), context);
         DataType leftType = DataTypeVisitor.fromSymbol(left);
-        if (leftType.equals(DataTypes.NULL)) {
+        if (leftType.equals(DataTypes.UNDEFINED)) {
             // dynamic or null values cannot be queried, in scalar use-cases (system tables)
             // we currently have no dynamics
             return Literal.NULL;
@@ -225,7 +225,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         insideNotPredicate = false;
         if (argument instanceof DataTypeSymbol) {
             DataType dataType = ((DataTypeSymbol) argument).valueType();
-            if (!dataType.equals(DataTypes.BOOLEAN) && !dataType.equals(DataTypes.NULL)) {
+            if (!dataType.equals(DataTypes.BOOLEAN) && !dataType.equals(DataTypes.UNDEFINED)) {
                 throw new IllegalArgumentException(String.format(
                     "Invalid argument of type \"%s\" passed to %s predicate. Argument must resolve to boolean or null",
                     dataType,
@@ -403,7 +403,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         // catch null types, might be null or dynamic reference, which are both not supported
-       if (expressionType.equals(DataTypes.NULL)) {
+       if (expressionType.equals(DataTypes.UNDEFINED)) {
            return Literal.NULL;
        }
 

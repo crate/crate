@@ -59,7 +59,7 @@ public class EqOperatorTest {
                 op.info(), Arrays.<Symbol>asList(Literal.NULL, Literal.NULL));
         Literal result = (Literal)op.normalizeSymbol(function);
         assertNull(result.value());
-        assertEquals(DataTypes.NULL, result.valueType());
+        assertEquals(DataTypes.UNDEFINED, result.valueType());
     }
 
     @Test
@@ -69,7 +69,7 @@ public class EqOperatorTest {
                 op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.NULL));
         Literal result = (Literal)op.normalizeSymbol(function);
         assertNull(result.value());
-        assertEquals(DataTypes.NULL, result.valueType());
+        assertEquals(DataTypes.UNDEFINED, result.valueType());
     }
 
     @Test

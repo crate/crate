@@ -34,7 +34,7 @@ import java.util.*;
 
 public class DataTypes {
 
-    public final static UndefinedType NULL = UndefinedType.INSTANCE;
+    public final static UndefinedType UNDEFINED = UndefinedType.INSTANCE;
     public final static NotSupportedType NOT_SUPPORTED = NotSupportedType.INSTANCE;
 
     public final static ByteType BYTE = ByteType.INSTANCE;
@@ -78,7 +78,7 @@ public class DataTypes {
     );
 
     public static final ImmutableMap<Integer, DataTypeFactory> typeRegistry = ImmutableMap.<Integer, DataTypeFactory>builder()
-        .put(UndefinedType.ID, NULL)
+        .put(UndefinedType.ID, UNDEFINED)
         .put(NotSupportedType.ID, NOT_SUPPORTED)
         .put(ByteType.ID, BYTE)
         .put(BooleanType.ID, BOOLEAN)
@@ -118,7 +118,7 @@ public class DataTypes {
 
     private static final Set<DataType> NUMBER_CONVERSIONS = ImmutableSet.<DataType>builder()
             .addAll(NUMERIC_PRIMITIVE_TYPES)
-            .add(STRING, TIMESTAMP, IP, NULL)
+            .add(STRING, TIMESTAMP, IP, UNDEFINED)
             .build();
     // allowed conversion from key to one of the value types
     // the key type itself does not need to be in the value set
@@ -129,14 +129,14 @@ public class DataTypes {
             .put(LONG.id(), NUMBER_CONVERSIONS)
             .put(FLOAT.id(), NUMBER_CONVERSIONS)
             .put(DOUBLE.id(), NUMBER_CONVERSIONS)
-            .put(BOOLEAN.id(), ImmutableSet.<DataType>of(STRING, NULL))
+            .put(BOOLEAN.id(), ImmutableSet.<DataType>of(STRING, UNDEFINED))
             .put(STRING.id(), NUMBER_CONVERSIONS)
-            .put(IP.id(), ImmutableSet.<DataType>of(STRING, NULL))
-            .put(TIMESTAMP.id(), ImmutableSet.<DataType>of(LONG, NULL))
-            .put(NULL.id(), ImmutableSet.<DataType>of()) // actually convertible to every type, see NullType
-            .put(NOT_SUPPORTED.id(), ImmutableSet.<DataType>of(NULL))
-            .put(GEO_POINT.id(), ImmutableSet.<DataType>of(new ArrayType(DOUBLE), NULL))
-            .put(OBJECT.id(), ImmutableSet.<DataType>of(NULL))
+            .put(IP.id(), ImmutableSet.<DataType>of(STRING, UNDEFINED))
+            .put(TIMESTAMP.id(), ImmutableSet.<DataType>of(LONG, UNDEFINED))
+            .put(UNDEFINED.id(), ImmutableSet.<DataType>of()) // actually convertible to every type, see NullType
+            .put(NOT_SUPPORTED.id(), ImmutableSet.<DataType>of(UNDEFINED))
+            .put(GEO_POINT.id(), ImmutableSet.<DataType>of(new ArrayType(DOUBLE), UNDEFINED))
+            .put(OBJECT.id(), ImmutableSet.<DataType>of(UNDEFINED))
             .put(ArrayType.ID, ImmutableSet.<DataType>of()) // convertability handled in ArrayType
             .put(SetType.ID, ImmutableSet.<DataType>of()) // convertability handled in SetType
             .build();
@@ -177,7 +177,7 @@ public class DataTypes {
 
     public static DataType<?> guessType(Object value, boolean strict) {
         if (value == null) {
-            return NULL;
+            return UNDEFINED;
         } else if (value instanceof Map) {
             return OBJECT;
         } else if (value instanceof List) {
@@ -199,7 +199,7 @@ public class DataTypes {
     private static DataType valueFromList(List<Object> value, boolean strict) {
         List<DataType> innerTypes = new ArrayList<>(value.size());
         if (value.isEmpty()) {
-            return new ArrayType(NULL);
+            return new ArrayType(UNDEFINED);
         }
         DataType previous = null;
         DataType current = null;
@@ -216,14 +216,14 @@ public class DataTypes {
         }
 
         if (innerTypes.size() > 0 && current == null) {
-            return new ArrayType(NULL);
+            return new ArrayType(UNDEFINED);
         } else {
             return new ArrayType(current);
         }
     }
 
     private static final ImmutableMap<String, DataType> staticTypesNameMap = ImmutableMap.<String, DataType>builder()
-            .put(NULL.getName(), NULL)
+            .put(UNDEFINED.getName(), UNDEFINED)
             .put(BYTE.getName(), BYTE)
             .put(BOOLEAN.getName(), BOOLEAN)
             .put(STRING.getName(), STRING)

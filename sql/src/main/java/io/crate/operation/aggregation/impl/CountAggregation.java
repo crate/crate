@@ -134,7 +134,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
 
         if (function.arguments().size() == 1) {
             if (function.arguments().get(0).symbolType().isValueSymbol()) {
-                if (((Literal)function.arguments().get(0)).valueType() == DataTypes.NULL) {
+                if (((Literal)function.arguments().get(0)).valueType() == DataTypes.UNDEFINED) {
                     return Literal.newLiteral(0L);
                 } else{
                     return new Function(COUNT_STAR_FUNCTION, ImmutableList.<Symbol>of());

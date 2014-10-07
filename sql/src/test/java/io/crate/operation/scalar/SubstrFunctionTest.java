@@ -125,21 +125,21 @@ public class SubstrFunctionTest {
     public void testNullLiteralFrom() throws Exception {
         Function function = substr("cratedata", Literal.NULL);
         Symbol result = funcA.normalizeSymbol(function);
-        assertLiteralSymbol(result, null, DataTypes.NULL);
+        assertLiteralSymbol(result, null, DataTypes.UNDEFINED);
     }
 
     @Test
     public void testNullLiteralCount() throws Exception {
         Function function = substr("cratedata", Literal.newLiteral(1), Literal.NULL);
         Symbol result = funcB.normalizeSymbol(function);
-        assertLiteralSymbol(result, null, DataTypes.NULL);
+        assertLiteralSymbol(result, null, DataTypes.UNDEFINED);
     }
 
     @Test
     public void testNullLiteralFromCount() throws Exception {
         Function function = substr("cratedata", Literal.NULL, Literal.NULL);
         Symbol result = funcB.normalizeSymbol(function);
-        assertLiteralSymbol(result, null, DataTypes.NULL);
+        assertLiteralSymbol(result, null, DataTypes.UNDEFINED);
     }
 
     @Test

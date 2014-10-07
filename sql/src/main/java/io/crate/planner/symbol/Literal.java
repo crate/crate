@@ -21,7 +21,7 @@ public class Literal<ReturnType>
     protected Object value;
     protected DataType type;
 
-    public final static Literal<Void> NULL = new Literal<>(DataTypes.NULL, null);
+    public final static Literal<Void> NULL = new Literal<>(DataTypes.UNDEFINED, null);
     public final static Literal<BytesRef> EMPTY_STRING = new Literal<>(DataTypes.STRING, new BytesRef());
     private final static Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
     private final static Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);

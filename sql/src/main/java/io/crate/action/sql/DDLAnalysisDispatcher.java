@@ -184,7 +184,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                 ImmutableList.<Symbol>of(),
                 Arrays.<Projection>asList(new AggregationProjection(ImmutableList.of(countAggregationPartial))));
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.outputTypes(ImmutableList.<DataType>of(DataTypes.NULL));
+        collectNode.outputTypes(ImmutableList.<DataType>of(DataTypes.UNDEFINED));
         MergeNode mergeNode = new MergeNode("local count merge", collectNode.executionNodes().size());
         mergeNode.projections(ImmutableList.<Projection>of(new AggregationProjection(ImmutableList.of(countAggregationFinal))));
         Plan plan = new Plan();

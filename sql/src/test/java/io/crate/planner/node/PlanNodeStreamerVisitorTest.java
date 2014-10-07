@@ -92,7 +92,7 @@ public class PlanNodeStreamerVisitorTest {
         collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, DataTypes.OBJECT));
         PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode);
         // assume an unknown column
-        assertEquals(DataTypes.NULL.streamer(), ctx.outputStreamers()[1]);
+        assertEquals(DataTypes.UNDEFINED.streamer(), ctx.outputStreamers()[1]);
     }
 
     @Test
@@ -136,7 +136,7 @@ public class PlanNodeStreamerVisitorTest {
     @Test
     public void testGetInputStreamersForMergeNodeWithAggregations() throws Exception {
         MergeNode mergeNode = new MergeNode("mörtsch", 2);
-        mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.NULL, DataTypes.TIMESTAMP));
+        mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.TIMESTAMP));
         AggregationProjection aggregationProjection = new AggregationProjection();
         aggregationProjection.aggregations(Arrays.asList(
                 new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
@@ -167,7 +167,7 @@ public class PlanNodeStreamerVisitorTest {
          */
 
         MergeNode mergeNode = new MergeNode("mörtsch", 2);
-        mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.NULL));
+        mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED));
         GroupProjection groupProjection = new GroupProjection(
                 Arrays.<Symbol>asList(Literal.newLiteral("key")),
                 Arrays.asList(new Aggregation(

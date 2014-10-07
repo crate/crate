@@ -41,7 +41,7 @@ public abstract class LogFunction extends Scalar<Number,Number> {
     public static final String NAME = "log";
     private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()
             .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
-            .add(DataTypes.NULL)
+            .add(DataTypes.UNDEFINED)
             .build();
 
     protected final FunctionInfo info;

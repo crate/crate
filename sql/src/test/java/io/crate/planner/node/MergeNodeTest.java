@@ -53,7 +53,7 @@ public class MergeNodeTest {
         MergeNode node = new MergeNode("merge", 2);
         node.contextId(UUID.randomUUID());
         node.executionNodes(Sets.newHashSet("node1", "node2"));
-        node.inputTypes(Arrays.<DataType>asList(DataTypes.NULL, DataTypes.STRING));
+        node.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING));
 
         Reference nameRef = TestingHelpers.createReference("name", DataTypes.STRING);
         GroupProjection groupProjection = new GroupProjection();

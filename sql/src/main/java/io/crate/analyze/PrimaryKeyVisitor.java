@@ -143,7 +143,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
                 } else if (table.primaryKey().size() == 1) {
                     Set<Literal> keys = new HashSet<>();
-                    DataType keyType = DataTypes.NULL;
+                    DataType keyType = DataTypes.UNDEFINED;
                     for (KeyBucket bucket : buckets) {
                         Literal keyPart = bucket.keyParts[0];
                         if (keyPart != null) {
