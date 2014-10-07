@@ -1668,7 +1668,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.version.created\":\"1030299\"" +
+                "\"index.version.created\":\"1030499\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -1695,7 +1695,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"0\"," +
-                "\"index.version.created\":\"1030299\"" +
+                "\"index.version.created\":\"1030499\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
 
@@ -1705,7 +1705,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"5000\"," +
-                "\"index.version.created\":\"1030299\"" +
+                "\"index.version.created\":\"1030499\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedSetSettings, getIndexSettings("test"), false);
 
@@ -1715,7 +1715,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.refresh_interval\":\"1000\"," +
-                "\"index.version.created\":\"1030299\"" +
+                "\"index.version.created\":\"1030499\"" +
                 "}}}";
         JSONAssert.assertEquals(expectedResetSettings, getIndexSettings("test"), false);
     }
@@ -1825,7 +1825,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"2\"," +
                 "\"index.number_of_shards\":\"10\"," +
-                "\"index.version.created\":\"1030299\"" +
+                "\"index.version.created\":\"1030499\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -1984,6 +1984,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectMatch() throws Exception {
         execute("create table quotes (quote string)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2192,6 +2193,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSelectMatchAnd() throws Exception {
         execute("create table quotes (id int, quote string, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='english'))");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 

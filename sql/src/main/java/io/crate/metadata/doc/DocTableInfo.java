@@ -208,7 +208,7 @@ public class DocTableInfo implements TableInfo {
             return new Routing();
         }
         ShardRouting shardRouting;
-        for (ShardIterator shardIterator : shardIterators.iterators()) {
+        for (ShardIterator shardIterator : shardIterators) {
             shardRouting = shardIterator.nextOrNull();
             if (shardRouting != null && shardRouting.active()) {
                 processShardRouting(locations, shardRouting);

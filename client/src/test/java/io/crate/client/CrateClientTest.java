@@ -68,6 +68,7 @@ public class CrateClientTest extends CrateIntegrationTest {
             .setSource("{}")
             .execute()
             .actionGet();
+        ensureGreen();
 
         SQLResponse r = client.sql("select \"_id\" from test").actionGet();
 
@@ -91,7 +92,7 @@ public class CrateClientTest extends CrateIntegrationTest {
                 .setSource("{}")
                 .execute()
                 .actionGet();
-
+        ensureGreen();
         // In practice use ActionListener onResponse and onFailure to create a Promise instead
         final SettableFuture<Boolean> future = SettableFuture.create();
         final AtomicReference<Throwable> assertionError = new AtomicReference<>();
@@ -135,7 +136,7 @@ public class CrateClientTest extends CrateIntegrationTest {
             .setSource("{}")
             .execute()
             .actionGet();
-
+        ensureGreen();
         SQLRequest request =  new SQLRequest("select \"_id\" from test");
         request.includeTypesOnResponse(true);
         SQLResponse r = client.sql(request).actionGet();

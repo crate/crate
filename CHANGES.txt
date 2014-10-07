@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - upgraded ES upstream to v1.3.4
+
 2014/10/04 0.44.4
 =================
 

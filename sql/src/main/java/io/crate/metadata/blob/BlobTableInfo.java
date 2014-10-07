@@ -145,7 +145,7 @@ public class BlobTableInfo implements TableInfo {
                 null // preference
         );
         ShardRouting shardRouting;
-        for (ShardIterator shardIterator : shardIterators.iterators()) {
+        for (ShardIterator shardIterator : shardIterators) {
             shardRouting = shardIterator.nextOrNull();
             processShardRouting(locations, shardRouting, shardIterator.shardId());
         }

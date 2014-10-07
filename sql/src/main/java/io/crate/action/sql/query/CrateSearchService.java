@@ -125,7 +125,7 @@ public class CrateSearchService extends InternalSearchService {
         } catch (Throwable e) {
             context.indexShard().searchService().onFailedQueryPhase(context);
             logger.trace("Query phase failed", e);
-            freeContext(context);
+            freeContext(context.id());
             throw ExceptionsHelper.convertToRuntime(e);
         } finally {
             cleanContext(context);
@@ -142,7 +142,7 @@ public class CrateSearchService extends InternalSearchService {
             return context;
         } finally {
             if (!success) {
-                freeContext(context);
+                freeContext(context.id());
             }
         }
     }
