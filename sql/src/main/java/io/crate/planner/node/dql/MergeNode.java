@@ -37,7 +37,6 @@ import java.util.*;
  */
 public class MergeNode extends AbstractDQLPlanNode {
 
-    private List<DataType> inputTypes;
     private int numUpstreams;
     private Set<String> executionNodes;
     private UUID contextId;
@@ -80,14 +79,6 @@ public class MergeNode extends AbstractDQLPlanNode {
         this.numUpstreams = numUpstreams;
     }
 
-    public List<DataType> inputTypes() {
-        return inputTypes;
-    }
-
-    public void inputTypes(List<DataType> inputTypes) {
-        this.inputTypes = inputTypes;
-    }
-
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitMergeNode(this, context);
@@ -102,10 +93,11 @@ public class MergeNode extends AbstractDQLPlanNode {
 
         int numCols = in.readVInt();
         if (numCols > 0) {
-            inputTypes = new ArrayList<>(numCols);
+            List<DataType> inputTypes = new ArrayList<>(numCols);
             for (int i = 0; i < numCols; i++) {
                 inputTypes.add(DataTypes.fromStream(in));
             }
+            inputTypes(inputTypes);
         }
         int numExecutionNodes = in.readVInt();
 
@@ -125,9 +117,9 @@ public class MergeNode extends AbstractDQLPlanNode {
         out.writeLong(contextId.getMostSignificantBits());
         out.writeLong(contextId.getLeastSignificantBits());
 
-        int numCols = inputTypes.size();
+        int numCols = inputTypes().size();
         out.writeVInt(numCols);
-        for (DataType inputType : inputTypes) {
+        for (DataType inputType : inputTypes()) {
             DataTypes.toStream(inputType, out);
         }
 
@@ -150,7 +142,7 @@ public class MergeNode extends AbstractDQLPlanNode {
                 .add("contextId", contextId)
                 .add("numUpstreams", numUpstreams)
                 .add("executionNodes", executionNodes)
-                .add("inputTypes", inputTypes)
+                .add("inputTypes", inputTypes())
                 .toString();
     }
 }
