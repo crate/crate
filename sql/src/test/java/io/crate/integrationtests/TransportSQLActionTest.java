@@ -244,19 +244,26 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
 
     @Test
-    public void testSelectNestedColumns() throws Exception {
+    public void testSelectDynamicObjectNewColumns() throws Exception {
 
-        execute("create table test (message string, person object) with (number_of_replicas=0)");
+        execute("create table test (message string, person object(dynamic)) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into test (message, person) values ('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
         refresh();
 
-        execute("select message, person['name'], person['addresses']['city'] from test " +
-                "where person['name'] = 'Youri'");
-
+        // check that new columns in dynamic objects show up eventually
+        long rowCount = 0L;
+        int retries = 3;
+        while (rowCount == 0L && retries > 0) {
+            execute("select message, person['name'], person['addresses']['city'] from test " +
+                    "where person['name'] = 'Youri'");
+            rowCount = response.rowCount();
+            retries--;
+            Thread.sleep(10);
+        }
+        assertEquals(1L, rowCount);
         assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
                 response.cols());
-        assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{"I'm addicted to kite", "Youri",
                         new ArrayList<String>() {{
                             add("Dirksland");

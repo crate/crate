@@ -29,7 +29,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -54,10 +53,6 @@ public class PingTaskTest {
     private ClusterService clusterService;
     private HttpServerTransport httpServerTransport;
     private ClusterIdService clusterIdService;
-
-    static {
-        Loggers.getLogger(PingTask.class).setLevel("TRACE");
-    }
 
     @Before
     public void setUp() throws Exception {
