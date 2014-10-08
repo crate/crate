@@ -62,7 +62,7 @@ public class Aggregation extends Symbol {
     private Step toStep;
 
     public Aggregation(FunctionInfo functionInfo, List<Symbol> inputs, Step fromStep, Step toStep) {
-        Preconditions.checkNotNull(inputs, "%s: inputs are null", getClass().getName());
+        Preconditions.checkNotNull(inputs, "inputs are null");
         this.functionInfo = functionInfo;
         this.inputs = inputs;
         this.fromStep = fromStep;

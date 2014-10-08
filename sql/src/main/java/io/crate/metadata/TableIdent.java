@@ -54,7 +54,7 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
     }
 
     public TableIdent(String schema, String name) {
-        Preconditions.checkNotNull(name, "%s: table name is null", getClass().getName());
+        Preconditions.checkNotNull(name, "table name is null");
         this.schema = schema;
         this.name = name;
     }
