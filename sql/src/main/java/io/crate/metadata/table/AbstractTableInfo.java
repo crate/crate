@@ -5,8 +5,6 @@ import io.crate.PartitionName;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.relation.AnalyzedRelation;
-import io.crate.metadata.relation.RelationVisitor;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
@@ -77,38 +75,5 @@ public abstract class AbstractTableInfo implements TableInfo {
     @Override
     public List<ColumnIdent> partitionedBy() {
         return ImmutableList.of();
-    }
-
-    @Override
-    public List<AnalyzedRelation> children() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public int numRelations() {
-        return 1;
-    }
-
-    @Override
-    public List<TableInfo> tables() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context) {
-        return relationVisitor.visitTableInfo(this, context);
-    }
-
-    @Override
-    public boolean addressedBy(String relationName) {
-        return ident().name().equals(relationName);
-    }
-
-    @Override
-    public boolean addressedBy(@Nullable String schemaName, String tableName) {
-        if (schemaName != null) {
-            return schemaName.equals(schemaInfo().name()) && addressedBy(tableName);
-        }
-        return addressedBy(tableName);
     }
 }

@@ -23,10 +23,8 @@ package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.relation.AnalyzedRelation;
-import io.crate.metadata.relation.RelationVisitor;
 import io.crate.analyze.where.WhereClause;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -235,41 +233,6 @@ public class BlobTableInfo implements TableInfo {
 
     public BytesRef blobsPath() {
         return blobsPath;
-    }
-
-    // AnalyzedRelation stuff
-
-    @Override
-    public List<AnalyzedRelation> children() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public int numRelations() {
-        return 1;
-    }
-
-    @Override
-    public List<TableInfo> tables() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context) {
-        return relationVisitor.visitTableInfo(this, context);
-    }
-
-    @Override
-    public boolean addressedBy(String relationName) {
-        return ident.name().equals(relationName);
-    }
-
-    @Override
-    public boolean addressedBy(@Nullable String schemaName, String tableName) {
-        if (schemaName == null) {
-            return addressedBy(tableName);
-        }
-        return schemaName.equals(blobSchemaInfo.name()) && addressedBy(tableName);
     }
 
     @Override

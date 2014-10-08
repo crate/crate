@@ -23,12 +23,14 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.where.PartitionResolver;
 import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
@@ -63,6 +65,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
     protected final ReferenceInfos referenceInfos;
     protected final Functions functions;
     protected final ReferenceResolver referenceResolver;
+    private final PartitionResolver partitionResolver;
     protected TableInfo table;
     protected final List<String> ids = new ArrayList<>();
     protected final List<String> routingValues = new ArrayList<>();
@@ -72,7 +75,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     protected List<Symbol> outputSymbols = ImmutableList.of();
 
-    protected WhereClause whereClause = WhereClause.MATCH_ALL;
+    private WhereClause whereClause = WhereClause.MATCH_ALL;
     protected RowGranularity rowGranularity;
 
     protected boolean onlyScalarsAllowed;
@@ -84,6 +87,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
                                 Analyzer.ParameterContext parameterContext,
                                 ReferenceResolver referenceResolver) {
         super(parameterContext);
+        this.partitionResolver = new PartitionResolver(referenceResolver, functions);
         this.allocationContext = new AllocationContext(referenceInfos);
         this.referenceInfos = referenceInfos;
         this.functions = functions;
@@ -131,7 +135,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
                     String.format("aliases are read only cannot modify \"%s\"", tableIdent.name()));
         }
         table = tableInfo;
-        allocationContext().currentRelation = table;
+        allocationContext().currentRelation = new TableRelation(table, partitionResolver);
         updateRowGranularity(table.rowGranularity());
     }
 
@@ -146,6 +150,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * returns true for a parent column of this one.
      * returns false if info has no parent column.
      */
+    @Deprecated
     protected boolean hasMatchingParent(ReferenceInfo info,
                               Predicate<ReferenceInfo> parentMatchPredicate) {
         ColumnIdent parent = info.ident().columnIdent().getParent();
@@ -161,14 +166,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     public FunctionInfo getFunctionInfo(FunctionIdent ident) {
         return functions.getSafe(ident).info();
-    }
-
-    public FunctionImplementation getFunctionImplementation(FunctionIdent ident) {
-        return functions.getSafe(ident);
-    }
-
-    public Collection<Reference> references() {
-        return allocationContext.allocatedReferences.values();
     }
 
     public Collection<Function> functions() {
@@ -194,6 +191,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
     /**
      * Indicates that the statement will not match, so that there is no need to execute it
      */
+    @Deprecated
     public boolean noMatch() {
         return whereClause().noMatch();
     }
@@ -202,11 +200,13 @@ public abstract class AbstractDataAnalysis extends Analysis {
         return false;
     }
 
+    @Deprecated
     public WhereClause whereClause(WhereClause whereClause) {
         this.whereClause = whereClause;
         return this.whereClause;
     }
 
+    @Deprecated
     public WhereClause whereClause() {
         return whereClause;
     }
@@ -413,10 +413,12 @@ public abstract class AbstractDataAnalysis extends Analysis {
     /**
      * Compute an id and adds it, also add routing value
      */
+    @Deprecated
     public void addIdAndRouting(List<BytesRef> primaryKeyValues, String clusteredByValue) {
         addIdAndRouting(false, primaryKeyValues, clusteredByValue);
     }
 
+    @Deprecated
     protected void addIdAndRouting(Boolean create, List<BytesRef> primaryKeyValues, String clusteredByValue) {
 
         ColumnIdent clusteredBy = table().clusteredBy();
@@ -433,10 +435,12 @@ public abstract class AbstractDataAnalysis extends Analysis {
         }
     }
 
+    @Deprecated
     public List<String> ids() {
         return ids;
     }
 
+    @Deprecated
     public List<String> routingValues() {
         return routingValues;
     }
@@ -448,5 +452,9 @@ public abstract class AbstractDataAnalysis extends Analysis {
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
         return analysisVisitor.visitDataAnalysis(this, context);
+    }
+
+    public PartitionResolver partitionResolver() {
+        return partitionResolver;
     }
 }

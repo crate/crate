@@ -7,13 +7,14 @@ import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.SelectAnalysis;
-import io.crate.analyze.where.WhereClause;
+import io.crate.analyze.where.PartitionResolver;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.relation.AnalyzedQuerySpecification;
 import io.crate.metadata.relation.JoinRelation;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -1279,11 +1280,12 @@ public class PlannerTest {
     @Test
     public void testVisitSelectUnsupportedSourceRelation() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("sourceRelation must be of type TableInfo");
+        expectedException.expectMessage("sourceRelation must be of type TableRelation");
 
         AnalyzedQuerySpecification querySpec = new AnalyzedQuerySpecification(ImmutableList.<Symbol>of(),
-                new JoinRelation(JoinRelation.Type.CROSS_JOIN, userTableInfo, charactersTableInfo),
-                WhereClause.MATCH_ALL,
+                new JoinRelation(JoinRelation.Type.CROSS_JOIN,
+                        new TableRelation(userTableInfo, mock(PartitionResolver.class)),
+                        new TableRelation(charactersTableInfo, mock(PartitionResolver.class))),
                 null, null, null, 100, 0);
         SelectAnalysis analysis = new SelectAnalysis(
                 referenceInfos,
@@ -1297,13 +1299,15 @@ public class PlannerTest {
     @Test
     public void testVisitSelectGroupByUnsupportedSourceRelation() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("sourceRelation must be of type TableInfo");
+        expectedException.expectMessage("sourceRelation must be of type TableRelation");
 
         Reference groupBy = TestingHelpers.createReference("users",
                 new ColumnIdent("id"), DataTypes.LONG);
         AnalyzedQuerySpecification querySpec = new AnalyzedQuerySpecification(ImmutableList.<Symbol>of(),
-                new JoinRelation(JoinRelation.Type.CROSS_JOIN, userTableInfo, charactersTableInfo),
-                WhereClause.MATCH_ALL, Arrays.<Symbol>asList(groupBy), null, null, 100, 0);
+                new JoinRelation(JoinRelation.Type.CROSS_JOIN,
+                        new TableRelation(userTableInfo, mock(PartitionResolver.class)),
+                        new TableRelation(charactersTableInfo, mock(PartitionResolver.class))),
+                Arrays.<Symbol>asList(groupBy), null, null, 100, 0);
 
         SelectAnalysis analysis = new SelectAnalysis(
                 referenceInfos,
