@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
@@ -245,17 +246,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectNestedColumns() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "message", "type=string",
-                        "person", "type=object")
-                .execute().actionGet();
+
+        execute("create table test (message string, person object) with (number_of_replicas=0)");
         ensureGreen();
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
-                .setSource("{\"message\":\"I'm addicted to kite\", " +
-                        "\"person\": { \"name\": \"Youri\", \"addresses\": [ { \"city\": " +
-                        "\"Dirksland\", \"country\": \"NL\" } ] }}")
-                .execute().actionGet();
+        execute("insert into test (message, person) values ('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
         refresh();
 
         execute("select message, person['name'], person['addresses']['city'] from test " +
@@ -1997,6 +1991,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectMatch() throws Exception {
         execute("create table quotes (quote string)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2006,6 +2001,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote from quotes where match(quote, ?)", new Object[]{"don't panic"});
         assertEquals(1L, response.rowCount());
         assertEquals("don't panic", response.rows()[0][0]);
+
     }
 
     @Test
