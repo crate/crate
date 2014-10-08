@@ -86,8 +86,8 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                                               TransportService transportService,
                                               Streamer<?>[] streamers) {
             super(numShards, resultProvider);
-            Preconditions.checkNotNull(downStreams);
-            Preconditions.checkNotNull(jobId);
+            Preconditions.checkNotNull(downStreams, "%s: downstream nodes is null", getClass().getName());
+            Preconditions.checkNotNull(jobId, "%s: jobId is null", getClass().getName());
             this.jobId = jobId;
             this.transportService = transportService;
             this.downStreams = downStreams;
