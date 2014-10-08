@@ -23,12 +23,14 @@ package io.crate.analyze;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.SQLParseException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.relation.AliasedAnalyzedRelation;
 import io.crate.metadata.relation.AnalyzedQuerySpecification;
 import io.crate.metadata.relation.AnalyzedRelation;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
@@ -80,13 +82,13 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     @Override
     protected Symbol visitAllColumns(AllColumns node, SelectAnalysis context) {
-        Symbol symbol;
         for (ReferenceInfo referenceInfo : context.table().columns()) {
             // ignore NOT_SUPPORTED columns
             if (referenceInfo.type() != DataTypes.NOT_SUPPORTED) {
-                symbol = context.allocationContext().allocateReference(referenceInfo);
-                context.outputSymbols().add(symbol);
-                context.addAlias(referenceInfo.ident().columnIdent().name(), symbol);
+                Reference ref = new Reference(referenceInfo);
+                context.allocationContext().allocatedReferences.put(ref.info(), ref);
+                context.outputSymbols().add(ref);
+                context.addAlias(referenceInfo.ident().columnIdent().name(), ref);
             }
         }
 
@@ -130,16 +132,23 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         AnalyzedRelation analyzedRelation = relationSymbol.relation();
 
         // TODO: remove context.table
-        if (analyzedRelation instanceof TableInfo) {
-            context.table = (TableInfo) analyzedRelation;
+        if (analyzedRelation instanceof TableRelation) {
+            context.table = ((TableRelation) analyzedRelation).tableInfo();
         } else if (analyzedRelation instanceof AliasedAnalyzedRelation) {
-            context.table = (TableInfo) analyzedRelation.children().get(0);
+            AnalyzedRelation child = analyzedRelation.children().get(0);
+            if (child instanceof TableRelation) {
+                context.table = ((TableRelation) child).tableInfo();
+            }
         }
-
         Integer limit = intFromOptionalExpression(node.getLimit(), context.parameters());
         Integer offset = intFromOptionalExpression(node.getOffset(), context.parameters());
 
-        context.whereClause(generateWhereClause(node.getWhere(), context));
+        if (node.getWhere().isPresent()) {
+            Symbol query = process(node.getWhere().get(), context);
+            analyzedRelation.whereClause(new WhereClause(context.normalizer.normalize(query)));
+        } else {
+            analyzedRelation.whereClause(WhereClause.MATCH_ALL);
+        }
 
         if (!node.getGroupBy().isEmpty()) {
             context.selectFromFieldCache = true;
@@ -184,7 +193,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         AnalyzedQuerySpecification relation = new AnalyzedQuerySpecification(
                 context.outputSymbols(),
                 analyzedRelation,
-                context.whereClause(),
                 context.groupBy(),
                 having,
                 context.sortSymbols(),

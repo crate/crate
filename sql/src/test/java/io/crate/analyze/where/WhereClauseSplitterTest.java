@@ -24,6 +24,7 @@ package io.crate.analyze.where;
 import io.crate.metadata.*;
 import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.metadata.relation.JoinRelation;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.RowGranularity;
@@ -42,25 +43,26 @@ import static io.crate.testing.TestingHelpers.*;
 import static io.crate.testing.TestingHelpers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.mock;
 
 public class WhereClauseSplitterTest {
 
     private WhereClauseSplitter splitter = new WhereClauseSplitter();
-    private TableInfo tableInfoEmps = TestingTableInfo.builder(
+    private TableRelation tableEmps = new TableRelation(TestingTableInfo.builder(
             new TableIdent("doc", "employees"), RowGranularity.DOC, new Routing())
             .add(ColumnIdent.fromPath("id"), DataTypes.INTEGER)
             .add(ColumnIdent.fromPath("dep_id"), DataTypes.INTEGER)
             .addPrimaryKey("id")
             .add("name", DataTypes.STRING, null)
-            .build();
-    private TableInfo tableInfoDeps = TestingTableInfo.builder(
+            .build(), mock(PartitionResolver.class));
+    private TableRelation tableDeps = new TableRelation(TestingTableInfo.builder(
             new TableIdent("doc", "deps"), RowGranularity.DOC, new Routing())
             .add(ColumnIdent.fromPath("id"), DataTypes.INTEGER)
             .addPrimaryKey("id")
             .add("name", DataTypes.STRING, null)
-            .build();
+            .build(), mock(PartitionResolver.class));
     private JoinRelation joinRelation =
-            new JoinRelation(JoinRelation.Type.CROSS_JOIN,tableInfoEmps, tableInfoDeps);
+            new JoinRelation(JoinRelation.Type.CROSS_JOIN, tableEmps, tableDeps);
 
     private Reference ref(TableInfo relation, String name, DataType type) {
         return new Reference(
@@ -71,28 +73,28 @@ public class WhereClauseSplitterTest {
 
     @Test
     public void testSplitMatchAll() throws Exception {
-        Map<AnalyzedRelation, Symbol> queryMap = splitter.split(WhereClause.MATCH_ALL, tableInfoEmps);
-        assertThat(queryMap.get(tableInfoEmps), is(nullValue()));
+        Map<AnalyzedRelation, Symbol> queryMap = splitter.split(WhereClause.MATCH_ALL, tableEmps);
+        assertThat(queryMap.get(tableEmps), is(nullValue()));
     }
 
     @Test
     public void testSplitNoMatch() throws Exception {
-        Map<AnalyzedRelation, Symbol> queryMap = splitter.split(WhereClause.NO_MATCH, tableInfoEmps);
-        assertThat(queryMap.get(tableInfoEmps), is(nullValue()));
+        Map<AnalyzedRelation, Symbol> queryMap = splitter.split(WhereClause.NO_MATCH, tableEmps);
+        assertThat(queryMap.get(tableEmps), is(nullValue()));
     }
 
     @Test
     public void testSplitLiteral() throws Exception {
         WhereClause clause = new WhereClause(Literal.newLiteral(true));
-        Map<AnalyzedRelation, Symbol> queryMap = splitter.split(clause, tableInfoEmps);
-        assertThat(queryMap.get(tableInfoEmps), is(nullValue()));
+        Map<AnalyzedRelation, Symbol> queryMap = splitter.split(clause, tableEmps);
+        assertThat(queryMap.get(tableEmps), is(nullValue()));
     }
 
     @Test
     public void testSplitSimpleWhereSingleTable() throws Exception {
-        WhereClause clause = new WhereClause(eq(ref(tableInfoEmps, "name", DataTypes.STRING), Literal.newLiteral("Ford")));
-        Map<AnalyzedRelation, Symbol> queryMap = splitter.split(clause, tableInfoEmps);
-        Symbol splitted = queryMap.get(tableInfoEmps);
+        WhereClause clause = new WhereClause(eq(ref(tableEmps.tableInfo(), "name", DataTypes.STRING), Literal.newLiteral("Ford")));
+        Map<AnalyzedRelation, Symbol> queryMap = splitter.split(clause, tableEmps);
+        Symbol splitted = queryMap.get(tableEmps);
         assertThat(splitted, is(notNullValue()));
         assertThat(splitted, isFunction("op_="));
     }
@@ -101,16 +103,16 @@ public class WhereClauseSplitterTest {
     public void testSplitSimpleWhereCrossJoin() throws Exception {
         WhereClause clause = new WhereClause(
                 eq(
-                        ref(tableInfoEmps, "name", DataTypes.STRING),
+                        ref(tableEmps.tableInfo(), "name", DataTypes.STRING),
                         Literal.newLiteral("Ford")
                 )
         );
         Map<AnalyzedRelation, Symbol> queryMap = splitter.split(clause, joinRelation);
-        Symbol splitted = queryMap.get(tableInfoEmps);
+        Symbol splitted = queryMap.get(tableEmps);
         assertThat(splitted, is(notNullValue()));
         assertThat(splitted, isFunction("op_="));
 
-        splitted = queryMap.get(tableInfoDeps);
+        splitted = queryMap.get(tableDeps);
         assertThat(splitted, is(nullValue()));
     }
 
@@ -119,23 +121,23 @@ public class WhereClauseSplitterTest {
         WhereClause clause = new WhereClause(
                 and(
                         eq(
-                                ref(tableInfoEmps, "name", DataTypes.STRING),
+                                ref(tableEmps.tableInfo(), "name", DataTypes.STRING),
                                 Literal.newLiteral("Ford")
                         ),
                         eq(
-                                ref(tableInfoDeps, "id", DataTypes.INTEGER),
+                                ref(tableDeps.tableInfo(), "id", DataTypes.INTEGER),
                                 Literal.newLiteral(1)
                         )
                 )
 
         );
         Map<AnalyzedRelation, Symbol> queryMap = splitter.split(clause, joinRelation);
-        Symbol splitted = queryMap.get(tableInfoEmps);
+        Symbol splitted = queryMap.get(tableEmps);
         assertThat(splitted, is(notNullValue()));
 
         assertThat(QueryPrinter.print(splitted), is("op_and(true, op_=(employees.name, 'Ford'))"));
 
-        splitted = queryMap.get(tableInfoDeps);
+        splitted = queryMap.get(tableDeps);
         assertThat(splitted, is(notNullValue()));
         assertThat(QueryPrinter.print(splitted), is("op_and(op_=(deps.id, 1), true)"));
 
@@ -147,25 +149,25 @@ public class WhereClauseSplitterTest {
                 and(
                         eq(
                                 substr(
-                                        ref(tableInfoEmps, "name", DataTypes.STRING),
+                                        ref(tableEmps.tableInfo(), "name", DataTypes.STRING),
                                         2
                                 ),
                                 Literal.newLiteral("rd")
                         ),
                         eq(
-                                ref(tableInfoDeps, "id", DataTypes.INTEGER),
+                                ref(tableDeps.tableInfo(), "id", DataTypes.INTEGER),
                                 Literal.newLiteral(1)
                         )
                 )
 
         );
         Map<AnalyzedRelation, Symbol> queryMap = splitter.split(clause, joinRelation);
-        Symbol empsQuery = queryMap.get(tableInfoEmps);
+        Symbol empsQuery = queryMap.get(tableEmps);
         assertThat(empsQuery, is(notNullValue()));
 
         assertThat(QueryPrinter.print(empsQuery), is("op_and(true, op_=(substr(employees.name, 2), 'rd'))"));
 
-        Symbol depsQuery = queryMap.get(tableInfoDeps);
+        Symbol depsQuery = queryMap.get(tableDeps);
         assertThat(QueryPrinter.print(depsQuery), is("op_and(op_=(deps.id, 1), true)"));
     }
 
@@ -176,33 +178,33 @@ public class WhereClauseSplitterTest {
                         or(
                             eq(
                                 substr(
-                                    ref(tableInfoEmps, "name", DataTypes.STRING),
+                                    ref(tableEmps.tableInfo(), "name", DataTypes.STRING),
                                     2
                                 ),
                                 Literal.newLiteral("rd")
                             ),
                             not(
                                     eq(
-                                            ref(tableInfoDeps, "id", DataTypes.INTEGER),
+                                            ref(tableDeps.tableInfo(), "id", DataTypes.INTEGER),
                                             Literal.newLiteral(1)
                                     )
                             )
                         ),
                         eq(
-                                ref(tableInfoEmps, "id", DataTypes.INTEGER),
+                                ref(tableEmps.tableInfo(), "id", DataTypes.INTEGER),
                                 Literal.newLiteral(42)
                         )
                 )
 
         );
         Map<AnalyzedRelation, Symbol> queryMap = splitter.split(clause, joinRelation);
-        Symbol splitted = queryMap.get(tableInfoEmps);
+        Symbol splitted = queryMap.get(tableEmps);
         assertThat(splitted, is(notNullValue()));
         assertThat(splitted.symbolType(), is(SymbolType.FUNCTION));
 
         assertThat(QueryPrinter.print(splitted), is("op_and(op_=(employees.id, 42), op_or(false, op_=(substr(employees.name, 2), 'rd')))"));
 
-        splitted = queryMap.get(tableInfoDeps);
+        splitted = queryMap.get(tableDeps);
         assertThat(splitted, is(notNullValue()));
         assertThat(QueryPrinter.print(splitted), is("op_and(true, op_or(op_not(op_=(deps.id, 1)), false))"));
     }

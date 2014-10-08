@@ -37,6 +37,8 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.relation.AnalyzedQuerySpecification;
+import io.crate.metadata.relation.AnalyzedRelation;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
@@ -118,18 +120,19 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             globalAggregates(analysis, plan, context);
         } else {
             AnalyzedQuerySpecification querySpec = analysis.querySpecification();
-            if (querySpec.sourceRelation() instanceof TableInfo) {
+            if (querySpec.sourceRelation() instanceof TableRelation) {
                 WhereClause whereClause = querySpec.whereClause();
-                TableInfo tableInfo = (TableInfo) querySpec.sourceRelation();
+                TableRelation tableRelation = (TableRelation) querySpec.sourceRelation();
+                TableInfo tableInfo = tableRelation.tableInfo();
                 if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
                         tableInfo.getRouting(whereClause).hasLocations() &&
-                        (tableInfo.ident().schema() == null || tableInfo.ident().schema().equals(DocSchemaInfo.NAME))
-                        && (analysis.isLimited() || analysis.ids().size() > 0 || !context.indexWriterProjection.isPresent())) {
+                        tableInfo.schemaInfo().name().equals(DocSchemaInfo.NAME)
+                        && (analysis.isLimited() || tableRelation.ids().size() > 0 || !context.indexWriterProjection.isPresent())) {
 
-                    if (analysis.ids().size() > 0
-                            && analysis.routingValues().size() > 0
+                    if (tableRelation.ids().size() > 0
+                            && tableRelation.routingValues().size() > 0
                             && !tableInfo.isAlias()) {
-                        ESGet(analysis, plan, context);
+                        ESGet(analysis, tableRelation, plan, context);
                     } else {
                         ESSearch(analysis, plan, context);
                     }
@@ -137,7 +140,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     normalSelect(analysis, plan, context);
                 }
             } else {
-                throw new UnsupportedOperationException("sourceRelation must be of type TableInfo");
+                throw new UnsupportedOperationException("sourceRelation must be of type TableRelation");
             }
         }
         return plan;
@@ -486,14 +489,14 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         plan.expectsAffectedRows(true);
     }
 
-    private void ESGet(SelectAnalysis analysis, Plan plan, Context context) {
+    private void ESGet(SelectAnalysis analysis, TableRelation tableRelation, Plan plan, Context context) {
+        AnalyzedQuerySpecification querySpec = analysis.querySpecification();
+
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
                 .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
+                .orderBy(querySpec.orderBy());
 
-        AnalyzedQuerySpecification querySpec = analysis.querySpecification();
-        TableInfo tableInfo = (TableInfo) querySpec.sourceRelation();
-
+        TableInfo tableInfo = tableRelation.tableInfo();
         String indexName;
         if (tableInfo.isPartitioned()) {
             assert querySpec.whereClause().partitions().size() == 1 : "ambiguous partitions for ESGet";
@@ -501,11 +504,10 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         } else {
             indexName = tableInfo.ident().name();
         }
-
         ESGetNode getNode = new ESGetNode(
                 indexName,
-                analysis.ids(),
-                analysis.routingValues(),
+                tableRelation.ids(),
+                tableRelation.routingValues(),
                 tableInfo.partitionedByColumns());
         getNode.outputs(contextBuilder.toCollect());
         getNode.outputTypes(extractDataTypes(analysis.outputSymbols()));
@@ -537,12 +539,12 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         // TODO: without locations the localMerge node can be removed and the topN projection
         // added to the collectNode.
 
+        AnalyzedQuerySpecification querySpec = analysis.querySpecification();
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
                 .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
+                .orderBy(querySpec.orderBy());
 
         ImmutableList<Projection> projections;
-        AnalyzedQuerySpecification querySpec = analysis.querySpecification();
         if (analysis.isLimited()) {
             // if we have an offset we have to get as much docs from every node as we have offset+limit
             // otherwise results will be wrong
@@ -563,7 +565,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
 
         List<Symbol> toCollect;
-        TableInfo tableInfo = (TableInfo) analysis.querySpecification().sourceRelation();
+        TableInfo tableInfo = ((TableRelation) querySpec.sourceRelation()).tableInfo();
         if (tableInfo.schemaInfo().systemSchema()) {
             toCollect = contextBuilder.toCollect();
         } else {
@@ -615,6 +617,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 || context.indexWriterProjection.isPresent();
         List<Symbol> searchSymbols;
         AnalyzedQuerySpecification querySpec = analysis.querySpecification();
+        TableRelation tableRelation = (TableRelation) querySpec.sourceRelation();
 
         WhereClause whereClause = querySpec.whereClause();
         if (needsProjection) {
@@ -623,7 +626,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             if (whereClause.hasQuery()) {
                whereClause = new WhereClause(functionArgumentCopier.process(whereClause.query()));
             }
-            List<Symbol> sortSymbols = analysis.sortSymbols();
+            List<Symbol> sortSymbols = querySpec.orderBy();
 
             // do the same for sortsymbols if we have a function there
             if (sortSymbols != null && !Iterables.all(sortSymbols, symbolIsReference)) {
@@ -636,15 +639,15 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             searchSymbols = analysis.outputSymbols();
         }
         QueryThenFetchNode node = new QueryThenFetchNode(
-                ((TableInfo) querySpec.sourceRelation()).getRouting(whereClause),
+                tableRelation.tableInfo().getRouting(whereClause),
                 searchSymbols,
-                analysis.sortSymbols(),
+                querySpec.orderBy(),
                 analysis.reverseFlags(),
                 analysis.nullsFirst(),
                 querySpec.limit(),
                 querySpec.offset(),
                 whereClause,
-                ((TableInfo) querySpec.sourceRelation()).partitionedByColumns()
+                tableRelation.tableInfo().partitionedByColumns()
         );
         node.outputTypes(extractDataTypes(searchSymbols));
         plan.add(node);
@@ -667,10 +670,10 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan, Context context) {
         AnalyzedQuerySpecification querySpec = analysis.querySpecification();
-        if (!(querySpec.sourceRelation() instanceof TableInfo)) {
-            throw new UnsupportedOperationException("sourceRelation must be of type TableInfo");
+        if (!(querySpec.sourceRelation() instanceof TableRelation)) {
+            throw new UnsupportedOperationException("sourceRelation must be of type TableRelation");
         }
-        TableInfo tableInfo = (TableInfo) querySpec.sourceRelation();
+        TableInfo tableInfo = ((TableRelation) querySpec.sourceRelation()).tableInfo();
         String schema = tableInfo.ident().schema();
         if ((schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME))
                 && hasOnlyGlobalCount(analysis.outputSymbols())
@@ -745,8 +748,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private void groupBy(SelectAnalysis analysis, Plan plan, Context context) {
-        if (!(analysis.querySpecification().sourceRelation() instanceof TableInfo)) {
-            throw new UnsupportedOperationException("sourceRelation must be of type TableInfo");
+        if (!(analysis.querySpecification().sourceRelation() instanceof TableRelation)) {
+            throw new UnsupportedOperationException("sourceRelation must be of type TableRelation");
         }
         if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
                 || !requiresDistribution(analysis)) {
@@ -759,19 +762,17 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private boolean requiresDistribution(SelectAnalysis analysis) {
-        TableInfo tableInfo = (TableInfo) analysis.querySpecification().sourceRelation();
+        TableInfo tableInfo = ((TableRelation) analysis.querySpecification().sourceRelation()).tableInfo();
         Routing routing = tableInfo.getRouting(analysis.querySpecification().whereClause());
         if (!routing.hasLocations()) return false;
-        if (groupedByClusteredColumnOrPrimaryKeys(analysis)) return false;
+        if (groupedByClusteredColumnOrPrimaryKeys(tableInfo, analysis.querySpecification().groupBy())) return false;
         if (routing.locations().size() > 1) return true;
 
         String nodeId = routing.locations().keySet().iterator().next();
         return !(nodeId == null || nodeId.equals(clusterService.localNode().id()));
     }
 
-    private boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalysis analysis) {
-        List<Symbol> groupBy = analysis.querySpecification().groupBy();
-        TableInfo tableInfo = (TableInfo) analysis.querySpecification().sourceRelation();
+    private boolean groupedByClusteredColumnOrPrimaryKeys(TableInfo tableInfo, List<Symbol> groupBy) {
         assert groupBy != null;
         if (groupBy.size() > 1) {
             return groupedByPrimaryKeys(groupBy, tableInfo.primaryKey());
@@ -804,10 +805,11 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
     private void nonDistributedGroupBy(SelectAnalysis analysis, Plan plan, Context context) {
         AnalyzedQuerySpecification querySpec = analysis.querySpecification();
+        TableInfo tableInfo = ((TableRelation) analysis.querySpecification().sourceRelation()).tableInfo();
         boolean ignoreSorting = context.indexWriterProjection.isPresent()
                 && querySpec.limit() == null
                 && querySpec.offset() == TopN.NO_OFFSET;
-        boolean groupedByClusteredPk = groupedByClusteredColumnOrPrimaryKeys(analysis);
+        boolean groupedByClusteredPk = groupedByClusteredColumnOrPrimaryKeys(tableInfo, querySpec.groupBy());
 
         int numAggregationSteps = 2;
         if (analysis.rowGranularity() == RowGranularity.DOC) {
@@ -818,9 +820,9 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             numAggregationSteps = 1;
         }
         PlannerContextBuilder contextBuilder =
-                new PlannerContextBuilder(numAggregationSteps, analysis.groupBy(), ignoreSorting)
+                new PlannerContextBuilder(numAggregationSteps, querySpec.groupBy(), ignoreSorting)
                 .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
+                .orderBy(querySpec.orderBy());
 
         Symbol havingClause = null;
         if (querySpec.having().isPresent() && querySpec.having().get().symbolType() == SymbolType.FUNCTION) {
@@ -904,7 +906,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                                                  ImmutableList.Builder<Projection> projectionBuilder) {
         if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.querySpecification().limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
+                    Objects.firstNonNull(analysis.querySpecification().limit(), Constants.DEFAULT_SELECT_LIMIT)
+                            + analysis.querySpecification().offset(),
                     0,
                     contextBuilder.orderBy(),
                     analysis.reverseFlags(),
@@ -930,16 +933,21 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
      * final merge on handler
      */
     private void distributedGroupBy(SelectAnalysis analysis, Plan plan) {
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, analysis.querySpecification().groupBy())
+        AnalyzedQuerySpecification querySpec = analysis.querySpecification();
+
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, querySpec.groupBy())
                 .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
+                .orderBy(querySpec.orderBy());
 
         Symbol havingClause = null;
-        AnalyzedQuerySpecification querySpec = analysis.querySpecification();
         if (querySpec.having().isPresent() && querySpec.having().get().symbolType() == SymbolType.FUNCTION) {
             // replace aggregation symbols with input columns from previous projection
             havingClause = contextBuilder.having(querySpec.having().get());
         }
+        AnalyzedRelation analyzedRelation = querySpec.sourceRelation();
+        assert analyzedRelation instanceof TableRelation : "querySpec sourceRelation must be a TableRelation for groupBy";
+        TableInfo tableInfo = ((TableRelation) analyzedRelation).tableInfo();
+
 
         // collector
         GroupProjection groupProjection = new GroupProjection(
@@ -947,7 +955,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         CollectNode collectNode = PlanNodeBuilder.distributingCollect(
                 analysis,
                 contextBuilder.toCollect(),
-                nodesFromTable(analysis),
+                nodesFromTable(tableInfo, querySpec.whereClause()),
                 ImmutableList.<Projection>of(groupProjection)
         );
         plan.add(collectNode);
@@ -1003,16 +1011,18 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
      */
     private void distributedWriterGroupBy(SelectAnalysis analysis, Plan plan, Projection writerProjection) {
         boolean ignoreSorting = !analysis.isLimited();
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, analysis.groupBy(), ignoreSorting)
+        AnalyzedQuerySpecification querySpec = analysis.querySpecification();
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, querySpec.groupBy(), ignoreSorting)
                 .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
+                .orderBy(querySpec.orderBy());
 
         Symbol havingClause = null;
-        AnalyzedQuerySpecification querySpec = analysis.querySpecification();
         if (querySpec.having().isPresent() && querySpec.having().get().symbolType() == SymbolType.FUNCTION) {
             // replace aggregation symbols with input columns from previous projection
             havingClause = contextBuilder.having(querySpec.having().get());
         }
+
+        TableInfo tableInfo = ((TableRelation) querySpec.sourceRelation()).tableInfo();
 
         // collector
         GroupProjection groupProjection = new GroupProjection(
@@ -1020,7 +1030,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         CollectNode collectNode = PlanNodeBuilder.distributingCollect(
                 analysis,
                 contextBuilder.toCollect(),
-                nodesFromTable(analysis),
+                nodesFromTable(tableInfo, querySpec.whereClause()),
                 ImmutableList.<Projection>of(groupProjection)
         );
         plan.add(collectNode);
@@ -1046,7 +1056,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             TopNProjection topN = new TopNProjection(
                     Objects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset(),
                     0,
-                    analysis.sortSymbols(),
+                    querySpec.orderBy(),
                     analysis.reverseFlags(),
                     analysis.nullsFirst()
             );
@@ -1091,10 +1101,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         plan.add(localMergeNode);
     }
 
-    private List<String> nodesFromTable(SelectAnalysis analysis) {
-        return Lists.newArrayList(
-                ((TableInfo) analysis.querySpecification().sourceRelation()).getRouting(analysis.whereClause()).nodes()
-        );
+    private List<String> nodesFromTable(TableInfo tableInfo, WhereClause whereClause) {
+        return Lists.newArrayList(tableInfo.getRouting(whereClause).nodes());
     }
 
     private void ESIndex(InsertFromValuesAnalysis analysis, Plan plan) {

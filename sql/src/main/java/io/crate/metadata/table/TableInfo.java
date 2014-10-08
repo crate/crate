@@ -23,16 +23,17 @@ package io.crate.metadata.table;
 
 import io.crate.PartitionName;
 import io.crate.analyze.where.WhereClause;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
-import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
-public interface TableInfo extends Iterable<ReferenceInfo>, AnalyzedRelation {
+public interface TableInfo extends Iterable<ReferenceInfo> {
 
     /**
      * the schemaInfo for the schema that contains this table.
@@ -40,11 +41,20 @@ public interface TableInfo extends Iterable<ReferenceInfo>, AnalyzedRelation {
     public SchemaInfo schemaInfo();
 
     /**
-     * returns information about a column with the given ident.
-     * returns null if this table contains no such column.
+     * returns the referenceInfo for a given columnIdent or null if the table doesn't contain that column
      */
     @Nullable
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent);
+
+    @Nullable
+    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent);
+
+    /**
+     * returns a DynamicReference if the relation supports it
+     *
+     * @throws io.crate.exceptions.ColumnUnknownException in case the relation doesn't support DynamicReferences
+     */
+    DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException;
 
     /**
      * returns the top level columns of this table with predictable order

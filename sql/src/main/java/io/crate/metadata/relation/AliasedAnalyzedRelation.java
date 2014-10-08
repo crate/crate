@@ -22,11 +22,11 @@
 package io.crate.metadata.relation;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexReferenceInfo;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.DynamicReference;
+import io.crate.planner.symbol.Reference;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -59,16 +59,20 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation {
         return child.numRelations();
     }
 
-    @Nullable
     @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return child.getReferenceInfo(columnIdent);
+    public WhereClause whereClause() {
+        return child.whereClause();
     }
 
-    @Nullable
     @Override
-    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
-        return child.getIndexReferenceInfo(columnIdent);
+    public void whereClause(WhereClause whereClause) {
+        child.whereClause(whereClause);
+    }
+
+    @Override
+    public Reference getReference(@Nullable String schema, @Nullable String tableOrAlias, ColumnIdent columnIdent) {
+        // TODO: check tableOrAlias...
+        return child.getReference(schema, tableOrAlias, columnIdent);
     }
 
     @Override
@@ -95,7 +99,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation {
     }
 
     @Override
-    public DynamicReference dynamicReference(ColumnIdent columnIdent) {
-        return child.dynamicReference(columnIdent);
+    public void normalize(EvaluatingNormalizer normalizer) {
+        child.normalize(normalizer);
     }
 }

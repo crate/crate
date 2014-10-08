@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.planner.symbol.RelationSymbol;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Delete;
@@ -44,7 +45,7 @@ public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, D
             Preconditions.checkState(context.table() == null, "deleting multiple tables is not supported");
             context.editableTable(TableIdent.of(node));
 
-            return new RelationSymbol(context.table());
+            return new RelationSymbol(new TableRelation(context.table(), context.partitionResolver()));
         }
     };
 
