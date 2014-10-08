@@ -24,13 +24,11 @@ package io.crate.metadata.relation;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.where.WhereClause;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexReferenceInfo;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.DynamicReference;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
@@ -52,7 +50,6 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
 
     private final AnalyzedRelation sourceRelation;
     private final List<Symbol> outputs;
-    private final WhereClause whereClause;
     private final List<Symbol> groupBy;
     private final Optional<Symbol> having;
     private final List<Symbol> orderBy;
@@ -62,7 +59,6 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
 
     public AnalyzedQuerySpecification(List<Symbol> outputs,
                                       AnalyzedRelation sourceRelation,
-                                      WhereClause whereClause,
                                       @Nullable List<Symbol> groupBy,
                                       @Nullable Symbol having,
                                       @Nullable List<Symbol> orderBy,
@@ -70,7 +66,6 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
                                       @Nullable Integer offset) {
         this.outputs = outputs;
         this.sourceRelation = sourceRelation;
-        this.whereClause = whereClause;
         this.groupBy = Objects.firstNonNull(groupBy, ImmutableList.<Symbol>of());
         this.having = Optional.fromNullable(having);
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
@@ -87,7 +82,17 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
     }
 
     public WhereClause whereClause() {
-        return whereClause;
+        return sourceRelation.whereClause();
+    }
+
+    @Override
+    public void whereClause(WhereClause whereClause) {
+        sourceRelation.whereClause(whereClause);
+    }
+
+    @Override
+    public Reference getReference(@Nullable String schema, @Nullable String tableOrAlias, ColumnIdent columnIdent) {
+        return sourceRelation.getReference(schema, tableOrAlias, columnIdent);
     }
 
     public List<Symbol> groupBy() {
@@ -128,18 +133,6 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
         return 1;
     }
 
-    @Nullable
-    @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return sourceRelation.getReferenceInfo(columnIdent);
-    }
-
-    @Nullable
-    @Override
-    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
-        return sourceRelation.getIndexReferenceInfo(columnIdent);
-    }
-
     @Override
     public List<TableInfo> tables() {
         return sourceRelation.tables();
@@ -161,7 +154,10 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
     }
 
     @Override
-    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
-        return sourceRelation.dynamicReference(columnIdent);
+    public void normalize(EvaluatingNormalizer normalizer) {
+        sourceRelation.normalize(normalizer);
+        normalizer.normalizeInplace(outputs);
+        normalizer.normalizeInplace(groupBy);
+        normalizer.normalizeInplace(orderBy);
     }
 }

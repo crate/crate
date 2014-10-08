@@ -21,12 +21,14 @@
 
 package io.crate.metadata.table;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
 import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
@@ -41,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestingTableInfo extends AbstractTableInfo {
 
@@ -174,7 +177,10 @@ public class TestingTableInfo extends AbstractTableInfo {
 
         public TableInfo build() {
             addDocSysColumns();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get());
+            when(schemaInfo.name()).thenReturn(Objects.firstNonNull(ident.schema(), DocSchemaInfo.NAME));
             return new TestingTableInfo(
+                    schemaInfo,
                     columns.build(),
                     partitionedByColumns.build(),
                     indexColumns.build(),
@@ -205,18 +211,20 @@ public class TestingTableInfo extends AbstractTableInfo {
     private final List<PartitionName> partitions;
 
 
-    public TestingTableInfo(List<ReferenceInfo> columns,
+    public TestingTableInfo(SchemaInfo schemaInfo,
+                            List<ReferenceInfo> columns,
                             List<ReferenceInfo> partitionedByColumns,
                             Map<ColumnIdent, IndexReferenceInfo> indexColumns,
                             Map<ColumnIdent, ReferenceInfo> references,
-                            TableIdent ident, RowGranularity granularity,
+                            TableIdent ident,
+                            RowGranularity granularity,
                             Routing routing,
                             List<ColumnIdent> primaryKey,
                             ColumnIdent clusteredBy,
                             boolean isAlias,
                             List<ColumnIdent> partitionedBy,
                             List<PartitionName> partitions) {
-        super(mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get()));
+        super(schemaInfo);
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
         this.indexColumns = indexColumns;

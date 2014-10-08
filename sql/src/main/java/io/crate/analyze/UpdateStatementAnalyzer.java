@@ -25,6 +25,7 @@ import com.google.common.base.Preconditions;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.*;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.RelationSymbol;
@@ -62,7 +63,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                 protected Symbol visitTable(Table node, UpdateAnalysis.NestedAnalysis context) {
                     Preconditions.checkState(context.table() == null, "updating multiple tables is not supported");
                     context.editableTable(TableIdent.of(node));
-                    return new RelationSymbol(context.table());
+                    return new RelationSymbol(new TableRelation(context.table(), context.partitionResolver()));
                 }
 
                 @Override

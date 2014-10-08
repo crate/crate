@@ -21,11 +21,8 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
-import io.crate.metadata.relation.AnalyzedRelation;
-import io.crate.metadata.relation.RelationVisitor;
 import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnavailableShardsException;
@@ -281,39 +278,6 @@ public class DocTableInfo implements TableInfo {
     @Override
     public Iterator<ReferenceInfo> iterator() {
         return references.values().iterator();
-    }
-
-    @Override
-    public List<AnalyzedRelation> children() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public int numRelations() {
-        return 1;
-    }
-
-    @Override
-    public List<TableInfo> tables() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context) {
-        return relationVisitor.visitTableInfo(this, context);
-    }
-
-    @Override
-    public boolean addressedBy(String relationName) {
-        return ident().name().equals(relationName);
-    }
-
-    @Override
-    public boolean addressedBy(@Nullable String schemaName, String tableName) {
-        if (schemaName == null) {
-            return addressedBy(tableName);
-        }
-        return schemaInfo.name().equals(schemaName) && addressedBy(tableName);
     }
 
     @Override

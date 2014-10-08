@@ -21,10 +21,11 @@
 
 package io.crate.analyze.orderby;
 
+import io.crate.analyze.where.PartitionResolver;
 import io.crate.metadata.*;
 import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.metadata.relation.JoinRelation;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.scalar.FormatFunction;
 import io.crate.operation.scalar.SubstrFunction;
@@ -42,22 +43,23 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.mock;
 
 public class OrderBySplitterTest {
 
     private OrderBySplitter splitter = new OrderBySplitter();
-    private TableInfo tableInfo1 = TestingTableInfo.builder(
+    private TableRelation relation1 = new TableRelation(TestingTableInfo.builder(
             new TableIdent(null, "t1"), RowGranularity.DOC, new Routing())
             .add(ColumnIdent.fromPath("id"), DataTypes.INTEGER)
             .addPrimaryKey("id")
             .add("name", DataTypes.STRING, null)
-            .build();
-    private TableInfo tableInfo2 = TestingTableInfo.builder(
+            .build(), mock(PartitionResolver.class));
+    private TableRelation relation2 = new TableRelation(TestingTableInfo.builder(
             new TableIdent(null, "t2"), RowGranularity.DOC, new Routing())
             .add(ColumnIdent.fromPath("id"), DataTypes.INTEGER)
             .addPrimaryKey("id")
             .add("name", DataTypes.STRING, null)
-            .build();
+            .build(), mock(PartitionResolver.class));
 
     @Test
     public void testSplitOrderByReferences() throws Exception {
@@ -65,20 +67,20 @@ public class OrderBySplitterTest {
         Symbol nameRefTable2 = TestingHelpers.createReference("t2", new ColumnIdent("name"), DataTypes.STRING);
 
         List<Symbol> sortSymbols = Arrays.asList(idRefTable1, nameRefTable2);
-        Map<AnalyzedRelation, List<Symbol>> relationSymbolsMap = splitter.split(sortSymbols, tableInfo1);
-        assertThat(relationSymbolsMap.get(tableInfo1), hasItem(TestingHelpers.isReference("id", DataTypes.INTEGER)));
-        assertThat(relationSymbolsMap.get(tableInfo1).size(), is(1));
+        Map<AnalyzedRelation, List<Symbol>> relationSymbolsMap = splitter.split(sortSymbols, relation1);
+        assertThat(relationSymbolsMap.get(relation1), hasItem(TestingHelpers.isReference("id", DataTypes.INTEGER)));
+        assertThat(relationSymbolsMap.get(relation1).size(), is(1));
 
-        relationSymbolsMap = splitter.split(sortSymbols, tableInfo2);
-        assertThat(relationSymbolsMap.get(tableInfo2), hasItem(TestingHelpers.isReference("name", DataTypes.STRING)));
-        assertThat(relationSymbolsMap.get(tableInfo2).size(), is(1));
+        relationSymbolsMap = splitter.split(sortSymbols, relation2);
+        assertThat(relationSymbolsMap.get(relation2), hasItem(TestingHelpers.isReference("name", DataTypes.STRING)));
+        assertThat(relationSymbolsMap.get(relation2).size(), is(1));
 
-        JoinRelation join = new JoinRelation(JoinRelation.Type.CROSS_JOIN, tableInfo1, tableInfo2);
+        JoinRelation join = new JoinRelation(JoinRelation.Type.CROSS_JOIN, relation1, relation2);
         relationSymbolsMap = splitter.split(sortSymbols, join);
-        assertThat(relationSymbolsMap.get(tableInfo1), hasItem(TestingHelpers.isReference("id", DataTypes.INTEGER)));
-        assertThat(relationSymbolsMap.get(tableInfo1).size(), is(1));
-        assertThat(relationSymbolsMap.get(tableInfo2), hasItem(TestingHelpers.isReference("name", DataTypes.STRING)));
-        assertThat(relationSymbolsMap.get(tableInfo2).size(), is(1));
+        assertThat(relationSymbolsMap.get(relation1), hasItem(TestingHelpers.isReference("id", DataTypes.INTEGER)));
+        assertThat(relationSymbolsMap.get(relation1).size(), is(1));
+        assertThat(relationSymbolsMap.get(relation2), hasItem(TestingHelpers.isReference("name", DataTypes.STRING)));
+        assertThat(relationSymbolsMap.get(relation2).size(), is(1));
     }
 
     @Test
@@ -87,11 +89,11 @@ public class OrderBySplitterTest {
         Symbol invalidTable2 = TestingHelpers.createReference("t4", new ColumnIdent("bar"), DataTypes.STRING);
 
         List<Symbol> sortSymbols = Arrays.asList(invalidTable1, invalidTable2);
-        JoinRelation join = new JoinRelation(JoinRelation.Type.CROSS_JOIN, tableInfo1, tableInfo2);
+        JoinRelation join = new JoinRelation(JoinRelation.Type.CROSS_JOIN, relation1, relation2);
         Map<AnalyzedRelation, List<Symbol>> relationSymbolsMap = splitter.split(sortSymbols, join);
         assertThat(relationSymbolsMap.get(join).size(), is(0));
-        assertThat(relationSymbolsMap.get(tableInfo1).size(), is(0));
-        assertThat(relationSymbolsMap.get(tableInfo2).size(), is(0));
+        assertThat(relationSymbolsMap.get(relation1).size(), is(0));
+        assertThat(relationSymbolsMap.get(relation2).size(), is(0));
     }
 
     @Test
@@ -101,10 +103,10 @@ public class OrderBySplitterTest {
         Symbol booleanLiteralSymbol = Literal.newLiteral(true);
 
         List<Symbol> sortSymbols = Arrays.asList(integerLiteralSymbol, stringLiteralSymbol, booleanLiteralSymbol);
-        JoinRelation join = new JoinRelation(JoinRelation.Type.CROSS_JOIN, tableInfo1, tableInfo2);
+        JoinRelation join = new JoinRelation(JoinRelation.Type.CROSS_JOIN, relation1, relation2);
         Map<AnalyzedRelation, List<Symbol>> relationSymbolsMap = splitter.split(sortSymbols, join);
-        assertThat(relationSymbolsMap.get(tableInfo1).size(), is(0));
-        assertThat(relationSymbolsMap.get(tableInfo2).size(), is(0));
+        assertThat(relationSymbolsMap.get(relation1).size(), is(0));
+        assertThat(relationSymbolsMap.get(relation2).size(), is(0));
     }
 
     @Test
@@ -131,12 +133,12 @@ public class OrderBySplitterTest {
         );
 
         List<Symbol> sortSymbols = Arrays.asList(addFunctionSymbol, substrFunctionSymbol, strFormatFunctionSymbol);
-        JoinRelation join = new JoinRelation(JoinRelation.Type.CROSS_JOIN, tableInfo1, tableInfo2);
+        JoinRelation join = new JoinRelation(JoinRelation.Type.CROSS_JOIN, relation1, relation2);
         Map<AnalyzedRelation, List<Symbol>> relationSymbolsMap = splitter.split(sortSymbols, join);
-        assertThat(relationSymbolsMap.get(tableInfo1), hasItem(TestingHelpers.isFunction(AddFunction.NAME)));
-        assertThat(relationSymbolsMap.get(tableInfo1).size(), is(1));
-        assertThat(relationSymbolsMap.get(tableInfo2), hasItem(TestingHelpers.isFunction(SubstrFunction.NAME)));
-        assertThat(relationSymbolsMap.get(tableInfo2).size(), is(1));
+        assertThat(relationSymbolsMap.get(relation1), hasItem(TestingHelpers.isFunction(AddFunction.NAME)));
+        assertThat(relationSymbolsMap.get(relation1).size(), is(1));
+        assertThat(relationSymbolsMap.get(relation2), hasItem(TestingHelpers.isFunction(SubstrFunction.NAME)));
+        assertThat(relationSymbolsMap.get(relation2).size(), is(1));
         assertThat(relationSymbolsMap.get(join), hasItem(TestingHelpers.isFunction(FormatFunction.NAME)));
         assertThat(relationSymbolsMap.get(join).size(), is(1));
     }

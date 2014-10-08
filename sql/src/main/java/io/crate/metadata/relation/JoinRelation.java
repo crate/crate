@@ -22,12 +22,11 @@
 package io.crate.metadata.relation;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexReferenceInfo;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.DynamicReference;
+import io.crate.planner.symbol.Reference;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -76,30 +75,20 @@ public class JoinRelation implements AnalyzedRelation {
         return 3;
     }
 
-    @Nullable
     @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        ReferenceInfo leftInfo = left.getReferenceInfo(columnIdent);
-        if (leftInfo == null) {
-            return right.getReferenceInfo(columnIdent);
-        } else {
-            ReferenceInfo rightInfo = right.getReferenceInfo(columnIdent);
-            if (rightInfo == null) {
-                return leftInfo;
-            }
-        }
-
-        throw new UnsupportedOperationException(String.format(
-                "column \"%s\" is ambiguous and exists in both \"%s\" and \"%s\"",
-                columnIdent.sqlFqn(),
-                left,
-                right)
-        );
+    public WhereClause whereClause() {
+        // TODO:
+        return null;
     }
 
-    @Nullable
     @Override
-    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
+    public void whereClause(WhereClause whereClause) {
+        // TODO: integrate whereClause splitter
+    }
+
+    @Override
+    public Reference getReference(@Nullable String schema, @Nullable String tableOrAlias, ColumnIdent columnIdent) {
+        // TODO:
         return null;
     }
 
@@ -124,9 +113,8 @@ public class JoinRelation implements AnalyzedRelation {
     }
 
     @Override
-    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
-        // dynamicReference is only called if neither left nor right knew the table
-        // -> means it's not possible to determine to which source the columnIdent belongs to...
-        throw new ColumnUnknownException(columnIdent.sqlFqn());
+    public void normalize(EvaluatingNormalizer normalizer) {
+        left.normalize(normalizer);
+        right.normalize(normalizer);
     }
 }

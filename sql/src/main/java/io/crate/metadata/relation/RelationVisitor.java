@@ -21,8 +21,6 @@
 
 package io.crate.metadata.relation;
 
-import io.crate.metadata.table.TableInfo;
-
 import javax.annotation.Nullable;
 
 public class RelationVisitor<C, R> {
@@ -35,7 +33,7 @@ public class RelationVisitor<C, R> {
         return null;
     }
 
-    public R visitTableInfo(TableInfo tableRelation, C context) {
+    public R visitTableRelation(TableRelation tableRelation, C context) {
         return visitRelation(tableRelation, context);
     }
 
