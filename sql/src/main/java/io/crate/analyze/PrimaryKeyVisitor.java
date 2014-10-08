@@ -70,7 +70,6 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     public static class Context {
 
         private final TableInfo table;
-        private final AbstractDataAnalysis analysis;
         private Symbol whereClause;
         private final ArrayList<KeyBucket> buckets;
 
@@ -83,9 +82,8 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         private Literal clusteredBy;
         public boolean noMatch = false;
 
-        public Context(AbstractDataAnalysis analysis) {
-            this.analysis = analysis;
-            this.table = analysis.table();
+        public Context(TableInfo tableInfo) {
+            this.table = tableInfo;
             this.buckets = new ArrayList<>();
             newBucket();
         }
@@ -199,9 +197,9 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     }
 
     @Nullable
-    public Context process(AbstractDataAnalysis analysis, Symbol whereClause) {
-        if (analysis.table().primaryKey().size() > 0 || analysis.table().clusteredBy() != null) {
-            Context context = new Context(analysis);
+    public Context process(TableInfo tableInfo, Symbol whereClause) {
+        if (tableInfo.primaryKey().size() > 0 || tableInfo.clusteredBy() != null) {
+            Context context = new Context(tableInfo);
             context.whereClause = process(whereClause, context);
             context.finish();
             return context;
@@ -227,10 +225,8 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                 setPrimaryKey(context, Literal.newLiteral(true), idx);
             }
         }
-
         return reference;
     }
-
 
     @Override
     public Function visitFunction(Function function, Context context) {

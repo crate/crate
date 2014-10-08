@@ -460,7 +460,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                         "only supported by queries using group-by or global aggregates.");
             }
 
-            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context, whereClause.query());
+            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause.query());
             if (pkc != null) {
                 whereClause.clusteredByLiteral(pkc.clusteredByLiteral());
                 if (pkc.noMatch) {
