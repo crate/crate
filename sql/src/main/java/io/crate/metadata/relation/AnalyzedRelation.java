@@ -21,12 +21,11 @@
 
 package io.crate.metadata.relation;
 
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexReferenceInfo;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.DynamicReference;
+import io.crate.planner.symbol.Reference;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -41,14 +40,13 @@ public interface AnalyzedRelation {
      */
     public int numRelations();
 
-    /**
-     * returns the referenceInfo for a given columnIdent or null if the table doesn't contain that column
-     */
-    @Nullable
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent);
+    public WhereClause whereClause();
 
-    @Nullable
-    public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent);
+    public void whereClause(WhereClause whereClause);
+
+    public Reference getReference(@Nullable String schema,
+                                  @Nullable String tableOrAlias,
+                                  ColumnIdent columnIdent);
 
     /**
      * A list of tables this relation references.
@@ -57,6 +55,9 @@ public interface AnalyzedRelation {
     public List<TableInfo> tables();
 
     public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context);
+
+
+    // TODO: addressedBy methods can probably be removed if there is one getRelationOutput() method that also takes schema and table/alias names
 
     /**
      * <p>
@@ -89,10 +90,5 @@ public interface AnalyzedRelation {
      */
     boolean addressedBy(@Nullable String schemaName, String tableName);
 
-    /**
-     * returns a DynamicReference if the relation supports it
-     *
-     * @throws io.crate.exceptions.ColumnUnknownException in case the relation doesn't support DynamicReferences
-     */
-    DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException;
+    void normalize(EvaluatingNormalizer normalizer);
 }

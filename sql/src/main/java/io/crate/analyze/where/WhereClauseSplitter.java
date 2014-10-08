@@ -24,10 +24,9 @@ package io.crate.analyze.where;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.ReferencedTables;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.metadata.relation.RelationVisitor;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.Operators;
 import io.crate.operation.operator.OrOperator;
@@ -191,7 +190,7 @@ public class WhereClauseSplitter extends SymbolVisitor<WhereClauseSplitter.Conte
          *
          */
         @Override
-        public Void visitTableInfo(TableInfo tableRelation, RelationVisitorCtx context) {
+        public Void visitTableRelation(TableRelation tableRelation, RelationVisitorCtx context) {
             Stack<Symbol> stack = context.whereClauseContext.relationStack(tableRelation);
             if (Operators.LOGICAL_OPERATORS.contains(context.symbol.info().ident().name())) {
                 switch (context.symbol.info().ident().name()) {
@@ -243,7 +242,7 @@ public class WhereClauseSplitter extends SymbolVisitor<WhereClauseSplitter.Conte
                                         context.symbol)
                         );
                 }
-            } else if (context.tables.referencesOnly(tableRelation.ident())) {
+            } else if (context.tables.referencesOnly(tableRelation.tableInfo().ident())) {
                 stack.add(context.symbol);
             } else {
                 stack.add(null);

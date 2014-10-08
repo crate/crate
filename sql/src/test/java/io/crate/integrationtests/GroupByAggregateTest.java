@@ -288,7 +288,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
         execute("select max(age), gender from characters group by gender order by gender");
         assertArrayEquals(new String[]{"max(age)", "gender"}, response.cols());
-        assertEquals(2L, response.rowCount());
+
         assertEquals("female", response.rows()[0][1]);
         assertEquals(43, response.rows()[0][0]);
 

@@ -24,10 +24,13 @@ package io.crate.analyze.orderby;
 import io.crate.analyze.ReferencedTables;
 import io.crate.metadata.relation.AnalyzedRelation;
 import io.crate.metadata.relation.RelationVisitor;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.planner.symbol.*;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The OrderBySplitter splits a list of Symbols (used for sorting) into separate lists of Symbols for each relation
@@ -115,9 +118,9 @@ public class OrderBySplitter extends SymbolVisitor<OrderBySplitter.Context, Refe
         }
 
         @Override
-        public Void visitTableInfo(TableInfo tableRelation, RelationVisitorCtx context) {
+        public Void visitTableRelation(TableRelation tableRelation, RelationVisitorCtx context) {
             List<Symbol> stack = context.orderByContext.relationStack(tableRelation);
-            if (context.tables.referencesOnly(tableRelation.ident())) {
+            if (context.tables.referencesOnly(tableRelation.tableInfo().ident())) {
                 stack.add(context.symbol);
             }
             return null;
