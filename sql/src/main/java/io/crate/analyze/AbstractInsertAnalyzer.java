@@ -30,6 +30,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.relation.TableRelation;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.RelationSymbol;
 import io.crate.planner.symbol.Symbol;
@@ -88,7 +89,7 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
         if (context.table().isAlias() && !context.table().isPartitioned()) {
             throw new IllegalArgumentException("Table alias not allowed in INSERT statement.");
         }
-        return new RelationSymbol(context.table());
+        return new RelationSymbol(new TableRelation(context.table(), context.partitionResolver()));
     }
 
     /**
@@ -132,7 +133,8 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
             throw new IllegalArgumentException(String.format(
                     "Column \"%s\" is more than 1 times in the column list", columnIdent.sqlFqn()));
         } else {
-            reference = context.allocationContext().allocateReference(referenceInfo);
+            reference = new Reference(referenceInfo);
+            context.allocationContext().allocatedReferences.put(reference.info(), reference);
         }
         context.columns().add(reference);
         return reference;

@@ -71,5 +71,4 @@ public abstract class Analysis {
     public boolean isData() {
         return true;
     }
-
 }

@@ -24,11 +24,11 @@ package io.crate.metadata.relation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.where.PartitionResolver;
 import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.planner.RowGranularity;
@@ -46,6 +46,7 @@ import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class JoinDetectorTest {
 
@@ -54,12 +55,12 @@ public class JoinDetectorTest {
             .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
             .build());
 
-    static final TableInfo A = TestingTableInfo.builder(
-            new TableIdent(null, "a"), RowGranularity.DOC, shardRouting).build();
-    static final TableInfo B = TestingTableInfo.builder(
-            new TableIdent(null, "b"), RowGranularity.DOC, shardRouting).build();
-    static final TableInfo C = TestingTableInfo.builder(
-            new TableIdent(null, "c"), RowGranularity.DOC, shardRouting).build();
+    static final TableRelation A = new TableRelation(TestingTableInfo.builder(
+            new TableIdent(null, "a"), RowGranularity.DOC, shardRouting).build(), mock(PartitionResolver.class));
+    static final TableRelation B = new TableRelation(TestingTableInfo.builder(
+            new TableIdent(null, "b"), RowGranularity.DOC, shardRouting).build(), mock(PartitionResolver.class));
+    static final TableRelation C = new TableRelation(TestingTableInfo.builder(
+            new TableIdent(null, "c"), RowGranularity.DOC, shardRouting).build(), mock(PartitionResolver.class));
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -81,7 +82,7 @@ public class JoinDetectorTest {
 
         JoinRelation rootJoin = (JoinRelation) relation;
         assertThat(rootJoin.left(), instanceOf(JoinRelation.class));
-        assertThat(rootJoin.right(), instanceOf(TableInfo.class));
+        assertThat(rootJoin.right(), instanceOf(TableRelation.class));
     }
 
     @Test

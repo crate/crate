@@ -26,10 +26,10 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.where.WhereClause;
 import io.crate.exceptions.AmbiguousColumnAliasException;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.*;
 import io.crate.metadata.relation.AnalyzedQuerySpecification;
+import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
@@ -64,12 +64,6 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     }
 
     @Deprecated
-    @Override
-    public WhereClause whereClause() {
-        return whereClause;
-    }
-
-    @Deprecated
     public Integer limit() {
         return querySpecification.limit();
     }
@@ -80,9 +74,10 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     }
 
     public boolean isLimited() {
-        return limit() != null || offset() > 0;
+        return querySpecification.limit() != null || querySpecification.offset() > 0;
     }
 
+    @Deprecated
     public void groupBy(List<Symbol> groupBy) {
         if (groupBy != null && groupBy.size() > 0) {
             sysExpressionsAllowed = true;
@@ -90,6 +85,7 @@ public class SelectAnalysis extends AbstractDataAnalysis {
         this.groupBy = groupBy;
     }
 
+    @Deprecated
     @Nullable
     public List<Symbol> groupBy() {
         return groupBy;
@@ -97,12 +93,6 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     public boolean hasGroupBy() {
         return groupBy != null && groupBy.size() > 0;
-    }
-
-    @Deprecated
-    @Nullable
-    public Symbol havingClause() {
-        return querySpecification.having().orNull();
     }
 
     public void reverseFlags(boolean[] reverseFlags) {
@@ -119,7 +109,7 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     @Override
     public boolean hasNoResult() {
-        Symbol havingClause = havingClause();
+        Symbol havingClause = querySpecification.having().orNull();
         if (havingClause != null && havingClause.symbolType() == SymbolType.LITERAL) {
             Literal havingLiteral = (Literal)havingClause;
             if (havingLiteral.value() == false) {
@@ -128,15 +118,22 @@ public class SelectAnalysis extends AbstractDataAnalysis {
         }
 
         if (globalAggregate()) {
-            return Objects.firstNonNull(limit(), 1) < 1 || offset() > 0;
+            return Objects.firstNonNull(querySpecification.limit(), 1) < 1 || querySpecification.offset() > 0;
         }
-        return noMatch() || (limit() != null && limit() == 0);
+        Integer limit = querySpecification.limit();
+        return querySpecification.whereClause().noMatch() || (limit != null && limit == 0);
+    }
+
+    @Override
+    public WhereClause whereClause() {
+        throw new UnsupportedOperationException("whereClause on SelectAnalysis has been deprecated. Use QuerySpecification.whereClause()");
     }
 
     private boolean globalAggregate() {
         return hasAggregates() && !hasGroupBy();
     }
 
+    @Deprecated
     @Nullable
     public List<Symbol> sortSymbols() {
         return sortSymbols;
@@ -174,10 +171,16 @@ public class SelectAnalysis extends AbstractDataAnalysis {
                     "tables is currently only supported by queries using group-by or " +
                     "global aggregates.");
         }
-
-        super.normalize();
-        normalizer.normalizeInplace(groupBy());
-        normalizer.normalizeInplace(sortSymbols());
+        querySpecification.normalize(normalizer);
+        if (onlyScalarsAllowed && querySpecification.whereClause().hasQuery()) {
+            for (Function function : allocationContext().allocatedFunctions.keySet()) {
+                if (function.info().type() != FunctionInfo.Type.AGGREGATE
+                        && !(functions.get(function.info().ident()) instanceof Scalar)) {
+                    throw new UnsupportedFeatureException(
+                            "function not supported on system tables: " + function.info().ident());
+                }
+            }
+        }
     }
 
     @Override

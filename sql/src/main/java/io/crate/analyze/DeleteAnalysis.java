@@ -98,7 +98,7 @@ public class DeleteAnalysis extends Analysis {
 
         @Override
         public boolean hasNoResult() {
-            return whereClause.noMatch();
+            return super.whereClause().noMatch();
         }
 
         @Override
