@@ -115,9 +115,10 @@ public class PingTaskTest {
 
             assertThat(pingCountMap.get("success"), is(i));
             assertThat(pingCountMap.get("failure"), is(0L));
-
-            assertThat(map, hasKey("hardware_address"));
-            assertThat(map.get("hardware_address"), is(notNullValue()));
+            if (task.getHardwareAddress() != null) {
+                assertThat(map, hasKey("hardware_address"));
+                assertThat(map.get("hardware_address"), is(notNullValue()));
+            }
             assertThat(map, hasKey("crate_version"));
             assertThat(map.get("crate_version"), is(notNullValue()));
             assertThat(map, hasKey("java_version"));
@@ -164,8 +165,10 @@ public class PingTaskTest {
             assertThat(pingCountMap.get("success"), is(0L));
             assertThat(pingCountMap.get("failure"), is(i));
 
-            assertThat(map, hasKey("hardware_address"));
-            assertThat(map.get("hardware_address"), is(notNullValue()));
+            if (task.getHardwareAddress() != null) {
+                assertThat(map, hasKey("hardware_address"));
+                assertThat(map.get("hardware_address"), is(notNullValue()));
+            }
             assertThat(map, hasKey("crate_version"));
             assertThat(map.get("crate_version"), is(notNullValue()));
             assertThat(map, hasKey("java_version"));
