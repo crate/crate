@@ -32,6 +32,10 @@ public class ArrayIterator implements Iterator<Object[]> {
     private final int end;
     private int idx;
 
+    public static ArrayIterator full(Object[][] array) {
+        return new ArrayIterator(array, 0, array.length);
+    }
+
     public ArrayIterator(Object[][] array, int start, int end) {
         this.array = array;
         this.end = end;
@@ -51,5 +55,9 @@ public class ArrayIterator implements Iterator<Object[]> {
     @Override
     public void remove() {
         throw new UnsupportedOperationException("remove not supported");
+    }
+
+    public synchronized void reset() {
+        this.idx = 0;
     }
 }

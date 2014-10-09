@@ -21,84 +21,48 @@
 package io.crate.planner.node.dql.join;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
 import io.crate.planner.node.dql.DQLPlanNode;
-import io.crate.planner.projection.Projection;
-import io.crate.types.DataType;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 
+/**
+ * Plan Node that will be executed with the awesome nested loop algorithm
+ * performing CROSS JOINs
+ *
+ * This Node makes a lot of assumptions:
+ *
+ * <ul>
+ * <li> limit and offset are already pushed down to left and right plan nodes
+ * <li> where clause is already splitted to left and right plan nodes
+ * <li> order by symbols are already splitted, too
+ * <li> if the first order by symbol in the whole statement is from the left node,
+ *      set <code>leftOuterLoop</code> to true, otherwise to false
+ *
+ * </ul>
+ *
+ * Properties:
+ *
+ * <ul>
+ * <li> the resulting outputs from the join operations are the same, no matter if
+ *      <code>leftOuterLoop</code> is true or not - so the projections added,
+ *      can assume the same order of symbols, first symbols from left, then from right.
+ *      If sth. else is selected a projection has to reorder those.
+ *
+ */
 public class NestedLoopNode extends AbstractDQLPlanNode {
+
 
     private final DQLPlanNode left;
     private final DQLPlanNode right;
     private boolean leftOuterLoop = true;
-    private final @Nullable Integer limit;
+    private final int limit;
     private final int offset;
-
-    public static class Builder {
-        private DQLPlanNode left;
-        private DQLPlanNode right;
-        private Integer limit = null;
-        private int offset;
-        private boolean leftOuterLoop = true;
-        private List<DataType> outputTypes = ImmutableList.of();
-        private List<Projection> projections = ImmutableList.of();
-
-        public NestedLoopNode build() {
-            Preconditions.checkNotNull(left, "left planNode is null");
-            Preconditions.checkNotNull(right, "right planNode is null");
-            NestedLoopNode node = new NestedLoopNode(
-                    left, right, leftOuterLoop, limit, offset);
-            node.outputTypes(outputTypes);
-            node.projections(projections);
-            return node;
-        }
-
-        public Builder left(DQLPlanNode left) {
-            this.left = left;
-            return this;
-        }
-
-        public Builder right(DQLPlanNode right) {
-            this.right = right;
-            return this;
-        }
-
-        public Builder limit(@Nullable Integer limit) {
-            this.limit = limit;
-            return this;
-        }
-
-        public Builder offset(int offset) {
-            this.offset = offset;
-            return this;
-        }
-
-        public Builder leftOuterLoop(boolean leftOuterLoop) {
-            this.leftOuterLoop = leftOuterLoop;
-            return this;
-        }
-
-        public Builder outputTypes(List<DataType> outputTypes) {
-            this.outputTypes = outputTypes;
-            return this;
-        }
-
-        public Builder projections(List<Projection> projections) {
-            this.projections = projections;
-            return this;
-        }
-    }
 
     /**
      * create a new NestedLoopNode
@@ -129,10 +93,10 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
      * a | 3
      * b | 3
      */
-    private NestedLoopNode(DQLPlanNode left,
+    public NestedLoopNode(DQLPlanNode left,
                            DQLPlanNode right,
                            boolean leftOuterLoop,
-                           @Nullable Integer limit,
+                           int limit,
                            int offset) {
         super("nestedLoop");
         this.limit = limit;
@@ -150,11 +114,11 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
         return right;
     }
 
-    public DQLPlanNode innerNode() {
+    public DQLPlanNode inner() {
         return leftOuterLoop() ? right : left;
     }
 
-    public DQLPlanNode outerNode() {
+    public DQLPlanNode outer() {
         return leftOuterLoop() ? left : right;
     }
 
@@ -167,7 +131,7 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
         return ImmutableSet.of();
     }
 
-    public @Nullable Integer limit() {
+    public int limit() {
         return limit;
     }
 
