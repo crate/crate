@@ -46,12 +46,15 @@ public class FailedShardsException extends RuntimeException implements CrateExce
             sb = new StringBuilder("query failed on shards ");
         }
 
-        List<Integer> shardIds = new ArrayList<>(shardFailures.length);
+        List<String> errors = new ArrayList<>(shardFailures.length);
         for (ShardOperationFailedException shardFailure : shardFailures) {
-            shardIds.add(shardFailure.shardId());
+            errors.add(shardFailure.shardId()+" ( "+shardFailure.reason()+" )");
         }
-        sb.append(Joiner.on(",").join(shardIds))
-          .append(" of table ").append(shardFailures[0].index());
+
+        sb.append(Joiner.on(", ").join(errors));
+        if(shardFailures[0].index() != null){
+            sb.append(" of table ").append(shardFailures[0].index());
+        }
 
         return sb.toString();
     }

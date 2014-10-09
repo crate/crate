@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.QueryShardRequest;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
@@ -308,6 +309,13 @@ public class QueryThenFetchTask implements Task<QueryResult> {
         try {
             // TODO: run in threadpool
             // see https://github.com/elasticsearch/elasticsearch/pull/7624/files
+            if(shardFailures != null && shardFailures.length() > 0){
+                FailedShardsException ex = new FailedShardsException(shardFailures.toArray(
+                                                                        new ShardSearchFailure[shardFailures.length()]));
+                result.setException(ex);
+                return;
+            }
+
             InternalSearchResponse response = searchPhaseController.merge(sortedShardList, firstResults, fetchResults);
             final SearchHit[] hits = response.hits().hits();
             final Object[][] rows = new Object[hits.length][numColumns];
