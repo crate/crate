@@ -26,6 +26,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 
 public class Constants {
+
+    public static final boolean DEBUG_MODE = false;
     /**
      * Mapping Type that contains table definitions
      */

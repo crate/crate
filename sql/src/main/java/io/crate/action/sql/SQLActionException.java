@@ -80,4 +80,13 @@ public class SQLActionException extends ElasticsearchException {
     public String stackTrace() {
         return stackTrace;
     }
+
+    @Override
+    public String toString() {
+        return "SQLActionException{" +
+                "errorCode=" + errorCode +
+                ", status=" + status +
+                ", stackTrace='" + stackTrace + '\'' +
+                '}';
+    }
 }

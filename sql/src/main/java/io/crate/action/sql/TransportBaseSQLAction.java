@@ -28,6 +28,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Constants;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.OutputTypeVisitor;
@@ -386,6 +387,20 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             }
         }
         if (logger.isTraceEnabled()) {
+            message = Objects.firstNonNull(message, stackTrace.toString());
+        } else if (Constants.DEBUG_MODE) {
+            // will be optimized/removed at compile time
+            Throwable t;
+            if (e instanceof CrateException && e.getCause() != null) {
+                // CrateException stackTrace will most likely just show a stackTrace which leads to some kind of transport execution
+                // the cause will probably have a more helpful stackTrace;
+                t = e.getCause();
+            } else {
+                t = e;
+            }
+            StringWriter stringWriter = new StringWriter();
+            t.printStackTrace(new PrintWriter(stringWriter));
+            stackTrace = stringWriter;
             message = Objects.firstNonNull(message, stackTrace.toString());
         }
         return new SQLActionException(message, errorCode, restStatus, stackTrace.toString());
