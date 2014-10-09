@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
@@ -1863,7 +1864,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGroupByMultiValueField() throws Exception {
-        expectedException.expect(SQLActionException.class);
         this.setup.groupBySetup();
         // inserting multiple values not supported anymore
         client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
@@ -1876,7 +1876,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             put("gender", new String[]{"male", "robot"});
             put("name", "Marvin3");
         }}).execute().actionGet();
-        refresh();
+        execute("refresh table characters");
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column \"gender\" has a value that is an array. Group by doesn't work on Arrays");
+
         execute("select gender from characters group by gender");
     }
 
