@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Key;
 import org.elasticsearch.common.io.FileSystemUtils;
@@ -131,6 +132,7 @@ public class CrateTestCluster implements Iterable<Client> {
             .put("index.store.type", MockFSIndexStoreModule.class.getName()) // no RAM dir for now!
             .put(IndexEngineModule.EngineSettings.ENGINE_TYPE, MockEngineModule.class.getName())
             .put("cluster.name", clusterName)
+            .put(DiskThresholdDecider.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED, false)
                 // decrease the routing schedule so new nodes will be added quickly - some random value between 30 and 80 ms
             .put("cluster.routing.schedule", "30ms")
             .put("http.port", "44200-44300")

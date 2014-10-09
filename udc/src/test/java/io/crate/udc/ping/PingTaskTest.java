@@ -41,10 +41,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static junit.framework.TestCase.assertNotNull;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -97,26 +97,27 @@ public class PingTaskTest {
                 e.printStackTrace();
             }
 
-            assertTrue(map.containsKey("kernel"));
-            assertNotNull(map.get("kernel"));
-            assertTrue(map.containsKey("cluster_id"));
-            assertNotNull(map.get("cluster_id"));
-            assertTrue(map.containsKey("master"));
-            assertNotNull(map.get("master"));
-            assertTrue(map.containsKey("ping_count"));
-            assertNotNull(map.get("ping_count"));
+            assertThat(map, hasKey("kernel"));
+            assertThat(map.get("kernel"), is(notNullValue()));
+            assertThat(map, hasKey("cluster_id"));
+            assertThat(map.get("cluster_id"), is(notNullValue()));
+            assertThat(map, hasKey("master"));
+            assertThat(map.get("master"), is(notNullValue()));
+            assertThat(map, hasKey("ping_count"));
+            assertThat(map.get("ping_count"), is(notNullValue()));
             Map<String, Long> pingCountMap;
             pingCountMap = mapper.readValue(map.get("ping_count"), new TypeReference<Map<String, Long>>(){});
 
             assertThat(pingCountMap.get("success"), is(i));
             assertThat(pingCountMap.get("failure"), is(0L));
-
-            assertTrue(map.containsKey("hardware_address"));
-            assertNotNull(map.get("hardware_address"));
-            assertTrue(map.containsKey("crate_version"));
-            assertNotNull(map.get("crate_version"));
-            assertTrue(map.containsKey("java_version"));
-            assertNotNull(map.get("java_version"));
+            if (task.getHardwareAddress() != null) {
+                assertThat(map, hasKey("hardware_address"));
+                assertThat(map.get("hardware_address"), is(notNullValue()));
+            }
+            assertThat(map, hasKey("crate_version"));
+            assertThat(map.get("crate_version"), is(notNullValue()));
+            assertThat(map, hasKey("java_version"));
+            assertThat(map.get("java_version"), is(notNullValue()));
         }
         testServer.shutDown();
     }
@@ -145,26 +146,28 @@ public class PingTaskTest {
                 e.printStackTrace();
             }
 
-            assertTrue(map.containsKey("kernel"));
-            assertNotNull(map.get("kernel"));
-            assertTrue(map.containsKey("cluster_id"));
-            assertNotNull(map.get("cluster_id"));
-            assertTrue(map.containsKey("master"));
-            assertNotNull(map.get("master"));
-            assertTrue(map.containsKey("ping_count"));
-            assertNotNull(map.get("ping_count"));
+            assertThat(map, hasKey("kernel"));
+            assertThat(map.get("kernel"), is(notNullValue()));
+            assertThat(map, hasKey("cluster_id"));
+            assertThat(map.get("cluster_id"), is(notNullValue()));
+            assertThat(map, hasKey("master"));
+            assertThat(map.get("master"), is(notNullValue()));
+            assertThat(map, hasKey("ping_count"));
+            assertThat(map.get("ping_count"), is(notNullValue()));
             Map<String, Long> pingCountMap;
             pingCountMap = mapper.readValue(map.get("ping_count"), new TypeReference<Map<String, Long>>(){});
 
             assertThat(pingCountMap.get("success"), is(0L));
             assertThat(pingCountMap.get("failure"), is(i));
 
-            assertTrue(map.containsKey("hardware_address"));
-            assertNotNull(map.get("hardware_address"));
-            assertTrue(map.containsKey("crate_version"));
-            assertNotNull(map.get("crate_version"));
-            assertTrue(map.containsKey("java_version"));
-            assertNotNull(map.get("java_version"));
+            if (task.getHardwareAddress() != null) {
+                assertThat(map, hasKey("hardware_address"));
+                assertThat(map.get("hardware_address"), is(notNullValue()));
+            }
+            assertThat(map, hasKey("crate_version"));
+            assertThat(map.get("crate_version"), is(notNullValue()));
+            assertThat(map, hasKey("java_version"));
+            assertThat(map.get("java_version"), is(notNullValue()));
         }
 
         testServer.shutDown();

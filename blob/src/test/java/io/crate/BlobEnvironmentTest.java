@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -53,6 +54,9 @@ public class BlobEnvironmentTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+    @Rule
+    public TemporaryFolder folder= new TemporaryFolder();
 
     @Before
     public void setup() throws Exception {
@@ -110,7 +114,11 @@ public class BlobEnvironmentTest {
 
     @Test
     public void testValidateNotCreatable() throws Exception {
-        File file = new File("/crate_blobs");
+        File tmpDir = folder.newFolder();
+        assertThat(tmpDir.setReadable(false), is(true));
+        assertThat(tmpDir.setWritable(false), is(true));
+        assertThat(tmpDir.setExecutable(false), is(true));
+        File file = new File(tmpDir, "crate_blobs");
 
         expectedException.expect(SettingsException.class);
         expectedException.expectMessage(String.format("blobs path '%s' could not be created",

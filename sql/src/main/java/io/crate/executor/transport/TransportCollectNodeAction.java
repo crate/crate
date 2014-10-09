@@ -149,10 +149,10 @@ public class TransportCollectNodeAction {
         private final ClusterState clusterState;
 
         private AsyncAction(String nodeId, NodeCollectRequest request, ActionListener<NodeCollectResponse> listener) {
-            Preconditions.checkNotNull(nodeId);
+            Preconditions.checkNotNull(nodeId, "nodeId is null");
             clusterState = clusterService.state();
             node = clusterState.nodes().get(nodeId);
-            Preconditions.checkNotNull(node);
+            Preconditions.checkNotNull(node, "DiscoveryNode for id '%s' not found in cluster state", nodeId);
 
             this.nodeId = nodeId;
             this.request = request;

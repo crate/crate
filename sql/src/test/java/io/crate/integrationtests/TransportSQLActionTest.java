@@ -244,26 +244,26 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
 
     @Test
-    public void testSelectNestedColumns() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "message", "type=string",
-                        "person", "type=object")
-                .execute().actionGet();
+    public void testSelectDynamicObjectNewColumns() throws Exception {
+
+        execute("create table test (message string, person object(dynamic)) with (number_of_replicas=0)");
         ensureGreen();
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
-                .setSource("{\"message\":\"I'm addicted to kite\", " +
-                        "\"person\": { \"name\": \"Youri\", \"addresses\": [ { \"city\": " +
-                        "\"Dirksland\", \"country\": \"NL\" } ] }}")
-                .execute().actionGet();
+        execute("insert into test (message, person) values ('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
         refresh();
 
-        execute("select message, person['name'], person['addresses']['city'] from test " +
-                "where person['name'] = 'Youri'");
-
+        // check that new columns in dynamic objects show up eventually
+        long rowCount = 0L;
+        int retries = 3;
+        while (rowCount == 0L && retries > 0) {
+            execute("select message, person['name'], person['addresses']['city'] from test " +
+                    "where person['name'] = 'Youri'");
+            rowCount = response.rowCount();
+            retries--;
+            Thread.sleep(10);
+        }
+        assertEquals(1L, rowCount);
         assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
                 response.cols());
-        assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{"I'm addicted to kite", "Youri",
                         new ArrayList<String>() {{
                             add("Dirksland");
@@ -278,6 +278,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .addMapping("default",
                         "name", "type=string,index=not_analyzed")
                 .execute().actionGet();
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"name\":\"\"}")
                 .execute().actionGet();
@@ -301,6 +302,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .addMapping("default",
                         "name", "type=string,index=not_analyzed")
                 .execute().actionGet();
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{}")
                 .execute().actionGet();
@@ -335,6 +337,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .addMapping("default",
                         "sunshine", "type=boolean,index=not_analyzed")
                 .execute().actionGet();
+        ensureGreen();
 
         execute("insert into test values (?)", new Object[]{true});
         refresh();
@@ -392,6 +395,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testDelete() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         refresh();
         execute("delete from test");
@@ -404,6 +408,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testDeleteWithWhere() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         client().prepareIndex("test", "default", "id3").setSource("{}").execute().actionGet();
@@ -435,6 +440,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSqlRequestWithLimit() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         refresh();
@@ -446,6 +452,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSqlRequestWithLimitAndOffset() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         client().prepareIndex("test", "default", "id3").setSource("{}").execute().actionGet();
@@ -458,6 +465,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSqlRequestWithFilter() throws Exception {
         createIndex("test");
+        ensureGreen();
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         refresh();
@@ -628,6 +636,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "short", "type=short",
                         "string", "type=string,index=not_analyzed")
                 .execute().actionGet();
+        ensureGreen();
 
         execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807, 32767, 'Youri')");
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
@@ -869,6 +878,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "age", "type=integer",
                         "name", "type=string,store=true,index=not_analyzed")
                 .execute().actionGet();
+        ensureGreen();
 
         execute("insert into test values(32, 'Youri'), (42, 'Ruben')");
         assertEquals(2, response.rowCount());
@@ -904,11 +914,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertMultipleRowsWithParams() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "age", "type=integer",
-                        "name", "type=string,store=true,index=not_analyzed")
-                .execute().actionGet();
+        execute("create table test (age integer, name string) with (number_of_replicas=0)");
+        ensureGreen();
 
         Object[] args = new Object[]{32, "Youri", 42, "Ruben"};
         execute("insert into test values(?, ?), (?, ?)", args);
@@ -924,13 +931,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertObject() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "message", "type=string,store=true,index=not_analyzed",
-                        "person", "type=object,store=true")
-                .execute().actionGet();
+        execute("create table test (message string, person object) with (number_of_replicas=0)");
+        ensureGreen();
 
-        Map<String, String> person = new HashMap<String, String>();
+        Map<String, Object> person = new HashMap<>();
         person.put("first_name", "Youri");
         person.put("last_name", "Zoon");
         Object[] args = new Object[]{"I'm addicted to kite", person};
@@ -988,7 +992,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .addMapping("default",
                         "message", "type=string,index=not_analyzed")
                 .execute().actionGet();
-
+        ensureGreen();
         execute("insert into test values('hello'),('again'),('hello')");
         assertEquals(3, response.rowCount());
         refresh();
@@ -1011,6 +1015,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "col1", "type=string,index=not_analyzed",
                         "col2", "type=string,index=not_analyzed")
                 .execute().actionGet();
+        ensureGreen();
 
         execute("insert into test values('hello', 'hallo'), ('again', 'nochmal')");
         assertEquals(2, response.rowCount());
@@ -1035,6 +1040,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "  details array(object)" +
                 ")");
         ensureGreen();
+
         execute("insert into test values(1.1, ?),(2.2, ?)", new Object[]{new Object[0],
                 new Object[]{
                         new HashMap<String, Object>(),
@@ -1849,7 +1855,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByEmpty() throws Exception {
         execute("create table test (col1 string)");
-        waitForRelocation(ClusterHealthStatus.GREEN);
+        ensureGreen();
 
         execute("select count(*), col1 from test group by col1");
         assertEquals(0, response.rowCount());
@@ -1877,6 +1883,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
 
@@ -1997,6 +2005,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectMatch() throws Exception {
         execute("create table quotes (quote string)");
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
                 .actionGet().isExists());
 
@@ -2006,6 +2015,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote from quotes where match(quote, ?)", new Object[]{"don't panic"});
         assertEquals(1L, response.rowCount());
         assertEquals("don't panic", response.rows()[0][0]);
+
     }
 
     @Test

@@ -93,9 +93,9 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         }
 
         public ReferenceInfo build() {
-            Preconditions.checkNotNull(ident);
-            Preconditions.checkNotNull(granularity);
-            Preconditions.checkNotNull(type);
+            Preconditions.checkNotNull(ident, "ident is null");
+            Preconditions.checkNotNull(granularity, "granularity is null");
+            Preconditions.checkNotNull(type, "type is null");
             return new ReferenceInfo(ident, granularity, type, objectType, indexType);
         }
     }

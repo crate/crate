@@ -24,7 +24,7 @@ public class Function extends DataTypeSymbol implements Cloneable {
     private FunctionInfo info;
 
     public Function(FunctionInfo info, List<Symbol> arguments) {
-        Preconditions.checkNotNull(info);
+        Preconditions.checkNotNull(info, "function info is null");
         Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size());
         this.info = info;
         this.arguments = arguments;

@@ -718,7 +718,7 @@ public class ESQueryBuilder {
 
             @Override
             public boolean convert(Function function, Context context) throws IOException {
-                Preconditions.checkNotNull(function);
+                Preconditions.checkNotNull(function, "IS NULL function is null, what a hilarious coincidence!");
                 Preconditions.checkArgument(function.arguments().size() == 1);
 
                 Symbol arg = function.arguments().get(0);
@@ -740,7 +740,7 @@ public class ESQueryBuilder {
 
             @Override
             public boolean convert(Function function, Context context) throws IOException {
-                Preconditions.checkNotNull(function);
+                Preconditions.checkNotNull(function, "NOT function is null");
                 Preconditions.checkArgument(function.arguments().size() == 1);
 
                 context.builder.startObject("bool").startObject("must_not");
