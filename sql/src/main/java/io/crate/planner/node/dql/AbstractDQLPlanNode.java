@@ -23,24 +23,30 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import io.crate.Constants;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
+public abstract class AbstractDQLPlanNode implements DQLPlanNode {
+
+    public static final int NO_LIMIT = -1;
 
     private String id;
     protected List<Projection> projections = ImmutableList.of();
     protected List<DataType> outputTypes = ImmutableList.of();
     private List<DataType> inputTypes;
+
+    private int limit = Constants.DEFAULT_SELECT_LIMIT;
+    private int offset = 0;
 
     public AbstractDQLPlanNode() {
 
@@ -52,6 +58,24 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
 
     public String id() {
         return id;
+    }
+
+    public int limit() {
+        return limit;
+    }
+
+    public void limit(int limit) {
+        Preconditions.checkArgument(limit >= 0 || limit == NO_LIMIT, "invalid limit");
+        this.limit = limit;
+    }
+
+    public int offset() {
+        return offset;
+    }
+
+    public void offset(int offset) {
+        Preconditions.checkArgument(offset >= 0, "invalid offset");
+        this.offset = offset;
     }
 
     public boolean hasProjections() {
@@ -92,8 +116,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
         return inputTypes;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    protected void readFrom(StreamInput in) throws IOException {
         id = in.readString();
 
         int numCols = in.readVInt();
@@ -114,8 +137,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
 
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
+    protected void writeTo(StreamOutput out) throws IOException {
         out.writeString(id);
 
         int numCols = outputTypes.size();

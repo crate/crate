@@ -1865,6 +1865,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testGroupByMultiValueField() throws Exception {
         this.setup.groupBySetup();
         // inserting multiple values not supported anymore
+
         client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
             put("race", new String[]{"Android"});
             put("gender", new String[]{"male", "robot"});

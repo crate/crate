@@ -28,6 +28,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.*;
@@ -35,7 +36,7 @@ import java.util.*;
 /**
  * A plan node which merges results from upstreams
  */
-public class MergeNode extends AbstractDQLPlanNode {
+public class MergeNode extends AbstractDQLPlanNode implements Streamable {
 
     private int numUpstreams;
     private Set<String> executionNodes;
