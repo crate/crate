@@ -28,6 +28,7 @@ import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
+import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.task.CreateTableTask;
 import io.crate.executor.transport.task.DistributedMergeTask;
 import io.crate.executor.transport.task.DropTableTask;
@@ -38,6 +39,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
@@ -48,6 +50,7 @@ import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -71,6 +74,8 @@ public class TransportExecutor implements Executor {
     private final ClusterService clusterService;
     private final TransportActionProvider transportActionProvider;
 
+    private final ImplementationSymbolVisitor globalImplementationSymbolVisitor;
+    private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
 
@@ -94,6 +99,12 @@ public class TransportExecutor implements Executor {
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.visitor = new Visitor();
+
+        this.globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(
+                referenceResolver, functions, RowGranularity.CLUSTER);
+        this.globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
+                clusterService, settings, transportActionProvider,
+                globalImplementationSymbolVisitor);
     }
 
     @Override
@@ -167,7 +178,7 @@ public class TransportExecutor implements Executor {
                         clusterService,
                         settings,
                         transportActionProvider,
-                        new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
+                        globalImplementationSymbolVisitor,
                         node,
                         statsTables);
             } else {
@@ -191,6 +202,15 @@ public class TransportExecutor implements Executor {
                     searchPhaseController,
                     threadPool);
             
+        }
+
+        @Override
+        public Task visitNestedLoopNode(NestedLoopNode node, UUID jobId) {
+            return new NestedLoopTask(
+                    jobId,
+                    node,
+                    TransportExecutor.this,
+                    globalProjectionToProjectionVisitor);
         }
 
         @Override

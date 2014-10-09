@@ -103,6 +103,10 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
         }
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
 
     /**
      * create a new NestedLoopNode
