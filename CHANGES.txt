@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: some shard errors were not being raised and so the shard failed silently
+   when some kind of errors, like an Out of memory error occured.
+
  - upgraded ES upstream to v1.3.4
 
  - Fix: allow subscript access on array literals and parameters as subscript
