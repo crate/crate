@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
@@ -65,10 +66,14 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         process(node.table(), context);
 
         if (!node.table().partitionProperties().isEmpty()) {
-            context.partitionIdent(PartitionPropertiesAnalyzer.toPartitionIdent(
+            String partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
                     context.table(),
                     node.table().partitionProperties(),
-                    context.parameters()));
+                    context.parameters());
+            if (!context.partitionExists(partitionIdent)){
+                throw new PartitionUnknownException(context.table().ident().fqn(), partitionIdent);
+            }
+            context.partitionIdent(partitionIdent);
         }
         context.uri(process(node.targetUri(), context));
         context.directoryUri(node.directoryUri());

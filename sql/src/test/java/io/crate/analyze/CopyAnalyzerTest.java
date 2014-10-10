@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.PartitionName;
+import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.MetaDataModule;
@@ -167,9 +168,35 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCopyToFileWithPartitionClause() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted partition (date=0) to '/blah.txt'");
-        assertThat(analysis.partitionIdent(), is(PartitionName.encodeIdent(Arrays.asList(new BytesRef("0")))));
+        CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted partition (date=1395874800000) to '/blah.txt'");
+        assertThat(analysis.partitionIdent(),
+                is(PartitionName.encodeIdent(Arrays.asList(new BytesRef("1395874800000")))));
     }
+
+    @Test
+    public void testCopyToDirectoryithPartitionClause() throws Exception {
+        CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted partition (date=1395874800000) to directory '/tmp'");
+        assertThat(analysis.directoryUri(), is(true));
+        assertThat(analysis.partitionIdent(),
+                is(PartitionName.encodeIdent(Arrays.asList(new BytesRef("1395874800000")))));
+    }
+
+
+    @Test
+    public void testCopyToDirectoryWithNotExistingPartitionClause() throws Exception {
+        expectedException.expect(PartitionUnknownException.class);
+        expectedException.expectMessage("No partition for table 'parted' with ident '04130' exists");
+        analyze("copy parted partition (date=0) to directory '/tmp/'");
+    }
+
+    @Test
+    public void testCopyToWithNotExistingPartitionClause() throws Exception {
+        expectedException.expect(PartitionUnknownException.class);
+        expectedException.expectMessage("No partition for table 'parted' with ident '04130' exists");
+        analyze("copy parted partition (date=0) to '/tmp/blah.txt'");
+    }
+
+
 
 
     @Test
