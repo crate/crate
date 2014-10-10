@@ -837,15 +837,10 @@ public class PlannerTest {
     }
 
     @Test
-    public void testCopyToWithPartitionClause() throws Exception {
+    public void testCopyToWithNonExistentPartitionClause() throws Exception {
         Plan plan = plan("copy parted partition (date=0) to '/foo.txt' ");
         CollectNode collectNode = (CollectNode) plan.iterator().next();
-
-        // locations are zero here because the mocked routing setup doesn't include the partitioned tables
-        // and the regular tables get filtered away
-        for (Map.Entry<String, Map<String, Set<Integer>>> entry : collectNode.routing().locations().entrySet()) {
-            assertThat(entry.getValue().size(), is(0));
-        }
+        assertFalse(collectNode.routing().hasLocations());
     }
 
     @Test (expected = IllegalArgumentException.class)

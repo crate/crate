@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.PartitionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
@@ -90,6 +91,13 @@ public class CopyAnalysis extends AbstractDataAnalysis {
 
     public Settings settings(){
         return settings;
+    }
+
+    public boolean partitionExists(String partitionIdent){
+        if (table.isPartitioned() && partitionIdent != null ){
+            return table.partitions().contains(PartitionName.fromPartitionIdent(table.ident().name(), partitionIdent));
+        }
+        return false;
     }
 
     @Override

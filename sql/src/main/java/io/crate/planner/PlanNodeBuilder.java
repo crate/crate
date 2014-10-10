@@ -124,14 +124,22 @@ class PlanNodeBuilder {
 
         for (Map.Entry<String, Map<String, Set<Integer>>> entry : routing.locations().entrySet()) {
             Map<String, Set<Integer>> tableMap = new HashMap<>();
-            newLocations.put(entry.getKey(), tableMap);
             for (Map.Entry<String, Set<Integer>> tableEntry : entry.getValue().entrySet()) {
                 if (includeTableName.equals(tableEntry.getKey())) {
                     tableMap.put(tableEntry.getKey(), tableEntry.getValue());
                 }
             }
+            if (tableMap.size()>0){
+                newLocations.put(entry.getKey(), tableMap);
+            }
+
         }
-        return new Routing(newLocations);
+        if (newLocations.size()>0) {
+            return new Routing(newLocations);
+        } else {
+            return new Routing();
+        }
+
     }
 
     static CollectNode collect(AbstractDataAnalysis analysis,
