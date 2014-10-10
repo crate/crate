@@ -30,31 +30,43 @@ import io.crate.planner.symbol.Reference;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public interface AnalyzedRelation {
+public abstract class AnalyzedRelation {
 
-    public List<AnalyzedRelation> children();
+    /**
+     * Used to identify a relation during analysis.
+     * This uses object identity.
+     *
+     * It is only used to tell if two relations
+     * are exactly the same or not, not if they are semantically equal.
+     *
+     */
+    public int ident() {
+        return super.hashCode(); // object identity
+    }
+
+    public abstract List<AnalyzedRelation> children();
 
     /**
      * return the number of relations this one is made up
      * including itself
      */
-    public int numRelations();
+    public abstract int numRelations();
 
-    public WhereClause whereClause();
+    public abstract WhereClause whereClause();
 
-    public void whereClause(WhereClause whereClause);
+    public abstract void whereClause(WhereClause whereClause);
 
-    public Reference getReference(@Nullable String schema,
-                                  @Nullable String tableOrAlias,
-                                  ColumnIdent columnIdent);
+    public abstract Reference getReference(@Nullable String schema,
+                                           @Nullable String tableOrAlias,
+                                           ColumnIdent columnIdent);
 
     /**
      * A list of tables this relation references.
      * If this is itself a table, it returns an empty list.
      */
-    public List<TableInfo> tables();
+    public abstract List<TableInfo> tables();
 
-    public <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context);
+    public abstract <C, R> R accept(RelationVisitor<C, R> relationVisitor, C context);
 
 
     // TODO: addressedBy methods can probably be removed if there is one getRelationOutput() method that also takes schema and table/alias names
@@ -81,14 +93,14 @@ public interface AnalyzedRelation {
      * @param relationName tableName or alias
      * @return true or false
      */
-    boolean addressedBy(String relationName);
+    public abstract boolean addressedBy(String relationName);
 
     /**
      * returns true if the relation resolves to schemaName and tableName
      *
      * See also {@link #addressedBy(String)}
      */
-    boolean addressedBy(@Nullable String schemaName, String tableName);
+    public abstract boolean addressedBy(@Nullable String schemaName, String tableName);
 
-    void normalize(EvaluatingNormalizer normalizer);
+    public abstract void normalize(EvaluatingNormalizer normalizer);
 }

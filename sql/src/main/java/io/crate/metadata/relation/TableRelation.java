@@ -47,7 +47,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-public class TableRelation implements AnalyzedRelation {
+public class TableRelation extends AnalyzedRelation {
 
     private static final PrimaryKeyVisitor PK_VISITOR = new PrimaryKeyVisitor();
     private static final Predicate<ReferenceInfo> HAS_OBJECT_ARRAY_PARENT = new Predicate<ReferenceInfo>() {
@@ -68,6 +68,7 @@ public class TableRelation implements AnalyzedRelation {
 
 
     public TableRelation(TableInfo tableInfo, PartitionResolver partitionResolver) {
+        super();
         this.tableInfo = tableInfo;
         this.partitionResolver = partitionResolver;
     }

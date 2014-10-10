@@ -22,11 +22,41 @@
 package io.crate.planner.symbol;
 
 import io.crate.types.DataType;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.*;
 
 import java.io.IOException;
 
 public abstract class Symbol implements Streamable {
+
+    @Nullable
+    private Integer relationIdent = null;
+
+    @Nullable
+    public Integer relationIdent() {
+        return relationIdent;
+    }
+
+    public boolean hasRelationIdent() {
+        return relationIdent != null;
+    }
+
+    public void relationIdent(@Nullable Integer ident) {
+        relationIdent = ident;
+    }
+
+    protected void writeRelationIdent(StreamOutput out) throws IOException {
+        out.writeBoolean(hasRelationIdent());
+        if (hasRelationIdent()) {
+            out.writeInt(relationIdent);
+        }
+    }
+
+    protected void readRelationIdent(StreamInput in) throws IOException {
+        if (in.readBoolean()) {
+            relationIdent(in.readInt());
+        }
+    }
 
     public static boolean isLiteral(Symbol symbol, DataType expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL
