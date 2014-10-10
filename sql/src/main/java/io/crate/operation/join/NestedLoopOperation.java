@@ -25,6 +25,7 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
+import io.crate.exceptions.TaskExecutionException;
 import io.crate.executor.Executor;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
@@ -34,15 +35,29 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
 import io.crate.planner.node.dql.join.NestedLoopNode;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * this operation performs the nested loop algorithm
+ * to join two relations
+ */
 public class NestedLoopOperation implements ProjectorUpstream {
 
+    /**
+     * this iterator wraps a planNode with all the necessary information
+     * for fetching rows from a relation
+     * <p>
+     * It will be transformed to a task and executed when new rows are needed during iteration.
+     * <p>
+     * The rows are fetched in pages.
+     */
     private static class PagedRelationIterator extends AbstractIterator<Object[]> implements Iterable<Object[]> {
 
         private final AbstractDQLPlanNode dqlPlanNode;
@@ -58,6 +73,15 @@ public class NestedLoopOperation implements ProjectorUpstream {
         private int currentPageSize = 0;
         private int currentPageIdx = 0;
 
+        /**
+         * create a new paged iterator for a {@linkplain io.crate.planner.node.dql.AbstractDQLPlanNode}
+         *
+         * @param executor the executor used to create and execute tasks
+         * @param jobId the identifier of the job this iterator is used in (necessary for creating new tasks)
+         * @param dqlPlanNode the planNode defining how to fetch rows
+         * @param limit the maximum number of rows to fetch
+         * @param offset the initial offset when fetching rows
+         */
         public PagedRelationIterator(Executor executor, UUID jobId, AbstractDQLPlanNode dqlPlanNode, int limit, int offset) {
             this.executor = executor;
             this.jobId = jobId;
@@ -103,7 +127,7 @@ public class NestedLoopOperation implements ProjectorUpstream {
                         return null; // ignored
                     }
                 } catch (InterruptedException|ExecutionException e) {
-                    throw new RuntimeException("error executing task", e);
+                    throw new RuntimeException("error executing task to fetch a new page", e);
                 }
             }
             rowsReturned++;
@@ -123,11 +147,13 @@ public class NestedLoopOperation implements ProjectorUpstream {
     private final int rightRowLength;
 
     private final NestedLoopNode nestedLoopNode;
+    private final ThreadPool threadPool;
     private final PagedRelationIterator outerIterator;
     private final PagedRelationIterator innerIterator;
     private final FlatProjectorChain projectorChain;
 
     private Projector downstream;
+
     /**
      *
      * OPTIMIZATION: always let inner relation be the one with the smaller limit
@@ -141,15 +167,18 @@ public class NestedLoopOperation implements ProjectorUpstream {
      * @param offset the number of rows to skip
      */
     public NestedLoopOperation(NestedLoopNode nestedLoopNode,
+                               ThreadPool threadPool,
                                Executor executor,
                                ProjectionToProjectorVisitor projectionToProjectorVisitor,
                                UUID jobId) {
         this.nestedLoopNode = nestedLoopNode;
+        this.threadPool = threadPool;
         this.limit = this.nestedLoopNode.limit();
         this.offset = this.nestedLoopNode.offset();
         this.leftRowLength = nestedLoopNode.left().outputTypes().size();
         this.rightRowLength = nestedLoopNode.right().outputTypes().size();
         this.projectorChain = new FlatProjectorChain(nestedLoopNode.projections(), projectionToProjectorVisitor);
+        downstream(this.projectorChain.firstProjector());
         this.outerIterator = new PagedRelationIterator(executor, jobId, nestedLoopNode.outerNode(), effectiveLimit(limit, offset), 0);
         this.innerIterator = new PagedRelationIterator(executor, jobId, nestedLoopNode.innerNode(), effectiveLimit(limit, offset), 0);
     }
@@ -163,14 +192,20 @@ public class NestedLoopOperation implements ProjectorUpstream {
     }
 
     public ListenableFuture<Object[][]> execute() {
-        downstream(this.projectorChain.firstProjector());
-        this.projectorChain.startProjections();
-        if (nestedLoopNode.leftOuterLoop()) {
-            executeLeftOuter();
-        } else {
-            executeRightOuter();
-        }
-        projectorChain.firstProjector().upstreamFinished();
+
+        // dispatch to separate thread
+        threadPool.generic().execute(new Runnable() {
+            @Override
+            public void run() {
+                projectorChain.startProjections();
+                if (nestedLoopNode.leftOuterLoop()) {
+                    executeLeftOuter();
+                } else {
+                    executeRightOuter();
+                }
+                projectorChain.firstProjector().upstreamFinished();
+            }
+        });
         return projectorChain.result();
     }
 

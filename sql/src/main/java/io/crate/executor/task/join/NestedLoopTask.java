@@ -32,6 +32,7 @@ import io.crate.executor.TaskResult;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.node.dql.join.NestedLoopNode;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -41,15 +42,18 @@ import java.util.UUID;
 public class NestedLoopTask extends Task<QueryResult> {
 
     private NestedLoopOperation operation;
+    private final ThreadPool threadPool;
     private final SettableFuture<QueryResult> result = SettableFuture.create();
     private final List<ListenableFuture<QueryResult>> results = Arrays.<ListenableFuture<QueryResult>>asList(result);
 
     public NestedLoopTask(UUID jobId,
                              NestedLoopNode nestedLoopNode,
+                             ThreadPool threadPool,
                              Executor executor,
                              ProjectionToProjectorVisitor projectionToProjectorVisitor) {
         super(jobId);
-        operation = new NestedLoopOperation(nestedLoopNode, executor, projectionToProjectorVisitor, jobId);
+        this.threadPool = threadPool;
+        operation = new NestedLoopOperation(nestedLoopNode, threadPool, executor, projectionToProjectorVisitor, jobId);
     }
 
     @Override

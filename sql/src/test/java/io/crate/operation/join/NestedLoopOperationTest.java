@@ -46,6 +46,8 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -142,6 +144,7 @@ public class NestedLoopOperationTest extends RandomizedTest {
     }
 
     private ProjectionToProjectorVisitor projectionVisitor;
+    private ThreadPool threadPool;
 
     @Before
     public void prepare() {
@@ -154,13 +157,19 @@ public class NestedLoopOperationTest extends RandomizedTest {
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class);
         projectionVisitor = new ProjectionToProjectorVisitor(mock(ClusterService.class), ImmutableSettings.EMPTY, transportActionProvider, implementationSymbolVisitor);
+        threadPool = new ThreadPool(getClass().getName());
+    }
+
+    @After
+    public void cleanUp() {
+        threadPool.shutdownNow();
     }
 
     private void assertNestedLoop(Object[][] left, Object[][] right, int limit, int offset, int expectedRows) throws Exception {
         NestedLoopNode.Builder builder = new NestedLoopNode.Builder().limit(limit).offset(offset).leftOuterLoop(true);
         builder.left(new TestDQLNode(left));
         builder.right(new TestDQLNode(right));
-        NestedLoopOperation nestedLoop = new NestedLoopOperation(builder.build(), new TestExecutor(), projectionVisitor, UUID.randomUUID());
+        NestedLoopOperation nestedLoop = new NestedLoopOperation(builder.build(), threadPool, new TestExecutor(), projectionVisitor, UUID.randomUUID());
         Object[][] result = nestedLoop.execute().get();
 
         int i = 0;

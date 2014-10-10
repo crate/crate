@@ -36,6 +36,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * node encapsulating all necessary information for performing a join
+ * with the *stunning* nested-loop algorithm
+ */
 public class NestedLoopNode extends AbstractDQLPlanNode {
 
     private final AbstractDQLPlanNode left;
@@ -136,6 +140,8 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
      *                      b | 2
      *                      a | 3
      *                      b | 3
+     * @param left a plannode for the left relation of the join
+     * @param right a plannode for the right relation of the join
      */
     private NestedLoopNode(int limit,
                           int offset,
@@ -158,10 +164,31 @@ public class NestedLoopNode extends AbstractDQLPlanNode {
         return right;
     }
 
+    /**
+     * The rows resulting from the inner node are repeated for every row of the outer node:
+     *
+     * inner1 | outer1
+     * inner2 | outer1
+     * inner1 | outer2
+     * inner2 | outer2
+     *
+     * In addition it has to be fetched upfront and loaded into memory.
+     * So, for optimization, this should be the node with the lowest limit or the fewest rows.
+     */
     public AbstractDQLPlanNode innerNode() {
         return leftOuterLoop() ? right : left;
     }
 
+    /**
+     * The rows resulting from the inner node are repeated for every row of the outer node:
+     *
+     * inner1 | outer1
+     * inner2 | outer1
+     * inner1 | outer2
+     * inner2 | outer2
+     *
+     * Only as much rows are fetched from this node as needed until the limit is reached.
+     */
     public AbstractDQLPlanNode outerNode() {
         return leftOuterLoop() ? left : right;
     }

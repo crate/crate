@@ -209,6 +209,7 @@ public class TransportExecutor implements Executor {
             return new NestedLoopTask(
                     jobId,
                     node,
+                    threadPool,
                     TransportExecutor.this,
                     globalProjectionToProjectionVisitor);
         }

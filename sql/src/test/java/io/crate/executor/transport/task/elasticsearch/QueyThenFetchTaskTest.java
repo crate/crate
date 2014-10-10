@@ -92,7 +92,8 @@ public class QueyThenFetchTaskTest {
         transportQueryShardAction = mock(TransportQueryShardAction.class);
         searchServiceTransportAction = mock(SearchServiceTransportAction.class);
         searchPhaseController = mock(SearchPhaseController.class);
-        queryThenFetchTask = new QueryThenFetchTask(searchNode,
+        queryThenFetchTask = new QueryThenFetchTask(UUID.randomUUID(),
+                                                    searchNode,
                                                     clusterService,
                                                     transportQueryShardAction,
                                                     searchServiceTransportAction,
