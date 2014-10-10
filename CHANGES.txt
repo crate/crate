@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/10/10 0.44.5
+=================
+
  - fix: trying to copy out of a non-existent partition now throws an
    appropriate exception
 
