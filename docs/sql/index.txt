@@ -14,6 +14,7 @@ see :doc:`sql`. For general information about SQL please refer to
    ddl
    dml
    dql
+   joins
    data_types
    aggregation
    scalar

@@ -1,0 +1,177 @@
+.. highlight:: psql
+.. _sql_joins:
+
+Joins
+=====
+
+Cross Joins
+-----------
+
+Referencing two tables results in a ``CROSS JOIN``.
+The result is computed by creating every possible combination
+(`Cartesian Product`_) of their rows (``t1 * t2 * t3 * tn``) and then applying
+the given query operation on it (``WHERE`` clause, ``SELECT`` list, ``ORDER BY``
+clause, ...)::
+
+    cr> select articles.name as article, colors.name as color, price
+    ... from articles cross join colors
+    ... where price > 5000.0
+    ... order by price, color, article;
+    +------------------------------+---------------+----------+
+    | article                      | color         |    price |
+    +------------------------------+---------------+----------+
+    | Infinite Improbability Drive | Antique White | 19999.99 |
+    | Infinite Improbability Drive | Gold          | 19999.99 |
+    | Infinite Improbability Drive | Midnight Blue | 19999.99 |
+    | Infinite Improbability Drive | Olive Drab    | 19999.99 |
+    | Starship Titanic             | Antique White | 50000.0  |
+    | Starship Titanic             | Gold          | 50000.0  |
+    | Starship Titanic             | Midnight Blue | 50000.0  |
+    | Starship Titanic             | Olive Drab    | 50000.0  |
+    +------------------------------+---------------+----------+
+    SELECT 8 rows in set (... sec)
+
+Cross Joins can be done explicitly using the ``CROSS JOIN`` statement as shown
+in the example above, or implicitly by just specifying two or more tables in
+the ``FROM`` list::
+
+    cr> select articles.name as article, colors.name as color, price
+    ... from articles, colors
+    ... where price > 5000.0
+    ... order by price, color, article;
+    +------------------------------+---------------+----------+
+    | article                      | color         |    price |
+    +------------------------------+---------------+----------+
+    | Infinite Improbability Drive | Antique White | 19999.99 |
+    | Infinite Improbability Drive | Gold          | 19999.99 |
+    | Infinite Improbability Drive | Midnight Blue | 19999.99 |
+    | Infinite Improbability Drive | Olive Drab    | 19999.99 |
+    | Starship Titanic             | Antique White | 50000.0  |
+    | Starship Titanic             | Gold          | 50000.0  |
+    | Starship Titanic             | Midnight Blue | 50000.0  |
+    | Starship Titanic             | Olive Drab    | 50000.0  |
+    +------------------------------+---------------+----------+
+    SELECT 8 rows in set (... sec)
+
+Inner Joins
+-----------
+
+``INNER JOIN`` requires each record of one table to have matching records on
+the other table. In Crate an ``INNER JOIN`` needs to be done implicitly::
+
+    cr> select s.id, s.table_name, t.number_of_shards
+    ... from sys.shards s, information_schema.tables t
+    ... where s.table_name = t.table_name
+    ... and s.table_name = 'employees'
+    ... order by s.id;
+    +------+--------------+--------------------+
+    | s.id | s.table_name | t.number_of_shards |
+    +------+--------------+--------------------+
+    |    0 | employees    |                  5 |
+    |    1 | employees    |                  5 |
+    |    2 | employees    |                  5 |
+    |    3 | employees    |                  5 |
+    |    4 | employees    |                  5 |
+    +------+--------------+--------------------+
+    SELECT 5 rows in set (... sec)
+
+Currently **only system tables** (``sys``, ``information_schema``)
+fully support ``INNER JOIN``. For a list of limitations when joining user tables
+see :ref:`sql_joins_limitations`.
+
+Join Conditions
+...............
+
+Crate supports all operators and scalar functions as join conditions in the
+``WHERE`` clause.
+
+Example with ``within`` scalar function::
+
+    cr> select photos.name, countries.name
+    ... from countries, photos
+    ... where within(location, geo)
+    ... order by countries.name, photos.name;
+    +--------------+----------------+
+    | photos.name  | countries.name |
+    +--------------+----------------+
+    | Eiffel Tower | France         |
+    | Berlin Wall  | Germany        |
+    +--------------+----------------+
+    SELECT 2 rows in set (... sec)
+
+.. note::
+
+    :ref:`predicates` are **not** supported as join conditions.
+
+However, there are no specific optimisations for certain join conditions such
+as ``=`` (equals) yet. The JOIN operation is implemented as a generic nested loop
+that invokes the operation on every record of the left table with every record
+of the right table. However, these filters are applied in a distributed way for
+each shard of the used tables.
+
+.. _sql_joins_limitations:
+
+Limitations
+...........
+
+Joining user generated tables (``doc`` tables) still have certain limitations:
+
+Due to Crate's internal behaviour how data is fetched, currently all columns
+and expressions that are in the ``SELECT`` list must also appear in the
+``ORDER BY`` clause of the statement.
+
+For example::
+
+    cr> select e.name, e.surname, d.name
+    ... from employees e, departments d
+    ... where e.dept_id = d.id
+    ... order by e.name, e.surname, d.name;
+    +----------+-----------+-----------------+
+    | e.name   | e.surname | d.name          |
+    +----------+-----------+-----------------+
+    | Clint    | Johnson   | Administration  |
+    | David    | Bowe      | Marketing       |
+    | David    | Limb      | Marketing       |
+    | Franklin | Rossevelt | Purchasing      |
+    | John     | Doe       | Administration  |
+    | John     | Smith     | IT              |
+    | Marry    | Georgia   | Human Resources |
+    | Rebecca  | Sean      | IT              |
+    | Robert   | Duval     | Administration  |
+    | Ronald   | Reagan    | Purchasing      |
+    | Sam      | Malone    | Human Resources |
+    | Sarrah   | Mcmillan  | Marketing       |
+    | Sean     | Lee       | IT              |
+    | Smith    | Clark     | Marketing       |
+    | Ted      | Kennedy   | Purchasing      |
+    | Tim      | Doe       | Human Resources |
+    | Tim      | Ducan     | Purchasing      |
+    | Tim      | Malone    | Purchasing      |
+    +----------+-----------+-----------------+
+    SELECT 18 rows in set (... sec)
+
+
+Roadmap
+-------
+
+*Date: Nov 16th, 2015*
+
+Currently working on
+....................
+
+* Remove the limitation that you have to provide the selected columns in the 
+  ``ORDER BY`` clause when joining user tables.
+* Support for joining more than 2 tables.
+
+Upcoming
+........
+
+* Optimize join operation for Equi-Joins.
+
+Additionally, you can get the latest updates about JOINS on the
+`Crate.IO blog`_.
+
+
+.. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/
+.. _`Cartesian Product`: https://en.wikipedia.org/wiki/Cartesian_product
+.. _`Crate.IO blog`: https://crate.io/blog/

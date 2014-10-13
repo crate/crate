@@ -1,0 +1,6 @@
+{ "id": 4001, "name": "Administration", "manager_id": 501, "location": 17000}
+{ "id": 4002, "name": "Marketing", "manager_id": 511, "location": 18000}
+{ "id": 4003, "name": "Purchasing", "manager_id": 518, "location": 17000}
+{ "id": 4004, "name": "Human Resources", "manager_id": 517, "location": 24000}
+{ "id": 4005, "name": "Shipping", "manager_id": 121, "location": 15000}
+{ "id": 4006, "name": "IT", "manager_id": 502, "location": 14000}
