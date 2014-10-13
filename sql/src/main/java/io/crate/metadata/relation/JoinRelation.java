@@ -45,7 +45,6 @@ public class JoinRelation extends AnalyzedRelation {
     }
 
     public JoinRelation(Type type, AnalyzedRelation left, AnalyzedRelation right) {
-        super();
         this.type = type;
         this.left = left;
         this.right = right;

@@ -68,7 +68,6 @@ public class TableRelation extends AnalyzedRelation {
 
 
     public TableRelation(TableInfo tableInfo, PartitionResolver partitionResolver) {
-        super();
         this.tableInfo = tableInfo;
         this.partitionResolver = partitionResolver;
     }

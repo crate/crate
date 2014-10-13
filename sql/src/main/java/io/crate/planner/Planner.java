@@ -259,7 +259,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             contextBuilder = contextBuilder.output(ImmutableList.<Symbol>of(sourceRef));
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
-                analysis.table().ident().hashCode(), // FIXME: hack
                 analysis,
                 contextBuilder.toCollect(),
                 ImmutableList.<Projection>of(projection),
@@ -512,7 +511,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 tableInfo.partitionedByColumns());
         getNode.outputs(contextBuilder.toCollect());
         getNode.outputTypes(extractDataTypes(analysis.outputSymbols()));
-        getNode.relationIdent(tableRelation.ident());
         plan.add(getNode);
 
         // handle sorting, limit and offset
@@ -578,9 +576,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             }
         }
 
-        CollectNode collectNode = PlanNodeBuilder.collect(
-                analysis.querySpecification().sourceRelation().ident(),
-                analysis, toCollect, projections);
+        CollectNode collectNode = PlanNodeBuilder.collect(analysis, toCollect, projections);
         plan.add(collectNode);
         ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
 
@@ -653,9 +649,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 whereClause,
                 tableRelation.tableInfo().partitionedByColumns()
         );
-        node.relationIdent(tableRelation.ident());
         node.outputTypes(extractDataTypes(searchSymbols));
-        node.relationIdent(tableRelation.ident());
         plan.add(node);
         // only add projection if we have scalar functions
         if (needsProjection) {
@@ -706,7 +700,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         AggregationProjection ap = new AggregationProjection();
         ap.aggregations(contextBuilder.aggregations());
         CollectNode collectNode = PlanNodeBuilder.collect(
-                querySpec.sourceRelation().ident(),
                 analysis,
                 contextBuilder.toCollect(),
                 ImmutableList.<Projection>of(ap)
@@ -853,7 +846,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionBuilder);
 
         CollectNode collectNode = PlanNodeBuilder.collect(
-                analysis.querySpecification().sourceRelation().ident(),
                 analysis,
                 toCollect,
                 projectionBuilder.build()
@@ -961,7 +953,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         GroupProjection groupProjection = new GroupProjection(
                 contextBuilder.groupBy(), contextBuilder.aggregations());
         CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                analysis.querySpecification().sourceRelation().ident(),
                 analysis,
                 contextBuilder.toCollect(),
                 nodesFromTable(tableInfo, querySpec.whereClause()),
@@ -1037,7 +1028,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         GroupProjection groupProjection = new GroupProjection(
                 contextBuilder.groupBy(), contextBuilder.aggregations());
         CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                analysis.querySpecification().sourceRelation().ident(),
                 analysis,
                 contextBuilder.toCollect(),
                 nodesFromTable(tableInfo, querySpec.whereClause()),

@@ -45,8 +45,7 @@ import java.util.Set;
 
 class PlanNodeBuilder {
 
-    static CollectNode distributingCollect(int relationIdent,
-                                           AbstractDataAnalysis analysis,
+    static CollectNode distributingCollect(AbstractDataAnalysis analysis,
                                            List<Symbol> toCollect,
                                            List<String> downstreamNodes,
                                            ImmutableList<Projection> projections) {
@@ -67,7 +66,6 @@ class PlanNodeBuilder {
         node.downStreamNodes(downstreamNodes);
         node.toCollect(toCollect);
         node.projections(projections);
-        node.relationIdent(relationIdent);
 
         setOutputTypes(node);
         return node;
@@ -115,8 +113,7 @@ class PlanNodeBuilder {
         nextNode.outputTypes(Planner.extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
     }
 
-    static CollectNode collect(int relationIdent,
-                               AbstractDataAnalysis analysis,
+    static CollectNode collect(AbstractDataAnalysis analysis,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections,
                                @Nullable String partitionIdent) {
@@ -141,7 +138,6 @@ class PlanNodeBuilder {
         node.maxRowGranularity(analysis.rowGranularity());
         node.projections(projections);
         node.isPartitioned(tableInfo.isPartitioned());
-        node.relationIdent(relationIdent);
         setOutputTypes(node);
         return node;
     }
@@ -163,10 +159,9 @@ class PlanNodeBuilder {
         return new Routing(newLocations);
     }
 
-    static CollectNode collect(int relationIdent,
-                               AbstractDataAnalysis analysis,
+    static CollectNode collect(AbstractDataAnalysis analysis,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections) {
-        return collect(relationIdent, analysis, toCollect, projections, null);
+        return collect(analysis, toCollect, projections, null);
     }
 }

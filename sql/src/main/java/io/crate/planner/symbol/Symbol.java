@@ -45,19 +45,6 @@ public abstract class Symbol implements Streamable {
         relationIdent = ident;
     }
 
-    protected void writeRelationIdent(StreamOutput out) throws IOException {
-        out.writeBoolean(hasRelationIdent());
-        if (hasRelationIdent()) {
-            out.writeInt(relationIdent);
-        }
-    }
-
-    protected void readRelationIdent(StreamInput in) throws IOException {
-        if (in.readBoolean()) {
-            relationIdent(in.readInt());
-        }
-    }
-
     public static boolean isLiteral(Symbol symbol, DataType expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL
                 && ((Literal)symbol).valueType().equals(expectedType);
