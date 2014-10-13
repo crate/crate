@@ -654,9 +654,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if ((schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME))
                 && hasOnlyGlobalCount(analysis.outputSymbols())
                 && !analysis.hasSysExpressions()
-                && !analysis.table().isPartitioned()
                 && !context.indexWriterProjection.isPresent()) {
-            plan.add(new ESCountNode(analysis.table().ident().name(), analysis.whereClause()));
+            plan.add(new ESCountNode(analysis.table(), analysis.whereClause()));
             return;
         }
 
