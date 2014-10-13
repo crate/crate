@@ -12,7 +12,7 @@ Synopsis
 ::
 
     SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
-      FROM table_ident [ [AS] table_alias ]
+      FROM table_ident [ [AS] table_alias ] [CROSS JOIN] [, table_ident [, ...]]
       [ WHERE condition ]
       [ GROUP BY expression [, ...] [HAVING condition] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
@@ -91,15 +91,31 @@ FROM Clause
 
 The FROM clause specifies the source table for the SELECT::
 
-    FROM table_ident [ [AS] table_alias ]
+    FROM table_ident [ [AS] table_alias ] [CROSS JOIN] [, table_ident [, ...]]
 
-:table_ident: The name (optionally schema-qualified) of an existing table.
+:table_ident: The name (optionally schema-qualified) of an existing table or
+  or a table join.
 
 :table_alias: A substitute name for the FROM item containing the alias.
   An alias is used for brevity. When an alias is provided, it completely hides
   the actual name of the table. For example given ``FROM foo AS f``, the
   remainder of the SELECT must refer to this 'FROM' item as 'f' not 'foo'.
 
+.. _sql_reference_joined_tables:
+
+Joined Tables
+.............
+
+The table_ident can be a table name or a table cross-join.
+A Cross-join returns the cartesian product of the joined tables, so
+every possible combination of rows from the specified tables is returned.
+If more than one table_ident is listed the tables are cross-joined::
+
+    FROM table_ident [, table_ident [, ...]]
+
+There is also an explicit join syntax::
+
+    FROM table_ident [CROSS JOIN table_ident]
 
 WHERE Clause
 ------------
