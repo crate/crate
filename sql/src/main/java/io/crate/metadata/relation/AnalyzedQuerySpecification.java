@@ -46,7 +46,8 @@ import java.util.List;
  *      limit &lt;limit&gt; offset &lt;offset&gt;
  * </code>
  */
-public class AnalyzedQuerySpecification implements AnalyzedRelation {
+public class AnalyzedQuerySpecification extends AnalyzedRelation {
+
 
     private final AnalyzedRelation sourceRelation;
     private final List<Symbol> outputs;
@@ -64,6 +65,7 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
                                       @Nullable List<Symbol> orderBy,
                                       @Nullable Integer limit,
                                       @Nullable Integer offset) {
+        super();
         this.outputs = outputs;
         this.sourceRelation = sourceRelation;
         this.groupBy = Objects.firstNonNull(groupBy, ImmutableList.<Symbol>of());
@@ -130,7 +132,7 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
 
     @Override
     public int numRelations() {
-        return 1;
+        return sourceRelation.numRelations() + 1;
     }
 
     @Override

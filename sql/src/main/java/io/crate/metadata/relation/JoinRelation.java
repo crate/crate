@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JoinRelation implements AnalyzedRelation {
+public class JoinRelation extends AnalyzedRelation {
 
     private final Type type;
     private final AnalyzedRelation left;

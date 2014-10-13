@@ -27,11 +27,10 @@ import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Reference;
-
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class AliasedAnalyzedRelation implements AnalyzedRelation {
+public class AliasedAnalyzedRelation extends AnalyzedRelation {
 
     private final String alias;
     private final AnalyzedRelation child;
