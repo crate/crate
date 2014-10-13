@@ -22,10 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Insert;

@@ -24,8 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -33,6 +32,7 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.Update;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
 
@@ -49,6 +49,12 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                     }
                     context.whereClause(generateWhereClause(node.whereClause(), context));
                     return null;
+                }
+
+                @Override
+                public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+                    return new UpdateAnalysis.NestedAnalysis(
+                        referenceInfos, functions, parameterContext, globalReferenceResolver);
                 }
 
                 @Override
@@ -112,6 +118,18 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                     }
                 }
     };
+    private final ReferenceInfos referenceInfos;
+    private final Functions functions;
+    private final ReferenceResolver globalReferenceResolver;
+
+    @Inject
+    public UpdateStatementAnalyzer(ReferenceInfos referenceInfos,
+                                   Functions functions,
+                                   ReferenceResolver globalReferenceResolver) {
+        this.referenceInfos = referenceInfos;
+        this.functions = functions;
+        this.globalReferenceResolver = globalReferenceResolver;
+    }
 
     @Override
     public Symbol visitUpdate(Update node, UpdateAnalysis context) {
@@ -122,5 +140,10 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
             innerAnalyzer.process(node, nestedAnalysis);
         }
         return null;
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new UpdateAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

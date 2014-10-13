@@ -21,14 +21,28 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.DropTable;
+import org.elasticsearch.common.inject.Inject;
 
 public class DropTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, DropTableAnalysis> {
+
+    private final ReferenceInfos referenceInfos;
+
+    @Inject
+    protected DropTableStatementAnalyzer(ReferenceInfos referenceInfos) {
+        this.referenceInfos = referenceInfos;
+    }
 
     @Override
     public Void visitDropTable(DropTable node, DropTableAnalysis context) {
         context.table(TableIdent.of(node.table()));
         return null;
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new DropTableAnalysis(referenceInfos);
     }
 }

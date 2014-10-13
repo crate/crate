@@ -21,14 +21,22 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.ReferenceInfos;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.GenericProperties;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnalysis> {
 
     private static final TablePropertiesAnalysis tablePropertiesAnalysis = new AlterBlobTablePropertiesAnalysis();
+    private final ReferenceInfos referenceInfos;
+
+    @Inject
+    public AlterBlobTableAnalyzer(ReferenceInfos referenceInfos) {
+        this.referenceInfos = referenceInfos;
+    }
 
     @Override
     public Void visitAlterBlobTable(AlterBlobTable node, AlterBlobTableAnalysis context) {
@@ -48,5 +56,10 @@ public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnal
         }
 
         return null;
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new AlterBlobTableAnalysis(parameterContext, referenceInfos);
     }
 }

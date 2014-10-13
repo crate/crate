@@ -54,6 +54,8 @@ public abstract class AbstractStatementAnalyzer<R extends Object, T extends Anal
         }
     }
 
+    public abstract Analysis newAnalysis(Analyzer.ParameterContext parameterContext);
+
     @Override
     protected R visitTable(Table node, T context) {
         Preconditions.checkState(context.table() == null, "selecting from multiple tables is not supported");

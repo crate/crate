@@ -63,13 +63,13 @@ public class ReferenceToTrueVisitorTest {
         ReferenceResolver referenceResolver = injector.getInstance(ReferenceResolver.class);
         ReferenceInfos referenceInfos = injector.getInstance(ReferenceInfos.class);
         normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
-        selectAnalysis = new SelectAnalysis(
+        analyzer = new SelectStatementAnalyzer(
             referenceInfos,
             functions,
-            new Analyzer.ParameterContext(new Object[0], new Object[0][]),
             referenceResolver
         );
-        analyzer = new SelectStatementAnalyzer();
+        selectAnalysis = (SelectAnalysis) analyzer.newAnalysis(
+            new Analyzer.ParameterContext(new Object[0], new Object[0][]));
     }
 
     public Symbol fromSQL(String expression) {

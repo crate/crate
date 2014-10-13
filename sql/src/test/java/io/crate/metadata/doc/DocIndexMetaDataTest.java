@@ -639,14 +639,16 @@ public class DocIndexMetaDataTest {
 
     private DocIndexMetaData getDocIndexMetaDataFromStatement(String stmt) throws IOException {
         Statement statement = SqlParser.createStatement(stmt);
-        CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer();
         ClusterService clusterService = mock(ClusterService.class);
-        CreateTableAnalysis analysis = new CreateTableAnalysis(
-                new ReferenceInfos(
-                        ImmutableMap.<String, SchemaInfo>of("doc",
-                                new DocSchemaInfo(clusterService,
-                                        mock(TransportPutIndexTemplateAction.class)))),
-                new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
+        CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
+            new ReferenceInfos(
+                ImmutableMap.<String, SchemaInfo>of("doc",
+                    new DocSchemaInfo(clusterService,
+                        mock(TransportPutIndexTemplateAction.class)))),
+            new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class))
+        );
+
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyzer.newAnalysis(
                 new Analyzer.ParameterContext(new Object[0], new Object[0][]));
         analysis.analyzedTableElements(new AnalyzedTableElements());
 

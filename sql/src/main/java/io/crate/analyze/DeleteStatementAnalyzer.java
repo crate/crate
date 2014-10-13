@@ -22,29 +22,54 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Table;
+import org.elasticsearch.common.inject.Inject;
 
 public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, DeleteAnalysis> {
 
-    final DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis> innerAnalyzer = new DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis>() {
-        @Override
-        public Symbol visitDelete(Delete node, DeleteAnalysis.NestedDeleteAnalysis context) {
-            process(node.getRelation(), context);
-            context.whereClause(generateWhereClause(node.getWhere(), context));
+    final DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis> innerAnalyzer =
+        new DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis>() {
 
-            return null;
-        }
+            @Override
+            public Symbol visitDelete(Delete node, DeleteAnalysis.NestedDeleteAnalysis context) {
+                process(node.getRelation(), context);
+                context.whereClause(generateWhereClause(node.getWhere(), context));
 
-        @Override
+                return null;
+            }
+
+            @Override
+            public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+                return new UpdateAnalysis.NestedAnalysis(
+                    referenceInfos, functions, parameterContext, globalReferenceResolver);
+            }
+
+            @Override
         protected Symbol visitTable(Table node, DeleteAnalysis.NestedDeleteAnalysis context) {
             Preconditions.checkState(context.table() == null, "deleting multiple tables is not supported");
             context.editableTable(TableIdent.of(node));
             return null;
         }
     };
+
+    private final ReferenceInfos referenceInfos;
+    private final Functions functions;
+    private final ReferenceResolver globalReferenceResolver;
+
+    @Inject
+    public DeleteStatementAnalyzer(ReferenceInfos referenceInfos,
+                                   Functions functions,
+                                   ReferenceResolver globalReferenceResolver) {
+        this.referenceInfos = referenceInfos;
+        this.functions = functions;
+        this.globalReferenceResolver = globalReferenceResolver;
+    }
 
     @Override
     public Symbol visitDelete(Delete node, DeleteAnalysis context) {
@@ -55,5 +80,10 @@ public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, D
             innerAnalyzer.process(node, nestedAnalysi);
         }
         return null;
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new DeleteAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

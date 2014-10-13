@@ -65,13 +65,13 @@ public class CompoundLiteralTest extends BaseAnalyzerTest {
     }
 
     public Symbol analyzeExpression(String expression, Object[] params) {
-        SelectAnalysis analysis = new SelectAnalysis(
-                injector.getInstance(ReferenceInfos.class),
-                injector.getInstance(Functions.class),
-                new Analyzer.ParameterContext(params, new Object[0][]),
-                injector.getInstance(ReferenceResolver.class)
+        SelectStatementAnalyzer analyzer = new SelectStatementAnalyzer(
+            injector.getInstance(ReferenceInfos.class),
+            injector.getInstance(Functions.class),
+            injector.getInstance(ReferenceResolver.class)
         );
-        SelectStatementAnalyzer analyzer = new SelectStatementAnalyzer();
+        SelectAnalysis analysis = (SelectAnalysis) analyzer.newAnalysis(
+                new Analyzer.ParameterContext(params, new Object[0][]));
         return SqlParser.createExpression(expression).accept(analyzer, analysis);
 
     }

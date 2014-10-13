@@ -25,6 +25,9 @@ import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -33,6 +36,7 @@ import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.ValuesList;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.text.BytesText;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -45,6 +49,19 @@ import java.util.Locale;
 import java.util.Map;
 
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromValuesAnalysis> {
+
+    private final ReferenceInfos referenceInfos;
+    private final Functions functions;
+    private final ReferenceResolver globalReferenceResolver;
+
+    @Inject
+    public InsertFromValuesAnalyzer(ReferenceInfos referenceInfos,
+                                    Functions functions,
+                                    ReferenceResolver globalReferenceResolver) {
+        this.referenceInfos = referenceInfos;
+        this.functions = functions;
+        this.globalReferenceResolver = globalReferenceResolver;
+    }
 
     @Override
     public Symbol visitInsertFromValues(InsertFromValues node, InsertFromValuesAnalysis context) {
@@ -199,5 +216,10 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
             partitionMap.put(columnIdent.name(), BytesRefs.toString(columnValue));
         }
         return null;
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new InsertFromValuesAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

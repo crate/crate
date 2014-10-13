@@ -22,13 +22,24 @@
 package io.crate.analyze;
 
 import io.crate.PartitionName;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.Table;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTableAnalysis> {
 
     private static final TablePropertiesAnalysis tablePropertiesAnalysis = new TablePropertiesAnalysis();
+    private final ReferenceInfos referenceInfos;
+
+    @Inject
+    public AlterTableAnalyzer(ReferenceInfos referenceInfos) {
+        this.referenceInfos = referenceInfos;
+    }
 
     @Override
     public Void visitColumnDefinition(ColumnDefinition node, AlterTableAnalysis context) {
@@ -70,5 +81,10 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
             }
             context.partitionName(partitionName);
         }
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new AlterTableAnalysis(parameterContext, referenceInfos);
     }
 }

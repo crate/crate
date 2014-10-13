@@ -22,7 +22,9 @@
 package io.crate.analyze;
 
 import com.google.common.base.Optional;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.sql.tree.*;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 import java.util.ArrayList;
@@ -31,6 +33,13 @@ import java.util.Locale;
 import java.util.Map;
 
 public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateAnalyzerAnalysis> {
+
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+
+    @Inject
+    public CreateAnalyzerStatementAnalyzer(FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+    }
 
     @Override
     public Void visitCreateAnalyzer(CreateAnalyzer node, CreateAnalyzerAnalysis context) {
@@ -233,5 +242,10 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
         } else  {
             builder.put(name, ExpressionToStringVisitor.convert(value, context.parameters()));
         }
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new CreateAnalyzerAnalysis(fulltextAnalyzerResolver, parameterContext);
     }
 }

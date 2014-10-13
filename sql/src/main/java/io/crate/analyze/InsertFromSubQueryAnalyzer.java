@@ -23,13 +23,13 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.*;
 import io.crate.operation.scalar.CastFunction;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.Query;
 import io.crate.types.DataType;
+import org.elasticsearch.common.inject.Inject;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -38,7 +38,22 @@ import java.util.Locale;
 
 public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFromSubQueryAnalysis> {
 
-    private SelectStatementAnalyzer subQueryAnalyzer = new SelectStatementAnalyzer();
+
+    private final SelectStatementAnalyzer subQueryAnalyzer;
+    private final Functions functions;
+    private final ReferenceInfos referenceInfos;
+    private final ReferenceResolver globalReferenceResolver;
+
+    @Inject
+    public InsertFromSubQueryAnalyzer(SelectStatementAnalyzer selectStatementAnalyzer,
+                                      Functions functions,
+                                      ReferenceInfos referenceInfos,
+                                      ReferenceResolver globalReferenceResolver) {
+        this.subQueryAnalyzer = selectStatementAnalyzer;
+        this.functions = functions;
+        this.referenceInfos = referenceInfos;
+        this.globalReferenceResolver = globalReferenceResolver;
+    }
 
     @Override
     public Symbol visitInsertFromSubquery(InsertFromSubquery node, InsertFromSubQueryAnalysis context) {
@@ -133,5 +148,10 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
             idx++;
         }
         // congrats! valid statement
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new InsertFromSubQueryAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

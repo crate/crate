@@ -23,10 +23,10 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import io.crate.Constants;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
@@ -35,6 +35,20 @@ import java.util.Locale;
 public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalysis> {
 
     private static final TablePropertiesAnalysis tablePropertiesAnalysis = new TablePropertiesAnalysis();
+    private final ReferenceInfos referenceInfos;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+
+    @Inject
+    public CreateTableStatementAnalyzer(ReferenceInfos referenceInfos,
+                                        FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+        this.referenceInfos = referenceInfos;
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new CreateTableAnalysis(referenceInfos, fulltextAnalyzerResolver, parameterContext);
+    }
 
     protected Void visitNode(Node node, CreateTableAnalysis context) {
         throw new RuntimeException(

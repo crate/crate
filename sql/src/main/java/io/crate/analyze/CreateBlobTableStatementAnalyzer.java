@@ -31,6 +31,7 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
 
     private static final TablePropertiesAnalysis tablePropertiesAnalysis = new CreateBlobTablePropertiesAnalysis();
 
+
     @Override
     public Void visitCreateBlobTable(CreateBlobTable node, CreateBlobTableAnalysis context) {
         context.table(tableToIdent(node.name()));
@@ -60,5 +61,10 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
         }
 
         return null;
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new CreateBlobTableAnalysis(parameterContext);
     }
 }

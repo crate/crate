@@ -72,4 +72,9 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
         context.settingsToRemove(settingsToRemove);
         return null;
     }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new SetAnalysis(parameterContext);
+    }
 }

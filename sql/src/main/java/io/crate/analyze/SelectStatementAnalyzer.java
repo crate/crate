@@ -24,14 +24,13 @@ package io.crate.analyze;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import io.crate.exceptions.SQLParseException;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -45,6 +44,19 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     private final static GroupBySymbolValidator groupBySymbolValidator = new GroupBySymbolValidator();
     private final static SelectSymbolValidator selectSymbolVisitor = new SelectSymbolValidator();
     private final static HavingSymbolValidator havingSymbolValidator = new HavingSymbolValidator();
+    private final ReferenceInfos referenceInfos;
+    private final Functions functions;
+    private final ReferenceResolver globalReferenceResolver;
+
+    @Inject
+    public SelectStatementAnalyzer(ReferenceInfos referenceInfos,
+                                   Functions functions,
+                                   ReferenceResolver globalReferenceResolver) {
+        this.referenceInfos = referenceInfos;
+        this.functions = functions;
+        this.globalReferenceResolver = globalReferenceResolver;
+    }
+
 
     @Override
     protected Symbol visitSelect(Select node, SelectAnalysis context) {
@@ -320,6 +332,10 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         return dataTypeSymbol;
     }
 
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new SelectAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
+    }
 
     static class AggregationSearcherContext {
         boolean found = false;

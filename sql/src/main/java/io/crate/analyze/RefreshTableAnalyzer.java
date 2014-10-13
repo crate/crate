@@ -21,13 +21,22 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.RefreshStatement;
+import org.elasticsearch.common.inject.Inject;
 
 import java.util.List;
 
 public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, RefreshTableAnalysis> {
+
+    private final ReferenceInfos referenceInfos;
+
+    @Inject
+    public RefreshTableAnalyzer(ReferenceInfos referenceInfos) {
+        this.referenceInfos = referenceInfos;
+    }
 
     @Override
     public Void visitRefreshStatement(RefreshStatement node, RefreshTableAnalysis context) {
@@ -46,5 +55,10 @@ public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, Refres
                 context.parameters()
         );
         context.partitionIdent(partitionIdent);
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new RefreshTableAnalysis(referenceInfos, parameterContext);
     }
 }

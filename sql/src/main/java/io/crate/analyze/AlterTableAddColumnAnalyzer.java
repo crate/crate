@@ -22,18 +22,32 @@
 package io.crate.analyze;
 
 import io.crate.PartitionName;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Table;
 import io.crate.types.CollectionType;
+import org.elasticsearch.common.inject.Inject;
 
 import java.util.List;
 
 public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void, AddColumnAnalysis> {
+
+    private final ReferenceInfos referenceInfos;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+
+    @Inject
+    public AlterTableAddColumnAnalyzer(ReferenceInfos referenceInfos,
+                                       FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+        this.referenceInfos = referenceInfos;
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new AddColumnAnalysis(referenceInfos, fulltextAnalyzerResolver, parameterContext);
+    }
 
     @Override
     protected Void visitNode(Node node, AddColumnAnalysis context) {

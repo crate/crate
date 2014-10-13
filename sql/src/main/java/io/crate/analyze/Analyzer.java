@@ -20,11 +20,8 @@
  */
 package io.crate.analyze;
 
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Parameter;
+import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -40,13 +37,8 @@ public class Analyzer {
     private final static Object[][] EMPTY_BULK_ARGS = new Object[0][];
 
     @Inject
-    public Analyzer(ReferenceInfos referenceInfos,
-                    Functions functions,
-                    ReferenceResolver referenceResolver,
-                    FulltextAnalyzerResolver fulltextAnalyzerResolver) {
-
-        this.dispatcher = new AnalyzerDispatcher(
-                referenceInfos, functions, referenceResolver, fulltextAnalyzerResolver);
+    public Analyzer(AnalyzerDispatcher dispatcher) {
+        this.dispatcher = dispatcher;
     }
 
     public Analysis analyze(Statement statement) {
@@ -54,13 +46,13 @@ public class Analyzer {
     }
 
     public Analysis analyze(Statement statement, Object[] parameters, Object[][] bulkParams) {
-        Context ctx = new Context(parameters, bulkParams);
-        AbstractStatementAnalyzer statementAnalyzer = dispatcher.process(statement, ctx);
-        assert ctx.analysis != null;
+        ParameterContext parameterContext = new ParameterContext(parameters, bulkParams);
 
-        statement.accept(statementAnalyzer, ctx.analysis);
-        ctx.analysis.normalize();
-        return ctx.analysis;
+        AbstractStatementAnalyzer statementAnalyzer = dispatcher.process(statement, null);
+        Analysis analysis = statementAnalyzer.newAnalysis(parameterContext);
+        statement.accept(statementAnalyzer, analysis);
+        analysis.normalize();
+        return analysis;
     }
 
     public static class ParameterContext {
@@ -149,170 +141,153 @@ public class Analyzer {
         }
     }
 
-    static class Context {
-        final ParameterContext parameterCtx;
-        Analysis analysis;
+    public static class AnalyzerDispatcher extends AstVisitor<AbstractStatementAnalyzer, Void> {
 
-        private Context(Object[] parameters, Object[][] bulkParams) {
-            this.parameterCtx = new ParameterContext(parameters, bulkParams);
-        }
-    }
+        private final SelectStatementAnalyzer selectStatementAnalyzer;
+        private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
+        private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
+        private final UpdateStatementAnalyzer updateStatementAnalyzer;
+        private final DeleteStatementAnalyzer deleteStatementAnalyzer;
+        private final CopyStatementAnalyzer copyStatementAnalyzer;
+        private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
+        private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
+        private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
+        private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
+        private final DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer;
+        private final RefreshTableAnalyzer refreshTableAnalyzer;
+        private final AlterTableAnalyzer alterTableAnalyzer;
+        private final AlterBlobTableAnalyzer alterBlobTableAnalyzer;
+        private final SetStatementAnalyzer setStatementAnalyzer;
+        private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
 
-    private static class AnalyzerDispatcher extends AstVisitor<AbstractStatementAnalyzer, Context> {
-
-        private final ReferenceInfos referenceInfos;
-        private final Functions functions;
-        private final ReferenceResolver referenceResolver;
-        private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
-
-        private final AbstractStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer();
-        private final AbstractStatementAnalyzer insertFromValuesAnalyzer = new InsertFromValuesAnalyzer();
-        private final AbstractStatementAnalyzer insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer();
-        private final AbstractStatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer();
-        private final AbstractStatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer();
-        private final AbstractStatementAnalyzer copyStatementAnalyzer = new CopyStatementAnalyzer();
-        private final AbstractStatementAnalyzer dropTableStatementAnalyzer = new DropTableStatementAnalyzer();
-        private final AbstractStatementAnalyzer createTableStatementAnalyzer = new CreateTableStatementAnalyzer();
-        private final AbstractStatementAnalyzer createBlobTableStatementAnalyzer = new CreateBlobTableStatementAnalyzer();
-        private final AbstractStatementAnalyzer createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer();
-        private final AbstractStatementAnalyzer dropBlobTableStatementAnalyzer = new DropBlobTableStatementAnalyzer();
-        private final AbstractStatementAnalyzer refreshTableAnalyzer = new RefreshTableAnalyzer();
-        private final AbstractStatementAnalyzer alterTableAnalyzer = new AlterTableAnalyzer();
-        private final AbstractStatementAnalyzer alterBlobTableAnalyzer = new AlterBlobTableAnalyzer();
-        private final AbstractStatementAnalyzer setStatementAnalyzer = new SetStatementAnalyzer();
-        private final AbstractStatementAnalyzer alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer();
-
-        public AnalyzerDispatcher(ReferenceInfos referenceInfos,
-                                  Functions functions,
-                                  ReferenceResolver referenceResolver,
-                                  FulltextAnalyzerResolver fulltextAnalyzerResolver) {
-            this.referenceInfos = referenceInfos;
-            this.functions = functions;
-            this.referenceResolver = referenceResolver;
-            this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+        @Inject
+        public AnalyzerDispatcher(SelectStatementAnalyzer selectStatementAnalyzer,
+                                  InsertFromValuesAnalyzer insertFromValuesAnalyzer,
+                                  InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
+                                  UpdateStatementAnalyzer updateStatementAnalyzer,
+                                  DeleteStatementAnalyzer deleteStatementAnalyzer,
+                                  CopyStatementAnalyzer copyStatementAnalyzer,
+                                  DropTableStatementAnalyzer dropTableStatementAnalyzer,
+                                  CreateTableStatementAnalyzer createTableStatementAnalyzer,
+                                  CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
+                                  CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
+                                  DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer,
+                                  RefreshTableAnalyzer refreshTableAnalyzer,
+                                  AlterTableAnalyzer alterTableAnalyzer,
+                                  AlterBlobTableAnalyzer alterBlobTableAnalyzer,
+                                  SetStatementAnalyzer setStatementAnalyzer,
+                                  AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer) {
+            this.selectStatementAnalyzer = selectStatementAnalyzer;
+            this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
+            this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
+            this.updateStatementAnalyzer = updateStatementAnalyzer;
+            this.deleteStatementAnalyzer = deleteStatementAnalyzer;
+            this.copyStatementAnalyzer = copyStatementAnalyzer;
+            this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
+            this.createTableStatementAnalyzer = createTableStatementAnalyzer;
+            this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
+            this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
+            this.dropBlobTableStatementAnalyzer = dropBlobTableStatementAnalyzer;
+            this.refreshTableAnalyzer = refreshTableAnalyzer;
+            this.alterTableAnalyzer = alterTableAnalyzer;
+            this.alterBlobTableAnalyzer = alterBlobTableAnalyzer;
+            this.setStatementAnalyzer = setStatementAnalyzer;
+            this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
         }
 
         @Override
-        protected AbstractStatementAnalyzer visitQuery(Query node, Context context) {
-            context.analysis = new SelectAnalysis(
-                    referenceInfos, functions, context.parameterCtx, referenceResolver);
+        protected AbstractStatementAnalyzer visitQuery(Query node, Void context) {
             return selectStatementAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitDelete(Delete node, Context context) {
-            context.analysis = new DeleteAnalysis(
-                    referenceInfos, functions, context.parameterCtx, referenceResolver);
+        public AbstractStatementAnalyzer visitDelete(Delete node, Void context) {
             return deleteStatementAnalyzer;
         }
 
 
         @Override
-        public AbstractStatementAnalyzer visitInsertFromValues(InsertFromValues node, Context context) {
-            context.analysis = new InsertFromValuesAnalysis(
-                    referenceInfos, functions, context.parameterCtx, referenceResolver);
+        public AbstractStatementAnalyzer visitInsertFromValues(InsertFromValues node, Void context) {
             return insertFromValuesAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitInsertFromSubquery(InsertFromSubquery node, Context context) {
-            context.analysis = new InsertFromSubQueryAnalysis(
-                    referenceInfos, functions, context.parameterCtx, referenceResolver);
+        public AbstractStatementAnalyzer visitInsertFromSubquery(InsertFromSubquery node, Void context) {
             return insertFromSubQueryAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitUpdate(Update node, Context context) {
-            context.analysis = new UpdateAnalysis(
-                    referenceInfos, functions, context.parameterCtx, referenceResolver);
+        public AbstractStatementAnalyzer visitUpdate(Update node, Void context) {
             return updateStatementAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitCopyFromStatement(CopyFromStatement node, Context context) {
-            context.analysis = new CopyAnalysis(
-                    referenceInfos, functions, context.parameterCtx, referenceResolver);
+        public AbstractStatementAnalyzer visitCopyFromStatement(CopyFromStatement node, Void context) {
             return copyStatementAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitCopyTo(CopyTo node, Context context) {
-            context.analysis = new CopyAnalysis(
-                    referenceInfos, functions, context.parameterCtx, referenceResolver);
+        public AbstractStatementAnalyzer visitCopyTo(CopyTo node, Void context) {
             return copyStatementAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitDropTable(DropTable node, Context context) {
-            context.analysis = new DropTableAnalysis(referenceInfos);
+        public AbstractStatementAnalyzer visitDropTable(DropTable node, Void context) {
             return dropTableStatementAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitCreateTable(CreateTable node, Context context) {
-            context.analysis = new CreateTableAnalysis(referenceInfos,
-                    fulltextAnalyzerResolver,
-                    context.parameterCtx);
+        public AbstractStatementAnalyzer visitCreateTable(CreateTable node, Void context) {
             return createTableStatementAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitCreateAnalyzer(CreateAnalyzer node, Context context) {
-            context.analysis = new CreateAnalyzerAnalysis(fulltextAnalyzerResolver, context.parameterCtx);
+        public AbstractStatementAnalyzer visitCreateAnalyzer(CreateAnalyzer node, Void context) {
             return createAnalyzerStatementAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitCreateBlobTable(CreateBlobTable node, Context context) {
-            context.analysis = new CreateBlobTableAnalysis(context.parameterCtx);
+        public AbstractStatementAnalyzer visitCreateBlobTable(CreateBlobTable node, Void context) {
             return createBlobTableStatementAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitDropBlobTable(DropBlobTable node, Context context) {
-            context.analysis = new DropBlobTableAnalysis(context.parameterCtx, referenceInfos);
+        public AbstractStatementAnalyzer visitDropBlobTable(DropBlobTable node, Void context) {
             return dropBlobTableStatementAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitAlterBlobTable(AlterBlobTable node, Context context) {
-            context.analysis = new AlterBlobTableAnalysis(context.parameterCtx, referenceInfos);
+        public AbstractStatementAnalyzer visitAlterBlobTable(AlterBlobTable node, Void context) {
             return alterBlobTableAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitRefreshStatement(RefreshStatement node, Context context) {
-            context.analysis = new RefreshTableAnalysis(referenceInfos, context.parameterCtx);
+        public AbstractStatementAnalyzer visitRefreshStatement(RefreshStatement node, Void context) {
             return refreshTableAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitAlterTable(AlterTable node, Context context) {
-            context.analysis = new AlterTableAnalysis(context.parameterCtx, referenceInfos);
+        public AbstractStatementAnalyzer visitAlterTable(AlterTable node, Void context) {
             return alterTableAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitAlterTableAddColumnStatement(AlterTableAddColumn node, Context context) {
-            context.analysis = new AddColumnAnalysis(
-                    referenceInfos, fulltextAnalyzerResolver, context.parameterCtx);
+        public AbstractStatementAnalyzer visitAlterTableAddColumnStatement(AlterTableAddColumn node, Void context) {
             return alterTableAddColumnAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitSetStatement(SetStatement node, Context context) {
-            context.analysis = new SetAnalysis(context.parameterCtx);
+        public AbstractStatementAnalyzer visitSetStatement(SetStatement node, Void context) {
             return setStatementAnalyzer;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitResetStatement(ResetStatement node, Context context) {
-            context.analysis = new SetAnalysis(context.parameterCtx);
+        public AbstractStatementAnalyzer visitResetStatement(ResetStatement node, Void context) {
             return setStatementAnalyzer;
         }
 
         @Override
-        protected AbstractStatementAnalyzer visitNode(Node node, Context context) {
+        protected AbstractStatementAnalyzer visitNode(Node node, Void context) {
             throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", node));
         }
     }

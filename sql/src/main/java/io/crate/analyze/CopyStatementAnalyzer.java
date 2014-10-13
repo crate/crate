@@ -23,10 +23,14 @@ package io.crate.analyze;
 
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.*;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -36,6 +40,18 @@ import java.util.Map;
 
 public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
 
+    private final Functions functions;
+    private final ReferenceInfos referenceInfos;
+    private final ReferenceResolver globalReferenceResolver;
+
+    @Inject
+    public CopyStatementAnalyzer(Functions functions,
+                                 ReferenceInfos referenceInfos,
+                                 ReferenceResolver globalReferenceResolver) {
+        this.functions = functions;
+        this.referenceInfos = referenceInfos;
+        this.globalReferenceResolver = globalReferenceResolver;
+    }
 
     @Override
     public Symbol visitCopyFromStatement(CopyFromStatement node, CopyAnalysis context) {
@@ -108,6 +124,11 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
             builder.put(key, StringValueSymbolVisitor.INSTANCE.process(v));
         }
         return builder.build();
+    }
+
+    @Override
+    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new CopyAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 
     @Override
