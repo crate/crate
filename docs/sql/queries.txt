@@ -48,9 +48,10 @@ Aliases can be used to change the output name of the columns::
 FROM Clause
 -----------
 
-The ``FROM`` clause is used to reference the table to query. A table is referenced
-by schema and table name and can optionally be aliased. If the table ``t`` is
-only referenced by table name, crate assumes the table ``doc.t`` was meant.
+The ``FROM`` clause is used to reference one or more tables.
+A table is referenced by schema and table name and can optionally be aliased.
+If the table ``t`` is only referenced by table name, crate assumes the table 
+``doc.t`` was meant.
 Schemas that were newly created using :ref:`ref-create-table` must be
 referenced explicitly.
 
@@ -88,6 +89,39 @@ A table can be aliased for the sake of brevity too::
     | Outer Eastern Rim |
     +-------------------+
     SELECT 1 row in set (... sec)
+
+
+.. _sql_dql_cross_join:
+
+Cross Joins
+...........
+
+Referencing more than one table results in a ``Cross Join``.
+The joined table contains every possible combinations of rows from
+the given tables ( T1 * T2 * ...)::
+
+    cr> select articles.name as article, colors.name as color, price
+    ... from articles, colors
+    ... where price > 5000.0
+    ... order by price, color;
+    +------------------------------+---------------+----------+
+    | article                      | color         |    price |
+    +------------------------------+---------------+----------+
+    | Infinite Improbability Drive | Antique White | 19999.99 |
+    | Infinite Improbability Drive | Gold          | 19999.99 |
+    | Infinite Improbability Drive | Midnight Blue | 19999.99 |
+    | Infinite Improbability Drive | Olive Drab    | 19999.99 |
+    | Starship Titanic             | Antique White | 50000.0  |
+    | Starship Titanic             | Gold          | 50000.0  |
+    | Starship Titanic             | Midnight Blue | 50000.0  |
+    | Starship Titanic             | Olive Drab    | 50000.0  |
+    +------------------------------+---------------+----------+
+    SELECT 8 rows in set (... sec)
+
+.. note::
+
+    ``join conditions`` are not supported yet.
+
 
 .. _sql_dql_distinct_clause:
 
