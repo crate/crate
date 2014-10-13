@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix: pre-calculated count is now also used on partitioned tables
+
  - fix: trying to copy out of a non-existent partition now throws an
    appropriate exception
 

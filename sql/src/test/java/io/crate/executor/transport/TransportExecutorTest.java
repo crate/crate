@@ -587,7 +587,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
         Plan plan = new Plan();
         WhereClause whereClause = new WhereClause(null, false);
-        plan.add(new ESCountNode("characters", whereClause));
+        plan.add(new ESCountNode(docSchemaInfo.getTableInfo("characters"), whereClause));
 
         List<ListenableFuture<TaskResult>> result = executor.execute(executor.newJob(plan));
         Object[][] rows = result.get(0).get().rows();

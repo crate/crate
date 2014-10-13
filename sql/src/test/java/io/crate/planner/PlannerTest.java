@@ -891,7 +891,7 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(ESCountNode.class));
 
         ESCountNode node = (ESCountNode)planNode;
-        assertThat(node.indexName(), is("users"));
+        assertThat(node.tableInfo().ident().name(), is("users"));
     }
 
     @Test
@@ -1255,5 +1255,12 @@ public class PlannerTest {
         assertThat(topNProjection.outputs().size(), is(1));
     }
 
+    @Test
+    public void testCountOnPartitionedTable() throws Exception {
+        Plan plan = plan("select count(*) from parted");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESCountNode.class));
+    }
 
 }

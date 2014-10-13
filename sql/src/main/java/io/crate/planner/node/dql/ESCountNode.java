@@ -22,6 +22,7 @@
 package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
@@ -32,11 +33,11 @@ import java.util.List;
 public class ESCountNode extends ESDQLPlanNode {
 
     private final List<DataType> outputTypes = Arrays.<DataType>asList(LongType.INSTANCE);
-    private final String indexName;
+    private final TableInfo tableInfo;
     private final WhereClause whereClause;
 
-    public ESCountNode(String indexName, WhereClause whereClause) {
-        this.indexName = indexName;
+    public ESCountNode(TableInfo tableInfo, WhereClause whereClause) {
+        this.tableInfo = tableInfo;
         this.whereClause = whereClause;
     }
 
@@ -45,8 +46,8 @@ public class ESCountNode extends ESDQLPlanNode {
         return visitor.visitESCountNode(this, context);
     }
 
-    public String indexName() {
-        return indexName;
+    public TableInfo tableInfo() {
+        return tableInfo;
     }
 
     public WhereClause whereClause() {

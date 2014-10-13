@@ -41,8 +41,8 @@ public class ESCountTask implements Task<QueryResult> {
 
     private final TransportCountAction transportCountAction;
     private final List<ListenableFuture<QueryResult>> results;
-    private final CountRequest request;
-    private final ActionListener<CountResponse> listener;
+    private CountRequest request;
+    private ActionListener<CountResponse> listener;
     private final static ESQueryBuilder queryBuilder = new ESQueryBuilder();
 
     public ESCountTask(ESCountNode node, TransportCountAction transportCountAction) {
@@ -51,19 +51,26 @@ public class ESCountTask implements Task<QueryResult> {
 
         final SettableFuture<QueryResult> result = SettableFuture.create();
         results = Arrays.<ListenableFuture<QueryResult>>asList(result);
-        request = new CountRequest(node.indexName());
+        // empty partitioned table does not exists, shortcut here
+        if (node.tableInfo().isPartitioned() && node.tableInfo().partitions().size() == 0) {
+            result.set(new QueryResult(new Object[][]{new Object[]{0L}}));
+            return;
+        }
+        request = new CountRequest(node.tableInfo().ident().name());
+        listener = new CountResponseListener(result);
         try {
             request.source(queryBuilder.convert(node.whereClause()), false);
         } catch (IOException e) {
             result.setException(e);
         }
 
-        listener = new CountResponseListener(result);
     }
 
     @Override
     public void start() {
-        transportCountAction.execute(request, listener);
+        if (!results.get(0).isDone()) {
+            transportCountAction.execute(request, listener);
+        }
     }
 
     @Override
