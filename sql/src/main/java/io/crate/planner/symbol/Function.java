@@ -71,7 +71,6 @@ public class Function extends DataTypeSymbol implements Cloneable {
         for (int i = 0; i < numArguments; i++) {
             arguments.add(Symbol.fromStream(in));
         }
-        readRelationIdent(in);
     }
 
     @Override
@@ -81,7 +80,6 @@ public class Function extends DataTypeSymbol implements Cloneable {
         for (Symbol argument : arguments) {
             Symbol.toStream(argument, out);
         }
-        writeRelationIdent(out);
     }
 
     @Override

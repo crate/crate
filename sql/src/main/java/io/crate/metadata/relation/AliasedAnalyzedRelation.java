@@ -37,7 +37,6 @@ public class AliasedAnalyzedRelation extends AnalyzedRelation {
     private ImmutableList<AnalyzedRelation> children;
 
     public AliasedAnalyzedRelation(String alias, AnalyzedRelation child) {
-        super();
         this.alias = alias;
         this.child = child;
     }

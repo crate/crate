@@ -80,13 +80,11 @@ public class Reference extends DataTypeSymbol {
     public void readFrom(StreamInput in) throws IOException {
         info = new ReferenceInfo();
         info.readFrom(in);
-        readRelationIdent(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         info().writeTo(out);
-        writeRelationIdent(out);
     }
 
     @Override

@@ -42,6 +42,8 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
     protected List<DataType> outputTypes = ImmutableList.of();
     private List<DataType> inputTypes;
 
+    private int relationIdent;
+
     public AbstractDQLPlanNode() {
 
     }
@@ -52,6 +54,14 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
 
     public String id() {
         return id;
+    }
+
+    public void relationIdent(int relationIdent) {
+        this.relationIdent = relationIdent;
+    }
+
+    public int relationIdent() {
+        return relationIdent;
     }
 
     public boolean hasProjections() {
