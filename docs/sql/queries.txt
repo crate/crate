@@ -48,9 +48,13 @@ Aliases can be used to change the output name of the columns::
 FROM Clause
 -----------
 
-The ``FROM`` clause is used to reference the table to query. A table is referenced
-by schema and table name and can optionally be aliased. If the table ``t`` is
-only referenced by table name, crate assumes the table ``doc.t`` was meant.
+The ``FROM`` clause is used to reference the relation this select query is
+based upon. Can be a single table, many tables or a table
+:ref:`JOIN <sql_joins>`.
+
+A table is referenced by schema and table name and can optionally be aliased.
+If the table ``t`` is only referenced by table name, Crate assumes the table
+``doc.t`` was meant.
 Schemas that were newly created using :ref:`ref-create-table` must be
 referenced explicitly.
 
@@ -88,6 +92,17 @@ A table can be aliased for the sake of brevity too::
     | Outer Eastern Rim |
     +-------------------+
     SELECT 1 row in set (... sec)
+
+
+.. _sql_dql_joins:
+
+Joins
+-----
+
+.. note::
+
+    Crate currently supports only a limited set of JOINs.
+    See the :ref:`sql_joins` for current state.
 
 .. _sql_dql_distinct_clause:
 
@@ -397,7 +412,7 @@ NOT
 
     [ NOT ] boolean_expression
 
-The result type is boolean 
+The result type is boolean.
 
     ==========  ======
     expression  result
@@ -412,7 +427,7 @@ The result type is boolean
    This is not compliant with the SQL standard and doesn't adhere to the
    three-valued-logic.  According to the standard NOT ( NULL ) should actually
    return NULL.
-   
+
 
 
 .. _sql_dql_in:

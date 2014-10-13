@@ -12,12 +12,24 @@ Synopsis
 ::
 
     SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
-      FROM table_ident [ [AS] table_alias ]
+      FROM relation
       [ WHERE condition ]
       [ GROUP BY expression [, ...] [HAVING condition] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
       [ LIMIT num_results ]
       [ OFFSET start ]
+
+where ``relation`` is::
+
+    table_reference | joined_relation
+
+where ``joined_relation`` is::
+
+    relation { , | CROSS JOIN } relation
+
+where ``table_reference`` is::
+
+    table_ident [[AS] table_alias]
 
 
 Description
@@ -89,16 +101,37 @@ columns' names.
 FROM Clause
 -----------
 
-The FROM clause specifies the source table for the SELECT::
+The FROM clause specifies the source relation for the SELECT::
 
-    FROM table_ident [ [AS] table_alias ]
+    FROM relation
+
+The relation can be either a table reference or a joined relation.
+
+Table Reference
+...............
+
+A table reference is a table ident with an optional table alias::
+
+    table_ident [ [AS] table_alias ]
 
 :table_ident: The name (optionally schema-qualified) of an existing table.
 
 :table_alias: A substitute name for the FROM item containing the alias.
-  An alias is used for brevity. When an alias is provided, it completely hides
-  the actual name of the table. For example given ``FROM foo AS f``, the
-  remainder of the SELECT must refer to this 'FROM' item as 'f' not 'foo'.
+ An alias is used for brevity. When an alias is provided, it completely hides
+ the actual name of the table. For example given ``FROM foo AS f``, the
+ remainder of the SELECT must refer to this 'FROM' item as 'f' not 'foo'.
+
+.. _sql_reference_joined_tables:
+
+Joined Relation
+...............
+
+If more than one table references are listed the tables are joined, see :ref:`sql_dql_joins` ::
+
+    relation { , | CROSS JOIN } relation
+
+The explicit join syntax uses ``CROSS JOIN`` as join operator and the implicit
+join syntax uses a ``,`` (comma).
 
 
 WHERE Clause
