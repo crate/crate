@@ -130,6 +130,37 @@ def setUpUserVisits(test):
     cmd.stmt("""refresh table uservisits""")
 
 
+def setUpArticles(test):
+    test.globs['cmd'] = cmd
+
+    cmd.onecmd("""
+        create table articles (
+          id integer primary key,
+          name string,
+          price float
+        ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
+    cmd.onecmd("delete from articles")
+    articles_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "articles.json"))
+    cmd.onecmd("""copy articles from '{0}'""".format(articles_file))
+    cmd.onecmd("""refresh table articles""")
+
+
+def setUpColors(test):
+    test.globs['cmd'] = cmd
+
+    cmd.onecmd("""
+        create table colors (
+          id integer primary key,
+          name string,
+          rgb string,
+          coolness float
+        ) with (number_of_replicas=0)""".strip())
+    cmd.onecmd("delete from colors")
+    colors_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "colors.json"))
+    cmd.onecmd("""copy colors from '{0}'""".format(colors_file))
+    cmd.onecmd("""refresh table colors""")
+
+
 def setUpQuotes(test):
     test.globs['cmd'] = cmd
     cmd.stmt("""
@@ -148,6 +179,9 @@ def setUpQuotes(test):
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
+    setUpColors(test)
+    setUpArticles(test)
+
 
 
 def setUpLocationsQuotesAndUserVisits(test):
