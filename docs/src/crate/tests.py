@@ -130,8 +130,10 @@ def setUpLocations(test):
     cmd.stmt("""copy locations from '{0}'""".format(locations_file))
     cmd.stmt("""refresh table locations""")
 
+
 def tearDownLocations(test):
     cmd.stmt("""drop table locations""")
+
 
 def setUpUserVisits(test):
     test.globs['cmd'] = cmd
@@ -147,8 +149,45 @@ def setUpUserVisits(test):
     cmd.stmt("""copy uservisits from '{0}'""".format(uservisits_file))
     cmd.stmt("""refresh table uservisits""")
 
+
 def tearDownUserVisits(test):
     cmd.stmt("""drop table uservisits""")
+
+
+def setUpArticles(test):
+    test.globs['cmd'] = cmd
+    cmd.stmt("""
+        create table articles (
+          id integer primary key,
+          name string,
+          price float
+        ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
+    articles_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "articles.json"))
+    cmd.stmt("""copy articles from '{0}'""".format(articles_file))
+    cmd.stmt("""refresh table articles""")
+
+
+def tearDownArticles(test):
+    cmd.stmt("""drop table colors""")
+
+
+def setUpColors(test):
+    test.globs['cmd'] = cmd
+    cmd.stmt("""
+        create table colors (
+          id integer primary key,
+          name string,
+          rgb string,
+          coolness float
+        ) with (number_of_replicas=0)""".strip())
+    colors_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "colors.json"))
+    cmd.stmt("""copy colors from '{0}'""".format(colors_file))
+    cmd.stmt("""refresh table colors""")
+
+
+def tearDownColors(test):
+    cmd.stmt("""drop table colors""")
+
 
 def setUpQuotes(test):
     test.globs['cmd'] = cmd
@@ -164,24 +203,50 @@ def setUpQuotes(test):
     shutil.copy(project_path('sql/src/test/resources/essetup/data/copy', 'test_copy_from.json'),
                 os.path.join(import_dir, "quotes.json"))
 
+
 def tearDownQuotes(test):
     cmd.stmt("""drop table quotes""")
+
 
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
 
+
+def setUpColorsAndArticles(test):
+    setUpColors(test)
+    setUpArticles(test)
+
+
 def tearDownLocationsAndQuotes(test):
     tearDownLocations(test)
     tearDownQuotes(test)
+
+
+def tearDownColorsAndArticles(test):
+    tearDownArticles(test)
+    tearDownColors(test)
+
 
 def setUpLocationsQuotesAndUserVisits(test):
     setUpLocationsAndQuotes(test)
     setUpUserVisits(test)
 
+
 def tearDownLocationsQuotesAndUserVisits(test):
     tearDownLocationsAndQuotes(test)
     tearDownUserVisits(test)
+
+
+def setUpLocationsQuotesAndArticles(test):
+    setUpLocationsAndQuotes(test)
+    setUpColorsAndArticles(test)
+
+
+def tearDownLocationsQuotesAndArticles(test):
+    tearDownLocationsAndQuotes(test)
+    tearDownColorsAndArticles(test)
+
 
 def setUpTutorials(test):
     setUp(test)
@@ -195,6 +260,7 @@ def setUpTutorials(test):
                 os.path.join(import_dir, "users.json.gz"))
     shutil.copy(project_path(source_dir, 'data_import_1408312800.json'),
                 os.path.join(import_dir, "users_1408312800.json"))
+
 
 def setUp(test):
     test.globs['cmd'] = cmd
@@ -238,15 +304,27 @@ def test_suite():
                'sql/arithmetic.txt',
                'sql/scalar.txt',
                'sql/system.txt',
-               'sql/queries.txt',
                'hello.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsAndQuotes,
                                  tearDown=tearDownLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
+
         s.layer = empty_layer
         docs_suite.addTest(s)
+
+    for fn in ('sql/queries.txt', ):
+        s = doctest.DocFileSuite('../../' + fn,
+                                   parser=crash_parser,
+                                   setUp=setUpLocationsQuotesAndArticles,
+                                   tearDown=setUpLocationsQuotesAndArticles,
+                                   optionflags=doctest.NORMALIZE_WHITESPACE |
+                                   doctest.ELLIPSIS)
+        s.layer = empty_layer
+        docs_suite.addTest(s)
+
+
     for fn in ('sql/dml.txt',):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsQuotesAndUserVisits,
