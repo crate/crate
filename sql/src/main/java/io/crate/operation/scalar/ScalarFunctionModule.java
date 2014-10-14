@@ -25,6 +25,7 @@ import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.scalar.arithmetic.*;
+import io.crate.operation.scalar.cast.ToIntArrayFunction;
 import io.crate.operation.scalar.cast.ToIntFunction;
 import io.crate.operation.scalar.cast.ToLongFunction;
 import io.crate.operation.scalar.cast.ToStringArrayFunction;
@@ -86,6 +87,7 @@ public class ScalarFunctionModule extends AbstractModule {
         ToStringFunction.register(this);
         ToStringArrayFunction.register(this);
         ToIntFunction.register(this);
+        ToIntArrayFunction.register(this);
         ToLongFunction.register(this);
     }
 }

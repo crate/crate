@@ -31,39 +31,34 @@ import io.crate.planner.symbol.Function;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 import java.util.Locale;
 
-public class ToStringArrayFunction extends ToArrayFunction<BytesRef> {
+public class ToIntArrayFunction extends ToArrayFunction<Integer> {
 
-    public static final String NAME = "toStringArray";
-    private static final DataType arrayStringType = new ArrayType(DataTypes.STRING);
-
-    private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), arrayStringType);
-    }
+    public static final String NAME = "toIntArray";
+    private static final DataType intArrayType = new ArrayType(DataTypes.INTEGER);
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
     }
 
-    private ToStringArrayFunction(FunctionInfo info) {
-        super(info);
+    private ToIntArrayFunction(FunctionInfo functionInfo) {
+        super(functionInfo);
     }
 
     private static class Resolver implements DynamicFunctionResolver {
+
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 1, "Invalid number of arguments");
             Preconditions.checkArgument(DataTypes.isCollectionType(dataTypes.get(0)), "Argument must be a collection type");
             ArrayType arrayType = (ArrayType) dataTypes.get(0);
-            // TODO: support geo inner types
             Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(arrayType.innerType()),
                     String.format(Locale.ENGLISH, "Array inner type '%s' not supported for conversion",
                             arrayType.innerType().getName()));
-            return new ToStringArrayFunction(createInfo(dataTypes));
+            return new ToIntArrayFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), intArrayType));
         }
     }
 }
