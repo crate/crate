@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/10/14 0.44.6
+=================
+
  - fix: pre-calculated count is now also used on partitioned tables
 
 2014/10/10 0.44.5
