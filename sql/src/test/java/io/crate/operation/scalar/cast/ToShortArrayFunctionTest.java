@@ -40,7 +40,7 @@ import org.junit.Test;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-public class ToByteArrayFunctionTest {
+public class ToShortArrayFunctionTest {
 
     private Functions functions;
 
@@ -52,7 +52,7 @@ public class ToByteArrayFunctionTest {
 
     @Test
     public void testArrayDifferentTypes() throws Exception {
-        Object[] expected = new Byte[] { 10, 20, 30 };
+        Object[] expected = new Short[] { 10, 20, 30 };
         Object[] actual;
 
         actual = eval(new String[]{"10", "20", "30"}, DataTypes.STRING);
@@ -67,8 +67,8 @@ public class ToByteArrayFunctionTest {
 
     private Object[] eval(final Object objects, DataType innerType) {
         final DataType arrayType = new ArrayType(innerType);
-        ToByteArrayFunction impl = (ToByteArrayFunction)functions.get(
-                new FunctionIdent(ToByteArrayFunction.NAME, ImmutableList.of(arrayType)));
+        ToShortArrayFunction impl = (ToShortArrayFunction)functions.get(
+                new FunctionIdent(ToShortArrayFunction.NAME, ImmutableList.of(arrayType)));
 
         Literal input = new Literal() {
             @Override

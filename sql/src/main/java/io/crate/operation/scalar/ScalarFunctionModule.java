@@ -95,5 +95,6 @@ public class ScalarFunctionModule extends AbstractModule {
         ToBooleanArrayFunction.register(this);
         ToByteArrayFunction.register(this);
         ToFloatArrayFunction.register(this);
+        ToShortArrayFunction.register(this);
     }
 }

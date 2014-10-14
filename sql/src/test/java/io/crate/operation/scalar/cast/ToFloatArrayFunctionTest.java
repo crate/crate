@@ -51,7 +51,7 @@ public class ToFloatArrayFunctionTest {
     }
 
     @Test
-    public void testArrayDifferentTypesToDouble() throws Exception {
+    public void testArrayDifferentTypes() throws Exception {
         Object[] expected = new Float[] { 10.1f, 20.3f, 30.4f };
         Object[] actual;
 
