@@ -157,6 +157,10 @@ public class TestingHelpers {
         assertLiteral(symbol, expectedValue, DataTypes.BYTE);
     }
 
+    public static void assertLiteralSymbol(Symbol symbol, Short expectedValue) {
+        assertLiteral(symbol, expectedValue, DataTypes.SHORT);
+    }
+
     @SuppressWarnings("unchecked")
     private static <T> void assertLiteral(Symbol symbol, T expectedValue, DataType type) {
         assertThat(symbol, instanceOf(Literal.class));
