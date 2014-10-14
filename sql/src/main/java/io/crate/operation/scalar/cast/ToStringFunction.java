@@ -78,7 +78,7 @@ public class ToStringFunction extends Scalar<BytesRef, Object> {
             // TODO: add support for geo types
             Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(dataTypes.get(0)),
                     "invalid datatype %s for string conversion", dataTypes.get(0));
-            return new ToStringFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), dataTypes.get(0)));
+            return new ToStringFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.STRING));
         }
     }
 }

@@ -33,9 +33,9 @@ import io.crate.types.DataTypes;
 
 import java.util.List;
 
-public class ToIntFunction extends Scalar<Integer, Object> {
+public class ToLongFunction extends Scalar<Long, Object> {
 
-    public static final String NAME = "toInt";
+    public static final String NAME = "toLong";
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
@@ -43,7 +43,7 @@ public class ToIntFunction extends Scalar<Integer, Object> {
 
     protected final FunctionInfo info;
 
-    public ToIntFunction(FunctionInfo info) {
+    public ToLongFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -57,15 +57,15 @@ public class ToIntFunction extends Scalar<Integer, Object> {
         assert symbol.arguments().size() == 1;
         Symbol argument = symbol.arguments().get(0);
         if (argument.symbolType().isValueSymbol()) {
-            return Literal.toLiteral(argument, DataTypes.INTEGER);
+            return Literal.newLiteral ( DataTypes.LONG.value( ((Input)argument).value()));
         }
         return symbol;
     }
 
     @Override
-    public Integer evaluate(Input[] args) {
+    public Long evaluate(Input[] args) {
         assert args.length == 1;
-        return DataTypes.INTEGER.value(args[0].value());
+        return DataTypes.LONG.value(args[0].value());
     }
 
     private static class Resolver implements DynamicFunctionResolver {
@@ -75,8 +75,8 @@ public class ToIntFunction extends Scalar<Integer, Object> {
             Preconditions.checkArgument(dataTypes.size() == 1,
                     "invalid size of arguments, 1 expected");
             Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(dataTypes.get(0)),
-                    "invalid datatype %s for integer conversion", dataTypes.get(0));
-            return new ToIntFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.INTEGER));
+                    "invalid datatype %s for long conversion", dataTypes.get(0));
+            return new ToLongFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.LONG));
         }
     }
 }
