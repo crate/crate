@@ -28,8 +28,8 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.scalar.CastFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.cast.ToStringFunction;
 import io.crate.planner.symbol.DataTypeSymbol;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
@@ -180,6 +180,6 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().size(), is(analysis.getSubQueryColumns().size()));
         assertThat(analysis.getSubQueryColumns().get(1), instanceOf(Function.class));
         Function castFunction = (Function)analysis.getSubQueryColumns().get(1);
-        assertThat(castFunction.info().ident().name(), is(CastFunction.NAME));
+        assertThat(castFunction.info().ident().name(), is(ToStringFunction.NAME));
     }
 }
