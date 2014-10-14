@@ -30,13 +30,12 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 
-public class ToStringFunction extends Scalar<BytesRef, Object> {
+public class ToIntFunction extends Scalar<Integer, Object> {
 
-    public static final String NAME = "toString";
+    public static final String NAME = "toInt";
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
@@ -44,7 +43,7 @@ public class ToStringFunction extends Scalar<BytesRef, Object> {
 
     protected final FunctionInfo info;
 
-    public ToStringFunction(FunctionInfo info) {
+    public ToIntFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -54,19 +53,19 @@ public class ToStringFunction extends Scalar<BytesRef, Object> {
     }
 
     @Override
-    public BytesRef evaluate(Input[] args) {
-        assert args.length == 1;
-        return DataTypes.STRING.value(args[0].value());
-    }
-
-    @Override
     public Symbol normalizeSymbol(Function symbol) {
         assert symbol.arguments().size() == 1;
         Symbol argument = symbol.arguments().get(0);
         if (argument.symbolType().isValueSymbol()) {
-            return Literal.toLiteral(argument, DataTypes.STRING);
+            return Literal.toLiteral(argument, DataTypes.INTEGER);
         }
         return symbol;
+    }
+
+    @Override
+    public Integer evaluate(Input[] args) {
+        assert args.length == 1;
+        return DataTypes.INTEGER.value(args[0].value());
     }
 
     private static class Resolver implements DynamicFunctionResolver {
@@ -75,10 +74,9 @@ public class ToStringFunction extends Scalar<BytesRef, Object> {
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 1,
                     "invalid size of arguments, 1 expected");
-            // TODO: add support for geo types
             Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(dataTypes.get(0)),
-                    "invalid datatype %s for string conversion", dataTypes.get(0));
-            return new ToStringFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), dataTypes.get(0)));
+                    "invalid datatype %s for integer conversion", dataTypes.get(0));
+            return new ToIntFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), dataTypes.get(0)));
         }
     }
 }

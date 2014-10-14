@@ -33,7 +33,6 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,7 +45,7 @@ import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-public class ToStringFunctionTest {
+public class ToIntFunctionTest {
 
     private Functions functions;
 
@@ -63,43 +62,59 @@ public class ToStringFunctionTest {
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
 
-        FunctionImplementation castIntegerToString = functions.get(new FunctionIdent(ToStringFunction.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER)));
+        FunctionImplementation castStringToInteger = functions.get(new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING)));
 
-        Function function = new Function(castIntegerToString.info(), Arrays.<Symbol>asList(Literal.newLiteral(123)));
-        Symbol result = castIntegerToString.normalizeSymbol(function);
-        assertLiteralSymbol(result, "123");
+        Function function = new Function(castStringToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral("123")));
+        Symbol result = castStringToInteger.normalizeSymbol(function);
+        assertLiteralSymbol(result, 123);
 
-        FunctionImplementation castFloatToString = functions.get(new FunctionIdent(ToStringFunction.NAME, ImmutableList.<DataType>of(DataTypes.FLOAT)));
-        function = new Function(castFloatToString.info(), Arrays.<Symbol>asList(Literal.newLiteral(0.5f)));
-        result = castFloatToString.normalizeSymbol(function);
-        assertLiteralSymbol(result, "0.5");
+        FunctionImplementation castFloatToInteger = functions.get(new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.FLOAT)));
 
-        FunctionImplementation castStringToString = functions.get(new FunctionIdent(ToStringFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING)));
-        function = new Function(castStringToString.info(), Arrays.<Symbol>asList(Literal.newLiteral("hello")));
-        result = castStringToString.normalizeSymbol(function);
-        assertLiteralSymbol(result, "hello");
+        function = new Function(castFloatToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral(12.5f)));
+        result = castStringToInteger.normalizeSymbol(function);
+        assertLiteralSymbol(result, 12);
     }
 
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid datatype object for string conversion");
-        functions.get(new FunctionIdent(ToStringFunction.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT)));
+        expectedException.expectMessage("invalid datatype object for integer conversion");
+        functions.get(new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT)));
+    }
+
+    @Test
+    public void testNormalizeInvalidString() throws Exception {
+        expectedException.expect(NumberFormatException.class);
+        expectedException.expectMessage("For input string: \"hello\"");
+        FunctionImplementation castStringToInteger = functions.get(new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING)));
+        Function function = new Function(castStringToInteger.info(), Arrays.<Symbol>asList(Literal.newLiteral("hello")));
+        castStringToInteger.normalizeSymbol(function);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testEvaluate() throws Exception {
-        FunctionIdent ident = new FunctionIdent(ToStringFunction.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER));
+        FunctionIdent ident = new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.STRING));
         Scalar<Object, Object> format = (Scalar<Object, Object>) functions.get(ident);
         Input<Object> arg1 = new Input<Object>() {
             @Override
             public Object value() {
-                return 123;
+                return "123";
             }
         };
         Object result = format.evaluate(arg1);
-        assertThat(((BytesRef)result), is(new BytesRef("123")));
+        assertThat((Integer)result, is(123));
+
+        ident = new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.FLOAT));
+        format = (Scalar<Object, Object>) functions.get(ident);
+        arg1 = new Input<Object>() {
+            @Override
+            public Object value() {
+                return 42.5f;
+            }
+        };
+        result = format.evaluate(arg1);
+        assertThat((Integer)result, is(42));
     }
 
 }
