@@ -36,6 +36,8 @@ public class CastFunctionResolver {
     private static final ImmutableMap<DataType, String> functionMap = new ImmutableMap.Builder<DataType, String>()
             .put(DataTypes.STRING, ToStringFunction.NAME)
             .put(DataTypes.INTEGER, ToIntFunction.NAME)
+            .put(DataTypes.LONG, ToLongFunction.NAME)
+            .put(DataTypes.BOOLEAN, ToBooleanFunction.NAME)
             .put(ToStringArrayFunction.ARRAY_STRING_TYPE, ToStringArrayFunction.NAME)
             .put(ToLongArrayFunction.LONG_ARRAY_TYPE, ToLongArrayFunction.NAME)
             .put(ToIntArrayFunction.INT_ARRAY_TYPE, ToIntArrayFunction.NAME)
