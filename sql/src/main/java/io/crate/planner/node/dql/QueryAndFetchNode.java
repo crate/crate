@@ -172,9 +172,7 @@ public class QueryAndFetchNode extends AbstractDQLPlanNode {
     }
 
     /**
-     * extract types of outputs of this node.
-     *
-     * if we have no projections, we use
+     * extract types of outputs of this node
      */
     private void extractOutputTypes() {
         List<DataType> toCollectTypes = extractDataTypes(toCollect);
@@ -532,11 +530,10 @@ public class QueryAndFetchNode extends AbstractDQLPlanNode {
     // todo: move from class
     private static List<DataType> extractSymbolDataTypes(List<Symbol> symbols, @Nullable List<DataType> inputTypes) {
         List<DataType> types = new ArrayList<>(symbols.size());
-        for (int i = 0; i < symbols.size(); i++) {
-            Symbol symbol = symbols.get(i);
+        for (Symbol symbol : symbols) {
             if (symbol.symbolType() == SymbolType.INPUT_COLUMN) {
                 if (inputTypes != null) {
-                    int columnIdx = ((InputColumn)symbol).index();
+                    int columnIdx = ((InputColumn) symbol).index();
                     types.add(inputTypes.get(columnIdx));
 
                 } else {
@@ -571,11 +568,6 @@ public class QueryAndFetchNode extends AbstractDQLPlanNode {
      * resolve the type of the column at <code>columnIdx</code> of the projection
      * in <code>projections</code> at index <code>projectionIdx</code>.
      * As a fallback, return the input type
-     * @param projections
-     * @param projectionIdx
-     * @param columnIdx
-     * @param inputTypes
-     * @return
      */
     private static DataType resolveType(List<Projection> projections, int projectionIdx, int columnIdx, List<DataType> inputTypes) {
         Projection projection = projections.get(projectionIdx);
