@@ -85,7 +85,7 @@ public class ToNullFunctionTest {
     public void testEvaluate() throws Exception {
         assertThat(evaluate("hello", DataTypes.STRING), nullValue());
         assertThat(evaluate(null, DataTypes.STRING), nullValue());
-        assertThat(evaluate(123.5, DataTypes.FLOAT), nullValue());
+        assertThat(evaluate(123.5f, DataTypes.FLOAT), nullValue());
         assertThat(evaluate(123.5d, DataTypes.DOUBLE), nullValue());
         assertThat(evaluate(42L, DataTypes.LONG), nullValue());
     }

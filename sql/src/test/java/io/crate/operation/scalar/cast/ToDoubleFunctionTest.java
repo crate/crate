@@ -86,7 +86,7 @@ public class ToDoubleFunctionTest {
     public void testEvaluate() throws Exception {
         assertThat(evaluate("123", DataTypes.STRING), is(123d));
         assertThat(evaluate(null, DataTypes.STRING), nullValue());
-        assertThat(evaluate(123.5, DataTypes.FLOAT), is(123.5d));
+        assertThat(evaluate(123.5f, DataTypes.FLOAT), is(123.5d));
         assertThat(evaluate(123.5d, DataTypes.DOUBLE), is(123.5d));
         assertThat(evaluate(null, DataTypes.FLOAT), nullValue());
         assertThat(evaluate(42L, DataTypes.LONG), is(42d));

@@ -104,7 +104,7 @@ public class ToLongFunctionTest {
 
     @Test
     public void testEvaluateOnFloatAndDouble() throws Exception {
-        assertThat(evaluate(123.5, DataTypes.FLOAT), is(123L));
+        assertThat(evaluate(123.5f, DataTypes.FLOAT), is(123L));
         assertThat(evaluate(123.5d, DataTypes.DOUBLE), is(123L));
         assertThat(evaluate(null, DataTypes.FLOAT), nullValue());
         assertThat(evaluate(null, DataTypes.DOUBLE), nullValue());

@@ -86,7 +86,7 @@ public class ToByteFunctionTest {
     public void testEvaluate() throws Exception {
         assertThat(evaluate("123", DataTypes.STRING), is((byte)123));
         assertThat(evaluate(null, DataTypes.STRING), nullValue());
-        assertThat(evaluate(123.5, DataTypes.FLOAT), is((byte)123));
+        assertThat(evaluate(123.5f, DataTypes.FLOAT), is((byte)123));
         assertThat(evaluate(123.5d, DataTypes.DOUBLE), is((byte)123));
         assertThat(evaluate(null, DataTypes.FLOAT), nullValue());
         assertThat(evaluate(42L, DataTypes.LONG), is((byte)42));
