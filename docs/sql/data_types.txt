@@ -379,20 +379,20 @@ Example usages:
 
     cr> select cast(port['http'] as boolean) from sys.nodes limit 1;
     +-------------------------------+
-    | cast(port['http'] as boolean) |
+    | CAST(port['http'] AS boolean) |
     +-------------------------------+
-    | true                          |
+    | TRUE                          |
     +-------------------------------+
     SELECT 1 row in set (... sec)
 
 ::
 
     cr> select cast((2+10)/2 as string) from sys.nodes limit 1;
-    +--------------------------+
-    | cast((2+10)/2 as string) |
-    +--------------------------+
-    | 6                        |
-    +--------------------------+
+    +--------------------------------+
+    | CAST(((2 + 10) / 2) AS string) |
+    +--------------------------------+
+    |                              6 |
+    +--------------------------------+
     SELECT 1 row in set (... sec)
 
 It is also possible to convert array structures to different data
@@ -401,11 +401,11 @@ types, e.g. converting an array of integer values to a boolean array.
 
     cr> select cast(thread_pools['active'] as array(boolean)) as
     ... active_threads from sys.nodes limit 1;
-    +-------------------------------+
+    +-----------------------...-----+
     | active_threads                |
-    +-------------------------------+
-    | [true, true, true, false]     |
-    +-------------------------------+
+    +-----------------------...-----+
+    | [false, false, false, ...]    |
+    +-----------------------...-----+
     SELECT 1 row in set (... sec)
 
 .. note::

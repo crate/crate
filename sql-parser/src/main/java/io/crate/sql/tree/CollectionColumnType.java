@@ -68,15 +68,6 @@ public class CollectionColumnType extends ColumnType {
     }
 
     @Override
-    public String toString() {
-        return Objects.toStringHelper(this)
-                .add("name", name)
-                .add("type", type)
-                .add("innerType", innerType)
-                .toString();
-    }
-
-    @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCollectionColumnType(this, context);
     }

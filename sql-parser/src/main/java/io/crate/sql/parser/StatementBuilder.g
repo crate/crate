@@ -456,7 +456,7 @@ extract returns [Extract value]
     ;
 
 cast returns [Cast value]
-    : ^(CAST expr dataType) { $value = new Cast($expr.value, $dataType.value.name()); }
+    : ^(CAST expr dataType) { $value = new Cast($expr.value, $dataType.value); }
     ;
 
 current_time returns [CurrentTime value]
