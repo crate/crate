@@ -48,6 +48,7 @@ public class CastFunctionResolver {
             .put(ToDoubleArrayFunction.DOUBLE_ARRAY_TYPE, ToDoubleArrayFunction.NAME)
             .put(ToBooleanArrayFunction.BOOLEAN_ARRAY_TYPE, ToBooleanArrayFunction.NAME)
             .put(ToByteArrayFunction.BYTE_ARRAY_TYPE, ToByteArrayFunction.NAME)
+            .put(ToFloatArrayFunction.FLOAT_ARRAY_TYPE, ToFloatArrayFunction.NAME)
             .build();
 
     /**
