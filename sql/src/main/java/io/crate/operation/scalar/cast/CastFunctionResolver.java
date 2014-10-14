@@ -46,6 +46,7 @@ public class CastFunctionResolver {
             .put(ToLongArrayFunction.LONG_ARRAY_TYPE, ToLongArrayFunction.NAME)
             .put(ToIntArrayFunction.INT_ARRAY_TYPE, ToIntArrayFunction.NAME)
             .put(ToDoubleArrayFunction.DOUBLE_ARRAY_TYPE, ToDoubleArrayFunction.NAME)
+            .put(ToBooleanArrayFunction.BOOLEAN_ARRAY_TYPE, ToBooleanArrayFunction.NAME)
             .build();
 
     /**
