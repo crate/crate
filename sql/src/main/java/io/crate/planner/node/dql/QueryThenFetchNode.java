@@ -39,8 +39,6 @@ import java.util.List;
 public class QueryThenFetchNode extends ESDQLPlanNode {
 
     private final List<Symbol> orderBy;
-    private final int limit;
-    private final int offset;
     private final boolean[] reverseFlags;
     private final WhereClause whereClause;
 
@@ -79,22 +77,14 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
         this.whereClause = whereClause;
         this.outputs = outputs;
 
-        this.limit = Objects.firstNonNull(limit, Constants.DEFAULT_SELECT_LIMIT);
-        this.offset = Objects.firstNonNull(offset, 0);
+        this.limit(Objects.firstNonNull(limit, Constants.DEFAULT_SELECT_LIMIT));
+        this.offset(Objects.firstNonNull(offset, 0));
 
         this.partitionBy = Objects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
     }
 
     public Routing routing() {
         return routing;
-    }
-
-    public int limit() {
-        return limit;
-    }
-
-    public int offset() {
-        return offset;
     }
 
     public Boolean[] nullsFirst() {

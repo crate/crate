@@ -23,12 +23,15 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.analyze.where.WhereClause;
 import io.crate.executor.Job;
+import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
+import io.crate.executor.task.join.NestedLoopTask;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
@@ -48,11 +51,13 @@ import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoopNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.CrateTestCluster;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -89,13 +94,22 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     private TransportExecutor executor;
     private DocSchemaInfo docSchemaInfo;
 
-    TableIdent table = new TableIdent(null, "characters");
+    TableIdent charactersIdent = new TableIdent(null, "characters");
+    TableIdent booksIdent = new TableIdent(null, "books");
+
     Reference id_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(table, "id"), RowGranularity.DOC, DataTypes.INTEGER));
+            new ReferenceIdent(charactersIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER));
     Reference name_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(table, "name"), RowGranularity.DOC, DataTypes.STRING));
+            new ReferenceIdent(charactersIdent, "name"), RowGranularity.DOC, DataTypes.STRING));
     Reference version_ref = new Reference(new ReferenceInfo(
-            new ReferenceIdent(table, "_version"), RowGranularity.DOC, DataTypes.LONG));
+            new ReferenceIdent(charactersIdent, "_version"), RowGranularity.DOC, DataTypes.LONG));
+
+    Reference books_id_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(booksIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER));
+    Reference title_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(booksIdent, "title"), RowGranularity.DOC, DataTypes.STRING));
+    Reference author_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(booksIdent, "author"), RowGranularity.DOC, DataTypes.STRING));
 
     TableIdent partedTable = new TableIdent(null, "parted");
     Reference parted_id_ref = new Reference(new ReferenceInfo(
@@ -121,6 +135,15 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         execute("insert into characters (id, name) values (1, 'Arthur')");
         execute("insert into characters (id, name) values (2, 'Ford')");
         execute("insert into characters (id, name) values (3, 'Trillian')");
+        refresh();
+    }
+
+    private void insertBooks() {
+        execute("create table books (id int primary key, title string, author string)");
+        ensureGreen();
+        execute("insert into books (id, title, author) values (1, 'The Hitchhiker''s Guide to the Galaxy', 'Douglas Adams')");
+        execute("insert into books (id, title, author) values (2, 'The Restaurant at the End of the Universe', 'Douglas Adams')");
+        execute("insert into books (id, title, author) values (3, 'Life, the Universe and Everything', 'Douglas Adams')");
         refresh();
     }
 
@@ -818,6 +841,74 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat((Integer)rows[1][0], is(3));
         assertThat((String)rows[1][1], is("mostly harmless"));
+
+    }
+
+    @Test
+    public void testNestedLoopTask() throws Exception {
+        insertCharacters();
+        insertBooks();
+
+        DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
+
+        QueryThenFetchNode leftNode = new QueryThenFetchNode(
+                characters.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(id_ref, name_ref),
+                Arrays.<Symbol>asList(name_ref),
+                new boolean[]{false},
+                new Boolean[] { null },
+                null, null, WhereClause.MATCH_ALL,
+                null
+        );
+        leftNode.outputTypes(ImmutableList.of(id_ref.info().type(), name_ref.info().type()));
+
+        DocTableInfo books = docSchemaInfo.getTableInfo("books");
+        QueryThenFetchNode rightnode = new QueryThenFetchNode(
+                books.getRouting(WhereClause.MATCH_ALL),
+                Arrays.<Symbol>asList(books_id_ref, title_ref, author_ref),
+                Arrays.<Symbol>asList(title_ref),
+                new boolean[]{false},
+                new Boolean[] { null },
+                null, null, WhereClause.MATCH_ALL,
+                null
+        );
+        rightnode.outputTypes(ImmutableList.of(
+                books_id_ref.info().type(),
+                title_ref.info().type(),
+                author_ref.info().type())
+        );
+
+        // SELECT c.id, c.name, b.id, b.title, b.author
+        // FROM characters as c CROSS JOIN books as b
+        // ORDER BY c.name, b.title
+        NestedLoopNode node = NestedLoopNode.builder()
+                .left(leftNode)
+                .right(rightnode)
+                .leftOuterLoop(true)
+                .limit(5)
+                .offset(0)
+                .outputTypes(ImmutableList.of(id_ref.info().type(), name_ref.info().type(),
+                        books_id_ref.info().type(), title_ref.info().type(),
+                        author_ref.info().type()))
+                .build();
+
+        Plan plan = new Plan();
+        plan.add(node);
+        plan.expectsAffectedRows(true);
+
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(NestedLoopTask.class));
+        List<TaskResult> results = Futures.allAsList(executor.execute(job)).get();
+        assertThat(results.size(), is(1));
+        assertThat(results.get(0), instanceOf(QueryResult.class));
+        QueryResult result = (QueryResult)results.get(0);
+        assertThat(TestingHelpers.printedTable(result.rows()), is(
+                "1| Arthur| 3| Life, the Universe and Everything| Douglas Adams\n" +
+                "1| Arthur| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams\n" +
+                "1| Arthur| 2| The Restaurant at the End of the Universe| Douglas Adams\n" +
+                "2| Ford| 3| Life, the Universe and Everything| Douglas Adams\n" +
+                "2| Ford| 1| The Hitchhiker's Guide to the Galaxy| Douglas Adams\n"));
+
 
     }
 }

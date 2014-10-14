@@ -41,7 +41,7 @@ import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import java.util.*;
 
-public class ESGetTask implements Task<QueryResult> {
+public class ESGetTask extends Task<QueryResult> {
 
     private final static Visitor visitor = new Visitor();
     private final ESGetNode node;
@@ -52,7 +52,11 @@ public class ESGetTask implements Task<QueryResult> {
 
     private final Map<String, Object> partitionValues;
 
-    public ESGetTask(TransportMultiGetAction multiGetAction, TransportGetAction getAction, ESGetNode node) {
+    public ESGetTask(UUID jobId,
+                     TransportMultiGetAction multiGetAction,
+                     TransportGetAction getAction,
+                     ESGetNode node) {
+        super(jobId);
         assert multiGetAction != null;
         assert getAction != null;
         assert node != null;

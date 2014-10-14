@@ -33,6 +33,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -44,7 +45,7 @@ import java.util.UUID;
 /**
  * A plan node which collects data.
  */
-public class CollectNode extends AbstractDQLPlanNode {
+public class CollectNode extends AbstractDQLPlanNode implements Streamable {
 
     private Optional<UUID> jobId = Optional.absent();
     private Routing routing;

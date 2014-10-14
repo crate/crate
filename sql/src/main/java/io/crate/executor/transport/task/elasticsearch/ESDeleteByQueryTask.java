@@ -30,6 +30,7 @@ import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 
 import java.io.IOException;
+import java.util.UUID;
 
 public class ESDeleteByQueryTask extends AsyncChainedTask {
 
@@ -37,8 +38,10 @@ public class ESDeleteByQueryTask extends AsyncChainedTask {
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final ESQueryBuilder queryBuilder;
 
-    public ESDeleteByQueryTask(ESDeleteByQueryNode deleteByQueryNode,
+    public ESDeleteByQueryTask(UUID jobId,
+                               ESDeleteByQueryNode deleteByQueryNode,
                                TransportDeleteByQueryAction transportDeleteByQueryAction) {
+        super(jobId);
         this.deleteByQueryNode = deleteByQueryNode;
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
         this.queryBuilder = new ESQueryBuilder();

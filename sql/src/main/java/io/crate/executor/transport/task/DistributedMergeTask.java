@@ -43,10 +43,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class DistributedMergeTask implements Task<QueryResult> {
+public class DistributedMergeTask extends Task<QueryResult> {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
@@ -55,7 +56,10 @@ public class DistributedMergeTask implements Task<QueryResult> {
     private final ArrayList<ListenableFuture<QueryResult>> results;
     private List<ListenableFuture<TaskResult>> upstreamResult;
 
-    public DistributedMergeTask(TransportMergeNodeAction transportMergeNodeAction, MergeNode mergeNode) {
+    public DistributedMergeTask(UUID jobId,
+                                TransportMergeNodeAction transportMergeNodeAction,
+                                MergeNode mergeNode) {
+        super(jobId);
         Preconditions.checkNotNull(mergeNode.executionNodes());
 
         this.transportMergeNodeAction = transportMergeNodeAction;

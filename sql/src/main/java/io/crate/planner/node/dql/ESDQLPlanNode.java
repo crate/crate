@@ -25,16 +25,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
-import io.crate.types.DataType;
 
 import java.util.List;
 import java.util.Set;
 
-public abstract class ESDQLPlanNode implements DQLPlanNode {
+public abstract class ESDQLPlanNode extends AbstractDQLPlanNode {
 
     protected List<Symbol> outputs;
-    private List<DataType> inputTypes;
-    private List<DataType> outputTypes;
 
     public List<Symbol> outputs() {
         return outputs;
@@ -54,28 +51,9 @@ public abstract class ESDQLPlanNode implements DQLPlanNode {
         return ImmutableList.of();
     }
 
-    @Override
-    public void inputTypes(List<DataType> dataTypes) {
-        this.inputTypes = dataTypes;
-    }
-
-    @Override
-    public List<DataType> inputTypes() {
-        return inputTypes;
-    }
 
     @Override
     public Set<String> executionNodes() {
         return ImmutableSet.of();
-    }
-
-    @Override
-    public void outputTypes(List<DataType> outputTypes) {
-        this.outputTypes = outputTypes;
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return outputTypes;
     }
 }
