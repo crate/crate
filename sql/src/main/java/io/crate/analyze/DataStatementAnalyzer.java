@@ -35,8 +35,8 @@ import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.reference.partitioned.PartitionExpression;
-import io.crate.operation.scalar.CastFunction;
 import io.crate.operation.scalar.SubscriptFunction;
+import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
@@ -862,10 +862,9 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 // no value symbol -> wrap in cast function because eager cast isn't possible.
                 left = DataTypeSymbol.toDataTypeSymbol(left, leftType);
                 if (rightType.isConvertableTo(leftType)) {
-                    FunctionIdent castIdent = new FunctionIdent(CastFunction.NAME, ImmutableList.of(rightType, leftType));
-                    // second arg is dummy argument - required because num arguments must match number of data types
-                    ImmutableList<Symbol> arguments = ImmutableList.of(right, Literal.newLiteral(leftType, null));
-                    right = new Function(new FunctionInfo(castIdent, leftType), arguments);
+                    FunctionInfo functionInfo = CastFunctionResolver.functionInfo(rightType, leftType);
+                    ImmutableList<Symbol> arguments = ImmutableList.of(right);
+                    right = new Function(functionInfo, arguments);
                 } else {
                     throw new IllegalArgumentException(SymbolFormatter.format(
                             "type of \"%s\" doesn't match type of \"%s\" and cannot be cast implicitly",
