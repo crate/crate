@@ -21,6 +21,7 @@
 
 package io.crate.operation.scalar.cast;
 
+import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
@@ -28,6 +29,9 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+
+import java.util.List;
 
 public abstract class ToPrimitiveFunction<T> extends Scalar<T, Object> {
 
@@ -38,6 +42,13 @@ public abstract class ToPrimitiveFunction<T> extends Scalar<T, Object> {
     protected ToPrimitiveFunction(FunctionInfo functionInfo){
         this.returnType = functionInfo.returnType();
         this.info = functionInfo;
+    }
+
+    protected static void checkPreconditions(List<DataType> dataTypes) throws IllegalArgumentException {
+        Preconditions.checkArgument(dataTypes.size() == 1,
+                "invalid size of arguments, 1 expected");
+        Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(dataTypes.get(0)),
+                "type '%s' not supported for conversion", dataTypes.get(0));
     }
 
     @Override

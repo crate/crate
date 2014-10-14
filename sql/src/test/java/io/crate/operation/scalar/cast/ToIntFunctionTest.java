@@ -78,7 +78,7 @@ public class ToIntFunctionTest {
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid datatype object for integer conversion");
+        expectedException.expectMessage("type 'object' not supported for conversion");
         functions.get(new FunctionIdent(ToIntFunction.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 

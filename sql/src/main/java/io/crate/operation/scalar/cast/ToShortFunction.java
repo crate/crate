@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar.cast;
 
-import com.google.common.base.Preconditions;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -49,10 +48,7 @@ public class ToShortFunction extends ToPrimitiveFunction<Short> {
 
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() == 1,
-                    "invalid size of arguments, 1 expected");
-            Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(dataTypes.get(0)),
-                    "invalid datatype %s for short conversion", dataTypes.get(0));
+            ToPrimitiveFunction.checkPreconditions(dataTypes);
             return new ToShortFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.SHORT));
         }
     }

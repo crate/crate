@@ -96,7 +96,7 @@ public class ToShortFunctionTest {
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid datatype object for short conversion");
+        expectedException.expectMessage("type 'object' not supported for conversion");
         functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 
