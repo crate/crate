@@ -88,5 +88,6 @@ public class ScalarFunctionModule extends AbstractModule {
         ToLongArrayFunction.register(this);
         ToDoubleArrayFunction.register(this);
         ToBooleanFunction.register(this);
+        ToDoubleFunction.register(this);
     }
 }
