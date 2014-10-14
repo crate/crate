@@ -70,7 +70,7 @@ A Cross-join returns the cartesian product of the joined tables.
 The cartesian product contains every possible combinations of rows from
 the given tables ( T1 * T2 * ...)::
 
-    cr> select article.name as article, colors.name as color
+    cr> select articles.name as article, colors.name as color
     ... from articles cross join colors order by price limit 6;
     +---------------------------+---------------+
     | article                   | color         |
@@ -86,7 +86,7 @@ the given tables ( T1 * T2 * ...)::
 
 `FROM T1 CROSS JOIN T2` is equivalent to `FROM T1, T2`::
 
-    cr> select article.name as article, colors.name as color
+    cr> select articles.name as article, colors.name as color
     ... from articles, colors order by price limit 6;
     +---------------------------+---------------+
     | article                   | color         |
@@ -100,14 +100,9 @@ the given tables ( T1 * T2 * ...)::
     +---------------------------+---------------+
     SELECT 6 rows in set (... sec)
 
-.. note::
-
-    Cross joins are costly operations and must be used with care.
-
-
 Examples::
 
-    cr> select article.name as article, colors.name as color, price
+    cr> select articles.name as article, colors.name as color, price
     ... from articles, colors
     ... where price > 5000.0 order by price;
     +------------------------------+---------------+----------+
@@ -126,9 +121,9 @@ Examples::
 
 ::
 
-    cr> select article.name as article, rgb, price
+    cr> select articles.name as article, rgb, price
     ... from articles, colors
-    ... where color = 'Midnight Blue' and price < 50000
+    ... where colors.name = 'Midnight Blue' and price < 50000
     ... order by price;
     +------------------------------+---------+----------+
     | article                      | rgb     | price    |
@@ -141,14 +136,14 @@ Examples::
 
 ::
 
-    cr> select article.name, color.name, price * color.coolness
+    cr> select articles.name, colors.name, price * colors.coolness
     ... from articles, colors
-    ... order by price * color.coolness desc limit 1;
-    +------------------+----------------+------------------------+
-    | article.name     | color.name     | price * color.coolness |
-    +------------------+----------------+------------------------+
-    | Starship Titanic | Midnight Blue  | 500000.0               |
-    +------------------+----------------+------------------------+
+    ... order by price * colors.coolness desc limit 1;
+    +------------------+----------------+-------------------------+
+    | articles.name    | colors.name    | price * colors.coolness |
+    +------------------+----------------+-------------------------+
+    | Starship Titanic | Midnight Blue  | 500000.0                |
+    +------------------+----------------+-------------------------+
     SELECT 1 rows in set (... sec)
 
 .. _sql_dql_distinct_clause:
