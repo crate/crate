@@ -49,12 +49,17 @@ import io.crate.operation.scalar.CollectionCountFunction;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.AddFunction;
+import io.crate.operation.scalar.cast.ToStringArrayFunction;
+import io.crate.operation.scalar.cast.ToStringFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.testing.TestingHelpers;
-import io.crate.types.*;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
@@ -1921,5 +1926,26 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 "Selecting system columns from regular tables is currently only supported by queries using group-by or global aggregates.");
         analyze("select * from parted " +
                 "where sys.cluster.name = 'foo' and date = 1395874800000");
+    }
+
+    @Test
+    public void testCastExpression() throws Exception {
+        SelectAnalysis analysis = analyze("select cast(other_id as string) from users");
+        assertThat(analysis.outputSymbols().get(0), isFunction(ToStringFunction.NAME,
+                Arrays.<DataType>asList(DataTypes.LONG)));
+
+        analysis = analyze("select cast(1+1 as string) from users");
+        assertThat(analysis.outputSymbols().get(0), isLiteral("2", DataTypes.STRING));
+
+        analysis = analyze("select cast(friends['id'] as array(string)) from users");
+        assertThat(analysis.outputSymbols().get(0), isFunction(ToStringArrayFunction.NAME,
+                Arrays.<DataType>asList(new ArrayType(DataTypes.LONG))));
+    }
+
+    @Test
+    public void testInvalidCastExpression() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("No cast function found for return type object");
+        analyze("select cast(name as object) from users");
     }
 }

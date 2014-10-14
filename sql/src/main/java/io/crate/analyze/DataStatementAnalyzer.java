@@ -61,6 +61,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             .build();
 
     private final static String _SCORE = "_score";
+    private final static DataTypeAnalyzer dataTypeAnalyzer = new DataTypeAnalyzer();
 
     private boolean insideNotPredicate = false;
 
@@ -109,6 +110,27 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
+    protected Symbol visitCast(Cast node, T context) {
+        DataType returnType = dataTypeAnalyzer.process(node.getType(), null);
+
+        DataType argumentType;
+        Symbol argSymbol = node.getExpression().accept(this, context);
+        if (argSymbol instanceof DataTypeSymbol) {
+            argumentType = ((DataTypeSymbol) argSymbol).valueType();
+        } else if (argSymbol.symbolType() == SymbolType.PARAMETER) {
+            Literal literal = Literal.fromParameter((Parameter)argSymbol);
+            argumentType = literal.valueType();
+            argSymbol = literal;
+        } else {
+            // TODO: verify how this can happen
+            throw new RuntimeException("Got an argument Symbol that doesn't have a type");
+        }
+
+        FunctionInfo functionInfo = CastFunctionResolver.functionInfo(argumentType, returnType);
+        return context.allocateFunction(functionInfo, Arrays.asList(argSymbol));
     }
 
     @Override

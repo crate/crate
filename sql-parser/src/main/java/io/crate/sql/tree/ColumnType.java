@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
 
-public class ColumnType extends Node {
+public class ColumnType extends Expression {
 
     public static enum Type {
         PRIMITIVE,
@@ -68,14 +68,6 @@ public class ColumnType extends Node {
         if (!type.equals(that.type)) return false;
 
         return true;
-    }
-
-    @Override
-    public String toString() {
-        return Objects.toStringHelper(this)
-                .add("name", name)
-                .add("type", type)
-                .toString();
     }
 
     @Override

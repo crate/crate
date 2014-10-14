@@ -27,15 +27,15 @@ public class Cast
         extends Expression
 {
     private final Expression expression;
-    private final String type;
+    private final ColumnType type;
 
-    public Cast(Expression expression, String type)
+    public Cast(Expression expression, ColumnType type)
     {
         checkNotNull(expression, "expression is null");
         checkNotNull(type, "type is null");
 
         this.expression = expression;
-        this.type = type.toUpperCase();
+        this.type = type;
     }
 
     public Expression getExpression()
@@ -43,7 +43,7 @@ public class Cast
         return expression;
     }
 
-    public String getType()
+    public ColumnType getType()
     {
         return type;
     }

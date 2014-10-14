@@ -78,12 +78,6 @@ public abstract class AbstractStatementAnalyzer<R extends Object, T extends Anal
     }
 
     @Override
-    protected R visitCast(Cast node, T context) {
-        return visitNode(node, context);
-    }
-
-
-    @Override
     protected R visitBetweenPredicate(BetweenPredicate node, T context) {
         return visitNode(node, context);
     }

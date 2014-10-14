@@ -438,7 +438,7 @@ public final class ExpressionFormatter {
         @Override
         public String visitCast(Cast node, Void context)
         {
-            return "CAST(" + process(node.getExpression(), context) + " AS " + node.getType() + ")";
+            return "CAST(" + process(node.getExpression(), context) + " AS " + process(node.getType(), context) + ")";
         }
 
         @Override
@@ -558,6 +558,21 @@ public final class ExpressionFormatter {
                     return "UNBOUNDED FOLLOWING";
             }
             throw new IllegalArgumentException("unhandled type: " + node.getType());
+        }
+
+        @Override
+        public String visitColumnType(ColumnType node, Void context) {
+            return node.name();
+        }
+
+        @Override
+        public String visitCollectionColumnType(CollectionColumnType node, Void context) {
+            return node.name() + "(" + process(node.innerType(), context) + ")";
+        }
+
+        @Override
+        public String visitObjectColumnType(ObjectColumnType node, Void context) {
+            return node.name();
         }
 
         private String formatBinaryExpression(String operator, Expression left, Expression right)
