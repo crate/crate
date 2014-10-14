@@ -25,6 +25,8 @@ import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.scalar.arithmetic.*;
+import io.crate.operation.scalar.cast.ToStringArrayFunction;
+import io.crate.operation.scalar.cast.ToStringFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
@@ -68,8 +70,6 @@ public class ScalarFunctionModule extends AbstractModule {
         DistanceFunction.register(this);
         WithinFunction.register(this);
 
-        CastFunction.register(this);
-        ToStringFunction.register(this);
         SubscriptFunction.register(this);
 
         RoundFunction.register(this);
@@ -79,5 +79,10 @@ public class ScalarFunctionModule extends AbstractModule {
         FloorFunction.register(this);
         SquareRootFunction.register(this);
         LogFunction.register(this);
+
+        // TODO: remove CastFunction when all toX functions are implemented
+        CastFunction.register(this);
+        ToStringFunction.register(this);
+        ToStringArrayFunction.register(this);
     }
 }
