@@ -137,7 +137,15 @@ public class TransportExecutor implements Executor {
                         functions,
                         threadPool));
             } else {
-                context.addTask(new LocalCollectTask(handlerSideDataCollectOperation, node));
+                context.addTask(new LocalCollectTask(
+                        node,
+                        clusterService,
+                        settings,
+                        transportActionProvider,
+                        handlerSideDataCollectOperation,
+                        referenceResolver,
+                        functions,
+                        threadPool));
             }
             return null;
         }

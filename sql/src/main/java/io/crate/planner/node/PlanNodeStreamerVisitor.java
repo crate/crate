@@ -105,12 +105,20 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
     public Void visitQueryAndFetchNode(QueryAndFetchNode node, Context context) {
         // get aggregations, if any
         Optional<Projection> finalProjection = node.finalProjection();
-        List<Aggregation> aggregations = ImmutableList.of();
+        List<Aggregation> partialAggregations = new ArrayList<>();
         if (finalProjection.isPresent()) {
             if (finalProjection.get().projectionType() == ProjectionType.AGGREGATION) {
-                aggregations = ((AggregationProjection)finalProjection.get()).aggregations();
+                for (Aggregation aggregation : ((AggregationProjection)finalProjection.get()).aggregations()) {
+                    if (aggregation.toStep() == Aggregation.Step.PARTIAL) {
+                        partialAggregations.add(aggregation);
+                    }
+                }
             } else if (finalProjection.get().projectionType() == ProjectionType.GROUP) {
-                aggregations = ((GroupProjection)finalProjection.get()).values();
+                for (Aggregation aggregation : ((GroupProjection)finalProjection.get()).values()) {
+                    if (aggregation.toStep() == Aggregation.Step.PARTIAL) {
+                        partialAggregations.add(aggregation);
+                    }
+                }
             }
         }
 
@@ -120,7 +128,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
             if (outputType == null || outputType == UndefinedType.INSTANCE) {
                 // get streamer for aggregation result
                 try {
-                    aggregation = aggregations.get(aggIdx);
+                    aggregation = partialAggregations.get(aggIdx);
                     if (aggregation != null) {
                         context.outputStreamers.add(resolveStreamer(aggregation, aggregation.toStep()));
                     }

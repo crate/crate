@@ -44,10 +44,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -104,15 +101,14 @@ public class PlanNodeStreamerVisitorTest {
     public void testGetOutputStreamersFromCollectNodeWithAggregations() throws Exception {
         AggregationProjection aggregationProjection = new AggregationProjection();
         aggregationProjection.aggregations(Arrays.asList( // not a real use case, only for test convenience, sorry
-                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
-                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL)
+                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
+                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(2)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL)
         ));
         QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("bla",
                 new Routing(new HashMap<String, Map<String, Set<Integer>>>()),
                 ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.UNDEFINED),
                         new Value(DataTypes.UNDEFINED), new Value(DataTypes.DOUBLE)),
-                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.UNDEFINED),
-                        new Value(DataTypes.UNDEFINED), new Value(DataTypes.DOUBLE)),
+                ImmutableList.<Symbol>of(),
                 null, null, null, null, null,
                 Arrays.<Projection>asList(aggregationProjection),
                 null,
@@ -120,11 +116,9 @@ public class PlanNodeStreamerVisitorTest {
         queryAndFetchNode.configure();
         PlanNodeStreamerVisitor.Context ctx = visitor.process(queryAndFetchNode);
         Streamer<?>[] streamers = ctx.outputStreamers();
-        assertThat(streamers.length, is(4));
-        assertThat(streamers[0], instanceOf(DataTypes.BOOLEAN.streamer().getClass()));
-        assertThat(streamers[1], instanceOf(DataTypes.INTEGER.streamer().getClass()));
-        assertThat(streamers[2], instanceOf(AggregationStateStreamer.class));
-        assertThat(streamers[3], instanceOf(DataTypes.DOUBLE.streamer().getClass()));
+        assertThat(streamers.length, is(2));
+        assertThat(streamers[0], instanceOf(DataTypes.INTEGER.streamer().getClass()));
+        assertThat(streamers[1], instanceOf(AggregationStateStreamer.class));
     }
 
     @Test

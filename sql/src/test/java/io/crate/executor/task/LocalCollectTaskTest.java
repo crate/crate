@@ -25,12 +25,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.QueryResult;
+import io.crate.executor.transport.TransportActionProvider;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import java.util.List;
@@ -39,6 +45,7 @@ import java.util.UUID;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class LocalCollectTaskTest {
 
@@ -48,22 +55,34 @@ public class LocalCollectTaskTest {
     @Test
     public void testCollectTask() throws Exception {
 
-        final QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("ei-die", CLUSTER_ROUTING,
-                ImmutableList.<Symbol>of(Literal.newLiteral(4)), ImmutableList.<Symbol>of(Literal.newLiteral(4)),
+        final QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode(
+                "ei-die",
+                CLUSTER_ROUTING,
+                ImmutableList.<Symbol>of(Literal.newLiteral(4)),
+                ImmutableList.<Symbol>of(Literal.newLiteral(4)),
                 null, null, null, null, null, null, null, null, RowGranularity.CLUSTER, null);
         queryAndFetchNode.jobId(testJobId);
 
 
-        CollectOperation collectOperation = new CollectOperation() {
+        CollectOperation<Object[][]> collectOperation = new CollectOperation<Object[][]>() {
             @Override
-            public ListenableFuture collect(QueryAndFetchNode cn) {
+            public ListenableFuture<Object[][]> collect(QueryAndFetchNode cn) {
                 assertEquals(cn, queryAndFetchNode);
                 SettableFuture<Object[][]> result = SettableFuture.create();
                 result.set(new Object[][]{{1}});
                 return result;
             }
         };
-        LocalCollectTask collectTask = new LocalCollectTask(collectOperation, queryAndFetchNode);
+        LocalCollectTask collectTask = new LocalCollectTask(
+                queryAndFetchNode,
+                mock(ClusterService.class),
+                ImmutableSettings.EMPTY,
+                mock(TransportActionProvider.class),
+                collectOperation,
+                mock(ReferenceResolver.class),
+                mock(Functions.class),
+                new ThreadPool(getClass().getName())
+        );
         collectTask.start();
         List<ListenableFuture<QueryResult>> results = collectTask.result();
         assertThat(results.size(), is(1));

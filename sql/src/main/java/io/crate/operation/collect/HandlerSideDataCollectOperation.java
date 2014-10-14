@@ -32,6 +32,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.Projector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.QueryAndFetchNode;
 import org.apache.lucene.search.CollectionTerminatedException;
@@ -46,6 +47,40 @@ import java.util.Set;
 
 public class HandlerSideDataCollectOperation implements CollectOperation<Object[][]> {
 
+    private static class NoOpCollectService implements CollectService {
+
+        private static class NoOpCollector implements CrateCollector {
+
+            private Projector downstream;
+
+            @Override
+            public void doCollect() throws Exception {
+                // do nothing
+                downstream.upstreamFinished();
+            }
+
+            @Override
+            public void downstream(Projector downstream) {
+                downstream.registerUpstream(this);
+                this.downstream = downstream;
+            }
+
+            @Override
+            public Projector downstream() {
+                return downstream;
+            }
+        }
+
+        @Override
+        public CrateCollector getCollector(QueryAndFetchNode node, Projector projector) {
+            NoOpCollector collector = new NoOpCollector();
+            collector.downstream(projector);
+            return collector;
+        }
+    }
+
+    private static final NoOpCollectService NO_OP_COLLECT_SERVICE = new NoOpCollectService();
+
     private ESLogger logger = Loggers.getLogger(getClass());
 
     private final EvaluatingNormalizer clusterNormalizer;
@@ -53,6 +88,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final InformationSchemaCollectService informationSchemaCollectService;
     private final UnassignedShardsCollectService unassignedShardsCollectService;
+
 
     @Inject
     public HandlerSideDataCollectOperation(ClusterService clusterService,
@@ -77,7 +113,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         if (queryAndFetchNode.isPartitioned()) {
             // edge case: partitioned table without actual indices
             // no results
-            return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
+            return handleWithService(NO_OP_COLLECT_SERVICE, queryAndFetchNode);
         }
         if (queryAndFetchNode.maxRowGranularity() == RowGranularity.DOC) {
             // we assume information schema here
@@ -103,7 +139,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         List<Input<?>> inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
-        FlatProjectorChain projectorChain = new FlatProjectorChain(queryAndFetchNode.projections(), projectorVisitor);
+        FlatProjectorChain projectorChain = new FlatProjectorChain(queryAndFetchNode.collectorProjections(), projectorVisitor);
         SimpleOneRowCollector collector = new SimpleOneRowCollector(
                 inputs, collectExpressions, projectorChain.firstProjector());
 
