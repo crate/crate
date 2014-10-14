@@ -56,11 +56,7 @@ public class ToStringFunction extends Scalar<BytesRef, Object> {
     @Override
     public BytesRef evaluate(Input[] args) {
         assert args.length == 1;
-        Object value = args[0].value();
-        if (value == null || value.toString() == null) {
-            return null;
-        }
-        return new BytesRef(value.toString());
+        return DataTypes.STRING.value(args[0].value());
     }
 
     @Override

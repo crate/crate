@@ -33,7 +33,7 @@ import io.crate.types.DataTypes;
 
 import java.util.List;
 
-public abstract class ToIntFunction extends Scalar<Integer, Object> {
+public class ToIntFunction extends Scalar<Integer, Object> {
 
     public static final String NAME = "toInt";
 
@@ -62,38 +62,10 @@ public abstract class ToIntFunction extends Scalar<Integer, Object> {
         return symbol;
     }
 
-    private static class NumericToIntFunction extends ToIntFunction {
-
-        public NumericToIntFunction(FunctionInfo info){
-            super(info);
-        }
-
-        @Override
-        public Integer evaluate(Input[] args) {
-            assert args.length == 1;
-            Object value = args[0].value();
-            if (value == null) {
-                return null;
-            }
-            return ((Number) value).intValue();
-        }
-    }
-
-    private static class StringToIntFunction extends ToIntFunction {
-
-        public StringToIntFunction(FunctionInfo info){
-            super(info);
-        }
-
-        @Override
-        public Integer evaluate(Input[] args) {
-            assert args.length == 1;
-            Object value = args[0].value();
-            if (value == null) {
-                return null;
-            }
-            return Integer.parseInt(value.toString());
-        }
+    @Override
+    public Integer evaluate(Input[] args) {
+        assert args.length == 1;
+        return DataTypes.INTEGER.value(args[0].value());
     }
 
     private static class Resolver implements DynamicFunctionResolver {
@@ -104,10 +76,7 @@ public abstract class ToIntFunction extends Scalar<Integer, Object> {
                     "invalid size of arguments, 1 expected");
             Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(dataTypes.get(0)),
                     "invalid datatype %s for integer conversion", dataTypes.get(0));
-            if(dataTypes.get(0).id() == DataTypes.STRING.id()){
-                return new StringToIntFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), dataTypes.get(0)));
-            }
-            return new NumericToIntFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), dataTypes.get(0)));
+            return new ToIntFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), dataTypes.get(0)));
         }
     }
 }
