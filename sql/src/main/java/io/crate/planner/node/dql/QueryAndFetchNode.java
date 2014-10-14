@@ -373,14 +373,18 @@ public class QueryAndFetchNode extends AbstractDQLPlanNode {
         limit = in.readVInt();
         offset = in.readVInt();
 
-        nullsFirst = new Boolean[in.readVInt()];
-        for (int i = 0; i < nullsFirst.length; i++) {
-            nullsFirst[i] = in.readOptionalBoolean();
+        if (in.readBoolean()) {
+            nullsFirst = new Boolean[in.readVInt()];
+            for (int i = 0; i < nullsFirst.length; i++) {
+                nullsFirst[i] = in.readOptionalBoolean();
+            }
         }
 
-        reverseFlags = new boolean[in.readVInt()];
-        for (int i = 0; i < reverseFlags.length; i++) {
-            reverseFlags[i] = in.readBoolean();
+        if (in.readBoolean()) {
+            reverseFlags = new boolean[in.readVInt()];
+            for (int i = 0; i < reverseFlags.length; i++) {
+                reverseFlags[i] = in.readBoolean();
+            }
         }
 
         int numIntermediateTypes = in.readVInt();
@@ -451,14 +455,24 @@ public class QueryAndFetchNode extends AbstractDQLPlanNode {
         out.writeVInt(limit);
         out.writeVInt(offset);
 
-        out.writeVInt(nullsFirst.length);
-        for (int i = 0; i < nullsFirst.length; i++) {
-            out.writeOptionalBoolean(nullsFirst[i]);
+        if (nullsFirst != null) {
+            out.writeBoolean(true);
+            out.writeVInt(nullsFirst.length);
+            for (int i = 0; i < nullsFirst.length; i++) {
+                out.writeOptionalBoolean(nullsFirst[i]);
+            }
+        } else {
+            out.writeBoolean(false);
         }
 
-        out.writeVInt(reverseFlags.length);
-        for (int i = 0; i < reverseFlags.length; i++) {
-            out.writeBoolean(reverseFlags[i]);
+        if (reverseFlags != null) {
+            out.writeBoolean(true);
+            out.writeVInt(reverseFlags.length);
+            for (int i = 0; i < reverseFlags.length; i++) {
+                out.writeBoolean(reverseFlags[i]);
+            }
+        } else {
+            out.writeBoolean(false);
         }
 
         int numIntermediateTypes = intermediateOutputTypes.size();
