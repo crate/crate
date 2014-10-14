@@ -21,13 +21,19 @@
 
 package io.crate.operation.scalar.cast;
 
+import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+
+import java.util.List;
+import java.util.Locale;
 
 public abstract class ToArrayFunction<T> extends Scalar<T[], Object> {
 
@@ -37,6 +43,15 @@ public abstract class ToArrayFunction<T> extends Scalar<T[], Object> {
     protected ToArrayFunction(FunctionInfo functionInfo) {
         this.returnType = functionInfo.returnType();
         this.info = functionInfo;
+    }
+
+    protected static void checkPreconditions(List<DataType> dataTypes) throws IllegalArgumentException {
+        Preconditions.checkArgument(dataTypes.size() == 1, "Invalid number of arguments");
+        Preconditions.checkArgument(dataTypes.get(0) instanceof ArrayType, "Argument must be an array type");
+        ArrayType arrayType = (ArrayType) dataTypes.get(0);
+        Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(arrayType.innerType()),
+                String.format(Locale.ENGLISH, "Array inner type '%s' not supported for conversion",
+                        arrayType.innerType().getName()));
     }
 
     @Override
