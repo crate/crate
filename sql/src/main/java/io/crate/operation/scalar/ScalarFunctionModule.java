@@ -25,11 +25,7 @@ import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.scalar.arithmetic.*;
-import io.crate.operation.scalar.cast.ToIntArrayFunction;
-import io.crate.operation.scalar.cast.ToIntFunction;
-import io.crate.operation.scalar.cast.ToLongFunction;
-import io.crate.operation.scalar.cast.ToStringArrayFunction;
-import io.crate.operation.scalar.cast.ToStringFunction;
+import io.crate.operation.scalar.cast.*;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
@@ -89,5 +85,6 @@ public class ScalarFunctionModule extends AbstractModule {
         ToIntFunction.register(this);
         ToIntArrayFunction.register(this);
         ToLongFunction.register(this);
+        ToLongArrayFunction.register(this);
     }
 }
