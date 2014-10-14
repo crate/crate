@@ -35,16 +35,16 @@ import io.crate.types.DataTypes;
 import java.util.List;
 import java.util.Locale;
 
-public class ToLongArrayFunction extends ToArrayFunction<Long> {
+public class ToDoubleArrayFunction extends ToArrayFunction<Double> {
 
-    public static final String NAME = "toLongArray";
-    public static final DataType LONG_ARRAY_TYPE = new ArrayType(DataTypes.LONG);
+    public static final String NAME = "toDoubleArray";
+    public static final DataType DOUBLE_ARRAY_TYPE = new ArrayType(DataTypes.DOUBLE);
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
     }
 
-    private ToLongArrayFunction(FunctionInfo functionInfo) {
+    private ToDoubleArrayFunction(FunctionInfo functionInfo) {
         super(functionInfo);
     }
 
@@ -58,7 +58,7 @@ public class ToLongArrayFunction extends ToArrayFunction<Long> {
             Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(arrayType.innerType()),
                     String.format(Locale.ENGLISH, "Array inner type '%s' not supported for conversion",
                             arrayType.innerType().getName()));
-            return new ToLongArrayFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), LONG_ARRAY_TYPE));
+            return new ToDoubleArrayFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DOUBLE_ARRAY_TYPE));
         }
     }
 }
