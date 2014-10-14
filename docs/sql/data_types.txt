@@ -362,6 +362,58 @@ Some Examples::
     ['Zaphod', 'Ford', 'Arthur']
 
 
+Type Conversion
+===============
+
+A type ``cast`` specifies a conversion from one data type to
+another. It will only succeed if the value of the expression is
+convertable to the desired data type, otherwise an error is thrown.
+
+::
+
+   cast(expression as type)
+
+
+Example usages:
+::
+
+    cr> select cast(port['http'] as boolean) from sys.nodes limit 1;
+    +-------------------------------+
+    | cast(port['http'] as boolean) |
+    +-------------------------------+
+    | true                          |
+    +-------------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select cast((2+10)/2 as string) from sys.nodes limit 1;
+    +--------------------------+
+    | cast((2+10)/2 as string) |
+    +--------------------------+
+    | 6                        |
+    +--------------------------+
+    SELECT 1 row in set (... sec)
+
+It is also possible to convert array structures to different data
+types, e.g. converting an array of integer values to a boolean array.
+::
+
+    cr> select cast(thread_pools['active'] as array(boolean)) as
+    ... active_threads from sys.nodes limit 1;
+    +-------------------------------+
+    | active_threads                |
+    +-------------------------------+
+    | [true, true, true, false]     |
+    +-------------------------------+
+    SELECT 1 row in set (... sec)
+
+.. note::
+
+   It is not possible to cast to or from ``object`` data type.
+
+
+
 .. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()
 .. _Java types: http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
