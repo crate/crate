@@ -105,6 +105,6 @@ public class ToDoubleFunctionTest {
     public void testNormalizeInvalidString() throws Exception {
         expectedException.expect(NumberFormatException.class);
         expectedException.expectMessage("For input string: \"hello\"");
-        TestingHelpers.assertLiteralSymbol(normalize("hello", DataTypes.STRING), 123L);
+        normalize("hello", DataTypes.STRING);
     }
 }
