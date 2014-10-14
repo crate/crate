@@ -36,10 +36,7 @@ import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
@@ -77,9 +74,10 @@ public class PlanNodeStreamerVisitorTest {
     public void testGetOutputStreamersFromCollectNode() throws Exception {
         QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("bla",
                 new Routing(new HashMap<String, Map<String, Set<Integer>>>()),
-                ImmutableList.<Symbol>of(), ImmutableList.<Symbol>of(),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.FLOAT), new Value(DataTypes.OBJECT)),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.FLOAT), new Value(DataTypes.OBJECT)),
                 null, null, null, null, null, null, null, null, null, null);
-        queryAndFetchNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.FLOAT, DataTypes.OBJECT));
+        queryAndFetchNode.configure();
         PlanNodeStreamerVisitor.Context ctx = visitor.process(queryAndFetchNode);
         Streamer<?>[] streamers = ctx.outputStreamers();
         assertThat(streamers.length, is(3));
@@ -93,9 +91,10 @@ public class PlanNodeStreamerVisitorTest {
         // null means we expect an aggstate here
         QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("bla",
                 new Routing(new HashMap<String, Map<String, Set<Integer>>>()),
-                ImmutableList.<Symbol>of(), ImmutableList.<Symbol>of(),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN),new Value(DataTypes.UNDEFINED), new Value(DataTypes.OBJECT)),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN),new Value(DataTypes.UNDEFINED), new Value(DataTypes.OBJECT)),
                 null, null, null, null, null, null, null, null, null, null);
-        queryAndFetchNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, DataTypes.OBJECT));
+        queryAndFetchNode.configure();
         PlanNodeStreamerVisitor.Context ctx = visitor.process(queryAndFetchNode);
         // assume an unknown column
         assertEquals(DataTypes.UNDEFINED.streamer(), ctx.outputStreamers()[1]);
@@ -103,17 +102,22 @@ public class PlanNodeStreamerVisitorTest {
 
     @Test
     public void testGetOutputStreamersFromCollectNodeWithAggregations() throws Exception {
-        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("bla",
-                new Routing(new HashMap<String, Map<String, Set<Integer>>>()),
-                ImmutableList.<Symbol>of(), ImmutableList.<Symbol>of(),
-                null, null, null, null, null, null, null, null, null, null);
-        queryAndFetchNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, null, DataTypes.DOUBLE));
         AggregationProjection aggregationProjection = new AggregationProjection();
         aggregationProjection.aggregations(Arrays.asList( // not a real use case, only for test convenience, sorry
                 new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
                 new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL)
         ));
-        queryAndFetchNode.projections(Arrays.<Projection>asList(aggregationProjection));
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("bla",
+                new Routing(new HashMap<String, Map<String, Set<Integer>>>()),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.UNDEFINED),
+                        new Value(DataTypes.UNDEFINED), new Value(DataTypes.DOUBLE)),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.UNDEFINED),
+                        new Value(DataTypes.UNDEFINED), new Value(DataTypes.DOUBLE)),
+                null, null, null, null, null,
+                Arrays.<Projection>asList(aggregationProjection),
+                null,
+                null, null, null);
+        queryAndFetchNode.configure();
         PlanNodeStreamerVisitor.Context ctx = visitor.process(queryAndFetchNode);
         Streamer<?>[] streamers = ctx.outputStreamers();
         assertThat(streamers.length, is(4));
