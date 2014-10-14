@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - add cast expression support
+
  - All scalar functions can now be used in the WHERE clause in SELECT
    statements and they may be nested without limitations. In addition it is now
    possible to compare one scalar function to another.

@@ -410,7 +410,8 @@ types, e.g. converting an array of integer values to a boolean array.
 
 .. note::
 
-   It is not possible to cast to or from ``object`` data type.
+   It is not possible to cast to or from ``object``, ``geopoint`` and
+   ``geoshape`` data type.
 
 
 
