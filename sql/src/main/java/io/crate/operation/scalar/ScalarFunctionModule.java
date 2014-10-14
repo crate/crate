@@ -81,8 +81,7 @@ public class ScalarFunctionModule extends AbstractModule {
         SquareRootFunction.register(this);
         LogFunction.register(this);
 
-        // TODO: remove CastFunction when all toX functions are implemented
-        CastFunction.register(this);
+        // all cast functions must be registered at CastFunctionResolver
         ToStringFunction.register(this);
         ToStringArrayFunction.register(this);
         ToIntFunction.register(this);

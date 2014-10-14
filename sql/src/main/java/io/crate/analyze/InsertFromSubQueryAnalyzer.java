@@ -21,11 +21,9 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.operation.scalar.CastFunction;
+import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.Query;
@@ -109,12 +107,9 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
                                     insertColumn.valueType()
                             ));
                 } else {
-                    // replace column by `cast` function
-                    // 2nd argument type is defining the return type
-                    FunctionIdent ident = new FunctionIdent(CastFunction.NAME, ImmutableList.of(subQueryColumnType, insertColumn.valueType()));
-                    FunctionInfo functionInfo = context.getFunctionInfo(ident);
-                    // because size of argument types and arguments must be equal, we add a dummy argument here
-                    Function function = context.allocateFunction(functionInfo, Arrays.asList(subQueryColumn, Literal.newLiteral(insertColumn.valueType(), null)));
+                    // replace column by `toX` function
+                    FunctionInfo functionInfo = CastFunctionResolver.functionInfo(subQueryColumnType, insertColumn.valueType());
+                    Function function = context.allocateFunction(functionInfo, Arrays.asList(subQueryColumn));
                     if (context.subQueryAnalysis().hasGroupBy()) {
                         int groupByIdx = context.subQueryAnalysis().groupBy().indexOf(subQueryColumn);
                         if (groupByIdx != -1) {
