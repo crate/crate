@@ -22,19 +22,19 @@
 package io.crate.operation.scalar.cast;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.*;
-import io.crate.operation.Input;
+import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 
-public class ToStringFunction extends Scalar<BytesRef, Object> {
+public class ToStringFunction extends ToPrimitiveFunction<BytesRef> {
 
     public static final String NAME = "toString";
 
@@ -42,31 +42,8 @@ public class ToStringFunction extends Scalar<BytesRef, Object> {
         module.register(NAME, new Resolver());
     }
 
-    protected final FunctionInfo info;
-
     public ToStringFunction(FunctionInfo info) {
-        this.info = info;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @Override
-    public BytesRef evaluate(Input[] args) {
-        assert args.length == 1;
-        return DataTypes.STRING.value(args[0].value());
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        assert symbol.arguments().size() == 1;
-        Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
-            return Literal.toLiteral(argument, DataTypes.STRING);
-        }
-        return symbol;
+        super(info);
     }
 
     private static class Resolver implements DynamicFunctionResolver {

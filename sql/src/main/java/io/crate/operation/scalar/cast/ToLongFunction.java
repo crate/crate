@@ -22,18 +22,18 @@
 package io.crate.operation.scalar.cast;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.*;
-import io.crate.operation.Input;
+import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.List;
 
-public class ToLongFunction extends Scalar<Long, Object> {
+public class ToLongFunction extends ToPrimitiveFunction<Long> {
 
     public static final String NAME = "toLong";
 
@@ -41,31 +41,8 @@ public class ToLongFunction extends Scalar<Long, Object> {
         module.register(NAME, new Resolver());
     }
 
-    protected final FunctionInfo info;
-
     public ToLongFunction(FunctionInfo info) {
-        this.info = info;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        assert symbol.arguments().size() == 1;
-        Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
-            return Literal.newLiteral ( DataTypes.LONG.value( ((Input)argument).value()));
-        }
-        return symbol;
-    }
-
-    @Override
-    public Long evaluate(Input[] args) {
-        assert args.length == 1;
-        return DataTypes.LONG.value(args[0].value());
+        super(info);
     }
 
     private static class Resolver implements DynamicFunctionResolver {
