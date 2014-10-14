@@ -19,11 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.scalar;
+package io.crate.operation.scalar.cast;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
