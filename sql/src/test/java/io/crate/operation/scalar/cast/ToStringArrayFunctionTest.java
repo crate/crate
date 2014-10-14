@@ -85,7 +85,7 @@ public class ToStringArrayFunctionTest {
         List<Symbol> arguments = Arrays.<Symbol>asList(
                 createReference("int_array", new ArrayType(DataTypes.INTEGER))
         );
-        BytesRef[] expected = new BytesRef[]{ new BytesRef("1"), new BytesRef("2"), new BytesRef("3") };
+        Object[] expected = new BytesRef[]{ new BytesRef("1"), new BytesRef("2"), new BytesRef("3") };
         Function function = createFunction(ToStringArrayFunction.NAME, new ArrayType(DataTypes.STRING), arguments);
         ToStringArrayFunction arrayFunction = (ToStringArrayFunction) functions.get(function.info().ident());
 
@@ -97,7 +97,7 @@ public class ToStringArrayFunctionTest {
             }
         };
 
-        BytesRef[] result = arrayFunction.evaluate(args);
+        Object[] result = arrayFunction.evaluate(args);
         assertThat(result, is(expected));
     }
 
