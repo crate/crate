@@ -72,6 +72,9 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
         if (value instanceof BytesRef) {
             return booleanFromString(((BytesRef) value).utf8ToString());
         }
+        if (value instanceof Number) {
+            return booleanFromNumber((Number)value);
+        }
         return (Boolean)value;
     }
 
@@ -83,6 +86,13 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
         } else {
             return boolValue;
         }
+    }
+
+    private Boolean booleanFromNumber(Number value) {
+        if(value.doubleValue() > 0.0) {
+            return Boolean.TRUE;
+        }
+        return Boolean.FALSE;
     }
 
     @Override
