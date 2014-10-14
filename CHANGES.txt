@@ -5,33 +5,6 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fix: pre-calculated count is now also used on partitioned tables
-
- - fix: trying to copy out of a non-existent partition now throws an
-   appropriate exception
-
- - fix: some shard errors were not being raised and so the shard failed silently
-   when some kind of errors, like an Out of memory error occured.
-
- - upgraded ES upstream to v1.3.4
-
- - Fix: allow subscript access on array literals and parameters as subscript
-   indices
-
- - Fix: The ``>`` and ``<`` operators didn't behave correctly in some cases for
-   string values if used on a system table or if both operands were literals.
-
- - fix: updating a partitioned table with a WHERE clause querying for a
-   non existent column of for a non existent partition value led to
-   updating all partitions of the queried table
-
- - fix: deleting on a partitioned table with a WHERE clause querying for a
-   non existent column or for a non existent partition value led to
-   deletion of all partitions of the queried table
-
- - Fix: Copy from using the PARTITION clause imported into a ``null`` partition
-   instead of using the partition clause.
-
  - All scalar functions can now be used in the WHERE clause in SELECT
    statements and they may be nested without limitations. In addition it is now
    possible to compare one scalar function to another.
@@ -47,6 +20,46 @@ Unreleased
 
  - Renamed NullType to UndefinedType in order to avoid confusion
    about its usage
+
+2014/10/14 0.44.6
+=================
+
+ - fix: pre-calculated count is now also used on partitioned tables
+
+2014/10/10 0.44.5
+=================
+
+ - fix: trying to copy out of a non-existent partition now throws an
+   appropriate exception
+
+ - fix: some shard errors were not being raised and so the shard failed silently
+   when some kind of errors, like an Out of memory error occured.
+
+ - upgraded ES upstream to v1.3.4
+
+2014/10/04 0.44.4
+2014/10/04 0.43.5
+2014/10/04 0.42.5
+=================
+
+ - Fix: The ``>`` and ``<`` operators didn't behave correctly in some cases for
+   string values if used on a system table or if both operands were literals.
+
+ - fix: updating a partitioned table with a WHERE clause querying for a
+   non existent column of for a non existent partition value led to
+   updating all partitions of the queried table
+
+2014/10/02 0.44.3
+2014/10/02 0.43.4
+2014/10/02 0.42.4
+=================
+
+ - fix: deleting on a partitioned table with a WHERE clause querying for a
+   non existent column or for a non existent partition value led to
+   deletion of all partitions of the queried table
+
+ - Fix: Copy from using the PARTITION clause imported into a ``null`` partition
+   instead of using the partition clause.
 
 2014/09/26 0.44.2
 2014/09/26 0.43.3
