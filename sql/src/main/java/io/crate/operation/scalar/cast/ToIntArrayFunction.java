@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar.cast;
 
-import com.google.common.base.Preconditions;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -33,7 +32,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.List;
-import java.util.Locale;
 
 public class ToIntArrayFunction extends ToArrayFunction<Integer> {
 
@@ -52,12 +50,7 @@ public class ToIntArrayFunction extends ToArrayFunction<Integer> {
 
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() == 1, "Invalid number of arguments");
-            Preconditions.checkArgument(DataTypes.isCollectionType(dataTypes.get(0)), "Argument must be a collection type");
-            ArrayType arrayType = (ArrayType) dataTypes.get(0);
-            Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(arrayType.innerType()),
-                    String.format(Locale.ENGLISH, "Array inner type '%s' not supported for conversion",
-                            arrayType.innerType().getName()));
+            ToIntArrayFunction.checkPreconditions(dataTypes);
             return new ToIntArrayFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), INT_ARRAY_TYPE));
         }
     }
