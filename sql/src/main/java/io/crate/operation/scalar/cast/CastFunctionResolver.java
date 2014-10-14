@@ -42,6 +42,7 @@ public class CastFunctionResolver {
             .put(DataTypes.FLOAT, ToFloatFunction.NAME)
             .put(DataTypes.BYTE, ToByteFunction.NAME)
             .put(DataTypes.SHORT, ToShortFunction.NAME)
+            .put(DataTypes.UNDEFINED, ToNullFunction.NAME)
             .put(ToStringArrayFunction.ARRAY_STRING_TYPE, ToStringArrayFunction.NAME)
             .put(ToLongArrayFunction.LONG_ARRAY_TYPE, ToLongArrayFunction.NAME)
             .put(ToIntArrayFunction.INT_ARRAY_TYPE, ToIntArrayFunction.NAME)
