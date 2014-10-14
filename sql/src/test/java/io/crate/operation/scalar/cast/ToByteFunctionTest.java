@@ -44,11 +44,11 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-public class ToFloatFunctionTest {
+public class ToByteFunctionTest {
 
     private Functions functions;
 
-    private String functionName = ToFloatFunction.NAME;
+    private String functionName = ToByteFunction.NAME;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -60,17 +60,17 @@ public class ToFloatFunctionTest {
     }
 
 
-    private ToFloatFunction getFunction(DataType type) {
-        return (ToFloatFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
+    private ToByteFunction getFunction(DataType type) {
+        return (ToByteFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
     }
 
-    private Float evaluate(Object value, DataType type) {
+    private Byte evaluate(Object value, DataType type) {
         Input[] input = {(Input)Literal.newLiteral(type, value)};
         return getFunction(type).evaluate(input);
     }
 
     private Symbol normalize(Object value, DataType type) {
-        ToFloatFunction function = getFunction(type);
+        ToByteFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral(type, value))));
     }
@@ -78,27 +78,25 @@ public class ToFloatFunctionTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        TestingHelpers.assertLiteralSymbol(normalize("123", DataTypes.STRING), 123f);
-        TestingHelpers.assertLiteralSymbol(normalize("42.5", DataTypes.STRING), 42.5f);
-        TestingHelpers.assertLiteralSymbol(normalize(12.5f, DataTypes.FLOAT), 12.5f);
+        TestingHelpers.assertLiteralSymbol(normalize("123", DataTypes.STRING), (byte)123);
+        TestingHelpers.assertLiteralSymbol(normalize(12.5f, DataTypes.FLOAT), (byte)12);
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertThat(evaluate("123", DataTypes.STRING), is(123f));
+        assertThat(evaluate("123", DataTypes.STRING), is((byte)123));
         assertThat(evaluate(null, DataTypes.STRING), nullValue());
-        assertThat(evaluate(123.5, DataTypes.FLOAT), is(123.5f));
-        assertThat(evaluate(123.5d, DataTypes.DOUBLE), is(123.5f));
+        assertThat(evaluate(123.5, DataTypes.FLOAT), is((byte)123));
+        assertThat(evaluate(123.5d, DataTypes.DOUBLE), is((byte)123));
         assertThat(evaluate(null, DataTypes.FLOAT), nullValue());
-        assertThat(evaluate(42L, DataTypes.LONG), is(42.0f));
-        assertThat(evaluate(42, DataTypes.INTEGER), is(42.0f));
+        assertThat(evaluate(42L, DataTypes.LONG), is((byte)42));
         assertThat(evaluate(null, DataTypes.INTEGER), nullValue());
     }
 
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid datatype object for float conversion");
+        expectedException.expectMessage("invalid datatype object for byte conversion");
         functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 
