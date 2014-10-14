@@ -39,10 +39,10 @@ import java.util.Locale;
 public class ToStringArrayFunction extends ToArrayFunction<BytesRef> {
 
     public static final String NAME = "toStringArray";
-    private static final DataType arrayStringType = new ArrayType(DataTypes.STRING);
+    public static final DataType ARRAY_STRING_TYPE = new ArrayType(DataTypes.STRING);
 
     private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), arrayStringType);
+        return new FunctionInfo(new FunctionIdent(NAME, types), ARRAY_STRING_TYPE);
     }
 
     public static void register(ScalarFunctionModule module) {

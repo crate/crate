@@ -38,7 +38,7 @@ import java.util.Locale;
 public class ToIntArrayFunction extends ToArrayFunction<Integer> {
 
     public static final String NAME = "toIntArray";
-    private static final DataType intArrayType = new ArrayType(DataTypes.INTEGER);
+    public static final DataType INT_ARRAY_TYPE = new ArrayType(DataTypes.INTEGER);
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
@@ -58,7 +58,7 @@ public class ToIntArrayFunction extends ToArrayFunction<Integer> {
             Preconditions.checkArgument(DataTypes.PRIMITIVE_TYPES.contains(arrayType.innerType()),
                     String.format(Locale.ENGLISH, "Array inner type '%s' not supported for conversion",
                             arrayType.innerType().getName()));
-            return new ToIntArrayFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), intArrayType));
+            return new ToIntArrayFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), INT_ARRAY_TYPE));
         }
     }
 }
