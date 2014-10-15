@@ -1,7 +1,18 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+plugins {
+  id "com.github.kt3k.coveralls" version "2.0.1"
+}
+
 allprojects {
     apply plugin: 'idea'
     apply plugin: 'findbugs'
     apply plugin: 'jacoco'
+
     jacoco {
         toolVersion = "0.7.1.201405082137"
     }
@@ -13,6 +24,52 @@ allprojects {
 
     findbugs {
         ignoreFailures = true
+    }
+}
+
+coveralls {
+    def tmpSources = []
+    subprojects.each {
+        if (it.name != 'es') {
+            evaluationDependsOn(it.name)
+            if (it.plugins.hasPlugin("java") && it.tasks.withType(Test)) {
+                tmpSources << it.sourceSets.main.allSource.srcDirs
+            }
+        }
+    }
+    sourceDirs = files(tmpSources).files.absolutePath
+}
+
+
+task jacocoReport(type: JacocoReport) {
+    // tests must have been executed so that execution data for the sub projects is generated
+    // this task doesn't define a hard dependency on the tests to avoid running them twice in travis-ci
+    executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
+
+    def tmpSources = []
+    def tmpClasses = []
+    subprojects.each {
+        if (it.name != 'es') {
+            evaluationDependsOn(it.name)
+            if (it.plugins.hasPlugin("java") && it.tasks.withType(Test)) {
+                tmpSources << it.sourceSets.main.allSource.srcDirs
+                tmpClasses << it.sourceSets.main.output.classesDir
+            }
+        }
+    }
+    sourceDirectories = files(tmpSources)
+    classDirectories = files(tmpClasses)
+
+    reports {
+        xml{
+            enabled true
+            destination "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
+        }
+        csv.enabled false
+        html{
+            enabled true
+            destination "${buildDir}/reports/jacoco/jacocoHtml"
+        }
     }
 }
 

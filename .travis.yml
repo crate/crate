@@ -6,3 +6,6 @@ notifications:
   email: false
 
 script: ./gradlew test itest -s
+
+after_success:
+  - ./gradlew jacocoReport coveralls
