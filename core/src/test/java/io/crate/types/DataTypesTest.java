@@ -70,13 +70,6 @@ public class DataTypesTest {
         assertEquals(new BytesRef("123"), DataTypes.STRING.value(longValue));
     }
 
-
-    @Test(expected = ClassCastException.class)
-    public void convertToBooleanUnsupported() {
-        DataTypes.BOOLEAN.value(123L);
-    }
-
-
     private static Map<String, Object> testMap = new HashMap<String, Object>(){{
         put("int", 1);
         put("boolean", false);
