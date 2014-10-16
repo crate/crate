@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
@@ -299,11 +298,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testFilterByNull() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "name", "type=string,index=not_analyzed")
-                .execute().actionGet();
+        execute("create table test (name string, o object)");
         ensureGreen();
+
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{}")
                 .execute().actionGet();
@@ -323,7 +320,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals("id2", response.rows()[0][0]);
 
         // missing field is null returns no match, since we cannot filter by it
-        execute("select \"_id\" from test where invalid is null");
+        execute("select \"_id\" from test where o['invalid'] is null");
         assertEquals(0, response.rowCount());
 
         execute("select name from test where name is not null and name!=''");
@@ -763,7 +760,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         );
         refresh();
 
-        execute("select id, strings, integers from t1");
+        execute("select id, strings from t1");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer) response.rows()[0][0], is(1));
         assertThat(((List<String>) response.rows()[0][1]).get(0), is("foo"));
@@ -2283,6 +2280,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table quotes (" +
                 "id integer primary key, " +
                 "quote string index off, " +
+                "o object, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
                 ") clustered by (id) into 3 shards with (number_of_replicas = 0)");
         ensureGreen();
@@ -2296,9 +2294,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void selectNonExistingColumn() throws Exception {
         nonExistingColumnSetup();
-        execute("select notExisting from quotes");
+        execute("select o['notExisting'] from quotes");
         assertEquals(2L, response.rowCount());
-        assertEquals("notexisting", response.cols()[0]);
+        assertEquals("o['notExisting']", response.cols()[0]);
         assertNull(response.rows()[0][0]);
         assertNull(response.rows()[1][0]);
     }
@@ -2306,9 +2304,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void selectNonExistingAndExistingColumns() throws Exception {
         nonExistingColumnSetup();
-        execute("select \"unknown\", id from quotes order by id asc");
+        execute("select o['unknown'], id from quotes order by id asc");
         assertEquals(2L, response.rowCount());
-        assertEquals("unknown", response.cols()[0]);
+        assertEquals("o['unknown']", response.cols()[0]);
         assertEquals("id", response.cols()[1]);
         assertNull(response.rows()[0][0]);
         assertEquals(1, response.rows()[0][1]);
@@ -2319,7 +2317,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void selectWhereNonExistingColumn() throws Exception {
         nonExistingColumnSetup();
-        execute("select * from quotes where something > 0");
+        execute("select * from quotes where o['something'] > 0");
         assertEquals(0L, response.rowCount());
     }
 
@@ -2327,21 +2325,21 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void selectWhereDynamicColumnIsNull() throws Exception {
         nonExistingColumnSetup();
         // dynamic fields are not indexed, so we just don't know if it matches
-        execute("select * from quotes where something IS NULL");
+        execute("select * from quotes where o['something'] IS NULL");
         assertEquals(0, response.rowCount());
     }
 
     @Test
     public void selectWhereNonExistingColumnWhereIn() throws Exception {
         nonExistingColumnSetup();
-        execute("select * from quotes where something IN(1,2,3)");
+        execute("select * from quotes where o['something'] IN(1,2,3)");
         assertEquals(0L, response.rowCount());
     }
 
     @Test
     public void selectWhereNonExistingColumnLike() throws Exception {
         nonExistingColumnSetup();
-        execute("select * from quotes where something Like '%bla'");
+        execute("select * from quotes where o['something'] Like '%bla'");
         assertEquals(0L, response.rowCount());
     }
 
@@ -2350,9 +2348,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         nonExistingColumnSetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("cannot MATCH on non existing column quotes.something");
+        expectedException.expectMessage("cannot MATCH on non existing column quotes.o['something']");
 
-        execute("select * from quotes where match(something, 'bla')");
+        execute("select * from quotes where match(o['something'], 'bla')");
     }
 
     @Test
@@ -3371,7 +3369,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdatePartitionedUnknownColumn() throws Exception {
-        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+        execute("create table quotes (id integer, quote string, timestamp timestamp, o object) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -3381,7 +3379,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         refresh();
 
-        execute("update quotes set quote='now panic' where timestam = ?", new Object[]{ 1395874800123L });
+        execute("update quotes set quote='now panic' where o['timestamp'] = ?", new Object[]{ 1395874800123L });
         refresh();
 
         execute("select * from quotes where quote = 'now panic'");
@@ -3490,7 +3488,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((String)response.rows()[0][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1388534400000"))).ident()));
         assertThat((String)response.rows()[1][0], is(new PartitionName("parted", ImmutableList.of(new BytesRef("1391212800000"))).ident()));
 
-        execute("delete from parted where dat = '2014-03-01'");
+        execute("delete from parted where o['dat'] = '2014-03-01'");
         refresh();
         // Test that no partitions were deleted
         SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
@@ -3538,7 +3536,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDeleteFromPartitionedTableDeleteByPartitionAndByQuery() throws Exception {
-        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+        execute("create table quotes (id integer, quote string, timestamp timestamp, o object) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -3564,7 +3562,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from quotes where timestamp=?", new Object[]{1396303200000L});
         assertThat(response.rowCount(), is(0L));
 
-        execute("delete from quotes where timestamp=? and x=5", new Object[]{1395874800000L});
+        execute("delete from quotes where timestamp=? and o['x']=5", new Object[]{1395874800000L});
         refresh();
         execute("select * from quotes where timestamp=?", new Object[]{1395874800000L});
         assertThat(response.rowCount(), is(2L));
@@ -5026,9 +5024,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("cannot MATCH on non existing column matchbox.m");
+        expectedException.expectMessage("cannot MATCH on non existing column matchbox.o['a']");
 
-        execute("select * from matchbox where match(m, 'Ford')");
+        execute("select * from matchbox where match(o['a'], 'Ford')");
         assertThat(response.rowCount(), is(0L));
     }
 

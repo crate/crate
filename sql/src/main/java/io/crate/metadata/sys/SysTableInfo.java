@@ -23,11 +23,8 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.AbstractTableInfo;
-import io.crate.planner.symbol.DynamicReference;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -46,12 +43,6 @@ public abstract class SysTableInfo extends AbstractTableInfo {
         super(sysSchemaInfo);
         this.clusterService = clusterService;
     }
-
-    @Override
-    public DynamicReference getDynamic(ColumnIdent ident) {
-        return new DynamicReference(new ReferenceIdent(ident(),ident), rowGranularity());
-    }
-
 
     protected Routing tableRouting(WhereClause whereClause) {
         DiscoveryNodes nodes = clusterService.state().nodes();

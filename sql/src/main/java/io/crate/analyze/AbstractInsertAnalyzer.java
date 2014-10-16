@@ -127,7 +127,7 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
         }
 
         // ensure that every column is only listed once
-        Reference columnReference = context.allocateUniqueReference(ident);
+        Reference columnReference = context.allocateUniqueReference(ident, true);
         context.columns().add(columnReference);
         return columnReference;
     }

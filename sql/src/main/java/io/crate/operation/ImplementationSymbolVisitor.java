@@ -119,7 +119,7 @@ public class ImplementationSymbolVisitor extends
                 result = (Input<?>) impl;
             } else {
                 // same or lower granularity and not found means unknown
-                throw new UnhandledServerException("Unknown Reference");
+                throw new UnhandledServerException(SymbolFormatter.format("Unknown Reference %s", symbol));
             }
             context.setMaxGranularity(symbol.info().granularity());
         } else {

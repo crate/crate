@@ -850,7 +850,7 @@ public class PlannerTest {
 
     @Test
     public void testShardSelect() throws Exception {
-        Plan plan = plan("select table_name from sys.shards");
+        Plan plan = plan("select id from sys.shards");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(CollectNode.class));

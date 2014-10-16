@@ -110,6 +110,11 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
     }
 
     @Override
+    public Input<?> visitDynamicReference(DynamicReference symbol, C context) {
+        return visitReference(symbol, context);
+    }
+
+    @Override
     protected Input<?> visitSymbol(Symbol symbol, C context) {
         throw new UnsupportedOperationException(SymbolFormatter.format("Can't handle Symbol %s", symbol));
     }

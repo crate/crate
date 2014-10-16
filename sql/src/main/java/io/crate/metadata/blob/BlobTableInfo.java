@@ -214,6 +214,10 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
+    public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
+        return null;
+    }
+
     public DynamicReference getDynamic(ColumnIdent ident) {
         return null;
     }

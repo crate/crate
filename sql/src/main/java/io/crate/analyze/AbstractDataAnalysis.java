@@ -139,7 +139,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         return this.schema;
     }
 
-    private Reference allocateReference(ReferenceIdent ident, boolean unique) {
+    private Reference allocateReference(ReferenceIdent ident, boolean unique, boolean forWrite) {
         if (ident.tableIdent().schema() != null
                 && ident.tableIdent().schema().equals(SysSchemaInfo.NAME)) {
             hasSysExpressions = true;
@@ -150,15 +150,24 @@ public abstract class AbstractDataAnalysis extends Analysis {
             if (info == null) {
                 info = table.indexColumn(ident.columnIdent());
                 if (info == null) {
-                    reference = table.getDynamic(ident.columnIdent());
+                    TableInfo tableInfo = table;
+                    if (ident.tableIdent() != table.ident()) {
+                        tableInfo = referenceInfos.getTableInfo(ident.tableIdent());
+                    }
+                    reference = tableInfo.getDynamic(ident.columnIdent(), forWrite);
                     if (reference == null) {
                         throw new ColumnUnknownException(ident.tableIdent().name(), ident.columnIdent().fqn());
                     }
                     info = reference.info();
-                } else {
-                    reference = new Reference(info);
                 }
-            } else {
+            }
+            if (info.granularity().finerThan(table.rowGranularity())) {
+                throw new UnsupportedOperationException(
+                        String.format(Locale.ENGLISH,
+                                "Cannot resolve reference '%s.%s', reason: finer granularity than table '%s'",
+                                info.ident().tableIdent().fqn(), info.ident().columnIdent().fqn(), table.ident().fqn()));
+            }
+            if (reference == null) {
                 reference = new Reference(info);
             }
             referenceSymbols.put(info.ident(), reference);
@@ -173,15 +182,19 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * add a reference for the given ident, get from map-cache if already
      */
     public Reference allocateReference(ReferenceIdent ident) {
-        return allocateReference(ident, false);
+        return allocateReference(ident, false, false);
+    }
+
+    public Reference allocateReference(ReferenceIdent ident, boolean forWrite) {
+        return allocateReference(ident, false, forWrite);
     }
 
     /**
      * add a new reference for the given ident
      * and throw an error if this ident has already been added
      */
-    public Reference allocateUniqueReference(ReferenceIdent ident) {
-        return allocateReference(ident, true);
+    public Reference allocateUniqueReference(ReferenceIdent ident, boolean forWrite) {
+        return allocateReference(ident, true, forWrite);
     }
 
     @Nullable
@@ -310,7 +323,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
-    public Literal normalizeInputForReference(Symbol inputValue, Reference reference) {
+    public Literal normalizeInputForReference(Symbol inputValue, Reference reference, boolean forWrite) {
         Literal normalized;
         Symbol parameterOrLiteral = normalizer.process(inputValue, null);
 
@@ -352,7 +365,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
                 if (value == null) {
                     return Literal.NULL;
                 }
-                normalized = Literal.newLiteral(normalizeObjectValue(value, reference.info()));
+                normalized = Literal.newLiteral(normalizeObjectValue(value, reference.info(), forWrite));
             } else if (isObjectArray(reference.info().type())) {
                 Object[] value = (Object[]) normalized.value();
                 if (value == null) {
@@ -373,6 +386,10 @@ public abstract class AbstractDataAnalysis extends Analysis {
                     ));
         }
         return normalized;
+    }
+
+    public Literal normalizeInputForReference(Symbol inputValue, Reference reference) {
+        return normalizeInputForReference(inputValue, reference, false);
     }
 
     private boolean isObjectArray(DataType type) {
@@ -406,8 +423,12 @@ public abstract class AbstractDataAnalysis extends Analysis {
     }
 
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info) {
+        return normalizeObjectValue(value, info, false);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info, boolean forWrite) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
             ReferenceInfo nestedInfo = table.getReferenceInfo(nestedIdent);
@@ -415,7 +436,11 @@ public abstract class AbstractDataAnalysis extends Analysis {
                 if (info.objectType() == ReferenceInfo.ObjectType.IGNORED) {
                     continue;
                 }
-                DynamicReference dynamicReference = table.getDynamic(nestedIdent);
+                TableInfo tableInfo = table;
+                if (info.ident().tableIdent() != table.ident()) {
+                    tableInfo = referenceInfos.getTableInfo(info.ident().tableIdent());
+                }
+                DynamicReference dynamicReference = tableInfo.getDynamic(nestedIdent, forWrite);
                 DataType type = DataTypes.guessType(entry.getValue(), false);
                 if (type == null) {
                     throw new ColumnValidationException(info.ident().columnIdent().fqn(), "Invalid value");
@@ -428,9 +453,9 @@ public abstract class AbstractDataAnalysis extends Analysis {
                 }
             }
             if (nestedInfo.type() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
-                value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo));
+                value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo, forWrite));
             } else if (isObjectArray(nestedInfo.type()) && entry.getValue() instanceof Object[]) {
-                value.put(entry.getKey(), normalizeObjectArrayValue((Object[])entry.getValue(), nestedInfo));
+                value.put(entry.getKey(), normalizeObjectArrayValue((Object[])entry.getValue(), nestedInfo, forWrite));
             } else {
                 value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), nestedInfo));
             }
@@ -439,9 +464,13 @@ public abstract class AbstractDataAnalysis extends Analysis {
     }
 
     private Object[] normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo) {
+        return normalizeObjectArrayValue(value, arrayInfo, false);
+    }
+
+    private Object[] normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo, boolean forWrite) {
         for (Object arrayItem : value) {
             Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
-            arrayItem = normalizeObjectValue((Map<String, Object>)arrayItem, arrayInfo);
+            arrayItem = normalizeObjectValue((Map<String, Object>)arrayItem, arrayInfo, forWrite);
         }
         return value;
     }

@@ -20,11 +20,14 @@ public class DocTableInfoTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
+        TableIdent tableIdent = new TableIdent(null, "dummy");
 
         DocTableInfo info = new DocTableInfo(
                 mock(DocSchemaInfo.class),
-                new TableIdent(null, "dummy"),
-                ImmutableList.<ReferenceInfo>of(),
+                tableIdent,
+                ImmutableList.<ReferenceInfo>of(
+                        new ReferenceInfo(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
+                ),
                 ImmutableList.<ReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, ReferenceInfo>of(),
@@ -39,9 +42,9 @@ public class DocTableInfoTest {
                 ImmutableList.<ColumnIdent>of(),
                 ImmutableList.<PartitionName>of());
 
-        ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("foobar"));
+        ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("o", ImmutableList.of("foobar")));
         assertNull(foobar);
-        DynamicReference reference = info.getDynamic(new ColumnIdent("foobar"));
+        DynamicReference reference = info.getDynamic(new ColumnIdent("o", ImmutableList.of("foobar")));
         assertNotNull(reference);
         assertSame(reference.valueType(), DataTypes.UNDEFINED);
     }

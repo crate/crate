@@ -418,16 +418,16 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("unknown function: arbitrary(null)");
 
         this.setup.setUpObjectMappingWithUnknownTypes();
-        execute("select arbitrary(location) from ut");
+        execute("select arbitrary(o['foo']) from ut");
     }
 
     @Test
     public void testUnknownTypesSelectGroupBy() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("unknown column 'ut.location' not allowed in GROUP BY");
+        expectedException.expectMessage("unknown column 'ut.o['location']' not allowed in GROUP BY");
 
         this.setup.setUpObjectMappingWithUnknownTypes();
-        execute("select count(*) from ut group by location");
+        execute("select count(*) from ut group by o['location']");
     }
 
 }
