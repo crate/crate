@@ -687,8 +687,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         for (MatchPredicateColumnIdent ident : node.idents()) {
             Symbol reference = process(ident.columnIdent(), context);
             Preconditions.checkArgument(
-                reference instanceof Reference,
-                SymbolFormatter.format("can only MATCH on references, not on %s", reference)
+                    reference instanceof Reference,
+                    SymbolFormatter.format("can only MATCH on references, not on %s", reference)
             );
             Preconditions.checkArgument(
                 !(reference instanceof DynamicReference),
