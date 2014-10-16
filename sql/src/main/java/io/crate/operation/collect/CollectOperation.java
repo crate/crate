@@ -22,8 +22,8 @@
 package io.crate.operation.collect;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 
 public interface CollectOperation<T> {
-    public ListenableFuture<T> collect(CollectNode collectNode);
+    public ListenableFuture<T> collect(QueryAndFetchNode queryAndFetchNode);
 }

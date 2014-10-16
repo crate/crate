@@ -31,7 +31,7 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
@@ -118,12 +118,17 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         return new Routing(locations);
     }
 
+    private QueryAndFetchNode buildQAFNode(String id, Routing routing, List<Symbol> toCollect) {
+        QueryAndFetchNode node = new QueryAndFetchNode(id, routing, toCollect, ImmutableList.<Symbol>of(),
+                null, null, null, null, null, null, null, null, null, null);
+        return node;
+    }
     @Test
     public void testCollectDocLevel() throws Exception {
-        CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
-        collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        Object[][] result = operation.collect(collectNode).get();
+        QueryAndFetchNode queryAndFetchNode = buildQAFNode("docCollect", routing(TEST_TABLE_NAME),
+                Arrays.<Symbol>asList(testDocLevelReference));
+        queryAndFetchNode.maxRowGranularity(RowGranularity.DOC);
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertThat(result.length, is(2));
         assertThat(result[0].length, is(1));
         assertThat((Integer) result[0][0], isOneOf(2, 4));
@@ -134,15 +139,15 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectDocLevelWhereClause() throws Exception {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
-        CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
-        collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.whereClause(new WhereClause(new Function(
+        QueryAndFetchNode queryAndFetchNode = buildQAFNode("docCollect", routing(TEST_TABLE_NAME),
+                Arrays.<Symbol>asList(testDocLevelReference));
+        queryAndFetchNode.maxRowGranularity(RowGranularity.DOC);
+        queryAndFetchNode.whereClause(new WhereClause(new Function(
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         ));
 
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertThat(result.length, is(1));
         assertThat(result[0].length, is(1));
         assertThat((Integer) result[0][0], is(2));
@@ -153,16 +158,16 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         Routing routing = routing(TEST_TABLE_NAME);
         Set shardIds = routing.locations().get(clusterService().localNode().id()).get(TEST_TABLE_NAME);
 
-        CollectNode collectNode = new CollectNode("docCollect", routing);
-        collectNode.toCollect(Arrays.<Symbol>asList(
-                testDocLevelReference,
-                new Reference(SysNodesTableInfo.INFOS.get(new ColumnIdent("name"))),
-                new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id"))),
-                new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")))
-        ));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
+        QueryAndFetchNode queryAndFetchNode = buildQAFNode("docCollect", routing,
+                Arrays.<Symbol>asList(
+                        testDocLevelReference,
+                        new Reference(SysNodesTableInfo.INFOS.get(new ColumnIdent("name"))),
+                        new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id"))),
+                        new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")))
+                ));
+        queryAndFetchNode.maxRowGranularity(RowGranularity.DOC);
 
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(queryAndFetchNode).get();
 
         assertThat(result.length, is(2));
         assertThat(result[0].length, is(4));
@@ -183,19 +188,19 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectWithPartitionedColumns() throws Exception {
         Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL);
         TableIdent tableIdent = new TableIdent(DocSchemaInfo.NAME, PARTITIONED_TABLE_NAME);
-        CollectNode collectNode = new CollectNode("docCollect", routing);
-        collectNode.toCollect(Arrays.<Symbol>asList(
-                new Reference(new ReferenceInfo(
-                        new ReferenceIdent(tableIdent, "id"),
-                        RowGranularity.DOC, DataTypes.INTEGER)),
-                new Reference(new ReferenceInfo(
-                        new ReferenceIdent(tableIdent, "date"),
-                        RowGranularity.SHARD, DataTypes.TIMESTAMP))
-        ));
-        collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.isPartitioned(true);
+        QueryAndFetchNode queryAndFetchNode = buildQAFNode("docCollect", routing,
+                Arrays.<Symbol>asList(
+                        new Reference(new ReferenceInfo(
+                                new ReferenceIdent(tableIdent, "id"),
+                                RowGranularity.DOC, DataTypes.INTEGER)),
+                        new Reference(new ReferenceInfo(
+                                new ReferenceIdent(tableIdent, "date"),
+                                RowGranularity.SHARD, DataTypes.TIMESTAMP))
+                ));
+        queryAndFetchNode.maxRowGranularity(RowGranularity.DOC);
+        queryAndFetchNode.isPartitioned(true);
 
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(queryAndFetchNode).get();
         assertThat(result.length, is(2));
         assertThat((Integer)result[0][0], isOneOf(1,2));
         assertThat((Integer)result[1][0], isOneOf(1,2));

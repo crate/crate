@@ -23,7 +23,7 @@ package io.crate.planner.node;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
 import io.crate.types.DataTypes;
@@ -35,27 +35,29 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
-public class CollectNodeTest {
+public class QueryAndFetchNodeTest {
 
     @Test
     public void testStreaming() throws Exception {
 
-        CollectNode cn = new CollectNode("cn");
+        QueryAndFetchNode cn = new QueryAndFetchNode("cn");
         cn.maxRowGranularity(RowGranularity.DOC);
 
         cn.downStreamNodes(ImmutableList.of("n1", "n2"));
         cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
+        cn.outputSymbols(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
 
 
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode();
+        QueryAndFetchNode cn2 = new QueryAndFetchNode();
         cn2.readFrom(in);
         assertEquals(cn, cn2);
 
         assertEquals(cn.toCollect(), cn2.toCollect());
+        assertEquals(cn.outputSymbols(), cn2.outputSymbols());
         assertEquals(cn.downStreamNodes(), cn2.downStreamNodes());
         assertEquals(cn.maxRowGranularity(), cn.maxRowGranularity());
 
@@ -64,22 +66,24 @@ public class CollectNodeTest {
     @Test
     public void testStreamingWithJobId() throws Exception {
 
-        CollectNode cn = new CollectNode("cn");
+        QueryAndFetchNode cn = new QueryAndFetchNode("cn");
         cn.maxRowGranularity(RowGranularity.DOC);
 
         cn.downStreamNodes(ImmutableList.of("n1", "n2"));
         cn.toCollect(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
+        cn.outputSymbols(ImmutableList.<Symbol>of(new Value(DataTypes.STRING)));
         cn.jobId(UUID.randomUUID());
 
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectNode cn2 = new CollectNode();
+        QueryAndFetchNode cn2 = new QueryAndFetchNode();
         cn2.readFrom(in);
         assertEquals(cn, cn2);
 
         assertEquals(cn.toCollect(), cn2.toCollect());
+        assertEquals(cn.outputSymbols(), cn2.outputSymbols());
         assertEquals(cn.downStreamNodes(), cn2.downStreamNodes());
         assertEquals(cn.maxRowGranularity(), cn.maxRowGranularity());
     }

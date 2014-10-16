@@ -149,7 +149,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     }
 
     @Override
-    public Void visitESSearchNode(QueryThenFetchNode node, PrintContext context) {
+    public Void visitQueryThenFetchNode(QueryThenFetchNode node, PrintContext context) {
         context.print(node.toString());
         context.indent();
         context.print("outputs:");
@@ -162,8 +162,8 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     }
 
     @Override
-    public Void visitCollectNode(CollectNode node, PrintContext context) {
-        context.print("Collect");
+    public Void visitQueryAndFetchNode(QueryAndFetchNode node, PrintContext context) {
+        context.print("QueryAndFetch");
         context.indent();
         context.print("routing: %s", node.routing());
         context.print("toCollect:");
@@ -171,10 +171,14 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             symbolPrinter.process(symbol, context);
         }
         context.print("whereClause %s", node.whereClause().toString());
-
+        context.print("collectorProjections: ");
+        context.indent();
+        for (Projection projection : node.collectorProjections()) {
+            projectionPrinter.process(projection, context);
+        }
+        context.dedent();
         processProjections(node, context);
         context.dedent();
-
         return null;
     }
 

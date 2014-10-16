@@ -29,9 +29,11 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -48,8 +50,10 @@ public class MergeOperation implements DownstreamOperation {
     public MergeOperation(ClusterService clusterService,
                           Settings settings,
                           TransportActionProvider transportActionProvider,
-                          ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode) {
-        projectorChain = new FlatProjectorChain(mergeNode.projections(),
+                          ImplementationSymbolVisitor symbolVisitor,
+                          int numUpstreams,
+                          List<Projection> projections) {
+        projectorChain = new FlatProjectorChain(projections,
                 new ProjectionToProjectorVisitor(
                         clusterService,
                         settings,
@@ -57,14 +61,15 @@ public class MergeOperation implements DownstreamOperation {
                         symbolVisitor)
         );
         downstream(projectorChain.firstProjector());
-        this.numUpstreams = mergeNode.numUpstreams();
+        this.numUpstreams = numUpstreams;
         projectorChain.startProjections();
     }
 
     public boolean addRows(Object[][] rows) throws Exception {
         for (int i = 0, length = rows.length; i < length && wantMore.get(); i++) {
             // assume that all projectors .setNextRow(...) methods are threadsafe
-            if (!downstream.setNextRow(rows[i])) {
+            Object[] row = rows[i];
+            if (!downstream.setNextRow(row)) {
                 wantMore.set(false);
             }
         }

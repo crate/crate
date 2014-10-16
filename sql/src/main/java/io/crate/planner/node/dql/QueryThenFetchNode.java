@@ -30,6 +30,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
 import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 
@@ -37,6 +38,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class QueryThenFetchNode extends ESDQLPlanNode {
+
+    private List<Projection> projections;
 
     private final List<Symbol> orderBy;
     private final int limit;
@@ -64,12 +67,13 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
                               @Nullable Integer limit,
                               @Nullable Integer offset,
                               WhereClause whereClause,
-                              @Nullable List<ReferenceInfo> partitionBy
+                              @Nullable List<ReferenceInfo> partitionBy,
+                              @Nullable List<Projection> projections
     ) {
-        this.routing = routing;
         assert routing != null;
         assert outputs != null;
         assert whereClause != null;
+        this.routing = routing;
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
         this.reverseFlags = Objects.firstNonNull(reverseFlags, EMPTY_VALUE_BOOLEAN_ARR);
         this.nullsFirst = Objects.firstNonNull(nullsFirst, EMPTY_OBJ_BOOLEAN_ARR);
@@ -83,6 +87,19 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
         this.offset = Objects.firstNonNull(offset, 0);
 
         this.partitionBy = Objects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
+        this.projections = Objects.firstNonNull(projections, ImmutableList.<Projection>of());
+    }
+
+    public QueryThenFetchNode(Routing routing,
+                              List<Symbol> outputs,
+                              @Nullable List<Symbol> orderBy,
+                              @Nullable boolean[] reverseFlags,
+                              @Nullable Boolean[] nullsFirst,
+                              @Nullable Integer limit,
+                              @Nullable Integer offset,
+                              WhereClause whereClause,
+                              @Nullable List<ReferenceInfo> partitionBy){
+        this(routing, outputs, orderBy, reverseFlags, nullsFirst, limit, offset, whereClause, partitionBy, null);
     }
 
     public Routing routing() {
@@ -119,7 +136,7 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESSearchNode(this, context);
+        return visitor.visitQueryThenFetchNode(this, context);
     }
 
     @Override
@@ -133,5 +150,6 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
                 .add("partitionBy", partitionBy)
                 .toString();
     }
+
 }
 

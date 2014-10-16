@@ -30,16 +30,13 @@ import io.crate.metadata.Routing;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.MaximumAggregation;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
@@ -47,10 +44,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -75,9 +69,13 @@ public class PlanNodeStreamerVisitorTest {
 
     @Test
     public void testGetOutputStreamersFromCollectNode() throws Exception {
-        CollectNode collectNode = new CollectNode("bla", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
-        collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.FLOAT, DataTypes.OBJECT));
-        PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode);
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("bla",
+                new Routing(new HashMap<String, Map<String, Set<Integer>>>()),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.FLOAT), new Value(DataTypes.OBJECT)),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.FLOAT), new Value(DataTypes.OBJECT)),
+                null, null, null, null, null, null, null, null, null, null);
+        queryAndFetchNode.configure();
+        PlanNodeStreamerVisitor.Context ctx = visitor.process(queryAndFetchNode);
         Streamer<?>[] streamers = ctx.outputStreamers();
         assertThat(streamers.length, is(3));
         assertThat(streamers[0], instanceOf(DataTypes.BOOLEAN.streamer().getClass()));
@@ -88,30 +86,39 @@ public class PlanNodeStreamerVisitorTest {
     @Test
     public void testGetOutputStreamersFromCollectNodeWithWrongNull() throws Exception {
         // null means we expect an aggstate here
-        CollectNode collectNode = new CollectNode("bla", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
-        collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, DataTypes.OBJECT));
-        PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode);
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("bla",
+                new Routing(new HashMap<String, Map<String, Set<Integer>>>()),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN),new Value(DataTypes.UNDEFINED), new Value(DataTypes.OBJECT)),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN),new Value(DataTypes.UNDEFINED), new Value(DataTypes.OBJECT)),
+                null, null, null, null, null, null, null, null, null, null);
+        queryAndFetchNode.configure();
+        PlanNodeStreamerVisitor.Context ctx = visitor.process(queryAndFetchNode);
         // assume an unknown column
         assertEquals(DataTypes.UNDEFINED.streamer(), ctx.outputStreamers()[1]);
     }
 
     @Test
     public void testGetOutputStreamersFromCollectNodeWithAggregations() throws Exception {
-        CollectNode collectNode = new CollectNode("bla", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
-        collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, null, null, DataTypes.DOUBLE));
         AggregationProjection aggregationProjection = new AggregationProjection();
         aggregationProjection.aggregations(Arrays.asList( // not a real use case, only for test convenience, sorry
-                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
-                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL)
+                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
+                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(2)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL)
         ));
-        collectNode.projections(Arrays.<Projection>asList(aggregationProjection));
-        PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode);
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("bla",
+                new Routing(new HashMap<String, Map<String, Set<Integer>>>()),
+                ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.UNDEFINED),
+                        new Value(DataTypes.UNDEFINED), new Value(DataTypes.DOUBLE)),
+                ImmutableList.<Symbol>of(),
+                null, null, null, null, null,
+                Arrays.<Projection>asList(aggregationProjection),
+                null,
+                null, null, null);
+        queryAndFetchNode.configure();
+        PlanNodeStreamerVisitor.Context ctx = visitor.process(queryAndFetchNode);
         Streamer<?>[] streamers = ctx.outputStreamers();
-        assertThat(streamers.length, is(4));
-        assertThat(streamers[0], instanceOf(DataTypes.BOOLEAN.streamer().getClass()));
-        assertThat(streamers[1], instanceOf(DataTypes.INTEGER.streamer().getClass()));
-        assertThat(streamers[2], instanceOf(AggregationStateStreamer.class));
-        assertThat(streamers[3], instanceOf(DataTypes.DOUBLE.streamer().getClass()));
+        assertThat(streamers.length, is(2));
+        assertThat(streamers[0], instanceOf(DataTypes.INTEGER.streamer().getClass()));
+        assertThat(streamers[1], instanceOf(AggregationStateStreamer.class));
     }
 
     @Test
