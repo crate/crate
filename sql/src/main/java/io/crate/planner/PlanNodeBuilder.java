@@ -139,12 +139,7 @@ class PlanNodeBuilder {
             }
 
         }
-        if (newLocations.size()>0) {
-            return new Routing(newLocations);
-        } else {
-            return new Routing();
-        }
-
+        return new Routing(newLocations);
     }
 
 }
