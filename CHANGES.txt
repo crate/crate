@@ -5,7 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - add cast expression support
+2014/10/16 0.45.0
+=================
+
+ - Support explicit type conversion using cast expression
 
  - All scalar functions can now be used in the WHERE clause in SELECT
    statements and they may be nested without limitations. In addition it is now
