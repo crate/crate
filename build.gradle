@@ -73,6 +73,31 @@ task jacocoReport(type: JacocoReport) {
     }
 }
 
+subprojects {
+
+    idea {
+        module {
+            iml {
+                // ensure testing dependencies come before es dependencies
+                // when calling tests from intellij
+                withXml {
+                    def node = it.asNode()
+                    def testingNode = node.component.orderEntry.find {
+                        it.@'module-name' == 'testing'
+                    }
+
+                    if (testingNode != null) {
+                        def parent = testingNode.parent()
+                        def newNode = new Node(parent, testingNode.name(), testingNode.attributes())
+                        parent.remove(testingNode)
+                        parent.children().add(4, newNode)
+                    }
+                }
+            }
+        }
+    }
+}
+
 idea {
     project {
         languageLevel = 'JDK_1_7'
