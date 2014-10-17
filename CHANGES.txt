@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Reduced memory consumption of COPY FROM statements that involve partitioned
+   tables.
+
  - Reduced memory consumption during execution of regular SELECT statements
 
  - Fix: Requests that resulted in a shard failure could cause a NPE during the
