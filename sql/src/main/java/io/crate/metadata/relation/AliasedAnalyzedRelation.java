@@ -50,6 +50,10 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation {
         return children;
     }
 
+    public AnalyzedRelation child() {
+        return child;
+    }
+
     public String alias() {
         return alias;
     }

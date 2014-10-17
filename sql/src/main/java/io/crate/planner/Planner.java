@@ -36,9 +36,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.relation.AnalyzedQuerySpecification;
-import io.crate.metadata.relation.AnalyzedRelation;
-import io.crate.metadata.relation.TableRelation;
+import io.crate.metadata.relation.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
@@ -55,7 +53,6 @@ import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Function;
-import io.crate.sql.tree.QuerySpecification;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 import org.elasticsearch.cluster.ClusterService;
@@ -76,6 +73,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
     static final PlannerReferenceExtractor referenceExtractor = new PlannerReferenceExtractor();
     static final PlannerFunctionArgumentCopier functionArgumentCopier = new PlannerFunctionArgumentCopier();
+
+    private final TableRelationVisitor tableRelationVisitor = new TableRelationVisitor();
 
     private final ClusterService clusterService;
     private AggregationProjection localMergeProjection;
@@ -121,27 +120,23 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             globalAggregates(analysis, plan, context);
         } else {
             AnalyzedQuerySpecification querySpec = analysis.querySpecification();
-            if (querySpec.sourceRelation() instanceof TableRelation) {
-                WhereClause whereClause = querySpec.whereClause();
-                TableRelation tableRelation = (TableRelation) querySpec.sourceRelation();
-                TableInfo tableInfo = tableRelation.tableInfo();
-                if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
-                        tableInfo.getRouting(whereClause).hasLocations() &&
-                        tableInfo.schemaInfo().name().equals(DocSchemaInfo.NAME)
-                        && (analysis.isLimited() || tableRelation.ids().size() > 0 || !context.indexWriterProjection.isPresent())) {
+            WhereClause whereClause = querySpec.whereClause();
+            TableRelation tableRelation = tableRelationVisitor.process(querySpec);
+            TableInfo tableInfo = tableRelation.tableInfo();
+            if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
+                    tableInfo.getRouting(whereClause).hasLocations() &&
+                    tableInfo.schemaInfo().name().equals(DocSchemaInfo.NAME)
+                    && (analysis.isLimited() || tableRelation.ids().size() > 0 || !context.indexWriterProjection.isPresent())) {
 
-                    if (tableRelation.ids().size() > 0
-                            && tableRelation.routingValues().size() > 0
-                            && !tableInfo.isAlias()) {
-                        ESGet(analysis, tableRelation, plan, context);
-                    } else {
-                        ESSearch(analysis, plan, context);
-                    }
+                if (tableRelation.ids().size() > 0
+                        && tableRelation.routingValues().size() > 0
+                        && !tableInfo.isAlias()) {
+                    ESGet(analysis, tableRelation, plan, context);
                 } else {
-                    collect(analysis, plan, context);
+                    ESSearch(analysis, plan, context);
                 }
             } else {
-                throw new UnsupportedOperationException("sourceRelation must be of type TableRelation");
+                collect(analysis, plan, context);
             }
         }
         return plan;
@@ -562,7 +557,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
 
         List<Symbol> toCollect;
-        TableInfo tableInfo = ((TableRelation) querySpec.sourceRelation()).tableInfo();
+        TableInfo tableInfo = tableRelationVisitor.process(querySpec).tableInfo();
         if (tableInfo.schemaInfo().systemSchema()) {
             toCollect = contextBuilder.toCollect();
         } else {
@@ -629,7 +624,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 || context.indexWriterProjection.isPresent();
         List<Symbol> searchSymbols;
         AnalyzedQuerySpecification querySpec = analysis.querySpecification();
-        TableRelation tableRelation = (TableRelation) querySpec.sourceRelation();
+        TableRelation tableRelation = tableRelationVisitor.process(querySpec);
 
         WhereClause whereClause = querySpec.whereClause();
         if (needsProjection) {
@@ -682,10 +677,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan, Context context) {
         AnalyzedQuerySpecification querySpec = analysis.querySpecification();
-        if (!(querySpec.sourceRelation() instanceof TableRelation)) {
-            throw new UnsupportedOperationException("sourceRelation must be of type TableRelation");
-        }
-        TableInfo tableInfo = ((TableRelation) querySpec.sourceRelation()).tableInfo();
+        TableInfo tableInfo = tableRelationVisitor.process(querySpec).tableInfo();
         String schema = tableInfo.ident().schema();
         if ((schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME))
                 && hasOnlyGlobalCount(analysis.outputSymbols())
@@ -764,9 +756,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private void groupBy(SelectAnalysis analysis, Plan plan, Context context) {
-        if (!(analysis.querySpecification().sourceRelation() instanceof TableRelation)) {
-            throw new UnsupportedOperationException("sourceRelation must be of type TableRelation");
-        }
+
         if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
                 || !requiresDistribution(analysis)) {
             nonDistributedGroupBy(analysis, plan, context);
@@ -778,7 +768,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private boolean requiresDistribution(SelectAnalysis analysis) {
-        TableInfo tableInfo = ((TableRelation) analysis.querySpecification().sourceRelation()).tableInfo();
+        TableInfo tableInfo = tableRelationVisitor.process(analysis.querySpecification()).tableInfo();
         Routing routing = tableInfo.getRouting(analysis.querySpecification().whereClause());
         if (!routing.hasLocations()) return false;
         if (groupedByClusteredColumnOrPrimaryKeys(tableInfo, analysis.querySpecification().groupBy())) return false;
@@ -821,7 +811,9 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
     private void nonDistributedGroupBy(SelectAnalysis analysis, Plan plan, Context context) {
         AnalyzedQuerySpecification querySpec = analysis.querySpecification();
-        TableInfo tableInfo = ((TableRelation) analysis.querySpecification().sourceRelation()).tableInfo();
+        TableRelation tableRelation = tableRelationVisitor.process(querySpec);
+        TableInfo tableInfo = tableRelation.tableInfo();
+
         boolean ignoreSorting = context.indexWriterProjection.isPresent()
                 && querySpec.limit() == null
                 && querySpec.offset() == TopN.NO_OFFSET;
@@ -950,6 +942,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
      */
     private void distributedGroupBy(SelectAnalysis analysis, Plan plan) {
         AnalyzedQuerySpecification querySpec = analysis.querySpecification();
+        TableInfo tableInfo = tableRelationVisitor.process(querySpec).tableInfo();
 
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, querySpec.groupBy())
                 .output(analysis.outputSymbols())
@@ -960,11 +953,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             // replace aggregation symbols with input columns from previous projection
             havingClause = contextBuilder.having(querySpec.having().get());
         }
-        AnalyzedRelation analyzedRelation = querySpec.sourceRelation();
-        assert analyzedRelation instanceof TableRelation : "querySpec sourceRelation must be a TableRelation for groupBy";
-        TableInfo tableInfo = ((TableRelation) analyzedRelation).tableInfo();
-
-
         ImmutableList.Builder<Projection> collectorProjections = ImmutableList.builder();
         ImmutableList.Builder<Projection> projections = ImmutableList.builder();
 
@@ -1053,8 +1041,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             havingClause = contextBuilder.having(querySpec.having().get());
         }
 
-        TableInfo tableInfo = ((TableRelation) querySpec.sourceRelation()).tableInfo();
-
+        TableInfo tableInfo = tableRelationVisitor.process(querySpec).tableInfo();
         ImmutableList.Builder<Projection> collectorProjections = ImmutableList.builder();
         ImmutableList.Builder<Projection> projections = ImmutableList.builder();
 
@@ -1258,5 +1245,32 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             );
         }
         return localMergeProjection;
+    }
+
+    private static class TableRelationVisitor extends RelationVisitor<Void, TableRelation> {
+
+        public TableRelation process(AnalyzedRelation relation) {
+            return process(relation, null);
+        }
+
+        @Override
+        public TableRelation visitTableRelation(TableRelation tableRelation, Void context) {
+            return tableRelation;
+        }
+
+        @Override
+        public TableRelation visitAliasedRelation(AliasedAnalyzedRelation relation, Void context) {
+            return process(relation.child(), context);
+        }
+
+        @Override
+        public TableRelation visitQuerySpecification(AnalyzedQuerySpecification relation, Void context) {
+            return process(relation.sourceRelation(), context);
+        }
+
+        @Override
+        public TableRelation visitCrossJoinRelation(JoinRelation joinRelation, Void context) {
+            throw new UnsupportedOperationException("join relation not supported");
+        }
     }
 }
