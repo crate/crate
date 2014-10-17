@@ -28,8 +28,18 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TransportActionProvider;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceResolver;
+import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.CollectOperation;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.operation.merge.MergeOperation;
+import io.crate.planner.node.dql.QueryAndFetchNode;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,26 +48,55 @@ import java.util.List;
 
 
 /**
- * A collect task which returns one future and runs a  collectOperation locally and synchronous
+ * A collect task which returns one future and runs a collectOperation locally and synchronous
+ *
+ * FIXME: this task should be merged with RemoteCollectTask and decide on its own how
+ * to collect data
  */
 public class LocalCollectTask implements Task<QueryResult> {
 
-    private final CollectNode collectNode;
+    private ESLogger logger = Loggers.getLogger(getClass());
+
+    private final ThreadPool threadPool;
+    private final QueryAndFetchNode queryAndFetchNode;
     private final CollectOperation collectOperation;
     private final List<ListenableFuture<QueryResult>> resultList;
     private final SettableFuture<QueryResult> result;
+    private final SettableFuture<QueryResult> collectResult;
 
-    public LocalCollectTask(CollectOperation<Object[][]> collectOperation, CollectNode collectNode) {
-        this.collectNode = collectNode;
+    public LocalCollectTask(QueryAndFetchNode queryAndFetchNode,
+                            ClusterService clusterService,
+                            Settings settings,
+                            TransportActionProvider transportActionProvider,
+                            CollectOperation<Object[][]> collectOperation,
+                            ReferenceResolver referenceResolver,
+                            Functions functions,
+                            ThreadPool threadPool) {
+        this.queryAndFetchNode = queryAndFetchNode;
         this.collectOperation = collectOperation;
+        this.threadPool = threadPool;
         this.resultList = new ArrayList<>(1);
         this.result = SettableFuture.create();
-        resultList.add(result);
+        this.collectResult = SettableFuture.create();
+        if (!queryAndFetchNode.projections().isEmpty()) {
+            /// used to execute the projections of the given QueryAndFetchNode
+            MergeOperation mergeOperation = new MergeOperation(
+                            clusterService,
+                            settings,
+                            transportActionProvider,
+                            new ImplementationSymbolVisitor(referenceResolver, functions, queryAndFetchNode.maxRowGranularity()),
+                            1,
+                            queryAndFetchNode.projections()
+            );
+            resultList.add(result);
+            initMergeOperationCallbacks(mergeOperation);
+        } else {
+            resultList.add(collectResult);
+        }
     }
 
-    @Override
-    public void start() {
-        Futures.addCallback(collectOperation.collect(collectNode), new FutureCallback<Object[][]>() {
+    private void initMergeOperationCallbacks(final MergeOperation operation) {
+        Futures.addCallback(operation.result(), new FutureCallback<Object[][]>() {
             @Override
             public void onSuccess(@Nullable Object[][] rows) {
                 result.set(new QueryResult(rows));
@@ -66,6 +105,40 @@ public class LocalCollectTask implements Task<QueryResult> {
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 result.setException(t);
+            }
+        });
+        Futures.addCallback(collectResult, new FutureCallback<QueryResult>() {
+            @Override
+            public void onSuccess(@Nullable QueryResult rows) {
+                assert rows != null;
+                try {
+                    operation.addRows(rows.rows());
+                } catch (Exception ex) {
+                    result.setException(ex);
+                    logger.error("Failed to add rows", ex);
+                    return;
+                }
+                operation.finished();
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                result.setException(t);
+            }
+        }, threadPool.executor(ThreadPool.Names.GENERIC));
+    }
+
+    @Override
+    public void start() {
+        Futures.addCallback(collectOperation.collect(queryAndFetchNode), new FutureCallback<Object[][]>() {
+            @Override
+            public void onSuccess(@Nullable Object[][] rows) {
+                collectResult.set(new QueryResult(rows));
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                collectResult.setException(t);
             }
         });
     }

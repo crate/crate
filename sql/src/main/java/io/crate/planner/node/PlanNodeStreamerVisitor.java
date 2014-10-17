@@ -28,7 +28,7 @@ import io.crate.Streamer;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
-import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
@@ -102,25 +102,33 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
     }
 
     @Override
-    public Void visitCollectNode(CollectNode node, Context context) {
+    public Void visitQueryAndFetchNode(QueryAndFetchNode node, Context context) {
         // get aggregations, if any
         Optional<Projection> finalProjection = node.finalProjection();
-        List<Aggregation> aggregations = ImmutableList.of();
+        List<Aggregation> partialAggregations = new ArrayList<>();
         if (finalProjection.isPresent()) {
             if (finalProjection.get().projectionType() == ProjectionType.AGGREGATION) {
-                aggregations = ((AggregationProjection)finalProjection.get()).aggregations();
+                for (Aggregation aggregation : ((AggregationProjection)finalProjection.get()).aggregations()) {
+                    if (aggregation.toStep() == Aggregation.Step.PARTIAL) {
+                        partialAggregations.add(aggregation);
+                    }
+                }
             } else if (finalProjection.get().projectionType() == ProjectionType.GROUP) {
-                aggregations = ((GroupProjection)finalProjection.get()).values();
+                for (Aggregation aggregation : ((GroupProjection)finalProjection.get()).values()) {
+                    if (aggregation.toStep() == Aggregation.Step.PARTIAL) {
+                        partialAggregations.add(aggregation);
+                    }
+                }
             }
         }
 
         int aggIdx = 0;
         Aggregation aggregation;
-        for (DataType outputType : node.outputTypes()) {
+        for (DataType outputType : node.intermediateOutputTypes()) {
             if (outputType == null || outputType == UndefinedType.INSTANCE) {
                 // get streamer for aggregation result
                 try {
-                    aggregation = aggregations.get(aggIdx);
+                    aggregation = partialAggregations.get(aggIdx);
                     if (aggregation != null) {
                         context.outputStreamers.add(resolveStreamer(aggregation, aggregation.toStep()));
                     }

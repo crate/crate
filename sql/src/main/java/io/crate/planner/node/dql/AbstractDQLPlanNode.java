@@ -54,6 +54,11 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
         return id;
     }
 
+    @Override
+    public void configure() {
+        // do nothing
+    }
+
     public boolean hasProjections() {
         return projections != null && projections.size() > 0;
     }
@@ -63,7 +68,7 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
     }
 
     public Optional<Projection> finalProjection() {
-        if (projections.size() == 0) {
+        if (projections.isEmpty()) {
             return Optional.absent();
         } else {
             return Optional.of(projections.get(projections.size()-1));

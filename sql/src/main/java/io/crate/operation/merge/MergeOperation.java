@@ -28,14 +28,20 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * merge rows - that's it
+ * Holds a number of chained projections
+ * and puts all rows received through {@linkplain #addRows(Object[][])}
+ * through them.
+ * The final result of type <code>Object[][]</code> will be returned in a
+ * {@linkplain com.google.common.util.concurrent.ListenableFuture}
+ * when calling {@linkplain #result()}.
  */
 public class MergeOperation implements DownstreamOperation {
 
@@ -48,8 +54,10 @@ public class MergeOperation implements DownstreamOperation {
     public MergeOperation(ClusterService clusterService,
                           Settings settings,
                           TransportActionProvider transportActionProvider,
-                          ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode) {
-        projectorChain = new FlatProjectorChain(mergeNode.projections(),
+                          ImplementationSymbolVisitor symbolVisitor,
+                          int numUpstreams,
+                          List<Projection> projections) {
+        projectorChain = new FlatProjectorChain(projections,
                 new ProjectionToProjectorVisitor(
                         clusterService,
                         settings,
@@ -57,14 +65,19 @@ public class MergeOperation implements DownstreamOperation {
                         symbolVisitor)
         );
         downstream(projectorChain.firstProjector());
-        this.numUpstreams = mergeNode.numUpstreams();
+        this.numUpstreams = numUpstreams;
         projectorChain.startProjections();
     }
 
+    /**
+     * process the given array of <code>Object[]</code> rows with the
+     * projections hold by this class.
+     */
     public boolean addRows(Object[][] rows) throws Exception {
         for (int i = 0, length = rows.length; i < length && wantMore.get(); i++) {
             // assume that all projectors .setNextRow(...) methods are threadsafe
-            if (!downstream.setNextRow(rows[i])) {
+            Object[] row = rows[i];
+            if (!downstream.setNextRow(row)) {
                 wantMore.set(false);
             }
         }
