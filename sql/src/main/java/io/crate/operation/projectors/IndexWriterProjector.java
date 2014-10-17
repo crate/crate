@@ -31,10 +31,12 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import javax.annotation.Nullable;
@@ -44,12 +46,7 @@ import java.util.Map;
 
 public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
-
-    private final Input<?> sourceInput;
-
-    private final @Nullable String[] includes;
-    private final @Nullable String[] excludes;
+    private final BytesReferenceGenerator generator;
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
@@ -71,29 +68,73 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                 transportCreateIndexAction, tableName, primaryKeys, idInputs, partitionedByInputs,
                 routingIdent, routingInput,
                 collectExpressions, bulkActions, autoCreateIndices);
-        this.sourceInput = sourceInput;
-        this.includes = includes;
-        this.excludes = excludes;
+
+        if (includes == null && excludes == null) {
+            //noinspection unchecked
+            generator = new BytesRefInput((Input<BytesRef>) sourceInput);
+        } else {
+            //noinspection unchecked
+            generator = new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
+        }
     }
 
     public BytesReference generateSource() {
-        Object value = sourceInput.value();
-        if (value == null) {
-            return null;
+        return generator.generateSource();
+    }
+
+    private interface BytesReferenceGenerator {
+        public BytesReference generateSource();
+    }
+
+    private static class BytesRefInput implements BytesReferenceGenerator {
+        private final Input<BytesRef> input;
+
+        private BytesRefInput(Input<BytesRef> input) {
+            this.input = input;
         }
-        if (includes != null || excludes != null) {
-            assert value instanceof Map;
-            // exclude partitioned columns from source
-            Map<String, Object> sourceAsMap = XContentMapValues.filter((Map) value, includes, excludes);
-            try {
-                return XContentFactory.contentBuilder(Requests.INDEX_CONTENT_TYPE).map(sourceAsMap).bytes();
-            } catch (IOException e) {
-                logger.error("Could not parse xContent", e);
+
+        @Override
+        public BytesReference generateSource() {
+            BytesRef value = input.value();
+            if (value == null) {
                 return null;
             }
+            return new BytesArray(value);
         }
-        assert value instanceof BytesRef;
-        return new BytesArray((BytesRef) value);
+    }
+
+    private static class MapInput implements BytesReferenceGenerator {
+
+        private final Input<Map<String, Object>> sourceInput;
+        private final String[] includes;
+        private final String[] excludes;
+        private final ESLogger logger = Loggers.getLogger(getClass());
+        private int lastSourceSize;
+
+        private MapInput(Input<Map<String, Object>> sourceInput, String[] includes, String[] excludes) {
+            this.sourceInput = sourceInput;
+            this.includes = includes;
+            this.excludes = excludes;
+            this.lastSourceSize = BigArrays.BYTE_PAGE_SIZE;
+        }
+
+        @Override
+        public BytesReference generateSource() {
+            Map<String, Object> value = sourceInput.value();
+            if (value == null) {
+                return null;
+            }
+            Map<String, Object> filteredMap = XContentMapValues.filter(value, includes, excludes);
+            try {
+                BytesReference bytes = new XContentBuilder(Requests.INDEX_CONTENT_TYPE.xContent(),
+                        new BytesStreamOutput(lastSourceSize)).map(filteredMap).bytes();
+                lastSourceSize = bytes.length();
+                return bytes;
+            } catch (IOException ex) {
+                logger.error("could not parse xContent", ex);
+            }
+            return null;
+        }
     }
 }
 
