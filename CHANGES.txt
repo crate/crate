@@ -5,6 +5,11 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Reduced memory consumption during execution of regular SELECT statements
+
+ - Fix: Requests that resulted in a shard failure could cause a NPE during the
+   generation of the error message.
+
 2014/10/14 0.44.6
 =================
 
