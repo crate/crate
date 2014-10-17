@@ -24,7 +24,6 @@ package io.crate.test.integration;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.randomizedtesting.SeedUtils;
 import com.google.common.base.Joiner;
-import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -83,7 +82,6 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFa
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-@LuceneTestCase.SuppressCodecs(value={"Lucene3x", "Lucene40"})
 public class CrateIntegrationTest extends ElasticsearchTestCase {
 
     static {

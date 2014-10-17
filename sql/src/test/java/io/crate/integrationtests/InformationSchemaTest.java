@@ -23,13 +23,12 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -37,8 +36,7 @@ import org.junit.rules.ExpectedException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE)
@@ -49,17 +47,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-    private SQLResponse response;
-
-    public SQLResponse execute(String statement, Object[] args) {
-        response = super.execute(statement, args);
-        return response;
-    }
-
-    public SQLResponse execute(String statement) {
-        return execute(statement, new Object[0]);
-    }
-
 
     private void serviceSetup() {
         execute("create table t1 (col1 integer primary key, " +
@@ -72,11 +59,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute(
             "create table t3 (col1 integer, col2 string) with (number_of_replicas=8)");
         ensureYellow();
-    }
-
-    @After
-    public void cleanUp() throws Exception {
-        wipeIndices("_all");
     }
 
     @Test
@@ -96,6 +78,38 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertArrayEquals(response.rows()[9], new Object[]{"sys", "operations", 1, "0", null, null, null});
         assertArrayEquals(response.rows()[10], new Object[]{"sys", "operations_log", 1, "0", null, null, null});
         assertArrayEquals(response.rows()[11], new Object[]{"sys", "shards", 1, "0", null, null, null});
+    }
+
+    @Test
+    public void testSelectFromInformationSchema() throws Exception {
+        execute("create table quotes (" +
+                "id integer primary key, " +
+                "quote string index off, " +
+                "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
+                ") clustered by (id) into 3 shards with (number_of_replicas=10)");
+
+        execute("select table_name, number_of_shards, number_of_replicas, clustered_by from " +
+                "information_schema.tables " +
+                "where table_name='quotes'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("quotes", response.rows()[0][0]);
+        assertEquals(3, response.rows()[0][1]);
+        assertEquals("10", response.rows()[0][2]);
+        assertEquals("id", response.rows()[0][3]);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+
+        execute("select * from information_schema.columns where table_name='quotes'");
+        assertEquals(2L, response.rowCount());
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+
+
+        execute("select * from information_schema.table_constraints where schema_name='doc' and table_name='quotes'");
+        assertEquals(1L, response.rowCount());
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+
+        execute("select * from information_schema.routines");
+        assertEquals(115L, response.rowCount());
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
     @Test
@@ -321,6 +335,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("ANALYZER", response.rows()[0][1]);
         assertEquals("myotheranalyzer", response.rows()[1][0]);
         assertEquals("ANALYZER", response.rows()[1][1]);
+        client().admin().cluster().prepareUpdateSettings()
+                .setPersistentSettingsToRemove(
+                    ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
+                            "crate.analysis.custom.analyzer.myotheranalyzer",
+                            "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
+                .execute().actionGet();
     }
 
     @Test

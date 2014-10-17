@@ -22,10 +22,12 @@
 package io.crate.integrationtests;
 
 
-import io.crate.action.sql.*;
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
+import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -134,27 +136,6 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     }
 
     @Test
-    public void testPartitionedTableNestedPk() throws Exception {
-        execute("create table t (o object as (i int primary key, name string)) partitioned by (o['i']) with (number_of_replicas=0)");
-        ensureGreen();
-        execute("insert into t (o) values (?)", new Object[]{new MapBuilder<String, Object>().put("i", 1).put("name", "Zaphod").map()});
-        ensureGreen();
-        refresh();
-        execute("select o['i'], o['name'] from t");
-        assertThat((Integer) response.rows()[0][0], is(1));
-        execute("select distinct table_name, partition_ident from sys.shards where table_name = 't'");
-        assertEquals("t| 04132\n", TestingHelpers.printedTable(response.rows()));
-    }
-
-    @Test
-    public void testStartPartitionWithMissingTable() throws Exception {
-        // ensureYellow must succeed
-        String partition = ".partitioned.parted.04130";
-        client().admin().indices().prepareCreate(partition).execute().actionGet();
-        ensureYellow();
-    }
-
-    @Test
     public void testSelectNoResultWithTypes() throws Exception {
         assertResponseWithTypes("select * from sys.nodes where 1=0");
     }
@@ -182,7 +163,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
     @Test
     public void testSelectUnknownNoResultWithTypes() throws Exception {
-        execute("create table unknown (id integer primary key, name object as(surname string)) " +
+        execute("create table unknown (id integer primary key, name object as (surname string)) " +
                 "clustered into 2 shards with (number_of_replicas=0)");
         ensureGreen();
 
@@ -226,35 +207,6 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     }
 
     @Test
-    public void testSetResetGlobalSetting() throws Exception {
-        execute("set global persistent stats.enabled = true");
-        execute("select settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Boolean)response.rows()[0][0], is(true));
-
-        execute("reset global stats.enabled");
-        execute("select settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Boolean)response.rows()[0][0], is(false));
-
-        execute("set global transient stats = { enabled = true, jobs_log_size = 3, operations_log_size = 4 }");
-        execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
-                "settings['stats']['operations_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Boolean)response.rows()[0][0], is(true));
-        assertThat((Integer)response.rows()[0][1], is(3));
-        assertThat((Integer)response.rows()[0][2], is(4));
-
-        execute("reset global stats");
-        execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
-                "settings['stats']['operations_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Boolean)response.rows()[0][0], is(false));
-        assertThat((Integer)response.rows()[0][1], is(10_000));
-        assertThat((Integer)response.rows()[0][2], is(10_000));
-    }
-
-    @Test
     public void testSubscriptArray() throws Exception {
         execute("create table test (id integer primary key, names array(string)) " +
                 "clustered into 1 shards with (number_of_replicas=0)");
@@ -281,19 +233,6 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("Adams"));
     }
-
-    @Test
-    public void testSubscriptArrayUnknownColumn() throws Exception {
-        execute("create table test (id integer primary key, names array(object as (surname string))) " +
-                "clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("unknown function: subscript(null, integer)");
-
-        execute("select names[1]['firstname'] from test");
-    }
-
 
     @Test
     public void testSelectRegexpMatchesGroup() throws Exception {
