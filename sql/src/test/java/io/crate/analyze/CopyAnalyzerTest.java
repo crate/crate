@@ -99,9 +99,8 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     public void testCopyFromPartitionedTablePARTITIONKeywordValidArgs() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis) analyze(
                 "copy parted partition (date=1395874800000) from '/some/distant/file.ext'");
-        assertThat(
-                analysis.partitionIdent(),
-                equalTo(PartitionName.encodeIdent(Arrays.asList(new BytesRef("1395874800000")))));
+        String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).encodeIdent();
+        assertThat(analysis.partitionIdent(), equalTo(parted));
     }
 
     @Test( expected = TableUnknownException.class)
@@ -169,16 +168,16 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToFileWithPartitionClause() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted partition (date=1395874800000) to '/blah.txt'");
-        assertThat(analysis.partitionIdent(),
-                is(PartitionName.encodeIdent(Arrays.asList(new BytesRef("1395874800000")))));
+        String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).encodeIdent();
+        assertThat(analysis.partitionIdent(), is(parted));
     }
 
     @Test
     public void testCopyToDirectoryithPartitionClause() throws Exception {
         CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted partition (date=1395874800000) to directory '/tmp'");
         assertThat(analysis.directoryUri(), is(true));
-        assertThat(analysis.partitionIdent(),
-                is(PartitionName.encodeIdent(Arrays.asList(new BytesRef("1395874800000")))));
+        String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).encodeIdent();
+        assertThat(analysis.partitionIdent(), is(parted));
     }
 
 
