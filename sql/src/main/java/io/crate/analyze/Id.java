@@ -104,7 +104,7 @@ public class Id {
 
     private BytesReference bytes() {
         assert values.size() > 0;
-        BytesStreamOutput out = new BytesStreamOutput();
+        BytesStreamOutput out = new BytesStreamOutput(estimateSize(values));
         try {
             encodeValues(out);
             out.close();
@@ -112,6 +112,18 @@ public class Id {
             //
         }
         return out.bytes();
+    }
+
+    /**
+     * estimates the size the bytesRef values will take if written onto a StreamOutput using the String streamer
+     */
+    private int estimateSize(List<BytesRef> values) {
+        int expectedEncodedSize = 0;
+        for (BytesRef value : values) {
+            // 5 bytes for the value of the length itself using vInt
+            expectedEncodedSize += 5 + (value != null ? value.length : 0);
+        }
+        return expectedEncodedSize;
     }
 
     @Nullable
