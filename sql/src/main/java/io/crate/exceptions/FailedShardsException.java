@@ -48,6 +48,9 @@ public class FailedShardsException extends RuntimeException implements CrateExce
 
         List<String> errors = new ArrayList<>(shardFailures.length);
         for (ShardOperationFailedException shardFailure : shardFailures) {
+            if (shardFailure == null) {
+                continue;
+            }
             errors.add(shardFailure.shardId()+" ( "+shardFailure.reason()+" )");
         }
 
