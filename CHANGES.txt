@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fix: handle boost factor in simple match predicate correctly
+
  - Reduced memory consumption of COPY FROM statements that involve partitioned
    tables.
 

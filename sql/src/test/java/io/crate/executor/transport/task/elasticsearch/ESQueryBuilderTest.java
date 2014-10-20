@@ -279,7 +279,24 @@ public class ESQueryBuilderTest {
                         Literal.newLiteral(DataTypes.OBJECT, null)
                 ));
 
-        xcontentAssert(match, "{\"query\":{\"match\":{\"name\":\"arthur\"}}}");
+        xcontentAssert(match, "{\"query\":{\"match\":{\"name\":{\"query\":\"arthur\"}}}}");
+    }
+
+    @Test
+    public void testWhereRerenceMatchStringWithBoost() throws Exception {
+        FunctionIdent functionIdent = new FunctionIdent(
+                MatchPredicate.NAME, ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT));
+        MatchPredicate matchImpl = (MatchPredicate)functions.get(functionIdent);
+        Function match = new Function(matchImpl.info(),
+                Arrays.<Symbol>asList(
+                        Literal.newLiteral(
+                                new MapBuilder<String, Object>().put(name_ref.info().ident().columnIdent().fqn(), 0.42f).map()),
+                        Literal.newLiteral("trillian"),
+                        Literal.newLiteral(MatchPredicate.DEFAULT_MATCH_TYPE),
+                        Literal.newLiteral(DataTypes.OBJECT, null)
+                ));
+
+        xcontentAssert(match, "{\"query\":{\"match\":{\"name\":{\"query\":\"trillian\",\"boost\":0.42}}}}");
     }
 
     @Test

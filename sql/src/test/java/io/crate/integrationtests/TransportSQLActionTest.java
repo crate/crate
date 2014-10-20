@@ -5057,10 +5057,34 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSimpleMatchWithBoost() throws Exception {
+        execute("create table characters ( " +
+                "  id int primary key, " +
+                "  name string, " +
+                "  quote string, " +
+                "  INDEX name_ft using fulltext(name) with (analyzer = 'english'), " +
+                "  INDEX quote_ft using fulltext(quote) with (analyzer = 'english') " +
+                ")");
+        execute("insert into characters (id, name, quote) values (?, ?, ?)", new Object[][]{
+                new Object[] { 1, "Arthur", "It's terribly small, tiny little country." },
+                new Object[] { 2, "Trillian", " No, it's a country. Off the coast of Africa." },
+                new Object[] { 3, "Marvin", " It won't work, I have an exceptionally large mind." }
+        });
+        refresh();
+        execute("select characters.name AS characters_name, _score " +
+                "from characters " +
+                "where match(characters.quote_ft 1.0, 'country')");
+        assertThat(response.rows().length, is(2));
+        assertThat((String) response.rows()[0][0], is("Trillian"));
+        assertThat((float) response.rows()[0][1], greaterThan(0.0f));
+        assertThat((String) response.rows()[1][0], is("Arthur"));
+        assertThat((float) response.rows()[1][1], greaterThan(0.0f));
+    }
+
+    @Test
     public void testMatchTypes() throws Exception {
         this.setup.setUpLocations();
         refresh();
-
         execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') using best_fields");
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("Alpha Centauri| 0.22184466\n| 0.21719791\nAllosimanius Syneca| 0.09626817\nBartledan| 0.08423465\nGalactic Sector QQ7 Active J Gamma| 0.08144922\n"));
