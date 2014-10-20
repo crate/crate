@@ -279,7 +279,7 @@ public class ESQueryBuilderTest {
                         Literal.newLiteral(DataTypes.OBJECT, null)
                 ));
 
-        xcontentAssert(match, "{\"query\":{\"match\":{\"name\":\"arthur\"}}}");
+        xcontentAssert(match, "{\"query\":{\"match\":{\"name\":{\"query\":\"arthur\"}}}}");
     }
 
     @Test

@@ -4956,6 +4956,31 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
 
     @Test
+    public void testSimpleMatchWithBoost() throws Exception {
+        execute("create table characters ( " +
+                "  id int primary key, " +
+                "  name string, " +
+                "  quote string, " +
+                "  INDEX name_ft using fulltext(name) with (analyzer = 'english'), " +
+                "  INDEX quote_ft using fulltext(quote) with (analyzer = 'english') " +
+                ")");
+        execute("insert into characters (id, name, quote) values (?, ?, ?)", new Object[][]{
+                new Object[] { 1, "Arthur", "It's terribly small, tiny little country." },
+                new Object[] { 2, "Trillian", " No, it's a country. Off the coast of Africa." },
+                new Object[] { 3, "Marvin", " It won't work, I have an exceptionally large mind." }
+        });
+        refresh();
+        execute("select characters.name AS characters_name, _score " +
+                "from characters " +
+                "where match(characters.quote_ft 1.0, 'country')");
+        assertThat(response.rows().length, is(2));
+        assertThat((String) response.rows()[0][0], is("Trillian"));
+        assertThat((float) response.rows()[0][1], greaterThan(0.0f));
+        assertThat((String) response.rows()[1][0], is("Arthur"));
+        assertThat((float) response.rows()[1][1], greaterThan(0.0f));
+    }
+
+    @Test
     public void testTestGroupByOnClusteredByColumn() throws Exception {
         execute("create table foo (id int, name string, country string) clustered by (country) with (number_of_replicas = 0)");
         ensureGreen();
