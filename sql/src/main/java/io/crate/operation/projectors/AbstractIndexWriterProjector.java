@@ -74,21 +74,13 @@ public abstract class AbstractIndexWriterProjector implements Projector {
             };
     private Projector downstream;
 
-    private final LoadingCache<List<BytesRef>, String> partitionIdentCache = CacheBuilder.newBuilder()
-        .initialCapacity(10)
-        .maximumSize(20)
-        .build(new CacheLoader<List<BytesRef>, String>() {
-            @Override
-            public String load(@Nonnull List<BytesRef> key) throws Exception {
-                return new PartitionName(tableName, key).stringValue();
-            }
-        });
+    private final LoadingCache<List<BytesRef>, String> partitionIdentCache;
 
     protected AbstractIndexWriterProjector(ClusterService clusterService,
                                            Settings settings,
                                            TransportShardBulkAction transportShardBulkAction,
                                            TransportCreateIndexAction transportCreateIndexAction,
-                                           String tableName,
+                                           final String tableName,
                                            List<ColumnIdent> primaryKeys,
                                            List<Input<?>> idInputs,
                                            List<Input<?>> partitionedByInputs,
@@ -104,6 +96,19 @@ public abstract class AbstractIndexWriterProjector implements Projector {
         this.routingIdent = Optional.fromNullable(clusteredBy);
         this.routingInput = Optional.<Input<?>>fromNullable(routingInput);
         this.partitionedByInputs = partitionedByInputs;
+        if (partitionedByInputs.size() > 0) {
+            partitionIdentCache = CacheBuilder.newBuilder()
+                        .initialCapacity(10)
+                        .maximumSize(20)
+                        .build(new CacheLoader<List<BytesRef>, String>() {
+                            @Override
+                            public String load(@Nonnull List<BytesRef> key) throws Exception {
+                                return new PartitionName(tableName, key).stringValue();
+                            }
+                        });
+        } else {
+            partitionIdentCache = null;
+        }
         this.bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 settings,
