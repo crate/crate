@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fix: handle boost factor in simple match predicate correctly
+
  - Throw an error while using unknown root columns on SELECT
 
  - Reduced memory consumption of COPY FROM statements that involve partitioned
