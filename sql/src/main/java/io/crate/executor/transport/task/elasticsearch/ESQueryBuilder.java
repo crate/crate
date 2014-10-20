@@ -84,6 +84,7 @@ public class ESQueryBuilder {
         static final XContentBuilderString FIELDS = new XContentBuilderString("fields");
         static final XContentBuilderString MATCH = new XContentBuilderString("match");
         static final XContentBuilderString MULTI_MATCH = new XContentBuilderString("multi_match");
+        static final XContentBuilderString BOOST = new XContentBuilderString("boost");
     }
 
     public static String convertWildcard(String wildcardString) {
@@ -814,23 +815,25 @@ public class ESQueryBuilder {
                 // validate
                 Preconditions.checkArgument(queryString != null, "cannot use NULL as query term in match predicate");
 
-                String[] columnNames = new String[idents.entrySet().size()];
-                int i = 0;
-                for (Map.Entry<String, Object> entry : idents.entrySet()) {
-                    columnNames[i] = MatchPredicate.fieldNameWithBoost(entry.getKey(), entry.getValue());
-                    i++;
-                }
-
                 // build
-                if (columnNames.length == 1 &&
+                if (idents.size()== 1 &&
                         (matchType == null || matchType.equals(MatchPredicate.DEFAULT_MATCH_TYPE)) &&
                         (options == null || options.isEmpty())) {
                     // legacy match
-                    context.builder.startObject(Fields.MATCH)
-                            .field(columnNames[0], queryString)
-                            .endObject();
+                    Map.Entry<String, Object> entry = idents.entrySet().iterator().next();
+                    context.builder.startObject(Fields.MATCH).startObject(entry.getKey())
+                            .field(Fields.QUERY, queryString);
+                    if (entry.getValue() != null) {
+                        context.builder.field(Fields.BOOST, entry.getValue());
+                    }
+                    context.builder.endObject().endObject();
                 } else {
-
+                    String[] columnNames = new String[idents.entrySet().size()];
+                    int i = 0;
+                    for (Map.Entry<String, Object> entry : idents.entrySet()) {
+                        columnNames[i] = MatchPredicate.fieldNameWithBoost(entry.getKey(), entry.getValue());
+                        i++;
+                    }
                     context.builder.startObject(Fields.MULTI_MATCH)
                             .field(Fields.TYPE, matchType != null ? matchType : MatchPredicate.DEFAULT_MATCH_TYPE)
                             .array(Fields.FIELDS, columnNames)
