@@ -159,6 +159,40 @@ a reasonable value (time in ms)::
   - :ref:`refresh_data`
   - :ref:`sql_ref_refresh_interval`
 
+Store Level Throttling
+.......................
+
+If you do not need to query your data during import, which is the case
+most of the time, you can lighten the merge throttling behaviour that
+otherwise would ensure better search performance.
+
+To improve indexing performance you can temporarly disable throttling
+completely by setting the ``indices.store.throttle.type`` to ``none``.
+
+::
+
+  cr> SET GLOBAL TRANSIENT indices.store.throttle.type = 'none';
+  SET OK (... sec)
+
+However if you still want to throttle the merging of segments during import
+you can increase the maximum bytes per second from its default of ``20mb``
+to something like 100-200mb/s for SSD disks::
+
+  cr> SET GLOBAL TRANSIENT indices.store.throttle.max_bytes_per_sec = '150mb';
+  SET OK (... sec)
+
+
+After import you should not forget to turn throttling on again by setting its
+value to ``merge`` (default) or ``all``.
+
+::
+
+  cr> SET GLOBAL TRANSIENT indices.store.throttle.type = 'merge';
+  SET OK (... sec)
+
+.. seealso::
+
+  - :ref:`indices.store.throttle.type`
 
 Importing Data Using COPY FROM
 ------------------------------
@@ -312,8 +346,8 @@ column value in the source.
 
 .. seealso::
 
-  - :ref:`partitioned_tables`
-  - :ref:`sql_ddl_partitioned_by`
+  - Detailed documentation of :ref:`partitioned_tables`
+  - Table creation of :ref:`sql_ddl_partitioned_by`
 
 
 Summary

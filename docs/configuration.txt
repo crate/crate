@@ -338,11 +338,13 @@ allocation across generic attributes associated with nodes.
   `node.rack_id` set to rack_one, and deploy a single index with 5
   shards and 1 replica. The index will be fully deployed on the
   current nodes (5 shards and 1 replica each, total of 10 shards).
-  | Now, if we start two more nodes, with node.rack_id set to
+
+  Now, if we start two more nodes, with node.rack_id set to
   rack_two, shards will relocate to even the number of shards across
   the nodes, but a shard and its replica will not be allocated in the
   same rack_id value.
-  | The awareness attributes can hold several values
+
+  The awareness attributes can hold several values
 
 .. _cluster.routing.allocation.awareness.force.*.values:
 
