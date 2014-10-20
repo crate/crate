@@ -29,11 +29,6 @@ public class TaskExecutionException extends UnhandledServerException {
     private static final String MSG = "Error executing task '%s'";
     private Task task;
 
-    public TaskExecutionException(Task task) {
-        super(String.format(Locale.ENGLISH, MSG, task.toString()));
-        this.task = task;
-    }
-
     public TaskExecutionException(Task task, Throwable e) {
         super(String.format(Locale.ENGLISH, MSG, task.toString()), e);
         this.task = task;

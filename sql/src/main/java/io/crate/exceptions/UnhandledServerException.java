@@ -22,8 +22,6 @@
 package io.crate.exceptions;
 
 public class UnhandledServerException extends RuntimeException implements CrateException {
-    public UnhandledServerException() {
-    }
 
     public UnhandledServerException(String message) {
         super(message);

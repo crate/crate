@@ -25,11 +25,6 @@ public class AnalyzerUnknownException extends ResourceUnknownException {
 
     private String analyzerName;
 
-    public AnalyzerUnknownException(String analyzerName, Throwable e) {
-        super(String.format("Analyzer '%s' unknown", analyzerName), e);
-        this.analyzerName = analyzerName;
-    }
-
     public AnalyzerUnknownException(String analyzerName) {
         super(String.format("Analyzer '%s' unknown", analyzerName));
         this.analyzerName = analyzerName;

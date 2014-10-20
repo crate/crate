@@ -38,8 +38,7 @@ public class Exceptions {
         while (result instanceof RemoteTransportException ||
                 result instanceof UncheckedExecutionException ||
                 result instanceof UncategorizedExecutionException ||
-                result instanceof ExecutionException ||
-                result instanceof io.crate.executor.ExecutionException) {
+                result instanceof ExecutionException) {
             if (result.getCause() == null) {
                 return result;
             }

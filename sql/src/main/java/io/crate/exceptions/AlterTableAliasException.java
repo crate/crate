@@ -25,11 +25,6 @@ public class AlterTableAliasException extends ValidationException {
 
     private String aliasName;
 
-    public AlterTableAliasException(String aliasName, Throwable e) {
-        super("Alter table using a table alias is not supported", e);
-        this.aliasName = aliasName;
-    }
-
     public AlterTableAliasException(String aliasName) {
         super("Alter table using a table alias is not supported");
         this.aliasName = aliasName;
