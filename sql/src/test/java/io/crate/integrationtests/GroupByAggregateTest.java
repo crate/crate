@@ -21,20 +21,29 @@
 
 package io.crate.integrationtests;
 
+import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import java.util.HashMap;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.isIn;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
+
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
 
     private Setup setup = new Setup(sqlExecutor);
     private boolean setUpDone = false;
@@ -69,11 +78,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void selectGroupByAggregateMinFloat() throws Exception {
         this.setup.groupBySetup("float");
 
-        execute("select age, gender from characters order by gender");
-        System.out.println(TestingHelpers.printedTable(response.rows()));
-
         execute("select min(age), gender from characters group by gender order by gender");
-        System.out.println(TestingHelpers.printedTable(response.rows()));
 
         String expected = "32.0| female\n34.0| male\n";
 
@@ -714,5 +719,88 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         this.setup.groupBySetup("integer");
         execute("select gender from characters group by gender having min(age) < 33");
         assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testTestGroupByOnClusteredByColumn() throws Exception {
+        execute("create table foo (id int, name string, country string) clustered by (country) with (number_of_replicas = 0)");
+        ensureGreen();
+
+        execute("insert into foo (id, name, country) values (?, ?, ?)", new Object[][]{
+                new Object[]{1, "Arthur", "Austria"},
+                new Object[]{2, "Trillian", "Austria"},
+                new Object[]{3, "Marvin", "Austria"},
+                new Object[]{4, "Jeltz", "Germany"},
+                new Object[]{5, "Ford", "Germany"},
+                new Object[]{6, "Slartibardfast", "Italy"},
+        });
+        refresh();
+
+        execute("select count(*), country from foo group by country order by count(*) desc");
+        assertThat(response.rowCount(), Is.is(3L));
+        assertThat((String) response.rows()[0][1], Is.is("Austria"));
+        assertThat((String) response.rows()[1][1], Is.is("Germany"));
+        assertThat((String) response.rows()[2][1], Is.is("Italy"));
+    }
+
+    @Test
+    public void testGroupByOnAllPrimaryKeys() throws Exception {
+        execute("create table foo (id int primary key, name string primary key) with (number_of_replicas = 0)");
+        ensureGreen();
+
+        execute("insert into foo (id, name) values (?, ?)", new Object[][] {
+                new Object[] { 1, "Arthur" },
+                new Object[] { 2, "Trillian" },
+                new Object[] { 3, "Slartibardfast" },
+                new Object[] { 4, "Marvin" },
+        });
+        refresh();
+
+        execute("select count(*), name from foo group by id, name order by name desc");
+        assertThat(response.rowCount(), Is.is(4L));
+        assertThat((String) response.rows()[0][1], Is.is("Trillian"));
+        assertThat((String) response.rows()[1][1], Is.is("Slartibardfast"));
+        assertThat((String) response.rows()[2][1], Is.is("Marvin"));
+        assertThat((String) response.rows()[3][1], Is.is("Arthur"));
+    }
+
+    @Test
+    public void testGroupByEmpty() throws Exception {
+        execute("create table test (col1 string)");
+        ensureGreen();
+
+        execute("select count(*), col1 from test group by col1");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testGroupByMultiValueField() throws Exception {
+        this.setup.groupBySetup();
+        // inserting multiple values not supported anymore
+        client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
+            put("race", new String[]{"Android"});
+            put("gender", new String[]{"male", "robot"});
+            put("name", "Marvin2");
+        }}).execute().actionGet();
+        client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
+            put("race", new String[]{"Android"});
+            put("gender", new String[]{"male", "robot"});
+            put("name", "Marvin3");
+        }}).execute().actionGet();
+        execute("refresh table characters");
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column \"gender\" has a value that is an array. Group by doesn't work on Arrays");
+
+        execute("select gender from characters group by gender");
+    }
+
+    @Test
+    public void testGroupByOnSysNodes() throws Exception {
+        execute("select count(*), name from sys.nodes group by name");
+        assertThat(response.rowCount(), Is.is(2L));
+
+        execute("select count(*), hostname from sys.nodes group by hostname");
+        assertThat(response.rowCount(), Is.is(1L));
     }
 }

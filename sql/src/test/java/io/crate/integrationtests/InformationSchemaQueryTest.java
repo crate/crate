@@ -26,11 +26,20 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
+
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private boolean createdTables = false;
     private SQLResponse response;
@@ -52,6 +61,13 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     public SQLResponse exec(String stmt) {
         response = execute(stmt);
         return response;
+    }
+
+    @Test
+    public void testSelectSysColumnsFromInformationSchema() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot handle Reference sys.nodes.id");
+        execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables");
     }
 
     @Test
@@ -182,7 +198,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     @Test
     public void testOrderByStringAndLimit() throws Exception {
         exec("select table_name, number_of_shards, number_of_replicas from information_schema.tables " +
-                 " where schema_name = 'doc' order by table_name desc limit 2");
+                " where schema_name = 'doc' order by table_name desc limit 2");
         assertEquals(2L, response.rowCount());
         assertEquals("t3", response.rows()[0][0]);
         assertEquals("t2", response.rows()[1][0]);
@@ -205,8 +221,10 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
     }
 
-    @Test( expected = SQLActionException.class )
+    @Test
     public void testSelectUnkownTableFromInformationSchema() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Table 'non_existent' unknown");
         exec("select * from information_schema.non_existent");
     }
 

@@ -25,6 +25,7 @@ import io.crate.Constants;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -286,5 +287,21 @@ public class Setup {
         transportExecutor.exec("insert into parted (id, date) values (4, '2014-02-01')");
         transportExecutor.exec("insert into parted (id, date) values (5, '2014-02-01')");
         transportExecutor.refresh("parted");
+    }
+
+    public void createTestIndexWithPkMapping() {
+        transportExecutor.exec("create table test (" +
+                "  pk_col string primary key, " +
+                "  message string" +
+                ") with (number_of_replicas=0)");
+        transportExecutor.ensureGreen();
+    }
+
+    public void createTestIndexWithSomeIdPkMapping() throws IOException {
+        transportExecutor.exec("create table test (" +
+                "  some_id string primary key, " +
+                "  type string" +
+                ") with (number_of_replicas=0)");
+        transportExecutor.ensureGreen();
     }
 }

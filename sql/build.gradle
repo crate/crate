@@ -1,4 +1,4 @@
-
+apply plugin: 'idea'
 apply plugin: 'java'
 
 archivesBaseName = 'crate-sql'
@@ -9,18 +9,16 @@ configurations {
     sharedCompile.extendsFrom compile
 }
 
-//evaluationDependsOn(':app')
-
-
 dependencies {
     compile project(':es')
     compile project(':core')
     compile project(':blob')
     compile project(':sql-parser')
     compile 'com.amazonaws:aws-java-sdk:1.7.5'
+
+    testCompile project(':testing')
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
     testCompile 'com.h2database:h2:1.3.173'
-    testCompile project(':testing')
 }
 
 buildscript {
@@ -59,6 +57,7 @@ test {
 task bench(type: Test) {
     description = 'Run the Crate JUnit Benchmarks'
     group = 'crate'
+
     def benchmark_dir = project.buildDir.path + '/reports/bench/'
 
     // Properties for JUnit Benchmarks

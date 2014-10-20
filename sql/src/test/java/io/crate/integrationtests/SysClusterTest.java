@@ -24,12 +24,71 @@ package io.crate.integrationtests;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.core.Is.is;
+
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
-public class ClusterSettingsTest extends SQLTransportIntegrationTest {
+public class SysClusterTest extends SQLTransportIntegrationTest {
+
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
+
+    @Test
+    public void testSysCluster() throws Exception {
+        execute("select id from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(((String) response.rows()[0][0]).length(), is(36)); // looks like a uuid
+    }
+
+    @Test
+    public void testSetResetGlobalSetting() throws Exception {
+        execute("set global persistent stats.enabled = true");
+        execute("select settings['stats']['enabled'] from sys.cluster");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat((Boolean)response.rows()[0][0], Matchers.is(true));
+
+        execute("reset global stats.enabled");
+        execute("select settings['stats']['enabled'] from sys.cluster");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat((Boolean)response.rows()[0][0], Matchers.is(false));
+
+        execute("set global transient stats = { enabled = true, jobs_log_size = 3, operations_log_size = 4 }");
+        execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
+                "settings['stats']['operations_log_size'] from sys.cluster");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat((Boolean)response.rows()[0][0], Matchers.is(true));
+        assertThat((Integer)response.rows()[0][1], Matchers.is(3));
+        assertThat((Integer)response.rows()[0][2], Matchers.is(4));
+
+        execute("reset global stats");
+        execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
+                "settings['stats']['operations_log_size'] from sys.cluster");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat((Boolean)response.rows()[0][0], Matchers.is(false));
+        assertThat((Integer)response.rows()[0][1], Matchers.is(10_000));
+        assertThat((Integer)response.rows()[0][2], Matchers.is(10_000));
+    }
+
+    public void testSysClusterMasterNode() throws Exception {
+        execute("select id from sys.nodes");
+        List<String> nodes = new ArrayList<>();
+        for (Object[] nodeId : response.rows()) {
+            nodes.add((String) nodeId[0]);
+        }
+
+        execute("select master_node from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        String node = (String) response.rows()[0][0];
+        assertTrue(nodes.contains(node));
+    }
 
     @Test
     public void testDynamicTransientSettings() throws Exception {

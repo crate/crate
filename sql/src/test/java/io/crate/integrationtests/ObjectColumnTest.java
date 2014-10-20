@@ -23,16 +23,24 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.common.collect.MapBuilder;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class ObjectColumnTest extends SQLTransportIntegrationTest {
+
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -267,5 +275,50 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
         assertEquals("Don't Panic: Douglas Adams and the \"Hitchhiker's Guide to the Galaxy\"", response.rows()[2][0]);
         assertEquals(false, response.rows()[2][1]);
+    }
+
+    @Test
+    public void testSelectDynamicObjectNewColumns() throws Exception {
+
+        execute("create table test (message string, person object(dynamic)) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into test (message, person) values ('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
+        refresh();
+
+        // check that new columns in dynamic objects show up eventually
+        long rowCount = 0L;
+        int retries = 3;
+        while (rowCount == 0L && retries > 0) {
+            execute("select message, person['name'], person['addresses']['city'] from test " +
+                    "where person['name'] = 'Youri'");
+            rowCount = response.rowCount();
+            retries--;
+            Thread.sleep(10);
+        }
+        assertEquals(1L, rowCount);
+        assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
+                response.cols());
+        assertArrayEquals(new Object[]{"I'm addicted to kite", "Youri",
+                        new ArrayList<String>() {{
+                            add("Dirksland");
+                        }}},
+                response.rows()[0]
+        );
+    }
+
+    @Test
+    public void testSelectObject() throws Exception {
+        execute("create table test (a object as (nested integer)) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into test (a) values (?)", new Object[]{
+                new MapBuilder<String, Object>().put("nested", 2).map()
+        });
+        refresh();
+
+        execute("select a from test");
+        assertArrayEquals(new String[]{"a"}, response.cols());
+        assertEquals(1, response.rowCount());
+        assertEquals(1, response.rows()[0].length);
+        assertThat((Map<String, Object>) response.rows()[0][0], Matchers.<String, Object>hasEntry("nested", 2));
     }
 }

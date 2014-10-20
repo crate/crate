@@ -82,7 +82,6 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFa
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-
 public class CrateIntegrationTest extends ElasticsearchTestCase {
 
     static {

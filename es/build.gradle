@@ -73,6 +73,7 @@ dependencies {
     }
     testCompile 'commons-codec:commons-codec:1.9'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
+
     lucenetest 'junit:junit:4.11'
     lucenetest ('org.apache.lucene:lucene-test-framework:4.9.0') {
         exclude group: 'junit', module: 'junit'

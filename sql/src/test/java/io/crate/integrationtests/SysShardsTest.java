@@ -149,8 +149,11 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         assertEquals(10, response.cols().length);
     }
 
-    @Test(expected = SQLActionException.class)
+    @Test
     public void testSelectStarMatch() throws Exception {
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("function not supported on system tables: FunctionIdent{name=match, argumentTypes=[object, string, string, object]}");
         transportExecutor.exec("select * from sys.shards where match(table_name, 'characters')");
     }
 

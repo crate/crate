@@ -77,7 +77,8 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                     throw new UnhandledServerException(
                             String.format(Locale.ENGLISH,
                                     "Unable to load PARTITIONED BY columns from partition %s",
-                                    index.name())
+                                    index.name()),
+                            e
                     );
                 }
                 assert partitionName.values().size() == numPartitionedColumns : "invalid number of partitioned columns";
