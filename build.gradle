@@ -27,14 +27,19 @@ allprojects {
     }
 }
 
+
+def jacocoProjects() {
+    subprojects.findAll {
+        it.name != 'es' && it.name != 'testing'
+    }
+}
+
 coveralls {
     def tmpSources = []
-    subprojects.each {
-        if (it.name != 'es') {
-            evaluationDependsOn(it.name)
-            if (it.plugins.hasPlugin("java") && it.tasks.withType(Test)) {
-                tmpSources << it.sourceSets.main.allSource.srcDirs
-            }
+    jacocoProjects().each {
+        evaluationDependsOn(it.name)
+        if (it.plugins.withType(JavaPlugin) && it.tasks.withType(Test)) {
+            tmpSources << it.sourceSets.main.allSource.srcDirs
         }
     }
     sourceDirs = files(tmpSources).files.absolutePath
@@ -46,19 +51,12 @@ task jacocoReport(type: JacocoReport) {
     // this task doesn't define a hard dependency on the tests to avoid running them twice in travis-ci
     executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
 
-    def tmpSources = []
-    def tmpClasses = []
-    subprojects.each {
-        if (it.name != 'es') {
-            evaluationDependsOn(it.name)
-            if (it.plugins.hasPlugin("java") && it.tasks.withType(Test)) {
-                tmpSources << it.sourceSets.main.allSource.srcDirs
-                tmpClasses << it.sourceSets.main.output.classesDir
-            }
+    jacocoProjects().each {
+        evaluationDependsOn(it.name)
+        if (it.plugins.withType(JavaPlugin) && it.tasks.withType(Test)) {
+            sourceSets it.sourceSets.main
         }
     }
-    sourceDirectories = files(tmpSources)
-    classDirectories = files(tmpClasses)
 
     reports {
         xml{
