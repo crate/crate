@@ -115,7 +115,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         }
     }
 
-    @Override
     public Collection<String> tableNames() {
         // TODO: once we support closing/opening tables change this to concreteIndices()
         // and add  state info to the TableInfo.

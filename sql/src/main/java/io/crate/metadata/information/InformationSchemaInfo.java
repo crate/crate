@@ -26,7 +26,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Collection;
 import java.util.Iterator;
 
 @Singleton
@@ -49,11 +48,6 @@ public class InformationSchemaInfo implements SchemaInfo {
     @Override
     public TableInfo getTableInfo(String name) {
         return tableInfoMap.get(name);
-    }
-
-    @Override
-    public Collection<String> tableNames() {
-        return tableInfoMap.keySet();
     }
 
     @Override

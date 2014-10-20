@@ -40,7 +40,6 @@ import org.elasticsearch.env.Environment;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 
@@ -95,11 +94,6 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
         } catch (ExecutionException e) {
             throw new UnhandledServerException("Failed to get TableInfo", e.getCause());
         }
-    }
-
-    @Override
-    public Collection<String> tableNames() {
-        return tableNamesIterable().toList();
     }
 
     @Override

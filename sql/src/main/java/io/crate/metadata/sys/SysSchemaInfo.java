@@ -28,7 +28,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Collection;
 import java.util.Iterator;
 
 @Singleton
@@ -53,11 +52,6 @@ public class SysSchemaInfo implements SchemaInfo {
     @Override
     public TableInfo getTableInfo(String name) {
         return tableInfos.get(name);
-    }
-
-    @Override
-    public Collection<String> tableNames() {
-        return tableInfos.keySet();
     }
 
     @Override
