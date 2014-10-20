@@ -21,7 +21,11 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.*;
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.client.Client;
 import org.junit.Rule;
@@ -285,7 +289,20 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         setUpSimple();
         execute("insert into t1 (id, new_col) values (?,?)", new Object[]{0, "1970-01-01"});
         refresh();
-        SQLResponse response = execute("select id, new_col from t1 where id=0");
+        SQLResponse response = null;
+        int retry = 0;
+
+        // schema update is async; retry if new column isn't available immediately
+        while (retry < 10) {
+            try {
+                response = execute("select id, new_col from t1 where id=0");
+                break;
+            } catch (SQLActionException e) {
+                retry++;
+                Thread.sleep(10);
+            }
+        }
+        assertNotNull(response);
         assertEquals(0, response.rows()[0][1]);
     }
 
