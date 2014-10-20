@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fix: non-matching global aggregates on partitioned tables failed
+
  - Fix: handle boost factor in simple match predicate correctly
 
  - Throw an error while using unknown root columns on SELECT

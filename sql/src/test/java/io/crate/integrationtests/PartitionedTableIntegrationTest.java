@@ -371,6 +371,26 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    public void testSelectCountFromPartitionedTableWhereClause() throws Exception {
+        execute("create table quotes (id integer, quote string, timestamp timestamp) " +
+                "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L});
+        execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
+        ensureGreen();
+        refresh();
+
+        execute("select count(*) from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000)");
+        assertEquals(1L, response.rowCount());
+        assertEquals(2L, response.rows()[0][0]);
+
+        execute("select count(*) from quotes where timestamp = 1");
+        assertEquals(0L, response.rows()[0][0]);
+    }
+
+    @Test
     public void testSelectFromPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
