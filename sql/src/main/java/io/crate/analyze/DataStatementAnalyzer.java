@@ -223,7 +223,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         Expression subscriptExpression = subscriptContext.expression();
         if (subscriptContext.qName() != null && subscriptExpression == null) {
             subscriptSymbol = context.allocationContext().resolveReference(
-                    subscriptContext.qName(), subscriptContext.parts());
+                    subscriptContext.qName(), subscriptContext.parts(), false);
         } else if (subscriptExpression != null) {
             subscriptSymbol = (DataTypeSymbol) subscriptExpression.accept(this, context);
         } else {

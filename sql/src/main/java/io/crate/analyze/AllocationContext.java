@@ -51,10 +51,14 @@ public class AllocationContext {
     }
 
     public Reference resolveReference(QualifiedName name) {
-        return resolveReference(name, null);
+        return resolveReference(name, null, false);
     }
 
-    public Reference resolveReference(QualifiedName name, @Nullable List<String> path) {
+    public Reference resolveReferenceForWrite(QualifiedName name) {
+        return resolveReference(name, null, true);
+    }
+
+    public Reference resolveReference(QualifiedName name, @Nullable List<String> path, boolean forWrite) {
         assert currentRelation != null : "currentRelation must be set in order to resolve a qualifiedName";
 
         ColumnIdent columnIdent;
@@ -95,7 +99,7 @@ public class AllocationContext {
         }
 
         // TODO: use RelationOutput
-        Reference reference = currentRelation.getReference(null, null, columnIdent);
+        Reference reference = currentRelation.getReference(null, null, columnIdent, forWrite);
         allocatedReferences.put(reference.info(), reference);
         return reference;
     }

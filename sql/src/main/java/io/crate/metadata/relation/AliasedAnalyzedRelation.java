@@ -74,9 +74,12 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation {
     }
 
     @Override
-    public Reference getReference(@Nullable String schema, @Nullable String tableOrAlias, ColumnIdent columnIdent) {
+    public Reference getReference(@Nullable String schema,
+                                  @Nullable String tableOrAlias,
+                                  ColumnIdent columnIdent,
+                                  boolean forWrite) {
         // TODO: check tableOrAlias...
-        return child.getReference(schema, tableOrAlias, columnIdent);
+        return child.getReference(schema, tableOrAlias, columnIdent, forWrite);
     }
 
     @Override

@@ -2,9 +2,12 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
@@ -65,6 +68,43 @@ public abstract class AbstractTableInfo implements TableInfo {
     @Override
     public ColumnIdent clusteredBy() {
         return null;
+    }
+
+    @Override
+    public DynamicReference dynamicReference(ColumnIdent ident, boolean forWrite) {
+        boolean parentIsIgnored = false;
+        if (!ident.isColumn()) {
+            // see if parent is strict object
+            ColumnIdent parentIdent = ident.getParent();
+            ReferenceInfo parentInfo = null;
+
+            while (parentIdent != null) {
+                parentInfo = getReferenceInfo(parentIdent);
+                if (parentInfo != null) {
+                    break;
+                }
+                parentIdent = parentIdent.getParent();
+            }
+
+            if (parentInfo != null) {
+                switch (parentInfo.objectType()) {
+                    case STRICT:
+                        throw new ColumnUnknownException(ident().name(), ident.fqn());
+                    case IGNORED:
+                        parentIsIgnored = true;
+                        break;
+                }
+            }
+        } else if (forWrite == false) {
+            // root object (currently table policy is never 'ignored')
+            // TODO: check table column-policy as soon as it is implemented
+            throw new ColumnUnknownException(ident().name(), ident.fqn());
+        }
+        DynamicReference reference = new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
+        if (parentIsIgnored) {
+            reference.objectType(ReferenceInfo.ObjectType.IGNORED);
+        }
+        return reference;
     }
 
     @Override

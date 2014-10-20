@@ -48,11 +48,21 @@ public class Functions {
      */
     public FunctionImplementation getSafe(FunctionIdent ident)
             throws IllegalArgumentException, UnsupportedOperationException {
-        FunctionImplementation implementation = get(ident);
+        FunctionImplementation implementation = null;
+        String exceptionMessage = null;
+        try {
+            implementation = get(ident);
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+                exceptionMessage = e.getMessage();
+            }
+        }
         if (implementation == null) {
-            throw new UnsupportedOperationException(
-                    String.format("unknown function: %s(%s)", ident.name(),
-                            Joiner.on(", ").join(ident.argumentTypes())));
+            if (exceptionMessage == null) {
+                exceptionMessage = String.format("unknown function: %s(%s)", ident.name(),
+                        Joiner.on(", ").join(ident.argumentTypes()));
+            }
+            throw new UnsupportedOperationException(exceptionMessage);
         }
         return implementation;
     }

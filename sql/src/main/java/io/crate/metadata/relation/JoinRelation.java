@@ -87,7 +87,10 @@ public class JoinRelation implements AnalyzedRelation {
     }
 
     @Override
-    public Reference getReference(@Nullable String schema, @Nullable String tableOrAlias, ColumnIdent columnIdent) {
+    public Reference getReference(@Nullable String schema,
+                                  @Nullable String tableOrAlias,
+                                  ColumnIdent columnIdent,
+                                  boolean forWrite) {
         // TODO:
         return null;
     }

@@ -20,11 +20,14 @@ public class DocTableInfoTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
+        TableIdent tableIdent = new TableIdent(null, "dummy");
 
         DocTableInfo info = new DocTableInfo(
                 mock(DocSchemaInfo.class),
-                new TableIdent(null, "dummy"),
-                ImmutableList.<ReferenceInfo>of(),
+                tableIdent,
+                ImmutableList.<ReferenceInfo>of(
+                        new ReferenceInfo(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
+                ),
                 ImmutableList.<ReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
                 ImmutableMap.<ColumnIdent, ReferenceInfo>of(),
@@ -39,9 +42,9 @@ public class DocTableInfoTest {
                 ImmutableList.<ColumnIdent>of(),
                 ImmutableList.<PartitionName>of());
 
-        ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("foobar"));
+        ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("o", ImmutableList.of("foobar")));
         assertNull(foobar);
-        DynamicReference reference = info.dynamicReference(new ColumnIdent("foobar"));
+        DynamicReference reference = info.dynamicReference(new ColumnIdent("o", ImmutableList.of("foobar")), false);
         assertNotNull(reference);
         assertSame(reference.valueType(), DataTypes.UNDEFINED);
     }
@@ -85,7 +88,7 @@ public class DocTableInfoTest {
         try {
             ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
             assertNull(info.getReferenceInfo(columnIdent));
-            info.dynamicReference(columnIdent);
+            info.dynamicReference(columnIdent, false);
             fail();
         } catch (ColumnUnknownException e) {
 
@@ -93,7 +96,7 @@ public class DocTableInfoTest {
         try {
             ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo"));
             assertNull(info.getReferenceInfo(columnIdent));
-            info.dynamicReference(columnIdent);
+            info.dynamicReference(columnIdent, false);
             fail();
         } catch (ColumnUnknownException e) {
 

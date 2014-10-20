@@ -215,6 +215,7 @@ public class BlobTableInfo implements TableInfo {
         return ImmutableList.of();
     }
 
+
     @Override
     public Iterator<ReferenceInfo> iterator() {
         return columns.iterator();
@@ -236,7 +237,7 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
+    public DynamicReference dynamicReference(ColumnIdent columnIdent, boolean forWrite) throws ColumnUnknownException {
         throw new ColumnUnknownException(columnIdent.sqlFqn());
     }
 }

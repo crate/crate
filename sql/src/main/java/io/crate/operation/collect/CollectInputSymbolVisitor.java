@@ -26,7 +26,6 @@ import io.crate.metadata.Functions;
 import io.crate.operation.AbstractImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.reference.DocLevelReferenceResolver;
-import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.SymbolFormatter;
 
@@ -71,10 +70,5 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         }
         context.docLevelExpressions.add(docLevelExpression);
         return docLevelExpression;
-    }
-
-    @Override
-    public Input<?> visitDynamicReference(DynamicReference symbol, Context context) {
-        return visitReference(symbol, context);
     }
 }

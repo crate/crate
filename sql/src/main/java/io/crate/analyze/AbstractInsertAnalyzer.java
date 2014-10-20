@@ -22,11 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.*;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
@@ -127,7 +122,7 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
         ReferenceInfo referenceInfo = context.table().getReferenceInfo(columnIdent);
         Reference reference;
         if (referenceInfo == null) {
-            reference = context.table().dynamicReference(columnIdent);
+            reference = context.table().dynamicReference(columnIdent, true);
             context.allocationContext().allocatedReferences.put(reference.info(), reference);
         } else if (context.allocationContext().allocatedReferences.containsKey(referenceInfo)) {
             throw new IllegalArgumentException(String.format(

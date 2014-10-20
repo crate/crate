@@ -24,6 +24,9 @@ package io.crate.operation.projectors;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -34,6 +37,7 @@ import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
@@ -46,6 +50,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractIndexWriterProjector implements Projector {
@@ -69,11 +74,13 @@ public abstract class AbstractIndexWriterProjector implements Projector {
             };
     private Projector downstream;
 
+    private final LoadingCache<List<BytesRef>, String> partitionIdentCache;
+
     protected AbstractIndexWriterProjector(ClusterService clusterService,
                                            Settings settings,
                                            TransportShardBulkAction transportShardBulkAction,
                                            TransportCreateIndexAction transportCreateIndexAction,
-                                           String tableName,
+                                           final String tableName,
                                            List<ColumnIdent> primaryKeys,
                                            List<Input<?>> idInputs,
                                            List<Input<?>> partitionedByInputs,
@@ -89,6 +96,19 @@ public abstract class AbstractIndexWriterProjector implements Projector {
         this.routingIdent = Optional.fromNullable(clusteredBy);
         this.routingInput = Optional.<Input<?>>fromNullable(routingInput);
         this.partitionedByInputs = partitionedByInputs;
+        if (partitionedByInputs.size() > 0) {
+            partitionIdentCache = CacheBuilder.newBuilder()
+                        .initialCapacity(10)
+                        .maximumSize(20)
+                        .build(new CacheLoader<List<BytesRef>, String>() {
+                            @Override
+                            public String load(@Nonnull List<BytesRef> key) throws Exception {
+                                return new PartitionName(tableName, key).stringValue();
+                            }
+                        });
+        } else {
+            partitionIdentCache = null;
+        }
         this.bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 settings,
@@ -187,8 +207,12 @@ public abstract class AbstractIndexWriterProjector implements Projector {
 
     private String getIndexName() {
         if (partitionedByInputs.size() > 0) {
-            return new PartitionName(tableName,
-                    Lists.transform(partitionedByInputs, inputToBytesRef)).stringValue();
+            List<BytesRef> partitions = Lists.transform(partitionedByInputs, inputToBytesRef);
+            try {
+                return partitionIdentCache.get(partitions);
+            } catch (ExecutionException e) {
+                throw ExceptionsHelper.convertToRuntime(e);
+            }
         } else {
             return tableName;
         }

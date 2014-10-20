@@ -22,14 +22,13 @@
 package io.crate.integrationtests;
 
 
-import io.crate.action.sql.SQLBulkRequest;
-import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -43,6 +42,9 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testUnassignedShards() throws Exception {
@@ -180,11 +182,11 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
     @Test
     public void testSelectUnknownNoResultWithTypes() throws Exception {
-        execute("create table unknown (id integer primary key, name string) " +
+        execute("create table unknown (id integer primary key, name object as(surname string)) " +
                 "clustered into 2 shards with (number_of_replicas=0)");
         ensureGreen();
 
-        assertResponseWithTypes("select bla from unknown where 1=0");
+        assertResponseWithTypes("select name['bla'] from unknown where 1=0");
     }
 
     @Test
@@ -279,6 +281,19 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("Adams"));
     }
+
+    @Test
+    public void testSubscriptArrayUnknownColumn() throws Exception {
+        execute("create table test (id integer primary key, names array(object as (surname string))) " +
+                "clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("unknown function: subscript(null, integer)");
+
+        execute("select names[1]['firstname'] from test");
+    }
+
 
     @Test
     public void testSelectRegexpMatchesGroup() throws Exception {

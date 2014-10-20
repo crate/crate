@@ -125,12 +125,13 @@ public class TableRelation implements AnalyzedRelation {
     @Override
     public Reference getReference(@Nullable String schema,
                                   @Nullable String tableOrAlias,
-                                  ColumnIdent columnIdent) {
+                                  ColumnIdent columnIdent,
+                                  boolean forWrite) {
         ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(columnIdent);
         if (referenceInfo == null) {
             referenceInfo = tableInfo.getIndexReferenceInfo(columnIdent);
             if (referenceInfo == null) {
-                return tableInfo.dynamicReference(columnIdent);
+                return tableInfo.dynamicReference(columnIdent, forWrite);
             }
         }
 

@@ -114,22 +114,21 @@ public class PartitionName implements Streamable {
     }
 
     @Nullable
-    public static String encodeIdent(List<BytesRef> values) {
+    public String encodeIdent() {
         if (values.size() == 0) {
             return null;
         }
 
-        BytesStreamOutput out = new BytesStreamOutput();
+        BytesStreamOutput streamOutput = new BytesStreamOutput(estimateSize(values));
         try {
-            out.writeVInt(values.size());
+            streamOutput.writeVInt(values.size());
             for (BytesRef value : values) {
-                StringType.INSTANCE.streamer().writeValueTo(out, value);
+                StringType.INSTANCE.streamer().writeValueTo(streamOutput, value);
             }
-            out.close();
         } catch (IOException e) {
             //
         }
-        String identBase32 = BASE32.encodeAsString(out.bytes().toBytes()).toLowerCase(Locale.ROOT);
+        String identBase32 = BASE32.encodeAsString(streamOutput.bytes().toBytes()).toLowerCase(Locale.ROOT);
         // decode doesn't need padding, remove it
         int idx = identBase32.indexOf('=');
         if (idx > -1) {
@@ -138,9 +137,16 @@ public class PartitionName implements Streamable {
         return identBase32;
     }
 
-    @Nullable
-    private String encodeIdent() {
-        return PartitionName.encodeIdent(this.values);
+    /**
+     * estimates the size the bytesRef values will take if written onto a StreamOutput using the String streamer
+     */
+    private int estimateSize(List<BytesRef> values) {
+        int expectedEncodedSize = 0;
+        for (BytesRef value : values) {
+            // 5 bytes for the value of the length itself using vInt
+            expectedEncodedSize += 5 + (value != null ? value.length : 0);
+        }
+        return expectedEncodedSize;
     }
 
     public String stringValue() {

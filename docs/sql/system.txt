@@ -660,7 +660,7 @@ Note, that querying a time setting will always return a ``string`` value::
 ::
 
     cr> select settings['cluster']['graceful_stop']['not_a_setting'] from sys.cluster;
-    SQLActionException[Can't handle Symbol sys.cluster.settings['cluster']['graceful_stop']['not_a_setting']]
+    SQLActionException[Unknown Reference sys.cluster.settings['cluster']['graceful_stop']['not_a_setting']]
 
 The default configuration in ``crate.yml`` looks like:
 

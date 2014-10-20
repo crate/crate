@@ -91,8 +91,11 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
     }
 
     @Override
-    public Reference getReference(@Nullable String schema, @Nullable String tableOrAlias, ColumnIdent columnIdent) {
-        return sourceRelation.getReference(schema, tableOrAlias, columnIdent);
+    public Reference getReference(@Nullable String schema,
+                                  @Nullable String tableOrAlias,
+                                  ColumnIdent columnIdent,
+                                  boolean forWrite) {
+        return sourceRelation.getReference(schema, tableOrAlias, columnIdent, forWrite);
     }
 
     public List<Symbol> groupBy() {

@@ -24,13 +24,10 @@ package io.crate.metadata.doc;
 import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
 import io.crate.analyze.where.WhereClause;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.metadata.*;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -43,7 +40,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 
-public class DocTableInfo implements TableInfo {
+public class DocTableInfo extends AbstractTableInfo {
 
     private final List<ReferenceInfo> columns;
     private final List<ReferenceInfo> partitionedByColumns;
@@ -56,7 +53,6 @@ public class DocTableInfo implements TableInfo {
     private final List<ColumnIdent> partitionedBy;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
-    private final DocSchemaInfo schemaInfo;
     private final ClusterService clusterService;
 
     private final String[] indices;
@@ -82,7 +78,7 @@ public class DocTableInfo implements TableInfo {
                         BytesRef numberOfReplicas,
                         List<ColumnIdent> partitionedBy,
                         List<PartitionName> partitions) {
-        this.schemaInfo = schemaInfo;
+        super(schemaInfo);
         this.clusterService = clusterService;
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
@@ -100,11 +96,6 @@ public class DocTableInfo implements TableInfo {
         this.isPartitioned = !partitionedByColumns.isEmpty();
         this.partitionedBy = partitionedBy;
         this.partitions = partitions;
-    }
-
-    @Override
-    public SchemaInfo schemaInfo() {
-        return schemaInfo;
     }
 
     /**
@@ -278,39 +269,5 @@ public class DocTableInfo implements TableInfo {
     @Override
     public Iterator<ReferenceInfo> iterator() {
         return references.values().iterator();
-    }
-
-    @Override
-    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
-        boolean parentIsIgnored = false;
-        if (!columnIdent.isColumn()) {
-            // see if parent is strict object
-            ColumnIdent parentIdent = columnIdent.getParent();
-            ReferenceInfo parentInfo = null;
-
-            while (parentIdent != null) {
-                parentInfo = getReferenceInfo(parentIdent);
-                if (parentInfo != null) {
-                    break;
-                }
-                parentIdent = parentIdent.getParent();
-            }
-
-            if (parentInfo != null) {
-                switch (parentInfo.objectType()) {
-                    case STRICT:
-                        throw new ColumnUnknownException(ident().name(), columnIdent.fqn());
-                    case IGNORED:
-                        parentIsIgnored = true;
-                        break;
-                }
-            }
-        }
-        DynamicReference reference = new DynamicReference(
-                new ReferenceIdent(ident(), columnIdent), rowGranularity());
-        if (parentIsIgnored) {
-            reference.objectType(ReferenceInfo.ObjectType.IGNORED);
-        }
-        return reference;
     }
 }

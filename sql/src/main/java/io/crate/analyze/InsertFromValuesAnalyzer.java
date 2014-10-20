@@ -118,7 +118,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
             Reference column = context.columns().get(i);
             final ColumnIdent columnIdent = column.info().ident().columnIdent();
             try {
-                valuesSymbol = context.normalizeInputForReference(valuesSymbol, column);
+                valuesSymbol = context.normalizeInputForReference(valuesSymbol, column, true);
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(column.info().ident().columnIdent().fqn(), e);
             }

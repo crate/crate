@@ -25,10 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.AbstractTableInfo;
-import io.crate.planner.symbol.DynamicReference;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -55,6 +53,7 @@ public abstract class SysTableInfo extends AbstractTableInfo {
         return null;
     }
 
+
     protected Routing tableRouting(WhereClause whereClause) {
         DiscoveryNodes nodes = clusterService.state().nodes();
         ImmutableMap.Builder<String, Map<String, Set<Integer>>> builder = ImmutableMap.builder();
@@ -65,10 +64,5 @@ public abstract class SysTableInfo extends AbstractTableInfo {
             );
         }
         return new Routing(builder.build());
-    }
-
-    @Override
-    public DynamicReference dynamicReference(ColumnIdent columnIdent) {
-        return new DynamicReference(new ReferenceIdent(ident(), columnIdent), rowGranularity());
     }
 }

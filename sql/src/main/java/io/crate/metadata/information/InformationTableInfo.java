@@ -74,11 +74,6 @@ public class InformationTableInfo extends AbstractTableInfo {
     }
 
     @Override
-    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
-        throw new ColumnUnknownException(columnIdent.sqlFqn());
-    }
-
-    @Override
     public Collection<ReferenceInfo> columns() {
         return columns;
     }

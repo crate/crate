@@ -891,7 +891,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testIsNullOnDynamicReference() {
-        SelectAnalysis analysis = analyze("select \"_id\" from users where invalid is null");
+        SelectAnalysis analysis = analyze("select \"_id\" from users where details['invalid'] is null");
         assertTrue(analysis.querySpecification().whereClause().noMatch());
     }
 
@@ -1048,7 +1048,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
          *  not (null  and null) -> not (null)  -> no match
          *  not (false and null) -> not (false) -> match
          */
-        analysis = analyze("select id, name from parted where not (date = 1395874800000 and col = 'undefined')");
+        analysis = analyze("select id, name from parted where not (date = 1395874800000 and obj['col'] = 'undefined')");
         assertThat(analysis.querySpecification().whereClause().partitions(), containsInAnyOrder(partition2));
         assertThat(analysis.querySpecification().whereClause().hasQuery(), is(false));
         assertThat(analysis.querySpecification().whereClause().noMatch(), is(false));
@@ -1121,8 +1121,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSortOnUnknownColumn() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot order by \"users.unknown_column\". The column doesn't exist.");
-        analyze("select name from users order by unknown_column");
+        expectedException.expectMessage("Cannot order by \"users.o['unknown_column']\". The column doesn't exist.");
+        analyze("select name from users order by o['unknown_column']");
 
     }
 
@@ -1138,12 +1138,12 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testSelectOrderByPartitionedNestedColumn() throws Exception {
-        analyze("select name from multi_parted order by obj['name']");
+        analyze("select id from multi_parted order by obj['name']");
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testSelectOrderByPartitionedNestedColumnInFunction() throws Exception {
-        analyze("select name from multi_parted order by format('abc %s', obj['name'])");
+        analyze("select id from multi_parted order by format('abc %s', obj['name'])");
     }
 
 
@@ -1529,9 +1529,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testMatchOnDynamicColumn() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot MATCH on non existing column users.me_not_exizzt");
+        expectedException.expectMessage("cannot MATCH on non existing column users.details['me_not_exizzt']");
 
-        analyze("select * from users where match(me_not_exizzt, 'Arthur Dent')");
+        analyze("select * from users where match(details['me_not_exizzt'], 'Arthur Dent')");
     }
 
     @Test
@@ -1687,7 +1687,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testIsNotNullDynamic() {
-         SelectAnalysis analysis = analyze("select * from users where no_such_column is not null");
+         SelectAnalysis analysis = analyze("select * from users where o['no_such_column'] is not null");
          assertTrue(analysis.hasNoResult());
     }
 

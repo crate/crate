@@ -91,7 +91,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -369,13 +372,13 @@ public class LocalDataCollectTest {
     @Test
     public void testCollectUnknownReference() throws Throwable {
         expectedException.expect(UnhandledServerException.class);
-        expectedException.expectMessage("Unknown Reference");
+        expectedException.expectMessage("Unknown Reference some.table.some_column");
 
         Reference unknownReference = new Reference(
                 new ReferenceInfo(
                         new ReferenceIdent(
-                                new TableIdent("", ""),
-                                ""
+                                new TableIdent("some", "table"),
+                                "some_column"
                         ),
                         RowGranularity.NODE,
                         DataTypes.BOOLEAN

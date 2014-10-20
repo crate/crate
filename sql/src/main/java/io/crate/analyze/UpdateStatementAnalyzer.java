@@ -31,6 +31,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.RelationSymbol;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.Update;
 import io.crate.types.DataTypes;
@@ -89,7 +90,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                     Symbol value = process(node.expression(), context);
                     Literal updateValue;
                     try {
-                        updateValue = context.normalizeInputForReference(value, reference);
+                        updateValue = context.normalizeInputForReference(value, reference, true);
                     } catch(IllegalArgumentException|UnsupportedOperationException e) {
                         throw new ColumnValidationException(ident.fqn(), e);
                     }
@@ -103,6 +104,11 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
 
                     context.addAssignment(reference, updateValue);
                     return null;
+                }
+
+                @Override
+                protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalysis.NestedAnalysis context) {
+                    return context.allocationContext().resolveReferenceForWrite(node.getName());
                 }
 
                 private void ensureNotUpdated(ColumnIdent columnUpdated,
@@ -143,6 +149,12 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
         }
         return null;
     }
+
+    @Override
+    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalysis context) {
+        return context.allocationContext().resolveReferenceForWrite(node.getName());
+    }
+
 
     @Override
     public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {

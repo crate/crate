@@ -46,7 +46,8 @@ public interface AnalyzedRelation {
 
     public Reference getReference(@Nullable String schema,
                                   @Nullable String tableOrAlias,
-                                  ColumnIdent columnIdent);
+                                  ColumnIdent columnIdent,
+                                  boolean forWrite);
 
     /**
      * A list of tables this relation references.

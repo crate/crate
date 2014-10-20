@@ -237,6 +237,9 @@ public class Setup {
                         put("location", new HashMap<String, Object>(){{
                             put("type", "geo_shape");
                         }});
+                        put("o", new HashMap<String, Object>(){{
+                            put("type", "object");
+                        }});
                         put("population", new HashMap<String, Object>(){{
                             put("type", "long");
                             put("store", "false");
@@ -273,7 +276,8 @@ public class Setup {
     public void partitionTableSetup() {
         transportExecutor.exec("create table parted (" +
                 "id int primary key," +
-                "date timestamp primary key" +
+                "date timestamp primary key," +
+                "o object" +
                 ") partitioned by (date) with (number_of_replicas=0)");
         transportExecutor.ensureGreen();
         transportExecutor.exec("insert into parted (id, date) values (1, '2014-01-01')");

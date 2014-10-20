@@ -54,7 +54,7 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      *
      * @throws io.crate.exceptions.ColumnUnknownException in case the relation doesn't support DynamicReferences
      */
-    DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException;
+    DynamicReference dynamicReference(ColumnIdent columnIdent, boolean forWrite) throws ColumnUnknownException;
 
     /**
      * returns the top level columns of this table with predictable order

@@ -237,21 +237,24 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     @Test
     public void testGroupByUnknownOrderBy() throws Exception {
         expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column 'lol' unknown");
         transportExecutor.exec(
             "select sum(num_docs), table_name from sys.shards group by table_name order by lol");
     }
 
     @Test
     public void testGroupByUnknownWhere() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column 'lol' unknown");
         SQLResponse response = transportExecutor.exec(
             "select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name");
-        assertEquals(0, response.rowCount());
     }
 
     @Test
     public void testGlobalAggregateUnknownWhere() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column 'lol' unknown");
         SQLResponse response = transportExecutor.exec(
             "select sum(num_docs) from sys.shards where lol='funky'");
-        assertEquals(1, response.rowCount()); // global aggregate always returns one row
     }
 }

@@ -61,7 +61,7 @@ public class BlobTableInfoTest {
     @Test
     public void testUnknownColumn() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        DynamicReference reference = info.dynamicReference(new ColumnIdent("foobar"));
+        DynamicReference reference = info.dynamicReference(new ColumnIdent("foobar"), false);
         assertNull(reference);
     }
 

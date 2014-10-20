@@ -26,12 +26,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
 import io.crate.analyze.where.WhereClause;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.mockito.Answers;
@@ -249,18 +247,6 @@ public class TestingTableInfo extends AbstractTableInfo {
     @Override
     public IndexReferenceInfo getIndexReferenceInfo(ColumnIdent columnIdent) {
         return indexColumns.get(columnIdent);
-    }
-
-    @Override
-    public DynamicReference dynamicReference(ColumnIdent columnIdent) throws ColumnUnknownException {
-        if (!columnIdent.isColumn()) {
-             ColumnIdent parentIdent = columnIdent.getParent();
-             ReferenceInfo parentInfo = getReferenceInfo(parentIdent);
-             if (parentInfo != null && parentInfo.objectType() == ReferenceInfo.ObjectType.STRICT) {
-                 throw new ColumnUnknownException(ident().name(), ident.fqn());
-             }
-        }
-        return new DynamicReference(new ReferenceIdent(ident(), columnIdent), rowGranularity());
     }
 
     @Override

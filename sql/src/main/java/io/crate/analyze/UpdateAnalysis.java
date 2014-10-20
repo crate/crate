@@ -34,7 +34,7 @@ import io.crate.planner.symbol.Symbol;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class UpdateAnalysis extends Analysis {
+public class UpdateAnalysis extends AbstractDataAnalysis {
 
     private static final Predicate<NestedAnalysis> HAS_NO_RESULT_PREDICATE = new Predicate<NestedAnalysis>() {
         @Override
@@ -50,7 +50,7 @@ public class UpdateAnalysis extends Analysis {
                           Functions functions,
                           Analyzer.ParameterContext parameterContext,
                           ReferenceResolver referenceResolver) {
-        super(parameterContext);
+        super(referenceInfos, functions, parameterContext, referenceResolver);
         int numNested = 1;
         if (parameterContext.bulkParameters.length > 0) {
             numNested = parameterContext.bulkParameters.length;
