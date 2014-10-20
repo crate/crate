@@ -51,8 +51,11 @@ public class ESCountTask implements Task<QueryResult> {
 
         final SettableFuture<QueryResult> result = SettableFuture.create();
         results = Arrays.<ListenableFuture<QueryResult>>asList(result);
-        // empty partitioned table does not exists, shortcut here
-        if (node.tableInfo().isPartitioned() && node.tableInfo().partitions().size() == 0) {
+        // empty partitioned table does not exists
+        // or where clause on partitioned table is NO_MATCH
+        // shortcut here
+        if (node.tableInfo().isPartitioned() &&
+                (node.tableInfo().partitions().size() == 0 || node.whereClause().noMatch())) {
             result.set(new QueryResult(new Object[][]{new Object[]{0L}}));
             return;
         }
@@ -63,7 +66,6 @@ public class ESCountTask implements Task<QueryResult> {
         } catch (IOException e) {
             result.setException(e);
         }
-
     }
 
     @Override
