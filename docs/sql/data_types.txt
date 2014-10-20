@@ -399,13 +399,13 @@ It is also possible to convert array structures to different data
 types, e.g. converting an array of integer values to a boolean array.
 ::
 
-    cr> select cast(thread_pools['active'] as array(boolean)) as
+    cr> select cast([0,1,5] as array(boolean)) as
     ... active_threads from sys.nodes limit 1;
-    +-----------------------...-----+
-    | active_threads                |
-    +-----------------------...-----+
-    | [false, false, false, ...]    |
-    +-----------------------...-----+
+    +---------------------+
+    | active_threads      |
+    +---------------------+
+    | [false, true, true] | 
+    +---------------------+
     SELECT 1 row in set (... sec)
 
 .. note::
