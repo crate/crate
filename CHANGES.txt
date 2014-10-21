@@ -28,6 +28,7 @@ Unreleased
  - Renamed NullType to UndefinedType in order to avoid confusion
    about its usage
 
+2014/10/21 0.45.1
 2014/10/21 0.44.7
 =================
 
