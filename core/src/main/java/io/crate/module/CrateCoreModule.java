@@ -24,27 +24,42 @@ package io.crate.module;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.ClusterIdService;
 import io.crate.Version;
+import io.crate.core.CrateLoader;
 import io.crate.rest.CrateRestMainAction;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.TypeLiteral;
+import org.elasticsearch.common.inject.*;
 import org.elasticsearch.common.inject.matcher.AbstractMatcher;
 import org.elasticsearch.common.inject.spi.InjectionListener;
 import org.elasticsearch.common.inject.spi.TypeEncounter;
 import org.elasticsearch.common.inject.spi.TypeListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.action.main.RestMainAction;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class CrateCoreModule extends AbstractModule {
+import static org.elasticsearch.common.inject.Modules.createModule;
+
+public class CrateCoreModule extends AbstractModule implements SpawnModules, PreProcessModule {
 
     final ESLogger logger = Loggers.getLogger(getClass());
+    private final CrateLoader crateLoader;
+    private final Settings settings;
+
+    public CrateCoreModule(Settings settings) {
+        this.settings = settings;
+        crateLoader = CrateLoader.getInstance(settings);
+    }
 
     @Override
     protected void configure() {
         Version version = Version.CURRENT;
         logger.info("configuring crate. version: {}", version);
+
+        bind(CrateLoader.class).toInstance(crateLoader);
 
         /**
          * This is a rather hacky method to overwrite the handler for "/"
@@ -69,6 +84,22 @@ public class CrateCoreModule extends AbstractModule {
             new RestMainActionListener(crateListener.instanceFuture));
 
         bind(ClusterIdService.class).asEagerSingleton();
+    }
+
+    @Override
+    public void processModule(Module module) {
+        crateLoader.processModule(module);
+    }
+
+    @Override
+    public Iterable<? extends Module> spawnModules() {
+        List<Module> modules = new ArrayList<>();
+        Collection<Class<? extends Module>> moduleClasses = crateLoader.modules();
+        for (Class<? extends Module> moduleClass : moduleClasses) {
+            modules.add(createModule(moduleClass, settings));
+        }
+        modules.addAll(crateLoader.modules(settings));
+        return modules;
     }
 
     private class RestMainActionListener implements TypeListener {

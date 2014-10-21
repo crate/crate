@@ -21,12 +21,14 @@
 
 package io.crate.plugin;
 
+import io.crate.core.CrateLoader;
 import io.crate.module.CrateCoreModule;
+import io.crate.module.CrateCoreShardModule;
+import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
-import io.crate.rest.CrateRestMainAction;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,9 +36,11 @@ import java.util.Collection;
 public class CrateCorePlugin extends AbstractPlugin {
 
     private final Settings settings;
+    private final CrateLoader crateLoader;
 
     public CrateCorePlugin(Settings settings) {
         this.settings = settings;
+        this.crateLoader = CrateLoader.getInstance(settings);
     }
 
     @Override
@@ -50,10 +54,24 @@ public class CrateCorePlugin extends AbstractPlugin {
     }
 
     @Override
+    public Settings additionalSettings() {
+        return crateLoader.additionalSettings();
+    }
+
+    @Override
     public Collection<Class<? extends Module>> modules() {
         Collection<Class<? extends Module>> modules = new ArrayList<>();
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(CrateCoreModule.class);
+        }
+        return modules;
+    }
+
+    @Override
+    public Collection<Class<? extends Module>> shardModules() {
+        Collection<Class<? extends Module>> modules = new ArrayList<>();
+        if (!settings.getAsBoolean("node.client", false)) {
+            modules.add(CrateCoreShardModule.class);
         }
         return modules;
     }

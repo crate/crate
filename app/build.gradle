@@ -1,11 +1,24 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'eu.appsatori:gradle-fatjar-plugin:0.3'
+    }
+}
+
 apply plugin:'distribution'
 apply plugin: 'java'
+apply plugin: 'eu.appsatori.fatjar'
 
 archivesBaseName = 'crate-app'
 
 configurations {
     all*.exclude group: 'org.elasticsearch'
 }
+
+
 
 task release(dependsOn: 'distTar') << {
     logger.info("released version: " + getVersion.version);
@@ -15,7 +28,8 @@ task nightly(dependsOn: 'distTar') << {
     logger.info("nightly version: " + getVersion.version);
 }
 
-task getVersion ( dependsOn: 'classes') << {
+
+task getVersion (dependsOn: 'classes') << {
     def stdout = new ByteArrayOutputStream()
     javaexec {
         classpath = sourceSets.main.runtimeClasspath
@@ -38,8 +52,20 @@ task getVersion ( dependsOn: 'classes') << {
 
     logger.quiet("gitTag: " + gitTag)
     logger.quiet("version: " + version)
+}
 
-
+fatJar {
+    dependsOn getVersion
+    doFirst {
+        manifest.attributes 'Implementation-Version': getVersion.version
+    }
+    manifest {
+        attributes 'Main-Class': 'io.crate.bootstrap.CrateF',
+        'Implementation-Title': 'Crate',
+        'Built-Date': new Date(),
+        'Built-JDK': System.getProperty('java.version'),
+        'Built-Gradle': gradle.gradleVersion
+    }
 }
 
 task dist {
