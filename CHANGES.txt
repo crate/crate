@@ -2,8 +2,8 @@
 Changes for Crate Data
 ======================
 
-Unreleased
-==========
+2014/10/21 0.44.7
+=================
 
  - Fix: non-matching global aggregates on partitioned tables failed
 
