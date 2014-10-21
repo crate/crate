@@ -5,16 +5,7 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - Fix: non-matching global aggregates on partitioned tables failed
-
- - Fix: handle boost factor in simple match predicate correctly
-
  - Throw an error while using unknown root columns on SELECT
-
- - Reduced memory consumption of COPY FROM statements that involve partitioned
-   tables.
-
- - Reduced memory consumption during execution of regular SELECT statements
 
 2014/10/16 0.45.0
 =================
@@ -36,6 +27,21 @@ Unreleased
 
  - Renamed NullType to UndefinedType in order to avoid confusion
    about its usage
+
+2014/10/21 0.44.7
+=================
+
+ - Fix: non-matching global aggregates on partitioned tables failed
+
+ - Fix: handle boost factor in simple match predicate correctly
+
+ - Reduced memory consumption of COPY FROM statements that involve partitioned
+   tables.
+
+ - Reduced memory consumption during execution of regular SELECT statements
+
+ - Fix: Requests that resulted in a shard failure could cause a NPE during the
+   generation of the error message.
 
 2014/10/14 0.44.6
 =================
