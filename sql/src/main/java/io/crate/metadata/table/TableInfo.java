@@ -106,4 +106,16 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      */
     DynamicReference getDynamic(ColumnIdent ident, boolean forWrite);
 
+    /**
+     * return the column policy of this table
+     * that defines how adding new columns will be handled.
+     * <ul>
+     * <li><code>STRICT</code> means no new columns are allowed
+     * <li><code>DYNAMIC</code> means new columns will be added to the schema
+     * <li><code>IGNORED</code> means new columns will not be added to the schema.
+     * those ignored columns can only be selected.
+     * </ul>
+     */
+    public ColumnPolicy columnPolicy();
+
 }

@@ -167,7 +167,8 @@ public class DocTableInfoBuilder {
                 concreteIndices, clusterService,
                 md.numberOfShards(), md.numberOfReplicas(),
                 md.partitionedBy(),
-                partitions);
+                partitions,
+                md.columnPolicy());
     }
 
 }
