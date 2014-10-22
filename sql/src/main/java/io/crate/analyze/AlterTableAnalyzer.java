@@ -56,8 +56,9 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
 
         if (node.genericProperties().isPresent()) {
             GenericProperties properties = node.genericProperties().get();
-            context.settings(
-                    tablePropertiesAnalysis.propertiesToSettings(properties, context.parameters()));
+            TablePropertiesAnalysis.TableProperties tableProperties =
+                    tablePropertiesAnalysis.tableProperties(properties, context.parameters());
+            context.settings(tableProperties.settings());
         } else if (!node.resetProperties().isEmpty()) {
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (String property : node.resetProperties()) {

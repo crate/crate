@@ -109,7 +109,7 @@ public class ESBulkIndexTask implements Task<RowCountResult> {
                         }
                     } else {
                         for (ListenableFuture<RowCountResult> future : resultList) {
-                            ((SettableFuture<RowCountResult>) future).set(new RowCountResult(-2L, throwable));
+                            ((SettableFuture<RowCountResult>) future).set(RowCountResult.error(throwable));
                         }
                     }
                 }

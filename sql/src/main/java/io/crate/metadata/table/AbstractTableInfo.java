@@ -105,7 +105,7 @@ public abstract class AbstractTableInfo implements TableInfo {
                         break;
                 }
             }
-        } else if (!forWrite) {
+        } else {
             switch (columnPolicy()) {
                 case STRICT:
                     throw new ColumnUnknownException(ident().name(), ident.fqn());
