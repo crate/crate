@@ -49,7 +49,7 @@ public abstract class AsyncChainedTask implements Task<TaskResult> {
         ListenableFuture<TaskResult> resultFallback = Futures.withFallback(result, new FutureFallback<TaskResult>() {
             @Override
             public ListenableFuture<TaskResult> create(@Nonnull Throwable t) throws Exception {
-                return Futures.immediateFuture((TaskResult) new RowCountResult(-2, t));
+                return Futures.immediateFuture((TaskResult) RowCountResult.error(t));
             }
         });
         resultList = new ArrayList<>();

@@ -35,11 +35,15 @@ public class RowCountResult extends TaskResult {
         this.error = null;
     }
 
-    public RowCountResult(long rowCount, Throwable throwable) {
+    private RowCountResult(long rowCount, Throwable throwable) {
         this.rowCount = rowCount;
         this.error = throwable;
     }
 
+    public static RowCountResult error(Throwable throwable) {
+        return new RowCountResult(-2L, throwable);
+    }
+    
     @Override
     public Object[][] rows() {
         return EMPTY_ROWS;
