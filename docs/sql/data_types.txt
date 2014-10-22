@@ -180,7 +180,7 @@ Syntax::
     <columnName> OBJECT [ ({DYNAMIC|STRICT|IGNORED}) ] [ AS ( <columnDefinition>* ) ]
 
 The only required part of this column definition is ``OBJECT``.
-The object type defining this objects behaviour is optional, if left out ``DYNAMIC`` will be used.
+The column policy defining this objects behaviour is optional, if left out ``DYNAMIC`` will be used.
 The list of subcolumns is optional as well, if left out, this object will have no schema
 (with a schema created on the fly on first inserts in case of ``DYNAMIC``).
 
@@ -202,7 +202,7 @@ Example::
 strict
 ------
 
-It can be configured to be ``strict``, rejecting any subcolumn that is not defined upfront
+The column policy can be configured to be ``strict``, rejecting any subcolumn that is not defined upfront
 in the schema. As you might have guessed, defining ``strict`` objects without subcolumns results
 in an unusable column that will always be null, which is the most useless column one could create.
 
@@ -223,7 +223,7 @@ dynamic
 
 Another option is ``dynamic``, which means that new subcolumns can be added in this object.
 
-Note that adding new columns to a ``dynamic`` object will affect the schema of the
+Note that adding new columns to an object with a ``dynamic`` policy will affect the schema of the
 table. Once a column is added, it shows up in the ``information_schema.columns``
 table and its type and attributes are fixed. They will have the type that was guessed by their
 inserted/updated value and they will always be ``not_indexed`` which means
