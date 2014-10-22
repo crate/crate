@@ -105,10 +105,16 @@ public abstract class AbstractTableInfo implements TableInfo {
                         break;
                 }
             }
-        } else if (forWrite == false) {
-            // root object (currently table policy is never 'ignored')
-            // TODO: check table column-policy as soon as it is implemented
-            throw new ColumnUnknownException(ident().name(), ident.fqn());
+        } else if (!forWrite) {
+            switch (columnPolicy()) {
+                case STRICT:
+                    throw new ColumnUnknownException(ident().name(), ident.fqn());
+                case IGNORED:
+                    parentIsIgnored = true;
+                    break;
+                default:
+                    break;
+            }
         }
         DynamicReference reference = new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
         if (parentIsIgnored) {

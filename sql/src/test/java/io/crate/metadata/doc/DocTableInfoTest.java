@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataTypes;
@@ -40,7 +41,8 @@ public class DocTableInfoTest {
                 5,
                 new BytesRef("0"),
                 ImmutableList.<ColumnIdent>of(),
-                ImmutableList.<PartitionName>of());
+                ImmutableList.<PartitionName>of(),
+                ColumnPolicy.DYNAMIC);
 
         ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("o", ImmutableList.of("foobar")));
         assertNull(foobar);
@@ -82,7 +84,8 @@ public class DocTableInfoTest {
                 5,
                 new BytesRef("0"),
                 ImmutableList.<ColumnIdent>of(),
-                ImmutableList.<PartitionName>of());
+                ImmutableList.<PartitionName>of(),
+                ColumnPolicy.DYNAMIC);
 
 
         try {

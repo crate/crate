@@ -10,6 +10,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.CreateTableAnalysis;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.metadata.*;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -736,6 +737,103 @@ public class DocIndexMetaDataTest {
         IndexReferenceInfo indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
         assertThat(indexInfo.indexType(), is(ReferenceInfo.IndexType.ANALYZED));
         assertThat(indexInfo.ident().columnIdent().fqn(), is("fun_name_ft"));
+    }
+
+    @Test
+    public void testExtractColumnPolicy() throws Exception {
+        XContentBuilder ignoredBuilder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .field("dynamic", false)
+                .startObject("properties")
+                .startObject("id")
+                .field("type", "integer")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("content")
+                .field("type", "string")
+                .field("index", "no")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        DocIndexMetaData mdIgnored = newMeta(getIndexMetaData("test_ignored", ignoredBuilder), "test_ignored");
+        assertThat(mdIgnored.columnPolicy(), is(ColumnPolicy.IGNORED));
+
+        XContentBuilder strictBuilder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .field("dynamic", "strict")
+                .startObject("properties")
+                .startObject("id")
+                .field("type", "integer")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("content")
+                .field("type", "string")
+                .field("index", "no")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        DocIndexMetaData mdStrict = newMeta(getIndexMetaData("test_strict", strictBuilder), "test_strict");
+        assertThat(mdStrict.columnPolicy(), is(ColumnPolicy.STRICT));
+
+        XContentBuilder dynamicBuilder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .field("dynamic", true)
+                .startObject("properties")
+                .startObject("id")
+                .field("type", "integer")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("content")
+                .field("type", "string")
+                .field("index", "no")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        DocIndexMetaData mdDynamic = newMeta(getIndexMetaData("test_dynamic", dynamicBuilder), "test_dynamic");
+        assertThat(mdDynamic.columnPolicy(), is(ColumnPolicy.DYNAMIC));
+
+        XContentBuilder missingBuilder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("properties")
+                .startObject("id")
+                .field("type", "integer")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("content")
+                .field("type", "string")
+                .field("index", "no")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        DocIndexMetaData mdMissing = newMeta(getIndexMetaData("test_missing", missingBuilder), "test_missing");
+        assertThat(mdMissing.columnPolicy(), is(ColumnPolicy.DYNAMIC));
+
+        XContentBuilder wrongBuilder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .field("dynamic", "wrong")
+                .startObject("properties")
+                .startObject("id")
+                .field("type", "integer")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("content")
+                .field("type", "string")
+                .field("index", "no")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        DocIndexMetaData mdWrong = newMeta(getIndexMetaData("test_wrong", wrongBuilder), "test_wrong");
+        assertThat(mdWrong.columnPolicy(), is(ColumnPolicy.DYNAMIC));
     }
 }
 

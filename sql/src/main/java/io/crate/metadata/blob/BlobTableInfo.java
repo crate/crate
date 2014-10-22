@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -216,6 +217,11 @@ public class BlobTableInfo implements TableInfo {
     @Override
     public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
         return null;
+    }
+
+    @Override
+    public ColumnPolicy columnPolicy() {
+        return ColumnPolicy.STRICT;
     }
 
     public DynamicReference getDynamic(ColumnIdent ident) {
