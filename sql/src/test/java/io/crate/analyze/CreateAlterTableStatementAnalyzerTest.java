@@ -31,6 +31,7 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
 import org.apache.lucene.util.BytesRef;
@@ -162,6 +163,22 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "ALTER TABLE user_refresh_interval " +
                 "RESET (refresh_interval)");
         assertEquals("1000", analysisReset.settings().get(TablePropertiesAnalysis.REFRESH_INTERVAL));
+    }
+
+    @Test
+    public void testAlterTableWithColumnPolicy() throws Exception {
+        AlterTableAnalysis analysisSet = (AlterTableAnalysis)analyze(
+                "ALTER TABLE user_refresh_interval " +
+                        "SET (column_policy = 'strict')");
+        assertEquals(ColumnPolicy.STRICT, analysisSet.columnPolicy());
+    }
+
+    @Test
+    public void testAlterTableWithInvalidColumnPolicy() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid value for argument 'column_policy'");
+        analyze("ALTER TABLE user_refresh_interval " +
+                       "SET (column_policy = 'ignored')");
     }
 
     @Test

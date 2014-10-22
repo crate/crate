@@ -334,7 +334,97 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "NULL| NULL| 6| true| NULL| false\n" +
                 "troll| 1414059600000| 28| true| true| true\n"));
+    }
 
+    @Test
+    public void testAlterDynamicTable() throws Exception {
+        execute("create table dynamic_table (" +
+                "  id integer primary key, " +
+                "  score double" +
+                ") with (number_of_replicas=0)");
+        ensureGreen();
+        execute("alter table dynamic_table set (column_policy = 'strict')");
+        ensureGreen();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column 'new_col' unknown");
+        execute("insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')");
+    }
+
+    @Test
+    public void testAlterPartitionedTable() throws Exception {
+        execute("create table dynamic_table (" +
+                "  id integer, " +
+                "  score double" +
+                ") partitioned by (score) with (number_of_replicas=0, column_policy='strict')");
+        ensureGreen();
+        execute("insert into dynamic_table (id, score) values (1, 10)");
+        execute("alter table dynamic_table set (column_policy= 'dynamic')");
+        ensureGreen();
+        // After changing the column_policy it's possible to add new columns to existing and new
+        // partitions
+        execute("insert into dynamic_table (id, score, comment) values (2,10,'this is a new column')");
+        execute("insert into dynamic_table (id, score, new_comment) values (2,5,'this is a new column on a new partition')");
+
+        GetIndexTemplatesResponse response = client().admin().indices()
+                .prepareGetTemplates(PartitionName.templateName("dynamic_table"))
+                .execute().actionGet();
+        assertThat(response.getIndexTemplates().size(), is(1));
+        IndexTemplateMetaData template = response.getIndexTemplates().get(0);
+        CompressedString mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(mappingStr, is(notNullValue()));
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(mapping.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+
+        execute("insert into dynamic_table (id, score, new_col) values (?, ?, ?)",
+                new Object[]{6, 3, "hello"});
+        execute("refresh table dynamic_table");
+
+        MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+
+        partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("5.0"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+
+        partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("3.0"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+    }
+
+    @Test
+    public void testAlterSinglePartition() throws Exception {
+        execute("create table dynamic_table (" +
+                "  id integer, " +
+                "  score double" +
+                ") partitioned by (score) with (number_of_replicas=0, column_policy='strict')");
+        ensureGreen();
+        execute("insert into dynamic_table (id, score) values (1, 10)");
+        execute("insert into dynamic_table (id, score) values (2, 5)");
+        execute("alter table dynamic_table partition (score = 10) set (column_policy= 'dynamic')");
+        ensureGreen();
+        execute("insert into dynamic_table (id, score) values (2, 7)");
+        execute("refresh table dynamic_table");
+
+        MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+
+        partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("5.0"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(ColumnPolicy.STRICT.value()));
+
+        partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("7.0"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(ColumnPolicy.STRICT.value()));
     }
 
 }
