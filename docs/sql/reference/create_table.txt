@@ -192,3 +192,24 @@ to 1000 milliseconds.
     internal factors that might trigger a refresh.
 
 For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.
+
+.. _sql_ref_column_policy:
+
+column_policy
+~~~~~~~~~~~~~
+
+Specifies the column policy of the table. The default column policy is
+``dynamic``.
+
+The column policy is defined like this::
+
+    WITH ( column_policy = {'dynamic' | 'strict'} )
+
+:strict: Rejecting any column on insert, update or copy from which is not
+    defined in the schema
+:dynamic: New columns can be added using insert, update or copy from.
+    New columns added to ``dynamic`` tables are, once added,
+    usable as usual columns. One can retrieve them, sort by them
+    and use them in where clauses.
+
+For futher details and examples see :ref:`column_policy`.
