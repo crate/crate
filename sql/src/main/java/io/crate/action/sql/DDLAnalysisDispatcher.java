@@ -386,7 +386,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         }
 
         final List<ListenableFuture<?>> results = new ArrayList<>(
-                indices.length + (updateTemplate ? 1 : 0)
+                indices.length + (updateTemplate ? 1 : 0) + (analysis.columnPolicy().isPresent() ? 1 : 0)
         );
         if (updateTemplate) {
             final SettableFuture<?> templateFuture = SettableFuture.create();
@@ -399,22 +399,22 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
             transportGetIndexTemplatesAction.execute(getRequest, new ActionListener<GetIndexTemplatesResponse>() {
                 @Override
                 public void onResponse(GetIndexTemplatesResponse response) {
-                    String mapping;
-                    try {
-                        mapping = response.getIndexTemplates().get(0).getMappings().get(Constants.DEFAULT_MAPPING_TYPE).string();
-                    } catch (IOException e) {
-                        templateFuture.setException(e);
-                        return;
+                    Map<String, Object> mapping = new HashMap<>();
+                    IndexTemplateMetaData template = response.getIndexTemplates().get(0);
+                    if(analysis.columnPolicy().isPresent()){
+                        mapping.put("dynamic", analysis.columnPolicy().get());
                     }
+                    mapping = mergeMapping(template, mapping);
+
                     ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
-                    settingsBuilder.put(response.getIndexTemplates().get(0).settings());
+                    settingsBuilder.put(template.settings());
                     settingsBuilder.put(analysis.settings());
 
                     PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
                             .create(false)
                             .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
                             .settings(settingsBuilder.build())
-                            .template(response.getIndexTemplates().get(0).template());
+                            .template(template.template());
                     for (ObjectObjectCursor<String, AliasMetaData> container : response.getIndexTemplates().get(0).aliases()) {
                         Alias alias = new Alias(container.key);
                         request.alias(alias);
@@ -440,16 +440,38 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
             });
 
         }
-        // update every concrete index
-        for (String index : indices) {
-            UpdateSettingsRequest request = new UpdateSettingsRequest(
-                    analysis.settings(),
-                    index);
+        if( analysis.settings().getAsMap().size() > 0){
+            // update every concrete index
+            for (String index : indices) {
+                UpdateSettingsRequest request = new UpdateSettingsRequest(
+                        analysis.settings(),
+                        index);
+                final SettableFuture<?> future = SettableFuture.create();
+                results.add(future);
+                transportUpdateSettingsAction.execute(request, new ActionListener<UpdateSettingsResponse>() {
+                    @Override
+                    public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
+                        future.set(null);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        future.setException(e);
+                    }
+                });
+            }
+        }
+        if(analysis.columnPolicy().isPresent()){
+            PutMappingRequest request = new PutMappingRequest(indices);
+            request.type(Constants.DEFAULT_MAPPING_TYPE);
+            Map<String, Object> mapping = new HashMap<>();
+            mapping.put("dynamic", analysis.columnPolicy().get());
+            request.source(mapping);
             final SettableFuture<?> future = SettableFuture.create();
             results.add(future);
-            transportUpdateSettingsAction.execute(request, new ActionListener<UpdateSettingsResponse>() {
+            transportPutMappingAction.execute(request, new ActionListener<PutMappingResponse>() {
                 @Override
-                public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
+                public void onResponse(PutMappingResponse putMappingResponse) {
                     future.set(null);
                 }
 
