@@ -175,8 +175,9 @@ public class TransportExecutor implements Executor {
             context.addTask(new QueryThenFetchTask(
                     node,
                     clusterService,
-                    transportActionProvider.transportQueryShardAction(),
-                    transportActionProvider.searchServiceTransportAction(),
+                    settings,
+                    transportActionProvider,
+                    new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
                     searchPhaseController,
                     threadPool));
             return null;

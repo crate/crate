@@ -23,10 +23,11 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Objects;
-import com.google.common.base.*;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.PartitionName;
@@ -52,8 +53,8 @@ import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
-import io.crate.planner.symbol.Function;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -77,7 +78,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     private final TableRelationVisitor tableRelationVisitor = new TableRelationVisitor();
 
     private final ClusterService clusterService;
-    private AggregationProjection localMergeProjection;
+    private AggregationProjection sumUpResultsProjection;
 
     protected static class Context {
         public final Optional<ColumnIndexWriterProjection> indexWriterProjection;
@@ -133,7 +134,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                         && !tableInfo.isAlias()) {
                     ESGet(analysis, tableRelation, plan, context);
                 } else {
-                    ESSearch(analysis, plan, context);
+                    queryThenFetch(analysis, plan, context);
                 }
             } else {
                 collect(analysis, plan, context);
@@ -263,7 +264,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         );
         plan.add(queryAndFetchNode);
         MergeNode mergeNode = PlanNodeBuilder.localMerge(
-                ImmutableList.<Projection>of(localMergeProjection(analysis)), queryAndFetchNode);
+                ImmutableList.<Projection>of(sumUpResultsProjection()), queryAndFetchNode);
         plan.add(mergeNode);
         plan.expectsAffectedRows(true);
     }
@@ -352,7 +353,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 analysis.uri(),
                 toCollect,
                 projections,
-                ImmutableList.<Projection>of(localMergeProjection(analysis)),
+                ImmutableList.<Projection>of(sumUpResultsProjection()),
                 analysis.settings().get("compression", null),
                 analysis.settings().getAsBoolean("shared", null)
         );
@@ -530,213 +531,46 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private void collect(SelectAnalysis analysis, Plan plan, Context context) {
-        // node or shard level normal select
-
-        // TODO: without locations the localMerge node can be removed and the topN projection
-        // added to the collectNode.
-
+        // select on node or shard level or information_schema
         AnalyzedQuerySpecification querySpec = analysis.querySpecification();
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                .output(analysis.outputSymbols())
-                .orderBy(querySpec.orderBy());
-
-        ImmutableList.Builder<Projection> collectorProjections = ImmutableList.builder();
-        ImmutableList.Builder<Projection> projections = ImmutableList.builder();
-        if (analysis.isLimited()) {
-            // if we have an offset we have to get as much docs from every node as we have offset+limit
-            // otherwise results will be wrong
-            TopNProjection tnp = new TopNProjection(
-                    querySpec.offset() + Objects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    0,
-                    contextBuilder.orderBy(),
-                    analysis.reverseFlags(),
-                    analysis.nullsFirst()
-            );
-            tnp.outputs(contextBuilder.outputs());
-            collectorProjections.add(tnp);
-        }
-
-        List<Symbol> toCollect;
         TableInfo tableInfo = tableRelationVisitor.process(querySpec).tableInfo();
-        if (tableInfo.schemaInfo().systemSchema()) {
-            toCollect = contextBuilder.toCollect();
-        } else {
-            toCollect = new ArrayList<>();
-            for (Symbol symbol : contextBuilder.toCollect()) {
-                toCollect.add(DocReferenceBuildingVisitor.convert(symbol));
-
-            }
-        }
-
-        if (!context.indexWriterProjection.isPresent() || analysis.isLimited()) {
-            // limit set, apply topN projection
-            TopNProjection tnp = new TopNProjection(
-                    Objects.firstNonNull(analysis.querySpecification().limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.querySpecification().offset(),
-                    contextBuilder.orderBy(),
-                    analysis.reverseFlags(),
-                    analysis.nullsFirst()
-            );
-            tnp.outputs(contextBuilder.outputs());
-            projections.add(tnp);
-        }
-
-        if (context.indexWriterProjection.isPresent()) {
-            if (!analysis.isLimited()) {
-                collectorProjections.add(context.indexWriterProjection.get());
-                projections.add(localMergeProjection(analysis));
-            } else {
-                projections.add(context.indexWriterProjection.get());
-            }
-        }
-
-        Routing routing = tableInfo.getRouting(querySpec.whereClause());
-        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("collect",
-                routing,
-                toCollect,
-                contextBuilder.outputs(),
-                contextBuilder.orderBy(),
-                analysis.reverseFlags(),
-                analysis.nullsFirst(),
-                analysis.limit(),
-                analysis.offset(),
-                collectorProjections.build(),
-                projections.build(),
-                querySpec.whereClause(),
-                analysis.rowGranularity(),
-                tableInfo.isPartitioned());
-        queryAndFetchNode.configure();
-        plan.add(queryAndFetchNode);
+        QueryAndFetchNode node = PlanNodeBuilder.collect(querySpec,
+                tableInfo,
+                context.indexWriterProjection,
+                sumUpResultsProjection());
+        plan.add(node);
     }
 
-    private void ESSearch(SelectAnalysis analysis, Plan plan, Context context) {
-        // this is an es query
-        // this only supports INFOS as order by
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
-        final Predicate<Symbol> symbolIsReference = new Predicate<Symbol>() {
-            @Override
-            public boolean apply(@Nullable Symbol input) {
-                return input instanceof Reference;
-            }
-        };
-
-        boolean needsProjection = !Iterables.all(analysis.outputSymbols(), symbolIsReference)
-                || context.indexWriterProjection.isPresent();
-        List<Symbol> searchSymbols;
+    private void queryThenFetch(SelectAnalysis analysis, Plan plan, Context context) {
         AnalyzedQuerySpecification querySpec = analysis.querySpecification();
-        TableRelation tableRelation = tableRelationVisitor.process(querySpec);
+        TableInfo tableInfo = tableRelationVisitor.process(querySpec).tableInfo();
 
-        WhereClause whereClause = querySpec.whereClause();
-        if (needsProjection) {
-            // we must create a deep copy of references if they are function arguments
-            // or they will be replaced with InputColumn instances by the context builder
-            if (whereClause.hasQuery()) {
-               whereClause = new WhereClause(functionArgumentCopier.process(whereClause.query()));
-            }
-            List<Symbol> sortSymbols = querySpec.orderBy();
-
-            // do the same for sortsymbols if we have a function there
-            if (sortSymbols != null && !Iterables.all(sortSymbols, symbolIsReference)) {
-                functionArgumentCopier.process(sortSymbols);
-            }
-
-            contextBuilder.searchOutput(analysis.outputSymbols());
-            searchSymbols = contextBuilder.toCollect();
-        } else {
-            searchSymbols = analysis.outputSymbols();
-        }
-        QueryThenFetchNode node = new QueryThenFetchNode(
-                tableRelation.tableInfo().getRouting(whereClause),
-                searchSymbols,
-                querySpec.orderBy(),
-                analysis.reverseFlags(),
-                analysis.nullsFirst(),
-                querySpec.limit(),
-                querySpec.offset(),
-                whereClause,
-                tableRelation.tableInfo().partitionedByColumns()
-        );
-        node.outputTypes(extractDataTypes(searchSymbols));
+        QueryThenFetchNode node = PlanNodeBuilder.queryThenFetch(querySpec,
+                tableInfo,
+                context.indexWriterProjection);
         plan.add(node);
-        // only add projection if we have scalar functions
-        if (needsProjection) {
-            TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    TopN.NO_OFFSET
-            );
-            topN.outputs(contextBuilder.outputs());
-
-            ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.<Projection>builder()
-                    .add(topN);
-            if (context.indexWriterProjection.isPresent()) {
-                projectionBuilder.add(context.indexWriterProjection.get());
-           }
-            plan.add(PlanNodeBuilder.localMerge(projectionBuilder.build(), node));
-        }
     }
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan, Context context) {
         AnalyzedQuerySpecification querySpec = analysis.querySpecification();
         TableInfo tableInfo = tableRelationVisitor.process(querySpec).tableInfo();
+
+        // check for select count(*) from ...
         String schema = tableInfo.ident().schema();
         if ((schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME))
-                && hasOnlyGlobalCount(analysis.outputSymbols())
+                && hasOnlyGlobalCount(querySpec.outputs())
                 && !analysis.hasSysExpressions()
                 && !context.indexWriterProjection.isPresent()) {
             plan.add(new ESCountNode(tableInfo, querySpec.whereClause()));
             return;
         }
+        QueryAndFetchNode node = PlanNodeBuilder.collectAggregate(querySpec, tableInfo);
 
-        // global aggregate: queryAndFetch and partial aggregate on C and final agg on H
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2)
-                .output(analysis.outputSymbols());
-
-        // havingClause could be a Literal or Function.
-        // if its a Literal and value is false, we'll never reach this point (no match),
-        // otherwise (true value) having can be ignored
-        Symbol havingClause = null;
-        if (querySpec.having().isPresent() && querySpec.having().get().symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(querySpec.having().get());
-        }
-
-        ImmutableList.Builder<Projection> collectorProjections = ImmutableList.builder();
-        ImmutableList.Builder<Projection> projections = ImmutableList.builder();
-
-
-        AggregationProjection ap = new AggregationProjection();
-        ap.aggregations(contextBuilder.aggregations());
-        collectorProjections.add(ap);
-
-        contextBuilder.nextStep();
-
-        //// the handler stuff
-
-        projections.add(new AggregationProjection(contextBuilder.aggregations()));
-
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.passThroughOutputs());
-            projections.add(fp);
-        }
-
-        if (contextBuilder.aggregationsWrappedInScalar || havingClause != null) {
-            // will filter out optional having symbols which are not selected
-            TopNProjection topNProjection = new TopNProjection(1, 0);
-            topNProjection.outputs(contextBuilder.outputs());
-            projections.add(topNProjection);
-        }
+        // in case of insert from subquery
         if (context.indexWriterProjection.isPresent()) {
-            projections.add(context.indexWriterProjection.get());
+            node.addProjection(context.indexWriterProjection.get());
         }
-        QueryAndFetchNode queryAndFetchNode = PlanNodeBuilder.queryAndFetch(
-                analysis,
-                contextBuilder.toCollect(),
-                collectorProjections.build(),
-                projections.build(),
-                null
-        );
-        plan.add(queryAndFetchNode);
+        plan.add(node);
     }
 
     private boolean hasOnlyGlobalCount(List<Symbol> symbols) {
@@ -1129,7 +963,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             builder.add(writerProjection);
         } else {
             // sum up distributed indexWriter results
-            builder.add(localMergeProjection(analysis));
+            builder.add(sumUpResultsProjection());
         }
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(builder.build(), mergeNode);
         plan.add(localMergeNode);
@@ -1230,12 +1064,13 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         return indices;
     }
 
-    private AggregationProjection localMergeProjection(AbstractDataAnalysis analysis) {
-        if (localMergeProjection == null) {
-            localMergeProjection = new AggregationProjection(
+    private AggregationProjection sumUpResultsProjection() {
+        if (sumUpResultsProjection == null) {
+            sumUpResultsProjection = new AggregationProjection(
                     Arrays.asList(new Aggregation(
-                                    analysis.getFunctionInfo(
-                                            new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
+                                    new FunctionInfo(
+                                            new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE)),
+                                            DataTypes.LONG
                                     ),
                                     Arrays.<Symbol>asList(new InputColumn(0)),
                                     Aggregation.Step.ITER,
@@ -1244,7 +1079,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     )
             );
         }
-        return localMergeProjection;
+        return sumUpResultsProjection;
     }
 
     private static class TableRelationVisitor extends RelationVisitor<Void, TableRelation> {

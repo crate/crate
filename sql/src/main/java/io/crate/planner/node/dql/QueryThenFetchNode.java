@@ -29,17 +29,17 @@ import io.crate.Constants;
 import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
+import io.crate.planner.node.PlanNodeTypeResolver;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
 
 public class QueryThenFetchNode extends ESDQLPlanNode {
-
-    private List<Projection> projections;
 
     private final List<Symbol> orderBy;
     private final int limit;
@@ -148,8 +148,24 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
                 .add("reverseFlags", Arrays.toString(reverseFlags()))
                 .add("whereClause", whereClause())
                 .add("partitionBy", partitionBy)
+                .add("projections", projections)
                 .toString();
     }
 
+    @Override
+    public void configure() {
+        extractOutputTypes();
+    }
+
+    private void extractOutputTypes() {
+        List<DataType> searchSymbolTypes = PlanNodeTypeResolver.extractDataTypes(outputs);
+        if (projections.isEmpty()) {
+            outputTypes = searchSymbolTypes;
+        } else {
+            @SuppressWarnings("unchecked")
+            List<Symbol> finalOutputs = (List<Symbol>)projections.get(projections.size()-1).outputs();
+            outputTypes = PlanNodeTypeResolver.extractSymbolDataTypes(finalOutputs, searchSymbolTypes);
+        }
+    }
 }
 

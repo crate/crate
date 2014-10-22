@@ -524,21 +524,14 @@ public class PlannerTest {
         assertThat(searchNode.outputs().size(), is(1));
         assertThat(((Reference) searchNode.outputs().get(0)).info().ident().columnIdent().fqn(), is("name"));
 
-        assertThat(searchNode.outputTypes().size(), is(1));
+        assertThat(searchNode.outputTypes().size(), is(2));
         assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
+        assertEquals(DataTypes.STRING, searchNode.outputTypes().get(1));
         assertTrue(searchNode.whereClause().hasQuery());
         assertThat(searchNode.partitionBy().size(), is(0));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode)planNode;
-        assertTrue(mergeNode.hasProjections());
-        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
-        assertThat(mergeNode.outputTypes().size(), is(2));
-        assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(0));
-        assertThat(mergeNode.projections().get(0).outputs().get(0), instanceOf(Function.class));
-        assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(1));
-        assertThat(mergeNode.projections().get(0).outputs().get(1), instanceOf(InputColumn.class));
+        assertThat(searchNode.projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(searchNode.projections().get(0).outputs().get(1), instanceOf(InputColumn.class));
 
         assertFalse(iterator.hasNext());
         assertFalse(plan.expectsAffectedRows());

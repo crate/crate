@@ -30,13 +30,11 @@ import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.where.WhereClause;
 import io.crate.metadata.Routing;
-import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.PlanNodeTypeResolver;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -175,21 +173,21 @@ public class QueryAndFetchNode extends AbstractDQLPlanNode {
      * extract types of outputs of this node
      */
     private void extractOutputTypes() {
-        List<DataType> toCollectTypes = extractDataTypes(toCollect);
+        List<DataType> toCollectTypes = PlanNodeTypeResolver.extractDataTypes(toCollect);
         if (collectorProjections.isEmpty() && projections.isEmpty()) {
             intermediateOutputTypes = toCollectTypes;
-            outputTypes = extractSymbolDataTypes(outputSymbols, intermediateOutputTypes);
+            outputTypes = PlanNodeTypeResolver.extractSymbolDataTypes(outputSymbols, intermediateOutputTypes);
         } else if (projections.isEmpty()) {
-            intermediateOutputTypes = extractDataTypes(collectorProjections, toCollectTypes);
-            outputTypes = extractDataTypes(collectorProjections, intermediateOutputTypes);
+            intermediateOutputTypes = PlanNodeTypeResolver.extractDataTypes(collectorProjections, toCollectTypes);
+            outputTypes = PlanNodeTypeResolver.extractDataTypes(collectorProjections, intermediateOutputTypes);
         } else {
-            intermediateOutputTypes = extractDataTypes(collectorProjections, toCollectTypes);
-            outputTypes = extractDataTypes(projections, intermediateOutputTypes);
+            intermediateOutputTypes = PlanNodeTypeResolver.extractDataTypes(collectorProjections, toCollectTypes);
+            outputTypes = PlanNodeTypeResolver.extractDataTypes(projections, intermediateOutputTypes);
         }
     }
 
     /**
-     * This method returns true if downstreams are defined, which means that results of this collect
+     * This method returns true if downstreams are defined, which means that results of this collectForSelect
      * operation should be sent to other nodes instead of being returned directly.
      */
     public boolean hasDownstreams() {
@@ -281,7 +279,7 @@ public class QueryAndFetchNode extends AbstractDQLPlanNode {
     }
 
     /**
-     * Whether collect operates on a partitioned table.
+     * Whether collectForSelect operates on a partitioned table.
      * Only used on {@link io.crate.operation.collect.HandlerSideDataCollectOperation},
      * so no serialization is needed.
      *
@@ -521,71 +519,6 @@ public class QueryAndFetchNode extends AbstractDQLPlanNode {
             result.jobId = jobId;
         }
         return result;
-    }
-
-    private static List<DataType> extractDataTypes(List<Symbol> symbols) {
-        return extractSymbolDataTypes(symbols, null);
-    }
-
-    // todo: move from class
-    private static List<DataType> extractSymbolDataTypes(List<Symbol> symbols, @Nullable List<DataType> inputTypes) {
-        List<DataType> types = new ArrayList<>(symbols.size());
-        for (Symbol symbol : symbols) {
-            if (symbol.symbolType() == SymbolType.INPUT_COLUMN) {
-                if (inputTypes != null) {
-                    int columnIdx = ((InputColumn) symbol).index();
-                    types.add(inputTypes.get(columnIdx));
-
-                } else {
-                    types.add(DataTypes.UNDEFINED); // TODO: what to do here?
-                }
-            } else {
-                types.add(DataTypeVisitor.fromSymbol(symbol));
-            }
-        }
-        return types;
-    }
-
-    // todo: move from class
-    private static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
-        if (projections.size() == 0){
-            return inputTypes;
-        }
-        int projectionIdx = projections.size() - 1;
-        Projection lastProjection = projections.get(projectionIdx);
-        List<DataType> types = new ArrayList<>(lastProjection.outputs().size());
-
-        List<DataType> dataTypes = Objects.firstNonNull(inputTypes, ImmutableList.<DataType>of());
-
-        for (int c = 0; c < lastProjection.outputs().size(); c++) {
-            types.add(resolveType(projections, projectionIdx, c, dataTypes));
-        }
-
-        return types;
-    }
-
-    /**
-     * resolve the type of the column at <code>columnIdx</code> of the projection
-     * in <code>projections</code> at index <code>projectionIdx</code>.
-     * As a fallback, return the input type
-     */
-    private static DataType resolveType(List<Projection> projections, int projectionIdx, int columnIdx, List<DataType> inputTypes) {
-        Projection projection = projections.get(projectionIdx);
-        Symbol symbol = projection.outputs().get(columnIdx);
-        DataType type = DataTypeVisitor.fromSymbol(symbol);
-        if (type == null) {
-            if (symbol.symbolType() == SymbolType.INPUT_COLUMN) {
-                columnIdx = ((InputColumn)symbol).index();
-            }
-            if (projectionIdx > 0) {
-                return resolveType(projections, projectionIdx - 1, columnIdx, inputTypes);
-            } else {
-                assert symbol instanceof InputColumn; // otherwise type shouldn't be null
-                return inputTypes.get(((InputColumn) symbol).index());
-            }
-        }
-
-        return type;
     }
 
     public boolean isLimited() {

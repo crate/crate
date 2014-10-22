@@ -209,6 +209,8 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                 context.groupBy(),
                 having,
                 context.sortSymbols(),
+                context.reverseFlags(),
+                context.nullsFirst(),
                 limit,
                 offset
         );

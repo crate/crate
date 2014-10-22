@@ -22,6 +22,9 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.google.common.base.Optional;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.query.QueryShardRequest;
@@ -31,9 +34,12 @@ import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -51,6 +57,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.search.SearchHit;
@@ -65,6 +72,7 @@ import org.elasticsearch.search.query.QueryPhaseExecutionException;
 import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -93,7 +101,7 @@ public class QueryThenFetchTask implements Task<QueryResult> {
     volatile ScoreDoc[] sortedShardList;
     private volatile AtomicArray<ShardSearchFailure> shardFailures;
     private final Object shardFailuresMutex = new Object();
-
+    private final Optional<MergeOperation> mergeOperation;
 
     /**
      * dummy request required to re-use the searchService transport
@@ -103,21 +111,19 @@ public class QueryThenFetchTask implements Task<QueryResult> {
 
     public QueryThenFetchTask(QueryThenFetchNode searchNode,
                               ClusterService clusterService,
-                              TransportQueryShardAction transportQueryShardAction,
-                              SearchServiceTransportAction searchServiceTransportAction,
+                              Settings settings,
+                              TransportActionProvider transportActionProvider,
+                              ImplementationSymbolVisitor implementationSymbolVisitor,
                               SearchPhaseController searchPhaseController,
                               ThreadPool threadPool) {
         this.searchNode = searchNode;
-        this.transportQueryShardAction = transportQueryShardAction;
-        this.searchServiceTransportAction = searchServiceTransportAction;
+        this.transportQueryShardAction = transportActionProvider.transportQueryShardAction();
+        this.searchServiceTransportAction = transportActionProvider.searchServiceTransportAction();
         this.searchPhaseController = searchPhaseController;
         this.threadPool = threadPool;
 
         state = clusterService.state();
         nodes = state.nodes();
-
-        result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<QueryResult>>asList(result);
 
         routing = searchNode.routing();
         requests = prepareRequests(routing.locations());
@@ -127,6 +133,34 @@ public class QueryThenFetchTask implements Task<QueryResult> {
 
         extractor = buildExtractor(searchNode.outputs());
         numColumns = searchNode.outputs().size();
+
+        result = SettableFuture.create();
+        results = Arrays.<ListenableFuture<QueryResult>>asList(result);
+        if (searchNode.projections().isEmpty()) {
+            mergeOperation = Optional.absent();
+        } else {
+            mergeOperation = Optional.of(
+                    new MergeOperation(clusterService,
+                        settings,
+                        transportActionProvider,
+                        implementationSymbolVisitor,
+                        1,
+                        searchNode.projections()
+                    )
+            );
+            Futures.addCallback(mergeOperation.get().result(), new FutureCallback<Object[][]>() {
+                @Override
+                public void onSuccess(@Nullable Object[][] mergeResult) {
+                    result.set(new QueryResult(mergeResult));
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    result.setException(t);
+                }
+            });
+        }
+
     }
 
     private ESFieldExtractor[] buildExtractor(final List<Symbol> outputs) {
@@ -333,7 +367,13 @@ public class QueryThenFetchTask implements Task<QueryResult> {
                                 rows[r][c] = extractor[c].extract(hits[r]);
                             }
                         }
-                        result.set(new QueryResult(rows));
+                        if (mergeOperation.isPresent()) {
+                            mergeOperation.get().addRows(rows);
+                            mergeOperation.get().finished();
+                            // result will be set via callback on mergeOperation.result()
+                        } else {
+                            result.set(new QueryResult(rows));
+                        }
                     } catch (Throwable t) {
                         result.setException(t);
                     } finally {

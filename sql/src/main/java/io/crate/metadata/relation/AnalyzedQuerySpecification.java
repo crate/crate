@@ -48,11 +48,16 @@ import java.util.List;
  */
 public class AnalyzedQuerySpecification implements AnalyzedRelation {
 
+    public static final boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
+    public static final Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
+
     private final AnalyzedRelation sourceRelation;
     private final List<Symbol> outputs;
     private final List<Symbol> groupBy;
     private final Optional<Symbol> having;
     private final List<Symbol> orderBy;
+    private final boolean[] reverseFlags;
+    private final Boolean[] nullsFirst;
     private final Integer offset;
     private final Integer limit;
     private ImmutableList<AnalyzedRelation> children;
@@ -62,6 +67,8 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
                                       @Nullable List<Symbol> groupBy,
                                       @Nullable Symbol having,
                                       @Nullable List<Symbol> orderBy,
+                                      @Nullable boolean[] reverseFlags,
+                                      @Nullable Boolean[] nullsFirst,
                                       @Nullable Integer limit,
                                       @Nullable Integer offset) {
         this.outputs = outputs;
@@ -69,6 +76,8 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
         this.groupBy = Objects.firstNonNull(groupBy, ImmutableList.<Symbol>of());
         this.having = Optional.fromNullable(having);
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
+        this.reverseFlags = Objects.firstNonNull(reverseFlags, EMPTY_REVERSE_FLAGS);
+        this.nullsFirst = Objects.firstNonNull(nullsFirst, EMPTY_NULLS_FIRST);
         this.limit = limit;
         this.offset = Objects.firstNonNull(offset, 0);
     }
@@ -112,6 +121,14 @@ public class AnalyzedQuerySpecification implements AnalyzedRelation {
 
     public List<Symbol> orderBy() {
         return orderBy;
+    }
+
+    public boolean[] reverseFlags() {
+        return reverseFlags;
+    }
+
+    public Boolean[] nullsFirst() {
+        return nullsFirst;
     }
 
     @Nullable

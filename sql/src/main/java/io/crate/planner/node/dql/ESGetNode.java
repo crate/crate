@@ -25,13 +25,14 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
 
 
-public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
+public class ESGetNode extends ESDQLPlanNode {
 
     private final String index;
     private final List<String> ids;
@@ -78,6 +79,16 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
     public List<ReferenceInfo> partitionBy() {
         return partitionBy;
+    }
+
+    @Override
+    public boolean hasProjections() {
+        return false;
+    }
+
+    @Override
+    public List<Projection> projections() {
+        return ImmutableList.of();
     }
 
     @Override

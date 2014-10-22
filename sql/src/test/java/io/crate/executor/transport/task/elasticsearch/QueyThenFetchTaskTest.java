@@ -28,7 +28,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.query.QueryShardRequest;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.executor.QueryResult;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Routing;
+import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.planner.node.dql.QueryThenFetchNode;
 import org.apache.lucene.search.ScoreDoc;
 import org.elasticsearch.cluster.ClusterService;
@@ -36,6 +38,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.action.SearchServiceListener;
@@ -66,6 +69,7 @@ public class QueyThenFetchTaskTest {
     private QueryThenFetchTask queryThenFetchTask;
     private QueryThenFetchNode searchNode;
     private ClusterService clusterService;
+    private TransportActionProvider transportActionProvider;
     private TransportQueryShardAction transportQueryShardAction;
     private SearchServiceTransportAction searchServiceTransportAction;
     private SearchPhaseController searchPhaseController;
@@ -89,13 +93,20 @@ public class QueyThenFetchTaskTest {
         when(state.nodes()).thenReturn(nodes);
 
 
+        transportActionProvider = mock(TransportActionProvider.class);
         transportQueryShardAction = mock(TransportQueryShardAction.class);
         searchServiceTransportAction = mock(SearchServiceTransportAction.class);
+
+        when(transportActionProvider.searchServiceTransportAction())
+                .thenReturn(searchServiceTransportAction);
+        when(transportActionProvider.transportQueryShardAction())
+                .thenReturn(transportQueryShardAction);
         searchPhaseController = mock(SearchPhaseController.class);
         queryThenFetchTask = new QueryThenFetchTask(searchNode,
                                                     clusterService,
-                                                    transportQueryShardAction,
-                                                    searchServiceTransportAction,
+                                                    ImmutableSettings.EMPTY,
+                                                    transportActionProvider,
+                                                    mock(ImplementationSymbolVisitor.class),
                                                     searchPhaseController,
                                                     new ThreadPool("testpool"));
     }

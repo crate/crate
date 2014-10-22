@@ -21,27 +21,42 @@
 
 package io.crate.planner;
 
+import com.google.common.base.Objects;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.analyze.AbstractDataAnalysis;
 import io.crate.analyze.SelectAnalysis;
 import io.crate.analyze.where.WhereClause;
+import io.crate.metadata.DocReferenceBuildingVisitor;
 import io.crate.metadata.Routing;
 import io.crate.metadata.relation.AnalyzedQuerySpecification;
 import io.crate.metadata.relation.TableRelation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.node.dql.*;
-import io.crate.planner.projection.Projection;
+import io.crate.operation.projectors.TopN;
+import io.crate.planner.node.dql.DQLPlanNode;
+import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.QueryAndFetchNode;
+import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.projection.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 class PlanNodeBuilder {
+
+
+    private static final Predicate<Object> IS_REFERENCE = Predicates.instanceOf(Reference.class);
+    private static final PlannerFunctionArgumentCopier functionArgumentCopier = new PlannerFunctionArgumentCopier();
 
     static QueryAndFetchNode distributingCollect(AbstractDataAnalysis analysis,
                                                  List<Symbol> toCollect,
@@ -167,6 +182,210 @@ class PlanNodeBuilder {
                 tableInfo.isPartitioned());
         node.configure();
         return node;
+    }
+
+    public static QueryThenFetchNode queryThenFetch(AnalyzedQuerySpecification querySpec,
+                                                    TableInfo tableInfo,
+                                                    Optional<ColumnIndexWriterProjection> writerProjection) {
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
+        boolean needsProjection = !Iterables.all(querySpec.outputs(), IS_REFERENCE)
+                || writerProjection.isPresent();
+        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
+
+        List<Symbol> searchSymbols;
+
+        WhereClause whereClause = querySpec.whereClause();
+        if (needsProjection) {
+            // we must create a deep copy of references if they are function arguments
+            // or they will be replaced with InputColumn instances by the context builder
+            if (whereClause.hasQuery()) {
+                whereClause = new WhereClause(functionArgumentCopier.process(whereClause.query()));
+            }
+            List<Symbol> sortSymbols = querySpec.orderBy();
+
+            // do the same for sortsymbols if we have a function there
+            if (sortSymbols != null && !Iterables.all(sortSymbols, IS_REFERENCE)) {
+                functionArgumentCopier.process(sortSymbols);
+            }
+
+            contextBuilder.searchOutput(querySpec.outputs());
+            searchSymbols = contextBuilder.toCollect();
+
+            TopNProjection topN = new TopNProjection(
+                    Objects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    TopN.NO_OFFSET
+            );
+            topN.outputs(contextBuilder.outputs());
+            projectionBuilder.add(topN);
+            if (writerProjection.isPresent()) {
+                projectionBuilder.add(writerProjection.get());
+            }
+        } else {
+            searchSymbols = querySpec.outputs();
+        }
+        QueryThenFetchNode node = new QueryThenFetchNode(
+                tableInfo.getRouting(whereClause),
+                searchSymbols,
+                querySpec.orderBy(),
+                querySpec.reverseFlags(),
+                querySpec.nullsFirst(),
+                querySpec.limit(),
+                querySpec.offset(),
+                whereClause,
+                tableInfo.partitionedByColumns(),
+                projectionBuilder.build()
+        );
+        node.configure();
+        return node;
+
+    }
+
+    /**
+     * create a {@linkplain io.crate.planner.node.dql.QueryAndFetchNode} for use
+     * in a collect context e.g. when selecting from information_schema
+     *
+     * TODO: keep the writerProjection and sumUpResultsProjection out
+     */
+    public static QueryAndFetchNode collect(AnalyzedQuerySpecification querySpec,
+                                            TableInfo tableInfo,
+                                            Optional<ColumnIndexWriterProjection> writerProjection,
+                                            AggregationProjection sumUpResultsProjection) {
+        ImmutableList.Builder<Projection> collectorProjections = ImmutableList.builder();
+        ImmutableList.Builder<Projection> projections = ImmutableList.builder();
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
+                .output(querySpec.outputs())
+                .orderBy(querySpec.orderBy());
+
+        List<Symbol> outputs = contextBuilder.outputs();
+
+
+        List<Symbol> toCollect;
+        if (tableInfo.schemaInfo().systemSchema()) {
+            toCollect = contextBuilder.toCollect();
+        } else {
+            toCollect = new ArrayList<>();
+            for (Symbol symbol : contextBuilder.toCollect()) {
+                toCollect.add(DocReferenceBuildingVisitor.convert(symbol));
+            }
+        }
+
+        boolean isLimited = querySpec.limit() != null || querySpec.offset() > 0;
+        int effectiveLimit = Objects.firstNonNull(querySpec.limit(), Constants.DEFAULT_SELECT_LIMIT);
+        if (isLimited) {
+            // apply limit on collector
+            TopNProjection tnp = new TopNProjection(
+                    querySpec.offset() + effectiveLimit,
+                    0,
+                    contextBuilder.orderBy(),
+                    querySpec.reverseFlags(),
+                    querySpec.nullsFirst()
+            );
+            tnp.outputs(outputs);
+            collectorProjections.add(tnp);
+        }
+
+        if (!writerProjection.isPresent() || isLimited) {
+            // limit set, apply topN projection
+            TopNProjection tnp = new TopNProjection(
+                    effectiveLimit,
+                    querySpec.offset(),
+                    contextBuilder.orderBy(),
+                    querySpec.reverseFlags(),
+                    querySpec.nullsFirst()
+            );
+            tnp.outputs(outputs);
+            projections.add(tnp);
+        }
+
+        if (writerProjection.isPresent()) {
+            if (isLimited) {
+                projections.add(writerProjection.get());
+            } else {
+                collectorProjections.add(writerProjection.get());
+                projections.add(sumUpResultsProjection);
+            }
+        }
+
+        Routing routing = tableInfo.getRouting(querySpec.whereClause());
+        QueryAndFetchNode node = new QueryAndFetchNode("collect",
+                routing,
+                toCollect,
+                contextBuilder.outputs(),
+                contextBuilder.orderBy(),
+                querySpec.reverseFlags(),
+                querySpec.nullsFirst(),
+                querySpec.limit(),
+                querySpec.offset(),
+                collectorProjections.build(),
+                projections.build(),
+                querySpec.whereClause(),
+                tableInfo.rowGranularity(),
+                tableInfo.isPartitioned()
+        );
+        node.configure();
+        return node;
+    }
+
+    /**
+     * create {@linkplain io.crate.planner.node.dql.QueryAndFetchNode} for use
+     * in an aggregation context, e.g. a global aggregate query
+     *
+     */
+    public static QueryAndFetchNode collectAggregate(AnalyzedQuerySpecification querySpec,
+                                                     TableInfo tableInfo) {
+        ImmutableList.Builder<Projection> collectorProjections = ImmutableList.builder();
+        ImmutableList.Builder<Projection> projections = ImmutableList.builder();
+
+        // global aggregate: queryAndFetch and partial aggregate on C and final agg on H
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2)
+                .output(querySpec.outputs());
+
+        Symbol havingClause = null;
+        if (querySpec.having().isPresent() && querySpec.having().get().symbolType() == SymbolType.FUNCTION) {
+            // replace aggregation symbols with input columns from previous projection
+            havingClause = contextBuilder.having(querySpec.having().get());
+        }
+
+        AggregationProjection ap = new AggregationProjection();
+        ap.aggregations(contextBuilder.aggregations());
+        collectorProjections.add(ap);
+
+        contextBuilder.nextStep();
+
+        projections.add(new AggregationProjection(contextBuilder.aggregations()));
+
+        // havingClause could be a Literal or Function.
+        // if its a Literal and value is false, we'll never reach this point (no match),
+        // otherwise (true value) having can be ignored
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.passThroughOutputs());
+            projections.add(fp);
+        }
+        if (contextBuilder.aggregationsWrappedInScalar || havingClause != null) {
+            // will filter out optional having symbols which are not selected
+            TopNProjection topNProjection = new TopNProjection(1, 0);
+            topNProjection.outputs(contextBuilder.outputs());
+            projections.add(topNProjection);
+        }
+        Routing routing = tableInfo.getRouting(querySpec.whereClause());
+        QueryAndFetchNode queryAndFetchNode = new QueryAndFetchNode("collect_aggregate",
+                routing,
+                contextBuilder.toCollect(),
+                contextBuilder.outputs(),
+                querySpec.orderBy(),
+                querySpec.reverseFlags(),
+                querySpec.nullsFirst(),
+                querySpec.limit(),
+                querySpec.offset(),
+                collectorProjections.build(),
+                projections.build(),
+                querySpec.whereClause(),
+                tableInfo.rowGranularity(),
+                tableInfo.isPartitioned()
+                );
+        queryAndFetchNode.configure();
+        return queryAndFetchNode;
     }
 
     private static Routing filterRouting(Routing routing, String includeTableName) {

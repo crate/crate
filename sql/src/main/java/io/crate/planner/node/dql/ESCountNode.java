@@ -21,8 +21,8 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.metadata.table.TableInfo;
 import io.crate.analyze.where.WhereClause;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.types.DataType;
 import io.crate.types.LongType;

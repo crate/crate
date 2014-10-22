@@ -303,6 +303,13 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertEquals(55.25d, response.rows()[0][3]);
     }
 
+    @Test
+    public void testGlobalAggregateAlias() throws Exception {
+        SQLResponse response = executor.exec("select sum(age) from characters as c");
+        assertEquals(1, response.rowCount());
+        assertEquals(221.0d, response.rows()[0][0]);
+    }
+
     @Test (expected = SQLActionException.class)
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
         executor.exec("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});

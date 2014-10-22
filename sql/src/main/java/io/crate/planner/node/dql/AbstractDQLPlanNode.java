@@ -79,6 +79,13 @@ public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
         this.projections = projections;
     }
 
+    public void addProjection(Projection projection) {
+        this.projections = ImmutableList.<Projection>builder()
+                .addAll(this.projections)
+                .add(projection)
+                .build();
+    }
+
     public void outputTypes(List<DataType> outputTypes) {
         this.outputTypes = outputTypes;
     }
