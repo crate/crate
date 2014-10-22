@@ -24,15 +24,30 @@ package io.crate.metadata.table;
 import java.util.Locale;
 
 public enum ColumnPolicy {
-    DYNAMIC,
-    STRICT,
-    IGNORED;
+    DYNAMIC(true),
+    STRICT("strict"),
+    IGNORED(false);
+
+    private Object mappingValue;
+
+    private ColumnPolicy(Object mappingValue) {
+        this.mappingValue = mappingValue;
+    }
 
     public String value() {
-        return this.name().toLowerCase();
+        return this.name().toLowerCase(Locale.ENGLISH);
     }
 
     public static ColumnPolicy byName(String name) {
         return ColumnPolicy.valueOf(name.toUpperCase(Locale.ENGLISH));
     }
+
+    /**
+     * returns the value to be used in an ES index mapping
+     * for the <code>dynamic</code> field
+     */
+    public Object mappingValue() {
+        return mappingValue;
+    }
+
 }

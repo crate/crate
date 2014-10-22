@@ -25,7 +25,6 @@ import io.crate.Constants;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.Settings;
 
 public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalysis> {
 
@@ -55,9 +54,9 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
         if (node.genericProperties().isPresent()) {
-            Settings settings =
-                    tablePropertiesAnalysis.propertiesToSettings(node.genericProperties().get(), context.parameters(), true);
-            context.indexSettingsBuilder().put(settings);
+            TablePropertiesAnalysis.TableProperties tableProperties =
+                    tablePropertiesAnalysis.tableProperties(node.genericProperties().get(), context.parameters(), true);
+            context.indexSettingsBuilder().put(tableProperties.settings());
         }
 
         return null;

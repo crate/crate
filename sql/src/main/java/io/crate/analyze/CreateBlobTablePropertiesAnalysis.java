@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -46,6 +47,11 @@ public class CreateBlobTablePropertiesAnalysis extends TablePropertiesAnalysis {
     @Override
     protected ImmutableMap<String, SettingsApplier> supportedProperties() {
         return supportedProperties;
+    }
+
+    @Override
+    protected ColumnPolicy defaultColumnPolicy() {
+        return ColumnPolicy.STRICT;
     }
 
     private static class BlobPathSettingApplier implements SettingsApplier {

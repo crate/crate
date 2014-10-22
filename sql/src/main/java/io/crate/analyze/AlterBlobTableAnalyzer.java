@@ -26,7 +26,6 @@ import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 
 public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnalysis> {
 
@@ -44,9 +43,9 @@ public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnal
 
         if (node.genericProperties().isPresent()) {
             GenericProperties properties = node.genericProperties().get();
-            Settings settings =
-                    tablePropertiesAnalysis.propertiesToSettings(properties, context.parameters());
-            context.indexSettingsBuilder().put(settings);
+            TablePropertiesAnalysis.TableProperties tableProperties =
+                    tablePropertiesAnalysis.tableProperties(properties, context.parameters());
+            context.indexSettingsBuilder().put(tableProperties.settings());
         } else if (!node.resetProperties().isEmpty()) {
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (String property : node.resetProperties()) {

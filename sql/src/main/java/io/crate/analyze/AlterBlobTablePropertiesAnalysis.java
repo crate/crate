@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.table.ColumnPolicy;
 
 public class AlterBlobTablePropertiesAnalysis extends TablePropertiesAnalysis {
 
@@ -29,6 +30,11 @@ public class AlterBlobTablePropertiesAnalysis extends TablePropertiesAnalysis {
             ImmutableMap.<String, SettingsApplier>builder()
                     .put(NUMBER_OF_REPLICAS, new NumberOfReplicasSettingApplier())
                     .build();
+
+    @Override
+    protected ColumnPolicy defaultColumnPolicy() {
+        return ColumnPolicy.STRICT;
+    }
 
     @Override
     protected ImmutableMap<String, SettingsApplier> supportedProperties() {

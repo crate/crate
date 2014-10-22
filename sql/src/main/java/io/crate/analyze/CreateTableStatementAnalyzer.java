@@ -23,11 +23,13 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import io.crate.Constants;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
 
@@ -65,9 +67,12 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
         if (node.properties().isPresent()) {
-            Settings settings =
-                    tablePropertiesAnalysis.propertiesToSettings(node.properties().get(), context.parameters(), true);
-            context.indexSettingsBuilder().put(settings);
+            TablePropertiesAnalysis.TableProperties tableProperties = tablePropertiesAnalysis.tableProperties(node.properties().get(), context.parameters(), true);
+            context.indexSettingsBuilder().put(tableProperties.settings());
+            if (tableProperties.columnPolicy().isPresent()) {
+                // apply column_policy
+                context.columnPolicy(tableProperties.columnPolicy().get());
+            }
         }
 
         context.analyzedTableElements(TableElementsAnalyzer.analyze(

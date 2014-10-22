@@ -58,6 +58,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 .actionGet().isExists());
 
         String expectedMapping = "{\"default\":{" +
+                "\"dynamic\":\"true\"," +
                 "\"_meta\":{\"primary_keys\":[\"col1\"]}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
@@ -141,6 +142,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 .actionGet().isExists());
 
         String expectedMapping = "{\"default\":{" +
+                "\"dynamic\":\"true\"," +
                 "\"_meta\":{" +
                 "\"primary_keys\":[\"col1\"]," +
                 "\"routing\":\"col1\"}," +
@@ -154,6 +156,34 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"2\"," +
                 "\"index.number_of_shards\":\"10\"," +
+                "\"index.version.created\":\"1030499\"" +
+                "}}}";
+
+        assertEquals(expectedMapping, getIndexMapping("test"));
+        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
+    }
+
+    @Test
+    public void testCreateTableWithStrictColumnPolicy() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)" +
+                "with (column_policy='strict')");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+
+        String expectedMapping = "{\"default\":{" +
+                "\"dynamic\":\"strict\"," +
+                "\"_meta\":{" +
+                "\"primary_keys\":[\"col1\"]}," +
+                "\"_all\":{\"enabled\":false}," +
+                "\"properties\":{" +
+                "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
+                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
+                "}}}";
+
+        String expectedSettings = "{\"test\":{" +
+                "\"settings\":{" +
+                "\"index.number_of_replicas\":\"1\"," +
+                "\"index.number_of_shards\":\"5\"," +
                 "\"index.version.created\":\"1030499\"" +
                 "}}}";
 

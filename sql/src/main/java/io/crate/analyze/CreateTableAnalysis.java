@@ -28,6 +28,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -47,6 +48,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     private Settings builtSettings;
     private Map<String, Object> mapping;
     private ColumnIdent routingColumn;
+    private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC; // Default for doc tables
 
     public CreateTableAnalysis(ReferenceInfos referenceInfos,
                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
@@ -173,6 +175,9 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
             if (routingColumn != null) {
                 ((Map) mapping.get("_meta")).put("routing", routingColumn.fqn());
             }
+            if (columnPolicy != null) {
+                mapping.put("dynamic", columnPolicy.mappingValue());
+            }
         }
         return mapping;
     }
@@ -216,5 +221,13 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     public AnalyzedTableElements analyzedTableElements() {
         return analyzedTableElements;
+    }
+
+    public void columnPolicy(ColumnPolicy columnPolicy) {
+        this.columnPolicy = columnPolicy;
+    }
+
+    public ColumnPolicy columnPolicy() {
+        return columnPolicy;
     }
 }
