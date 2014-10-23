@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -75,7 +76,7 @@ public class IndexReferenceInfo extends ReferenceInfo {
                          IndexType indexType,
                          List<ReferenceInfo> columns,
                          @Nullable String analyzer) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, ObjectType.DYNAMIC, indexType);
+        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType);
         this.columns = Objects.firstNonNull(columns, Collections.<ReferenceInfo>emptyList());
         this.analyzer = analyzer;
     }

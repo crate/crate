@@ -60,7 +60,7 @@ public class DocTableInfoTest {
                 foobarIdent,
                 RowGranularity.DOC,
                 DataTypes.OBJECT,
-                ReferenceInfo.ObjectType.STRICT,
+                ColumnPolicy.STRICT,
                 ReferenceInfo.IndexType.NOT_ANALYZED
         );
 

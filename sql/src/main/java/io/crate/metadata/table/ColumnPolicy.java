@@ -21,6 +21,9 @@
 
 package io.crate.metadata.table;
 
+import org.elasticsearch.common.Booleans;
+
+import javax.annotation.Nullable;
 import java.util.Locale;
 
 public enum ColumnPolicy {
@@ -38,8 +41,31 @@ public enum ColumnPolicy {
         return this.name().toLowerCase(Locale.ENGLISH);
     }
 
+    /**
+     * get a column policy by its name (case insensitive)
+     */
     public static ColumnPolicy byName(String name) {
         return ColumnPolicy.valueOf(name.toUpperCase(Locale.ENGLISH));
+    }
+
+    /**
+     * get a column policy by its mapping value (true, false or 'strict')
+     */
+    public static ColumnPolicy of(@Nullable Object dynamic) {
+        return of(String.valueOf(dynamic));
+    }
+
+    public static ColumnPolicy of(String dynamic) {
+        if (Booleans.isExplicitTrue(dynamic)) {
+            return DYNAMIC;
+        }
+        if (Booleans.isExplicitFalse(dynamic)) {
+            return IGNORED;
+        }
+        if (dynamic.equalsIgnoreCase("strict")) {
+            return STRICT;
+        }
+        return DYNAMIC;
     }
 
     /**
