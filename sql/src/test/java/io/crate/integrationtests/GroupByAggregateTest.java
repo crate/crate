@@ -715,4 +715,38 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select gender from characters group by gender having min(age) < 33");
         assertEquals(1L, response.rowCount());
     }
+
+    @Test
+    public void testGroupByCountStringGroupByPrimaryKey() throws Exception {
+        execute("create table rankings (" +
+                " \"pageURL\" string primary key," +
+                " \"pageRank\" int," +
+                " \"avgDuration\" int" +
+                ") with (number_of_replicas=0)");
+        ensureGreen();
+        for (int i = 0; i<100; i++) {
+            execute("insert into rankings (\"pageURL\", \"pageRank\", \"avgDuration\") values (?, ?, ?)",
+                    new Object[]{randomAsciiOfLength(i+1), randomIntBetween(i, i*i),  randomInt(i) });
+        }
+        execute("refresh table rankings");
+        execute("select count(*), \"pageURL\" from rankings group by \"pageURL\" order by 1 desc limit 100");
+        assertThat(response.rowCount(), is(100L));
+    }
+
+    @Test
+    public void testGroupByCountString() throws Exception {
+        execute("create table rankings (" +
+                " \"pageURL\" string," +
+                " \"pageRank\" int," +
+                " \"avgDuration\" int" +
+                ") with (number_of_replicas=0)");
+        ensureGreen();
+        for (int i = 0; i<100; i++) {
+            execute("insert into rankings (\"pageURL\", \"pageRank\", \"avgDuration\") values (?, ?, ?)",
+                    new Object[]{randomAsciiOfLength(10 + (i%3)), randomIntBetween(i, i*i),  randomInt(i) });
+        }
+        execute("refresh table rankings");
+        execute("select count(*), \"pageURL\" from rankings group by \"pageURL\" order by 1 desc limit 100");
+        assertThat(response.rowCount(), is(100L));
+    }
 }
