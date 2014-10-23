@@ -107,6 +107,7 @@ public class FilterProjection extends Projection {
         for (int i = 0; i < numOutputs; i++) {
             outputs.add(Symbol.fromStream(in));
         }
+        requiredGranularity = RowGranularity.fromStream(in);
     }
 
     @Override
@@ -116,6 +117,7 @@ public class FilterProjection extends Projection {
         for (Symbol symbol : outputs) {
             Symbol.toStream(symbol, out);
         }
+        RowGranularity.toStream(requiredGranularity, out);
     }
 
     @Override

@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fix: all group by queries with the primary key(s) or routing column
+   as group key(s) are executed correctly
+
  - Throw an error while using unknown root columns on SELECT
 
 2014/10/16 0.45.0

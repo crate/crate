@@ -28,6 +28,20 @@ import io.crate.planner.projection.Projection;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A chain of connected projectors rows will flow through.
+ *
+ * Will be constructed from a list of projections which will be transformed to
+ * projectors which will be connected.
+ *
+ * Usage:
+ * <ul>
+ *  <li> construct it,
+ *  <li> call {@linkplain #startProjections()},
+ *  <li> get the first projector using {@linkplain #firstProjector()}
+ *  <li> feed data to it,
+ *  <li> and get the result of the {@linkplain #lastProjector()} with {@linkplain ResultProvider#result()}.
+ */
 public class FlatProjectorChain {
 
     private final ProjectionToProjectorVisitor projectorVisitor;
