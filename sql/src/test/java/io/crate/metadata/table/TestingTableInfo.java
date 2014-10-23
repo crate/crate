@@ -94,29 +94,29 @@ public class TestingTableInfo extends AbstractTableInfo {
         }
 
         public Builder add(String column, DataType type, List<String> path) {
-            return add(column, type, path, ReferenceInfo.ObjectType.DYNAMIC);
+            return add(column, type, path, ColumnPolicy.DYNAMIC);
         }
-        public Builder add(String column, DataType type, List<String> path, ReferenceInfo.ObjectType objectType) {
-            return add(column, type, path, objectType, ReferenceInfo.IndexType.NOT_ANALYZED, false);
+        public Builder add(String column, DataType type, List<String> path, ColumnPolicy columnPolicy) {
+            return add(column, type, path, columnPolicy, ReferenceInfo.IndexType.NOT_ANALYZED, false);
         }
         public Builder add(String column, DataType type, List<String> path, ReferenceInfo.IndexType indexType) {
-            return add(column, type, path, ReferenceInfo.ObjectType.DYNAMIC, indexType, false);
+            return add(column, type, path, ColumnPolicy.DYNAMIC, indexType, false);
         }
         public Builder add(String column, DataType type, List<String> path,
                            boolean partitionBy) {
-            return add(column, type, path, ReferenceInfo.ObjectType.DYNAMIC,
+            return add(column, type, path, ColumnPolicy.DYNAMIC,
                     ReferenceInfo.IndexType.NOT_ANALYZED, partitionBy);
         }
 
         public Builder add(String column, DataType type, List<String> path,
-                           ReferenceInfo.ObjectType objectType, ReferenceInfo.IndexType indexType,
+                           ColumnPolicy columnPolicy, ReferenceInfo.IndexType indexType,
                            boolean partitionBy) {
             RowGranularity rowGranularity = granularity;
             if (partitionBy) {
                 rowGranularity = RowGranularity.PARTITION;
             }
             ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path),
-                    rowGranularity, type, objectType, indexType);
+                    rowGranularity, type, columnPolicy, indexType);
             if (info.ident().isColumn()) {
                 columns.add(info);
             }
@@ -304,7 +304,7 @@ public class TestingTableInfo extends AbstractTableInfo {
         if (!ident.isColumn()) {
             ColumnIdent parentIdent = ident.getParent();
             ReferenceInfo parentInfo = getReferenceInfo(parentIdent);
-            if (parentInfo != null && parentInfo.objectType() == ReferenceInfo.ObjectType.STRICT) {
+            if (parentInfo != null && parentInfo.columnPolicy() == ColumnPolicy.STRICT) {
                 throw new ColumnUnknownException(ident().name(), ident.fqn());
             }
         }

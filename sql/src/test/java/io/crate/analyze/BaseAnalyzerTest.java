@@ -27,6 +27,7 @@ import io.crate.PartitionName;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.Input;
@@ -77,7 +78,7 @@ public abstract class BaseAnalyzerTest {
             .add("details", DataTypes.OBJECT, null)
             .add("awesome", DataTypes.BOOLEAN, null)
             .add("counters", new ArrayType(DataTypes.LONG), null)
-            .add("friends", new ArrayType(DataTypes.OBJECT), null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
             .add("friends", DataTypes.LONG, Arrays.asList("id"))
             .add("friends", new ArrayType(DataTypes.STRING), Arrays.asList("groups"))
             .add("tags", new ArrayType(DataTypes.STRING), null)
@@ -95,7 +96,7 @@ public abstract class BaseAnalyzerTest {
             .add("name", DataTypes.STRING, null)
             .add("details", DataTypes.OBJECT, null)
             .add("awesome", DataTypes.BOOLEAN, null)
-            .add("friends", new ArrayType(DataTypes.OBJECT), null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
             .addPrimaryKey("id")
             .addPrimaryKey("name")
             .clusteredBy("id")
@@ -106,7 +107,7 @@ public abstract class BaseAnalyzerTest {
             .add("name", DataTypes.STRING, null)
             .add("details", DataTypes.OBJECT, null)
             .add("awesome", DataTypes.BOOLEAN, null)
-            .add("friends", new ArrayType(DataTypes.OBJECT), null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
             .clusteredBy("id")
             .build();
     static final TableIdent TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY = new TableIdent(null, "user_refresh_interval");
@@ -118,7 +119,7 @@ public abstract class BaseAnalyzerTest {
     static final TableIdent NESTED_PK_TABLE_IDENT = new TableIdent(null, "nested_pk");
     static final TableInfo nestedPkTableInfo = TestingTableInfo.builder(NESTED_PK_TABLE_IDENT, RowGranularity.DOC, shardRouting)
             .add("id", DataTypes.LONG, null)
-            .add("o", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("o", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
             .add("o", DataTypes.BYTE, Arrays.asList("b"))
             .addPrimaryKey("id")
             .addPrimaryKey("o.b")
@@ -130,7 +131,7 @@ public abstract class BaseAnalyzerTest {
             .add("id", DataTypes.INTEGER, null)
             .add("name", DataTypes.STRING, null)
             .add("date", DataTypes.TIMESTAMP, null, true)
-            .add("obj", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
             // add 3 partitions/simulate already done inserts
             .addPartitions(
                     new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue(),
@@ -143,7 +144,7 @@ public abstract class BaseAnalyzerTest {
             .add("id", DataTypes.INTEGER, null)
             .add("date", DataTypes.TIMESTAMP, null, true)
             .add("num", DataTypes.LONG, null)
-            .add("obj", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
             .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
             // add 3 partitions/simulate already done inserts
             .addPartitions(
@@ -156,7 +157,7 @@ public abstract class BaseAnalyzerTest {
             TEST_NESTED_PARTITIONED_TABLE_IDENT, RowGranularity.DOC, new Routing())
             .add("id", DataTypes.INTEGER, null)
             .add("date", DataTypes.TIMESTAMP, null, true)
-            .add("obj", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
             .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
                     // add 3 partitions/simulate already done inserts
             .addPartitions(
@@ -176,9 +177,9 @@ public abstract class BaseAnalyzerTest {
     static final TableIdent DEEPLY_NESTED_TABLE_IDENT = new TableIdent(null, "deeply_nested");
     static final TableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
             DEEPLY_NESTED_TABLE_IDENT, RowGranularity.DOC, new Routing())
-            .add("details", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("details", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
             .add("details", DataTypes.BOOLEAN, Arrays.asList("awesome"))
-            .add("details", DataTypes.OBJECT, Arrays.asList("stuff"), ReferenceInfo.ObjectType.DYNAMIC)
+            .add("details", DataTypes.OBJECT, Arrays.asList("stuff"), ColumnPolicy.DYNAMIC)
             .add("details", DataTypes.STRING, Arrays.asList("stuff", "name"))
             .add("details", new ArrayType(DataTypes.OBJECT), Arrays.asList("arguments"))
             .add("details", DataTypes.DOUBLE, Arrays.asList("arguments", "quality"))

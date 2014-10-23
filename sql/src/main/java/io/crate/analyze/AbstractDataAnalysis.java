@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.*;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
@@ -213,7 +214,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
             // return references of primitive types as arrays
             info = new ReferenceInfo.Builder()
                     .ident(info.ident())
-                    .objectType(info.objectType())
+                    .columnPolicy(info.columnPolicy())
                     .granularity(info.granularity())
                     .type(new ArrayType(info.type()))
                     .build();
@@ -333,7 +334,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
             assert parameterOrLiteral instanceof Input;
             Object value = ((Input<?>)parameterOrLiteral).value();
             DataType guessed = DataTypes.guessType(value,
-                    reference.info().objectType() == ReferenceInfo.ObjectType.IGNORED);
+                    reference.info().columnPolicy() == ColumnPolicy.IGNORED);
             ((DynamicReference) reference).valueType(guessed);
         }
 
@@ -433,7 +434,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
             ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
             ReferenceInfo nestedInfo = table.getReferenceInfo(nestedIdent);
             if (nestedInfo == null) {
-                if (info.objectType() == ReferenceInfo.ObjectType.IGNORED) {
+                if (info.columnPolicy() == ColumnPolicy.IGNORED) {
                     continue;
                 }
                 TableInfo tableInfo = table;

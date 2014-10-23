@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -53,8 +54,44 @@ public class IndexReferenceInfo extends ReferenceInfo {
     }
 
     public IndexReferenceInfo(ReferenceIdent ident,
-                         IndexType indexType) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, ObjectType.DYNAMIC, indexType);
+                         IndexType indexType,
+                         List<ReferenceInfo> columns,
+                         @Nullable String analyzer) {
+        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType);
+        this.columns = Objects.firstNonNull(columns, Collections.<ReferenceInfo>emptyList());
+        this.analyzer = analyzer;
+    }
+
+    @Nullable
+    public String analyzer() {
+        return analyzer;
+    }
+
+    public List<ReferenceInfo> columns() {
+        return columns;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        IndexReferenceInfo that = (IndexReferenceInfo) o;
+
+        if (analyzer != null ? !analyzer.equals(that.analyzer) : that.analyzer != null)
+            return false;
+        if (!columns.equals(that.columns)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (analyzer != null ? analyzer.hashCode() : 0);
+        result = 31 * result + columns.hashCode();
+        return result;
     }
 
     @Override

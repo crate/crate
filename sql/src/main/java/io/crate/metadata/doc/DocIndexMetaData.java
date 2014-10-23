@@ -162,16 +162,16 @@ public class DocIndexMetaData {
     }
 
     private void addPartitioned(ColumnIdent column, DataType type) {
-        add(column, type, ReferenceInfo.ObjectType.DYNAMIC, ReferenceInfo.IndexType.NOT_ANALYZED, true);
+        add(column, type, ColumnPolicy.DYNAMIC, ReferenceInfo.IndexType.NOT_ANALYZED, true);
     }
 
     private void add(ColumnIdent column, DataType type, ReferenceInfo.IndexType indexType) {
-        add(column, type, ReferenceInfo.ObjectType.DYNAMIC, indexType, false);
+        add(column, type, ColumnPolicy.DYNAMIC, indexType, false);
     }
 
-    private void add(ColumnIdent column, DataType type, ReferenceInfo.ObjectType objectType,
+    private void add(ColumnIdent column, DataType type, ColumnPolicy columnPolicy,
                      ReferenceInfo.IndexType indexType, boolean partitioned) {
-        ReferenceInfo info = newInfo(column, type, objectType, indexType);
+        ReferenceInfo info = newInfo(column, type, columnPolicy, indexType);
         if (info.ident().isColumn()) {
             columnsBuilder.add(info);
         }
@@ -183,14 +183,14 @@ public class DocIndexMetaData {
 
     private ReferenceInfo newInfo(ColumnIdent column,
                                   DataType type,
-                                  ReferenceInfo.ObjectType objectType,
+                                  ColumnPolicy columnPolicy,
                                   ReferenceInfo.IndexType indexType) {
         RowGranularity granularity = RowGranularity.DOC;
         if (partitionedBy.contains(column)) {
             granularity = RowGranularity.PARTITION;
         }
         return new ReferenceInfo(new ReferenceIdent(ident, column), granularity, type,
-                objectType, indexType);
+                columnPolicy, indexType);
     }
 
     /**
@@ -332,10 +332,10 @@ public class DocIndexMetaData {
             if (columnDataType == DataTypes.OBJECT
                     || ( columnDataType.id() == ArrayType.ID
                         && ((ArrayType)columnDataType).innerType() == DataTypes.OBJECT )) {
-                ReferenceInfo.ObjectType objectType =
-                        ReferenceInfo.ObjectType.of(columnProperties.get("dynamic"));
+                ColumnPolicy columnPolicy =
+                        ColumnPolicy.of(columnProperties.get("dynamic"));
                 ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
-                add(newIdent, columnDataType, objectType, ReferenceInfo.IndexType.NO, false);
+                add(newIdent, columnDataType, columnPolicy, ReferenceInfo.IndexType.NO, false);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -348,7 +348,8 @@ public class DocIndexMetaData {
                 if (copyToColumns != null) {
                     for (String copyToColumn : copyToColumns) {
                         ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
-                        getOrCreateIndexBuilder(targetIdent);
+                        IndexReferenceInfo.Builder builder = getOrCreateIndexBuilder(targetIdent);
+                        builder.addColumn(newInfo(newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType));
                     }
                 }
                 // is it an index?

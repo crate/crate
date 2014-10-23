@@ -24,15 +24,14 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
@@ -40,7 +39,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
     public static class Builder {
         private ReferenceIdent ident;
         private DataType type;
-        private ObjectType objectType = ObjectType.DYNAMIC; // reflects default value of objects
+        private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC; // reflects default value of objects
         private RowGranularity granularity;
         private IndexType indexType = IndexType.NOT_ANALYZED; // reflects default behaviour
 
@@ -68,43 +67,35 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
             return ident;
         }
 
-        public Builder objectType(ObjectType objectType) {
-            this.objectType = objectType;
+        public Builder columnPolicy(ColumnPolicy columnPolicy) {
+            this.columnPolicy = columnPolicy;
             return this;
+        }
+
+        public Builder columnPolicy(boolean dynamic, boolean strict) {
+            if (dynamic) {
+                this.columnPolicy = ColumnPolicy.DYNAMIC;
+            } else if (!strict) {
+                this.columnPolicy = ColumnPolicy.IGNORED;
+            } else {
+                this.columnPolicy = ColumnPolicy.STRICT;
+            }
+            return this;
+        }
+
+        public void indexType(IndexType indexType) {
+            this.indexType = indexType;
+        }
+
+        public IndexType indexType() {
+            return indexType;
         }
 
         public ReferenceInfo build() {
             Preconditions.checkNotNull(ident, "ident is null");
             Preconditions.checkNotNull(granularity, "granularity is null");
             Preconditions.checkNotNull(type, "type is null");
-            return new ReferenceInfo(ident, granularity, type, objectType, indexType);
-        }
-    }
-
-    public static enum ObjectType {
-        DYNAMIC,
-        STRICT,
-        IGNORED;
-
-        public static ObjectType of(@Nullable Object dynamic) {
-            if (dynamic == null) {
-                return DYNAMIC;
-            }
-
-            return of(dynamic.toString());
-        }
-
-        public static ObjectType of(String dynamic) {
-            if (Booleans.isExplicitTrue(dynamic)) {
-                return DYNAMIC;
-            }
-            if (Booleans.isExplicitFalse(dynamic)) {
-                return IGNORED;
-            }
-            if (dynamic.equalsIgnoreCase("strict")) {
-                return STRICT;
-            }
-            return DYNAMIC;
+            return new ReferenceInfo(ident, granularity, type, columnPolicy, indexType);
         }
     }
 
@@ -121,7 +112,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
 
     private ReferenceIdent ident;
     private DataType type;
-    private ObjectType objectType = ObjectType.DYNAMIC;
+    private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
     private RowGranularity granularity;
     private IndexType indexType = IndexType.NOT_ANALYZED;
 
@@ -132,18 +123,18 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
     public ReferenceInfo(ReferenceIdent ident,
                          RowGranularity granularity,
                          DataType type) {
-        this(ident, granularity, type, ObjectType.DYNAMIC, IndexType.NOT_ANALYZED);
+        this(ident, granularity, type, ColumnPolicy.DYNAMIC, IndexType.NOT_ANALYZED);
     }
 
     public ReferenceInfo(ReferenceIdent ident,
                          RowGranularity granularity,
                          DataType type,
-                         ObjectType objectType,
+                         ColumnPolicy columnPolicy,
                          IndexType indexType) {
         this.ident = ident;
         this.type = type;
         this.granularity = granularity;
-        this.objectType = objectType;
+        this.columnPolicy = columnPolicy;
         this.indexType = indexType;
     }
 
@@ -159,8 +150,8 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         return granularity;
     }
 
-    public ObjectType objectType() {
-        return objectType;
+    public ColumnPolicy columnPolicy() {
+        return columnPolicy;
     }
 
     public IndexType indexType() {
@@ -176,7 +167,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
 
         if (granularity != that.granularity) return false;
         if (ident != null ? !ident.equals(that.ident) : that.ident != null) return false;
-        if (objectType.ordinal() != that.objectType.ordinal()) { return false; }
+        if (columnPolicy.ordinal() != that.columnPolicy.ordinal()) { return false; }
         if (indexType.ordinal() != that.indexType.ordinal()) { return false; }
         if (type != null ? !type.equals(that.type) : that.type != null) return false;
 
@@ -185,7 +176,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(granularity, ident, type, objectType, indexType);
+        return Objects.hashCode(granularity, ident, type, columnPolicy, indexType);
     }
 
     @Override
@@ -195,7 +186,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
                 .add("ident", ident)
                 .add("type", type);
         if (type.equals(DataTypes.OBJECT)) {
-            helper.add("object type", objectType.name());
+            helper.add("column policy", columnPolicy.name());
         }
         helper.add("index type", indexType.toString());
         return helper.toString();
@@ -207,7 +198,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
                 .compare(granularity, o.granularity)
                 .compare(ident, o.ident)
                 .compare(type, o.type)
-                .compare(objectType.ordinal(), o.objectType.ordinal())
+                .compare(columnPolicy.ordinal(), o.columnPolicy.ordinal())
                 .compare(indexType.ordinal(), o.indexType.ordinal())
                 .result();
     }
@@ -219,7 +210,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
 
-        objectType = ObjectType.values()[in.readVInt()];
+        columnPolicy = ColumnPolicy.values()[in.readVInt()];
         indexType = IndexType.values()[in.readVInt()];
     }
 
@@ -229,7 +220,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         DataTypes.toStream(type, out);
         RowGranularity.toStream(granularity, out);
 
-        out.writeVInt(objectType.ordinal());
+        out.writeVInt(columnPolicy.ordinal());
         out.writeVInt(indexType.ordinal());
     }
 }
