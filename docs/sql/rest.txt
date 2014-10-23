@@ -290,3 +290,49 @@ Currently the defined error codes are:
     ===== =====================================================================
 
 .. _prepared statement: http://en.wikipedia.org/wiki/Prepared_statement
+
+
+====================================
+Crate SQL Autocomplete HTTP Endpoint
+====================================
+
+Crate provides an endpoint which can be used to retrieve possible completions
+for a given SQL statement.
+
+The endpoint is accessible under ``<servername:port>/_sql_complete``. Requests
+have to be sent using the ``POST`` method and have to contain a ``JSON`` body.
+
+The body must contain an entry with a key called ``stmt`` and a corresponding
+value which contains the statement that should be completed::
+
+    {"stmt": "<statement to complete>"}
+
+The response body will be in ``JSON`` format and contain a list of possible
+completions as well as a start index which indicates at which place in the
+statement the completion starts.
+
+See the following example::
+
+    sh$ curl -sSXPOST '127.0.0.1:4200/_sql_complete?pretty=true' -d '{
+    ... "stmt":"select na"
+    ... }'
+    {
+      "start_idx" : 7,
+      "completions" : [ "name" ]
+    }
+
+``name`` is the only possible completion and it has to be inserted at position
+7 of the original statement::
+
+    select na
+    012345678
+
+A client can then use this information to complete the statement into::
+
+    select name
+
+.. warning::
+
+    The completion functionality is in an early state and will try to return
+    schema, table or column names. In some cases it might return wrong
+    suggestions or nothing at all.
