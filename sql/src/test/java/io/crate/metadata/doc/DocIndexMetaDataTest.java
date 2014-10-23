@@ -171,10 +171,10 @@ public class DocIndexMetaDataTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
         assertThat(md.columns().size(), is(4));
         assertThat(md.references().size(), is(16));
-        assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).objectType(), is(ReferenceInfo.ObjectType.DYNAMIC));
-        assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).objectType(), is(ReferenceInfo.ObjectType.DYNAMIC));
-        assertThat(md.references().get(new ColumnIdent("ignored")).objectType(), is(ReferenceInfo.ObjectType.IGNORED));
-        assertThat(md.references().get(new ColumnIdent("strict")).objectType(), is(ReferenceInfo.ObjectType.STRICT));
+        assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).columnPolicy(), is(ColumnPolicy.DYNAMIC));
+        assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).columnPolicy(), is(ColumnPolicy.DYNAMIC));
+        assertThat(md.references().get(new ColumnIdent("ignored")).columnPolicy(), is(ColumnPolicy.IGNORED));
+        assertThat(md.references().get(new ColumnIdent("strict")).columnPolicy(), is(ColumnPolicy.STRICT));
     }
 
     @Test
@@ -690,7 +690,7 @@ public class DocIndexMetaDataTest {
                 .endObject()
                 .endObject();
         DocIndexMetaData docIndexMd2 = newMeta(getIndexMetaData(
-                "t2",  builder, ImmutableSettings.EMPTY, AliasMetaData.builder("tables").build()), "t2");
+                "t2", builder, ImmutableSettings.EMPTY, AliasMetaData.builder("tables").build()), "t2");
 
         TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
         ArgumentCaptor<PutIndexTemplateRequest> argumentCaptor = ArgumentCaptor.forClass(PutIndexTemplateRequest.class);

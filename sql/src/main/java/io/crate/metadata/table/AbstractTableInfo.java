@@ -97,7 +97,7 @@ public abstract class AbstractTableInfo implements TableInfo {
             }
 
             if (parentInfo != null) {
-                switch (parentInfo.objectType()) {
+                switch (parentInfo.columnPolicy()) {
                     case STRICT:
                         throw new ColumnUnknownException(ident().name(), ident.fqn());
                     case IGNORED:
@@ -118,7 +118,7 @@ public abstract class AbstractTableInfo implements TableInfo {
         }
         DynamicReference reference = new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
         if (parentIsIgnored) {
-            reference.objectType(ReferenceInfo.ObjectType.IGNORED);
+            reference.columnPolicy(ColumnPolicy.IGNORED);
         }
         return reference;
     }

@@ -23,6 +23,7 @@ package io.crate.planner.symbol;
 
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.UndefinedType;
@@ -49,10 +50,10 @@ public class DynamicReference extends Reference {
     public void valueType(DataType dataType) {
         assert this.info != null;
         this.info = new ReferenceInfo(info.ident(), info.granularity(), dataType,
-                info.objectType(), info.indexType());
+                info.columnPolicy(), info.indexType());
     }
 
-    public void objectType(ReferenceInfo.ObjectType objectType) {
+    public void columnPolicy(ColumnPolicy objectType) {
         assert this.info != null;
         this.info = new ReferenceInfo(info.ident(), info.granularity(), info.type(),
                 objectType, info.indexType());

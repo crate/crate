@@ -26,6 +26,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -64,14 +65,14 @@ public class AnalysisTest {
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
             .add("d", DataTypes.DOUBLE, null)
-            .add("dyn_empty", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
-            .add("dyn", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("dyn_empty", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
+            .add("dyn", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
             .add("dyn", DataTypes.DOUBLE, ImmutableList.of("d"))
-            .add("dyn", DataTypes.OBJECT, ImmutableList.of("inner_strict"), ReferenceInfo.ObjectType.STRICT)
+            .add("dyn", DataTypes.OBJECT, ImmutableList.of("inner_strict"), ColumnPolicy.STRICT)
             .add("dyn", DataTypes.DOUBLE, ImmutableList.of("inner_strict", "double"))
-            .add("strict", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.STRICT)
+            .add("strict", DataTypes.OBJECT, null, ColumnPolicy.STRICT)
             .add("strict", DataTypes.DOUBLE, ImmutableList.of("inner_d"))
-            .add("ignored", DataTypes.OBJECT, null, ReferenceInfo.ObjectType.IGNORED)
+            .add("ignored", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();
