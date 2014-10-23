@@ -22,18 +22,30 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
+import io.crate.Constants;
+import io.crate.PartitionName;
 import io.crate.action.sql.SQLActionException;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.compress.CompressedString;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.Map;
 
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
@@ -197,6 +209,132 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat(response.cols(), is(arrayContaining("good", "id", "name", "score")));
         assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(true, 1, "Trillian", 4656234.345D)));
+    }
+
+    @Test
+    public void testStrictPartitionedTableInsert() throws Exception {
+        execute("create table numbers (" +
+                "  num int, " +
+                "  odd boolean," +
+                "  prime boolean" +
+                ") partitioned by (odd) with (column_policy='strict', number_of_replicas=0)");
+        ensureGreen();
+
+        GetIndexTemplatesResponse response = client().admin().indices()
+                .prepareGetTemplates(PartitionName.templateName("numbers"))
+                .execute().actionGet();
+        assertThat(response.getIndexTemplates().size(), is(1));
+        IndexTemplateMetaData template = response.getIndexTemplates().get(0);
+        CompressedString mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(mappingStr, is(notNullValue()));
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(mapping.get("dynamic")), is(ColumnPolicy.STRICT.value()));
+
+        execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
+                new Object[]{6, true, false});
+        execute("refresh table numbers");
+
+        MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("numbers", Arrays.asList(new BytesRef("true"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(ColumnPolicy.STRICT.value()));
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column 'perfect' unknown");
+        execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
+                new Object[]{28, true, false, true});
+    }
+
+    @Test
+    public void testStrictPartitionedTableUpdate() throws Exception {
+        execute("create table numbers (" +
+                "  num int, " +
+                "  odd boolean," +
+                "  prime boolean" +
+                ") partitioned by (odd) with (column_policy='strict', number_of_replicas=0)");
+        ensureGreen();
+
+        GetIndexTemplatesResponse response = client().admin().indices()
+                .prepareGetTemplates(PartitionName.templateName("numbers"))
+                .execute().actionGet();
+        assertThat(response.getIndexTemplates().size(), is(1));
+        IndexTemplateMetaData template = response.getIndexTemplates().get(0);
+        CompressedString mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(mappingStr, is(notNullValue()));
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(mapping.get("dynamic")), is(ColumnPolicy.STRICT.value()));
+
+        execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
+                new Object[]{6, true, false});
+        execute("refresh table numbers");
+
+        MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("numbers", Arrays.asList(new BytesRef("true"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(ColumnPolicy.STRICT.value()));
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column 'perfect' unknown");
+        execute("update numbers set num=?, perfect=? where num=6",
+                new Object[]{28, true});
+    }
+
+    @Test
+    public void testDynamicPartitionedTable() throws Exception {
+        execute("create table numbers (" +
+                "  num int, " +
+                "  odd boolean," +
+                "  prime boolean" +
+                ") partitioned by (odd) with (column_policy='dynamic', number_of_replicas=0)");
+        ensureGreen();
+
+        GetIndexTemplatesResponse templateResponse = client().admin().indices()
+                .prepareGetTemplates(PartitionName.templateName("numbers"))
+                .execute().actionGet();
+        assertThat(templateResponse.getIndexTemplates().size(), is(1));
+        IndexTemplateMetaData template = templateResponse.getIndexTemplates().get(0);
+        CompressedString mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(mappingStr, is(notNullValue()));
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(mapping.get("dynamic")), is("true"));
+
+        execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
+                new Object[]{6, true, false});
+        execute("refresh table numbers");
+
+        MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("numbers", Arrays.asList(new BytesRef("true"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is("true"));
+
+        execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
+                new Object[]{28, true, false, true});
+        execute("refresh table numbers");
+
+        execute("select * from numbers order by num");
+        assertThat(response.rowCount(), is(2L));
+        assertThat(response.cols(), arrayContaining("num", "odd", "perfect", "prime"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "6| true| NULL| false\n" +
+                "28| true| true| false\n"));
+
+        execute("update numbers set prime=true, changed='2014-10-23T10:20', author='troll' where num=28");
+        assertThat(response.rowCount(), is(1L));
+        execute("refresh table numbers");
+
+        execute("select * from numbers order by num");
+        assertThat(response.rowCount(), is(2L));
+        assertThat(response.cols(), arrayContaining("author", "changed", "num", "odd", "perfect", "prime"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "NULL| NULL| 6| true| NULL| false\n" +
+                "troll| 1414059600000| 28| true| true| true\n"));
+
     }
 
 }
