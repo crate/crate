@@ -101,7 +101,7 @@ public class GroupProjection extends Projection {
         for (int i = 0; i < size; i++) {
             values.add((Aggregation) Symbol.fromStream(in));
         }
-        requiredGranularity = RowGranularity.values()[in.readVInt()];
+        requiredGranularity = RowGranularity.fromStream(in);
     }
 
     @Override
@@ -115,7 +115,7 @@ public class GroupProjection extends Projection {
         for (Symbol symbol : values) {
             Symbol.toStream(symbol, out);
         }
-        out.writeVInt(requiredGranularity.ordinal());
+        RowGranularity.toStream(requiredGranularity, out);
     }
 
     @Override
