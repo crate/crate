@@ -107,6 +107,7 @@ public class FilterProjection extends Projection {
         for (int i = 0; i < numOutputs; i++) {
             outputs.add(Symbol.fromStream(in));
         }
+        requiredGranularity = RowGranularity.values()[in.readVInt()];
     }
 
     @Override
@@ -116,6 +117,7 @@ public class FilterProjection extends Projection {
         for (Symbol symbol : outputs) {
             Symbol.toStream(symbol, out);
         }
+        out.writeVInt(requiredGranularity.ordinal());
     }
 
     @Override
