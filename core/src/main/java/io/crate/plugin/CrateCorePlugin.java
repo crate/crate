@@ -25,6 +25,7 @@ import io.crate.core.CrateLoader;
 import io.crate.module.CrateCoreModule;
 import io.crate.module.CrateCoreShardModule;
 import io.crate.rest.CrateRestMainAction;
+import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
@@ -56,6 +57,16 @@ public class CrateCorePlugin extends AbstractPlugin {
     @Override
     public Settings additionalSettings() {
         return crateLoader.additionalSettings();
+    }
+
+    @Override
+    public Collection<Class<? extends LifecycleComponent>> services() {
+        return crateLoader.services();
+    }
+
+    @Override
+    public Collection<Class<? extends Module>> indexModules() {
+        return crateLoader.indexModules();
     }
 
     @Override

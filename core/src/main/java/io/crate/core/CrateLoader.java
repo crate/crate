@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.CrateComponent;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -89,6 +90,22 @@ public class CrateLoader {
         List<Class<? extends Module>> modules = Lists.newArrayList();
         for (Plugin plugin : plugins) {
             modules.addAll(plugin.modules());
+        }
+        return modules;
+    }
+
+    public Collection<Class<? extends LifecycleComponent>> services() {
+        List<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
+        for (Plugin plugin : plugins) {
+            services.addAll(plugin.services());
+        }
+        return services;
+    }
+
+    public Collection<Class<? extends Module>> indexModules() {
+        Collection<Class<? extends Module>> modules = new ArrayList<>();
+        for (Plugin plugin : plugins) {
+            modules.addAll(plugin.indexModules());
         }
         return modules;
     }
