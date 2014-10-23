@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -87,5 +88,24 @@ public class GroupProjectionTest {
 
         assertThat(p2.keys.size(), is(1));
         assertThat(p2.values().size(), is(1));
+    }
+
+    @Test
+    public void testStreamingGranularity() throws Exception {
+        GroupProjection p = new GroupProjection();
+        p.keys(
+                ImmutableList.<Symbol>of(
+                        createReference("foo", DataTypes.STRING),
+                        createReference("bar", DataTypes.SHORT)
+                ));
+
+        p.values(ImmutableList.<Aggregation>of());
+        p.setRequiredGranularity(RowGranularity.SHARD);
+        BytesStreamOutput out = new BytesStreamOutput();
+        Projection.toStream(p, out);
+
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
+        assertEquals(p, p2);
     }
 }
