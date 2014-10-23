@@ -22,7 +22,9 @@
 package io.crate.node;
 
 import io.crate.Constants;
-import junit.framework.TestCase;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.varia.NullAppender;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -40,8 +42,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import static org.junit.Assert.assertEquals;
 
-public class NodeSettingsTest extends TestCase {
+
+public class NodeSettingsTest {
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
@@ -52,8 +56,17 @@ public class NodeSettingsTest extends TestCase {
 
     protected Node node;
     protected Client client;
+    private boolean loggingConfigured = false;
 
     private void doSetup() throws IOException {
+        // mute log4j warning by configuring a dummy logger
+        if (!loggingConfigured) {
+            Logger root = Logger.getRootLogger();
+            root.removeAllAppenders();
+            root.setLevel(Level.OFF);
+            root.addAppender(new NullAppender());
+            loggingConfigured = true;
+        }
         tmp.create();
         ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
             .put("node.name", "node-test")

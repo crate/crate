@@ -21,12 +21,14 @@
 
 package io.crate.analyze;
 
-import com.amazonaws.services.cloudfront.model.InvalidArgumentException;
 import com.google.common.base.Joiner;
 import io.crate.metadata.settings.*;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ObjectLiteral;
-import io.crate.types.*;
+import io.crate.types.BooleanType;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -356,7 +358,7 @@ public class SettingsAppliers {
         }
     }
 
-    static class InvalidSettingValueContentException extends InvalidArgumentException {
+    static class InvalidSettingValueContentException extends IllegalArgumentException {
         InvalidSettingValueContentException(String message) {
             super(message);
         }

@@ -16,7 +16,7 @@ dependencies {
     compile (project(':es')) {
         exclude group: 'org.apache.lucene'
     }
-    // needed by ES Version class
+    // needed by ES Version class - keep up to date with es dependencies
     compile 'org.apache.lucene:lucene-core:4.9.0'
     compile 'org.apache.lucene:lucene-analyzers-common:4.9.0'
 

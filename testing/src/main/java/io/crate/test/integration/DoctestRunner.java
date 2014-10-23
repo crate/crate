@@ -35,8 +35,8 @@ public class DoctestRunner {
 
 
     private void resetInterpreter() {
-        interp = new PythonInterpreter(null, new PySystemState());
-        sys = Py.getSystemState();
+        sys = new PySystemState();
+        interp = new PythonInterpreter(null, sys);
     }
 
     private void execFile(String... arguments) {

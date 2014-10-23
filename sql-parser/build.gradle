@@ -6,27 +6,23 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    compile 'com.google.code.findbugs:annotations:2.0.1'
-    compile 'com.fasterxml.jackson.core:jackson-core:2.1.4'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.1.4'
-    compile 'joda-time:joda-time:2.1'
-    compile 'io.airlift:slice:0.2'
-    compile 'com.google.guava:guava:15.0'
-    compile 'org.antlr:antlr-runtime:3.4'
-
-    testCompile ('org.testng:testng:6.8') {
-        exclude group: 'junit', module: 'junit'
-    }
-    testCompile 'junit:junit:4.11'
-}
-
 configurations {
     antlr3
 }
 
 dependencies {
+    compile 'com.google.code.findbugs:annotations:3.0.0'
+    compile 'joda-time:joda-time:2.5'
+    compile 'io.airlift:slice:0.7'
+    compile 'com.google.guava:guava:17.0'
+    compile 'org.antlr:antlr-runtime:3.5'
+
     antlr3 'org.antlr:antlr:3.4'
+
+    testCompile ('org.testng:testng:6.8') {
+        exclude group: 'junit', module: 'junit'
+    }
+    testCompile 'junit:junit:4.11'
 }
 
 task generateWithANTLR3(type:Exec) { 
@@ -41,6 +37,7 @@ compileJava {
 test {
     // show standard out and standard error of the test JVM(s) on the console
     testLogging.showStandardStreams = true
+    testLogging.exceptionFormat = 'full'
 
     useTestNG()
 
