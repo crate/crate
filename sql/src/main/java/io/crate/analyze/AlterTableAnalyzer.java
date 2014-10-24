@@ -67,7 +67,11 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
         } else if (!node.resetProperties().isEmpty()) {
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (String property : node.resetProperties()) {
-                builder.put(tablePropertiesAnalysis.getDefault(property));
+                if(TablePropertiesAnalysis.COLUMN_POLICY.equals(property)){
+                    context.columnPolicy(tablePropertiesAnalysis.defaultColumnPolicy());
+                } else {
+                    builder.put(tablePropertiesAnalysis.getDefault(property));
+                }
             }
             context.settings(builder.build());
         }

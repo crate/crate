@@ -344,10 +344,54 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureGreen();
         execute("alter table dynamic_table set (column_policy = 'strict')");
-        ensureGreen();
+        waitNoPendingTasksOnAll();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column 'new_col' unknown");
         execute("insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')");
+    }
+
+    @Test
+    public void testResetColumnPolicy() throws Exception {
+        execute("create table dynamic_table (" +
+                "  id integer, " +
+                "  score double" +
+                ") with (number_of_replicas=0)");
+        ensureGreen();
+        execute("alter table dynamic_table set (column_policy = 'strict')");
+        waitNoPendingTasksOnAll();
+        MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
+                .get("dynamic_table")
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(ColumnPolicy.STRICT.value()));
+        execute("alter table dynamic_table reset (column_policy)");
+        waitNoPendingTasksOnAll();
+        partitionMetaData = clusterService().state().metaData().indices()
+                .get("dynamic_table")
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+    }
+
+    @Test
+    public void testResetColumnPolicyPartitioned() throws Exception {
+        execute("create table dynamic_table (" +
+                "  id integer, " +
+                "  score double" +
+                ") partitioned by (score) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into dynamic_table (id, score) values (1, 10)");
+        execute("refresh table dynamic_table");
+        execute("alter table dynamic_table set (column_policy = 'strict')");
+        waitNoPendingTasksOnAll();
+        MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(ColumnPolicy.STRICT.value()));
+        execute("alter table dynamic_table reset (column_policy)");
+        waitNoPendingTasksOnAll();
+        partitionMetaData = clusterService().state().metaData().indices()
+                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).stringValue())
+                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
     }
 
     @Test
@@ -358,13 +402,16 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 ") partitioned by (score) with (number_of_replicas=0, column_policy='strict')");
         ensureGreen();
         execute("insert into dynamic_table (id, score) values (1, 10)");
-        execute("alter table dynamic_table set (column_policy= 'dynamic')");
+        execute("refresh table dynamic_table");
         ensureGreen();
+        execute("alter table dynamic_table set (column_policy= 'dynamic')");
+        waitNoPendingTasksOnAll();
         // After changing the column_policy it's possible to add new columns to existing and new
         // partitions
         execute("insert into dynamic_table (id, score, comment) values (2,10,'this is a new column')");
         execute("insert into dynamic_table (id, score, new_comment) values (2,5,'this is a new column on a new partition')");
-
+        execute("refresh table dynamic_table");
+        ensureGreen();
         GetIndexTemplatesResponse response = client().admin().indices()
                 .prepareGetTemplates(PartitionName.templateName("dynamic_table"))
                 .execute().actionGet();
@@ -380,6 +427,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into dynamic_table (id, score, new_col) values (?, ?, ?)",
                 new Object[]{6, 3, "hello"});
         execute("refresh table dynamic_table");
+        ensureGreen();
 
         MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
                 .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).stringValue())
@@ -406,10 +454,13 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("insert into dynamic_table (id, score) values (1, 10)");
         execute("insert into dynamic_table (id, score) values (2, 5)");
-        execute("alter table dynamic_table partition (score = 10) set (column_policy= 'dynamic')");
+        execute("refresh table dynamic_table");
         ensureGreen();
+        execute("alter table dynamic_table partition (score = 10) set (column_policy= 'dynamic')");
+        waitNoPendingTasksOnAll();
         execute("insert into dynamic_table (id, score) values (2, 7)");
         execute("refresh table dynamic_table");
+        ensureGreen();
 
         MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
                 .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).stringValue())
