@@ -6,6 +6,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/10/24 0.44.8
+=================
+
  - Fix: all group by queries with the primary key(s) or routing column
    as group key(s) are executed correctly
 
