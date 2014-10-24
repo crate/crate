@@ -113,6 +113,16 @@ Ports
   For internal cluster communication crate uses TCP and listens on the
   first free port in the range of ``4300-4400``.
 
+.. _transport.publish_port:
+
+**transport.publish_port**
+  | *Runtime:*   ``no``
+
+  The port that Crate publishes for its discovery. It is necessary to
+  define this setting when the bound tranport port (``transport.tcp.port``)
+  of the node is not directly reachable from outside, e.g. running it
+  behind a firewall or inside a Docker container.
+
 .. _conf-cluster-settings:
 
 Cluster wide settings
