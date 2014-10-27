@@ -40,7 +40,6 @@ public interface Projector extends ProjectorUpstream {
      *
      * This method must be thread safe.
      *
-     * @param row
      * @return false if this projection does not need any more rows, true otherwise.
      */
     public boolean setNextRow(Object ... row);

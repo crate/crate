@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Added support for scalar functions within the select column list and ORDER
+   BY clause for SELECT statements that get optimized to do
+   primary-key-lookups.
+
  - Fix: Bulk inserts into partitioned tables resulted in inserting
    all records into the partition of the last record
 

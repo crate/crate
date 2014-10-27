@@ -116,10 +116,10 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             globalAggregates(analysis, plan, context);
         } else {
             WhereClause whereClause = analysis.whereClause();
-            if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
+            if (!context.indexWriterProjection.isPresent()
+                && analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
                     analysis.table().getRouting(whereClause).hasLocations() &&
-                    (analysis.table().ident().schema() == null || analysis.table().ident().schema().equals(DocSchemaInfo.NAME))
-                    && (analysis.isLimited() || analysis.ids().size() > 0 || !context.indexWriterProjection.isPresent())) {
+                    analysis.table().schemaInfo().name().equals(DocSchemaInfo.NAME)) {
 
                     if (analysis.ids().size() > 0
                             && analysis.routingValues().size() > 0
@@ -479,10 +479,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     private void ESGet(SelectAnalysis analysis, Plan plan, Context context) {
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
-
+        assert !context.indexWriterProjection.isPresent() : "shouldn't use ESGet with indexWriterProjection";
         String indexName;
         if (analysis.table().isPartitioned()) {
             assert analysis.whereClause().partitions().size() == 1 : "ambiguous partitions for ESGet";
@@ -490,34 +487,19 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         } else {
             indexName = analysis.table().ident().name();
         }
-
         ESGetNode getNode = new ESGetNode(
                 indexName,
+                analysis.outputSymbols(),
+                extractDataTypes(analysis.outputSymbols()),
                 analysis.ids(),
                 analysis.routingValues(),
+                analysis.sortSymbols(),
+                analysis.reverseFlags(),
+                analysis.nullsFirst(),
+                analysis.limit(),
+                analysis.offset(),
                 analysis.table().partitionedByColumns());
-        getNode.outputs(contextBuilder.toCollect());
-        getNode.outputTypes(extractDataTypes(analysis.outputSymbols()));
         plan.add(getNode);
-
-        // handle sorting, limit and offset
-        if (analysis.isSorted() || analysis.limit() != null
-                || analysis.offset() > 0
-                || context.indexWriterProjection.isPresent()) {
-            TopNProjection tnp = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    analysis.offset(),
-                    contextBuilder.orderBy(),
-                    analysis.reverseFlags(),
-                    analysis.nullsFirst()
-            );
-            tnp.outputs(contextBuilder.outputs());
-            ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.<Projection>builder().add(tnp);
-            if (context.indexWriterProjection.isPresent()) {
-                projectionBuilder.add(context.indexWriterProjection.get());
-            }
-            plan.add(PlanNodeBuilder.localMerge(projectionBuilder.build(), getNode));
-        }
     }
 
     private void normalSelect(SelectAnalysis analysis, Plan plan, Context context) {
@@ -1090,7 +1072,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
 
-    static List<DataType> extractDataTypes(List<Symbol> symbols) {
+    public static List<DataType> extractDataTypes(List<Symbol> symbols) {
         List<DataType> types = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
             types.add(DataTypeVisitor.fromSymbol(symbol));
