@@ -6,10 +6,7 @@ import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -52,6 +49,8 @@ import org.junit.rules.ExpectedException;
 
 import java.util.*;
 
+import static io.crate.testing.TestingHelpers.isFunction;
+import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -1164,6 +1163,39 @@ public class PlannerTest {
         assertThat(filterProjection.outputs().get(1), instanceOf(InputColumn.class));
         inputColumn = (InputColumn)filterProjection.outputs().get(1);
         assertThat(inputColumn.index(), is(1));
+    }
+
+
+    @Test
+    public void testInsertFromQueryWithDocAndSysColumnsMixed() throws Exception {
+        Plan plan = plan("insert into users (id, name) (select id, sys.nodes.name from users)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+
+        CollectNode collectNode = (CollectNode) planNode;
+        List<Symbol> toCollect = collectNode.toCollect();
+        assertThat(toCollect.size(), is(2));
+        assertThat(toCollect.get(0), isReference("_doc.id"));
+
+        assertThat((Reference) toCollect.get(1), equalTo(new Reference(new ReferenceInfo(
+            new ReferenceIdent(new TableIdent("sys", "nodes"), "name"), RowGranularity.NODE, DataTypes.STRING))));
+    }
+
+    @Test
+    public void testInsertFromQueryWithPartitionedColumn() throws Exception {
+        Plan plan = plan("insert into users (id, date) (select id, date from parted)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+
+        CollectNode collectNode = (CollectNode) planNode;
+        List<Symbol> toCollect = collectNode.toCollect();
+        assertThat(toCollect.size(), is(2));
+        assertThat(toCollect.get(0), isFunction("toLong"));
+        assertThat(((Function) toCollect.get(0)).arguments().get(0), isReference("_doc.id"));
+        assertThat((Reference) toCollect.get(1), equalTo(new Reference(new ReferenceInfo(
+            new ReferenceIdent(new TableIdent(null, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP))));
     }
 
     @Test

@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fix: If an insert from query statement involved partitioned columns of a
+   partitioned table in the query part those partitioned columns weren't
+   resolved correctly and resulted in null values
+
  - Added support for scalar functions within the select column list and ORDER
    BY clause for SELECT statements that get optimized to do
    primary-key-lookups.
