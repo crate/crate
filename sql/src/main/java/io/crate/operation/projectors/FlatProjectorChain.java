@@ -44,14 +44,12 @@ import java.util.List;
  */
 public class FlatProjectorChain {
 
-    private final ProjectionToProjectorVisitor projectorVisitor;
     private Projector firstProjector;
     private final List<Projector> projectors;
     private ResultProvider lastProjector;
 
     public FlatProjectorChain(List<Projection> projections, ProjectionToProjectorVisitor projectorVisitor) {
         projectors = new ArrayList<>();
-        this.projectorVisitor = projectorVisitor;
         if (projections.size() == 0) {
             firstProjector = new CollectingProjector();
             lastProjector = (ResultProvider)firstProjector;

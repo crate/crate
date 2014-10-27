@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Added support for scalar functions within the select column list and ORDER
+   BY clause for SELECT statements that get optimized to do
+   primary-key-lookups.
+
  - Fix: raise an error if an array is inserted into an objects
    field which is not of type array
 

@@ -38,6 +38,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.PlanNode;
@@ -71,6 +72,7 @@ public class TransportExecutor implements Executor {
 
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
+    private final ProjectionToProjectorVisitor projectorVisitor;
 
     @Inject
     public TransportExecutor(Settings settings,
@@ -92,6 +94,10 @@ public class TransportExecutor implements Executor {
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.visitor = new Visitor();
+        ImplementationSymbolVisitor clusterImplementationSymbolVisitor =
+                new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
+        projectorVisitor = new ProjectionToProjectorVisitor(
+                clusterService, settings, transportActionProvider, clusterImplementationSymbolVisitor);
     }
 
     @Override
@@ -173,6 +179,8 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitESGetNode(ESGetNode node, Job context) {
             context.addTask(new ESGetTask(
+                    functions,
+                    projectorVisitor,
                     transportActionProvider.transportMultiGetAction(),
                     transportActionProvider.transportGetAction(),
                     node));

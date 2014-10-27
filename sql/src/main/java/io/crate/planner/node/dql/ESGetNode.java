@@ -25,9 +25,10 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
 
-import java.util.Arrays;
 import java.util.List;
 
 
@@ -36,27 +37,38 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     private final String index;
     private final List<String> ids;
     private final List<String> routingValues;
+    private final List<Symbol> sortSymbols;
+    private final boolean[] reverseFlags;
+    private final Boolean[] nullsFirst;
+    private final Integer limit;
+    private final int offset;
     private final List<ReferenceInfo> partitionBy;
 
+    private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
+    private final static Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
+
     public ESGetNode(String index,
+                     List<Symbol> outputs,
+                     List<DataType> outputTypes,
                      List<String> ids,
                      List<String> routingValues,
+                     @Nullable List<Symbol> sortSymbols,
+                     @Nullable boolean[] reverseFlags,
+                     @Nullable Boolean[] nullsFirst,
+                     @Nullable Integer limit,
+                     int offset,
                      @Nullable List<ReferenceInfo> partitionBy) {
         this.index = index;
+        this.outputs = outputs;
+        outputTypes(outputTypes);
         this.ids = ids;
         this.routingValues = routingValues;
-        this.partitionBy = Objects.firstNonNull(partitionBy,
-                ImmutableList.<ReferenceInfo>of());
-    }
-
-    public ESGetNode(String index,
-                     List<String> ids,
-                     List<String> routingValues) {
-        this(index, ids, routingValues, null);
-    }
-
-    public ESGetNode(String index, String id, String routingValue) {
-        this(index, Arrays.asList(id), Arrays.asList(routingValue), null);
+        this.sortSymbols = Objects.firstNonNull(sortSymbols, ImmutableList.<Symbol>of());
+        this.reverseFlags = Objects.firstNonNull(reverseFlags, EMPTY_REVERSE_FLAGS);
+        this.nullsFirst = Objects.firstNonNull(nullsFirst, EMPTY_NULLS_FIRST);
+        this.limit = limit;
+        this.offset = offset;
+        this.partitionBy = Objects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
     }
 
     public String index() {
@@ -75,6 +87,28 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
     public List<String> routingValues() {
         return routingValues;
     }
+
+    @Nullable
+    public Integer limit() {
+        return limit;
+    }
+
+    public int offset() {
+        return offset;
+    }
+
+    public List<Symbol> sortSymbols() {
+        return sortSymbols;
+    }
+
+    public boolean[] reverseFlags() {
+        return reverseFlags;
+    }
+
+    public Boolean[] nullsFirst() {
+        return nullsFirst;
+    }
+
 
     public List<ReferenceInfo> partitionBy() {
         return partitionBy;

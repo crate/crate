@@ -385,6 +385,12 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             if (stackTrace1.length > 0) {
                 message = String.format("NPE in %s", stackTrace1[0]);
             }
+        } else if (e instanceof ArrayIndexOutOfBoundsException) {
+            // in case of ArrayIndexOutOfBoundsExceptions the message is just the index number ...
+            StackTraceElement[] stackTrace1 = e.getStackTrace();
+            if (stackTrace1.length > 0) {
+                message = String.format("ArrayIndexOutOfBoundsException in %s", stackTrace1[0]);
+            }
         }
         if (logger.isTraceEnabled()) {
             message = Objects.firstNonNull(message, stackTrace.toString());
