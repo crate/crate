@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fix: raise an error if an array is inserted into an objects
+   field which is not of type array
+
  - Fix: all group by queries with the primary key(s) or routing column
    as group key(s) are executed correctly
 

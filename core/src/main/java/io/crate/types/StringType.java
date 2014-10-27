@@ -28,7 +28,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.Locale;
 import java.util.Map;
 
@@ -71,7 +70,7 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
                 return new BytesRef("f");
             }
         }
-        if (value instanceof Map || value instanceof Array) {
+        if (value instanceof Map || value.getClass().isArray()) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "cannot cast %s to string", value));
         }
