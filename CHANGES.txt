@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fix: If an insert from query statement involved partitioned columns of a
+   partitioned table in the query part those partitioned columns weren't
+   resolved correctly and resulted in null values
+
  - Fix: raise an error if an array is inserted into an objects
    field which is not of type array
 

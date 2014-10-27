@@ -237,7 +237,6 @@ public class CollectNode extends AbstractDQLPlanNode {
     /**
      * normalizes the symbols of this node with the given normalizer
      *
-     * @param normalizer
      * @return a normalized node, if no changes occurred returns this
      */
     public CollectNode normalize(EvaluatingNormalizer normalizer) {

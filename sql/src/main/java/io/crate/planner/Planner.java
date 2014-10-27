@@ -228,7 +228,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (analysis.outputSymbols() != null && !analysis.outputSymbols().isEmpty()) {
             List<Symbol> columns = new ArrayList<>(analysis.outputSymbols().size());
             for (Symbol symbol : analysis.outputSymbols()) {
-                columns.add(DocReferenceBuildingVisitor.convert(symbol));
+                columns.add(DocReferenceBuildingVisitor.convert(symbol, analysis.table()));
             }
             contextBuilder = contextBuilder.output(columns);
             projection.inputs(contextBuilder.outputs());
@@ -556,8 +556,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         } else {
             toCollect = new ArrayList<>();
             for (Symbol symbol : contextBuilder.toCollect()) {
-                toCollect.add(DocReferenceBuildingVisitor.convert(symbol));
-
+                toCollect.add(DocReferenceBuildingVisitor.convert(symbol, analysis.table()));
             }
         }
 
