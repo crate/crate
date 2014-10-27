@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fix: raise an error if an array is inserted into an objects
+   field which is not of type array
+
  - Throw an error while using unknown root columns on SELECT
 
 2014/10/21 0.44.8

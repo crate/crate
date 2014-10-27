@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
@@ -282,6 +281,17 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         for (int i=0; i < getResponse.rows()[0].length; i++) {
             assertThat(getResponse.rows()[0][i], is(searchResponse.rows()[0][i]));
         }
+    }
+
+    @Test
+    public void testInsertObjectIntoString() throws Exception {
+        execute("create table t1 (o object)");
+        ensureGreen();
+        execute("insert into t1 values ({a='abc'})");
+        refresh();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Validation failed for o.a: Invalid string");
+        execute("insert into t1 values ({a=['123', '456']})");
     }
 
     @Test
