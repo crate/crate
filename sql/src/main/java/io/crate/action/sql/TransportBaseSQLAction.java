@@ -174,7 +174,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             } else {
                 processNonData(analysis, request, listener);
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
             sendResponse(listener, buildSQLActionException(e));
         }
@@ -267,7 +267,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                 request.includeTypesOnResponse()
                         );
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     sendResponse(listener, e);
                     return;
                 }
