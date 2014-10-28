@@ -5,6 +5,13 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crash to 0.10.3 which includes the following changes
+
+    - require crate-python 0.12.3 to get support for the iterator protocol
+      on cursor
+
+    - Fixed an error that caused crash to crash on non posix platforms.
+
  - updated es/upstream to prevent spurious deletion of dangling indices.
 
  - Fix: If an insert from query statement involved partitioned columns of a
