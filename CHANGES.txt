@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated es/upstream to prevent spurious deletion of dangling indices.
+
  - Fix: If an insert from query statement involved partitioned columns of a
    partitioned table in the query part those partitioned columns weren't
    resolved correctly and resulted in null values
