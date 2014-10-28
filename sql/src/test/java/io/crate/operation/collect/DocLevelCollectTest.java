@@ -41,6 +41,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.hamcrest.core.IsNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,6 +59,20 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                     new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "doc"),
                     RowGranularity.DOC,
                     DataTypes.INTEGER
+            )
+    );
+    private static final Reference underscoreIdReference = new Reference(
+            new ReferenceInfo(
+                    new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "_id"),
+                    RowGranularity.DOC,
+                    DataTypes.STRING
+            )
+    );
+    private static final Reference underscoreRawReference = new Reference(
+            new ReferenceInfo(
+                    new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "_raw"),
+                    RowGranularity.DOC,
+                    DataTypes.STRING
             )
     );
 
@@ -121,13 +136,21 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectDocLevel() throws Exception {
         CollectNode collectNode = new CollectNode("docCollect", routing(TEST_TABLE_NAME));
-        collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
+        collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
+
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(2));
-        assertThat(result[0].length, is(1));
+
+        assertThat(result[0].length, is(3));
         assertThat((Integer) result[0][0], isOneOf(2, 4));
+        assertThat(((BytesRef) result[0][1]).utf8ToString(), IsNull.notNullValue());
+        assertThat(((BytesRef) result[0][2]).utf8ToString(), isOneOf("1", "3"));
+
+        assertThat(result[1].length, is(3));
         assertThat((Integer) result[1][0], isOneOf(2, 4));
+        assertThat(((BytesRef) result[1][1]).utf8ToString(), IsNull.notNullValue());
+        assertThat(((BytesRef) result[1][2]).utf8ToString(), isOneOf("1", "3"));
     }
 
     @Test
