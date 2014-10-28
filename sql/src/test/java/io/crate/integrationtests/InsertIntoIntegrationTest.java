@@ -55,9 +55,12 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
 
-        execute("insert into users_parted (id, name) values (1, 'Arthur')");
-        execute("insert into users_parted (id, name) values (2, 'Trillian')");
-        execute("insert into users_parted (id, name) values (3, 'Marvin')");
+        execute("insert into users_parted (id, name) values (?, ?)", new Object[][]{
+                new Object[]{1, "Arthur"},
+                new Object[]{2, "Trillian"},
+                new Object[]{3, "Marvin"},
+                new Object[]{4, "Arthur"},
+        });
         execute("refresh table users_parted");
         ensureGreen();
 
@@ -65,9 +68,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table users");
 
         execute("select name from users order by name asc");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rowCount(), is(4L));
         assertThat(((String) response.rows()[0][0]), is("Arthur"));
-        assertThat(((String) response.rows()[1][0]), is("Marvin"));
-        assertThat(((String) response.rows()[2][0]), is("Trillian"));
+        assertThat(((String) response.rows()[1][0]), is("Arthur"));
+        assertThat(((String) response.rows()[2][0]), is("Marvin"));
+        assertThat(((String) response.rows()[3][0]), is("Trillian"));
     }
 }
