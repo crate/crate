@@ -5,10 +5,13 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added missing _id collector expression so _id can also be used in
+   'insert from query' statements
+
  - Fix: Bulk inserts into partitioned tables resulted in inserting
    all records into the partition of the last record
 
-- updated crash to 0.10.3 which includes the following changes
+ - updated crash to 0.10.3 which includes the following changes
 
     - require crate-python 0.12.3 to get support for the iterator protocol
       on cursor
