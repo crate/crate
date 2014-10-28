@@ -3024,21 +3024,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((Long) response.rows()[0][2], is(13959981214861L));
     }
 
-    @Test
-    public void testBulkInsertPartitionedTable() throws Exception {
-        execute("create table parted (id integer, name string, date timestamp)" +
-                "partitioned by (date)");
-        ensureGreen();
-        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
-                new Object[]{
-                        1, "Ford", 13959981214861L,
-                        2, "Trillian", 0L,
-                        3, "Zaphod", null
-                });
-        assertThat(response.rowCount(), is(3L));
-        ensureGreen();
-        refresh();
-
+    private void validateInsertPartitionedTable() {
         String partitionName = new PartitionName("parted",
                 Arrays.asList(new BytesRef(String.valueOf(13959981214861L)))
         ).stringValue();
@@ -3072,6 +3058,40 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
                 is(1L)
         );
+    }
+
+    @Test
+    public void testMultiValueInsertPartitionedTable() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                new Object[]{
+                        1, "Ford", 13959981214861L,
+                        2, "Trillian", 0L,
+                        3, "Zaphod", null
+                });
+        assertThat(response.rowCount(), is(3L));
+        ensureGreen();
+        refresh();
+
+        validateInsertPartitionedTable();
+    }
+
+    @Test
+    public void testBulkInsertPartitionedTable() throws Exception {
+        execute("create table parted (id integer, name string, date timestamp)" +
+                "partitioned by (date)");
+        ensureGreen();
+        execute("insert into parted (id, name, date) values (?, ?, ?)", new Object[][] {
+                new Object[]{ 1, "Ford", 13959981214861L },
+                new Object[]{ 2, "Trillian", 0L },
+                new Object[]{ 3, "Zaphod", null }
+        });
+        ensureGreen();
+        refresh();
+
+        validateInsertPartitionedTable();
     }
 
     @Test
