@@ -286,7 +286,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
      */
     @Test
     public void testColsAreCaseSensitive() throws Exception {
-        execute("create table test (\"firstName\" string, \"lastName\" string)");
+        execute("create table test (\"firstname\" string, \"firstName\" string) " +
+                "with (number_of_replicas = 0)");
         ensureGreen();
         execute("insert into test (\"firstname\", \"firstName\") values ('LowerCase', 'CamelCase')");
         refresh();
