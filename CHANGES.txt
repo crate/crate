@@ -5,6 +5,12 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - improved error messages for ``regexp_matches`` and ``regexp_replace scalar``
+   function when arguments are of wrong type
+
+ - fix: ``regexp_matches`` with column ident as input raised exception
+   when used in IS (NOT) NULL predicate
+
  - added missing _id collector expression so _id can also be used in
    'insert from query' statements
 
