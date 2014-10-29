@@ -160,11 +160,12 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
 
     @Override
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        Preconditions.checkArgument(dataTypes.size() >= 3 && dataTypes.size() <= 4
-                && dataTypes.get(0) == DataTypes.STRING && dataTypes.get(1) == DataTypes.STRING
-                && dataTypes.get(2) == DataTypes.STRING);
+        Preconditions.checkArgument(dataTypes.size() >= 3 && dataTypes.size() <= 4);
+        Preconditions.checkArgument(dataTypes.get(0) == DataTypes.STRING, "source argument must be of type string");
+        Preconditions.checkArgument(dataTypes.get(1) == DataTypes.STRING, "pattern argument must be of type string");
+        Preconditions.checkArgument(dataTypes.get(2) == DataTypes.STRING, "replace argument must be of type string");
         if (dataTypes.size() == 4) {
-            Preconditions.checkArgument(dataTypes.get(3) == DataTypes.STRING);
+            Preconditions.checkArgument(dataTypes.get(3) == DataTypes.STRING, "flags must be of type string");
         }
         return new ReplaceFunction(createInfo(dataTypes));
     }

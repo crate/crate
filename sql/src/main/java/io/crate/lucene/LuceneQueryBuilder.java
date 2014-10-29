@@ -286,8 +286,9 @@ public class LuceneQueryBuilder {
                 assert input != null;
                 assert input.arguments().size() == 1;
                 Symbol arg = input.arguments().get(0);
-                checkArgument(arg.symbolType() == SymbolType.REFERENCE);
-
+                if (arg.symbolType() != SymbolType.REFERENCE) {
+                    return null;
+                }
                 Reference reference = (Reference)arg;
 
                 String columnName = reference.info().ident().columnIdent().fqn();
