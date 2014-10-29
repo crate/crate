@@ -82,9 +82,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
                     "Invalid number of values: Got %d columns specified but %d values",
                     context.columns().size(), node.values().size()));
         }
-        if (context.table().isPartitioned()) {
-            context.newPartitionMap();
-        }
         try {
             int numPks = context.table().primaryKey().size();
             if (context.parameterContext().bulkParameters.length > 0) {
@@ -104,6 +101,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
     private void addValues(ValuesList node,
                            InsertFromValuesAnalysis context,
                            int numPrimaryKeys) throws IOException {
+        if (context.table().isPartitioned()) {
+            context.newPartitionMap();
+        }
         List<BytesRef> primaryKeyValues = new ArrayList<>(numPrimaryKeys);
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
         String routingValue = null;

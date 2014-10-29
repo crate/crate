@@ -477,13 +477,27 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void bulkIndexPartitionedTable() throws Exception {
+        // multiple values
         InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis) analyze("insert into parted (id, name, date) " +
-                "values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+                        "values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
                 new Object[]{
                         1, "Trillian", 13963670051500L,
                         2, "Ford", 0L,
                         3, "Zaphod", null
                 });
+        validateBulkIndexPartitionedTableAnalysis(analysis);
+        // bulk args
+        analysis = (InsertFromValuesAnalysis) analyze("insert into parted (id, name, date) " +
+                        "values (?, ?, ?)",
+                new Object[][]{
+                        new Object[]{ 1, "Trillian", 13963670051500L },
+                        new Object[]{ 2, "Ford", 0L },
+                        new Object[]{ 3, "Zaphod", null}
+                });
+        validateBulkIndexPartitionedTableAnalysis(analysis);
+    }
+
+    private void validateBulkIndexPartitionedTableAnalysis(InsertFromValuesAnalysis analysis) {
         assertThat(analysis.partitions(), contains(
                 new PartitionName("parted", Arrays.asList(new BytesRef("13963670051500"))).stringValue(),
                 new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue(),
