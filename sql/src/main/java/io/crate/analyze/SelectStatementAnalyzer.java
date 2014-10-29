@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 import io.crate.exceptions.SQLParseException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
@@ -101,18 +102,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         }
 
         return null;
-    }
-
-    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, SelectAnalysis context) {
-        // only check for alias if we only have one name part
-        if (node.getName().getParts().size() == 1) {
-            Symbol symbol = context.symbolFromAlias(node.getSuffix().getSuffix());
-            if (symbol != null) {
-                return symbol;
-            }
-        }
-        ReferenceIdent ident = context.getReference(node.getName());
-        return context.allocateReference(ident);
     }
 
     protected Symbol visitQuerySpecification(QuerySpecification node, SelectAnalysis context) {
@@ -203,31 +192,19 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         context.sortSymbols(sortSymbols);
     }
 
-    private Symbol ordinalOutputReference(List<Symbol> outputSymbols, Symbol symbol, String clauseName) {
-        Symbol s = symbol;
-        if (s.symbolType() == SymbolType.PARAMETER) {
-            s = Literal.toLiteral(s, DataTypes.LONG);
+    private Symbol ordinalOutputReference(List<Symbol> outputSymbols, Literal longLiteral, String clauseName) {
+        assert longLiteral.valueType().equals(DataTypes.LONG) : "longLiteral must have valueType long";
+        int idx = ((Long) longLiteral.value()).intValue() - 1;
+        if (idx < 0) {
+            throw new IllegalArgumentException(String.format(
+                    "%s position %s is not in select list", clauseName, idx + 1));
         }
-        int idx;
-        if (s.symbolType() == SymbolType.LITERAL && ((Literal)s).valueType().equals(DataTypes.LONG)) {
-            idx = ((Number)((Literal)s).value()).intValue() - 1;
-            if (idx < 0) {
-                throw new IllegalArgumentException(String.format(
+        try {
+            return outputSymbols.get(idx);
+        } catch (IndexOutOfBoundsException e) {
+            throw new IllegalArgumentException(String.format(
                         "%s position %s is not in select list", clauseName, idx + 1));
-            }
-        } else {
-            idx = outputSymbols.indexOf(s);
         }
-
-        if (idx >= 0) {
-            try {
-                return outputSymbols.get(idx);
-            } catch (IndexOutOfBoundsException e) {
-                throw new IllegalArgumentException(String.format(
-                            "%s position %s is not in select list", clauseName, idx + 1));
-            }
-        }
-        return null;
     }
 
     private void rewriteGlobalDistinct(SelectAnalysis context) {
@@ -257,12 +234,52 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         return null;
     }
 
+    /**
+     * <h2>resolve expression by also taking alias and ordinal-reference into account</h2>
+     *
+     * <p>
+     *     in group by or order by clauses it is possible to reference anything in the
+     *     select list by using a number or alias
+     * </p>
+     *
+     * These are allowed:
+     * <pre>
+     *     select name as n  ... order by n
+     *     select name  ... order by 1
+     *     select name ... order by other_column
+     * </pre>
+     */
+    private Symbol symbolFromSelectOutputReferenceOrExpression(Expression expression,
+                                                               SelectAnalysis context,
+                                                               String clause) {
+        Symbol symbol;
+        if (expression instanceof QualifiedNameReference) {
+            List<String> parts = ((QualifiedNameReference) expression).getName().getParts();
+            if (parts.size() == 1) {
+                symbol = context.symbolFromAlias(Iterables.getOnlyElement(parts));
+                if (symbol != null) {
+                    return symbol;
+                }
+            }
+        }
+        symbol = process(expression, context);
+        if (symbol.symbolType().isValueSymbol()) {
+            Literal longLiteral;
+            try {
+                longLiteral = Literal.toLiteral(symbol, DataTypes.LONG);
+            } catch (ClassCastException | IllegalArgumentException e) {
+                throw new UnsupportedOperationException(String.format(
+                        "Cannot use %s in %s clause", SymbolFormatter.format(symbol), clause));
+            }
+            symbol = ordinalOutputReference(context.outputSymbols(), longLiteral, clause);
+        }
+        return symbol;
+    }
+
     private void analyzeGroupBy(List<Expression> groupByExpressions, SelectAnalysis context) {
         List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
         for (Expression expression : groupByExpressions) {
-            Symbol s = process(expression, context);
-            Symbol deRef = ordinalOutputReference(context.outputSymbols(), s, "GROUP BY");
-            s = Objects.firstNonNull(deRef, s);
+            Symbol s = symbolFromSelectOutputReferenceOrExpression(expression, context, "GROUP BY");
             groupBySymbolValidator.process(s, null);
             groupBy.add(s);
         }
@@ -296,15 +313,8 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     @Override
     protected Symbol visitSortItem(SortItem node, SelectAnalysis context) {
-        Symbol sortSymbol = super.visitSortItem(node, context);
-        if (sortSymbol.symbolType() == SymbolType.PARAMETER) {
-            sortSymbol = Literal.fromParameter((Parameter)sortSymbol);
-        }
-        if (sortSymbol.symbolType() == SymbolType.LITERAL && DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(((Literal)sortSymbol).valueType())) {
-            // de-ref
-            sortSymbol = ordinalOutputReference(context.outputSymbols(), sortSymbol, "ORDER BY");
-        }
-        // validate sortSymbol
+        Expression sortKey = node.getSortKey();
+        Symbol sortSymbol = symbolFromSelectOutputReferenceOrExpression(sortKey, context, "ORDER BY");
         sortSymbolValidator.process(sortSymbol, new SortSymbolValidator.SortContext(context.table));
         return sortSymbol;
     }
@@ -313,23 +323,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     protected Symbol visitQuery(Query node, SelectAnalysis context) {
         context.query(node);
         return super.visitQuery(node, context);
-    }
-
-    @Override
-    protected DataTypeSymbol resolveSubscriptSymbol(SubscriptContext subscriptContext, SelectAnalysis context) {
-        DataTypeSymbol dataTypeSymbol = null;
-        // resolve possible alias
-        if (subscriptContext.parts().size() == 0 && subscriptContext.qName() != null) {
-            Symbol symbol = context.symbolFromAlias(subscriptContext.qName().getSuffix());
-            if (symbol != null) {
-                dataTypeSymbol = (DataTypeSymbol) symbol;
-            }
-        }
-
-        if (dataTypeSymbol == null) {
-            dataTypeSymbol = super.resolveSubscriptSymbol(subscriptContext, context);
-        }
-        return dataTypeSymbol;
     }
 
     @Override

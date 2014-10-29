@@ -158,6 +158,7 @@ public class SelectAnalysis extends AbstractDataAnalysis {
         aliasMap.put(alias, symbol);
     }
 
+    @Nullable
     public Symbol symbolFromAlias(String alias) {
         Collection<Symbol> symbols = aliasMap.get(alias);
         if (symbols.size() > 1) {
