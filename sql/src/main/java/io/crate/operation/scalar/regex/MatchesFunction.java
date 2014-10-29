@@ -128,10 +128,10 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
         assert (args.length > 1 && args.length < 4);
         Object val = args[0].value();
         final Object patternValue = args[1].value();
-        assert patternValue instanceof BytesRef;
         if (val == null || patternValue == null) {
             return null;
         }
+        assert patternValue instanceof BytesRef;
         // value can be a string if e.g. result is retrieved by ESSearchTask
         if (val instanceof String) {
             val = new BytesRef((String)val);
@@ -163,7 +163,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
                         "[%s] Function implementation not found for argument types %s",
                         NAME, Arrays.toString(dataTypes.toArray())));
         if (dataTypes.size() == 3) {
-            Preconditions.checkArgument(dataTypes.get(2) == DataTypes.STRING);
+            Preconditions.checkArgument(dataTypes.get(2) == DataTypes.STRING, "flags must be of type string");
         }
         return new MatchesFunction(createInfo(dataTypes));
     }
