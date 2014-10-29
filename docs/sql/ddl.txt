@@ -469,6 +469,15 @@ _score
   thus scores are not directly comparable across searches.
   If the query does not include a fulltext search the value is 1.0f in most cases.
 
+.. _sql_ddl_system_column_id:
+
+_id
+  ``_id`` is an internal system column that is available on each indexed document and can be retrieved
+  by a ``SELECT`` query from doc schema tables.
+  The value is a unique identifier for each row in a table and is a compound string representation of all
+  primary key values of that row. If no primary keys are defined the id is randomly generated.
+  If no dedicated routing column is defined the ``_id`` value is used for distributing
+  the records on the shards.
 
 .. _Optimistic Concurrency Control: http://en.wikipedia.org/wiki/Optimistic_concurrency_control
 
