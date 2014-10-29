@@ -31,7 +31,9 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -45,6 +47,9 @@ import static org.junit.Assert.assertThat;
 public class ReplaceFunctionTest {
 
     private Functions functions;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() {
@@ -212,4 +217,39 @@ public class ReplaceFunctionTest {
         Symbol result = regexpImpl.normalizeSymbol(function);
         assertLiteralSymbol(result, expected.utf8ToString());
     }
+
+    @Test
+    public void testNormalizeSymbolWithInvalidFlags() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("flags must be of type string");
+        List<Symbol> arguments = Arrays.<Symbol>asList(
+                Literal.newLiteral("foobar"),
+                Literal.newLiteral("foo"),
+                Literal.newLiteral("bar"),
+                Literal.newLiteral(1)
+        );
+        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, arguments);
+        functions.get(function.info().ident());
+    }
+
+    @Test
+    public void testNormalizeSymbolWithInvalidNumberOfArguments() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, Arrays.<Symbol>asList());
+        functions.get(function.info().ident());
+    }
+
+    @Test
+    public void testNormalizeSymbolWithInvalidArgumentType() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("replace argument must be of type string");
+        List<Symbol> arguments = Arrays.<Symbol>asList(
+                Literal.newLiteral("foobar"),
+                Literal.newLiteral(".*"),
+                Literal.newLiteral(1)
+        );
+        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, arguments);
+        functions.get(function.info().ident());
+    }
+
 }

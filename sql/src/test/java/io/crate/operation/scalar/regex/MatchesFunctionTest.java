@@ -21,6 +21,7 @@
 
 package io.crate.operation.scalar.regex;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -31,6 +32,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.junit.Rule;
+import org.junit.rules.ExpectedException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,6 +48,9 @@ import static org.junit.Assert.assertThat;
 public class MatchesFunctionTest {
 
     private Functions functions;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() {
@@ -218,5 +224,29 @@ public class MatchesFunctionTest {
         Symbol result = regexpImpl.normalizeSymbol(function);
         BytesRef[] expected = new BytesRef[]{ new BytesRef("ba") };
         assertLiteralSymbol(result, expected, new ArrayType(DataTypes.STRING));
+    }
+
+    @Test
+    public void testNormalizeSymbolWithInvalidFlags() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("flags must be of type string");
+        List<Symbol> arguments = Arrays.<Symbol>asList(
+                Literal.newLiteral("foobar"),
+                Literal.newLiteral("foo"),
+                Literal.newLiteral(1)
+        );
+        Function function = createFunction(MatchesFunction.NAME, DataTypes.STRING, arguments);
+        functions.get(function.info().ident());
+    }
+
+    @Test
+    public void testNormalizeSymbolWithInvalidNumberOfArguments() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("[regexp_matches] Function implementation not found for argument types [string]");
+        List<Symbol> arguments = Arrays.<Symbol>asList(
+                Literal.newLiteral("foobar")
+        );
+        Function function = createFunction(MatchesFunction.NAME, DataTypes.STRING, arguments);
+        functions.get(function.info().ident());
     }
 }

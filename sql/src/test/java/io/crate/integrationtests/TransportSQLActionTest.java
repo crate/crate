@@ -30,6 +30,7 @@ import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLResponse;
+import io.crate.exceptions.SQLParseException;
 import io.crate.executor.TaskResult;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -4914,6 +4915,44 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String[] match4 = (String[]) response.rows()[3][0];
         assertThat(match4[0], is("crate"));
         assertThat(match4[1], is("greater"));
+    }
+
+    @Test
+    public void testRegexpMatchesIsNull() throws Exception {
+        execute("create table regex_test (i integer, s string) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into regex_test(i, s) values (?, ?)", new Object[][]{
+                new Object[]{1, "foo is first"},
+                new Object[]{2, "bar is second"},
+                new Object[]{3, "foobar is great"},
+                new Object[]{4, "crate is greater"},
+                new Object[]{5, "foo"},
+                new Object[]{6, null}
+        });
+        refresh();
+        execute("select i from regex_test where regexp_matches(s, 'is') is not null");
+        assertThat(response.rowCount(), is(4L));
+        execute("select i from regex_test where regexp_matches(s, 'is') is null");
+        assertThat(response.rowCount(), is(2L));
+    }
+
+    @Test
+    public void testRegexpReplaceIsNull() throws Exception {
+        execute("create table regex_test (i integer, s string) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into regex_test(i, s) values (?, ?)", new Object[][]{
+                new Object[]{1, "foo is first"},
+                new Object[]{2, "bar is second"},
+                new Object[]{3, "foobar is great"},
+                new Object[]{4, "crate is greater"},
+                new Object[]{5, "foo"},
+                new Object[]{6, null}
+        });
+        refresh();
+        execute("select i from regex_test where regexp_replace(s, 'is', 'was') is not null");
+        assertThat(response.rowCount(), is(5L));
+        execute("select i from regex_test where regexp_replace(s, 'is', 'was') is null");
+        assertThat(response.rowCount(), is(1L));
     }
 
     @Test
