@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.PartitionName;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionInfo;
@@ -1947,5 +1948,48 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("No cast function found for return type object");
         analyze("select cast(name as object) from users");
+    }
+
+    @Test
+    public void testSelectWithAliasRenaming() throws Exception {
+        SelectAnalysis analysis = analyze("select text as name, name as n from users");
+
+        Symbol text = analysis.outputSymbols().get(0);
+        Symbol name = analysis.outputSymbols().get(1);
+
+        assertThat(text, isReference("text"));
+        assertThat(name, isReference("name"));
+    }
+
+    @Test
+    public void testFunctionArgumentsCantBeAliases() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        analyze("select name as n, substr(n, 1, 1) from users");
+    }
+
+    @Test
+    public void testSubscriptOnAliasShouldntWork() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        analyze("select name as n, n[1] from users");
+    }
+
+    @Test
+    public void testCanSelectColumnWithAndWithoutSubscript() throws Exception {
+        SelectAnalysis analysis = analyze("select counters, counters[1] from users");
+        Symbol counters = analysis.outputSymbols().get(0);
+        Symbol countersSubscript = analysis.outputSymbols().get(1);
+
+        assertThat(counters, isReference("counters"));
+        assertThat(countersSubscript, isFunction("subscript"));
+    }
+
+    @Test
+    public void testOrderByOnAliasWithSameColumnNameInSchema() throws Exception {
+        // name exists in the table but isn't selected so not ambiguous
+        SelectAnalysis analysis = analyze("select other_id as name from users order by name");
+        assertThat(analysis.outputSymbols().get(0), isReference("other_id"));
+        List<Symbol> sortSymbols = analysis.sortSymbols();
+        assert sortSymbols != null;
+        assertThat(sortSymbols.get(0), isReference("other_id"));
     }
 }

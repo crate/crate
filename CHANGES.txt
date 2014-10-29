@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Corrected alias handling
+
  - improved error messages for ``regexp_matches`` and ``regexp_replace scalar``
    function when arguments are of wrong type
 
