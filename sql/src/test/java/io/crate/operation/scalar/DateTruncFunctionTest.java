@@ -108,8 +108,7 @@ public class DateTruncFunctionTest {
     }
 
     public Symbol normalize(Symbol interval, Symbol timestamp) {
-        Function function = new Function(func.info(),
-                ImmutableList.of(interval, timestamp));
+        Function function = new Function(func.info(), Arrays.asList(interval, timestamp));
         return func.normalizeSymbol(function);
     }
 
@@ -176,7 +175,7 @@ public class DateTruncFunctionTest {
     @Test
     public void testNormalizeSymbolReferenceTimestamp() throws Exception {
         Function function = new Function(func.info(),
-                ImmutableList.<Symbol>of(Literal.newLiteral("day"), new Reference(new ReferenceInfo(null,null, DataTypes.TIMESTAMP))));
+                Arrays.<Symbol>asList(Literal.newLiteral("day"), new Reference(new ReferenceInfo(null,null, DataTypes.TIMESTAMP))));
         Symbol result = func.normalizeSymbol(function);
         assertSame(function, result);
     }

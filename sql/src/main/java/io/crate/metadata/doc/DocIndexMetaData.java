@@ -233,6 +233,9 @@ public class DocIndexMetaData {
                     && analyzerName != null && !analyzerName.equals("keyword")) {
                 return ReferenceInfo.IndexType.ANALYZED;
             }
+        } // default indexType is analyzed so need to check analyzerName if indexType is null
+        else if (analyzerName != null && !analyzerName.equals("keyword")) {
+            return ReferenceInfo.IndexType.ANALYZED;
         }
         return ReferenceInfo.IndexType.NOT_ANALYZED;
     }

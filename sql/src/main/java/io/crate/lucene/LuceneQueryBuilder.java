@@ -21,6 +21,7 @@
 
 package io.crate.lucene;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
 import com.spatial4j.core.shape.Rectangle;
@@ -30,6 +31,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
+import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
@@ -736,6 +738,11 @@ public class LuceneQueryBuilder {
             if (function.valueType() != DataTypes.BOOLEAN) {
                 raiseUnsupported(function);
             }
+            // avoid field-cache
+            // reason1: analyzed columns or columns with index off wouldn't work
+            //   substr(n, 1, 1) in the case of n => analyzed would throw an error because n would be an array
+            // reason2: would have to load each value into the field cache
+            DocReferenceConverter.convertIf(function, Predicates.<Reference>alwaysTrue());
 
             final CollectInputSymbolVisitor.Context ctx = inputSymbolVisitor.process(function);
             assert ctx.topLevelInputs().size() == 1;

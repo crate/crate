@@ -96,7 +96,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING)));
         Function whereClause = new Function(eqImpl.info(),
-                ImmutableList.of(tableNameRef, Literal.newLiteral("shards")));
+                Arrays.asList(tableNameRef, Literal.newLiteral("shards")));
 
         collectNode.whereClause(new WhereClause(whereClause));
         collectNode.toCollect(toCollect);

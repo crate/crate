@@ -20,13 +20,14 @@
  */
 package io.crate.operation.operator;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static io.crate.operation.operator.LikeOperator.DEFAULT_ESCAPE;
 import static org.junit.Assert.*;
@@ -39,7 +40,7 @@ public class LikeOperatorTest {
         );
         Function function = new Function(
                 op.info(), 
-                ImmutableList.<Symbol>of(Literal.newLiteral(expression), Literal.newLiteral(pattern))
+                Arrays.<Symbol>asList(Literal.newLiteral(expression), Literal.newLiteral(pattern))
         );
         return op.normalizeSymbol(function);
     }

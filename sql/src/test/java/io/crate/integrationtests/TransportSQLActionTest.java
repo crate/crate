@@ -124,7 +124,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByOnAnalyzedColumn() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column \"col1\" has a value that is an array. Group by doesn't work on Arrays");
+        expectedException.expectMessage("Cannot select analyzed column 'test1.col1' within grouping or aggregations");
 
         execute("create table test1 (col1 string index using fulltext)");
         ensureGreen();
@@ -2922,6 +2922,30 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select name from locations where substr(name, 1, 1) = substr(name, 1, 1)");
         assertThat(response.rowCount(), is(12L));
+    }
+
+    @Test
+    public void testWhereFunctionWithAnalazyedColumnArgument() throws Exception {
+        execute("create table t (text string index using fulltext) " +
+                "clustered into 1 shards with (number_of_replicas = 0)");
+        ensureGreen();
+        execute("insert into t (text) values ('hello world')");
+        refresh();
+
+        execute("select text from t where substr(text, 1, 1) = 'h'");
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testWhereFunctionWithIndexOffColumn() throws Exception {
+        execute("create table t (text string index off) " +
+                "clustered into 1 shards with (number_of_replicas = 0)");
+        ensureGreen();
+        execute("insert into t (text) values ('hello world')");
+        refresh();
+
+        execute("select text from t where substr(text, 1, 1) = 'h'");
+        assertThat(response.rowCount(), is(1L));
     }
 }
 
