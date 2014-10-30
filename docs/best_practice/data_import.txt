@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _efficient_data_import:
 
-====================================================
-Best practice for importing huge datasets into Crate
-====================================================
+==================================
+Importing huge datasets into Crate
+==================================
 
 When you start a project one ususally does not start with zero.
 Most of the time there is already some data that needs to be imported,

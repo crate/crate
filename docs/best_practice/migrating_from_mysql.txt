@@ -1,0 +1,160 @@
+.. highlight:: psql
+.. _migrating_from_mysql:
+
+====================
+Migrating from MySQL
+====================
+
+There are various ways to migrate your existing data from MySQL_ to Crate_.
+However, these methods may differ in performance. A fast and reliable way
+to migrate is to use the existing export and import tools.
+
+This best practice shows how to migrate your data without hassle.
+
+Assuming we have an existing table ``foo`` in MySQL with the following schema::
+
+  CREATE TABLE foo (
+    id integer primary key,
+    name varchar(255),
+    date datetime,
+    fruits set('apple', 'pear', 'banana')
+  ) CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+
+Sampledata::
+
+  INSERT INTO foo (id, name, date, fruits)
+    VALUES (1, 'foo', '2014-10-31 09:22:56', 'apple,banana'),
+      (2, 'bar', null, 'pear');
+
+
+Exporting Data from MySQL
+=========================
+
+MySQL does not support ``JSON`` as output format, but it is possible to
+write to a file using the ``csv`` format.
+
+Example::
+
+  SELECT id, name
+    INTO OUTFILE '/tmp/dump.csv'
+      CHARACTER SET utf8
+      FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+      LINES TERMINATED BY '\n'
+    FROM foo;
+
+Also make sure fields are terminated by a colon (``,``), values are quoted with ``"``
+and lines are terminated by the newline character ``\n``.
+
+Note that we specify ``utf8`` as encoding for writing into the outfile!
+This is important because Crate requires ``utf8`` encoding.
+
+You probably need to set the character encoding of the client and ``mysqld`` in the ``my.cnf``, too::
+
+  [client]
+  default-character-set=utf8
+  [mysqld]
+  character-set-server=utf8
+
+All values written to ``csv`` are quoted and therefore interpreted as strings
+when read from the convert script later on.
+
+Date/Time Types
+---------------
+
+The standard output for `date/time types in MySQL <http://dev.mysql.com/doc/refman/5.0/en/date-and-time-types.html>`_
+is a string, Crate however uses a ``long`` type to store timestamps (millisecond precision).
+To prevent problems with dates that have timezone information,
+just use MySQL's builtin ``UNIX_TIMESTAMP`` function to convert
+``date``, ``time``, ``datetime``, ``timestamp`` and ``year`` types
+into UNIX timestamps directly in the ``SELECT`` statement.
+
+The output of this function must be multiplied by ``1000`` (convert ``s`` to ``ms``)
+to obtain the correct ``long`` value that can be used for importing into Crate.
+
+::
+
+  SELECT UNIX_TIMESTAMP(datetime_column)*1000 from table_name;
+
+Final export query::
+
+  SELECT id, name, UNIX_TIMESTAMP(date)*1000, fruits
+    INTO OUTFILE '/tmp/dump.csv'
+      CHARACTER SET utf8
+      FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+      LINES TERMINATED BY '\n'
+    FROM foo;
+
+Converting CSV to JSON
+======================
+
+Use the Python script (`csv2json.py`_) to convert the exported CSV file
+into a Crate compatible JSON file. The source file needs to be ``utf8`` encoded.
+
+The script requires ``csv`` input from ``stdin`` and prints the converted lines
+to ``stdout``. Each line is a separate JSON string.
+
+The ``--columns`` argument specifies the column names and column types for the conversion.
+The format for this argument is:
+
+.. code-block:: sh
+
+  column_name:column_type
+
+where ``column_name`` must match the column name and ``column_type`` must match the JSON type
+that the value should be converted to. Supported ``column_type`` values are:
+
+.. code-block:: sh
+
+  string
+  short
+  int
+  integer
+  long
+  float
+  double
+  array
+  timestamp (same as long)
+
+For our example the usage looks like that:
+
+.. code-block:: sh
+
+  $ cat /tmp/dump.csv | python mysql2crate.py - \
+        --columns id:int name:str date:timestamp fruits:array > /tmp/import.json
+
+For help use the ``-h`` option:
+
+.. code-block:: sh
+
+  $ python mysql2crate.py -h
+
+
+Importing Data into Crate
+=========================
+
+The column names need to match the names specified by the ``--columns`` argument.
+
+::
+
+  CREATE TABLE foo_imported (
+    id int,
+    name string,
+    date timestamp,
+    fruits array(string)
+  );
+
+Finally use the ``COPY FROM`` statement to import your newly generated json file into Crate.
+
+::
+
+  COPY foo_imported FROM '/tmp/import.json' WITH (bulk_size=1000);
+
+
+.. note::
+
+  Read :ref:`efficient_data_import` for more information how to import huge datasets into Crate.
+
+
+.. _`MySQL`: http://mysql.com
+.. _`Crate`: https://crate.io
+.. _`csv2json.py`: https://gist.github.com/chaudum/532d537a0d5b2f1fa89e
