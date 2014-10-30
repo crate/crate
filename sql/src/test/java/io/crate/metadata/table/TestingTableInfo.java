@@ -31,10 +31,8 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.mockito.Answers;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -129,20 +127,10 @@ public class TestingTableInfo extends AbstractTableInfo {
             return this;
         }
 
-        public Builder addIndex(ColumnIdent column, ReferenceInfo.IndexType indexType) {
-            addIndex(column, indexType, null, ImmutableList.<ColumnIdent>of());
-            return this;
-        }
-
-        public Builder addIndex(ColumnIdent columnIdent, ReferenceInfo.IndexType indexType, @Nullable String analyzer, List<ColumnIdent> columns) {
+        public Builder addIndex(ColumnIdent columnIdent, ReferenceInfo.IndexType indexType) {
             IndexReferenceInfo.Builder builder = new IndexReferenceInfo.Builder()
                     .ident(new ReferenceIdent(ident, columnIdent))
-                    .analyzer(analyzer)
                     .indexType(indexType);
-            for (ColumnIdent column : columns) {
-                ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column), RowGranularity.DOC, DataTypes.STRING);
-                builder.addColumn(info);
-            }
             indexColumns.put(columnIdent, builder.build());
             return this;
         }
@@ -151,8 +139,6 @@ public class TestingTableInfo extends AbstractTableInfo {
             primaryKey.add(ColumnIdent.fromPath(column));
             return this;
         }
-
-
 
         public Builder clusteredBy(String clusteredBy) {
             this.clusteredBy = ColumnIdent.fromPath(clusteredBy);

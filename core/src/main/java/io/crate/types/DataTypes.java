@@ -28,11 +28,15 @@ import io.crate.TimestampFormat;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.io.IOException;
 import java.util.*;
 
 public class DataTypes {
+
+    private final static ESLogger logger = Loggers.getLogger(DataTypes.class);
 
     public final static UndefinedType UNDEFINED = UndefinedType.INSTANCE;
     public final static NotSupportedType NOT_SUPPORTED = NotSupportedType.INSTANCE;
@@ -147,9 +151,14 @@ public class DataTypes {
 
     public static DataType fromStream(StreamInput in) throws IOException {
         int i = in.readVInt();
-        DataType type = typeRegistry.get(i).create();
-        type.readFrom(in);
-        return type;
+        try {
+            DataType type = typeRegistry.get(i).create();
+            type.readFrom(in);
+            return type;
+        } catch (NullPointerException e) {
+            logger.error(String.format(Locale.ENGLISH, "%d is missing in typeRegistry", i), e);
+            throw e;
+        }
     }
 
     public static void toStream(DataType type, StreamOutput out) throws IOException {

@@ -85,8 +85,7 @@ public abstract class BaseAnalyzerTest {
             .add("shorts", DataTypes.SHORT, null)
             .add("ints", DataTypes.INTEGER, null)
             .add("floats", DataTypes.FLOAT, null)
-            .addIndex(ColumnIdent.fromPath("name_text_ft"), ReferenceInfo.IndexType.ANALYZED, "english",
-                    Arrays.asList(ColumnIdent.fromPath("name"), ColumnIdent.fromPath("text")))
+            .addIndex(ColumnIdent.fromPath("name_text_ft"), ReferenceInfo.IndexType.ANALYZED)
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();

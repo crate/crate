@@ -2923,30 +2923,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name from locations where substr(name, 1, 1) = substr(name, 1, 1)");
         assertThat(response.rowCount(), is(12L));
     }
-
-    @Test
-    public void testWhereFunctionWithAnalyzedColumnArgument() throws Exception {
-        execute("create table t (text string index using fulltext) " +
-                "clustered into 1 shards with (number_of_replicas = 0)");
-        ensureGreen();
-        execute("insert into t (text) values ('hello world')");
-        refresh();
-
-        execute("select text from t where substr(text, 1, 1) = 'h'");
-        assertThat(response.rowCount(), is(1L));
-    }
-
-    @Test
-    public void testWhereFunctionWithIndexOffColumn() throws Exception {
-        execute("create table t (text string index off) " +
-                "clustered into 1 shards with (number_of_replicas = 0)");
-        ensureGreen();
-        execute("insert into t (text) values ('hello world')");
-        refresh();
-
-        execute("select text from t where substr(text, 1, 1) = 'h'");
-        assertThat(response.rowCount(), is(1L));
-    }
 }
 
 

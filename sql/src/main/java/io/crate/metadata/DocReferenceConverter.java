@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
@@ -41,27 +42,36 @@ public class DocReferenceConverter {
 
     private final static Visitor VISITOR = new Visitor();
 
+    private final static Predicate<Reference> DEFAULT_PREDICATE = new Predicate<Reference>() {
+        @Override
+        public boolean apply(@Nullable Reference input) {
+            assert input != null;
+
+            ReferenceIdent ident = input.info().ident();
+            if (ident.columnIdent().name().startsWith("_")) {
+                return false;
+            }
+
+            String schema = ident.tableIdent().schema();
+            if (schema != null && !schema.equals(DocSchemaInfo.NAME)) {
+                return false;
+            }
+            return true;
+        }
+    };
+
     /**
      * re-writes any references to source lookup ( n -> _doc['n'] )
      *
      * won't be converted: partition columns or non-doc-schema columns
      */
-    public static Symbol convertIfPossible(Symbol symbol, final TableInfo tableInfo) {
+    public static Symbol convertIfPossible(Symbol symbol, TableInfo tableInfo) {
+        final List<ReferenceInfo> partitionedByColumns = tableInfo.partitionedByColumns();
         Predicate<Reference> predicate = new Predicate<Reference>() {
             @Override
             public boolean apply(@Nullable Reference input) {
                 assert input != null;
-
-                ReferenceIdent ident = input.info().ident();
-                if (ident.columnIdent().name().startsWith("_")) {
-                    return false;
-                }
-                String schema = ident.tableIdent().schema();
-                if ((schema != null && !schema.equals(DocSchemaInfo.NAME)
-                        || tableInfo.partitionedByColumns().contains(input.info()))) {
-                    return false;
-                }
-                return true;
+                return !partitionedByColumns.contains(input.info());
             }
         };
         return convertIf(symbol, predicate);
@@ -71,7 +81,7 @@ public class DocReferenceConverter {
      * will convert any references that are analyzed or not indexed to doc-references
      */
     public static Symbol convertIf(Symbol symbol, Predicate<Reference> predicate) {
-        return VISITOR.process(symbol, predicate);
+        return VISITOR.process(symbol, Predicates.and(DEFAULT_PREDICATE, predicate));
     }
 
     private static class Visitor extends SymbolVisitor<Predicate<Reference>, Symbol> {
