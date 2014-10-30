@@ -110,7 +110,7 @@ public class ToLongArrayFunctionTest {
                 new FunctionIdent(ToLongArrayFunction.NAME, ImmutableList.of(arrayType)));
 
         Reference foo = TestingHelpers.createReference("foo", arrayType);
-        Symbol symbol = impl.normalizeSymbol(new Function(impl.info(), ImmutableList.<Symbol>of(foo)));
+        Symbol symbol = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(foo)));
         assertThat(symbol, instanceOf(Function.class));
     }
 
@@ -136,7 +136,7 @@ public class ToLongArrayFunctionTest {
                 return arrayType;
             }
         };
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), ImmutableList.<Symbol>of(input)));
+        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(input)));
         Object[] values = impl.evaluate(new Input[]{input});
 
         assertThat(values, is(((Input) normalized).value()));

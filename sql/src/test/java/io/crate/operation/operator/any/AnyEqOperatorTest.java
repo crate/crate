@@ -21,7 +21,6 @@
 
 package io.crate.operation.operator.any;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -59,7 +58,7 @@ public class AnyEqOperatorTest {
         );
         Function function = new Function(
                 anyEqOperator.info(),
-                ImmutableList.<Symbol>of(Literal.newLiteral(new ArrayType(DataTypes.INTEGER), arrayExpr),
+                Arrays.<Symbol>asList(Literal.newLiteral(new ArrayType(DataTypes.INTEGER), arrayExpr),
                         Literal.newLiteral(DataTypes.INTEGER, value))
         );
         return (Boolean)((Literal)anyEqOperator.normalizeSymbol(function)).value();

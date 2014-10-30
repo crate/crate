@@ -233,6 +233,9 @@ public class DocIndexMetaData {
                     && analyzerName != null && !analyzerName.equals("keyword")) {
                 return ReferenceInfo.IndexType.ANALYZED;
             }
+        } // default indexType is analyzed so need to check analyzerName if indexType is null
+        else if (analyzerName != null && !analyzerName.equals("keyword")) {
+            return ReferenceInfo.IndexType.ANALYZED;
         }
         return ReferenceInfo.IndexType.NOT_ANALYZED;
     }
@@ -342,16 +345,14 @@ public class DocIndexMetaData {
                 if (copyToColumns != null) {
                     for (String copyToColumn : copyToColumns) {
                         ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
-                        IndexReferenceInfo.Builder builder = getOrCreateIndexBuilder(targetIdent);
-                        builder.addColumn(newInfo(newIdent, columnDataType, ReferenceInfo.ObjectType.DYNAMIC, columnIndexType));
+                        getOrCreateIndexBuilder(targetIdent);
                     }
                 }
                 // is it an index?
                 if (indicesMap.containsKey(newIdent.fqn())) {
                     String analyzer = getNested(columnProperties, "analyzer");
                     IndexReferenceInfo.Builder builder = getOrCreateIndexBuilder(newIdent);
-                    builder.analyzer(analyzer)
-                           .indexType(columnIndexType)
+                    builder.indexType(columnIndexType)
                            .ident(new ReferenceIdent(ident, newIdent));
                 } else {
                     add(newIdent, columnDataType, columnIndexType);

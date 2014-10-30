@@ -55,14 +55,14 @@ public class DoubleType extends DataType<Double> implements Streamer<Double>, Da
         if (value == null) {
             return null;
         }
+        if (value instanceof Double) {
+            return (Double) value;
+        }
         if (value instanceof String) {
             return Double.valueOf((String)value);
         }
         if (value instanceof BytesRef) {
             return Double.valueOf(((BytesRef)value).utf8ToString());
-        }
-        if (value instanceof Double) {
-            return (Double) value;
         }
         return ((Number)value).doubleValue();
     }

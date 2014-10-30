@@ -124,7 +124,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByOnAnalyzedColumn() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column \"col1\" has a value that is an array. Group by doesn't work on Arrays");
+        expectedException.expectMessage("Cannot select analyzed column 'test1.col1' within grouping or aggregations");
 
         execute("create table test1 (col1 string index using fulltext)");
         ensureGreen();

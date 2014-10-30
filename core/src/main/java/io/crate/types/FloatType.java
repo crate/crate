@@ -55,6 +55,9 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, DataT
         if (value == null) {
             return null;
         }
+        if (value instanceof Float) {
+            return (Float) value;
+        }
         if (value instanceof String) {
             return Float.parseFloat((String)value);
         }

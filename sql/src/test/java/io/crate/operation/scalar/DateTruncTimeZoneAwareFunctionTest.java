@@ -104,8 +104,7 @@ public class DateTruncTimeZoneAwareFunctionTest {
     }
 
     public Symbol normalizeTzAware(Symbol interval, Symbol tz, Symbol timestamp) {
-        Function function = new Function(funcTZ.info(),
-                ImmutableList.of(interval, tz, timestamp));
+        Function function = new Function(funcTZ.info(), Arrays.asList(interval, tz, timestamp));
         return funcTZ.normalizeSymbol(function);
     }
 
@@ -188,7 +187,7 @@ public class DateTruncTimeZoneAwareFunctionTest {
     @Test
     public void testNormalizeSymbolTzAwareReferenceTimestamp() throws Exception {
         Function function = new Function(funcTZ.info(),
-                ImmutableList.<Symbol>of(Literal.newLiteral("day"), Literal.newLiteral("+01:00"),
+                Arrays.<Symbol>asList(Literal.newLiteral("day"), Literal.newLiteral("+01:00"),
                         new Reference(new ReferenceInfo(null,null,DataTypes.TIMESTAMP))));
         Symbol result = funcTZ.normalizeSymbol(function);
         assertSame(function, result);

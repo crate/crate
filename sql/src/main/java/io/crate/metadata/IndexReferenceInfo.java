@@ -28,19 +28,13 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class IndexReferenceInfo extends ReferenceInfo {
 
     public static class Builder {
         private ReferenceIdent ident;
         private IndexType indexType = IndexType.ANALYZED;
-        private List<ReferenceInfo> columns = new ArrayList<>();
-        private String analyzer = null;
 
         public Builder ident(ReferenceIdent ident) {
             this.ident = ident;
@@ -52,100 +46,34 @@ public class IndexReferenceInfo extends ReferenceInfo {
             return this;
         }
 
-        public Builder analyzer(String analyzer) {
-            this.analyzer = analyzer;
-            return this;
-        }
-
-        public Builder addColumn(ReferenceInfo info) {
-            this.columns.add(info);
-            return this;
-        }
-
         public IndexReferenceInfo build() {
             Preconditions.checkNotNull(ident, "ident is null");
-            return new IndexReferenceInfo(ident, indexType, columns, analyzer);
+            return new IndexReferenceInfo(ident, indexType);
         }
     }
 
-    private String analyzer;
-    private List<ReferenceInfo> columns;
-
     public IndexReferenceInfo(ReferenceIdent ident,
-                         IndexType indexType,
-                         List<ReferenceInfo> columns,
-                         @Nullable String analyzer) {
+                         IndexType indexType) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ObjectType.DYNAMIC, indexType);
-        this.columns = Objects.firstNonNull(columns, Collections.<ReferenceInfo>emptyList());
-        this.analyzer = analyzer;
-    }
-
-    @Nullable
-    public String analyzer() {
-        return analyzer;
-    }
-
-    public List<ReferenceInfo> columns() {
-        return columns;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-
-        IndexReferenceInfo that = (IndexReferenceInfo) o;
-
-        if (analyzer != null ? !analyzer.equals(that.analyzer) : that.analyzer != null)
-            return false;
-        if (!columns.equals(that.columns)) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (analyzer != null ? analyzer.hashCode() : 0);
-        result = 31 * result + columns.hashCode();
-        return result;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeBoolean(analyzer != null);
-        if (analyzer != null) {
-            out.writeString(analyzer);
-        }
-        out.writeVInt(columns.size());
-        for (ReferenceInfo info : columns) {
-            info.writeTo(out);
-        }
+        /**
+         * if this is extended make sure to adjust all other places where ReferenceInfo/IndexReferenceInfo
+         * is streamed for example in
+         * {@link io.crate.planner.symbol.Reference#readFrom(org.elasticsearch.common.io.stream.StreamInput)}
+         */
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        if (in.readBoolean()) {
-            analyzer = in.readString();
-        }
-        int columnsSize = in.readVInt();
-        columns = new ArrayList<>(columnsSize);
-        for (int i = 0; i<columnsSize; i++) {
-            ReferenceInfo info = new ReferenceInfo();
-            info.readFrom(in);
-            columns.add(info);
-        }
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("ident", ident())
-                .add("analyzer", analyzer)
-                .add("columns", columns)
-                .toString();
+        return Objects.toStringHelper(this).add("ident", ident()).toString();
     }
 }

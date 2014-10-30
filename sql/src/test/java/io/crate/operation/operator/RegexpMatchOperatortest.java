@@ -21,11 +21,12 @@
 
 package io.crate.operation.operator;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -36,7 +37,7 @@ public class RegexpMatchOperatortest {
         RegexpMatchOperator op = new RegexpMatchOperator();
         Function function = new Function(
                 op.info(),
-                ImmutableList.<Symbol>of(Literal.newLiteral(source), Literal.newLiteral(pattern))
+                Arrays.<Symbol>asList(Literal.newLiteral(source), Literal.newLiteral(pattern))
         );
         return op.normalizeSymbol(function);
     }

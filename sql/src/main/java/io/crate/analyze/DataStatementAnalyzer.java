@@ -185,7 +185,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
         return context.allocateFunction(
                 NotPredicate.INFO,
-                ImmutableList.<Symbol>of(context.allocateFunction(isNullInfo, ImmutableList.of(argument))));
+                Arrays.<Symbol>asList(context.allocateFunction(isNullInfo, Arrays.asList(argument))));
     }
 
     @Override
@@ -458,7 +458,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME,
                         ImmutableList.of(DataTypeVisitor.fromSymbol((value))));
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
-        return context.allocateFunction(functionInfo, ImmutableList.of(value));
+        return context.allocateFunction(functionInfo, Arrays.asList(value));
     }
 
     @Override
@@ -885,7 +885,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 left = DataTypeSymbol.toDataTypeSymbol(left, leftType);
                 if (rightType.isConvertableTo(leftType)) {
                     FunctionInfo functionInfo = CastFunctionResolver.functionInfo(rightType, leftType);
-                    ImmutableList<Symbol> arguments = ImmutableList.of(right);
+                    List<Symbol> arguments = Arrays.asList(right);
                     right = new Function(functionInfo, arguments);
                 } else {
                     throw new IllegalArgumentException(SymbolFormatter.format(
