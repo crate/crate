@@ -788,6 +788,7 @@ public class LuceneQueryBuilder {
             private final LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
             private final Input<Boolean> condition;
             private final List<LuceneCollectorExpression> expressions;
+            private final boolean fieldsVisitorEnabled;
 
             protected FunctionDocSet(AtomicReader reader,
                                      @Nullable LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor,
@@ -798,13 +799,15 @@ public class LuceneQueryBuilder {
                 super(maxDoc, acceptDocs);
                 this.reader = reader;
                 this.fieldsVisitor = fieldsVisitor;
+                //noinspection SimplifiableConditionalExpression
+                this.fieldsVisitorEnabled = fieldsVisitor == null ? false : fieldsVisitor.required();
                 this.condition = condition;
                 this.expressions = expressions;
             }
 
             @Override
             protected boolean matchDoc(int doc) {
-                if (fieldsVisitor != null) {
+                if (fieldsVisitorEnabled) {
                     fieldsVisitor.reset();
                     try {
                         reader.document(doc, fieldsVisitor);
