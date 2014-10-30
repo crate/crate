@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Functions that are used with analyzed columns as arguments in the WHERE
+   clause of a SELECT statement no longer throw an error but behave just the
+   same as if used inside the result column list
+
  - Corrected alias handling
 
  - improved error messages for ``regexp_matches`` and ``regexp_replace scalar``
