@@ -53,8 +53,8 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select i from regex_test where regexp_matches(s, 'is') is not null");
         assertThat(response.rowCount(), is(4L));
-        //execute("select i from regex_test where regexp_matches(s, 'is') is null");
-        //assertThat(response.rowCount(), is(2L));
+        execute("select i from regex_test where regexp_matches(s, 'is') is null");
+        assertThat(response.rowCount(), is(2L));
     }
 
     @Test

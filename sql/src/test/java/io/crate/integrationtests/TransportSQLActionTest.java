@@ -2925,7 +2925,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testWhereFunctionWithAnalazyedColumnArgument() throws Exception {
+    public void testWhereFunctionWithAnalyzedColumnArgument() throws Exception {
         execute("create table t (text string index using fulltext) " +
                 "clustered into 1 shards with (number_of_replicas = 0)");
         ensureGreen();
