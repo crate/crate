@@ -69,7 +69,11 @@ public abstract class CmpOperator extends Operator<Object> {
         if (left == null || right == null) {
             return null;
         }
-        assert (left.getClass().equals(right.getClass()));
+        try {
+            assert (left.getClass().equals(right.getClass()));
+        } catch (AssertionError e) {
+            e.printStackTrace();
+        }
 
         if (left instanceof Comparable) {
             return compare(((Comparable)left).compareTo(right));

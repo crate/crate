@@ -78,6 +78,11 @@ public class DocReferenceConverter {
 
         private static Reference toSourceLookup(Reference reference) {
             ReferenceIdent ident = reference.info().ident();
+            if (ident.columnIdent().name().equals(DocSysColumns.DOC.name())) {
+                // already converted
+                // symbols might be shared and visited twice.. prevent rewriting _doc[x] to _doc._doc[x]
+                return reference;
+            }
             List<String> path = new ArrayList<>(ident.columnIdent().path());
             if (path.isEmpty()) { // if it's empty it might be an empty immutableList
                 path = Arrays.asList(ident.columnIdent().name());
