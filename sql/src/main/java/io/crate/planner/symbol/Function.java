@@ -2,6 +2,7 @@ package io.crate.planner.symbol;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -27,6 +28,9 @@ public class Function extends DataTypeSymbol implements Cloneable {
         Preconditions.checkNotNull(info, "function info is null");
         Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size());
         this.info = info;
+
+        assert arguments.isEmpty() || !(arguments instanceof ImmutableList) :
+                "must not be an immutable list - would break setArgument";
         this.arguments = arguments;
     }
 

@@ -84,7 +84,11 @@ public class DocCollectorExpression extends
 
             @Override
             public Object value() {
-                return sourceLookup.extractValue(fqn);
+                // need to make sure it has the correct type;
+                // for example:
+                //      sourceExtractor might read byte as int and
+                //      then eq(byte, byte) would get eq(byte, int) and fail
+                return referenceInfo.type().value(sourceLookup.extractValue(fqn));
             }
 
             @Override

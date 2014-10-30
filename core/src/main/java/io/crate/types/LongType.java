@@ -53,6 +53,9 @@ public class LongType extends DataType<Long> implements Streamer<Long>, DataType
         if (value == null) {
             return null;
         }
+        if (value instanceof Long) {
+            return (Long) value;
+        }
         if (value instanceof String) {
             return Long.valueOf((String)value);
         }

@@ -73,25 +73,6 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
             return this;
         }
 
-        public Builder objectType(boolean dynamic, boolean strict) {
-            if (dynamic) {
-                this.objectType = ObjectType.DYNAMIC;
-            } else if (!strict) {
-                this.objectType = ObjectType.IGNORED;
-            } else {
-                this.objectType = ObjectType.STRICT;
-            }
-            return this;
-        }
-
-        public void indexType(IndexType indexType) {
-            this.indexType = indexType;
-        }
-
-        public IndexType indexType() {
-            return indexType;
-        }
-
         public ReferenceInfo build() {
             Preconditions.checkNotNull(ident, "ident is null");
             Preconditions.checkNotNull(granularity, "granularity is null");

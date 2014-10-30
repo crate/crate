@@ -55,6 +55,9 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
         if (value == null) {
             return null;
         }
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
         if (value instanceof String) {
             return Integer.parseInt((String)value);
         }

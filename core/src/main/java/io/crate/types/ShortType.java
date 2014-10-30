@@ -55,6 +55,9 @@ public class ShortType extends DataType<Short> implements DataTypeFactory, Strea
         if (value == null) {
             return null;
         }
+        if (value instanceof Short) {
+            return (Short) value;
+        }
         if (value instanceof String) {
             return Short.valueOf((String)value);
         }

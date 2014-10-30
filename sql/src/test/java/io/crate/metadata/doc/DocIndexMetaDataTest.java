@@ -716,10 +716,6 @@ public class DocIndexMetaDataTest {
         assertThat(md.columns().size(), is(3));
         assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReferenceInfo.class));
         IndexReferenceInfo indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
-        assertThat(indexInfo.analyzer(), is("standard"));
-        assertThat(indexInfo.columns().size(), is(2));
-        assertThat(indexInfo.columns(), hasItem(md.references().get(new ColumnIdent("name"))));
-        assertThat(indexInfo.columns(), hasItem(md.references().get(new ColumnIdent("fun"))));
         assertThat(indexInfo.indexType(), is(ReferenceInfo.IndexType.ANALYZED));
         assertThat(indexInfo.ident().columnIdent().fqn(), is("fun_name_ft"));
     }
@@ -738,10 +734,6 @@ public class DocIndexMetaDataTest {
         assertThat(md.columns().size(), is(3));
         assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReferenceInfo.class));
         IndexReferenceInfo indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
-        assertThat(indexInfo.analyzer(), is("standard"));
-        assertThat(indexInfo.columns().size(), is(2));
-        assertThat(indexInfo.columns(), hasItem(md.references().get(new ColumnIdent("name"))));
-        assertThat(indexInfo.columns(), hasItem(md.references().get(ColumnIdent.fromPath("o.fun"))));
         assertThat(indexInfo.indexType(), is(ReferenceInfo.IndexType.ANALYZED));
         assertThat(indexInfo.ident().columnIdent().fqn(), is("fun_name_ft"));
     }

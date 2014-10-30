@@ -173,15 +173,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(0, response.rowCount());
     }
 
-    // TODO: when analyzers are in the tableinfo, re-enable this test
-//    @Test(expected = GroupByOnArrayUnsupportedException.class)
-//    public void testGroupByOnAnalyzedColumn() throws Exception {
-//        execute("create table test1 (col1 string index using fulltext)");
-//        ensureGreen();
-//
-//        execute("select count(*) from test1 group by col1");
-//    }
+    @Test
+    public void testGroupByOnAnalyzedColumn() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot select analyzed column 'test1.col1' within grouping or aggregations");
 
+        execute("create table test1 (col1 string index using fulltext)");
+        ensureGreen();
+        execute("insert into test1 (col1) values ('abc def, ghi. jkl')");
+        refresh();
+        execute("select count(col1) from test1 group by col1");
+    }
 
     @Test
     public void testSelectStarWithOther() throws Exception {

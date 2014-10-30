@@ -66,22 +66,22 @@ public class SubstrFunctionTest {
 
     private Function substr(String str, long startIndex) {
         return new Function(funcA.info(),
-                ImmutableList.<Symbol>of(Literal.newLiteral(str), Literal.newLiteral(startIndex)));
+                Arrays.<Symbol>asList(Literal.newLiteral(str), Literal.newLiteral(startIndex)));
     }
 
     private Function substr(String str, long startIndex, long count) {
         return new Function(funcB.info(),
-                ImmutableList.<Symbol>of(Literal.newLiteral(str), Literal.newLiteral(startIndex), Literal.newLiteral(count)));
+                Arrays.<Symbol>asList(Literal.newLiteral(str), Literal.newLiteral(startIndex), Literal.newLiteral(count)));
     }
 
     private Function substr(String str, Literal from) {
         return new Function(funcA.info(),
-                ImmutableList.<Symbol>of(Literal.newLiteral(str), from));
+                Arrays.<Symbol>asList(Literal.newLiteral(str), from));
     }
 
     private Function substr(String str, Literal from, Literal count) {
         return new Function(funcB.info(),
-                ImmutableList.<Symbol>of(Literal.newLiteral(str), from, count));
+                Arrays.<Symbol>asList(Literal.newLiteral(str), from, count));
     }
 
     @Test

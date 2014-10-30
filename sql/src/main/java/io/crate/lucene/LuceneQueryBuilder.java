@@ -21,6 +21,8 @@
 
 package io.crate.lucene;
 
+import com.google.common.base.Predicates;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
 import com.spatial4j.core.shape.Rectangle;
@@ -30,9 +32,11 @@ import com.vividsolutions.jts.geom.Geometry;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
+import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.collect.LuceneDocCollector;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.IsNullPredicate;
@@ -45,6 +49,7 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
+import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
@@ -736,6 +741,11 @@ public class LuceneQueryBuilder {
             if (function.valueType() != DataTypes.BOOLEAN) {
                 raiseUnsupported(function);
             }
+            // avoid field-cache
+            // reason1: analyzed columns or columns with index off wouldn't work
+            //   substr(n, 1, 1) in the case of n => analyzed would throw an error because n would be an array
+            // reason2: would have to load each value into the field cache
+            DocReferenceConverter.convertIf(function, Predicates.<Reference>alwaysTrue());
 
             final CollectInputSymbolVisitor.Context ctx = inputSymbolVisitor.process(function);
             assert ctx.topLevelInputs().size() == 1;
@@ -743,8 +753,10 @@ public class LuceneQueryBuilder {
             final Input<Boolean> condition = (Input<Boolean>) ctx.topLevelInputs().get(0);
             @SuppressWarnings("unchecked")
             final List<LuceneCollectorExpression> expressions = ctx.docLevelExpressions();
-            CollectorContext collectorContext = new CollectorContext();
+            final CollectorContext collectorContext = new CollectorContext();
             collectorContext.searchContext(searchContext);
+            collectorContext.visitor(new LuceneDocCollector.CollectorFieldsVisitor(expressions.size()));
+
             for (LuceneCollectorExpression expression : expressions) {
                 expression.startCollect(collectorContext);
             }
@@ -756,6 +768,8 @@ public class LuceneQueryBuilder {
                     }
                     return BitsFilteredDocIdSet.wrap(
                             new FunctionDocSet(
+                                    context.reader(),
+                                    collectorContext.visitor(),
                                     condition,
                                     expressions,
                                     context.reader().maxDoc(),
@@ -770,20 +784,37 @@ public class LuceneQueryBuilder {
 
         static class FunctionDocSet extends MatchDocIdSet {
 
+            private final AtomicReader reader;
+            private final LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
             private final Input<Boolean> condition;
             private final List<LuceneCollectorExpression> expressions;
+            private final boolean fieldsVisitorEnabled;
 
-            protected FunctionDocSet(Input<Boolean> condition,
+            protected FunctionDocSet(AtomicReader reader,
+                                     @Nullable LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor,
+                                     Input<Boolean> condition,
                                      List<LuceneCollectorExpression> expressions,
                                      int maxDoc,
                                      @Nullable Bits acceptDocs) {
                 super(maxDoc, acceptDocs);
+                this.reader = reader;
+                this.fieldsVisitor = fieldsVisitor;
+                //noinspection SimplifiableConditionalExpression
+                this.fieldsVisitorEnabled = fieldsVisitor == null ? false : fieldsVisitor.required();
                 this.condition = condition;
                 this.expressions = expressions;
             }
 
             @Override
             protected boolean matchDoc(int doc) {
+                if (fieldsVisitorEnabled) {
+                    fieldsVisitor.reset();
+                    try {
+                        reader.document(doc, fieldsVisitor);
+                    } catch (IOException e) {
+                        throw Throwables.propagate(e);
+                    }
+                }
                 for (LuceneCollectorExpression expression : expressions) {
                     expression.setNextDocId(doc);
                 }

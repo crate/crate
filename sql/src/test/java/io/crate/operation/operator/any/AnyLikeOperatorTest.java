@@ -21,7 +21,6 @@
 
 package io.crate.operation.operator.any;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.Input;
 import io.crate.operation.predicate.NotPredicate;
@@ -53,7 +52,7 @@ public class AnyLikeOperatorTest {
 
         Function function = new Function(
                 impl.info(),
-                ImmutableList.<Symbol>of(valuesLiteral, patternLiteral)
+                Arrays.<Symbol>asList(valuesLiteral, patternLiteral)
         );
         return impl.normalizeSymbol(function);
     }
