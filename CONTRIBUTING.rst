@@ -3,6 +3,20 @@ Contributing to Crate
 
 Thanks for considering contributing to crate.
 
+The steps outlined in this document should be seen as guidelines. These are NOT
+strict rules and we won't blame anyone who tries to contribute.  By following
+these things you'll just make our lives a tad bit easier, but if you don't
+follow them we'll still be happy about your contribution.
+
+The easiest way to contribute is either by filling issues on `Github
+<https://github.com/crate/crate/issues>`_ or by contributing to our
+documentation.
+
+For more information on how to do that please refer to the documentation
+section in the ``DEVELOP.rst``.
+
+If you have any questions don't hesitate to ask us in IRC on freenode.net
+#crate.
 
 Reporting an issue
 ------------------
@@ -16,6 +30,9 @@ Reporting an issue
   - Which version you've been running.
 
   - Logs/Stacktrace of the error that occurred.
+    (For example ``crash`` the command-line client can be started with the `-v`
+    option to get a stacktrace from the server if a SQL statement resulted in
+    an error)
 
   - Steps to reproduce.
 
@@ -23,8 +40,8 @@ Reporting an issue
 Pull requests
 -------------
 
-Before we can accept any pull requests to Crate Data we need you to agree to
-our CLA_. Once that is done, we suggest to continue as follows:
+Before we can accept any pull requests to Crate we need you to agree to our
+CLA_. Once that is done, we suggest to continue as follows:
 
 - Add an issue on Github and let us know that you're working on something.
 
@@ -39,7 +56,7 @@ our CLA_. Once that is done, we suggest to continue as follows:
 
 - Squash related commits
 
-.. _CLA: https://crate.io/community/contribute/
+.. _CLA: https://crate.io/community/contribute/agreements/
 
 
 Rebase
