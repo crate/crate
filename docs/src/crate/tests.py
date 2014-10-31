@@ -158,6 +158,14 @@ def test_suite():
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
         suite.addTest(s)
+    for fn in ('best_practice/migrating_from_mongodb.txt',):
+        path = os.path.join('..', '..', fn)
+        s = doctest.DocFileSuite(path, parser=crash_parser,
+                                 setUp=setUp,
+                                 optionflags=doctest.NORMALIZE_WHITESPACE |
+                                 doctest.ELLIPSIS)
+        s.layer = empty_layer
+        suite.addTest(s)
     for fn in ('data_import.txt', 'cluster_upgrade.txt'):
         path = os.path.join('..','..','best_practice',fn)
         s = doctest.DocFileSuite(path, parser=crash_parser,
