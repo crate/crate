@@ -5,11 +5,14 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - Functions that are used with analyzed columns as arguments in the WHERE
+2014/10/31 0.45.2
+=================
+
+ - functions that are used with analyzed columns as arguments in the WHERE
    clause of a SELECT statement no longer throw an error but behave just the
    same as if used inside the result column list
 
- - Corrected alias handling
+ - corrected alias handling
 
  - improved error messages for ``regexp_matches`` and ``regexp_replace scalar``
    function when arguments are of wrong type
@@ -20,11 +23,11 @@ Unreleased
  - added missing _id collector expression so _id can also be used in
    'insert from query' statements
 
- - Added support for scalar functions within the select column list and ORDER
+ - added support for scalar functions within the select column list and ORDER
    BY clause for SELECT statements that get optimized to do
-   primary-key-lookups.
+   primary-key-lookups
 
- - Fix: Bulk inserts into partitioned tables resulted in inserting
+ - fix: Bulk inserts into partitioned tables resulted in inserting
    all records into the partition of the last record
 
  - updated crash to 0.10.3 which includes the following changes
@@ -32,18 +35,18 @@ Unreleased
     - require crate-python 0.12.3 to get support for the iterator protocol
       on cursor
 
-    - Fixed an error that caused crash to crash on non posix platforms.
+    - fixed an error that caused crash to crash on non posix platforms
 
- - updated es/upstream to prevent spurious deletion of dangling indices.
+ - updated es/upstream to prevent spurious deletion of dangling indices
 
- - Fix: If an insert from query statement involved partitioned columns of a
+ - fix: If an insert from query statement involved partitioned columns of a
    partitioned table in the query part those partitioned columns weren't
    resolved correctly and resulted in null values
 
- - Fix: raise an error if an array is inserted into an objects
+ - fix: raise an error if an array is inserted into an objects
    field which is not of type array
 
- - Fix: all group by queries with the primary key(s) or routing column
+ - fix: all group by queries with the primary key(s) or routing column
    as group key(s) are executed correctly
 
 2014/10/21 0.45.1
