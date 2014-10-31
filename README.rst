@@ -1,80 +1,119 @@
-==========
-Crate Data
-==========
+==============================
+CRATE: Your Elastic Data Store
+==============================
 
-``"Crate Data is a shared nothing, fully searchable, document oriented
-cluster datastore."``
+https://crate.io
+================
 
-Crate Data...
+``"Crate is a new breed of database to serve today’s mammoth data needs."``
 
-- is a document oriented data store.
+Features include
+----------------
 
-- has the ability to scale horizontally extremely well.
+Familiar SQL syntax:
 
-- forms a cluster and handles replicas for you.
+::
 
-- offers SQL to query and manage documents.
+    select * from users;
+    insert into users (name) values ('Arthur');
 
-- lets you specify a schema
+Semi-structured data::
 
-  - to define tables
+    create table demo (
+        name string,
+        obj object (dynamic) as (
+            age int
+        ),
+        tags array (string)
+    );
 
-  - and data types.
+::
 
-- offers support to manage BLOBs.
+    insert into demo (name, obj, tags) values
+        ('Trillian',
+         {age = 39, gender='female'}, // Note that gender wasn't defined in the schema!
+         ['mathematician', 'astrophysicist']);
+
+::
+
+    select * from demo where obj['gender'] = 'female';
+
+::
+
+    select * from demo where 'mathematician'= any (tags);
+
+
+High availability, resiliency, and scalability in a distributed design::
+
+    create table t (string name)
+    clustered into 5 shards with (number_of_replicas = 1); // this is actually the default!
+
+::
+
+    select count(*) from sys.nodes;
+    select table_name, count(*) from sys.shards group by 1;
+
+Powerful Lucene based full-text search::
+
+    select title from wikipedia where match((title 1.5, text 1.0), 'Hitchhiker')
 
 
 Getting Started
 ===============
 
-Installation
-------------
+Get Crate
+---------
 
-- Download_ the latest release and unzip the archive.
+There are many ways to install Crate. The fastest way to try it out is just one command-line::
 
-- Run ``bin/crate`` on unix or ``bin/crate.bat`` on Windows.
+    bash -c "$(curl -L try.crate.io)"
 
-- Start the crate shell by invoking ``bin/crash``.
+Or with docker::
 
-- Start some more servers to form a cluster and relax.
+    docker pull crate && docker run -p 4200:4200 crate
 
-
-Get Crate Data
-==============
-
-Crate Data is not only easy to use, it's also easy to get. Use the one method which
-works best for you.
-
-Additional to the binary distibution via tarball, there are also distributions
-for Ubuntu/Debian, CentOS/Scientific Linux (RPM), ArchLinux and Docker.
-
-You can find installation instructions on our website_ and documentation_.
+Visit the download_ page to see all available download and install options.
 
 
-Where to go from here?
-======================
+Use Crate
+---------
 
-That is certainly not all Crate Data offers to you. To take a look at the
-documentation visit
-`https://crate.io/docs/ <https://crate.io/docs/>`_.
+Crate includes an Administration UI that is available under http://localhost:4200/admin/.
 
-Managing data
--------------
+It also ships with a CLI called ``crash`` that can be used to run queries in a
+shell.
 
-There are several different ways to manage data in Crate.
+Next steps
+----------
 
-- The `admin interface <http://localhost:4200/admin>`_
+Start some more server to form a cluster and take a look at the documentation_
+to learn more.
 
-- For for further clients in different languages see `Crate Documentation`_.
+Especially the `crate introduction`_ is a great place to start learning more.
 
-.. _Crate Documentation: https://crate.io/docs/
 
 Are you a Developer?
 ====================
 
-You can build Crate Data on your own with the latest version hosted on GitHub.
-To do so, please refer to ``DEVELOP.rst`` and ``CONTRIBUTING.rst`` for further
-information.
+Clone the repository::
+
+    git clone https://github.com/crate/crate.git
+    cd crate
+    git submodule update --init
+
+And build it with gradle::
+
+    ./gradlew compileJava
+
+Develop in IntelliJ::
+
+    ./gradlew idea
+
+Run tests::
+
+    ./gradlew test
+
+Refer to ``DEVELOP.rst`` and ``CONTRIBUTING.rst`` for further information.
 
 Help & Contact
 ==============
@@ -85,5 +124,6 @@ Or for further information and official contact please
 visit `https://crate.io/ <https://crate.io/>`_.
 
 .. _Freenode: http://freenode.net
-.. _website: https://crate.io/download/
 .. _documentation: https://crate.io/docs/stable/installation.html
+.. _download: https://crate.io/download/
+.. _crate introduction: https://crate.io/docs/stable/hello.html
