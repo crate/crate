@@ -170,7 +170,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         AlterTableAnalysis analysisSet = (AlterTableAnalysis)analyze(
                 "ALTER TABLE user_refresh_interval " +
                         "SET (column_policy = 'strict')");
-        assertEquals(ColumnPolicy.STRICT, analysisSet.columnPolicy());
+        assertEquals(ColumnPolicy.STRICT, analysisSet.columnPolicy().get());
     }
 
     @Test
