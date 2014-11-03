@@ -157,4 +157,4 @@ Finally use the ``COPY FROM`` statement to import your newly generated json file
 
 .. _`MySQL`: http://mysql.com
 .. _`Crate`: https://crate.io
-.. _`csv2json.py`: https://gist.github.com/chaudum/532d537a0d5b2f1fa89e
+.. _`csv2json.py`: https://github.com/crate/crate-utils/tree/master/migrations/mysql

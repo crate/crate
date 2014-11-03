@@ -171,8 +171,8 @@ object
 ======
 
 The object type allows to define nested documents instead of old-n-busted flat tables.
-An object can contain other fields of any type, even further object columns.
-An Object column can be either schemaless or enforce its defined schema.
+An ``object`` can contain other fields of any type, even further object columns.
+An ``object`` column can be either schemaless or enforce its defined schema.
 It can even be used as a kind of json-blob.
 
 Syntax::
@@ -304,11 +304,44 @@ The *value* of a key-value pair is another literal or a parameter.
 
 An object literal can contain zero or more key value pairs
 
-Some examples::
+Examples
+........
 
-    { "CamelCase"=123 }
-    { key=['v', 'a', 'l', 'u', 'e'], param=?}
-    {"true"=false}
+Empty object literal::
+
+  {}
+
+Boolean type::
+
+  { my_bool_column = true }
+
+String type::
+
+  { my_str_col = 'this is a string value' }
+
+Number types::
+
+  { my_int_col = 1234, my_float_col = 5.6 }
+
+Array type::
+
+  { my_array_column = ['v', 'a', 'l', 'u', 'e'] }
+
+Camel case keys must be quoted::
+
+  { "CamelCaseColumn" = 'this is a string value' }
+
+Nested object::
+
+  { nested_obj_colmn = { int_col = 1234, str_col = 'string value' } }
+
+You can even specify a placeholder parameter for a value::
+
+  { my_other_column = ? }
+
+Combined::
+
+  { id = 1, name = 'foo', tags = ['apple', 'banana', 'pear'], size = 3.1415, valid = ? }
 
 
 array

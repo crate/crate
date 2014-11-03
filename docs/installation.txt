@@ -44,6 +44,8 @@ your browser once Crate is started::
 
   http://host1.example.com:4200/admin/
 
+**The admin interface runs on each node where Crate is installed.**
+
 .. note::
 
   Crate Data needs a working Java 7 virtual machine. We recommend
