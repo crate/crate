@@ -192,7 +192,7 @@ value to ``merge`` (default) or ``all``.
 
 .. seealso::
 
-  - :ref:`indices.store.throttle.type`
+  - :ref:`indices.store.throttle`
 
 Importing Data Using COPY FROM
 ------------------------------

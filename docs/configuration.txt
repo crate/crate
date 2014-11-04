@@ -43,7 +43,7 @@ will overwrite the prior one:
  3. options from config file
  4. command-line properties
 
-Node Specific settings
+Node Specific Settings
 ======================
 
 .. _cluster.name:
@@ -125,8 +125,9 @@ Ports
 
 .. _conf-cluster-settings:
 
-Cluster wide settings
+Cluster Wide Settings
 =====================
+
 All current applied cluster settings can be read by querying the
 :ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
 cluster settings can be changed at runtime using the
@@ -557,6 +558,8 @@ Recovery
   process. Higher values may result in higher network utilization, but
   also faster recovery process.
 
+.. _indices.store.throttle:
+
 Store Level Throttling
 ----------------------
 .. _indices.store.throttle.type:
@@ -693,7 +696,7 @@ And here is a snippet of the generated properties ready for use with log4j. You 
 
    ...
 
-Environment variables
+Environment Variables
 =====================
 
 .. _env-crate-home:
