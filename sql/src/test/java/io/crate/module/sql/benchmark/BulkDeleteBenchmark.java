@@ -119,7 +119,7 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
         return new Object[]{
                 RandomStringUtils.randomAlphabetic(40),  // id
                 RandomStringUtils.randomAlphabetic(10),  // name
-                (int)Math.random() * 100,                // age
+                (int)(Math.random() * 100),                // age
         };
     }
 
@@ -149,7 +149,7 @@ public class BulkDeleteBenchmark extends BenchmarkBase{
             bulkArgs[i] = new Object[]{id};
             i++;
         }
-        getClient(false).execute(SQLAction.INSTANCE, new SQLRequest(DELETE_SQL_STMT, bulkArgs)).actionGet();
+        getClient(false).execute(SQLBulkAction.INSTANCE, new SQLBulkRequest(DELETE_SQL_STMT, bulkArgs)).actionGet();
         refresh(client());
     }
 
