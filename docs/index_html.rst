@@ -24,3 +24,4 @@ Contents
    blob
    udc
    best_practice/index
+   integration/index
