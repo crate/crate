@@ -187,7 +187,7 @@ public class ProjectionToProjectorVisitorTest {
         //         in(0)  in(1)      in(0),      in(2)
         // select  race, avg(age), count(race), gender  ... group by race, gender
         GroupProjection projection = new GroupProjection();
-        projection.keys(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(2)));
+        projection.keys(Arrays.<DataTypeSymbol>asList(new InputColumn(0, DataTypes.STRING), new InputColumn(2, DataTypes.STRING)));
         projection.values(Arrays.asList(
                 new Aggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
                 new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)

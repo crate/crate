@@ -27,6 +27,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Literal;
@@ -128,6 +129,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
             symbolVisitor.process(aggregation, symbolContext);
         }
         return new GroupingProjector(
+                DataTypeVisitor.fromSymbols(projection.keys()),
                 keyInputs,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 symbolContext.aggregations()

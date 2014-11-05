@@ -155,7 +155,9 @@ public class DistributedResultRequestTest {
         dummyMergeNode.contextId(contextId);
         dummyMergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
         TopNProjection topNProjection = new TopNProjection(10, 0);
-        topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
+        topNProjection.outputs(Arrays.<Symbol>asList(
+                new InputColumn(0, DataTypes.INTEGER),
+                new InputColumn(1, DataTypes.INTEGER)));
         dummyMergeNode.projections(Arrays.<Projection>asList(topNProjection));
 
         DistributedRequestContextManager contextManager =

@@ -27,10 +27,7 @@ import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -127,7 +124,7 @@ public class ImplementationSymbolVisitorTest {
         Function multiply = new Function(
                 MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(1))
         );
-        List<Symbol> keys = Arrays.asList(new InputColumn(0), multiply);
+        List<DataTypeSymbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), multiply);
 
         ImplementationSymbolVisitor.Context context = visitor.process(keys);
         assertThat(context.collectExpressions().size(), is(2));
@@ -155,7 +152,7 @@ public class ImplementationSymbolVisitorTest {
         Function multiply = new Function(
                 MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(1))
         );
-        List<Symbol> keys = Arrays.asList(new InputColumn(0), multiply);
+        List<DataTypeSymbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), multiply);
 
 
         // values: [ count(in(0)) ]

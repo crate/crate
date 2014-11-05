@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -88,7 +89,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         }
 
         generateSymbols(pkIndices, partitionedByIndices, clusteredByIdx);
-        rawSourceSymbol = new InputColumn(currentInputIndex);
+        rawSourceSymbol = new InputColumn(currentInputIndex, DataTypes.STRING);
     }
 
     @Override

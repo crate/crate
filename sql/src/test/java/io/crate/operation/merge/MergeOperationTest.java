@@ -34,6 +34,7 @@ import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.DataTypeSymbol;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
@@ -84,9 +85,10 @@ public class MergeOperationTest {
         minAggFunction = (AggregationFunction<MinimumAggregation.MinimumAggState>) functions.get(minAggIdent);
 
         groupProjection = new GroupProjection();
-        groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(0)));
+        groupProjection.keys(Arrays.<DataTypeSymbol>asList(new InputColumn(0, DataTypes.INTEGER)));
         groupProjection.values(Arrays.asList(
-                new Aggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
+                new Aggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)),
+                        Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
     }
 

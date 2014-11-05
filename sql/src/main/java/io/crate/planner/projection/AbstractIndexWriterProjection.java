@@ -104,15 +104,15 @@ public abstract class AbstractIndexWriterProjection extends Projection {
                                    int clusteredByIdx) {
         this.idSymbols = new ArrayList<>(primaryKeys.size());
         for (int primaryKeyIndex : primaryKeyIndices) {
-            idSymbols.add(new InputColumn(primaryKeyIndex));
+            idSymbols.add(new InputColumn(primaryKeyIndex, null));
         }
 
         this.partitionedBySymbols = new ArrayList<>(partitionedByIndices.length);
         for (int partitionByIndex : partitionedByIndices) {
-            partitionedBySymbols.add(new InputColumn(partitionByIndex));
+            partitionedBySymbols.add(new InputColumn(partitionByIndex, null));
         }
         if (clusteredByIdx >= 0) {
-            clusteredBySymbol = new InputColumn(clusteredByIdx);
+            clusteredBySymbol = new InputColumn(clusteredByIdx, null);
         }
     }
 

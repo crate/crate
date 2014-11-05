@@ -26,6 +26,9 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
 
     private static final DataTypeVisitor INSTANCE = new DataTypeVisitor();
@@ -33,6 +36,14 @@ public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
 
     public static DataType fromSymbol(Symbol symbol) {
         return INSTANCE.process(symbol, null);
+    }
+
+    public static List<DataType> fromSymbols(List<? extends Symbol> keys) {
+        List<DataType> types = new ArrayList<>(keys.size());
+        for (Symbol key : keys) {
+            types.add(fromSymbol(key));
+        }
+        return types;
     }
 
     @Override
@@ -45,7 +56,7 @@ public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
 
     @Override
     public DataType visitInputColumn(InputColumn inputColumn, Void context) {
-        return null;
+        return inputColumn.valueType();
     }
 
     @Override
@@ -82,4 +93,5 @@ public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
     protected DataType visitSymbol(Symbol symbol, Void context) {
         throw new UnsupportedOperationException(SymbolFormatter.format("Unable to get DataType from symbol: %s", symbol));
     }
+
 }

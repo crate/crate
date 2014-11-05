@@ -22,15 +22,18 @@
 package io.crate.planner.symbol;
 
 import com.google.common.base.Objects;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 /**
  * A symbol which represents a column of a result array
  */
-public class InputColumn extends Symbol implements Comparable<InputColumn> {
+public class InputColumn extends DataTypeSymbol implements Comparable<InputColumn> {
 
     public static final SymbolFactory<InputColumn> FACTORY = new SymbolFactory<InputColumn>() {
         @Override
@@ -39,12 +42,18 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
         }
     };
 
+    private DataType dataType;
 
     private int index;
 
-    public InputColumn(int index) {
+    public InputColumn(int index, @Nullable DataType dataType) {
         assert index >= 0;
         this.index = index;
+        this.dataType = Objects.firstNonNull(dataType, DataTypes.UNDEFINED);
+    }
+
+    public InputColumn(int index) {
+        this(index, null);
     }
 
     public InputColumn() {
@@ -61,6 +70,11 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     }
 
     @Override
+    public DataType valueType() {
+        return dataType;
+    }
+
+    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitInputColumn(this, context);
     }
@@ -68,11 +82,13 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         index = in.readVInt();
+        dataType = DataTypes.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(index);
+        DataTypes.toStream(dataType, out);
     }
 
     @Override
@@ -84,6 +100,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     public String toString() {
         return Objects.toStringHelper(this)
                 .add("index", index)
+                .add("type", dataType)
                 .toString();
     }
 
@@ -103,4 +120,5 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     public int hashCode() {
         return index;
     }
+
 }

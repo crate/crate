@@ -36,10 +36,7 @@ import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
@@ -169,7 +166,7 @@ public class PlanNodeStreamerVisitorTest {
         MergeNode mergeNode = new MergeNode("mörtsch", 2);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED));
         GroupProjection groupProjection = new GroupProjection(
-                Arrays.<Symbol>asList(Literal.newLiteral("key")),
+                Arrays.<DataTypeSymbol>asList(Literal.newLiteral("key")),
                 Arrays.asList(new Aggregation(
                         countInfo,
                         ImmutableList.<Symbol>of(),

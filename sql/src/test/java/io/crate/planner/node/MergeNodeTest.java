@@ -30,6 +30,7 @@ import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.DataTypeSymbol;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.testing.TestingHelpers;
@@ -57,7 +58,7 @@ public class MergeNodeTest {
 
         Reference nameRef = TestingHelpers.createReference("name", DataTypes.STRING);
         GroupProjection groupProjection = new GroupProjection();
-        groupProjection.keys(Arrays.<Symbol>asList(nameRef));
+        groupProjection.keys(Arrays.<DataTypeSymbol>asList(nameRef));
         groupProjection.values(Arrays.asList(
                 new Aggregation(
                         new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),

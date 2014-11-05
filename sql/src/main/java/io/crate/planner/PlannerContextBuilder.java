@@ -61,7 +61,7 @@ public class PlannerContextBuilder {
         this.ignoreOrderBy = ignoreOrderBy;
     }
 
-    public List<Symbol> groupBy() {
+    public List<DataTypeSymbol> groupBy() {
         return context.groupBy;
     }
 
@@ -103,7 +103,9 @@ public class PlannerContextBuilder {
                 } else if (context.numGroupKeys > 0 && splitSymbol.symbolType() != SymbolType.INPUT_COLUMN) {
                     // in case the symbol was an aggregation function it is replaced directly.
                     // this wasn't the case so the symbol must be a group by
-                    resolvedSymbol = new InputColumn(context.originalGroupBy.indexOf(splitSymbol));
+                    resolvedSymbol = new InputColumn(
+                            context.originalGroupBy.indexOf(splitSymbol),
+                            DataTypeVisitor.fromSymbol(splitSymbol));
                 } else if (splitSymbol.symbolType() == SymbolType.INPUT_COLUMN) {
                     resolvedSymbol = splitSymbol;
                 } else if(symbol.symbolType().isValueSymbol()){
@@ -137,7 +139,7 @@ public class PlannerContextBuilder {
             for (Aggregation aggregation : context.aggregations) {
                 context.aggregations.set(i, new Aggregation(
                         aggregation.functionInfo(),
-                        Arrays.<Symbol>asList(new InputColumn(idx)),
+                        Arrays.<Symbol>asList(new InputColumn(idx, null)),
                         aggregation.toStep(), context.step()));
                 i++;
                 idx++;
@@ -145,8 +147,8 @@ public class PlannerContextBuilder {
         }
 
         int idx = 0;
-        for (Symbol symbol : context.groupBy) {
-            context.groupBy.set(idx, new InputColumn(idx));
+        for (DataTypeSymbol symbol : context.groupBy) {
+            context.groupBy.set(idx, new InputColumn(idx, symbol.valueType()));
             idx++;
         }
     }
@@ -206,7 +208,7 @@ public class PlannerContextBuilder {
     public List<Symbol> passThroughOrderBy() {
         List<Symbol> orderBy = new ArrayList<>();
         for (Symbol symbol : context.orderBy) {
-            orderBy.add(new InputColumn(context.outputs.indexOf(symbol)));
+            orderBy.add(new InputColumn(context.outputs.indexOf(symbol), DataTypeVisitor.fromSymbol(symbol)));
         }
 
         return orderBy;
@@ -219,7 +221,7 @@ public class PlannerContextBuilder {
     public List<Symbol> passThroughOutputs() {
         List<Symbol> outputs = new ArrayList<>();
         for (int i = 0; i < context.outputs.size(); i++) {
-            outputs.add(new InputColumn(i));
+            outputs.add(new InputColumn(i, DataTypeVisitor.fromSymbol(context.outputs.get(i))));
         }
         return outputs;
     }

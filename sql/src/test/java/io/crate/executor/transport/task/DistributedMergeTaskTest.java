@@ -15,6 +15,7 @@ import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.DataTypeSymbol;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
@@ -54,7 +55,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING));
 
         GroupProjection groupProjection = new GroupProjection();
-        groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(1)));
+        groupProjection.keys(Arrays.<DataTypeSymbol>asList(new InputColumn(1, DataTypes.STRING)));
         groupProjection.values(Arrays.asList(
                 new Aggregation(
                         countAggregation.info(),
@@ -68,7 +69,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         mergeNode.projections(Arrays.asList(groupProjection, topNProjection));
-        mergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED));
+        mergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG));
 
         Streamer<?>[] mapperOutputStreamer = new Streamer[] {
                 new AggregationStateStreamer(countAggregation),

@@ -17,6 +17,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -51,6 +52,7 @@ public class GroupingProjectorTest {
 
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
         GroupingProjector projector = new GroupingProjector(
+                Arrays.asList(DataTypes.STRING),
                 keys,
                 new CollectExpression[0],
                 aggregations

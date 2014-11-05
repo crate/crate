@@ -21,13 +21,18 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.aggregation.AggregationCollector;
 import io.crate.operation.aggregation.AggregationState;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -42,9 +47,12 @@ public class GroupingProjector implements Projector {
     private AtomicInteger remainingUpstreams = new AtomicInteger(0);
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
-    public GroupingProjector(List<Input<?>> keyInputs,
+    public GroupingProjector(List<? extends DataType> keyTypes,
+                             List<Input<?>> keyInputs,
                              CollectExpression[] collectExpressions,
                              AggregationContext[] aggregations) {
+        assert keyTypes.size() == keyInputs.size() : "number of key types must match with number of key inputs";
+        assert allTypesKnown(keyTypes) : "must have a known type for each key input";
         this.collectExpressions = collectExpressions;
 
         AggregationCollector[] aggregationCollectors = new AggregationCollector[aggregations.length];
@@ -60,6 +68,15 @@ public class GroupingProjector implements Projector {
         } else {
             grouper = new ManyKeyGrouper(keyInputs, collectExpressions, aggregationCollectors);
         }
+    }
+
+    private static boolean allTypesKnown(List<? extends DataType> keyTypes) {
+        return Iterables.all(keyTypes, new Predicate<DataType>() {
+            @Override
+            public boolean apply(@Nullable DataType input) {
+                return input != null && !input.equals(DataTypes.UNDEFINED);
+            }
+        });
     }
 
     @Override
@@ -114,9 +131,6 @@ public class GroupingProjector implements Projector {
 
     /**
      * transform map entry into pre-allocated object array.
-     * @param entry
-     * @param row
-     * @param aggregationCollectors
      */
     private static void transformToRow(Map.Entry<List<Object>, AggregationState[]> entry,
                                        Object[] row,

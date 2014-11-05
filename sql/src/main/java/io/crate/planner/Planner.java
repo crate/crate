@@ -52,6 +52,7 @@ import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Function;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -1101,11 +1102,11 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         Projection projection = projections.get(projectionIdx);
         Symbol symbol = projection.outputs().get(columnIdx);
         DataType type = DataTypeVisitor.fromSymbol(symbol);
-        if (type == null) {
-            if (symbol.symbolType() == SymbolType.INPUT_COLUMN) {
-                columnIdx = ((InputColumn)symbol).index();
-            }
+        if (type == null || (type.equals(DataTypes.UNDEFINED) && symbol instanceof InputColumn)) {
             if (projectionIdx > 0) {
+                if (symbol instanceof InputColumn) {
+                    columnIdx = ((InputColumn) symbol).index();
+                }
                 return resolveType(projections, projectionIdx - 1, columnIdx, inputTypes);
             } else {
                 assert symbol instanceof InputColumn; // otherwise type shouldn't be null
@@ -1148,7 +1149,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                                     analysis.getFunctionInfo(
                                             new FunctionIdent(SumAggregation.NAME, Arrays.<DataType>asList(LongType.INSTANCE))
                                     ),
-                                    Arrays.<Symbol>asList(new InputColumn(0)),
+                                    Arrays.<Symbol>asList(new InputColumn(0, DataTypes.LONG)),
                                     Aggregation.Step.ITER,
                                     Aggregation.Step.FINAL
                             )

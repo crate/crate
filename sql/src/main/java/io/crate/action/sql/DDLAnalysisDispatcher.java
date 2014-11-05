@@ -174,7 +174,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                 Aggregation.Step.PARTIAL);
         Aggregation countAggregationFinal = new Aggregation(
                 CountAggregation.COUNT_STAR_FUNCTION,
-                ImmutableList.<Symbol>of(new InputColumn(0)),
+                ImmutableList.<Symbol>of(new InputColumn(0, DataTypes.LONG)),
                 Aggregation.Step.PARTIAL,
                 Aggregation.Step.FINAL);
 

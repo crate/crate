@@ -36,10 +36,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -105,7 +102,7 @@ public class ShardProjectorChainTest {
     public void testWithShardProjections() throws Exception {
         TopNProjection topN = new TopNProjection(0, 1);
         GroupProjection groupProjection = new GroupProjection(
-                Arrays.<Symbol>asList(Literal.newLiteral(true)),
+                Arrays.<DataTypeSymbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
         groupProjection.setRequiredGranularity(RowGranularity.SHARD);
         ShardProjectorChain chain = new ShardProjectorChain(2, ImmutableList.of(groupProjection, topN), projectionToProjectorVisitor);
@@ -126,11 +123,11 @@ public class ShardProjectorChainTest {
     public void testWith2ShardProjections() throws Exception {
         TopNProjection topN = new TopNProjection(0, 1);
         GroupProjection groupProjection1 = new GroupProjection(
-                Arrays.<Symbol>asList(Literal.newLiteral(true)),
+                Arrays.<DataTypeSymbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
         groupProjection1.setRequiredGranularity(RowGranularity.SHARD);
         GroupProjection groupProjection2 = new GroupProjection(
-                Arrays.<Symbol>asList(Literal.newLiteral(true)),
+                Arrays.<DataTypeSymbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
         groupProjection2.setRequiredGranularity(RowGranularity.SHARD);
         ShardProjectorChain chain = new ShardProjectorChain(2, ImmutableList.of(groupProjection1, groupProjection2, topN), projectionToProjectorVisitor);
@@ -152,7 +149,7 @@ public class ShardProjectorChainTest {
     public void testWithoutShardProjections() throws Exception {
         TopNProjection topN = new TopNProjection(0, 1);
         GroupProjection groupProjection = new GroupProjection(
-                Arrays.<Symbol>asList(Literal.newLiteral(true)),
+                Arrays.<DataTypeSymbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
         ShardProjectorChain chain = new ShardProjectorChain(2, ImmutableList.of(groupProjection, topN), projectionToProjectorVisitor);
 
@@ -190,7 +187,7 @@ public class ShardProjectorChainTest {
     public void testZeroShards() throws Exception {
         TopNProjection topN = new TopNProjection(0, 1);
         GroupProjection groupProjection = new GroupProjection(
-                Arrays.<Symbol>asList(Literal.newLiteral(true)),
+                Arrays.<DataTypeSymbol>asList(Literal.newLiteral(true)),
                 Arrays.asList(countAggregation()));
         ShardProjectorChain chain = new ShardProjectorChain(0, ImmutableList.of(groupProjection, topN), projectionToProjectorVisitor);
 

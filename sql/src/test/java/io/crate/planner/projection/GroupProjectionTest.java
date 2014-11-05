@@ -27,6 +27,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.DataTypeSymbol;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
@@ -49,7 +50,7 @@ public class GroupProjectionTest {
     public void testStreaming() throws Exception {
         GroupProjection p = new GroupProjection();
         p.keys(
-                ImmutableList.<Symbol>of(
+                ImmutableList.<DataTypeSymbol>of(
                         createReference("foo", DataTypes.STRING),
                         createReference("bar", DataTypes.SHORT)
                 ));
@@ -69,7 +70,7 @@ public class GroupProjectionTest {
     public void testStreaming2() throws Exception {
         Reference nameRef = createReference("name", DataTypes.STRING);
         GroupProjection groupProjection = new GroupProjection();
-        groupProjection.keys(Arrays.<Symbol>asList(nameRef));
+        groupProjection.keys(Arrays.<DataTypeSymbol>asList(nameRef));
         groupProjection.values(Arrays.asList(
                 new Aggregation(
                         new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
@@ -94,7 +95,7 @@ public class GroupProjectionTest {
     public void testStreamingGranularity() throws Exception {
         GroupProjection p = new GroupProjection();
         p.keys(
-                ImmutableList.<Symbol>of(
+                ImmutableList.<DataTypeSymbol>of(
                         createReference("foo", DataTypes.STRING),
                         createReference("bar", DataTypes.SHORT)
                 ));
