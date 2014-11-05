@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - ``Select count(*)`` statements on partitioned tables didn't apply partition
+   filters if present in the WHERE clause.
+
  - Added Support for Column Policies, which can be used to define
    if a table enforces its defined schema or if it's allowed
    to store additional columns which are not defined in the schema.

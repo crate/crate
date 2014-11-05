@@ -44,6 +44,7 @@ public class ESCountTask implements Task<QueryResult> {
     private CountRequest request;
     private ActionListener<CountResponse> listener;
     private final static ESQueryBuilder queryBuilder = new ESQueryBuilder();
+    private final static QueryResult ZERO_RESULT = new QueryResult(new Object[][] { new Object[] { 0L }});
 
     public ESCountTask(ESCountNode node, TransportCountAction transportCountAction) {
         this.transportCountAction = transportCountAction;
@@ -54,12 +55,18 @@ public class ESCountTask implements Task<QueryResult> {
         // empty partitioned table does not exists
         // or where clause on partitioned table is NO_MATCH
         // shortcut here
-        if (node.tableInfo().isPartitioned() &&
-                (node.tableInfo().partitions().size() == 0 || node.whereClause().noMatch())) {
-            result.set(new QueryResult(new Object[][]{new Object[]{0L}}));
-            return;
+
+        String indices[];
+        if (node.tableInfo().isPartitioned()) {
+            if (node.tableInfo().partitions().isEmpty() || node.whereClause().noMatch()) {
+                result.set(ZERO_RESULT);
+                return;
+            }
+            indices = node.whereClause().partitions().toArray(new String[node.whereClause().partitions().size()]);
+        } else {
+            indices = new String[] { node.tableInfo().ident().name() };
         }
-        request = new CountRequest(node.tableInfo().ident().name());
+        request = new CountRequest(indices);
         listener = new CountResponseListener(result);
         try {
             request.source(queryBuilder.convert(node.whereClause()), false);
@@ -98,7 +105,7 @@ public class ESCountTask implements Task<QueryResult> {
             if (countResponse.getFailedShards() > 0) {
                 onFailure(new FailedShardsException(countResponse.getShardFailures()));
             } else {
-                result.set(new QueryResult(new Object[][]{new Object[]{countResponse.getCount()}}));
+                result.set(new QueryResult(new Object[][] { new Object[] {countResponse.getCount() }}));
             }
         }
 
