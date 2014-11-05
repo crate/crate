@@ -19,12 +19,8 @@ configured equally, the same way as they would be as a single-node instance.
 Node Settings
 =============
 
-All :ref:`settings <configuration>` (both cluster scope and node scope)
-are made on a node level.
-This is due to the nature of the shared nothing architecture mentioned above.
-
-These settings are defined in the configuration ``crate.yaml`` that is shipped
-with the Crate distributions.
+Node specific settings can be set in the configuration file named ``crate.yaml``
+that is shipped with the Crate distributions.
 
 Cluster Name
 ------------
@@ -39,22 +35,41 @@ thing to prevent other nodes from joining your cluster is to give it a unique na
 Node Name
 ---------
 
-To give a node a remorable name you can set its name::
+To give a node a memorable name you can set its name::
 
   node.name: node1
 
 If the node name setting is omitted the node name is generated dynamically on startup.
 
 
-Multicast vs. Unicast
-=====================
+Inter-Node Communication
+========================
 
-Crate's discovery mechanism uses multicast by default. This is convenient for
-testing out Crate and fire up a few instances in the same network. Without any further
-configuration they will discover each other automatically.
+The default port of Crate to communicate between nodes using the transport protocol
+is ``4300``. This so called *transport port* must be accessible from every node.
 
-If you run your cluster on your own network (with multicast enabled) this is the
-preferred way to go!
+It is also possible to change the port range to which the transport service will bind to::
+
+  transport.tcp.port: 4350-4360
+
+For more information please refer to :ref:`Port Settings <conf_ports>`.
+
+Crate also binds to a second port ``4200`` that is only used for HTTP communication.
+Clients connecting to the Crate cluster are using this HTTP port, except the
+native Java client, which uses the tranport port because it uses the Crate
+transport protocol.
+
+
+Node Discovery
+==============
+
+Crate's discovery mechanism uses multicast by default. If you run your cluster on your
+own network (with multicast enabled) this is the preferred way to go! Without any
+further configuration the nodes will discover each other automatically and join
+the cluster.
+
+Unicast Discovery
+-----------------
 
 However, some environments do *not* support multicast, e.g. `Amazon EC2`_,
 `Google Compute Engine`_ or `Docker`_. If you want to deploy your cluster on such
@@ -96,7 +111,7 @@ nodes join or leave the cluster.
 
 By default all nodes are eligible to become master. The settings ``minimum_master_nodes``
 defines how many nodes need to be available in the cluster to elect a master.
-We highly recommend to set the minimum master nodes as follows::
+We highly recommend to set the quorum as follows::
 
   (N / 2) + 1
 
@@ -110,16 +125,16 @@ that at least 2 nodes need to be started before they elect the master.
 .. note::
 
   Note that this value must be updated according to the amount of nodes
-  when you add new nodes to the cluster.
+  when you add new or remove nodes from the cluster.
 
 Publish Host and Port
 =====================
 
 In certain cases the address of the node that runs Crate differs
-from the address where you can actually access Crate. This is the case
-for example when you run Crate inside a Docker container.
+from the address where the transport endpoint can be accessed by other nodes.
+This is the case for example when you run Crate inside a Docker container.
 
-Therefore Crate can publish the host and port for its discovered. These
+Therefore Crate can publish the host and port for its discovery. These
 published settings can differ from the address of the actual host::
 
   network.publish_host: public-address.example.com  # adress accessible from outside
@@ -130,97 +145,6 @@ published settings can differ from the address of the actual host::
   Settings for :ref:`conf_hosts` and :ref:`conf_ports`
 
 
-Firewall
-========
-
-Crate uses by default the ports ``4200`` for HTTP and ``4300`` for transport
-(see :ref:`Port Settings <conf_ports>`).
-However, both port settings are port ranges, which means that if for example ``4200``
-is not available any more, Crate will automatically use the next free one,
-e.g. ``4201``.
-
-To make Crate work in a multi-node setup correctly the tranport port must be open
-so the nodes can communicate with each other.
-
-Clients connecting to the Crate cluster are using the HTTP port, except the
-native Java client, which uses the tranport port because it uses the Crate
-transport protocol.
-
-This needs to be taken into account when setting up the firewall. In the best case
-these ports are only open to other machines in the same network.
-
-
-.. highlight:: sh
-
-Setup using Docker
-==================
-
-There are Docker_ images for every Crate release since version ``0.44``.
-For information how to install Docker on your system please refer to the
-`Docker documentation`_ directly.
-
-There is short introduction on how to use the Crate images on our Github
-repository `docker-crate`_.
-
-Setting up Crate with Docker is a little bit more complex than a regular setup,
-however, the same rules from above apply to a Docker cluster too.
-
-Port Forwarding
----------------
-
-Since Crate is runing inside an encapsulated container the internal ports are
-not accessible unless they are mapped to outside ports::
-
-  --publish 4200:4200 --publish 4300:4300
-
-Mount Disk
-----------
-
-To store the data on a persistent disk (preferrably an SSD disk)
-mount a volume on ``/data`` using the ``--volume`` option::
-
-  --volume /mnt/path/to/data:/data
-
-Environment Variables
----------------------
-
-Crate uses a default heap size of minimum ``256MB`` and maximum the OS/JVM specific
-maximum Java heap size (defined by ``JAVA_OPTS -Xms``). To change it
-you need to set the ``CRATE_HEAP_SIZE`` environment variable explicitly.
-
-For example, setting it to ``16GB``::
-
-  --env CRATE_HEAP_SIZE=16g
-
-Complete Example
-----------------
-
-You can pass the cluster settings described above directly to the ``crate`` command
-with the ``-Des.`` prefix when starting it with the container.
-
-::
-
-  HOSTS='node1.example.com:4300,node2.example.com:4300,node3.example.com:4300'
-  HOST_IP=x.x.x.x
-  docker run
-      --name node1 \
-      --hostname node1 \
-      --publish 4200:4200 \
-      --publish 4300:4300 \
-      --volume /mnt/data/crate:/data \
-      --env CRATE_HEAP_SIZE=16g \
-      crate:latest \
-      crate -Des.cluster.name=my_cluster \
-            -Des.node.name=node1 \
-            -Des.multicast.enabled=false \
-            -Des.network.publish_host=$HOST_IP \
-            -Des.discovery.zen.minimum_master_nodes=2 \
-            -Des.discovery.zen.ping.unicast.hosts=$HOSTS"'
-
-
-
-.. _docker-crate: https://github.com/crate/docker-crate/
 .. _Docker: http://docker.com/
-.. _`Docker documentation`: https://docs.docker.co/
 .. _`Amazon EC2`: http://aws.amazon.com/ec2/
 .. _`Google Compute Engine`: https://cloud.google.com/compute/docs/
