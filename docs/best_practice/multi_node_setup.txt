@@ -49,15 +49,17 @@ If the node name setting is omitted the node name is generated dynamically on st
 Multicast vs. Unicast
 =====================
 
-Crate's discovery mechanism uses multicast by default. This might be handy for
-testing out Crate and fire up a few instances in the same network and they will
-discover each other automatically (assuming the network has multicast enabled).
+Crate's discovery mechanism uses multicast by default. This is convenient for
+testing out Crate and fire up a few instances in the same network. Without any further
+configuration they will discover each other automatically.
 
-Although there are benefits of multicast over unicast in performance and efficiency
-there are also drawbacks such as sending duplicates, no network congestion avoidance
-and best effort delivery. Moreover some network environments and cloud computing providers
-do not support multicast, so we strongly recommend to disable it and use unicast instead
-by setting ``multicast.enabled`` to ``false``::
+If you run your cluster on your own network (with multicast enabled) this is the
+preferred way to go!
+
+However, some environments do *not* support multicast, e.g. `Amazon EC2`_,
+`Google Compute Engine`_ or `Docker`_. If you want to deploy your cluster on such
+an enviroment, you need to disable multicast and use unicast instead.
+This is done by setting the ``multicast.enabled`` parameter to ``false``::
 
   discovery.zen.ping.multicast.enabled: false
 
@@ -75,6 +77,12 @@ or use internal netork IPs + transport port::
     - 10.0.1.101:4300
     - 10.0.1.102:4300
     - 10.0.1.103:4300
+
+.. note::
+
+  When adding new nodes to the cluster, you do not need to update the list of unicast
+  hosts for the existing/running nodes. The cluster will find and add the new node,
+  as soon as the new node will ping existing ones.
 
 
 Master Node Election
@@ -99,6 +107,10 @@ that at least 2 nodes need to be started before they elect the master.
 
   discovery.zen.minimum_master_nodes: 2
 
+.. note::
+
+  Note that this value must be updated according to the amount of nodes
+  when you add new nodes to the cluster.
 
 Publish Host and Port
 =====================
@@ -115,7 +127,7 @@ published settings can differ from the address of the actual host::
 
 .. seealso::
 
-  Node Settings for :ref:`conf_hosts` and :ref:`conf_ports`
+  Settings for :ref:`conf_hosts` and :ref:`conf_ports`
 
 
 Firewall
@@ -207,7 +219,8 @@ with the ``-Des.`` prefix when starting it with the container.
 
 
 
-.. _docker-crate: https://github.com/crate/docker-crate
-.. _Docker: http://docker.com
-.. _`Docker documentation`: https://docs.docker.co
-
+.. _docker-crate: https://github.com/crate/docker-crate/
+.. _Docker: http://docker.com/
+.. _`Docker documentation`: https://docs.docker.co/
+.. _`Amazon EC2`: http://aws.amazon.com/ec2/
+.. _`Google Compute Engine`: https://cloud.google.com/compute/docs/
