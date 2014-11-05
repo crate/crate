@@ -41,6 +41,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -290,6 +291,20 @@ public class TestingHelpers {
                 }
             }
         };
+    }
+
+    /**
+     * Get the values at column index <code>index</code> within all <code>rows</code>
+     */
+    public static @Nullable Object[] getColumn(Object[][] rows, int index) throws Exception {
+        if (rows.length == 0 || rows[0].length <= index) {
+            throw new NoSuchElementException("no column with index " + index);
+        }
+        Object[] column = new Object[rows.length];
+        for (int i = 0; i< rows.length; i++) {
+           column[i] = rows[i][index];
+        }
+        return column;
     }
 
 }

@@ -48,8 +48,7 @@ public class AnalyzedColumnDefinition {
     private List<AnalyzedColumnDefinition> children = new ArrayList<>();
     private boolean isIndex = false;
     private ArrayList<String> copyToTargets;
-    private boolean isObjectExtension = false;
-
+    private boolean isParentColumn;
 
     public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
@@ -128,6 +127,10 @@ public class AnalyzedColumnDefinition {
 
     public void addChild(AnalyzedColumnDefinition analyzedColumnDefinition) {
         children.add(analyzedColumnDefinition);
+    }
+
+    public boolean hasChildren() {
+        return !children.isEmpty();
     }
 
     public Settings analyzerSettings() {
@@ -271,11 +274,15 @@ public class AnalyzedColumnDefinition {
         return collectionType != null || (parent != null && parent.isArrayOrInArray());
     }
 
-    public void isObjectExtension(boolean isObjectExtension) {
-        this.isObjectExtension = isObjectExtension;
+    public void isParentColumn(boolean isParentColumn) {
+        this.isParentColumn = isParentColumn;
     }
 
-    public boolean isObjectExtension() {
-        return this.isObjectExtension;
+    /**
+     * @return true if this column has a defined child
+     * (which is not coming from an object column definition payload in case of ADD COLUMN)
+     */
+    public boolean isParentColumn() {
+        return isParentColumn;
     }
 }

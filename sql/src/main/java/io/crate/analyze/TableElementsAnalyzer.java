@@ -99,12 +99,13 @@ public class TableElementsAnalyzer {
             assert context.analyzedTableElements.columns().size() == 0;
 
             AnalyzedColumnDefinition root = context.analyzedColumnDefinition;
+            root.dataType(DataTypes.OBJECT.getName());
             if (!ident.path().isEmpty()) {
-                context.analyzedColumnDefinition.isObjectExtension(true);
                 AnalyzedColumnDefinition parent = context.analyzedColumnDefinition;
                 AnalyzedColumnDefinition leaf = parent;
                 for (String name : ident.path()) {
                     parent.dataType(DataTypes.OBJECT.getName());
+                    parent.isParentColumn(true);
                     leaf = new AnalyzedColumnDefinition(parent);
                     leaf.name(name);
                     parent.addChild(leaf);
