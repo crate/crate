@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -361,9 +362,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table t add o['y'] int");
         try {
             execute("alter table t add o object as (z string)");
-            assertTrue(false);
+            assertTrue("did not fail for existing column o", false);
         } catch (SQLActionException e) {
             // column o exists already
+            assertThat(e.getMessage(), is("The table \"t\" already has a column named \"o\""));
         }
         execute("select * from information_schema.columns where " +
                 "table_name = 't' and schema_name='doc'" +
@@ -375,6 +377,33 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             fqColumnNames.add((String) row[2]);
         }
         assertThat(fqColumnNames, Matchers.contains("o", "o['x']", "o['y']"));
+    }
+
+    @Test
+    public void testAlterTableAddObjectColumnToExistingObjectNested() throws Exception {
+        execute("CREATE TABLE my_table (" +
+                "  name string, " +
+                "  age integer," +
+                "  book object as (isbn string)" +
+                ")");
+        ensureGreen();
+        execute("alter table my_table add column book['author'] object as (\"authorId\" integer)");
+        waitNoPendingTasksOnAll();
+        execute("select column_name from information_schema.columns where " +
+                "table_name = 'my_table' and schema_name='doc'" +
+                "order by column_name asc");
+        assertThat(response.rowCount(), is(6L));
+        assertThat(TestingHelpers.getColumn(response.rows(), 0),
+                is(Matchers.<Object>arrayContaining("age", "book", "book['author']", "book['author']['authorId']", "book['isbn']", "name")));
+        execute("alter table my_table add column book['author']['authorName'] string");
+        waitNoPendingTasksOnAll();
+        execute("select column_name from information_schema.columns where " +
+                "table_name = 'my_table' and schema_name='doc'" +
+                "order by column_name asc");
+        assertThat(response.rowCount(), is(7L));
+        assertThat(TestingHelpers.getColumn(response.rows(), 0),
+                is(Matchers.<Object>arrayContaining("age", "book", "book['author']", "book['author']['authorId']", "book['author']['authorName']", "book['isbn']", "name")));
+
     }
 
     @Test

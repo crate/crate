@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
@@ -57,6 +58,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name()))
                     .thenReturn(userTableInfoClusteredByOnly);
+            when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -176,5 +178,84 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
         Map y = (Map) StringObjectMaps.getByPath(mapping, "properties.foo.properties.x.properties.y");
         assertThat((String)y.get("type"), is("string"));
+    }
+
+    @Test
+    public void testAddNewNestedColumnToObjectColumn() throws Exception {
+        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table users add column details['foo'] object as (score float, name string)");
+        List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
+        assertThat(columns.size(), is(2)); // second one is primary key
+
+        AnalyzedColumnDefinition details = columns.get(0);
+        assertThat(details.ident(), is(ColumnIdent.fromPath("details")));
+        assertThat(details.dataType(), is("object"));
+        assertThat(details.isParentColumn(), is(true));
+        assertThat(details.children().size(), is(1));
+
+        AnalyzedColumnDefinition foo = details.children().get(0);
+        assertThat(foo.ident(), is(ColumnIdent.fromPath("details.foo")));
+        assertThat(foo.dataType(), is("object"));
+        assertThat(foo.isParentColumn(), is(false));
+
+        assertThat(columns.get(0).children().get(0).children().size(), is(2));
+
+        AnalyzedColumnDefinition score = columns.get(0).children().get(0).children().get(0);
+        assertThat(score.ident(), is(ColumnIdent.fromPath("details.foo.score")));
+        assertThat(score.dataType(), is("float"));
+
+        AnalyzedColumnDefinition name = columns.get(0).children().get(0).children().get(1);
+        assertThat(name.ident(), is(ColumnIdent.fromPath("details.foo.name")));
+        assertThat(name.dataType(), is("string"));
+
+        Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
+        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(mapping), is("_meta:{primary_keys=[id]}, " +
+                "properties:{" +
+                "id={index=not_analyzed, store=false, doc_values=true, type=long}, " +
+                "details={dynamic=true, index=not_analyzed, store=false, properties={" +
+                  "foo={dynamic=true, index=not_analyzed, store=false, properties={" +
+                    "name={index=not_analyzed, store=false, doc_values=true, type=string}, " +
+                    "score={index=not_analyzed, store=false, doc_values=true, type=float}}, doc_values=false, type=object}}, doc_values=false, type=object}}, " +
+                "_all:{enabled=false}"));
+    }
+
+    @Test
+    public void testAddNewNestedColumnToNestedObjectColumn() throws Exception {
+        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table deeply_nested add column details['stuff']['foo'] object as (score float, price string)");
+        List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
+        assertThat(columns.size(), is(1));
+        assertThat(columns.get(0).ident(), is(ColumnIdent.fromPath("details")));
+        assertThat(columns.get(0).dataType(), is("object"));
+        assertThat(columns.get(0).isParentColumn(), is(true));
+        assertThat(columns.get(0).children().size(), is(1));
+
+        AnalyzedColumnDefinition stuff = columns.get(0).children().get(0);
+        assertThat(stuff.ident(), is(ColumnIdent.fromPath("details.stuff")));
+        assertThat(stuff.dataType(), is("object"));
+        assertThat(stuff.isParentColumn(), is(true));
+        assertThat(stuff.children().size(), is(1));
+
+        AnalyzedColumnDefinition foo = stuff.children().get(0);
+        assertThat(foo.ident(), is(ColumnIdent.fromPath("details.stuff.foo")));
+        assertThat(foo.dataType(), is("object"));
+        assertThat(foo.isParentColumn(), is(false));
+        assertThat(foo.children().size(), is(2));
+
+        AnalyzedColumnDefinition score = foo.children().get(0);
+        assertThat(score.ident(), is(ColumnIdent.fromPath("details.stuff.foo.score")));
+        assertThat(score.dataType(), is("float"));
+
+        AnalyzedColumnDefinition price = foo.children().get(1);
+        assertThat(price.ident(), is(ColumnIdent.fromPath("details.stuff.foo.price")));
+        assertThat(price.dataType(), is("string"));
+
+        Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
+        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(mapping), is("_meta:{}, " +
+                "properties:{" +
+                  "details={dynamic=true, index=not_analyzed, store=false, properties={" +
+                    "stuff={dynamic=true, index=not_analyzed, store=false, properties={" +
+                      "foo={dynamic=true, index=not_analyzed, store=false, properties={" +
+                        "price={index=not_analyzed, store=false, doc_values=true, type=string}, " +
+                        "score={index=not_analyzed, store=false, doc_values=true, type=float}}, doc_values=false, type=object}}, doc_values=false, type=object}}, doc_values=false, type=object}}, " +
+                "_all:{enabled=false}"));
     }
 }
