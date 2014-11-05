@@ -14,3 +14,4 @@ This is a collection of best practice examples how to use Crate Data in the wild
    multi_node_setup
    migrating_from_mysql
    migrating_from_mongodb
+   multi_zone_setup
