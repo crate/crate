@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - ``Select count(*)`` statements on partitioned tables didn't apply partition
+   filters if present in the WHERE clause.
+
 2014/10/31 0.45.2
 =================
 
