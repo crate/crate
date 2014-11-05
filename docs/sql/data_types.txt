@@ -199,6 +199,11 @@ Example::
     ... );
     CREATE OK (... sec)
 
+.. hide:
+
+    cr> drop table my_table11;
+    DROP OK (... sec)
+
 strict
 ------
 
@@ -217,6 +222,10 @@ Example::
     ... );
     CREATE OK (... sec)
 
+.. hide:
+
+    cr> drop table my_table12;
+    DROP OK (... sec)
 
 dynamic
 -------
@@ -242,6 +251,11 @@ Examples::
     ... );
     CREATE OK (... sec)
 
+.. hide:
+
+    cr> drop table my_table13;
+    DROP OK (... sec)
+
 which is exactly the same as::
 
     cr> create table my_table14 (
@@ -252,6 +266,11 @@ which is exactly the same as::
     ...   )
     ... );
     CREATE OK (... sec)
+
+.. hide:
+
+    cr> drop table my_table14;
+    DROP OK (... sec)
 
 New columns added to ``dynamic`` objects are, once added,
 usable as usual subcolumns. One can retrieve them, sort by them
@@ -279,6 +298,10 @@ but otherwise ignore them.
     ... );
     CREATE OK (... sec)
 
+.. hide:
+
+    cr> drop table my_table15;
+    DROP OK (... sec)
 
 New columns added to ``ignored`` objects can be retrieved as result column in a ``SELECT`` statement,
 but one cannot order by them or use them in a where clause. They are simply there for fetching,

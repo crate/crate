@@ -190,6 +190,11 @@ Example::
     ... ) with (column_policy = 'strict');
     CREATE OK (... sec)
 
+.. hide:
+
+    cr> drop table my_table11;
+    DROP OK (... sec)
+
 dynamic
 -------
 
@@ -213,6 +218,11 @@ Examples::
     ... );
     CREATE OK (... sec)
 
+.. hide:
+
+    cr> drop table my_table12;
+    DROP OK (... sec)
+
 which is exactly the same as::
 
     cr> create table my_table13 (
@@ -220,6 +230,11 @@ which is exactly the same as::
     ...   author string
     ... ) with (column_policy = 'dynamic');
     CREATE OK (... sec)
+
+.. hide:
+
+    cr> drop table my_table13;
+    DROP OK (... sec)
 
 New columns added to ``dynamic`` tables are, once added,
 usable as usual columns. One can retrieve them, sort by them
