@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fix: Ensure that adding new columns inside nested objects using
+   ``ALTER TABLE`` works as expected.
+
  - ``Select count(*)`` statements on partitioned tables didn't apply partition
    filters if present in the WHERE clause.
 
