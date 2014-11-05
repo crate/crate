@@ -100,25 +100,30 @@ Ports
 **http.port**
   | *Runtime:*   ``no``
 
-  Per default Crate Data will listen to the first free port in the
-  range of ``4200-4300`` for HTTP Requests. If there is no crate
-  process already running on that machine, it will usually be
-  ``4200``.
+  This defines the TCP port range to which the Crate HTTP service will be bound to.
+  It defaults to ``4200-4300``. Always the first free port in this range is used. If this is set
+  to an integer value it is considered as an explicit single port.
+
+  The HTTP protocol is used for the REST endpoint which is used by all clients except the Java client.
 
 .. _transport.tcp.port:
 
 **transport.tcp.port**
   | *Runtime:*   ``no``
 
-  For internal cluster communication crate uses TCP and listens on the
-  first free port in the range of ``4300-4400``.
+  This defines the TCP port range to which the Crate transport service will be bound to.
+  It defaults to ``4300-4400``. Always the first free port in this range is used. If this is set
+  to an integer value it is considered as an explicit single port.
+
+  The transport protocol is used for internal node-to-node communication and also
+  by the Java client.
 
 .. _transport.publish_port:
 
 **transport.publish_port**
   | *Runtime:*   ``no``
 
-  The port that Crate publishes for its discovery. It is necessary to
+  The port that the node publishes to the cluster for its own discovery. It is necessary to
   define this setting when the bound tranport port (``transport.tcp.port``)
   of the node is not directly reachable from outside, e.g. running it
   behind a firewall or inside a Docker container.
