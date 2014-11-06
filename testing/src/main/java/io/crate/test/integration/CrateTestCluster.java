@@ -49,7 +49,7 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.test.engine.MockEngineModule;
 import org.elasticsearch.test.store.MockFSIndexStoreModule;
-import org.elasticsearch.test.transport.AssertingLocalTransportModule;
+import org.elasticsearch.test.transport.AssertingLocalTransport;
 import org.elasticsearch.transport.TransportModule;
 import org.junit.Assert;
 
@@ -71,7 +71,7 @@ import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
  * The cluster supports randomized configuration such that nodes started in the cluster will
  * automatically load asserting services tracking resources like file handles or open searchers.
  * <p>
- * The Cluster is bound to a test lifecycle where tests must call {@link #beforeTest(java.util.Random, double)} and
+ * The Cluster is bound to a test lifecycle where tests must call {@link #beforeTest(java.util.Random)} and
  * {@link #afterTest()} to initialize and reset the cluster in order to be more reproducible. The term "more" relates
  * to the async nature of Elasticsearch in combination with randomized testing. Once Threads and asynchronous calls
  * are involved reproducibility is very limited. This class should only be used through {@link CrateIntegrationTest}.
@@ -142,7 +142,7 @@ public class CrateTestCluster implements Iterable<Client> {
             builder.put("path.data", tmpDataDir.toAbsolutePath());
         }
         if (isLocalTransportConfigured()) {
-            builder.put(TransportModule.TRANSPORT_TYPE_KEY, AssertingLocalTransportModule.class.getName());
+            builder.put(TransportModule.TRANSPORT_TYPE_KEY, AssertingLocalTransport.class.getName());
         }
         this.defaultSettings = builder.build();
         this.nodeSettingsSource = nodeSettingsSource;

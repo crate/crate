@@ -49,7 +49,7 @@ public class CrateRestMainAction extends BaseRestHandler {
                                Client client,
                                RestController controller,
                                CrateRestFilter crateRestFilter) {
-        super(settings, client);
+        super(settings, controller, client);
         this.version = Version.CURRENT;
         this.controller = controller;
         registerHandler();

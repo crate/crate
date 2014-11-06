@@ -56,8 +56,8 @@ import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.action.SearchServiceListener;
 import org.elasticsearch.search.action.SearchServiceTransportAction;
 import org.elasticsearch.search.controller.SearchPhaseController;
-import org.elasticsearch.search.fetch.FetchSearchRequest;
 import org.elasticsearch.search.fetch.FetchSearchResult;
+import org.elasticsearch.search.fetch.ShardFetchSearchRequest;
 import org.elasticsearch.search.internal.InternalSearchResponse;
 import org.elasticsearch.search.query.QueryPhaseExecutionException;
 import org.elasticsearch.search.query.QuerySearchResult;
@@ -247,21 +247,20 @@ public class QueryThenFetchTask implements Task<QueryResult> {
         for (AtomicArray.Entry<IntArrayList> entry : docIdsToLoad.asList()) {
             QuerySearchResult queryResult = firstResults.get(entry.index);
             DiscoveryNode node = nodes.get(queryResult.shardTarget().nodeId());
-
-            FetchSearchRequest fetchSearchRequest = new FetchSearchRequest(EMPTY_SEARCH_REQUEST, queryResult.id(), entry.value);
-            executeFetch(entry.index, queryResult.shardTarget(), counter, fetchSearchRequest, node);
+            ShardFetchSearchRequest fetchRequest = createFetchRequest(queryResult, entry);
+            executeFetch(entry.index, queryResult.shardTarget(), counter, fetchRequest, node);
         }
     }
 
     private void executeFetch(final int shardIndex,
                               final SearchShardTarget shardTarget,
                               final AtomicInteger counter,
-                              FetchSearchRequest fetchSearchRequest,
+                              ShardFetchSearchRequest shardFetchSearchRequest,
                               DiscoveryNode node) {
 
         searchServiceTransportAction.sendExecuteFetch(
                 node,
-                fetchSearchRequest,
+                shardFetchSearchRequest,
                 new SearchServiceListener<FetchSearchResult>() {
                     @Override
                     public void onResult(FetchSearchResult result) {
@@ -363,6 +362,10 @@ public class QueryThenFetchTask implements Task<QueryResult> {
         }
     }
 
+    protected ShardFetchSearchRequest createFetchRequest(QuerySearchResult queryResult,
+                                                    AtomicArray.Entry<IntArrayList> entry) {
+        return new ShardFetchSearchRequest(EMPTY_SEARCH_REQUEST, queryResult.id(), entry.value);
+    }
 
     @Override
     public List<ListenableFuture<QueryResult>> result() {

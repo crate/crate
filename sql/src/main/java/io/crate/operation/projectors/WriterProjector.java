@@ -240,7 +240,7 @@ public class WriterProjector implements Projector {
                 collectExpression.setNextRow(row);
             }
             Map doc = (Map)row[0];
-            XContentHelper.update(doc, overwrites);
+            XContentHelper.update(doc, overwrites, false);
             try {
                 builder.map(doc);
                 builder.flush();

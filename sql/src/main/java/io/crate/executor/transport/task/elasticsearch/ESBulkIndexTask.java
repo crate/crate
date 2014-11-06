@@ -32,6 +32,7 @@ import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.action.bulk.TransportShardBulkActionDelegate;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -49,14 +50,14 @@ public class ESBulkIndexTask implements Task<RowCountResult> {
 
     public ESBulkIndexTask(ClusterService clusterService,
                            Settings settings,
-                           TransportShardBulkAction transportShardBulkAction,
+                           TransportShardBulkActionDelegate transportShardBulkActionDelegate,
                            TransportCreateIndexAction transportCreateIndexAction,
                            ESIndexNode node) {
         this.node = node;
         this.bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 settings,
-                transportShardBulkAction,
+                transportShardBulkActionDelegate,
                 transportCreateIndexAction,
                 node.partitionedTable(),
                 true,

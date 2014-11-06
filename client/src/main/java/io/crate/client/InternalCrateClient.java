@@ -33,7 +33,11 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
+
+import java.util.concurrent.TimeUnit;
 
 public class InternalCrateClient {
 
@@ -42,9 +46,8 @@ public class InternalCrateClient {
 
     @Inject
     public InternalCrateClient(Settings settings,
-            TransportService transportService,
-            TransportClientNodesService nodesService
-                              ) {
+                               TransportService transportService,
+                               TransportClientNodesService nodesService) {
 
         this.nodesService = nodesService;
 

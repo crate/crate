@@ -41,6 +41,7 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.action.bulk.TransportShardBulkActionDelegate;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -78,7 +79,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
 
     protected AbstractIndexWriterProjector(ClusterService clusterService,
                                            Settings settings,
-                                           TransportShardBulkAction transportShardBulkAction,
+                                           TransportShardBulkActionDelegate transportShardBulkActionDelegate,
                                            TransportCreateIndexAction transportCreateIndexAction,
                                            final String tableName,
                                            List<ColumnIdent> primaryKeys,
@@ -112,7 +113,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
         this.bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 settings,
-                transportShardBulkAction,
+                transportShardBulkActionDelegate,
                 transportCreateIndexAction,
                 autoCreateIndices,
                 false,

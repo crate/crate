@@ -21,8 +21,13 @@
 
 package io.crate.http.netty;
 
+import org.elasticsearch.http.netty.pipelining.OrderedUpstreamMessageEvent;
+import org.elasticsearch.rest.support.RestUtils;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+
+import java.util.regex.Pattern;
+
 
 /**
  *
@@ -31,18 +36,34 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
 public class HttpRequestHandler extends SimpleChannelUpstreamHandler {
 
     private final NettyHttpServerTransport serverTransport;
+    private final Pattern corsPattern;
+    private final boolean httpPipeliningEnabled;
 
     public HttpRequestHandler(NettyHttpServerTransport serverTransport) {
         this.serverTransport = serverTransport;
+        this.corsPattern = RestUtils.getCorsSettingRegex(serverTransport.settings());
+        this.httpPipeliningEnabled = serverTransport.pipelining;
     }
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-        HttpRequest request = (HttpRequest) e.getMessage();
+        HttpRequest request;
+        OrderedUpstreamMessageEvent oue = null;
+        if (this.httpPipeliningEnabled && e instanceof OrderedUpstreamMessageEvent) {
+            oue = (OrderedUpstreamMessageEvent) e;
+            request = (HttpRequest) oue.getMessage();
+        } else {
+            request = (HttpRequest) e.getMessage();
+        }
+
         // the netty HTTP handling always copy over the buffer to its own buffer, either in NioWorker internally
         // when reading, or using a cumalation buffer
         NettyHttpRequest httpRequest = new NettyHttpRequest(request, e.getChannel());
-        serverTransport.dispatchRequest(httpRequest, new NettyHttpChannel(serverTransport, e.getChannel(), httpRequest));
+        if (oue != null) {
+            serverTransport.dispatchRequest(httpRequest, new NettyHttpChannel(serverTransport, httpRequest, corsPattern, oue));
+        } else {
+            serverTransport.dispatchRequest(httpRequest, new NettyHttpChannel(serverTransport, httpRequest, corsPattern));
+        }
         super.messageReceived(ctx, e);
     }
 

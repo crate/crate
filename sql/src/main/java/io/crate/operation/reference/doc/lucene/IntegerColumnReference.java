@@ -25,12 +25,12 @@ import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
-import org.elasticsearch.index.fielddata.LongValues;
 
 public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFieldData, Integer> {
 
-    private LongValues values;
+    private SortedNumericDocValues values;
 
     public IntegerColumnReference(String columnName) {
         super(columnName);
@@ -38,14 +38,20 @@ public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFie
 
     @Override
     public Integer value() {
-        switch (values.setDocument(docId)) {
+        switch (values.count()) {
             case 0:
                 return null;
             case 1:
-                return (int)values.nextValue();
+                return (int) values.valueAt(0);
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
     }
 
     @Override

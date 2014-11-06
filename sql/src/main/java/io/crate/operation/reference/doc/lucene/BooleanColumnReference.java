@@ -26,13 +26,13 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.fielddata.BytesValues;
 import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData, Boolean> {
 
-    private BytesValues values;
     private static final BytesRef TRUE_BYTESREF = new BytesRef("T");
+    private SortedBinaryDocValues values;
 
     public BooleanColumnReference(String columnName) {
         super(columnName);
@@ -50,12 +50,18 @@ public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData,
     }
 
     @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
+    }
+
+    @Override
     public Boolean value() {
-        switch (values.setDocument(docId)) {
+        switch (values.count()) {
             case 0:
                 return null;
             case 1:
-                return values.nextValue().compareTo(TRUE_BYTESREF) == 0;
+                return values.valueAt(0).compareTo(TRUE_BYTESREF) == 0;
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }

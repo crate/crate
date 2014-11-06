@@ -31,14 +31,13 @@ import java.util.regex.Pattern;
 
 public class RegexMatcher {
 
-    private final Pattern pattern;
     private final Matcher matcher;
     private final CharsRef utf16 = new CharsRef(10);
     private final boolean globalFlag;
 
     public RegexMatcher(String regex, int flags, boolean globalFlag) {
-        this.pattern = Pattern.compile(regex, flags);
-        this.matcher = this.pattern.matcher(utf16);
+        Pattern pattern = Pattern.compile(regex, flags);
+        this.matcher = pattern.matcher(utf16);
         this.globalFlag = globalFlag;
     }
 
@@ -50,8 +49,15 @@ public class RegexMatcher {
         this(regex, 0, false);
     }
 
+    private static void UTF8toUTF16(BytesRef bytes, CharsRef charsRef) {
+        if (charsRef.chars.length < bytes.length) {
+            charsRef.chars = new char[bytes.length];
+        }
+        charsRef.length = UnicodeUtil.UTF8toUTF16(bytes, charsRef.chars);
+    }
+
     public boolean match(BytesRef term) {
-        UnicodeUtil.UTF8toUTF16(term.bytes, term.offset, term.length, utf16);
+        UTF8toUTF16(term, utf16);
         return matcher.reset().find();
     }
 
@@ -79,7 +85,7 @@ public class RegexMatcher {
     }
 
     public BytesRef replace(BytesRef term, BytesRef replacement) {
-        UnicodeUtil.UTF8toUTF16(term.bytes, term.offset, term.length, utf16);
+        UTF8toUTF16(term, utf16);
         if (globalFlag) {
             return new BytesRef(matcher.replaceAll(replacement.utf8ToString()));
         } else {

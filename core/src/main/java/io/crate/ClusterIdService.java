@@ -73,7 +73,6 @@ public class ClusterIdService implements ClusterStateListener {
 
     /**
      * return a ListenableFuture that is available once the clusterId is set
-     * @return
      */
     public ListenableFuture<ClusterId> clusterId() {
         return clusterIdFuture;

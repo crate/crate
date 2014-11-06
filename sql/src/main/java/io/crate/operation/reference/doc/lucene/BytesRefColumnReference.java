@@ -27,12 +27,12 @@ import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.exceptions.ValidationException;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.index.fielddata.BytesValues;
 import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData, BytesRef> {
 
-    private BytesValues values;
+    private SortedBinaryDocValues values;
 
     public BytesRefColumnReference(String columnName) {
         super(columnName);
@@ -40,11 +40,11 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
 
     @Override
     public BytesRef value() throws ValidationException {
-        switch (values.setDocument(docId)) {
+        switch (values.count()) {
             case 0:
                 return null;
             case 1:
-                return BytesRef.deepCopyOf(values.nextValue());
+                return BytesRef.deepCopyOf(values.valueAt(0));
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -54,6 +54,12 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
         values = indexFieldData.load(context).getBytesValues();
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
     }
 
     @Override

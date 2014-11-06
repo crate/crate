@@ -21,22 +21,21 @@
 
 package io.crate.operation.reference.doc;
 
-import io.crate.Constants;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
+import io.crate.test.integration.CrateSingleNodeTest;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.index.Index;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.fielddata.FieldDataType;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.indices.fielddata.breaker.NoneCircuitBreakerService;
+import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.internal.ShardSearchRequest;
-import org.elasticsearch.test.index.service.StubIndexService;
 import org.junit.After;
 import org.junit.Before;
 import org.mockito.Matchers;
@@ -45,7 +44,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public abstract class DocLevelExpressionsTest {
+public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
     protected CollectorContext ctx;
     protected IndexFieldDataService ifd;
@@ -54,8 +53,9 @@ public abstract class DocLevelExpressionsTest {
 
     @Before
     public void prepare() throws Exception {
-        ifd = new IndexFieldDataService(new Index("test"), new NoneCircuitBreakerService());
-        ifd.setIndexService(new StubIndexService(null));
+        Settings settings = ImmutableSettings.builder().put("index.fielddata.cache", "none").build();
+        IndexService indexService = createIndex("test", settings);
+        ifd = indexService.fieldData();
 
         MapperService mapperService = mock(MapperService.class);
         FieldMapper fieldMapper = mock(FieldMapper.class);
@@ -66,7 +66,7 @@ public abstract class DocLevelExpressionsTest {
 
         IndexFieldData<?> fieldData = ifd.getForField(fieldMapper);
         writer = new IndexWriter(new RAMDirectory(),
-                new IndexWriterConfig(Lucene.VERSION, new StandardAnalyzer(Lucene.VERSION))
+                new IndexWriterConfig(Lucene.VERSION, new StandardAnalyzer())
                         .setMergePolicy(new LogByteSizeMergePolicy()));
 
         insertValues(writer);
@@ -74,9 +74,6 @@ public abstract class DocLevelExpressionsTest {
         DirectoryReader directoryReader = DirectoryReader.open(writer, true);
         readerContext = directoryReader.leaves().get(0);
         fieldData.load(readerContext);
-
-        ShardSearchRequest request = new ShardSearchRequest();
-        request.types(new String[]{Constants.DEFAULT_MAPPING_TYPE});
 
         SearchContext searchContext = mock(SearchContext.class);
         when(searchContext.mapperService()).thenReturn(mapperService);

@@ -21,13 +21,14 @@
 
 package io.crate.udc.service;
 
+import io.crate.ClusterIdService;
 import io.crate.udc.ping.PingTask;
 import io.crate.udc.plugin.UDCPlugin;
-import io.crate.ClusterIdService;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.http.HttpServerTransport;
@@ -39,17 +40,17 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
     private final Timer timer;
 
     private final ClusterService clusterService;
-    private final ClusterIdService clusterIdService;
+    private final Provider<ClusterIdService> clusterIdServiceProvider;
     private final HttpServerTransport httpServerTransport;
 
     @Inject
     public UDCService(Settings settings,
                       ClusterService clusterService,
-                      ClusterIdService clusterIdService,
+                      Provider<ClusterIdService> clusterIdServiceProvider,
                       HttpServerTransport httpServerTransport) {
         super(settings);
         this.clusterService = clusterService;
-        this.clusterIdService = clusterIdService;
+        this.clusterIdServiceProvider = clusterIdServiceProvider;
         this.httpServerTransport = httpServerTransport;
         this.timer = new Timer("crate-udc");
     }
@@ -64,7 +65,7 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
             logger.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
         }
 
-        PingTask pingTask = new PingTask(clusterService, clusterIdService, httpServerTransport, url);
+        PingTask pingTask = new PingTask(clusterService, clusterIdServiceProvider.get(), httpServerTransport, url);
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
     }
 

@@ -46,6 +46,7 @@ import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
+import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Provider;
@@ -98,8 +99,9 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                   Planner planner,
                                   Provider<Executor> executorProvider,
                                   Provider<DDLAnalysisDispatcher> dispatcherProvider,
-                                  StatsTables statsTables) {
-        super(settings, actionName, threadPool);
+                                  StatsTables statsTables,
+                                  ActionFilters actionFilters) {
+        super(settings, actionName, threadPool, actionFilters);
         this.clusterService = clusterService;
         this.analyzer = analyzer;
         this.planner = planner;

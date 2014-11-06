@@ -48,10 +48,12 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.threadpool.ThreadPool;
 
 public class ShardCollectService {
 
     private final CollectInputSymbolVisitor<?> docInputSymbolVisitor;
+    private final ThreadPool threadPool;
     private final ClusterService clusterService;
     private final ShardId shardId;
     private final IndexService indexService;
@@ -67,7 +69,8 @@ public class ShardCollectService {
     private final BlobIndices blobIndices;
 
     @Inject
-    public ShardCollectService(ClusterService clusterService,
+    public ShardCollectService(ThreadPool threadPool,
+                               ClusterService clusterService,
                                Settings settings,
                                TransportActionProvider transportActionProvider,
                                ShardId shardId,
@@ -80,6 +83,7 @@ public class ShardCollectService {
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
                                BlobShardReferenceResolver blobShardReferenceResolver) {
+        this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.shardId = shardId;
 
@@ -166,6 +170,7 @@ public class ShardCollectService {
     private CrateCollector getLuceneIndexCollector(CollectNode collectNode, Projector downstream) throws Exception {
         CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
         return new LuceneDocCollector(
+                threadPool,
                 clusterService,
                 shardId,
                 indexService,

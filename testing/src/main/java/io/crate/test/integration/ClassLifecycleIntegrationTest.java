@@ -27,7 +27,6 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.test.ElasticsearchTestCase;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -68,8 +67,7 @@ public class ClassLifecycleIntegrationTest extends AbstractRandomizedTest {
         if (GLOBAL_CLUSTER == null) {
             GLOBAL_CLUSTER = new CrateTestCluster(
                     CLUSTER_SEED,
-                    CrateTestCluster.clusterName("shared", ElasticsearchTestCase.CHILD_VM_ID, CLUSTER_SEED)
-            );
+                    CrateTestCluster.clusterName("shared", Integer.toString(CHILD_JVM_ID), CLUSTER_SEED));
         }
         GLOBAL_CLUSTER.beforeTest(random);
     }

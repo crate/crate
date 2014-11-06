@@ -24,6 +24,7 @@ package io.crate.test.integration;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.randomizedtesting.SeedUtils;
 import com.google.common.base.Joiner;
+import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -63,7 +64,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.repositories.RepositoryMissingException;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.ElasticsearchTestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -107,7 +107,8 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
     public static final long SHARED_CLUSTER_SEED = clusterSeed();
 
     public static final CrateTestCluster GLOBAL_CLUSTER = new CrateTestCluster(
-        SHARED_CLUSTER_SEED, CrateTestCluster.clusterName("shared", ElasticsearchTestCase.CHILD_VM_ID, SHARED_CLUSTER_SEED));
+        SHARED_CLUSTER_SEED, CrateTestCluster.clusterName("shared",
+            Integer.toString(CHILD_JVM_ID), SHARED_CLUSTER_SEED));
 
     /**
      * Key used to set the shared cluster random seed via the commandline -D{@value #TESTS_CLUSTER_SEED}
@@ -294,7 +295,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
      */
     public final void createIndex(String... names) {
 
-        List<String> created = new ArrayList<String>();
+        List<String> created = new ArrayList<>();
         for (String name : names) {
             boolean success = false;
             try {
@@ -731,7 +732,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
 
     /**
      * The scope of a test cluster used together with
-     * {@link ClusterScope} annonations on {@link ElasticsearchIntegrationTest} subclasses.
+     * {@link ClusterScope} annonations on {@link io.crate.test.integration.CrateIntegrationTest} subclasses.
      */
     public static enum Scope {
         /**
@@ -750,7 +751,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
     }
 
     private ClusterScope getAnnotation(Class<?> clazz) {
-        if (clazz == Object.class || clazz == ElasticsearchIntegrationTest.class) {
+        if (clazz == Object.class || clazz == CrateIntegrationTest.class) {
             return null;
         }
         ClusterScope annotation = clazz.getAnnotation(ClusterScope.class);
@@ -804,12 +805,12 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
         return new CrateTestCluster(
             currentClusterSeed,
             numNodes,
-            CrateTestCluster.clusterName(scope.name(), ElasticsearchTestCase.CHILD_VM_ID, currentClusterSeed),
+            CrateTestCluster.clusterName(scope.name(), Integer.toString(CHILD_JVM_ID), currentClusterSeed),
             nodeSettingsSource);
     }
 
     /**
-     * Defines a cluster scope for a {@link ElasticsearchIntegrationTest} subclass.
+     * Defines a cluster scope for a {@link io.crate.test.integration.CrateIntegrationTest} subclass.
      * By default if no {@link ClusterScope} annotation is present {@link Scope#GLOBAL} is used
      * together with randomly chosen settings like number of nodes etc.
      */

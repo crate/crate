@@ -25,12 +25,12 @@ import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
-import org.elasticsearch.index.fielddata.LongValues;
 
 public class ByteColumnReference extends FieldCacheExpression<IndexNumericFieldData, Byte> {
 
-    private LongValues values;
+    private SortedNumericDocValues values;
 
     public ByteColumnReference(String columnName) {
         super(columnName);
@@ -43,14 +43,20 @@ public class ByteColumnReference extends FieldCacheExpression<IndexNumericFieldD
 
     @Override
     public Byte value() {
-        switch (values.setDocument(docId)) {
+        switch (values.count()) {
             case 0:
                 return null;
             case 1:
-                return ((Long)values.nextValue()).byteValue();
+                return (byte) values.valueAt(0);
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
     }
 
     @Override

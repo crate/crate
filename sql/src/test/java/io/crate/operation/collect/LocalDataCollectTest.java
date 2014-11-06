@@ -54,6 +54,7 @@ import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
@@ -79,6 +80,8 @@ import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.index.shard.service.InternalIndexShard;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.InternalSearchService;
@@ -205,6 +208,8 @@ public class LocalDataCollectTest {
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
 
+            bind(CircuitBreakerService.class).toInstance(new NoneCircuitBreakerService());
+            bind(ActionFilters.class).toInstance(mock(ActionFilters.class));
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
             bind(SearchService.class).toInstance(mock(InternalSearchService.class));
             bind(AllocationService.class).toInstance(mock(AllocationService.class));

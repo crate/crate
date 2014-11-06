@@ -38,7 +38,7 @@ public class AdminUIFrontpageAction extends BaseRestHandler {
 
     @Inject
     public AdminUIFrontpageAction(Settings settings, Client client, RestController controller) {
-        super(settings, client);
+        super(settings, controller, client);
         controller.registerHandler(GET, "/admin", this);
     }
 

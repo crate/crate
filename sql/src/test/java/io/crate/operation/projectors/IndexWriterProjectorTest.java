@@ -31,6 +31,7 @@ import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.action.bulk.TransportShardBulkActionDelegateImpl;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
@@ -57,7 +58,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 cluster().getInstance(ClusterService.class),
                 ImmutableSettings.EMPTY,
-                cluster().getInstance(TransportShardBulkAction.class),
+                cluster().getInstance(TransportShardBulkActionDelegateImpl.class),
                 cluster().getInstance(TransportCreateIndexAction.class),
                 "bulk_import",
                 Arrays.asList(ID_IDENT),

@@ -222,7 +222,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                     .getSourceAsMap()
                     .get("_meta");
             if (mergedMeta != null) {
-                XContentHelper.update(mergedMeta, (Map) mapping.get("_meta"));
+                XContentHelper.update(mergedMeta, (Map) mapping.get("_meta"), false);
                 mapping.put("_meta", mergedMeta);
             }
             request.source(mapping);
@@ -287,12 +287,12 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                 Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
                 assert o != null && o instanceof Map;
 
-                XContentHelper.update(mergedMapping, (Map) o);
+                XContentHelper.update(mergedMapping, (Map) o, false);
             } catch (IOException e) {
                 // pass
             }
         }
-        XContentHelper.update(mergedMapping, newMapping);
+        XContentHelper.update(mergedMapping, newMapping, false);
         return mergedMapping;
     }
 

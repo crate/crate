@@ -27,6 +27,7 @@ import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.action.bulk.TransportShardBulkActionDelegate;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -50,7 +51,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Settings settings,
-                                TransportShardBulkAction transportShardBulkAction,
+                                TransportShardBulkActionDelegate transportShardBulkActionDelegate,
                                 TransportCreateIndexAction transportCreateIndexAction,
                                 String tableName,
                                 List<ColumnIdent> primaryKeys,
@@ -64,7 +65,7 @@ public class IndexWriterProjector extends AbstractIndexWriterProjector {
                                 @Nullable String[] includes,
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices) {
-        super(clusterService, settings, transportShardBulkAction,
+        super(clusterService, settings, transportShardBulkActionDelegate,
                 transportCreateIndexAction, tableName, primaryKeys, idInputs, partitionedByInputs,
                 routingIdent, routingInput,
                 collectExpressions, bulkActions, autoCreateIndices);

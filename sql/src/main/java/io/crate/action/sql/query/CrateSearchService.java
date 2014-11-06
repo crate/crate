@@ -39,7 +39,10 @@ import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.Filter;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.cache.recycler.CacheRecycler;
@@ -56,6 +59,7 @@ import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.cache.query.IndicesQueryCache;
 import org.elasticsearch.indices.warmer.IndicesWarmer;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.InternalSearchService;
@@ -66,7 +70,7 @@ import org.elasticsearch.search.fetch.FetchPhase;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.internal.ShardSearchRequest;
+import org.elasticsearch.search.internal.ShardSearchLocalRequest;
 import org.elasticsearch.search.query.QueryPhase;
 import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.search.sort.SortParseElement;
@@ -98,12 +102,15 @@ public class CrateSearchService extends InternalSearchService {
                               DfsPhase dfsPhase,
                               QueryPhase queryPhase,
                               FetchPhase fetchPhase,
-                              Functions functions) {
+                              Functions functions,
+                              IndicesQueryCache indicesQueryCache) {
         super(settings, clusterService, indicesService, indicesLifecycle,
                 indicesWarmer,
                 threadPool,
                 scriptService,
-                cacheRecycler, pageCacheRecycler, bigArrays, dfsPhase, queryPhase, fetchPhase);
+                cacheRecycler,
+                pageCacheRecycler,
+                bigArrays, dfsPhase, queryPhase, fetchPhase, indicesQueryCache);
         this.functions = functions;
         CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor =
                 new CollectInputSymbolVisitor<>(functions, LuceneDocLevelReferenceResolver.INSTANCE);
@@ -172,13 +179,14 @@ public class CrateSearchService extends InternalSearchService {
 
         Engine.Searcher engineSearcher = searcher == null ? indexShard.acquireSearcher("search") : searcher;
 
-        ShardSearchRequest shardSearchRequest = new ShardSearchRequest();
-        shardSearchRequest.types(new String[] {Constants.DEFAULT_MAPPING_TYPE });
-
+        ShardSearchLocalRequest shardRequest = new ShardSearchLocalRequest(
+                new String[] { Constants.DEFAULT_MAPPING_TYPE },
+                System.currentTimeMillis()
+        );
         // TODO: use own CrateSearchContext that doesn't require ShardSearchRequest
         SearchContext context = new DefaultSearchContext(
                 idGenerator.incrementAndGet(),
-                shardSearchRequest,
+                shardRequest,
                 searchShardTarget,
                 engineSearcher,
                 indexService,
@@ -186,7 +194,8 @@ public class CrateSearchService extends InternalSearchService {
                 scriptService,
                 cacheRecycler,
                 pageCacheRecycler,
-                bigArrays
+                bigArrays,
+                threadPool.estimatedTimeInMillisCounter()
         );
         SearchContext.setCurrent(context);
 
@@ -359,7 +368,7 @@ public class CrateSearchService extends InternalSearchService {
             FieldMapper fieldMapper = context.context.searchContext().smartNameFieldMapper(columnIdent.fqn());
             SortOrder sortOrder = new SortOrder(context.reverseFlag, context.nullFirst);
             IndexFieldData.XFieldComparatorSource fieldComparatorSource =
-                    searchContext.fieldData().getForField(fieldMapper).comparatorSource(sortOrder.missing(), sortMode);
+                    searchContext.fieldData().getForField(fieldMapper).comparatorSource(sortOrder.missing(), sortMode, null);
 
             return new SortField(
                     fieldMapper.names().indexName(),
