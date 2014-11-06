@@ -1,9 +1,18 @@
-======================
-Changes for Crate Data
-======================
+=================
+Changes for Crate
+=================
 
 Unreleased
 ==========
+
+ - Updated crate-admin to 0.10.0 which includes following changes:
+
+    - added hint to console: press shift+enter to submit query
+
+    - fix: UI showed partitions from wrong table after switching between tables
+      this could also lead to 'red' partitions if the newly selected table also had partitions
+
+    - added syntax highlighting to sql console
 
  - Updated Elasticsearch to 1.3.5
 
