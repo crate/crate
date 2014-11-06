@@ -26,6 +26,7 @@ import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
+import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import io.crate.action.sql.*;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.search.SearchAction;
@@ -47,7 +48,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @AxisRange(min = 0)
-@BenchmarkHistoryChart(filePrefix="benchmark-select-history")
+@BenchmarkHistoryChart(filePrefix="benchmark-select-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-select")
 public class SelectBenchmark extends BenchmarkBase {
 

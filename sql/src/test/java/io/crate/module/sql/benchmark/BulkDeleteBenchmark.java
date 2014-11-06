@@ -27,6 +27,7 @@ import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
+import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBulkAction;
@@ -50,7 +51,7 @@ import org.junit.rules.TestRule;
 import java.util.HashMap;
 
 @AxisRange(min = 0)
-@BenchmarkHistoryChart(filePrefix="benchmark-bulk-delete-history")
+@BenchmarkHistoryChart(filePrefix="benchmark-bulk-delete-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-bulk-delete")
 public class BulkDeleteBenchmark extends BenchmarkBase{
 
