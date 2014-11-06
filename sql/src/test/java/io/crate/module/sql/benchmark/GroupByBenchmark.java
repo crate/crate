@@ -26,6 +26,7 @@ import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
+import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -51,7 +52,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertFalse;
 
 @AxisRange(min = 0)
-@BenchmarkHistoryChart(filePrefix="benchmark-groupby-history")
+@BenchmarkHistoryChart(filePrefix="benchmark-groupby-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-groupby")
 public class GroupByBenchmark extends BenchmarkBase {
 

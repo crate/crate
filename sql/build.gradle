@@ -54,9 +54,15 @@ test {
 }
 
 
-task bench(type: Test) {
+task bench(type: Test, dependsOn: [':app:getVersion']) {
     description = 'Run the Crate JUnit Benchmarks'
     group = 'crate'
+
+    doFirst {
+        def version = project(':app').getVersion.version
+        systemProperty 'jub.customkey', version
+    }
+
 
     def benchmark_dir = project.buildDir.path + '/reports/bench/'
 
@@ -65,6 +71,7 @@ task bench(type: Test) {
     systemProperty 'jub.db.file', benchmark_dir + 'results'
     systemProperty 'jub.xml.file', benchmark_dir + 'results.xml'
     systemProperty 'jub.charts.dir', benchmark_dir
+
 
     include('io/crate/module/sql/benchmark/**')
 

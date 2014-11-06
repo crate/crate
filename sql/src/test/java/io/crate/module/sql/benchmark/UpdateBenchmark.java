@@ -26,6 +26,7 @@ import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
+import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
@@ -50,7 +51,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 
 @AxisRange(min = 0)
-@BenchmarkHistoryChart(filePrefix="benchmark-update-history")
+@BenchmarkHistoryChart(filePrefix="benchmark-update-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-update")
 public class UpdateBenchmark extends BenchmarkBase {
 
@@ -137,18 +138,6 @@ public class UpdateBenchmark extends BenchmarkBase {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testUpdateSqlQueryPlannerEnabled() {
-        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = getClient(true).execute(SQLAction.INSTANCE, getSqlUpdateRequest()).actionGet();
-            assertEquals(
-                    1,
-                    response.rowCount()
-            );
-        }
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
     public void testUpdateApi() throws IOException {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SearchResponse response = getClient(false).execute(SearchAction.INSTANCE, getApiUpdateRequest()).actionGet();
@@ -162,18 +151,6 @@ public class UpdateBenchmark extends BenchmarkBase {
     public void testUpdateSqlById() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlUpdateByIdRequest(false)).actionGet();
-            assertEquals(
-                    1,
-                    response.rowCount()
-            );
-        }
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
-    @Test
-    public void testUpdateSqlByIdQueryPlannerEnabled() {
-        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = getClient(true).execute(SQLAction.INSTANCE, getSqlUpdateByIdRequest(true)).actionGet();
             assertEquals(
                     1,
                     response.rowCount()

@@ -26,6 +26,7 @@ import com.carrotsearch.junitbenchmarks.BenchmarkRule;
 import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
+import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import org.elasticsearch.action.bulk.BulkAction;
@@ -42,7 +43,7 @@ import org.junit.rules.TestRule;
 import java.io.IOException;
 
 @AxisRange(min = 0)
-@BenchmarkHistoryChart(filePrefix="benchmark-insert-history")
+@BenchmarkHistoryChart(filePrefix="benchmark-insert-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-insert")
 public class InsertBenchmark extends BenchmarkBase {
 
