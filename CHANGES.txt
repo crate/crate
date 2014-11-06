@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Updated Elasticsearch to 1.3.5
+
  - Fix: Ensure that adding new columns inside nested objects using
    ``ALTER TABLE`` works as expected.
 
