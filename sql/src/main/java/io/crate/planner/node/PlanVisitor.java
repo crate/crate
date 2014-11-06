@@ -95,4 +95,8 @@ public class PlanVisitor<C, R> {
     public R visitCreateTableNode(CreateTableNode node, C context) {
         return visitPlanNode(node, context);
     }
+
+    public R visitMappingUpdateNode(MappingUpdateNode node, C context){
+        return visitDDLPlanNode(node, context);
+    }
 }

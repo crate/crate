@@ -28,10 +28,7 @@ import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
-import io.crate.executor.transport.task.CreateTableTask;
-import io.crate.executor.transport.task.DistributedMergeTask;
-import io.crate.executor.transport.task.DropTableTask;
-import io.crate.executor.transport.task.RemoteCollectTask;
+import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
@@ -279,6 +276,15 @@ public class TransportExecutor implements Executor {
             context.addTask(new ESClusterUpdateSettingsTask(
                     transportActionProvider.transportClusterUpdateSettingsAction(),
                     node));
+            return null;
+        }
+
+        @Override
+        public Void visitMappingUpdateNode(MappingUpdateNode node, Job context){
+            context.addTask(new UpdateMappingTask(
+                    transportActionProvider.transportPutMappingAction(),
+                    node
+            ));
             return null;
         }
 

@@ -26,6 +26,7 @@ import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
@@ -52,6 +53,7 @@ public class TransportActionProvider {
     private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
     private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
     private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider;
+    private final Provider<TransportPutMappingAction> transportPutMappingActionProvider;
     private final Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider;
     private final Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider;
     private final Provider<TransportCountAction> transportCountActionProvider;
@@ -71,6 +73,7 @@ public class TransportActionProvider {
                                    Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
                                    Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
                                    Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider,
+                                   Provider<TransportPutMappingAction> transportPutMappingActionProvider,
                                    Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider,
                                    Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider,
                                    Provider<TransportCountAction> transportCountActionProvider,
@@ -86,6 +89,7 @@ public class TransportActionProvider {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
+        this.transportPutMappingActionProvider = transportPutMappingActionProvider;
         this.transportDeleteIndexTemplateActionProvider = transportDeleteIndexTemplateActionProvider;
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
         this.transportCountActionProvider = transportCountActionProvider;
@@ -118,6 +122,10 @@ public class TransportActionProvider {
 
     public TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction() {
         return transportDeleteIndexTemplateActionProvider.get();
+    }
+
+    public TransportPutMappingAction transportPutMappingAction() {
+        return transportPutMappingActionProvider.get();
     }
 
     public TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction() {

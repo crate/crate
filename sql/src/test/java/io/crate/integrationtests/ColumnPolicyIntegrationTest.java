@@ -138,6 +138,17 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertArrayIntoDynamicTable() throws Exception {
+        execute("create table dynamic_table (" +
+                "  meta string" +
+                ") with (column_policy='dynamic', number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into dynamic_table (new, meta) values(['a', 'b', 'c'], 'hello')");
+        execute("refresh table dynamic_table");
+        execute("insert into dynamic_table (new) values(['d', 'e', 'f'])");
+    }
+
+    @Test
     public void testUpdateNewColumnTableDynamic() throws Exception {
         execute("create table dynamic_table (" +
                 "  id integer primary key, " +

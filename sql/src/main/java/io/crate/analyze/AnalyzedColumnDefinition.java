@@ -26,6 +26,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.metadata.ColumnIdent;
+import io.crate.planner.symbol.Reference;
+import io.crate.types.CollectionType;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -51,8 +53,24 @@ public class AnalyzedColumnDefinition {
     private boolean isObjectExtension = false;
 
 
-    public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
+    public AnalyzedColumnDefinition() {
+        this.parent = null;
+    }
+
+    public AnalyzedColumnDefinition(AnalyzedColumnDefinition parent) {
         this.parent = parent;
+    }
+
+    public AnalyzedColumnDefinition(Reference column) {
+        this.parent = null;
+        ident(column.info().ident().columnIdent());
+        if(column.valueType() instanceof CollectionType){
+            //TODO: update collection type to get kind of collection
+            collectionType("array");
+            dataType(((CollectionType) column.valueType()).innerType().getName());
+        } else {
+            dataType(column.info().type().getName());
+        }
     }
 
     public void name(String name) {
@@ -265,6 +283,9 @@ public class AnalyzedColumnDefinition {
     public void ident(ColumnIdent ident) {
         assert this.ident == null;
         this.ident = ident;
+        if(this.name == null){
+            this.name = ident.name();
+        }
     }
 
     public boolean isArrayOrInArray() {

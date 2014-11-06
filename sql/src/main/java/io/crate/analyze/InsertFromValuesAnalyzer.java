@@ -29,11 +29,13 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.Input;
+import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.ValuesList;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.inject.Inject;
@@ -159,6 +161,10 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
                 // symbol is no input
                 throw new ColumnValidationException(columnIdent.name(),
                         String.format("invalid value '%s' in insert statement", valuesSymbol.toString()));
+            }
+            if(column instanceof DynamicReference){
+                assert column.info().type() != DataTypes.UNDEFINED;
+                context.addNewColumn(column);
             }
         }
         context.sourceMaps().add(builder.bytes());

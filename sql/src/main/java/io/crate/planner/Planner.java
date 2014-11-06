@@ -39,10 +39,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.node.ddl.CreateTableNode;
-import io.crate.planner.node.ddl.DropTableNode;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
-import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
@@ -1059,6 +1056,17 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             indices = new String[]{ analysis.table().ident().name() };
         }
 
+
+        if(analysis.mappingChanged()){
+
+            MappingUpdateNode mappingUpdateNode = new MappingUpdateNode (
+                    indices,
+                    analysis.table().isPartitioned(),
+                    analysis.mapping(),
+                    clusterService
+            );
+            plan.add(mappingUpdateNode);
+        }
         ESIndexNode indexNode = new ESIndexNode(
                 indices,
                 analysis.sourceMaps(),
