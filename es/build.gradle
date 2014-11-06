@@ -77,7 +77,7 @@ dependencies {
     lucenetest ('junit:junit:4.11') {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
-    lucenetest ('org.apache.lucene:lucene-test-framework:4.9.0') {
+    lucenetest ('org.apache.lucene:lucene-test-framework:4.9.1') {
         exclude group: 'junit', module: 'junit'
     }
 
