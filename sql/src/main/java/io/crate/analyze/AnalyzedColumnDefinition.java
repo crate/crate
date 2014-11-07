@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.Reference;
@@ -53,17 +54,19 @@ public class AnalyzedColumnDefinition {
     private boolean isObjectExtension = false;
 
 
-    public AnalyzedColumnDefinition() {
-        this.parent = null;
-    }
-
-    public AnalyzedColumnDefinition(AnalyzedColumnDefinition parent) {
+    public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
     }
 
-    public AnalyzedColumnDefinition(Reference column) {
-        this.parent = null;
-        ident(column.info().ident().columnIdent());
+    public AnalyzedColumnDefinition(Reference column,
+                                    @Nullable AnalyzedColumnDefinition parent) {
+        this.parent = parent;
+        if(parent == null){
+            ident(column.info().ident().columnIdent());
+            name(column.info().ident().columnIdent().name());
+        } else {
+            name(Iterables.getLast(column.info().ident().columnIdent().path()));
+        }
         if(column.valueType() instanceof CollectionType){
             //TODO: update collection type to get kind of collection
             collectionType("array");
@@ -283,9 +286,9 @@ public class AnalyzedColumnDefinition {
     public void ident(ColumnIdent ident) {
         assert this.ident == null;
         this.ident = ident;
-        if(this.name == null){
+       /* if(this.name == null){
             this.name = ident.name();
-        }
+        }*/
     }
 
     public boolean isArrayOrInArray() {

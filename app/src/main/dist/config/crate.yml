@@ -38,17 +38,17 @@
 #
 # cluster.graceful_stop.reallocate: true
 #
-# The time to wait for the reallocation process to be finished.
+# The time to wait for the reallocation processMap to be finished.
 #
 # cluster.graceful_stop.timeout: 2h
 #
 # The force setting allows you to force a shutdown of a node when the graceful
-# shutdown process runs into the cluster.graceful_stop.timeout.
+# shutdown processMap runs into the cluster.graceful_stop.timeout.
 #
 # cluster.graceful_stop.force: false
 #
 # By default the regular stop procedure does not consider the graceful_stop
-# settings, but only sending the USR2 signal to the process does.
+# settings, but only sending the USR2 signal to the processMap does.
 #
 # In most cases you want to allow all kinds of shards allocations.
 # cluster.routing.allocation.enable = all
@@ -209,7 +209,7 @@
 #  - Set CRATE_HEAP_SIZE environment varaible. This sets MIN and MAX to the
 #    same value for you.
 #
-# You should also make sure that the Crate process is allowed to lock
+# You should also make sure that the Crate processMap is allowed to lock
 # the memory, eg. by using `ulimit -l unlimited`.
 
 
@@ -256,7 +256,7 @@
 
 ############################# Recovery Throttling #############################
 
-# These settings allow to control the process of shards allocation between
+# These settings allow to control the processMap of shards allocation between
 # nodes during initial recovery, replica allocation, rebalancing,
 # or when adding and removing nodes.
 
@@ -285,39 +285,39 @@
 # indices.recovery.file_chunk_size: 512kb
 
 # Specifies how many transaction log lines should be transfered
-# between shards in a single request during the recovery process.
+# between shards in a single request during the recovery processMap.
 # Ignored if indices.recovery.translog_size is reached first.
 #
 # indices.recovery.translog_ops: 1000
 
 # Specifies how much data of the transaction log should be
 # transfered between shards in a single request during the recovery
-# process.
+# processMap.
 #
 # indices.recovery.translog_size: 512kb
 
 # Define if transferred data should be compressed during the
-# recovery process.
+# recovery processMap.
 #
 # indices.recovery.compress: true
 
 # Specifies the maximum number of bytes that can be transferred
 # during shard recovery per seconds. Limiting
 # can be disabled by setting it to `0`. Higher values
-# may result in higher network utilization, but also faster recovery process.
+# may result in higher network utilization, but also faster recovery processMap.
 #
 # indices.recovery.max_bytes_per_sec: 20mb
 
 ############################ Store Level Throttling ###########################
 
-# Allows to throttle `merge` (or `all`) process of the store
+# Allows to throttle `merge` (or `all`) processMap of the store
 # module. Options are: `all | merge | none`
 #
 # indices.store.throttle.type: merge
 
 # If throttling is enabled by indices.store.throttle.type, this
 # setting specifies the maximum bytes per second a store module
-# process can operate with.
+# processMap can operate with.
 #
 # indices.store.throttle.max_bytes_per_sec: 20mb
 
@@ -363,7 +363,7 @@
 # 2. Configure an initial list of master nodes in the cluster
 #    to perform discovery when new nodes (master or data) are started:
 #
-# If you want to debug the discovery process, you can set a logger in
+# If you want to debug the discovery processMap, you can set a logger in
 # 'config/logging.yml' to help you doing so.
 #
 # discovery.zen.ping.unicast.hosts: ["host1", "host2:port"]

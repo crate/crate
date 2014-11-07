@@ -29,7 +29,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.Input;
-import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Expression;
@@ -124,6 +123,19 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(column.info().ident().columnIdent().fqn(), e);
             }
+
+            List<DispatchingReferenceSymbolVisitor.InnerVisitor> visitors = new ArrayList<>();
+            visitors.add(new NewColumnCollector());
+            DispatchingReferenceSymbolVisitor referenceSymbolVisitor = new DispatchingReferenceSymbolVisitor(
+                    visitors,
+                    context);
+            List<DispatchingReferenceSymbolVisitor.InnerVisitorContext> contexts = referenceSymbolVisitor.process(column, valuesSymbol);
+            NewColumnCollector.NewColumnContext newColumnContext = (NewColumnCollector.NewColumnContext)contexts.get(0);
+            if(newColumnContext.mappingChange){
+                assert column.info().type() != DataTypes.UNDEFINED;
+                context.addNewColumn(newColumnContext.root);
+            }
+
             try {
                 Object value = ((Input) valuesSymbol).value();
                 if (context.primaryKeyColumnIndices().contains(i)) {
@@ -162,10 +174,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
                 throw new ColumnValidationException(columnIdent.name(),
                         String.format("invalid value '%s' in insert statement", valuesSymbol.toString()));
             }
-            if(column instanceof DynamicReference){
-                assert column.info().type() != DataTypes.UNDEFINED;
-                context.addNewColumn(column);
-            }
+
         }
         context.sourceMaps().add(builder.bytes());
         context.addIdAndRouting(primaryKeyValues, routingValue);

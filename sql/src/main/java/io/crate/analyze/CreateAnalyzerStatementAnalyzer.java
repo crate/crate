@@ -203,7 +203,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
 
 
     /**
-     * Validate and process `type` property
+     * Validate and processMap `type` property
      *
      * @param properties
      * @param context

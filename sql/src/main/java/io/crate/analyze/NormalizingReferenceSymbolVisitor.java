@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,29 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.collect;
+package io.crate.analyze;
 
-public interface RowCollector<T> {
-
-    /**
-     * Called once before the first row
-     *
-     * @return false if no colletion is needed
-     */
-    public boolean startCollect();
-
-    /**
-     * Tells the collector to processMap the current row
-     *
-     * @return false if no more rows are needed
-     */
-    public boolean processRow();
-
-    /**
-     * Called once after the last row is processed.
-     *
-     * @return The result of the collector
-     */
-    public T finishCollect();
-
+public class NormalizingReferenceSymbolVisitor {
 }

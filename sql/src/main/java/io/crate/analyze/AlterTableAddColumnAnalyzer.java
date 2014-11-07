@@ -101,7 +101,7 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
             ReferenceInfo pkInfo = context.table().getReferenceInfo(pkIdent);
             assert pkInfo != null;
 
-            AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition();
+            AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null);
             pkColumn.ident(pkIdent);
             pkColumn.name(pkIdent.name());
             pkColumn.isPrimaryKey(true);

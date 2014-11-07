@@ -34,7 +34,7 @@ import java.util.List;
 public class PlannerFunctionArgumentCopier extends SymbolVisitor<Void, Symbol> {
 
     /**
-     * process given symbol and return possibly changed one
+     * processMap given symbol and return possibly changed one
      * @param symbol
      * @return
      */
@@ -43,7 +43,7 @@ public class PlannerFunctionArgumentCopier extends SymbolVisitor<Void, Symbol> {
     }
 
     /**
-     * process list of Symbols and change in place
+     * processMap list of Symbols and change in place
      */
     public void process(List<Symbol> symbols) {
         for (int i = 0; i < symbols.size(); i++) {

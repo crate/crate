@@ -15,7 +15,7 @@ logger:
 
   # Discovery
   # Crate will discover the other nodes within its own cluster.
-  # If you want to log the discovery process, set the following:
+  # If you want to log the discovery processMap, set the following:
   #discovery: TRACE
 
   # If searching or indexing starts to slow down, you may want to log that as

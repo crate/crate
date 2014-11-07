@@ -209,7 +209,7 @@ public class CrateSearchService extends InternalSearchService {
             context.from(request.offset());
             context.size(request.limit());
 
-            // pre process
+            // pre processMap
             dfsPhase.preProcess(context);
             queryPhase.preProcess(context);
             fetchPhase.preProcess(context);

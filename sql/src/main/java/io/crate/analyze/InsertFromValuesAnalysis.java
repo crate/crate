@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import io.crate.PartitionName;
 import io.crate.metadata.*;
-import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -102,10 +101,11 @@ public class InsertFromValuesAnalysis extends AbstractInsertAnalysis {
         return sourceMaps;
     }
 
-    public void addNewColumn(Reference column){
+    public void addNewColumn(AnalyzedColumnDefinition column){
         //TODO: check if already exists and has same types
         //TODO: handle nested columns
-        analyzedTableElements.add(new AnalyzedColumnDefinition(column));
+       // AnalyzedColumnDefinition definition = new AnalyzedColumnDefinition(column, null);
+        analyzedTableElements.add(column);
     }
 
     public Boolean mappingChanged() {

@@ -360,7 +360,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      * chose the right ShardCollectFuture for this class
      *
      * @param numShards   number of shards until the result is considered complete
-     * @param projectorChain  the projector chain to process the collected rows
+     * @param projectorChain  the projector chain to processMap the collected rows
      * @param collectNode in case any other properties need to be extracted
      * @return a fancy ShardCollectFuture implementation
      */
