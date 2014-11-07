@@ -21,19 +21,20 @@
 
 package io.crate.lucene;
 
+import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.InOperator;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.planner.symbol.DataTypeSymbol;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.search.FilteredQuery;
-import org.apache.lucene.search.Query;
+import io.crate.types.SetType;
+import org.apache.lucene.search.*;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.search.internal.SearchContext;
@@ -43,6 +44,7 @@ import org.mockito.Answers;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.createFunction;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
@@ -67,6 +69,24 @@ public class LuceneQueryBuilderTest {
         Query query = convert(eq(foo, foo));
         assertThat(query, instanceOf(FilteredQuery.class));
     }
+
+
+    @Test
+    public void testWhereRefInSetLiteralIsConvertedToBooleanQuery() throws Exception {
+        DataType dataType = new SetType(DataTypes.STRING);
+        Reference foo = createReference("foo", DataTypes.STRING);
+        WhereClause whereClause = new WhereClause(
+                createFunction(InOperator.NAME, DataTypes.BOOLEAN,
+                        foo,
+                        Literal.newLiteral(dataType, Sets.newHashSet(new BytesRef("foo"), new BytesRef("bar")))
+                ));
+        Query query = convert(whereClause);
+        assertThat(query, instanceOf(BooleanQuery.class));
+        for (BooleanClause booleanClause : (BooleanQuery) query) {
+            assertThat(booleanClause.getQuery(), instanceOf(TermQuery.class));
+        }
+    }
+
 
     private Query convert(WhereClause eq) {
         return builder.convert(eq).query;

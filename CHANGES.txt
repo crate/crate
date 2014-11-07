@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix performance regression on ``SELECT`` queries which use the ``IN``
+   operator in the ``WHERE`` clause.
+
  - Updated crate-admin to 0.10.0 which includes following changes:
 
     - added hint to console: press shift+enter to submit query
