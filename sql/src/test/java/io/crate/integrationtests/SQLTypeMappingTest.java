@@ -329,6 +329,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 }}
         });
         refresh();
+        waitNoPendingTasksOnAll();
 
         SQLResponse response = execute("select id, new_col from t1 where id=0");
         @SuppressWarnings("unchecked")
