@@ -48,6 +48,7 @@ import io.crate.operation.reference.doc.lucene.LuceneDocLevelReferenceResolver;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.planner.symbol.*;
+import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
@@ -266,6 +267,27 @@ public class LuceneQueryBuilder {
                 String columnName = tuple.v1().info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.like(columnName, tuple.v2().value());
+            }
+        }
+
+        class InQuery extends CmpQuery {
+
+            @Override
+            public Query apply(Function input, Context context) throws IOException {
+                Tuple<Reference, Literal> tuple = prepare(input);
+                if (tuple == null) {
+                    return null;
+                }
+                String field = tuple.v1().info().ident().columnIdent().fqn();
+                Literal literal = tuple.v2();
+                CollectionType dataType = ((CollectionType) literal.valueType());
+                QueryBuilderHelper builder = QueryBuilderHelper.forType(dataType.innerType());
+                BooleanQuery booleanQuery = new BooleanQuery();
+                Set values = (Set) literal.value();
+                for (Object value : values) {
+                    booleanQuery.add(builder.eq(field, value), BooleanClause.Occur.SHOULD);
+                }
+                return booleanQuery;
             }
         }
 
@@ -648,6 +670,7 @@ public class LuceneQueryBuilder {
                         .put(GteOperator.NAME, gteQuery)
                         .put(GtOperator.NAME, gtQuery)
                         .put(LikeOperator.NAME, likeQuery)
+                        .put(InOperator.NAME, new InQuery())
                         .put(NotPredicate.NAME, new NotQuery())
                         .put(IsNullPredicate.NAME, new IsNullQuery())
                         .put(MatchPredicate.NAME, new ToMatchQuery())
