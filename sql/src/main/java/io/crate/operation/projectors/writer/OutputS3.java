@@ -43,6 +43,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.zip.GZIPOutputStream;
 
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+
 @NotThreadSafe
 public class OutputS3 extends Output {
 
@@ -99,7 +101,8 @@ public class OutputS3 extends Output {
             key = uri.getPath().substring(1);
             outputStream = new ByteArrayOutputStream();
             client = s3ClientHelper.client(uri);
-            executorService = MoreExecutors.listeningDecorator(Executors.newCachedThreadPool());
+            executorService = MoreExecutors.listeningDecorator(
+                Executors.newCachedThreadPool(daemonThreadFactory("OutputS3")));
             multipartUpload = client.initiateMultipartUpload(
                     new InitiateMultipartUploadRequest(bucketName, key));
         }
@@ -183,6 +186,7 @@ public class OutputS3 extends Output {
                             multipartUpload.getUploadId(),
                             etags)
             );
+            executorService.shutdown();
             super.close();
         }
     }

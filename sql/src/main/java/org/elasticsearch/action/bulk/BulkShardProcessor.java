@@ -50,6 +50,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+
 /**
  * Processor to do Bulk Inserts, similar to {@link org.elasticsearch.action.bulk.BulkProcessor}
  * but less flexible (only supports IndexRequests)
@@ -79,7 +81,8 @@ public class BulkShardProcessor {
     private final Set<String> indicesCreated = new HashSet<>();
     private final ReadWriteLock retryLock = new ReadWriteLock();
     private final Semaphore executeLock = new Semaphore(1);
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService scheduledExecutorService =
+        Executors.newScheduledThreadPool(1, daemonThreadFactory("bulkShardProcessor"));
     private final TimeValue requestTimeout;
 
     private final ESLogger logger = Loggers.getLogger(getClass());
@@ -171,6 +174,7 @@ public class BulkShardProcessor {
         if (pending.get() == 0) {
             setResult();
         }
+        scheduledExecutorService.shutdown();
     }
 
     private void setFailure(Throwable e) {
