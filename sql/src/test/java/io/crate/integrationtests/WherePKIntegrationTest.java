@@ -22,9 +22,15 @@
 package io.crate.integrationtests;
 
 import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.common.collect.MapBuilder;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
@@ -102,4 +108,22 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
         execute("select name from users where id = 1 limit 0");
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void testSelectNestedObjectWherePk() throws Exception {
+        execute("create table items (id string primary key, details object as (tags array(string)) )" +
+            "clustered into 3 shards with (number_of_replicas = '0-1')");
+        ensureGreen();
+
+        execute("insert into items (id, details) values (?, ?)", new Object[]{
+            "123", MapBuilder.newMapBuilder().put("tags", Arrays.asList("small", "blue")).map()
+        });
+
+        execute("select id, details['tags'] from items where id = '123'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) response.rows()[0][0], is("123"));
+        //noinspection unchecked
+        assertThat((List<String>) response.rows()[0][1], Matchers.contains("small", "blue"));
+    }
 }
+

@@ -47,6 +47,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import javax.annotation.Nonnull;
@@ -349,7 +350,7 @@ public class ESGetTask implements Task<QueryResult> {
                 @Override
                 public Object extract(GetResponse response) {
                     assert response.getSourceAsMap() != null;
-                    return response.getSourceAsMap().get(field);
+                    return XContentMapValues.extractValue(field, response.getSourceAsMap());
                 }
             };
         }
