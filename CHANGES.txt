@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Selecting nested columns didn't work correctly if the query got
+   optimized to do a "primary key lookup"
+
  - Fix performance regression on ``SELECT`` queries which use the ``IN``
    operator in the ``WHERE`` clause.
 
