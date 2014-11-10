@@ -1,6 +1,6 @@
-======================
-Crate Data Java Client
-======================
+=================
+Crate Java Client
+=================
 
 The client module exposes a very simple interface to query Crate using
 SQL.

@@ -1,9 +1,8 @@
-========================
-Crate Data Documentation
-========================
+===================
+Crate Documentation
+===================
 
-Welcome to Crate Data - a shared nothing, fully searchable, document
-oriented cluster datastore.
+Welcome to Crate - a new breed of database to serve today’s mammoth data needs.
 
 .. only:: html
 

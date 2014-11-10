@@ -5,7 +5,7 @@
 Data Types
 ==========
 
-Data can be stored in different formats. Crate Data has different types that
+Data can be stored in different formats. Crate has different types that
 can be specified if a table is created using the the :ref:`ref-create-table`
 statement. Data types play a central role as they limit what kind of data can
 be inserted, how it is stored and they also influence the behaviour when the

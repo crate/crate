@@ -2,7 +2,7 @@
 Usage Data Collector
 ====================
 
-The Crate Data Usage Data Collector (UDC) is a sub-system that gathers
+The Crate Usage Data Collector (UDC) is a sub-system that gathers
 usage data, reporting it to the UDC server at https://udc.crate.io.
 It is easy to disable, and does not collect any data that is confidential. 
 For more information about what is being sent, see below.
@@ -19,7 +19,7 @@ information.
 
 Technical Information
 =====================
-To gather good statistics about Crate Data usage, UDC collects this information:
+To gather good statistics about Crate usage, UDC collects this information:
 
     ================  =============================================================================
     Name              Description

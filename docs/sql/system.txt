@@ -4,14 +4,14 @@
 System Information
 ==================
 
-Crate Data provides some useful schemas which contains virtual tables.
+Crate provides some useful schemas which contains virtual tables.
 Those tables are read-only and can be queried to get statistical
 real-time information about the cluster, its nodes, and their shards.
 
 Cluster
 =======
 
-Basic information about the Crate Data cluster can be retrieved from
+Basic information about the Crate cluster can be retrieved from
 the ``sys.cluster`` table:
 
 +------------------+---------------------------------+-------------------+

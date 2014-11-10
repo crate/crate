@@ -40,7 +40,7 @@ way to prevent filename conflicts.
  Data is written per shard, so if there is more than one shard of the
  exported table on the same node, the output file will get
  corrupted due to concurrent writes to the same file. The same behaviour
- holds true when Crate Data exports data to shared storage systems such
+ holds true when Crate exports data to shared storage systems such
  as `Amazon S3`_ or `NFS`_.
 
  To prevent such cases use the ``DIRECTORY`` keyword. An example is given

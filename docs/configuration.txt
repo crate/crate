@@ -6,10 +6,10 @@
 Configuration
 =============
 
-Since Crate Data has sensible defaults, there is no configuration
+Since Crate has sensible defaults, there is no configuration
 needed at all for basic operation.
 
-Crate Data is mainly configured via a configuration file, which is
+Crate is mainly configured via a configuration file, which is
 located at ``config/crate.yml``. The vanilla configuration file
 distributed with the package has all available settings as comments
 in it along with the according default value.
@@ -52,7 +52,7 @@ Node Specific Settings
   | *Default:*    ``crate``
   | *Runtime:*   ``no``
 
-  The name of the Crate Data cluster the node should join to.
+  The name of the Crate cluster the node should join to.
 
 .. _conf_hosts:
 
@@ -65,7 +65,7 @@ Hosts
   | *Default:*    ``0.0.0.0``
   | *Runtime:*   ``no``
 
-  The IP address Crate Data will bind itself to. This setting sets
+  The IP address Crate will bind itself to. This setting sets
   both the `network.bind_host`_ and `network.publish_host`_ values.
 
 .. _network.bind_host:
@@ -82,7 +82,7 @@ Hosts
 **network.publish_host**
   | *Runtime:*   ``no``
 
-  This setting is used by a Crate Data node to publish its own address
+  This setting is used by a Crate node to publish its own address
   to the rest of the cluster. Per default it is the first non local address.
 
   To explicitly bind crate to a specific interface use the interface
@@ -666,7 +666,7 @@ Metadata
 Logging
 =======
 
-Crate Data comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
+Crate comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
 configuration by using YAML to configure it. The logging configuration
 file is at ``config/logging.yml``.
 
@@ -715,7 +715,7 @@ directory location. This variable is usally defined at the
 by-distribution shipped start-up script. In most cases it is the
 parent directory of the directory containing the ``bin/crate`` executable.
 
-:CRATE_HOME: Home directory of Crate Data installation. Used to refer
+:CRATE_HOME: Home directory of Crate installation. Used to refer
              to default config files, data locations, log files, etc.
              All configured relative paths will use this directory as
              a parent.

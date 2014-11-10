@@ -4,7 +4,7 @@
 Refresh
 =======
 
-Crate Data is `eventually consistent`_. Data written with a former statement is
+Crate is `eventually consistent`_. Data written with a former statement is
 not guaranteed to be fetched with the next following select statement for
 the affected rows.
 

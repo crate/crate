@@ -267,7 +267,7 @@ If you do not have your data locally on the nodes, but somewhere on the network,
 e.g. ``NAS`` or ``S3``, it is recommended to used ``gzip`` compression to reduce
 the network traffic needed to obtain the data.
 
-Crate Data does not automatically detect compression, but you'll need to specify
+Crate does not automatically detect compression, but you'll need to specify
 ``gzip`` compression in the ``WITH`` clause.
 
 For example::
@@ -336,7 +336,7 @@ statement using the ``PARTITION`` clause::
   ... FROM '/tmp/best_practice_data/users_1408312800.json';
   COPY OK, 23 rows affected (... sec)
 
-This way, Crate Data does not need to resolve the partition for each row
+This way, Crate does not need to resolve the partition for each row
 that is imported but can store it directly into the correct place
 resulting in a much faster import.
 
@@ -368,7 +368,7 @@ if a few things are kept in mind. These are:
 And last but not least:
 
 - Import speed significantly increases with increasing disk I/O. Using SSDs
-  for Crate Data is recommended anyway, but having one disk more (by adding
+  for Crate is recommended anyway, but having one disk more (by adding
   another node) in the cluster, can make quite a difference.
 
 Further Reading
