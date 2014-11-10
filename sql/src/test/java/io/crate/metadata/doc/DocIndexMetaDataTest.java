@@ -18,7 +18,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
@@ -34,18 +33,15 @@ import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.ArgumentCaptor;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 public class DocIndexMetaDataTest {
 
@@ -665,44 +661,6 @@ public class DocIndexMetaDataTest {
                 .build();
 
         return newMeta(indexMetaData, analysis.tableIdent().name());
-    }
-
-    @Test
-    public void testTemplateUpdate() throws Exception {
-        // regression test: alias must be set in the updated template
-
-        Settings settings = ImmutableSettings.builder()
-                .put("index.number_of_shards", 1)
-                .put("index.number_of_replicas", 0)
-                .build();
-
-        IndexMetaData md1 = IndexMetaData.builder("t1")
-                .settings(settings)
-                .build();
-        DocIndexMetaData docIndexMd1 = new DocIndexMetaData(md1, new TableIdent("doc", "t1")).build();
-
-        XContentBuilder builder = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject("properties")
-                    .startObject("id")
-                        .field("type", "integer")
-                    .endObject()
-                .endObject()
-                .endObject();
-        DocIndexMetaData docIndexMd2 = newMeta(getIndexMetaData(
-                "t2", builder, ImmutableSettings.EMPTY, AliasMetaData.builder("tables").build()), "t2");
-
-        TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
-        ArgumentCaptor<PutIndexTemplateRequest> argumentCaptor = ArgumentCaptor.forClass(PutIndexTemplateRequest.class);
-        docIndexMd1.merge(docIndexMd2, transportPutIndexTemplateAction, true);
-        verify(transportPutIndexTemplateAction).execute(argumentCaptor.capture());
-
-        PutIndexTemplateRequest request = argumentCaptor.getValue();
-        Field aliasesField = PutIndexTemplateRequest.class.getDeclaredField("aliases");
-        aliasesField.setAccessible(true);
-        Set aliases = (Set)aliasesField.get(request);
-
-        assertThat(aliases.size(), is(1));
     }
 
     @Test

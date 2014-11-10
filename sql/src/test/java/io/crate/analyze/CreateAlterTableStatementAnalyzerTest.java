@@ -613,6 +613,12 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 ") partitioned by (a['b'])");
     }
 
+    @Test
+    public void testPartitionByUnknownColumn() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        analyze("create table my_table (p string) partitioned by (a)");
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testPartitionedByNotPartOfPrimaryKey() throws Exception {
         analyze("create table my_table (" +

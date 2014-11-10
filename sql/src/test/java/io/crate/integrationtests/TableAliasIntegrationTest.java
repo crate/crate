@@ -23,9 +23,14 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
@@ -217,6 +222,34 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
                 String.format("delete from %s where id=?", tableAlias),
                 new Object[]{1}
         );
+    }
+
+
+    @Test
+    public void testPartitionedTableKeepsAliasAfterSchemaUpdate() throws Exception {
+        execute("create table t (name string, p string) partitioned by (p) " +
+                "clustered into 2 shards with (number_of_replicas = 0)");
+        ensureGreen();
+
+        execute("insert into t (name, p) values ('Arthur', 'a')");
+        execute("insert into t (name, p) values ('Trillian', 'a')");
+        execute("alter table t add column age integer");
+        execute("insert into t (name, p) values ('Marvin', 'b')");
+        waitNoPendingTasksOnAll();
+        refresh();
+
+        execute("select count(*) from t");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Long) response.rows()[0][0], is(3L));
+
+        GetIndexTemplatesResponse indexTemplatesResponse =
+                client().admin().indices().prepareGetTemplates(".partitioned.t.").execute().actionGet();
+        IndexTemplateMetaData indexTemplateMetaData = indexTemplatesResponse.getIndexTemplates().get(0);
+        AliasMetaData t = indexTemplateMetaData.aliases().get("t");
+        assertThat(t.alias(), is("t"));
+
+        execute("select partitioned_by from information_schema.tables where table_name = 't'");
+        assertThat(((String[]) response.rows()[0][0])[0], is("p"));
     }
 
 }

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: ``alter table add column`` didn't work correctly on partitioned tables.
+
  - Added cast function for timestamp type
 
  - Added Support for Column Policies, which can be used to define

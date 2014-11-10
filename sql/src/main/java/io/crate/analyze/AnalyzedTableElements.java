@@ -252,7 +252,7 @@ public class AnalyzedTableElements {
         return result;
     }
 
-    public void changeToPartitionedByColumn(ColumnIdent partitionedByIdent) {
+    public void changeToPartitionedByColumn(ColumnIdent partitionedByIdent, boolean skipIfNotFound) {
         Preconditions.checkArgument(!partitionedByIdent.name().startsWith("_"),
                 "Cannot use system columns in PARTITIONED BY clause");
 
@@ -265,6 +265,9 @@ public class AnalyzedTableElements {
 
         AnalyzedColumnDefinition columnDefinition = columnDefinitionByIdent(partitionedByIdent, true);
         if (columnDefinition == null) {
+            if (skipIfNotFound) {
+                return;
+            }
             throw new ColumnUnknownException(partitionedByIdent.sqlFqn());
         }
         if (columnDefinition.dataType().equals("object")) {

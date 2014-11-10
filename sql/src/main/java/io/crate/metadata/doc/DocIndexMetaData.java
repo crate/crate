@@ -519,10 +519,9 @@ public class DocIndexMetaData {
         return true;
     }
 
-    public DocIndexMetaData merge(DocIndexMetaData other,
-                                  TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                                  boolean thisIsCreatedFromTemplate)
-            throws IOException {
+    protected DocIndexMetaData merge(DocIndexMetaData other,
+                                     TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                                     boolean thisIsCreatedFromTemplate) throws IOException {
         if (schemaEquals(other)) {
             return this;
         } else if (thisIsCreatedFromTemplate) {
