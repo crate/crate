@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/11/10 0.45.3
+=================
+
  - Fix: Selecting nested columns didn't work correctly if the query got
    optimized to do a "primary key lookup"
 
@@ -25,7 +28,7 @@ Unreleased
  - Fix: Ensure that adding new columns inside nested objects using
    ``ALTER TABLE`` works as expected.
 
- - ``Select count(*)`` statements on partitioned tables didn't apply partition
+ - ``SELECT COUNT(*)`` statements on partitioned tables didn't apply partition
    filters if present in the WHERE clause.
 
 2014/10/31 0.45.2
