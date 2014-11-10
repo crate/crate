@@ -23,18 +23,13 @@ package io.crate.core;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import org.elasticsearch.common.Nullable;
 
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class StringUtils {
+
     public static final Splitter PATH_SPLITTER = Splitter.on('.');
     public static final Joiner PATH_JOINER = Joiner.on('.');
-
-    private static final Pattern PATTERN = Pattern.compile("\\['([^\\]])*'\\]");
-    private static final Pattern SQL_PATTERN = Pattern.compile("(.+?)(?:\\['([^\\]])*'\\])+");
 
     public static String dottedToSqlPath(String dottedPath) {
         Iterable<String> splitted = PATH_SPLITTER.split(dottedPath);
@@ -44,22 +39,6 @@ public class StringUtils {
             builder.append("['").append(iter.next()).append("']");
         }
         return builder.toString();
-    }
-
-    public static String sqlToDottedPath(String sqlPath) {
-        if (!SQL_PATTERN.matcher(sqlPath).find()) { return sqlPath; }
-        List<String> s = new ArrayList<>();
-        int idx = sqlPath.indexOf('[');
-        s.add(sqlPath.substring(0, idx));
-        Matcher m = PATTERN.matcher(sqlPath);
-        while (m.find(idx)) {
-            String group = m.group(1);
-            if (group == null) { group = ""; }
-            s.add(group);
-            idx = m.end();
-        }
-
-        return PATH_JOINER.join(s);
     }
 
     /**
@@ -93,45 +72,5 @@ public class StringUtils {
             idx++;
         }
         return result;
-    }
-
-    /**
-     * check if a collection of Strings containing dotted paths contains at least one element
-     * beginning with <code>prefix</code>, which consists of one or more complete path elements
-     *
-     * e.g. <code>StringUtils.pathListContainsPrefix(["a", "ba.cv"], "ba")</code> returns <code>true</code>
-     *      but <code>StringUtils.pathListContainsPrefix(["a", "ba.cv"], "b")</code> returns <code>false</code>
-     * @param pathCollection a collection of Strings containing dotted paths
-     * @param prefix the prefix to search for
-     * @return true if at least one element in the list has <code>prefix</code> as prefix, false otherwise
-     */
-    public static boolean pathListContainsPrefix(Collection<String> pathCollection, String prefix) {
-        for (String elem : pathCollection) {
-            if (elem.startsWith(prefix) &&
-                    (elem.length() == prefix.length() ||
-                            (elem.length() > prefix.length() && elem.charAt(prefix.length()) == '.'))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Get the first path from a collection of Strings containing dotted paths
-     * beginning with <code>prefix</code>, which consists of one or more complete path elements
-     * @param pathCollection a collection of Strings containing dotted paths
-     * @param prefix the prefix to search for
-     * @return the found path or null
-     */
-    public static @Nullable
-    String getPathByPrefix(Collection<String> pathCollection, String prefix) {
-        for (String elem : pathCollection) {
-            if (elem.startsWith(prefix) &&
-                    (elem.length() == prefix.length() ||
-                            (elem.length() > prefix.length() && elem.charAt(prefix.length()) == '.'))) {
-                return elem;
-            }
-        }
-        return null;
     }
 }
