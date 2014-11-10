@@ -27,6 +27,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.TimestampType;
 import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -135,7 +136,7 @@ public class TestingHelpers {
         } else {
             assertThat(((BytesRef) value).utf8ToString(), is(expectedValue));
         }
-        assertEquals(DataTypes.STRING, ((Literal)symbol).valueType());
+        assertEquals(DataTypes.STRING, ((Literal) symbol).valueType());
     }
 
     public static void assertLiteralSymbol(Symbol symbol, Long expectedValue) {

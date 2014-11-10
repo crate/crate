@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added cast function for timestamp type
+
 2014/11/10 0.45.3
 =================
 
