@@ -21,11 +21,13 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
+import io.crate.exceptions.ColumnUnknownException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,6 +50,14 @@ public class NewColumnCollector extends DispatchingReferenceSymbolVisitor.InnerV
     public void visit(Reference ref, Symbol symbol, @Nullable Reference parent, NewColumnContext ctx) {
 
         if (ref instanceof DynamicReference || ref.valueType() == DataTypes.OBJECT) {
+            if(parent != null && parent.valueType() == DataTypes.OBJECT){
+                if(parent.info().columnPolicy() == ColumnPolicy.IGNORED){
+                    return;
+                } else if(ref instanceof DynamicReference && parent.info().columnPolicy() == ColumnPolicy.STRICT){
+                    throw new ColumnUnknownException(ref.info().ident().columnIdent().name(),
+                                                     ref.info().ident().columnIdent().fqn());
+                }
+            }
             AnalyzedColumnDefinition analyzedParent = columnDefinitions.get(parent);
             AnalyzedColumnDefinition analyzedColumnDefinition = new AnalyzedColumnDefinition(ref, analyzedParent);
             if(analyzedParent != null){
@@ -56,7 +66,10 @@ public class NewColumnCollector extends DispatchingReferenceSymbolVisitor.InnerV
             if (ctx.root == null) {
                 ctx.root = analyzedColumnDefinition;
             }
-            ctx.mappingChange = true;
+            if((ref instanceof DynamicReference) &&
+                    !(ref.valueType() == DataTypes.OBJECT && ref.info().columnPolicy() == ColumnPolicy.IGNORED)){
+                ctx.mappingChange = true;
+            }
             columnDefinitions.put(ref, analyzedColumnDefinition);
         }
     }

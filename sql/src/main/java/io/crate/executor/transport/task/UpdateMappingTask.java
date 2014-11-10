@@ -52,6 +52,11 @@ public class UpdateMappingTask extends AbstractChainedTask {
     protected void doStart(List<TaskResult> upstreamResults) {
         IndexMetaData indexMetaData = node.clusterService().state().getMetaData().getIndices().get(node.indices()[0]);
         Map<String, Object> mapping = node.mapping();
+        if(indexMetaData == null){
+            // TODO: should not happen!
+            result.set(TaskResult.EMPTY_RESULT);
+            return;
+        }
 
         try {
             Map mergedMeta = (Map)indexMetaData.getMappings()

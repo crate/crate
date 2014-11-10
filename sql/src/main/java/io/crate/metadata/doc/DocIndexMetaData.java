@@ -264,9 +264,10 @@ public class DocIndexMetaData {
             return Optional.absent();
         }
 
-        List<String> path = new ArrayList<>(columnIdent.path());
-        path.add(0, columnName);
-        path.add(0, columnIdent.name());
+        List<String> path = new ArrayList<>();
+        path.add(columnIdent.name());
+        path.addAll(columnIdent.path());
+        path.add(columnName);
         return getCollectionTypeFromNested(path);
     }
 

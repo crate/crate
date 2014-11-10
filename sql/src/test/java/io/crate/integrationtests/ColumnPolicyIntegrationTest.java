@@ -44,6 +44,7 @@ import org.junit.rules.ExpectedException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
@@ -195,11 +196,68 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("insert into dynamic_table (meta) values({meta={a=['a','b']}})");
         execute("refresh table dynamic_table");
+        waitNoPendingTasksOnAll();
         execute("insert into dynamic_table (meta) values({meta={a=['c','d']}})");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.type")), is("string"));
         assertThat(String.valueOf(nestedValue(sourceMap, "_meta.columns.meta.properties.meta.properties.a.collection_type")), is("array"));
 
+    }
+
+    @Test
+    public void testInsertMultipleValuesDynamic() throws Exception {
+        execute("create table dynamic_table (" +
+                "  my_object object " +
+                ") with (column_policy='dynamic', number_of_replicas=0)");
+        ensureGreen();
+
+        execute("insert into dynamic_table (my_object) values ({a=['a','b']}),({b=['a']})");
+        execute("refresh table dynamic_table");
+
+        Map<String, Object> sourceMap = getSourceMap("dynamic_table");
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.a.type")), is("string"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.b.type")), is("string"));
+
+        assertThat(String.valueOf(nestedValue(sourceMap, "_meta.columns.my_object.properties.a.collection_type")), is("array"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "_meta.columns.my_object.properties.b.collection_type")), is("array"));
+    }
+
+    @Test
+    public void testAddColumnToStrictObject() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column 'author.name.middle_name' unknown");
+        execute("create table books(" +
+                "   author object(dynamic) as (" +
+                "       name object(strict) as (" +
+                "           first_name string" +
+                "       )" +
+                "   )," +
+                "   title string" +
+                ")");
+        ensureGreen();
+       //execute("insert into books (author, title) values ({name={first_name='Douglas', middle_name='Adams'}},'Something with galaxy')");
+        Map<String, Object> authorMap = new HashMap<String, Object>(){{
+            put("name", new HashMap<String, Object>(){{
+                put("first_name", "Douglas");
+            }});
+        }};
+        execute("insert into books (title, author) values (?,?)",
+                new Object[]{
+                        "Life, the Universe and Everything",
+                        authorMap
+                });
+        execute("refresh table books");
+        authorMap = new HashMap<String, Object>(){{
+            put("name", new HashMap<String, Object>(){{
+                put("first_name", "Douglas");
+                put("middle_name", "Noel");
+            }});
+        }};
+        execute("insert into books (title, author) values (?,?)",
+                new Object[]{
+                        "Life, the Universe and Everything",
+                        authorMap
+                });
     }
 
     public Object nestedValue(Map<String, Object> map, String dottedPath){

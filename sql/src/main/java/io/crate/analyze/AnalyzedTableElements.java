@@ -144,6 +144,14 @@ public class AnalyzedTableElements {
         columnTypes.put(analyzedColumnDefinition.ident(), analyzedColumnDefinition.dataType());
     }
 
+    public void merge(AnalyzedColumnDefinition analyzedColumnDefinition) {
+        if(columnIdents.contains(analyzedColumnDefinition.ident())){
+
+        }else {
+            add(analyzedColumnDefinition);
+        }
+    }
+
     public Settings settings() {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (AnalyzedColumnDefinition column : columns) {
