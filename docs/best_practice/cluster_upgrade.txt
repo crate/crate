@@ -6,7 +6,7 @@ Zero Downtime Upgrade
 =====================
 
 
-Crate Data provides an easy way to perform a cluster upgrade with zero
+Crate provides an easy way to perform a cluster upgrade with zero
 downtime.
 
 To perform a rolling upgrade of a cluster one node at a time has to be stopped

@@ -4,7 +4,7 @@
 Hello Crate
 ===========
 
-To get started let's have a quick look on how Crate Data can be used.
+To get started let's have a quick look on how Crate can be used.
 This tutorial uses the ``crash`` command-line SQL_ shell shipped with
 the Crate distribution.
 ::
