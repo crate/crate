@@ -37,6 +37,7 @@ public class CastFunctionResolver {
             .put(DataTypes.STRING, ToStringFunction.NAME)
             .put(DataTypes.INTEGER, ToIntFunction.NAME)
             .put(DataTypes.LONG, ToLongFunction.NAME)
+            .put(DataTypes.TIMESTAMP, ToTimestampFunction.NAME)
             .put(DataTypes.BOOLEAN, ToBooleanFunction.NAME)
             .put(DataTypes.DOUBLE, ToDoubleFunction.NAME)
             .put(DataTypes.FLOAT, ToFloatFunction.NAME)
