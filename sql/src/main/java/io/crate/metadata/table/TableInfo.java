@@ -22,6 +22,7 @@
 package io.crate.metadata.table;
 
 import io.crate.PartitionName;
+import io.crate.analyze.TableSettingsInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
@@ -108,5 +109,7 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
      * @return
      */
     DynamicReference getDynamic(ColumnIdent ident);
+
+    public TableSettingsInfo tableSettingsInfo();
 
 }

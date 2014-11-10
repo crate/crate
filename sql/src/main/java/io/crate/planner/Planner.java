@@ -387,7 +387,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (analysis.isPartitioned()) {
             createTableNode = CreateTableNode.createPartitionedTableNode(
                     tableIdent.name(),
-                    analysis.indexSettings().getByPrefix("index."),
+                    analysis.tableSettings().settings().getByPrefix("index."),
                     analysis.mapping(),
                     analysis.templateName(),
                     analysis.templatePrefix()
@@ -395,7 +395,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         } else {
             createTableNode = CreateTableNode.createTableNode(
                     tableIdent.name(),
-                    analysis.indexSettings(),
+                    analysis.tableSettings().settings(),
                     analysis.mapping()
             );
         }

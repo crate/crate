@@ -26,14 +26,12 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.ImmutableSettings;
 
 public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTableAnalysis> {
 
-    private static final TablePropertiesAnalysis tablePropertiesAnalysis = new TablePropertiesAnalysis();
+    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final ReferenceInfos referenceInfos;
 
     @Inject
@@ -54,16 +52,18 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
     public Void visitAlterTable(AlterTable node, AlterTableAnalysis context) {
         setTableAndPartitionName(node.table(), context);
 
+        TableSettingsInfo tableSettingsInfo = context.table().tableSettingsInfo();
+        if (context.partitionName().isPresent()) {
+            assert tableSettingsInfo instanceof AlterPartitionedTableSettingsInfo;
+            tableSettingsInfo = ((AlterPartitionedTableSettingsInfo)tableSettingsInfo).partitionTableSettingsInfo();
+        }
+
         if (node.genericProperties().isPresent()) {
-            GenericProperties properties = node.genericProperties().get();
-            context.settings(
-                    tablePropertiesAnalysis.propertiesToSettings(properties, context.parameters()));
+            TABLE_PROPERTIES_ANALYZER.analyze(
+                    context.tableSettings(), tableSettingsInfo, node.genericProperties(), context.parameters());
         } else if (!node.resetProperties().isEmpty()) {
-            ImmutableSettings.Builder builder = ImmutableSettings.builder();
-            for (String property : node.resetProperties()) {
-                builder.put(tablePropertiesAnalysis.getDefault(property));
-            }
-            context.settings(builder.build());
+            TABLE_PROPERTIES_ANALYZER.analyze(
+                    context.tableSettings(), tableSettingsInfo, node.resetProperties());
         }
 
         return null;

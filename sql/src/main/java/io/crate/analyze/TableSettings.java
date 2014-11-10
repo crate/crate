@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,46 +21,40 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
-public class CreateBlobTableAnalysis extends AbstractDDLAnalysis {
+import java.util.List;
 
-    private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
+public class TableSettings {
 
-    private Settings builtSettings;
 
-    public CreateBlobTableAnalysis(Analyzer.ParameterContext parameterContext) {
-        super(parameterContext);
+    private ImmutableSettings.Builder settingsBuilder;
+    private Settings settings;
+
+    public TableSettings() {
+        settingsBuilder = ImmutableSettings.builder();
     }
 
-    @Override
-    public TableInfo table() {
-        return null;
+    public TableSettings(Settings settings, List<String> settingsFilter) {
+        this();
+        for (String settingName : settingsFilter) {
+            Object setting = settings.get(settingName);
+            if (setting != null) {
+                settingsBuilder().put(settingName, setting);
+            }
+        }
     }
 
-    @Override
-    public SchemaInfo schema() {
-        return null;
+    public ImmutableSettings.Builder settingsBuilder() {
+        return settingsBuilder;
     }
 
-    @Override
-    public void normalize() {
+    public Settings settings() {
+        if (settings == null) {
+            settings = settingsBuilder.build();
+        }
+        return settings;
     }
 
-    public String tableName() {
-        return tableIdent.name();
-    }
-
-    @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitCreateBlobTableAnalysis(this, context);
-    }
-
-    public TableIdent tableIdent() {
-        return tableIdent;
-    }
 }

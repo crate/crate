@@ -651,7 +651,7 @@ public class DocIndexMetaDataTest {
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder()
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 0)
-                .put(analysis.indexSettings());
+                .put(analysis.tableSettings().settings());
 
         analyzer.process(statement, analysis);
         IndexMetaData indexMetaData = IndexMetaData.builder(analysis.tableIdent().name())

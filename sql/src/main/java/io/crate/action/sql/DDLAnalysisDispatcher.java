@@ -129,7 +129,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         return wrapRowCountFuture(
                 blobIndices.createBlobTable(
                         analysis.tableName(),
-                        analysis.indexSettings()
+                        analysis.tableSettings().settings()
                 ),
                 1L
         );
@@ -299,7 +299,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     @Override
     public ListenableFuture<Long> visitAlterBlobTableAnalysis(AlterBlobTableAnalysis analysis, Void context) {
         return wrapRowCountFuture(
-                blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.indexSettings()),
+                blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.tableSettings().settings()),
                 1L);
     }
 
@@ -370,12 +370,20 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         final SettableFuture<Long> result = SettableFuture.create();
         final String[] indices;
         boolean updateTemplate = false;
+        final TableSettings tableSettings = analysis.tableSettings();
+        TableSettings concreteTableSettings = tableSettings;
         if (analysis.table().isPartitioned()) {
             if (analysis.partitionName().isPresent()) {
                 indices = new String[]{ analysis.partitionName().get().stringValue() };
             } else {
                 updateTemplate = true; // only update template when updating whole partitioned table
                 indices = analysis.table().concreteIndices();
+                AlterPartitionedTableSettingsInfo tableSettingsInfo =
+                        (AlterPartitionedTableSettingsInfo)analysis.table().tableSettingsInfo();
+                // create new filtered partition table settings
+                concreteTableSettings = new TableSettings(
+                        analysis.tableSettings().settings(),
+                        tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
             }
         } else {
            indices = new String[]{ analysis.table().ident().name() };
@@ -408,7 +416,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                     }
                     ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
                     settingsBuilder.put(response.getIndexTemplates().get(0).settings());
-                    settingsBuilder.put(analysis.settings());
+                    settingsBuilder.put(tableSettings.settings());
 
                     PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
                             .create(false)
@@ -441,23 +449,25 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
 
         }
         // update every concrete index
-        for (String index : indices) {
-            UpdateSettingsRequest request = new UpdateSettingsRequest(
-                    analysis.settings(),
-                    index);
-            final SettableFuture<?> future = SettableFuture.create();
-            results.add(future);
-            transportUpdateSettingsAction.execute(request, new ActionListener<UpdateSettingsResponse>() {
-                @Override
-                public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
-                    future.set(null);
-                }
+        if (!concreteTableSettings.settings().getAsMap().isEmpty()) {
+            for (String index : indices) {
+                UpdateSettingsRequest request = new UpdateSettingsRequest(
+                        concreteTableSettings.settings(),
+                        index);
+                final SettableFuture<?> future = SettableFuture.create();
+                results.add(future);
+                transportUpdateSettingsAction.execute(request, new ActionListener<UpdateSettingsResponse>() {
+                    @Override
+                    public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
+                        future.set(null);
+                    }
 
-                @Override
-                public void onFailure(Throwable e) {
-                    future.setException(e);
-                }
-            });
+                    @Override
+                    public void onFailure(Throwable e) {
+                        future.setException(e);
+                    }
+                });
+            }
         }
         Futures.addCallback(Futures.allAsList(results), new FutureCallback<List<?>>() {
             @Override

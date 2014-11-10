@@ -2,6 +2,7 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
+import io.crate.analyze.TableSettingsInfo;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
@@ -87,5 +88,10 @@ public abstract class AbstractTableInfo implements TableInfo {
     @Override
     public List<ColumnIdent> partitionedBy() {
         return ImmutableList.of();
+    }
+
+    @Override
+    public TableSettingsInfo tableSettingsInfo() {
+        return null;
     }
 }

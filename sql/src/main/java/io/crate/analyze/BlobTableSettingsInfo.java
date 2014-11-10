@@ -21,17 +21,18 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 
-public class AlterBlobTablePropertiesAnalysis extends TablePropertiesAnalysis {
+public class BlobTableSettingsInfo extends TableSettingsInfo {
 
-    private static final ImmutableMap<String, SettingsApplier> supportedProperties =
-            ImmutableMap.<String, SettingsApplier>builder()
-                    .put(NUMBER_OF_REPLICAS, new NumberOfReplicasSettingApplier())
+    protected static final ImmutableList<String> SUPPORTED_SETTINGS =
+            ImmutableList.<String>builder()
+                    .add(NUMBER_OF_REPLICAS)
+                    .add(BLOBS_PATH)
                     .build();
 
     @Override
-    protected ImmutableMap<String, SettingsApplier> supportedProperties() {
-        return supportedProperties;
+    public ImmutableList<String> supportedSettings() {
+        return SUPPORTED_SETTINGS;
     }
 }

@@ -30,8 +30,6 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -39,12 +37,9 @@ import java.util.Map;
 
 public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
-    private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
-
     protected final ReferenceInfos referenceInfos;
     protected final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private AnalyzedTableElements analyzedTableElements;
-    private Settings builtSettings;
     private Map<String, Object> mapping;
     private ColumnIdent routingColumn;
 
@@ -144,18 +139,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
             return templateName() + "*";
         }
         return null;
-    }
-
-    public ImmutableSettings.Builder indexSettingsBuilder() {
-        return indexSettingsBuilder;
-    }
-
-    public Settings indexSettings() {
-        if (builtSettings == null) {
-            indexSettingsBuilder.put(analyzedTableElements.settings());
-            builtSettings = indexSettingsBuilder.build();
-        }
-        return builtSettings;
     }
 
     @SuppressWarnings("unchecked")

@@ -25,11 +25,10 @@ import io.crate.Constants;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.Settings;
 
 public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalysis> {
 
-    private static final TablePropertiesAnalysis tablePropertiesAnalysis = new CreateBlobTablePropertiesAnalysis();
+    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
 
 
     @Override
@@ -48,17 +47,15 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
             } else {
                 numShards = Constants.DEFAULT_NUM_SHARDS;
             }
-            context.indexSettingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
+            context.tableSettings().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
         }
 
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
-        if (node.genericProperties().isPresent()) {
-            Settings settings =
-                    tablePropertiesAnalysis.propertiesToSettings(node.genericProperties().get(), context.parameters(), true);
-            context.indexSettingsBuilder().put(settings);
-        }
+        TABLE_PROPERTIES_ANALYZER.analyze(
+                context.tableSettings(), new BlobTableSettingsInfo(),
+                node.genericProperties(), context.parameters(), true);
 
         return null;
     }

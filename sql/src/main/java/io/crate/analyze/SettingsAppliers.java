@@ -77,7 +77,7 @@ public class SettingsAppliers {
         }
     }
 
-    public static abstract class NumberSettingsApplier extends AbstractSettingsApplier{
+    public static abstract class NumberSettingsApplier extends AbstractSettingsApplier {
 
         protected final Setting setting;
 

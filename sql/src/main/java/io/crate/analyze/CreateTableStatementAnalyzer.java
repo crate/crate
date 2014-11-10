@@ -23,18 +23,20 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import io.crate.Constants;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
 
 
 public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalysis> {
 
-    private static final TablePropertiesAnalysis tablePropertiesAnalysis = new TablePropertiesAnalysis();
+    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final ReferenceInfos referenceInfos;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
@@ -64,11 +66,9 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
-        if (node.properties().isPresent()) {
-            Settings settings =
-                    tablePropertiesAnalysis.propertiesToSettings(node.properties().get(), context.parameters(), true);
-            context.indexSettingsBuilder().put(settings);
-        }
+        TABLE_PROPERTIES_ANALYZER.analyze(
+                context.tableSettings(), new TableSettingsInfo(),
+                node.properties(), context.parameters(), true);
 
         context.analyzedTableElements(TableElementsAnalyzer.analyze(
                 node.tableElements(),
@@ -76,10 +76,13 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
                 context.fulltextAnalyzerResolver()));
 
         context.analyzedTableElements().finalizeAndValidate();
+        // update table settings
+        context.tableSettings().settingsBuilder().put(context.analyzedTableElements().settings());
 
         for (CrateTableOption option : node.crateTableOptions()) {
             process(option, context);
         }
+
         return null;
     }
 
@@ -100,6 +103,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
             context.routing(routingColumn);
         }
+
         int numShards;
         if (node.numberOfShards().isPresent()) {
             numShards = ExpressionToNumberVisitor.convert(node.numberOfShards().get(), context.parameters()).intValue();
@@ -109,7 +113,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         } else {
             numShards = Constants.DEFAULT_NUM_SHARDS;
         }
-        context.indexSettingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
+        context.tableSettings().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
         return null;
     }
 
