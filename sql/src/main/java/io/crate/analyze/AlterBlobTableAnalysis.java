@@ -27,14 +27,9 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 
 public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
 
-    private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
-
-    private Settings builtSettings;
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
 
@@ -65,17 +60,6 @@ public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public void normalize() {
 
-    }
-
-    public ImmutableSettings.Builder indexSettingsBuilder() {
-        return indexSettingsBuilder;
-    }
-
-    public Settings indexSettings() {
-        if (builtSettings == null) {
-            builtSettings = indexSettingsBuilder.build();
-        }
-        return builtSettings;
     }
 
     @Override

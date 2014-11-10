@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,40 +21,24 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
+import com.google.common.collect.ImmutableList;
 
-public class CreateBlobTableAnalysis extends AbstractDDLAnalysis {
+public class AlterBlobTableParameterInfo extends TableParameterInfo {
 
-    private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
+    protected static final ImmutableList<String> SUPPORTED_SETTINGS =
+            ImmutableList.<String>builder()
+                    .add(NUMBER_OF_REPLICAS)
+                    .build();
 
-    private Settings builtSettings;
+    protected static final ImmutableList<String> SUPPORTED_MAPPINGS = ImmutableList.<String>of();
 
-    public CreateBlobTableAnalysis(Analyzer.ParameterContext parameterContext) {
-        super(parameterContext);
+    @Override
+    public ImmutableList<String> supportedSettings() {
+        return SUPPORTED_SETTINGS;
     }
 
     @Override
-    public TableInfo table() {
-        return null;
-    }
-
-    @Override
-    public void normalize() {
-    }
-
-    public String tableName() {
-        return tableIdent.name();
-    }
-
-    @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitCreateBlobTableAnalysis(this, context);
-    }
-
-    public TableIdent tableIdent() {
-        return tableIdent;
+    public ImmutableList<String> supportedMappings() {
+        return SUPPORTED_MAPPINGS;
     }
 }

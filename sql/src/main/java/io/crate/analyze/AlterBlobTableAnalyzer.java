@@ -23,13 +23,11 @@ package io.crate.analyze;
 
 import io.crate.metadata.ReferenceInfos;
 import io.crate.sql.tree.AlterBlobTable;
-import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.ImmutableSettings;
 
 public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnalysis> {
 
-    private static final TablePropertiesAnalysis tablePropertiesAnalysis = new AlterBlobTablePropertiesAnalysis();
+    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final ReferenceInfos referenceInfos;
 
     @Inject
@@ -42,16 +40,13 @@ public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnal
         context.table(tableToIdent(node.table()));
 
         if (node.genericProperties().isPresent()) {
-            GenericProperties properties = node.genericProperties().get();
-            TablePropertiesAnalysis.TableProperties tableProperties =
-                    tablePropertiesAnalysis.tableProperties(properties, context.parameters());
-            context.indexSettingsBuilder().put(tableProperties.settings());
+            TABLE_PROPERTIES_ANALYZER.analyze(
+                    context.tableParameter(), context.table().tableParameterInfo(),
+                    node.genericProperties(), context.parameters());
         } else if (!node.resetProperties().isEmpty()) {
-            ImmutableSettings.Builder builder = ImmutableSettings.builder();
-            for (String property : node.resetProperties()) {
-                builder.put(tablePropertiesAnalysis.getDefault(property));
-            }
-            context.indexSettingsBuilder().put(builder.build());
+            TABLE_PROPERTIES_ANALYZER.analyze(
+                    context.tableParameter(), context.table().tableParameterInfo(),
+                    node.resetProperties());
         }
 
         return null;

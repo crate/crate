@@ -31,6 +31,8 @@ public enum ColumnPolicy {
     STRICT("strict"),
     IGNORED(false);
 
+    public static final String ES_MAPPING_NAME = "dynamic";
+
     private Object mappingValue;
 
     private ColumnPolicy(Object mappingValue) {

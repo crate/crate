@@ -21,23 +21,25 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.table.ColumnPolicy;
+import com.google.common.collect.ImmutableList;
 
-public class AlterBlobTablePropertiesAnalysis extends TablePropertiesAnalysis {
+public class AlterPartitionedTableParameterInfo extends TableParameterInfo {
 
-    private static final ImmutableMap<String, SettingsApplier> supportedProperties =
-            ImmutableMap.<String, SettingsApplier>builder()
-                    .put(NUMBER_OF_REPLICAS, new NumberOfReplicasSettingApplier())
+    protected static final ImmutableList<String> SUPPORTED_SETTINGS =
+            ImmutableList.<String>builder()
+                    .add(NUMBER_OF_REPLICAS)
+                    .add(NUMBER_OF_SHARDS)
+                    .add(REFRESH_INTERVAL)
                     .build();
 
-    @Override
-    protected ColumnPolicy defaultColumnPolicy() {
-        return ColumnPolicy.STRICT;
+    protected static final TableParameterInfo PARTITION_TABLE_PARAMETER_INFO = new TableParameterInfo();
+
+    public TableParameterInfo partitionTableSettingsInfo() {
+        return PARTITION_TABLE_PARAMETER_INFO;
     }
 
     @Override
-    protected ImmutableMap<String, SettingsApplier> supportedProperties() {
-        return supportedProperties;
+    public ImmutableList<String> supportedSettings() {
+        return SUPPORTED_SETTINGS;
     }
 }

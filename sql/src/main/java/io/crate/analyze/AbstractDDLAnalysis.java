@@ -27,6 +27,7 @@ import io.crate.metadata.TableIdent;
 
 public abstract class AbstractDDLAnalysis extends Analysis {
 
+    protected final TableParameter tableParameter = new TableParameter();
     protected TableIdent tableIdent;
 
     protected AbstractDDLAnalysis(Analyzer.ParameterContext parameterContext) {
@@ -63,5 +64,9 @@ public abstract class AbstractDDLAnalysis extends Analysis {
             }
         }
         return true;
+    }
+
+    public TableParameter tableParameter() {
+        return tableParameter;
     }
 }

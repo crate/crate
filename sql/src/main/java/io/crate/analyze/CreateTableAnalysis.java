@@ -28,10 +28,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -39,15 +36,11 @@ import java.util.Map;
 
 public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
-    private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
-
     protected final ReferenceInfos referenceInfos;
     protected final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private AnalyzedTableElements analyzedTableElements;
-    private Settings builtSettings;
     private Map<String, Object> mapping;
     private ColumnIdent routingColumn;
-    private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC; // Default for doc tables
 
     public CreateTableAnalysis(ReferenceInfos referenceInfos,
                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
@@ -142,18 +135,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return null;
     }
 
-    public ImmutableSettings.Builder indexSettingsBuilder() {
-        return indexSettingsBuilder;
-    }
-
-    public Settings indexSettings() {
-        if (builtSettings == null) {
-            indexSettingsBuilder.put(analyzedTableElements.settings());
-            builtSettings = indexSettingsBuilder.build();
-        }
-        return builtSettings;
-    }
-
     @SuppressWarnings("unchecked")
     public Map<String, Object> mappingProperties() {
         return (Map) mapping().get("properties");
@@ -169,9 +150,8 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
             if (routingColumn != null) {
                 ((Map) mapping.get("_meta")).put("routing", routingColumn.fqn());
             }
-            if (columnPolicy != null) {
-                mapping.put("dynamic", columnPolicy.mappingValue());
-            }
+            // merge in user defined mapping parameter
+            mapping.putAll(tableParameter.mappings());
         }
         return mapping;
     }
@@ -217,11 +197,4 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return analyzedTableElements;
     }
 
-    public void columnPolicy(ColumnPolicy columnPolicy) {
-        this.columnPolicy = columnPolicy;
-    }
-
-    public ColumnPolicy columnPolicy() {
-        return columnPolicy;
-    }
 }

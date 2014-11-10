@@ -36,7 +36,7 @@ import java.util.Locale;
 
 public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalysis> {
 
-    private static final TablePropertiesAnalysis tablePropertiesAnalysis = new TablePropertiesAnalysis();
+    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final ReferenceInfos referenceInfos;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
@@ -66,14 +66,9 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
-        if (node.properties().isPresent()) {
-            TablePropertiesAnalysis.TableProperties tableProperties = tablePropertiesAnalysis.tableProperties(node.properties().get(), context.parameters(), true);
-            context.indexSettingsBuilder().put(tableProperties.settings());
-            if (tableProperties.columnPolicy().isPresent()) {
-                // apply column_policy
-                context.columnPolicy(tableProperties.columnPolicy().get());
-            }
-        }
+        TABLE_PROPERTIES_ANALYZER.analyze(
+                context.tableParameter(), new TableParameterInfo(),
+                node.properties(), context.parameters(), true);
 
         context.analyzedTableElements(TableElementsAnalyzer.analyze(
                 node.tableElements(),
@@ -81,10 +76,13 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
                 context.fulltextAnalyzerResolver()));
 
         context.analyzedTableElements().finalizeAndValidate();
+        // update table settings
+        context.tableParameter().settingsBuilder().put(context.analyzedTableElements().settings());
 
         for (CrateTableOption option : node.crateTableOptions()) {
             process(option, context);
         }
+
         return null;
     }
 
@@ -105,6 +103,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
             context.routing(routingColumn);
         }
+
         int numShards;
         if (node.numberOfShards().isPresent()) {
             numShards = ExpressionToNumberVisitor.convert(node.numberOfShards().get(), context.parameters()).intValue();
@@ -114,7 +113,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         } else {
             numShards = Constants.DEFAULT_NUM_SHARDS;
         }
-        context.indexSettingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
+        context.tableParameter().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
         return null;
     }
 

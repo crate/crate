@@ -28,7 +28,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 
 public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalysis> {
 
-    private static final TablePropertiesAnalysis tablePropertiesAnalysis = new CreateBlobTablePropertiesAnalysis();
+    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
 
 
     @Override
@@ -47,17 +47,15 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
             } else {
                 numShards = Constants.DEFAULT_NUM_SHARDS;
             }
-            context.indexSettingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
+            context.tableParameter().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
         }
 
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
-        if (node.genericProperties().isPresent()) {
-            TablePropertiesAnalysis.TableProperties tableProperties =
-                    tablePropertiesAnalysis.tableProperties(node.genericProperties().get(), context.parameters(), true);
-            context.indexSettingsBuilder().put(tableProperties.settings());
-        }
+        TABLE_PROPERTIES_ANALYZER.analyze(
+                context.tableParameter(), new BlobTableParameterInfo(),
+                node.genericProperties(), context.parameters(), true);
 
         return null;
     }

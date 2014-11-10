@@ -129,7 +129,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         return wrapRowCountFuture(
                 blobIndices.createBlobTable(
                         analysis.tableName(),
-                        analysis.indexSettings()
+                        analysis.tableParameter().settings()
                 ),
                 1L
         );
@@ -299,7 +299,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     @Override
     public ListenableFuture<Long> visitAlterBlobTableAnalysis(AlterBlobTableAnalysis analysis, Void context) {
         return wrapRowCountFuture(
-                blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.indexSettings()),
+                blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
                 1L);
     }
 
@@ -370,12 +370,21 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         final SettableFuture<Long> result = SettableFuture.create();
         final String[] indices;
         boolean updateTemplate = false;
+        boolean updateMapping = !analysis.tableParameter().mappings().isEmpty();
+        final TableParameter tableParameter = analysis.tableParameter();
+        TableParameter concreteTableParameter = tableParameter;
         if (analysis.table().isPartitioned()) {
             if (analysis.partitionName().isPresent()) {
                 indices = new String[]{ analysis.partitionName().get().stringValue() };
             } else {
                 updateTemplate = true; // only update template when updating whole partitioned table
                 indices = analysis.table().concreteIndices();
+                AlterPartitionedTableParameterInfo tableSettingsInfo =
+                        (AlterPartitionedTableParameterInfo)analysis.table().tableParameterInfo();
+                // create new filtered partition table settings
+                concreteTableParameter = new TableParameter(
+                        analysis.tableParameter().settings(),
+                        tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
             }
         } else {
            indices = new String[]{ analysis.table().ident().name() };
@@ -386,7 +395,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         }
 
         final List<ListenableFuture<?>> results = new ArrayList<>(
-                indices.length + (updateTemplate ? 1 : 0) + (analysis.columnPolicy().isPresent() ? 1 : 0)
+                indices.length + (updateTemplate ? 1 : 0) + (updateMapping ? 1 : 0)
         );
         if (updateTemplate) {
             final SettableFuture<?> templateFuture = SettableFuture.create();
@@ -401,14 +410,11 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                 public void onResponse(GetIndexTemplatesResponse response) {
                     Map<String, Object> mapping = new HashMap<>();
                     IndexTemplateMetaData template = response.getIndexTemplates().get(0);
-                    if(analysis.columnPolicy().isPresent()){
-                        mapping.put("dynamic", analysis.columnPolicy().get().mappingValue());
-                    }
-                    mapping = mergeMapping(template, mapping);
+                    mapping = mergeMapping(template, analysis.tableParameter().mappings());
 
                     ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
                     settingsBuilder.put(template.settings());
-                    settingsBuilder.put(analysis.settings());
+                    settingsBuilder.put(tableParameter.settings());
 
                     PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
                             .create(false)
@@ -440,11 +446,11 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
             });
 
         }
-        if( analysis.settings().getAsMap().size() > 0){
+        if (!concreteTableParameter.settings().getAsMap().isEmpty()) {
             // update every concrete index
             for (String index : indices) {
                 UpdateSettingsRequest request = new UpdateSettingsRequest(
-                        analysis.settings(),
+                        concreteTableParameter.settings(),
                         index);
                 final SettableFuture<?> future = SettableFuture.create();
                 results.add(future);
@@ -461,12 +467,10 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                 });
             }
         }
-        if(analysis.columnPolicy().isPresent()){
+        if (updateMapping) {
             PutMappingRequest request = new PutMappingRequest(indices);
             request.type(Constants.DEFAULT_MAPPING_TYPE);
-            Map<String, Object> mapping = new HashMap<>();
-            mapping.put("dynamic", analysis.columnPolicy().get().mappingValue());
-            request.source(mapping);
+            request.source(analysis.tableParameter().mappings());
             final SettableFuture<?> future = SettableFuture.create();
             results.add(future);
             transportPutMappingAction.execute(request, new ActionListener<PutMappingResponse>() {

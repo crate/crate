@@ -21,10 +21,16 @@
 
 package io.crate.integrationtests;
 
+import io.crate.PartitionName;
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +38,7 @@ import org.junit.rules.ExpectedException;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -437,6 +444,41 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "where schema_name = 'blob' and table_name = 'screenshots'");
         assertEquals("1", response.rows()[0][0]);
         execute("drop blob table screenshots");
+    }
+
+    @Test
+    public void testAlterShardsOfPartitionedTable() throws Exception {
+        execute("create table quotes (id integer, quote string, date timestamp) " +
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
+        ensureGreen();
+        assertThat(response.rowCount(), is(1L));
+
+        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L,
+                        2, "Now panic", 1395961200000L}
+        );
+        assertThat(response.rowCount(), is(2L));
+        ensureGreen();
+        refresh();
+
+        execute("alter table quotes set (number_of_shards=5)");
+        waitNoPendingTasksOnAll();
+
+        String templateName = PartitionName.templateName("quotes");
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
+                .prepareGetTemplates(templateName).execute().actionGet();
+        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(5));
+
+        execute("insert into quotes (id, quote, date) values (?, ?, ?)",
+                new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}
+        );
+        execute("refresh table quotes");
+
+        String partition = new PartitionName("quotes", Arrays.asList(new BytesRef("1495961200000"))).stringValue();
+        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
+                partition).execute().get();
+        assertThat(settingsResponse.getSetting(partition, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("5"));
     }
 
 }

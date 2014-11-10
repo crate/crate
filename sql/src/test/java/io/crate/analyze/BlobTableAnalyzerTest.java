@@ -93,8 +93,8 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
         assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
-        assertThat(analysis.indexSettings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(10));
-        assertThat(analysis.indexSettings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(10));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
     }
 
     @Test
@@ -103,8 +103,8 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
                 "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.indexSettings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(10));
-        assertThat(analysis.indexSettings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(10));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
     }
 
     @Test
@@ -113,7 +113,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
                 "create blob table screenshots with (blobs_path='/tmp/crate_blob_data')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.indexSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
+        assertThat(analysis.tableParameter().settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
     }
 
     @Test
@@ -122,7 +122,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
                 "create blob table screenshots with (blobs_path=?)", new Object[]{"/tmp/crate_blob_data"});
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.indexSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
+        assertThat(analysis.tableParameter().settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
     }
 
     @Test
@@ -177,7 +177,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     public void testAlterBlobTableWithReplicas() throws Exception {
         AlterBlobTableAnalysis analysis = (AlterBlobTableAnalysis)analyze("alter blob table myblobs set (number_of_replicas=2)");
         assertThat(analysis.table().ident().name(), is("myblobs"));
-        assertThat(analysis.indexSettings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
+        assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
     }
 
     @Test
@@ -195,8 +195,8 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
         assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
-        assertThat(analysis.indexSettings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(2));
-        assertThat(analysis.indexSettings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(2));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
     }
 
     @Test

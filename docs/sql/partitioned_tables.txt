@@ -211,6 +211,13 @@ All common ``ALTER TABLE`` parameters affect all existing and future (to be crea
     cr> ALTER TABLE parted_table reset (number_of_replicas)
     ALTER OK (... sec)
 
+Additionally to the common parameters, partitioned tables do support
+altering the shard configuration **of future** partitions using the
+``number_of_shards`` parameter::
+
+    cr> ALTER TABLE parted_table set (number_of_shards=10)
+    ALTER OK (... sec)
+
 
 Limitations
 ===========

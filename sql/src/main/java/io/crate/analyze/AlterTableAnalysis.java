@@ -30,14 +30,12 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 
 public class AlterTableAnalysis extends AbstractDDLAnalysis {
 
     private final ReferenceInfos referenceInfos;
-    private Settings settings;
     private TableInfo tableInfo;
     private Optional<PartitionName> partitionName = Optional.absent();
     private Optional<ColumnPolicy> columnPolicy = Optional.absent();
@@ -82,23 +80,6 @@ public class AlterTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public void normalize() {
 
-    }
-
-    public void settings(Settings settings) {
-        this.settings = settings;
-    }
-
-    public Settings settings() {
-        return settings;
-    }
-
-
-    public Optional<ColumnPolicy> columnPolicy() {
-        return columnPolicy;
-    }
-
-    public void columnPolicy(@Nullable ColumnPolicy columnPolicy) {
-        this.columnPolicy = Optional.fromNullable(columnPolicy);
     }
 
     @Override

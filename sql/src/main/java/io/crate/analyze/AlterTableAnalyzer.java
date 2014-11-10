@@ -26,14 +26,12 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.ImmutableSettings;
 
 public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTableAnalysis> {
 
-    private static final TablePropertiesAnalysis tablePropertiesAnalysis = new TablePropertiesAnalysis();
+    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final ReferenceInfos referenceInfos;
 
     @Inject
@@ -54,26 +52,18 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
     public Void visitAlterTable(AlterTable node, AlterTableAnalysis context) {
         setTableAndPartitionName(node.table(), context);
 
-        if (node.genericProperties().isPresent()) {
-            GenericProperties properties = node.genericProperties().get();
-            TablePropertiesAnalysis.TableProperties tableProperties =
-                    tablePropertiesAnalysis.tableProperties(properties, context.parameters());
-            context.settings(tableProperties.settings());
-            if(tableProperties.columnPolicy().isPresent()){
-                // apply column_policy
-                context.columnPolicy(tableProperties.columnPolicy().get());
-            }
+        TableParameterInfo tableParameterInfo = context.table().tableParameterInfo();
+        if (context.partitionName().isPresent()) {
+            assert tableParameterInfo instanceof AlterPartitionedTableParameterInfo;
+            tableParameterInfo = ((AlterPartitionedTableParameterInfo) tableParameterInfo).partitionTableSettingsInfo();
+        }
 
+        if (node.genericProperties().isPresent()) {
+            TABLE_PROPERTIES_ANALYZER.analyze(
+                    context.tableParameter(), tableParameterInfo, node.genericProperties(), context.parameters());
         } else if (!node.resetProperties().isEmpty()) {
-            ImmutableSettings.Builder builder = ImmutableSettings.builder();
-            for (String property : node.resetProperties()) {
-                if(TablePropertiesAnalysis.COLUMN_POLICY.equals(property)){
-                    context.columnPolicy(tablePropertiesAnalysis.defaultColumnPolicy());
-                } else {
-                    builder.put(tablePropertiesAnalysis.getDefault(property));
-                }
-            }
-            context.settings(builder.build());
+            TABLE_PROPERTIES_ANALYZER.analyze(
+                    context.tableParameter(), tableParameterInfo, node.resetProperties());
         }
 
         return null;
