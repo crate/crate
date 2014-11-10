@@ -118,7 +118,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         for (Expression partitionByColumn : node.columns()) {
             ColumnIdent partitionedByIdent = ColumnIdent.fromPath(
                     ExpressionToStringVisitor.convert(partitionByColumn, context.parameters()));
-            context.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent);
+            context.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent, false);
             ColumnIdent routing = context.routing();
             if (routing != null && routing.equals(partitionedByIdent)) {
                 throw new IllegalArgumentException(

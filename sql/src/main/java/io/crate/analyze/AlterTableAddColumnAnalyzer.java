@@ -111,7 +111,7 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
         }
 
         for (ColumnIdent columnIdent : context.table().partitionedBy()) {
-            context.analyzedTableElements().changeToPartitionedByColumn(columnIdent);
+            context.analyzedTableElements().changeToPartitionedByColumn(columnIdent, true);
         }
     }
 

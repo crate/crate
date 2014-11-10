@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: ``alter table add column`` didn't work correctly on partitioned tables.
+
  - Added cast function for timestamp type
 
 2014/11/10 0.45.3
