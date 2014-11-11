@@ -545,6 +545,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat((String)response.rows()[0][0], is("select id from sys.cluster"));
 
         executor.exec("reset global stats.enabled, stats.jobs_log_size");
+        waitNoPendingTasksOnAll();
         response= executor.exec("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L));
     }
@@ -583,6 +584,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         response = executor.exec("reset global stats.enabled, stats.jobs_log_size");
         assertThat(response.rowCount(), is(1L));
+        waitNoPendingTasksOnAll();
 
         response = executor.exec("select settings['stats']['enabled'], settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
@@ -610,6 +612,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         response = executor.exec("reset global stats.operations_log_size, stats.enabled");
         assertThat(response.rowCount(), is(1L));
+        waitNoPendingTasksOnAll();
 
         response = executor.exec(
                 "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
@@ -640,6 +643,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertThat((Long)resp.rows()[0][0], is(0L));
 
         executor.exec("set global transient stats.enabled = true, stats.operations_log_size=10");
+        waitNoPendingTasksOnAll();
 
         executor.exec(
             "select count(*), race from characters group by race order by count(*) desc limit 2");
@@ -654,6 +658,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         assertTrue(names.contains("localMerge"));
 
         executor.exec("reset global stats.enabled, stats.operations_log_size");
+        waitNoPendingTasksOnAll();
         resp = executor.exec("select count(*) from sys.operations_log");
         assertThat((Long) resp.rows()[0][0], is(0L));
     }

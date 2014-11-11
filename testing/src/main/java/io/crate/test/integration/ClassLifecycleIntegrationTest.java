@@ -23,13 +23,19 @@ package io.crate.test.integration;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.lucene.util.AbstractRandomizedTest;
+import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.ElasticsearchTestCase;
+import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 import java.util.Random;
+
+import static org.elasticsearch.test.ElasticsearchTestCase.assertBusy;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
 
 /**
  * This base class provides a testCluster that will keep its state across all test methods and will
@@ -79,5 +85,21 @@ public class ClassLifecycleIntegrationTest extends AbstractRandomizedTest {
         if (random != null) {
             random = null;
         }
+    }
+
+    /**
+     * Waits until all nodes have no pending tasks.
+     */
+    public void waitNoPendingTasksOnAll() throws Exception {
+        assertNoTimeout(GLOBAL_CLUSTER.client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).get());
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                PendingClusterTasksResponse pendingTasks = GLOBAL_CLUSTER.client().admin().cluster().preparePendingClusterTasks().setLocal(true).get();
+                assertThat("client " + GLOBAL_CLUSTER.client()  + " still has pending tasks " +
+                        pendingTasks.prettyPrint(), pendingTasks, Matchers.emptyIterable());
+            }
+        });
+        assertNoTimeout(GLOBAL_CLUSTER.client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).get());
     }
 }

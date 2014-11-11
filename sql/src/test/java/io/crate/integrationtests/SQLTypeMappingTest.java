@@ -289,6 +289,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("insert into t1 values ({a='abc'})");
         refresh();
+        waitNoPendingTasksOnAll();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Validation failed for o.a: Invalid string");
         execute("insert into t1 values ({a=['123', '456']})");
