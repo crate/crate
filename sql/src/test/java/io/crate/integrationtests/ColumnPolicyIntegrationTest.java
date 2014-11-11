@@ -351,6 +351,19 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testAlterTable() throws Exception {
+        execute("create table dynamic_table (" +
+                "  id integer primary key, " +
+                "  score double" +
+                ") with (number_of_replicas=0, column_policy='strict')");
+        ensureGreen();
+        execute("insert into dynamic_table (id, score) values (1, 42)");
+        execute("alter table dynamic_table set (column_policy = 'dynamic')");
+        waitNoPendingTasksOnAll();
+        execute("insert into dynamic_table (id, score, new_col) values (2, 4656234.345, 'hello')");
+    }
+
+    @Test
     public void testResetColumnPolicy() throws Exception {
         execute("create table dynamic_table (" +
                 "  id integer, " +

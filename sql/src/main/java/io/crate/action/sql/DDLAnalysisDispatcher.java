@@ -402,7 +402,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
                     Map<String, Object> mapping = new HashMap<>();
                     IndexTemplateMetaData template = response.getIndexTemplates().get(0);
                     if(analysis.columnPolicy().isPresent()){
-                        mapping.put("dynamic", analysis.columnPolicy().get());
+                        mapping.put("dynamic", analysis.columnPolicy().get().mappingValue());
                     }
                     mapping = mergeMapping(template, mapping);
 
@@ -465,7 +465,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
             PutMappingRequest request = new PutMappingRequest(indices);
             request.type(Constants.DEFAULT_MAPPING_TYPE);
             Map<String, Object> mapping = new HashMap<>();
-            mapping.put("dynamic", analysis.columnPolicy().get());
+            mapping.put("dynamic", analysis.columnPolicy().get().mappingValue());
             request.source(mapping);
             final SettableFuture<?> future = SettableFuture.create();
             results.add(future);
