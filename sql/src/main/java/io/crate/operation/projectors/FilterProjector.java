@@ -51,7 +51,7 @@ public class FilterProjector implements Projector {
     }
 
     @Override
-    public boolean setNextRow(Object... row) {
+    public synchronized boolean setNextRow(Object... row) {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
