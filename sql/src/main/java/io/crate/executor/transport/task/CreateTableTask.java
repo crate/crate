@@ -26,6 +26,7 @@ import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.TaskExecutionException;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.CreateTableNode;
 import org.elasticsearch.action.ActionListener;
@@ -44,9 +45,7 @@ import org.elasticsearch.cluster.ClusterService;
 import java.util.List;
 import java.util.Locale;
 
-public class CreateTableTask extends AbstractChainedTask {
-
-    private static final TaskResult SUCCESS_RESULT = TaskResult.ONE_ROW;
+public class CreateTableTask extends AbstractChainedTask<RowCountResult> {
 
     private final ClusterService clusterService;
     private final TransportCreateIndexAction createIndexAction;
@@ -93,7 +92,7 @@ public class CreateTableTask extends AbstractChainedTask {
                     if (!response.isAcknowledged()) {
                         warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", planNode.tableName()));
                     }
-                    result.set(SUCCESS_RESULT);
+                    result.set(TaskResult.ONE_ROW);
                 }
 
                 @Override
@@ -108,7 +107,7 @@ public class CreateTableTask extends AbstractChainedTask {
                     if (!response.isAcknowledged()) {
                         warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", planNode.tableName()));
                     }
-                    result.set(SUCCESS_RESULT);
+                    result.set(TaskResult.ONE_ROW);
                 }
 
                 @Override

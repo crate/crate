@@ -22,6 +22,7 @@
 package io.crate.executor.transport.task;
 
 import io.crate.PartitionName;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.ddl.DropTableNode;
@@ -38,11 +39,9 @@ import org.elasticsearch.common.logging.Loggers;
 import java.util.List;
 import java.util.Locale;
 
-public class DropTableTask extends AbstractChainedTask {
+public class DropTableTask extends AbstractChainedTask<RowCountResult> {
 
-    private static final TaskResult SUCCESS_RESULT = TaskResult.ONE_ROW;
-
-    private final ESLogger logger = Loggers.getLogger(getClass());
+        private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final TableInfo tableInfo;
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;
@@ -71,7 +70,7 @@ public class DropTableTask extends AbstractChainedTask {
                     if (!tableInfo.partitions().isEmpty()) {
                         deleteESIndex(tableInfo.ident().name());
                     } else {
-                        result.set(SUCCESS_RESULT);
+                        result.set(TaskResult.ONE_ROW);
                     }
                 }
 
@@ -93,7 +92,7 @@ public class DropTableTask extends AbstractChainedTask {
                 if (!response.isAcknowledged()) {
                     warnNotAcknowledged(String.format(Locale.ENGLISH, "dropping table '%s'", tableInfo.ident().fqn()));
                 }
-                result.set(SUCCESS_RESULT);
+                result.set(TaskResult.ONE_ROW);
             }
 
             @Override

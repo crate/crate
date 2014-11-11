@@ -22,6 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
@@ -33,10 +34,10 @@ import org.elasticsearch.action.support.IndicesOptions;
 
 import java.util.List;
 
-public class ESDeleteIndexTask extends AbstractChainedTask {
+public class ESDeleteIndexTask extends AbstractChainedTask<RowCountResult> {
 
-    private static final TaskResult RESULT = TaskResult.ONE_ROW;
-    private static final TaskResult RESULT_PARTITION = TaskResult.ROW_COUNT_UNKNOWN;
+    private static final RowCountResult RESULT = TaskResult.ONE_ROW;
+    private static final RowCountResult RESULT_PARTITION = TaskResult.ROW_COUNT_UNKNOWN;
 
     private final TransportDeleteIndexAction transport;
     private final DeleteIndexRequest request;
@@ -44,10 +45,10 @@ public class ESDeleteIndexTask extends AbstractChainedTask {
 
     static class DeleteIndexListener implements ActionListener<DeleteIndexResponse> {
 
-        private final SettableFuture<TaskResult> future;
+        private final SettableFuture<RowCountResult> future;
         private final boolean isPartition;
 
-        DeleteIndexListener(SettableFuture<TaskResult> future, boolean isPartition) {
+        DeleteIndexListener(SettableFuture<RowCountResult> future, boolean isPartition) {
             this.future = future;
             this.isPartition = isPartition;
         }

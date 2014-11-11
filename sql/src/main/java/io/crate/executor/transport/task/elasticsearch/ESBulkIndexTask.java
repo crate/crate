@@ -26,8 +26,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.RowCountResult;
-import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
@@ -41,11 +41,11 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
-public class ESBulkIndexTask implements Task<RowCountResult> {
+public class ESBulkIndexTask extends AbstractChainedTask<RowCountResult> {
 
     private final BulkShardProcessor bulkShardProcessor;
     private final ESIndexNode node;
-    private final ArrayList<ListenableFuture<RowCountResult>> resultList;
+    private final List<ListenableFuture<RowCountResult>> bulkResultList;
 
     public ESBulkIndexTask(ClusterService clusterService,
                            Settings settings,
@@ -63,30 +63,28 @@ public class ESBulkIndexTask implements Task<RowCountResult> {
                 this.node.sourceMaps().size());
 
         if (!node.isBulkRequest()) {
-            final SettableFuture<RowCountResult> futureResult = SettableFuture.create();
-            resultList = new ArrayList<>(1);
-            resultList.add(futureResult);
+            bulkResultList = this.resultList;
 
             Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
                 @Override
-                public void onSuccess(@Nullable BitSet result) {
-                    if (result == null) {
-                        futureResult.set(TaskResult.ROW_COUNT_UNKNOWN);
+                public void onSuccess(@Nullable BitSet bulkShardProcessorResult) {
+                    if (bulkShardProcessorResult == null) {
+                        result.set(TaskResult.ROW_COUNT_UNKNOWN);
                     } else {
-                        futureResult.set(new RowCountResult(result.cardinality()));
+                        result.set(new RowCountResult(bulkShardProcessorResult.cardinality()));
                     }
                 }
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
-                    futureResult.setException(t);
+                    result.setException(t);
                 }
             });
         } else {
             final int numResults = node.sourceMaps().size();
-            resultList = new ArrayList<>(numResults);
+            bulkResultList = new ArrayList<>(numResults);
             for (int i = 0; i < numResults; i++) {
-                resultList.add(SettableFuture.<RowCountResult>create());
+                bulkResultList.add(SettableFuture.<RowCountResult>create());
             }
             Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
                 @Override
@@ -97,18 +95,18 @@ public class ESBulkIndexTask implements Task<RowCountResult> {
                     }
 
                     for (int i = 0; i < numResults; i++) {
-                        SettableFuture<RowCountResult> future = (SettableFuture<RowCountResult>) resultList.get(i);
+                        SettableFuture<RowCountResult> future = (SettableFuture<RowCountResult>) bulkResultList.get(i);
                         future.set(result.get(i) ? TaskResult.ONE_ROW : TaskResult.FAILURE);
                     }
                 }
 
                 private void setAllToFailed(@Nullable Throwable throwable) {
                     if (throwable == null) {
-                        for (ListenableFuture<RowCountResult> future : resultList) {
+                        for (ListenableFuture<RowCountResult> future : bulkResultList) {
                             ((SettableFuture<RowCountResult>) future).set(TaskResult.FAILURE);
                         }
                     } else {
-                        for (ListenableFuture<RowCountResult> future : resultList) {
+                        for (ListenableFuture<RowCountResult> future : bulkResultList) {
                             ((SettableFuture<RowCountResult>) future).set(RowCountResult.error(throwable));
                         }
                     }
@@ -123,7 +121,7 @@ public class ESBulkIndexTask implements Task<RowCountResult> {
     }
 
     @Override
-    public void start() {
+    protected void doStart(List<TaskResult> upstreamResults) {
         if (node.indices().length == 1) {
             String index = node.indices()[0];
             for(int i=0; i < this.node.sourceMaps().size(); i++){
@@ -149,11 +147,6 @@ public class ESBulkIndexTask implements Task<RowCountResult> {
 
     @Override
     public List<ListenableFuture<RowCountResult>> result() {
-        return resultList;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("BulkIndexTask can't have an upstream result");
+        return bulkResultList;
     }
 }

@@ -36,17 +36,17 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public abstract class AbstractChainedTask implements Task<TaskResult> {
+public abstract class AbstractChainedTask<T extends TaskResult> implements Task<T> {
 
     protected List<ListenableFuture<TaskResult>> upstreamResult = ImmutableList.of();
-    protected final List<ListenableFuture<TaskResult>> resultList;
-    protected final SettableFuture<TaskResult> result;
+    protected final List<ListenableFuture<T>> resultList;
+    protected final SettableFuture<T> result;
 
     protected final ESLogger logger = Loggers.getLogger(getClass());
 
     protected AbstractChainedTask() {
         this.result = SettableFuture.create();
-        this.resultList = ImmutableList.<ListenableFuture<TaskResult>>of(this.result);
+        this.resultList = ImmutableList.<ListenableFuture<T>>of(this.result);
     }
 
 
@@ -55,6 +55,7 @@ public abstract class AbstractChainedTask implements Task<TaskResult> {
         if (!this.upstreamResult.isEmpty()) {
             Futures.addCallback(Futures.allAsList(this.upstreamResult), new FutureCallback<List<TaskResult>>() {
                 @Override
+                @SuppressWarnings("unchecked")
                 public void onSuccess(@Nullable List<TaskResult> result) {
                     doStart(result);
                 }
@@ -85,7 +86,7 @@ public abstract class AbstractChainedTask implements Task<TaskResult> {
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> result() {
+    public List<ListenableFuture<T>> result() {
         return resultList;
     }
 

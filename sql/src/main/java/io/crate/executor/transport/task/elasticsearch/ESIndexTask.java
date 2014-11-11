@@ -22,6 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.ActionListener;
@@ -31,7 +32,7 @@ import org.elasticsearch.action.index.TransportIndexAction;
 
 import java.util.List;
 
-public class ESIndexTask extends AbstractESIndexTask {
+public class ESIndexTask extends AbstractESIndexTask<RowCountResult> {
 
     private final TransportIndexAction transport;
     private final IndexRequest request;
@@ -39,9 +40,9 @@ public class ESIndexTask extends AbstractESIndexTask {
     private final ActionListener<IndexResponse> listener;
 
     static class IndexResponseListener implements ActionListener<IndexResponse> {
-        private final SettableFuture<TaskResult> result;
+        private final SettableFuture<RowCountResult> result;
 
-        IndexResponseListener(SettableFuture<TaskResult> result) {
+        IndexResponseListener(SettableFuture<RowCountResult> result) {
             this.result = result;
         }
 

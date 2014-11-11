@@ -23,6 +23,7 @@ package io.crate.executor.transport.task;
 
 
 import io.crate.Constants;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.MappingUpdateNode;
 import org.elasticsearch.action.ActionListener;
@@ -30,13 +31,14 @@ import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public class UpdateMappingTask extends AbstractChainedTask {
+public class UpdateMappingTask extends AbstractChainedTask<RowCountResult> {
 
     private final TransportPutMappingAction putMappingAction;
     private final MappingUpdateNode node;
@@ -52,17 +54,20 @@ public class UpdateMappingTask extends AbstractChainedTask {
     protected void doStart(List<TaskResult> upstreamResults) {
         IndexMetaData indexMetaData = node.clusterService().state().getMetaData().getIndices().get(node.indices()[0]);
         Map<String, Object> mapping = node.mapping();
-        if(indexMetaData == null){
+        if (indexMetaData == null){
             // TODO: should not happen!
-            result.set(TaskResult.EMPTY_RESULT);
+            result.set(TaskResult.FAILURE);
             return;
         }
 
         try {
-            Map mergedMeta = (Map)indexMetaData.getMappings()
-                    .get(Constants.DEFAULT_MAPPING_TYPE)
-                    .getSourceAsMap()
-                    .get("_meta");
+            MappingMetaData metaData = indexMetaData.getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+            if (metaData == null) {
+                // SHOULD NOT HAPPEN AS WELL
+                result.set(TaskResult.FAILURE);
+                return;
+            }
+            Map mergedMeta = (Map)metaData.getSourceAsMap().get("_meta");
             if (mergedMeta != null) {
                 XContentHelper.update(mergedMeta, (Map) mapping.get("_meta"));
                 mapping.put("_meta", mergedMeta);

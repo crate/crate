@@ -23,6 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.ddl.ESCreateTemplateNode;
@@ -34,13 +35,13 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 
 import java.util.List;
 
-public class ESCreateTemplateTask extends AbstractChainedTask {
+public class ESCreateTemplateTask extends AbstractChainedTask<RowCountResult> {
 
     private static class CreateTemplateListener implements ActionListener<PutIndexTemplateResponse> {
 
-        private final SettableFuture<TaskResult> future;
+        private final SettableFuture<RowCountResult> future;
 
-        private CreateTemplateListener(SettableFuture<TaskResult> future) {
+        private CreateTemplateListener(SettableFuture<RowCountResult> future) {
             this.future = future;
         }
 

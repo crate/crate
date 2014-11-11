@@ -22,13 +22,14 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import io.crate.Constants;
+import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 
-public abstract class AbstractESIndexTask extends AbstractChainedTask {
+public abstract class AbstractESIndexTask<T extends TaskResult> extends AbstractChainedTask<T> {
 
     protected final ESIndexNode node;
 
@@ -46,7 +47,6 @@ public abstract class AbstractESIndexTask extends AbstractChainedTask {
         request.source(source, false);
         request.id(id);
         request.routing(routingValue);
-
         return request;
     }
 }
