@@ -316,6 +316,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
                 new Object[]{28, true, false, true});
         execute("refresh table numbers");
+        waitNoPendingTasksOnAll();
 
         execute("select * from numbers order by num");
         assertThat(response.rowCount(), is(2L));
@@ -327,6 +328,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("update numbers set prime=true, changed='2014-10-23T10:20', author='troll' where num=28");
         assertThat(response.rowCount(), is(1L));
         execute("refresh table numbers");
+        waitNoPendingTasksOnAll();
 
         execute("select * from numbers order by num");
         assertThat(response.rowCount(), is(2L));
