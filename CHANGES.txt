@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a rare race condition that could cause the ``having`` clause to filter
+   incorrectly.
+
  - Fix: ``alter table add column`` didn't work correctly on partitioned tables.
 
  - Added cast function for timestamp type
