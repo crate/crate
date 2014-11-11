@@ -1370,6 +1370,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into test (some_id, foo) values ('124', 'bar1')");
         assertEquals(1, response.rowCount());
         refresh();
+        waitNoPendingTasksOnAll(); // wait for mapping update as foo is being added
 
         execute("select some_id, foo from test where some_id='124'");
         assertEquals(1, response.rowCount());
