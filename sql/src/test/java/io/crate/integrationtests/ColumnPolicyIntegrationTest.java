@@ -128,6 +128,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("insert into dynamic_table (id, name, boo) values (2, 'Trillian', true)");
         execute("refresh table dynamic_table");
+        waitNoPendingTasksOnAll();
 
         execute("select * from dynamic_table order by id");
         assertThat(response.rowCount(), is(2L));
@@ -154,6 +155,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("update dynamic_table set name='Trillian', boo=true where name='Ford'");
         execute("refresh table dynamic_table");
+        waitNoPendingTasksOnAll();
 
         execute("select * from dynamic_table");
         assertThat(response.rowCount(), is(1L));
@@ -205,6 +207,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("update dynamic_table set name='Trillian', good=true where score > 0.0");
         execute("refresh table dynamic_table");
+        waitNoPendingTasksOnAll();
 
         execute("select * from dynamic_table");
         assertThat(response.rowCount(), is(1L));
