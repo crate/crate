@@ -178,6 +178,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("insert into dynamic_table (id, score, good) values (2, -0.01, false)");
         execute("refresh table dynamic_table");
+        waitNoPendingTasksOnAll();
 
         execute("select * from dynamic_table order by id");
         assertThat(response.rowCount(), is(2L));
