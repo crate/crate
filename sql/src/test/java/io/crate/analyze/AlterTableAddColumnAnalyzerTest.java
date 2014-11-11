@@ -145,7 +145,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAddArrayColumn() throws Exception {
         AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table users add newtags array(string)");
-        AnalyzedColumnDefinition columnDefinition = analysis.analyzedTableElements().columns().get(0);
+        AnalyzedColumnDefinition columnDefinition = analysis.analyzedTableElements().columnsMap().get(ColumnIdent.fromPath("newtags"));
         assertThat(columnDefinition.name(), Matchers.equalTo("newtags"));
         assertThat(columnDefinition.dataType(), Matchers.equalTo("string"));
         assertTrue(columnDefinition.isArrayOrInArray());
@@ -157,7 +157,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
                 "alter table users add column foo['x']['y'] string");
 
         assertThat(analysis.analyzedTableElements().columns().size(), is(2)); // id pk column is also added
-        AnalyzedColumnDefinition column = analysis.analyzedTableElements().columns().get(0);
+        AnalyzedColumnDefinition column = analysis.analyzedTableElements().columnsMap().get(ColumnIdent.fromPath("foo"));
         assertThat(column.ident(), Matchers.equalTo(new ColumnIdent("foo")));
         assertThat(column.children().size(), is(1));
         AnalyzedColumnDefinition xColumn = column.children().get(0);

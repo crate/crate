@@ -211,7 +211,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (column_policy='dynamic', number_of_replicas=0)");
         ensureGreen();
 
-        execute("insert into dynamic_table (my_object) values ({a=['a','b']}),({b=['a']})");
+        execute("insert into dynamic_table (my_object) values ({a=['a','b']}), ({b=['a']})");
         execute("refresh table dynamic_table");
 
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");

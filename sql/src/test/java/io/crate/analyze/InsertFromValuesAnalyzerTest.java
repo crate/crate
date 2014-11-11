@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
 import io.crate.PartitionName;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ValidationException;
@@ -660,4 +661,36 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{}
         });
     }
+
+    @Test
+    public void testInsertNewColumnDifferentTypesConvertable() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The values given for column 'new' differ in their types");
+        analyze("insert into users (id, name, new) values (1, 'Trillian', true), (2, 'Ford', [1,2,3])");
+    }
+
+    @Test
+    public void testInsertNewColumnDifferentTypesNestedNotConvertable() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The values given for column 'new.nested' differ in their types");
+        analyze("insert into users (id, name, new) values (1, 'Trillian', {nested=false}), (2, 'Ford', {nested=[1,2,3], foo='bar'})");
+    }
+
+    @Test
+    public void testInsertNewColumnDifferentTypesNestedConvertable() throws Exception {
+        InsertFromValuesAnalysis analysis = (InsertFromValuesAnalysis)analyze("insert into users (id, name, new) values (1, 'Trillian', {nested=false}), (2, 'Ford', {nested='true', foo='bar'})");
+        assertThat(analysis.mappingChanged(), is(true));
+        Map<String, Object> properties = (Map<String, Object>)analysis.mapping().get("properties");
+        Map<String, Object> newColumn = (Map<String, Object>)properties.get("new");
+        Joiner.MapJoiner mapJoiner = Joiner.on(",").withKeyValueSeparator(":");
+        assertThat(mapJoiner.join(newColumn), is("dynamic:true," +
+                "index:not_analyzed," +
+                "store:false," +
+                "properties:{" +
+                    "nested={index=not_analyzed, store=false, doc_values=true, type=boolean}, " +
+                    "foo={index=not_analyzed, store=false, doc_values=true, type=string}}," +
+                "doc_values:false," +
+                "type:object"));
+    }
+
 }

@@ -23,20 +23,21 @@ package io.crate.analyze;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.Reference;
 import io.crate.types.CollectionType;
+import io.crate.types.DataType;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class AnalyzedColumnDefinition {
-
+public class AnalyzedColumnDefinition implements Comparable<AnalyzedColumnDefinition> {
     private final AnalyzedColumnDefinition parent;
     private ColumnIdent ident;
     private String name;
@@ -60,22 +61,26 @@ public class AnalyzedColumnDefinition {
 
     public AnalyzedColumnDefinition(Reference column,
                                     @Nullable AnalyzedColumnDefinition parent) {
+        this(column.info().ident().columnIdent(), column.valueType(), parent);
+    }
+
+    public AnalyzedColumnDefinition(ColumnIdent columnIdent, DataType dataType,
+                                    @Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
-        if(parent == null){
-            ident(column.info().ident().columnIdent());
-            name(column.info().ident().columnIdent().name());
-        } else {
-            name(Iterables.getLast(column.info().ident().columnIdent().path()));
-        }
-        if(column.valueType() instanceof CollectionType){
+        ident(columnIdent);
+        if (dataType instanceof CollectionType){
             //TODO: update collection type to get kind of collection
             collectionType("array");
-            dataType(((CollectionType) column.valueType()).innerType().getName());
+            dataType(((CollectionType) dataType).innerType().getName());
         } else {
-            dataType(column.info().type().getName());
+            dataType(dataType.getName());
         }
     }
 
+    /**
+     * Set the name of the column, will set the {@linkplain #ident} as well.
+     * Do not use together with {@linkplain #ident(io.crate.metadata.ColumnIdent)}.
+     */
     public void name(String name) {
         Preconditions.checkArgument(!name.startsWith("_"), "Column ident must not start with '_'");
         this.name = name;
@@ -83,6 +88,31 @@ public class AnalyzedColumnDefinition {
             this.ident = ColumnIdent.getChild(this.parent.ident, name);
         } else {
             this.ident = new ColumnIdent(name);
+        }
+    }
+
+    /**
+     * Set the ident of the column, will set the {@linkplain #name} as well.
+     * Do not use together with {@linkplain #name(String)}.
+     */
+    public void ident(ColumnIdent ident) {
+        Preconditions.checkArgument(!ident.isSystemColumn(), "Column ident must not start with '_'");
+        assert this.ident == null;
+        if (parent != null) {
+            Preconditions.checkArgument(ident.isChildOf(parent.ident()),
+                    String.format(Locale.ENGLISH,
+                            "given ident '%s' is no child of parent '%s'",
+                            ident.fqn(), parent.ident().fqn()));
+        }
+        this.ident = ident;
+
+
+        if (this.name == null) {
+            if (ident.isColumn()) {
+                this.name = ident.name();
+            } else {
+                this.name = Iterables.getLast(ident.path());
+            }
         }
     }
 
@@ -283,14 +313,6 @@ public class AnalyzedColumnDefinition {
         this.copyToTargets = Lists.newArrayList(targets);
     }
 
-    public void ident(ColumnIdent ident) {
-        assert this.ident == null;
-        this.ident = ident;
-       /* if(this.name == null){
-            this.name = ident.name();
-        }*/
-    }
-
     public boolean isArrayOrInArray() {
         return collectionType != null || (parent != null && parent.isArrayOrInArray());
     }
@@ -301,5 +323,85 @@ public class AnalyzedColumnDefinition {
 
     public boolean isObjectExtension() {
         return this.isObjectExtension;
+    }
+
+    /**
+     * recursively merge given list of <code>otherChildren</code> with its own children.
+     * If element in <code>otherChildren</code> is not contained in own children,
+     * (determined by comparing {@linkplain #ident()} only)
+     * add it. If it is inside the own children, compare for equality in terms of type
+     * and properties etc.
+     * @param otherChildren the children to merge
+     * @throws java.lang.IllegalArgumentException if a column is contained in both
+     *         childrens list (checked recursively) but differs in type and/or other properties
+     */
+    public void mergeChildren(List<AnalyzedColumnDefinition> otherChildren) {
+        for (AnalyzedColumnDefinition otherChild : otherChildren) {
+            if (children.contains(otherChild)) {
+                AnalyzedColumnDefinition child = findInChildren(otherChild.ident(), false);
+                if (child != null) {
+                    if (child.compareTo(otherChild) != 0) {
+                        throw new IllegalArgumentException(
+                                String.format(Locale.ENGLISH,
+                                    "The values given for column '%s' differ in their types",
+                                    child.ident().fqn()));
+                    }
+                    child.mergeChildren(otherChild.children());
+                }
+            } else {
+               addChild(otherChild);
+            }
+        }
+    }
+
+    @Nullable
+    public AnalyzedColumnDefinition findInChildren(ColumnIdent ident,
+                                                    boolean removeIfFound) {
+        AnalyzedColumnDefinition result = null;
+        for (AnalyzedColumnDefinition child : children) {
+            if (child.ident().equals(ident)) {
+                result = child;
+                break;
+            } else if (ident.isChildOf(child.ident())) {
+                AnalyzedColumnDefinition inChildren = child.findInChildren(ident, removeIfFound);
+                if (inChildren != null) {
+                    return inChildren;
+                }
+            }
+        }
+
+        if (removeIfFound && result != null) {
+            children.remove(result);
+        }
+        return result;
+    }
+
+    /**
+     * does a comparison on two AnalyzedColumnDefinitions comparing
+     * all properties, not just the columnIdent,
+     * but does not consider children for comparison.
+     */
+    @Override
+    public int compareTo(AnalyzedColumnDefinition o) {
+        if (o == null) {
+            return 1;
+        }
+        ComparisonChain chain = ComparisonChain.start();
+
+        chain.compare(ident, o.ident)
+                .compare(dataType, o.dataType)
+                .compare(name, o.name)
+                .compare(isIndex, o.isIndex)
+                .compare(isPrimaryKey, isPrimaryKey);
+
+        if (!Objects.equal(analyzer, o.analyzer)
+                || !Objects.equal(analyzerSettings, o.analyzerSettings)
+                || !Objects.equal(collectionType, o.collectionType)
+                || !Objects.equal(index, o.index)
+                || !Objects.equal(objectType, o.objectType)) {
+            return -1;
+        } else {
+            return chain.result();
+        }
     }
 }

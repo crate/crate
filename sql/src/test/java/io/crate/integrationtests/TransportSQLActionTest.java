@@ -1186,54 +1186,31 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateResetNestedObjectUsingUpdateRequest() throws Exception {
-        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
-                .startObject("default")
-                .startObject("_meta").field("primary_keys", "id").endObject()
-                .startObject("properties")
-                .startObject("id")
-                .field("type", "string")
-                .field("index", "not_analyzed")
-                .endObject()
-                .startObject("data")
-                .field("type", "object")
-                .field("index", "not_analyzed")
-                .field("dynamic", false)
-                .endObject()
-                .endObject()
-                .endObject()
-                .endObject();
-
-        prepareCreate("test")
-                .addMapping("default", mapping)
-                .execute().actionGet();
+        execute("create table test (" +
+                "  id string primary key," +
+                "  data object(ignored)" +
+                ") with (number_of_replicas=0)");
         ensureGreen();
 
         Map<String, Object> data = new HashMap<String, Object>() {{
             put("foo", "bar");
-            put("days", new ArrayList<String>() {{
-                add("Mon");
-                add("Tue");
-                add("Wen");
-            }});
+            put("days", new Object[] { "Mon", "Tue", "Wen" });
         }};
         execute("insert into test (id, data) values (?, ?)", new Object[]{"1", data});
         refresh();
 
         execute("select data from test where id = ?", new Object[]{"1"});
-        assertEquals(data, response.rows()[0][0]);
+        assertThat(TestingHelpers.printedTable(response.rows()), is("{days=[Mon, Tue, Wen], foo=bar}\n"));
 
         Map<String, Object> new_data = new HashMap<String, Object>() {{
-            put("days", new ArrayList<String>() {{
-                add("Mon");
-                add("Wen");
-            }});
+            put("days", new Object[] { "Mon", "Wen" });
         }};
         execute("update test set data = ? where id = ?", new Object[]{new_data, "1"});
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount(), is(1L));
         refresh();
 
         execute("select data from test where id = ?", new Object[]{"1"});
-        assertEquals(new_data, response.rows()[0][0]);
+        assertThat(TestingHelpers.printedTable(response.rows()), is("{days=[Mon, Wen]}\n"));
     }
 
     @Test

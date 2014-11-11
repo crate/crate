@@ -102,10 +102,7 @@ public class InsertFromValuesAnalysis extends AbstractInsertAnalysis {
     }
 
     public void addNewColumn(AnalyzedColumnDefinition column){
-        //TODO: check if already exists and has same types
-        //TODO: handle nested columns
-       // AnalyzedColumnDefinition definition = new AnalyzedColumnDefinition(column, null);
-        analyzedTableElements.add(column);
+        analyzedTableElements.merge(column);
     }
 
     public Boolean mappingChanged() {

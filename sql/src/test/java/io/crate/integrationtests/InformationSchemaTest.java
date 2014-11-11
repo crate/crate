@@ -799,8 +799,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         String[] row1 = new String[] { "name", "content" };
         String[] row2 = new String[] { "name" };
-        assertArrayEquals((String[]) response.rows()[0][5], row1);
-        assertArrayEquals((String[]) response.rows()[1][5], row2);
+        assertArrayEquals(row1, (String[]) response.rows()[0][5]);
+        assertArrayEquals(row2, (String[]) response.rows()[1][5]);
     }
 
     @Test

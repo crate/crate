@@ -34,9 +34,9 @@ import java.util.*;
 
 public class AnalyzedTableElements {
 
-    List<AnalyzedColumnDefinition> partitionedByColumns = new ArrayList<>();
-    List<AnalyzedColumnDefinition> columns = new ArrayList<>();
     Set<ColumnIdent> columnIdents = new HashSet<>();
+    Map<ColumnIdent, AnalyzedColumnDefinition> partitionedByColumns = new LinkedHashMap<>(); // for insertion order on iteration
+    Map<ColumnIdent, AnalyzedColumnDefinition> columns = new LinkedHashMap<>(); // for insertion order on iteration
     Map<ColumnIdent, String> columnTypes = new HashMap<>();
     List<String> primaryKeys;
     List<List<String>> partitionedBy;
@@ -55,7 +55,7 @@ public class AnalyzedTableElements {
         Map<String, Object> properties = new HashMap<>(columns.size());
 
         Map<String, Object> indicesMap = new HashMap<>();
-        for (AnalyzedColumnDefinition column : columns) {
+        for (AnalyzedColumnDefinition column : columns.values()) {
             properties.put(column.name(), column.toMapping());
             if (column.hasMetaInfo()) {
                 metaColumns.put(column.name(), column.toMetaMapping());
@@ -87,7 +87,7 @@ public class AnalyzedTableElements {
     public List<List<String>> partitionedBy() {
         if (partitionedBy == null) {
             partitionedBy = new ArrayList<>(partitionedByColumns.size());
-            for (AnalyzedColumnDefinition partitionedByColumn : partitionedByColumns) {
+            for (AnalyzedColumnDefinition partitionedByColumn : partitionedByColumns.values()) {
                 partitionedBy.add(ImmutableList.of(
                         partitionedByColumn.ident().fqn(),
                         partitionedByColumn.dataType())
@@ -99,7 +99,7 @@ public class AnalyzedTableElements {
     }
 
     private void expandColumnIdents() {
-        for (AnalyzedColumnDefinition column : columns) {
+        for (AnalyzedColumnDefinition column : columns.values()) {
             expandColumn(column);
         }
     }
@@ -120,7 +120,7 @@ public class AnalyzedTableElements {
     public List<String> primaryKeys() {
         if (primaryKeys == null) {
             primaryKeys = new ArrayList<>();
-            for (AnalyzedColumnDefinition column : columns) {
+            for (AnalyzedColumnDefinition column : columns.values()) {
                 if (column.isPrimaryKey()) {
                     primaryKeys.add(column.ident().fqn());
                 }
@@ -136,25 +136,34 @@ public class AnalyzedTableElements {
 
     public void add(AnalyzedColumnDefinition analyzedColumnDefinition) {
         if (columnIdents.contains(analyzedColumnDefinition.ident())) {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "column \"%s\" specified more than once", analyzedColumnDefinition.ident().sqlFqn()));
         }
         columnIdents.add(analyzedColumnDefinition.ident());
-        columns.add(analyzedColumnDefinition);
+        columns.put(analyzedColumnDefinition.ident(), analyzedColumnDefinition);
         columnTypes.put(analyzedColumnDefinition.ident(), analyzedColumnDefinition.dataType());
     }
 
     public void merge(AnalyzedColumnDefinition analyzedColumnDefinition) {
-        if(columnIdents.contains(analyzedColumnDefinition.ident())){
-
-        }else {
+        AnalyzedColumnDefinition existing = columns.get(analyzedColumnDefinition.ident());
+        if (existing != null) {
+            if (existing.compareTo(analyzedColumnDefinition) == 0) {
+                // proceed to children - merge them
+                existing.mergeChildren(analyzedColumnDefinition.children());
+            } else {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH,
+                                "The values given for column '%s' differ in their types",
+                                analyzedColumnDefinition.ident().fqn()));
+            }
+        } else {
             add(analyzedColumnDefinition);
         }
     }
 
     public Settings settings() {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
-        for (AnalyzedColumnDefinition column : columns) {
+        for (AnalyzedColumnDefinition column : columns.values()) {
             builder.put(column.analyzerSettings());
         }
         return builder.build();
@@ -162,7 +171,7 @@ public class AnalyzedTableElements {
 
     public void finalizeAndValidate() {
         expandColumnIdents();
-        for (AnalyzedColumnDefinition column : columns) {
+        for (AnalyzedColumnDefinition column : columns.values()) {
             column.validate();
             addCopyToInfo(column);
         }
@@ -219,7 +228,7 @@ public class AnalyzedTableElements {
     private AnalyzedColumnDefinition columnDefinitionByIdent(ColumnIdent ident, boolean removeIfFound) {
         AnalyzedColumnDefinition result = null;
         ColumnIdent root = ident.getRoot();
-        for (AnalyzedColumnDefinition column : columns) {
+        for (AnalyzedColumnDefinition column : columns.values()) {
             if (column.ident().equals(root)) {
                 result = column;
                 break;
@@ -231,34 +240,15 @@ public class AnalyzedTableElements {
 
         if (result.ident().equals(ident)) {
             if (removeIfFound) {
-                columns.remove(result);
+                columnIdents.remove(result.ident());
+                columns.remove(result.ident());
             }
             return result;
         }
-
-        return findInChildren(result, ident, removeIfFound);
+        return result.findInChildren(ident, removeIfFound);
     }
 
-    private AnalyzedColumnDefinition findInChildren(AnalyzedColumnDefinition column,
-                                                    ColumnIdent ident,
-                                                    boolean removeIfFound) {
-        AnalyzedColumnDefinition result = null;
-        for (AnalyzedColumnDefinition child : column.children()) {
-            if (child.ident().equals(ident)) {
-                result = child;
-                break;
-            }
-            AnalyzedColumnDefinition inChildren = findInChildren(child, ident, removeIfFound);
-            if (inChildren != null) {
-                return inChildren;
-            }
-        }
 
-        if (removeIfFound && result != null) {
-            column.children().remove(result);
-        }
-        return result;
-    }
 
     public void changeToPartitionedByColumn(ColumnIdent partitionedByIdent) {
         Preconditions.checkArgument(!partitionedByIdent.name().startsWith("_"),
@@ -291,10 +281,15 @@ public class AnalyzedTableElements {
                     columnDefinition.ident().sqlFqn()));
         }
         columnIdents.remove(columnDefinition.ident());
-        partitionedByColumns.add(columnDefinition);
+        columns.remove(columnDefinition.ident());
+        partitionedByColumns.put(columnDefinition.ident(), columnDefinition);
     }
 
-    public List<AnalyzedColumnDefinition> columns() {
+    public Collection<AnalyzedColumnDefinition> columns() {
+        return columns.values();
+    }
+
+    public Map<ColumnIdent, AnalyzedColumnDefinition> columnsMap() {
         return columns;
     }
 }

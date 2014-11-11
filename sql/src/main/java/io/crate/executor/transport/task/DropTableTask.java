@@ -41,7 +41,7 @@ import java.util.Locale;
 
 public class DropTableTask extends AbstractChainedTask<RowCountResult> {
 
-        private final ESLogger logger = Loggers.getLogger(getClass());
+    private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final TableInfo tableInfo;
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;

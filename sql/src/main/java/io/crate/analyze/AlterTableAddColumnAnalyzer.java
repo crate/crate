@@ -30,7 +30,7 @@ import io.crate.sql.tree.Table;
 import io.crate.types.CollectionType;
 import org.elasticsearch.common.inject.Inject;
 
-import java.util.List;
+import java.util.Collection;
 
 public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void, AddColumnAnalysis> {
 
@@ -116,7 +116,7 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
         }
     }
 
-    private void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition> columns) {
+    private void ensureNoIndexDefinitions(Collection<AnalyzedColumnDefinition> columns) {
         for (AnalyzedColumnDefinition column : columns) {
             if (column.isIndex()) {
                 throw new UnsupportedOperationException(

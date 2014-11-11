@@ -548,6 +548,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 ));
         assertThat(analysis.partitionedBy().get(0), contains("name", "string"));
         assertThat(analysis.partitionedBy().get(1), contains("date", "date"));
+
     }
 
     @Test
@@ -569,6 +570,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertNull(metaColumns);
         assertThat(analysis.partitionedBy().get(0), contains("date", "date"));
         assertThat(analysis.partitionedBy().get(1), contains("o.name", "string"));
+
     }
 
     @Test(expected = IllegalArgumentException.class)

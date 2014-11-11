@@ -131,7 +131,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
                     context);
             List<DispatchingReferenceSymbolVisitor.InnerVisitorContext> contexts = referenceSymbolVisitor.process(column, valuesSymbol);
             NewColumnCollector.NewColumnContext newColumnContext = (NewColumnCollector.NewColumnContext)contexts.get(0);
-            if(newColumnContext.mappingChange){
+            if (newColumnContext.mappingChange){
                 assert column.info().type() != DataTypes.UNDEFINED;
                 context.addNewColumn(newColumnContext.root);
             }
