@@ -30,13 +30,13 @@ import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.*;
 
 public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
@@ -65,6 +65,13 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
             blobIndices.createBlobTable("blobs", indexSettings);
             transportExecutor.ensureGreen();
             dataInitialized = true;
+        }
+    }
+
+    @AfterClass
+    public synchronized static void after() throws Exception {
+        if (transportExecutor != null) {
+            transportExecutor = null;
         }
     }
 

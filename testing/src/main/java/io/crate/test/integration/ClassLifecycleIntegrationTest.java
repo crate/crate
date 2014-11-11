@@ -21,6 +21,8 @@
 
 package io.crate.test.integration;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.ElasticsearchTestCase;
@@ -38,9 +40,9 @@ import java.util.Random;
  *
  * For all other Integration test purposes use {@link io.crate.test.integration.CrateIntegrationTest}
  */
-public class ClassLifecycleIntegrationTest {
+@ThreadLeakScope(value = ThreadLeakScope.Scope.NONE)
+public class ClassLifecycleIntegrationTest extends AbstractRandomizedTest {
 
-    public static final long CLUSTER_SEED = System.nanoTime();
 
     static {
         ESLoggerFactory.getRootLogger().setLevel("WARN");
@@ -48,21 +50,34 @@ public class ClassLifecycleIntegrationTest {
     }
 
 
-    public static final CrateTestCluster GLOBAL_CLUSTER = new CrateTestCluster(
-        CLUSTER_SEED,
-        CrateTestCluster.clusterName("shared", ElasticsearchTestCase.CHILD_VM_ID, CLUSTER_SEED)
-    );
-
-    private static final Random random = new Random(CLUSTER_SEED);
+    public static CrateTestCluster GLOBAL_CLUSTER;
+    private static Random random;
 
     @BeforeClass
     public synchronized static void beforeClass() {
+        long CLUSTER_SEED = System.nanoTime();
+        if (random == null) {
+            random = new Random(CLUSTER_SEED);
+        }
+        if (GLOBAL_CLUSTER == null) {
+            GLOBAL_CLUSTER = new CrateTestCluster(
+                    CLUSTER_SEED,
+                    CrateTestCluster.clusterName("shared", ElasticsearchTestCase.CHILD_VM_ID, CLUSTER_SEED)
+            );
+        }
         GLOBAL_CLUSTER.beforeTest(random);
     }
 
     @AfterClass
     public synchronized static void afterClass() throws Exception {
-        GLOBAL_CLUSTER.client().admin().indices().prepareDelete("_all").execute().get();
-        GLOBAL_CLUSTER.afterTest();
+        if (GLOBAL_CLUSTER != null) {
+            GLOBAL_CLUSTER.client().admin().indices().prepareDelete("_all").execute().get();
+            GLOBAL_CLUSTER.afterTest();
+            GLOBAL_CLUSTER = null;
+        }
+
+        if (random != null) {
+            random = null;
+        }
     }
 }

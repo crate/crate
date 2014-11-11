@@ -26,12 +26,12 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -46,6 +46,13 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
     @Before
     public void before() throws Exception {
         executor = SQLTransportExecutor.create(ClassLifecycleIntegrationTest.GLOBAL_CLUSTER);
+    }
+
+    @After
+    public void after() throws Exception {
+        if (executor != null) {
+            executor = null;
+        }
     }
 
     @Test

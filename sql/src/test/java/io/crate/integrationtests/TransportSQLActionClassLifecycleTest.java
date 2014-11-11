@@ -31,6 +31,7 @@ import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.Matchers;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,10 +48,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 
 public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrationTest {
 
@@ -81,6 +80,14 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             dataInitialized = true;
         }
     }
+
+    @AfterClass
+    public synchronized static void after() throws Exception {
+        if (executor != null) {
+            executor = null;
+        }
+    }
+
 
     @Test
     public void testRefreshSystemTable() throws Exception {
