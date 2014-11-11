@@ -224,8 +224,6 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAddColumnToStrictObject() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column 'author.name.middle_name' unknown");
         execute("create table books(" +
                 "   author object(dynamic) as (" +
                 "       name object(strict) as (" +
@@ -235,7 +233,6 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 "   title string" +
                 ")");
         ensureGreen();
-       //execute("insert into books (author, title) values ({name={first_name='Douglas', middle_name='Adams'}},'Something with galaxy')");
         Map<String, Object> authorMap = new HashMap<String, Object>(){{
             put("name", new HashMap<String, Object>(){{
                 put("first_name", "Douglas");
@@ -243,10 +240,12 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         }};
         execute("insert into books (title, author) values (?,?)",
                 new Object[]{
-                        "Life, the Universe and Everything",
+                        "The Hitchhiker's Guide to the Galaxy",
                         authorMap
                 });
         execute("refresh table books");
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Column 'author.name.middle_name' unknown");
         authorMap = new HashMap<String, Object>(){{
             put("name", new HashMap<String, Object>(){{
                 put("first_name", "Douglas");
