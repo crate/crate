@@ -33,6 +33,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.transport.TransportService;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -59,6 +60,14 @@ public class CrateClientTest extends CrateIntegrationTest {
                 .getInstance(TransportService.class)
                 .boundAddress().boundAddress()).address().getPort();
         client = new CrateClient("localhost:" + port);
+    }
+
+    @After
+    public void tearDown() {
+        if (client != null) {
+            client.close();
+            client = null;
+        }
     }
 
     @Test
