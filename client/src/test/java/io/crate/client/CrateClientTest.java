@@ -63,11 +63,12 @@ public class CrateClientTest extends CrateIntegrationTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws Exception {
         if (client != null) {
             client.close();
             client = null;
         }
+        super.tearDown();
     }
 
     @Test
