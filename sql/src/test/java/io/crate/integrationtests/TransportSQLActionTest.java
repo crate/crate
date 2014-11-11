@@ -1028,6 +1028,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("update test set firstcol = 1, coolness['x']['a'] = 'a', coolness['x']['b'] = 'b', othercol = 2");
         assertEquals(1, response.rowCount());
         refresh();
+        waitNoPendingTasksOnAll();
 
         execute("select coolness['x']['b'], coolness['x']['a'], coolness['x']['y']['z'], " +
                 "firstcol, othercol from test");

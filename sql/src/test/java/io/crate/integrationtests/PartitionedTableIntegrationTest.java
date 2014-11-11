@@ -1304,6 +1304,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "(2, 'Arthur', '1970-01-07')");
         assertThat(response.rowCount(), is(2L));
 
+        ensureGreen();
         execute("refresh table parted");
         assertThat(response.rowCount(), is(-1L));
 
