@@ -3,14 +3,20 @@ import os
 import signal
 import time
 import random
+import socket
 from crate.testing.layer import CrateLayer
 from crate.client.http import Client
 from .paths import crate_path
 from lovely.testlayers.layer import CascadedLayer
 
 
+def get_rnd_port():
+    sock = socket.socket()
+    sock.bind(('', 0))
+    return sock.getsockname()[1]
+
+
 def public_ip():
-    import socket
     return socket.gethostbyname(socket.gethostname())
 
 
@@ -20,7 +26,7 @@ class GracefulStopCrateLayer(CrateLayer):
         """do not care if process already died"""
         try:
             super(GracefulStopCrateLayer, self).stop()
-        except OSError as e:
+        except OSError:
             pass
 
 
@@ -41,8 +47,8 @@ class GracefulStopTest(unittest.TestCase):
             layer = GracefulStopCrateLayer(self.node_name(i),
                            crate_path(),
                            host=public_ip(),
-                           port=44200+i,
-                           transport_port=44300+i,
+                           port=get_rnd_port(),
+                           transport_port=get_rnd_port(),
                            multicast=True,
                            cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
