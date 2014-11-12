@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/11/12 0.45.4
+=================
+
  - Number of shards for new partitions can now be changed by using the
    ``ALTER TABLE`` statement.
 
@@ -13,7 +16,7 @@ Unreleased
 
  - Fix: ``alter table add column`` didn't work correctly on partitioned tables.
 
- - Added cast function for timestamp type
+ - Added cast function for timestamp type.
 
 2014/11/10 0.45.3
 =================
