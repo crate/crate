@@ -45,6 +45,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.Random;
 
 import static io.crate.test.integration.PathAccessor.bytesFromPath;
@@ -159,8 +160,26 @@ public class BenchmarkBase {
         refresh(getClient(false));
     }
 
+    /**
+     * @return a random available port for binding
+     */
+    public int randomAvailablePort()  {
+        int port;
+        try {
+            ServerSocket socket = new ServerSocket(0);
+            port = socket.getLocalPort();
+            socket.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return port;
+    }
+
     public Settings getNodeSettings(int nodeId) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder().put("index.store.type", "memory");
+        ImmutableSettings.Builder builder = ImmutableSettings.builder()
+                .put("http.port", randomAvailablePort())
+                .put("transport.tcp.port", randomAvailablePort())
+                .put("index.store.type", "memory");
         return builder.build();
     }
 

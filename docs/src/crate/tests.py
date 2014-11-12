@@ -7,15 +7,19 @@ import shutil
 import re
 import process_test
 from .paths import crate_path, project_path
+from .ports import random_available_port
 from crate.crash.command import CrateCmd
 cmd = CrateCmd()
 
+
+CRATE_HTTP_PORT = random_available_port()
+CRATE_TRANSPORT_PORT = random_available_port()
 
 def bash_transform(s):
     # The examples in the docs show the real port '4200' to a reader.
     # Our test suite requires the port to be '44200' to avoid conflicts.
     # Therefore, we need to replace the ports before a test is being run.
-    s = s.replace(':4200/', ':44200/')
+    s = s.replace(':4200/', ':{0}/'.format(CRATE_HTTP_PORT))
     if s.startswith("crash"):
         s = re.search(r"crash\s+-c\s+\"(.*?)\"", s).group(1)
         return ('cmd.onecmd("""{0}""");'.format(s.strip()))
@@ -28,7 +32,7 @@ def crash_transform(s):
     # The examples in the docs show the real port '4200' to a reader.
     # Our test suite requires the port to be '44200' to avoid conflicts.
     # Therefore, we need to replace the ports before a test is being run.
-    s = s.replace(':4200', ':44200')
+    s = s.replace(':4200', ':{0}'.format(CRATE_HTTP_PORT))
     return ('cmd.onecmd("""{0}""");'.format(s.strip().strip(";")))
 
 
@@ -48,8 +52,8 @@ class ConnectingCrateLayer(CrateLayer):
 empty_layer = ConnectingCrateLayer('crate',
                          crate_home=crate_path(),
                          crate_exec=crate_path('bin', 'crate'),
-                         port=44200,
-                         transport_port=44300)
+                         port=CRATE_HTTP_PORT,
+                         transport_port=CRATE_TRANSPORT_PORT)
 
 def setUpLocations(test):
     test.globs['cmd'] = cmd

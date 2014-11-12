@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
@@ -1403,6 +1404,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("insert into test (some_id, foo) values ('123', 'bar')");
         assertEquals(1, response.rowCount());
+        waitNoPendingTasksOnAll(); // wait for new columns to be available
         refresh();
 
         execute("update test set foo='bar1' where some_id='123'");

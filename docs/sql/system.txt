@@ -39,7 +39,7 @@ The result has at most 1 row::
   +--------------+
   | name         |
   +--------------+
-  | Testing44200 |
+  | Testing...   |
   +--------------+
   SELECT 1 row in set (... sec)
 
@@ -419,18 +419,6 @@ process
 |                                          | Crate can use.                                 |              |
 +------------------------------------------+------------------------------------------------+--------------+
 
-
-
-
-For example a query to get basic host data looks as follows::
-
-    cr> select id, name, port['http'], port['transport'] from sys.nodes;
-    +-...---+-------+--------------+-------------------+
-    | id    | name  | port['http'] | port['transport'] |
-    +-...---+-------+--------------+-------------------+
-    | ...   | crate | 44200        | 44300             |
-    +-...---+-------+--------------+-------------------+
-    SELECT 1 row in set (... sec)
 
 Shards
 ======
