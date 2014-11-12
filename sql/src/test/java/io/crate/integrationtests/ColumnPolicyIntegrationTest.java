@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.action.sql.SQLActionException;
@@ -41,6 +42,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Map;
@@ -319,6 +321,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
                 new Object[]{28, true, false, true});
+        ensureGreen();
         execute("refresh table numbers");
         waitNoPendingTasksOnAll();
 
@@ -332,14 +335,21 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("update numbers set prime=true, changed='2014-10-23T10:20', author='troll' where num=28");
         assertThat(response.rowCount(), is(1L));
         execute("refresh table numbers");
-        waitNoPendingTasksOnAll();
 
-        execute("select * from numbers order by num");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.cols(), arrayContaining("author", "changed", "num", "odd", "perfect", "prime"));
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "NULL| NULL| 6| true| NULL| false\n" +
-                "troll| 1414059600000| 28| true| true| true\n"));
+        // mapping update is asynchronous, so wait for it
+        awaitBusy(new Predicate<Object>() {
+            @Override
+            public boolean apply(@Nullable Object input) {
+                execute("select * from numbers order by num");
+                return     response.rowCount() == 2L
+                        && response.cols().length == 6
+                        && Joiner.on(", ").join(Arrays.asList(response.cols()))
+                            .equals("author, changed, num, odd, perfect, prime")
+                        && TestingHelpers.printedTable(response.rows()).equals(
+                                "NULL| NULL| 6| true| NULL| false\n" +
+                                "troll| 1414059600000| 28| true| true| true\n");
+            }
+        });
     }
 
     @Test
