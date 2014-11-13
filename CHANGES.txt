@@ -5,18 +5,24 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed a rare race condition that could cause the ``having`` clause to filter
-   incorrectly.
-
- - Fix: ``alter table add column`` didn't work correctly on partitioned tables.
-
- - Added cast function for timestamp type
-
  - Added Support for Column Policies, which can be used to define
    if a table enforces its defined schema or if it's allowed
    to store additional columns which are not defined in the schema.
 
  - Throw an error while using unknown root columns on SELECT
+
+2014/11/12 0.45.4
+=================
+
+ - Number of shards for new partitions can now be changed by using the
+   ``ALTER TABLE`` statement.
+
+ - Fixed a rare race condition that could cause the ``having`` clause to filter
+   incorrectly.
+
+ - Fix: ``alter table add column`` didn't work correctly on partitioned tables.
+
+ - Added cast function for timestamp type.
 
 2014/11/10 0.45.3
 =================
