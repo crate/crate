@@ -57,7 +57,8 @@ public class NodeFsDisksExpression extends SysNodeObjectArrayReference {
                 FileSystem[] fileSystems = sigarService.sigar().getFileSystemList();
                 diskRefs = new ArrayList<>(fileSystems.length);
                 for (FileSystem fs : fileSystems) {
-                    if (! FileSystems.SUPPORTED_FS_TYPE.apply(fs)) {
+                    // no disk usage possible for rootfs
+                    if (!FileSystems.SUPPORTED_FS_TYPE.apply(fs) || "rootfs".equals(fs.getDevName())) {
                         continue;
                     }
                     try {

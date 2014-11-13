@@ -21,16 +21,16 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.PartitionName;
+import com.google.common.base.Predicate;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLResponse;
-import io.crate.exceptions.SQLParseException;
 import io.crate.executor.TaskResult;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -59,7 +59,9 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.io.File;
 import java.io.IOException;
+import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
@@ -68,7 +70,6 @@ import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
-
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -1553,9 +1554,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("SELECT * FROM test WHERE some_id=? OR some_id=?", new Object[]{"1", "2"});
         assertEquals(2, response.rowCount());
 
-        execute("SELECT * FROM test WHERE (some_id=? OR some_id=?) OR some_id=?", new Object[]{"1", "2", "3"});
-        assertEquals(3, response.rowCount());
-        assertThat(Arrays.asList(response.cols()), hasItems("some_id", "foo"));
+        awaitBusy(new Predicate<Object>() {
+            @Override
+            public boolean apply(@Nullable Object input) {
+                execute("SELECT * FROM test WHERE (some_id=? OR some_id=?) OR some_id=?", new Object[]{"1", "2", "3"});
+                return response.rowCount() == 3
+                        && Joiner.on(',').join(Arrays.asList(response.cols())).equals("foo,some_id,type");
+            }
+        }, 10, TimeUnit.SECONDS);
+
     }
 
     @Test
