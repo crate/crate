@@ -37,7 +37,6 @@ public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
     private Settings builtSettings;
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
-    private SchemaInfo schemaInfo;
 
     public AlterBlobTableAnalysis(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
         super(parameterContext);
@@ -49,7 +48,7 @@ public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
         assert tableIdent.schema().equalsIgnoreCase(BlobSchemaInfo.NAME);
         this.tableIdent = tableIdent;
 
-        schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
         assert schemaInfo != null; // schemaInfo for blob must exist.
 
         tableInfo = schemaInfo.getTableInfo(tableIdent.name());
@@ -61,11 +60,6 @@ public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public TableInfo table() {
         return tableInfo;
-    }
-
-    @Override
-    public SchemaInfo schema() {
-        return schemaInfo;
     }
 
     @Override

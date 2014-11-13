@@ -80,7 +80,7 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRefreshSystemTable() throws Exception {
         RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table sys.shards");
-        assertTrue(analysis.schema().systemSchema());
+        assertTrue(analysis.table().schemaInfo().systemSchema());
         assertThat(analysis.table().ident().name(), is("shards"));
     }
 

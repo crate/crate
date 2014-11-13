@@ -91,13 +91,6 @@ public class SetAnalysis extends Analysis {
     }
 
     @Override
-    public SchemaInfo schema() {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "schema() not supported on %s", getClass().getSimpleName())
-        );
-    }
-
-    @Override
     public boolean hasNoResult() {
         if (settings != null) {
             return settings.getAsMap().isEmpty();

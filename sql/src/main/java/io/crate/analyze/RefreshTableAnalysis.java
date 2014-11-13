@@ -37,7 +37,6 @@ public class RefreshTableAnalysis extends AbstractDDLAnalysis {
 
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
-    private SchemaInfo schemaInfo;
     private PartitionName partitionName;
 
     protected RefreshTableAnalysis(ReferenceInfos referenceInfos,
@@ -57,7 +56,6 @@ public class RefreshTableAnalysis extends AbstractDDLAnalysis {
             throw new TableUnknownException(tableIdent.name());
         }
         this.tableInfo = tableInfo;
-        this.schemaInfo = schemaInfo;
     }
 
     @Override
@@ -67,11 +65,6 @@ public class RefreshTableAnalysis extends AbstractDDLAnalysis {
 
     public @Nullable PartitionName partitionName() {
         return partitionName;
-    }
-
-    @Override
-    public SchemaInfo schema() {
-        return schemaInfo;
     }
 
     @Override

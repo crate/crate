@@ -22,14 +22,12 @@
 package io.crate.analyze;
 
 import com.google.common.base.Joiner;
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
-
-import javax.annotation.Nullable;
 
 public class DropTableAnalysis extends AbstractDDLAnalysis {
 
@@ -71,16 +69,7 @@ public class DropTableAnalysis extends AbstractDDLAnalysis {
     }
 
     @Override
-    @Nullable
-    public SchemaInfo schema() {
-        if (tableIdent == null) { return null; }
-        return referenceInfos.getSchemaInfo(tableIdent.schema());
-    }
-
-    @Override
-    public void normalize() {
-
-    }
+    public void normalize() { }
 
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {

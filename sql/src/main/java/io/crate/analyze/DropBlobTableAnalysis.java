@@ -32,7 +32,6 @@ public class DropBlobTableAnalysis extends AbstractDDLAnalysis {
 
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
-    private SchemaInfo schemaInfo;
 
     protected DropBlobTableAnalysis(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
         super(parameterContext);
@@ -43,7 +42,7 @@ public class DropBlobTableAnalysis extends AbstractDDLAnalysis {
     public void table(TableIdent tableIdent) {
         assert tableIdent.schema().equalsIgnoreCase(BlobSchemaInfo.NAME);
         this.tableIdent = tableIdent;
-        schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
         assert schemaInfo != null; // schema info for blob must exist.
 
         tableInfo = schemaInfo.getTableInfo(tableIdent.name());
@@ -57,11 +56,6 @@ public class DropBlobTableAnalysis extends AbstractDDLAnalysis {
     @Override
     public TableInfo table() {
         return tableInfo;
-    }
-
-    @Override
-    public SchemaInfo schema() {
-        return schemaInfo;
     }
 
     @Override

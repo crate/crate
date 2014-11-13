@@ -135,14 +135,9 @@ public abstract class AbstractDataAnalysis extends Analysis {
         return this.table;
     }
 
-    @Override
-    public SchemaInfo schema() {
-        return this.schema;
-    }
-
     private Reference allocateReference(ReferenceIdent ident, boolean unique, boolean forWrite) {
-        if (ident.tableIdent().schema() != null
-                && ident.tableIdent().schema().equals(SysSchemaInfo.NAME)) {
+        String schema = ident.tableIdent().schema();
+        if (schema != null && schema.equals(SysSchemaInfo.NAME)) {
             hasSysExpressions = true;
         }
         Reference reference = referenceSymbols.get(ident);
@@ -243,10 +238,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     public FunctionInfo getFunctionInfo(FunctionIdent ident) {
         return functions.getSafe(ident).info();
-    }
-
-    public FunctionImplementation getFunctionImplementation(FunctionIdent ident) {
-        return functions.getSafe(ident);
     }
 
     public Collection<Reference> references() {
@@ -423,10 +414,6 @@ public abstract class AbstractDataAnalysis extends Analysis {
         return normalized;
     }
 
-
-    private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info) {
-        return normalizeObjectValue(value, info, false);
-    }
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info, boolean forWrite) {

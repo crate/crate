@@ -51,8 +51,6 @@ public abstract class Analysis {
 
     public abstract TableInfo table();
 
-    public abstract SchemaInfo schema();
-
     public abstract boolean hasNoResult();
 
     public abstract void normalize();

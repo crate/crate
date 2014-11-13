@@ -27,7 +27,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -75,11 +74,6 @@ public class UpdateAnalysis extends AbstractDataAnalysis {
 
     @Override
     public TableInfo table() {
-        throw new UnsupportedOperationException("used nested analysis");
-    }
-
-    @Override
-    public SchemaInfo schema() {
         throw new UnsupportedOperationException("used nested analysis");
     }
 
