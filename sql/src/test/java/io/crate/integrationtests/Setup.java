@@ -206,7 +206,7 @@ public class Setup {
             "  details object(ignored) as (" +
             "    num_pages integer" +
             "  )" +
-            ")");
+            ") with (number_of_replicas = 0)");
         transportExecutor.exec("insert into ot (title, author, details) values (?, ?, ?)",
             new Object[]{
                 "The Hitchhiker's Guide to the Galaxy",

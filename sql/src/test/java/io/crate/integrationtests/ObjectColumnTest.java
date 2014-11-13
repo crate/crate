@@ -45,15 +45,11 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     private Setup setup = new Setup(sqlExecutor);
-    private boolean setUpDone = false;
 
     @Before
     public void initTestData() {
-        if (!setUpDone) {
-            this.setup.setUpObjectTable();
-            ensureGreen();
-            setUpDone = true;
-        }
+        this.setup.setUpObjectTable();
+        ensureGreen();
     }
 
     @Test
@@ -264,7 +260,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                 }
         );
         refresh();
-        ensureGreen();
+        waitNoPendingTasksOnAll();
         execute("select title, author['dead'] from ot order by author['dead'] desc");
         assertEquals(3, response.rowCount());
         assertEquals("The Hitchhiker's Guide to the Galaxy", response.rows()[0][0]);
@@ -279,23 +275,16 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectDynamicObjectNewColumns() throws Exception {
-
         execute("create table test (message string, person object(dynamic)) with (number_of_replicas=0)");
         ensureGreen();
-        execute("insert into test (message, person) values ('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
+        execute("insert into test (message, person) values " +
+                "('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
         refresh();
+        waitNoPendingTasksOnAll();
 
-        // check that new columns in dynamic objects show up eventually
-        long rowCount = 0L;
-        int retries = 3;
-        while (rowCount == 0L && retries > 0) {
-            execute("select message, person['name'], person['addresses']['city'] from test " +
-                    "where person['name'] = 'Youri'");
-            rowCount = response.rowCount();
-            retries--;
-            Thread.sleep(10);
-        }
-        assertEquals(1L, rowCount);
+        execute("select message, person['name'], person['addresses']['city'] from test " +
+                "where person['name'] = 'Youri'");
+        assertEquals(1L, response.rowCount());
         assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
                 response.cols());
         assertArrayEquals(new Object[]{"I'm addicted to kite", "Youri",
