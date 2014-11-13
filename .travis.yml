@@ -5,7 +5,7 @@ jdk:
 notifications:
   email: false
 
-script: ./gradlew test itest -s
+script: ./gradlew --parallel -PtestForks=2 test itest -s
 
 after_success:
   - ./gradlew jacocoReport coveralls
