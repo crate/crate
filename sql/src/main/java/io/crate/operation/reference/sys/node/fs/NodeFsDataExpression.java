@@ -67,6 +67,10 @@ public class NodeFsDataExpression extends SysNodeStaticObjectArrayReference {
                     FileSystem winner = null;
                     String absDataLocation = dataLocation.getCanonicalPath();
                     for (FileSystem fs : fsList) {
+                        // ignore rootfs as ist might shadow another mount on /
+                        if (!FileSystems.SUPPORTED_FS_TYPE.apply(fs) || "rootfs".equals(fs.getDevName())) {
+                            continue;
+                        }
                         if (absDataLocation.startsWith(fs.getDirName())
                                 && (winner == null || winner.getDirName().length() < fs.getDirName().length())) {
                             winner = fs;

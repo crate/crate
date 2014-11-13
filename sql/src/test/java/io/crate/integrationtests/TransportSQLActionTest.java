@@ -21,7 +21,8 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
@@ -39,7 +40,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
@@ -1433,9 +1436,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("SELECT * FROM test WHERE some_id=? OR some_id=?", new Object[]{"1", "2"});
         assertEquals(2, response.rowCount());
 
-        execute("SELECT * FROM test WHERE (some_id=? OR some_id=?) OR some_id=?", new Object[]{"1", "2", "3"});
-        assertEquals(3, response.rowCount());
-        assertThat(Arrays.asList(response.cols()), hasItems("some_id", "foo"));
+        awaitBusy(new Predicate<Object>() {
+            @Override
+            public boolean apply(@Nullable Object input) {
+                execute("SELECT * FROM test WHERE (some_id=? OR some_id=?) OR some_id=?", new Object[]{"1", "2", "3"});
+                return response.rowCount() == 3
+                        && Joiner.on(',').join(Arrays.asList(response.cols())).equals("foo,some_id,type");
+            }
+        }, 10, TimeUnit.SECONDS);
+
     }
 
     @Test

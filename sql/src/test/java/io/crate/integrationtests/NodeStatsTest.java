@@ -242,6 +242,25 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
     }
 
     @Test
+    public void testFsNoRootFS() throws Exception {
+        SQLResponse response = executor.exec("select fs['data']['dev'], fs['disks'] from sys.nodes");
+        assertThat(response.rowCount(), is(2L));
+        for (Object[] row : response.rows()) {
+            // data device name
+            for (Object diskDevName : (Object[])row[0]) {
+                assertThat((String)diskDevName, is(not("rootfs")));
+            }
+            Object[] disks = (Object[])row[1];
+            // disks device name
+            for (Object disk : disks) {
+                String diskDevName = (String)((Map<String, Object>)disk).get("dev");
+                assertThat(diskDevName, is(notNullValue()));
+                assertThat(diskDevName, is(not("rootfs")));
+            }
+        }
+    }
+
+    @Test
     public void testSysNodesObjectArrayStringChildColumn() throws Exception {
         SQLResponse response = executor.exec("select fs['data']['path'] from sys.nodes");
         assertThat(response.rowCount(), Matchers.is(2L));

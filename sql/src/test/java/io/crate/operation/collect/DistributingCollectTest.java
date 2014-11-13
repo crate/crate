@@ -90,6 +90,8 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -106,6 +108,7 @@ public class DistributingCollectTest {
 
     private IndexService indexService = mock(IndexService.class);
     private DistributingCollectOperation operation;
+    private TransportService transportService;
 
     private final UUID jobId = UUID.randomUUID();
     private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
@@ -113,7 +116,6 @@ public class DistributingCollectTest {
     private final static String OTHER_NODE_ID = "other_node";
     private final static String TEST_TABLE_NAME = "dcollect_table";
 
-    private final Map<String, Object[][]> buckets = new HashMap<>();
     private Reference testShardIdReference = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
 
     class TestModule extends AbstractModule {
@@ -184,21 +186,7 @@ public class DistributingCollectTest {
 
             bind(IndexService.class).toInstance(indexService);
 
-            TransportService transportService = mock(TransportService.class);
-            Mockito.doAnswer(new Answer() {
-                @Override
-                public Object answer(InvocationOnMock invocation) throws Throwable {
-                    Object[] args = invocation.getArguments();
-                    // gather buckets to verify calls
-                    DistributingCollectTest.this.buckets.put(
-                            ((DiscoveryNode) args[0]).id(),
-                            ((DistributedResultRequest) args[2]).rows()
-                    );
-                    return null;
-                }
-            }).when(transportService).submitRequest(any(DiscoveryNode.class), Matchers.same(TransportMergeNodeAction.mergeRowsAction),
-                    Matchers.<TransportRequest>any(),
-                    any(TransportResponseHandler.class));
+            transportService = mock(TransportService.class);
             bind(TransportService.class).toInstance(transportService);
         }
     }
@@ -272,16 +260,36 @@ public class DistributingCollectTest {
         }});
     }
 
+
     @Test
     public void testCollectFromShardsToBuckets() throws Exception {
+        final Map<String, Object[][]> buckets = new HashMap<>();
+        final CountDownLatch countDown = new CountDownLatch(2);
+        Mockito.doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                Object[] args = invocation.getArguments();
+                // gather buckets to verify calls
+                buckets.put(
+                        ((DiscoveryNode) args[0]).id(),
+                        ((DistributedResultRequest) args[2]).rows()
+                );
+                countDown.countDown();
+                return null;
+            }
+        }).when(transportService).submitRequest(any(DiscoveryNode.class), Matchers.same(TransportMergeNodeAction.mergeRowsAction),
+                Matchers.<TransportRequest>any(),
+                any(TransportResponseHandler.class));
+
         CollectNode collectNode = new CollectNode("dcollect", shardRouting(0, 1));
         collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
 
+
         assertThat(operation.collect(collectNode).get(), is(TaskResult.EMPTY_RESULT.rows()));
-        Thread.sleep(20); // give the mocked transport time to operate
+        countDown.await();
         assertThat(buckets.size(), is(2));
         assertTrue(buckets.containsKey(TEST_NODE_ID));
         assertTrue(buckets.containsKey(OTHER_NODE_ID));
@@ -289,17 +297,41 @@ public class DistributingCollectTest {
 
     @Test
     public void testCollectFromNodes() throws Exception {
+
+        Mockito.doReturn(null).when(transportService).submitRequest(any(DiscoveryNode.class), Matchers.same(TransportMergeNodeAction.mergeRowsAction),
+                Matchers.<TransportRequest>any(),
+                any(TransportResponseHandler.class));
+
         CollectNode collectNode = new CollectNode("dcollect", nodeRouting);
         collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.NODE);
         collectNode.toCollect(Arrays.<Symbol>asList(Literal.newLiteral(true)));
         Object[][] objects = operation.collect(collectNode).get();
-        assertThat((Boolean)objects[0][0], is(true));
+        assertThat((Boolean) objects[0][0], is(true));
+
     }
 
     @Test
     public void testCollectWithFalseWhereClause() throws Exception {
+        final Map<String, Object[][]> buckets = new HashMap<>();
+        final CountDownLatch countDown = new CountDownLatch(2);
+        Mockito.doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                Object[] args = invocation.getArguments();
+                // gather buckets to verify calls
+                buckets.put(
+                        ((DiscoveryNode) args[0]).id(),
+                        ((DistributedResultRequest) args[2]).rows()
+                );
+                countDown.countDown();
+                return null;
+            }
+        }).when(transportService).submitRequest(any(DiscoveryNode.class), Matchers.same(TransportMergeNodeAction.mergeRowsAction),
+                Matchers.<TransportRequest>any(),
+                any(TransportResponseHandler.class));
+
         CollectNode collectNode = new CollectNode("collect all the things", shardRouting(0, 1));
         collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
@@ -313,9 +345,10 @@ public class DistributingCollectTest {
 
         Object[][] pseudoResult = operation.collect(collectNode).get();
         assertThat(pseudoResult, is(TaskResult.EMPTY_RESULT.rows()));
-        Thread.sleep(20);
+        countDown.await(2, TimeUnit.SECONDS);
         assertThat(buckets.size(), is(2));
         assertThat(buckets.get(TEST_NODE_ID), is(TaskResult.EMPTY_RESULT.rows()));
         assertThat(buckets.get(OTHER_NODE_ID), is(TaskResult.EMPTY_RESULT.rows()));
+
     }
 }
