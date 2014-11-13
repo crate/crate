@@ -49,9 +49,7 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
 
 public class CrateClient {
 
-    private final Environment environment;
     private final Settings settings;
-    private final Injector injector;
     private final InternalCrateClient internalClient;
 
 
@@ -63,12 +61,18 @@ public class CrateClient {
                 .put("node.client", true)
                 .put("client.transport.ignore_cluster_name", true)
                 .put("node.name", "crate-client-"+ UUID.randomUUID().toString())
+                // Client uses only the SAME or GENERIC thread-pool (see TransportNodeActionProxy)
+                // so the other thread-pools can be limited to 1 thread to not waste resources
+                .put("threadpool.search.size", 1)
+                .put("threadpool.index.size", 1)
+                .put("threadpool.bulk.size", 1)
+                .put("threadpool.get.size", 1)
+                .put("threadpool.percolate.size", 1)
                 .build();
         Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(
             settings, loadConfigSettings);
 
         this.settings = tuple.v1();
-        this.environment = tuple.v2();
         Version version = Version.CURRENT;
 
         CompressorFactory.configure(this.settings);
@@ -82,7 +86,7 @@ public class CrateClient {
         modules.add(new ClusterNameModule(this.settings));
         modules.add(new TransportModule(this.settings));
 
-        injector = modules.createInjector();
+        Injector injector = modules.createInjector();
         injector.getInstance(TransportService.class).start();
         internalClient = injector.getInstance(InternalCrateClient.class);
     }
