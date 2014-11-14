@@ -30,13 +30,13 @@ import javax.annotation.Nullable;
 
 public class FileSystems {
 
-    private final static IntSet supportedFSTypes = IntOpenHashSet.from(
+    private final static IntSet SUPPORTED_FS_TYPES = IntOpenHashSet.from(
             FileSystem.TYPE_LOCAL_DISK, FileSystem.TYPE_NETWORK, FileSystem.TYPE_RAM_DISK);
 
     public final static Predicate<FileSystem> SUPPORTED_FS_TYPE = new Predicate<FileSystem>() {
         @Override
         public boolean apply(@Nullable FileSystem input) {
-            return (input != null && supportedFSTypes.contains(input.getType()));
+            return (input != null && SUPPORTED_FS_TYPES.contains(input.getType()));
         }
     };
 }
