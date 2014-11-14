@@ -5,6 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to version 0.10.1 which includes following changes:
+
+    - made console placeholder text darker so you can distinguish better
+      between placeholder text and actually written statement
+
+    - fixed 'Execute Query' button in console view
+
 2014/11/12 0.45.4
 =================
 
