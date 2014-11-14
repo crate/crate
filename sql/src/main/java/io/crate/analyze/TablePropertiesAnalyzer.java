@@ -156,25 +156,6 @@ public class TablePropertiesAnalyzer {
         }
     }
 
-    private SettingsApplier resolveSettingsApplier(TableParameterInfo tableParameterInfo, String setting) {
-        String esSettingName = CRATE_TO_ES_SETTINGS_MAP.get(setting);
-        Preconditions.checkArgument(tableParameterInfo.supportedSettings().contains(esSettingName),
-                String.format(Locale.ENGLISH, "Invalid property \"%s\" passed to [ALTER | CREATE] TABLE statement",
-                        setting));
-        assert SETTINGS_APPLIER.containsKey(esSettingName) : "Missing settings applier for setting " + esSettingName;
-        return SETTINGS_APPLIER.get(esSettingName);
-    }
-
-    private MappingsApplier resolveMappingsApplier(TableParameterInfo tableParameterInfo, String mappingKey) {
-        String esMappingName = CRATE_TO_ES_MAPPINGS_MAP.get(mappingKey);
-        Preconditions.checkArgument(tableParameterInfo.supportedSettings().contains(esMappingName),
-                String.format(Locale.ENGLISH, "Invalid property \"%s\" passed to [ALTER | CREATE] TABLE statement",
-                        mappingKey));
-        assert MAPPINGS_APPLIER.containsKey(esMappingName) : "Missing mappings applier for mapping name " + esMappingName;
-        return MAPPINGS_APPLIER.get(esMappingName);
-    }
-
-
     protected static class NumberOfReplicasSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         private static final Settings DEFAULT = ImmutableSettings.builder()

@@ -318,4 +318,12 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(null, tableParameter.settings().get(TableParameterInfo.NUMBER_OF_SHARDS));
 
     }
+
+    @Test
+    public void testAlterPartitionedTablePartitionColumnPolicy() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid property \"column_policy\" passed to [ALTER | CREATE] TABLE statement");
+        analyze("alter table parted partition (date=1395874800000) set (column_policy='strict')");
+    }
+
 }

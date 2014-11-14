@@ -474,37 +474,4 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
     }
 
-    @Test
-    public void testAlterSinglePartition() throws Exception {
-        execute("create table dynamic_table (" +
-                "  id integer, " +
-                "  score double" +
-                ") partitioned by (score) with (number_of_replicas=0, column_policy='strict')");
-        ensureGreen();
-        execute("insert into dynamic_table (id, score) values (1, 10)");
-        execute("insert into dynamic_table (id, score) values (2, 5)");
-        execute("refresh table dynamic_table");
-        ensureGreen();
-        execute("alter table dynamic_table partition (score = 10) set (column_policy= 'dynamic')");
-        waitNoPendingTasksOnAll();
-        execute("insert into dynamic_table (id, score) values (2, 7)");
-        execute("refresh table dynamic_table");
-        ensureGreen();
-
-        MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
-                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).stringValue())
-                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
-
-        partitionMetaData = clusterService().state().metaData().indices()
-                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("5.0"))).stringValue())
-                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(ColumnPolicy.STRICT.value()));
-
-        partitionMetaData = clusterService().state().metaData().indices()
-                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("7.0"))).stringValue())
-                .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("dynamic")), is(ColumnPolicy.STRICT.value()));
-    }
-
 }

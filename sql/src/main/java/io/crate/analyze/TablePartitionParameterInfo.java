@@ -23,23 +23,13 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 
-public class AlterPartitionedTableParameterInfo extends TableParameterInfo {
+public class TablePartitionParameterInfo extends TableParameterInfo {
 
-    protected static final ImmutableList<String> SUPPORTED_SETTINGS =
-            ImmutableList.<String>builder()
-                    .add(NUMBER_OF_REPLICAS)
-                    .add(NUMBER_OF_SHARDS)
-                    .add(REFRESH_INTERVAL)
-                    .build();
-
-    protected static final TableParameterInfo PARTITION_TABLE_PARAMETER_INFO = new TablePartitionParameterInfo();
-
-    public TableParameterInfo partitionTableSettingsInfo() {
-        return PARTITION_TABLE_PARAMETER_INFO;
-    }
+    protected static final ImmutableList<String> SUPPORTED_MAPPINGS = ImmutableList.of();
 
     @Override
-    public ImmutableList<String> supportedSettings() {
-        return SUPPORTED_SETTINGS;
+    public ImmutableList<String> supportedMappings() {
+        return SUPPORTED_MAPPINGS;
     }
+
 }
