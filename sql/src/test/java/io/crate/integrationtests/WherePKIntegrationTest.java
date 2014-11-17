@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -30,7 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
@@ -118,12 +118,51 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into items (id, details) values (?, ?)", new Object[]{
             "123", MapBuilder.newMapBuilder().put("tags", Arrays.asList("small", "blue")).map()
         });
+        execute("refresh table items");
 
         execute("select id, details['tags'] from items where id = '123'");
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("123"));
         //noinspection unchecked
         assertThat((List<String>) response.rows()[0][1], Matchers.contains("small", "blue"));
+    }
+
+    @Test
+    public void testEmptyClusteredByUnderId() throws Exception {
+        // regression test that empty routing executes correctly
+        execute("create table auto_id (" +
+                "  name string," +
+                "  location geo_point" +
+                ") with (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("insert into auto_id (name, location) values (',', [36.567, 52.998]), ('Dornbirn', [54.45, 4.567])");
+        execute("refresh table auto_id");
+
+
+        execute("select * from auto_id where _id=''");
+        assertThat(response.cols(), is(Matchers.arrayContaining("location", "name")));
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testEmptyClusteredByExplicit() throws Exception {
+        // regression test that empty routing executes correctly
+        execute("create table explicit_routing (" +
+                "  name string," +
+                "  location geo_point" +
+                ") clustered by (name) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into explicit_routing (name, location) values (',', [36.567, 52.998]), ('Dornbirn', [54.45, 4.567])");
+        execute("refresh table explicit_routing");
+        execute("select * from explicit_routing where name=''");
+        assertThat(response.cols(), is(Matchers.arrayContaining("location", "name")));
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select * from explicit_routing where name=','");
+        assertThat(response.cols(), is(Matchers.arrayContaining("location", "name")));
+        assertThat(response.rowCount(), is(1L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("[36.567, 52.998]| ,\n"));
     }
 }
 

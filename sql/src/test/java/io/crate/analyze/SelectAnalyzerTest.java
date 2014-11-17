@@ -114,6 +114,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_DOC_TRANSACTIONS_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_DOC_LOCATIONS_TABLE_IDENT.name()))
                     .thenReturn(TEST_DOC_LOCATIONS_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_CLUSTER_BY_STRING_TABLE_INFO.ident().name()))
+                    .thenReturn(TEST_CLUSTER_BY_STRING_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -1998,5 +2000,19 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> sortSymbols = analysis.sortSymbols();
         assert sortSymbols != null;
         assertThat(sortSymbols.get(0), isReference("other_id"));
+    }
+
+    @Test
+    public void testEmptyClusteredByValue() throws Exception {
+        SelectAnalysis analysis = analyze("select * from bystring where name = ''");
+        assertThat(analysis.whereClause().clusteredBy().isPresent(), is(false));
+        assertThat(analysis.ids().isEmpty(), is(true));
+    }
+
+    @Test
+    public void testClusteredByValueContainsComma() throws Exception {
+        SelectAnalysis analysis = analyze("select * from bystring where name = 'a,b,c'");
+        assertThat(analysis.whereClause().clusteredBy().isPresent(), is(false));
+        assertThat(analysis.ids().isEmpty(), is(true));
     }
 }

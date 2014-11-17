@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: correctly handle empty values and values containing commas
+   for clustered by columns in the where clause. e.g: ``where _id=''``
+
  - Updated Elasticsearch to 1.4.0
 
  - Fix: Forbid using ``alter table add column`` on a single partition.
