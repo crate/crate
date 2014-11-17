@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated Elasticsearch to 1.4.0
+
  - Fix: Forbid using ``alter table add column`` on a single partition.
 
  - Fix: do not consider rootfs in ``sys.nodes.fs['data']['dev']``
