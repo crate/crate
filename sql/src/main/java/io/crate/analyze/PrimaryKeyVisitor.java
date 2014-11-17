@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import io.crate.core.collections.ArrayUtils;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.AndOperator;
@@ -60,12 +61,16 @@ import java.util.*;
  */
 public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, Symbol> {
 
+    public static final BytesRef EMPTY_BYTESREF = new BytesRef("");
+    public static final byte ASCII_COMMA = (byte) 0x2c;
+
     private static final ImmutableSet<String> logicalBinaryExpressions = ImmutableSet.of(
             AndOperator.NAME, OrOperator.NAME
     );
     private static final ImmutableSet<String> PK_COMPARISONS = ImmutableSet.of(
             EqOperator.NAME, InOperator.NAME
     );
+
 
     public static class Context {
 
@@ -330,7 +335,19 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     }
 
     private void setClusterBy(Context context, Literal right) {
-        if (context.currentBucket.clusteredBy == null) {
+        // the current ES implementation does not support empty string
+        // or comma as routing column value
+        // it even misinterprets values which contain a comma
+        // make sure we have no clustered by value in this case
+        // see: https://github.com/elasticsearch/elasticsearch/issues/6736
+        Object rightValue = right.value();
+        if (rightValue != null && rightValue instanceof BytesRef) {
+            BytesRef rightBytesRef = (BytesRef)rightValue;
+            if (EMPTY_BYTESREF.equals(rightBytesRef)
+                    || ArrayUtils.bytesArrayContains(rightBytesRef.bytes, rightBytesRef.offset, rightBytesRef.length, ASCII_COMMA)) {
+                invalidate(context);
+            }
+        } else if (context.currentBucket.clusteredBy == null) {
             context.currentBucket.clusteredBy = right;
         } else if (!context.currentBucket.clusteredBy.equals(right)) {
             invalidate(context);

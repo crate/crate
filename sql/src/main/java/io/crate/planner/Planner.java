@@ -545,7 +545,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
         CollectNode collectNode = PlanNodeBuilder.collect(analysis, toCollect, projections);
         plan.add(collectNode);
-        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.<Projection>builder();
+        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
 
         if (!context.indexWriterProjection.isPresent() || analysis.isLimited()) {
             // limit set, apply topN projection
