@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Forbid using ``alter table add column`` on a single partition.
+
  - Fix: do not consider rootfs in ``sys.nodes.fs['data']['dev']``
 
  - Updated crate-admin to version 0.10.1 which includes following changes:
