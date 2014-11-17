@@ -244,14 +244,12 @@ public class QueryThenFetchTask implements Task<QueryResult> {
             return;
         }
 
-        final ScoreDoc[] lastEmittedDocPerShard = null;
-        // searchPhaseController.getLastEmittedDocPerShard(request, sortedShardList, firstResults.length());
-
         final AtomicInteger counter = new AtomicInteger(docIdsToLoad.asList().size());
         for (AtomicArray.Entry<IntArrayList> entry : docIdsToLoad.asList()) {
             QuerySearchResult queryResult = firstResults.get(entry.index);
             DiscoveryNode node = nodes.get(queryResult.shardTarget().nodeId());
-            FetchSearchRequest fetchSearchRequest = createFetchRequest(queryResult, entry, lastEmittedDocPerShard);
+
+            FetchSearchRequest fetchSearchRequest = new FetchSearchRequest(EMPTY_SEARCH_REQUEST, queryResult.id(), entry.value);
             executeFetch(entry.index, queryResult.shardTarget(), counter, fetchSearchRequest, node);
         }
     }
@@ -366,16 +364,7 @@ public class QueryThenFetchTask implements Task<QueryResult> {
         }
     }
 
-    protected FetchSearchRequest createFetchRequest(QuerySearchResult queryResult,
-                                                    AtomicArray.Entry<IntArrayList> entry,
-                                                    ScoreDoc[] lastEmittedDocPerShard) {
-        if (lastEmittedDocPerShard != null) {
-            ScoreDoc lastEmittedDoc = lastEmittedDocPerShard[entry.index];
-            return new FetchSearchRequest(EMPTY_SEARCH_REQUEST, queryResult.id(), entry.value, lastEmittedDoc);
-        } else {
-            return new FetchSearchRequest(EMPTY_SEARCH_REQUEST, queryResult.id(), entry.value);
-        }
-    }
+
     @Override
     public List<ListenableFuture<QueryResult>> result() {
         return results;
