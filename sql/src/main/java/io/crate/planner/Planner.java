@@ -23,10 +23,11 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Objects;
-import com.google.common.base.*;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.PartitionName;
@@ -50,7 +51,6 @@ import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
-import io.crate.planner.symbol.Function;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
@@ -71,7 +71,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
     static final PlannerReferenceExtractor referenceExtractor = new PlannerReferenceExtractor();
-    static final PlannerFunctionArgumentCopier functionArgumentCopier = new PlannerFunctionArgumentCopier();
 
     private final ClusterService clusterService;
     private AggregationProjection localMergeProjection;
@@ -589,6 +588,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan, Context context) {
         String schema = analysis.table().ident().schema();
+
         if ((schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME))
                 && hasOnlyGlobalCount(analysis.outputSymbols())
                 && !analysis.hasSysExpressions()
@@ -596,10 +596,8 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             plan.add(new ESCountNode(analysis.table(), analysis.whereClause()));
             return;
         }
-
         // global aggregate: collect and partial aggregate on C and final agg on H
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2)
-                .output(analysis.outputSymbols());
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(analysis.outputSymbols());
 
         // havingClause could be a Literal or Function.
         // if its a Literal and value is false, we'll never reach this point (no match),
