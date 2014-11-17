@@ -31,6 +31,7 @@ import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Symbols;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -81,9 +82,9 @@ class PlanNodeBuilder {
      */
     static void setOutputTypes(CollectNode node) {
         if (node.projections().isEmpty()) {
-            node.outputTypes(Planner.extractDataTypes(node.toCollect()));
+            node.outputTypes(Symbols.extractTypes(node.toCollect()));
         } else {
-            node.outputTypes(Planner.extractDataTypes(node.projections(), Planner.extractDataTypes(node.toCollect())));
+            node.outputTypes(Planner.extractDataTypes(node.projections(), Symbols.extractTypes(node.toCollect())));
         }
     }
 

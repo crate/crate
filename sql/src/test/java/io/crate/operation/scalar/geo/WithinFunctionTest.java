@@ -25,10 +25,10 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Symbols;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
@@ -39,7 +39,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -53,11 +52,7 @@ public class WithinFunctionTest {
     private Functions functions;
 
     private WithinFunction functionFromArgs(List<? extends Symbol> args) {
-        List<DataType> types = new ArrayList<>(args.size());
-        for (Symbol arg : args) {
-            types.add(DataTypeVisitor.fromSymbol(arg));
-        }
-        return getFunction(types);
+        return getFunction(Symbols.extractTypes(args));
     }
 
     private WithinFunction getFunction(List<DataType> types) {
@@ -163,7 +158,7 @@ public class WithinFunctionTest {
         assertThat(normalized, Matchers.instanceOf(Function.class));
         Function function = (Function) normalized;
         Symbol symbol = function.arguments().get(1);
-        assertThat(DataTypeVisitor.fromSymbol(symbol), equalTo((DataType) DataTypes.GEO_SHAPE));
+        assertThat(symbol.valueType(), equalTo((DataType) DataTypes.GEO_SHAPE));
     }
 
     @Test

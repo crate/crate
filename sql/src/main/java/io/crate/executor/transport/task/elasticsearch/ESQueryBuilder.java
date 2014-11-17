@@ -553,7 +553,7 @@ public class ESQueryBuilder {
                                            String functionName,
                                            String valueFieldName,
                                            Symbol valueSymbol) throws IOException {
-                Literal literal = Literal.toLiteral(valueSymbol, DataTypes.DOUBLE);
+                Literal literal = Literal.convert(valueSymbol, DataTypes.DOUBLE);
                 if (functionName.equals(EqOperator.NAME)) {
                     context.builder.field("from", literal.value());
                     context.builder.field("to", literal.value());

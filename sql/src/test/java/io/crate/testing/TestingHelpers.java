@@ -21,13 +21,11 @@
 
 package io.crate.testing;
 
-import com.google.common.collect.Lists;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.TimestampType;
 import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -85,14 +83,7 @@ public class TestingHelpers {
     }
 
     public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments) {
-        List<DataType> dataTypes = Lists.transform(arguments, new com.google.common.base.Function<Symbol, DataType>() {
-            @Nullable
-            @Override
-            public DataType apply(@Nullable Symbol input) {
-                assert input instanceof DataTypeSymbol;
-                return ((DataTypeSymbol) input).valueType();
-            }
-        });
+        List<DataType> dataTypes = Symbols.extractTypes(arguments);
         return new Function(
                 new FunctionInfo(new FunctionIdent(functionName, dataTypes), returnType), arguments);
     }

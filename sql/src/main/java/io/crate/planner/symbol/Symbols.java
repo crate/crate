@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -23,15 +23,16 @@ package io.crate.planner.symbol;
 
 import io.crate.types.DataType;
 
-public abstract class DataTypeSymbol extends Symbol {
+import java.util.ArrayList;
+import java.util.List;
 
-    public abstract DataType valueType();
+public class Symbols {
 
-    public static DataTypeSymbol toDataTypeSymbol(Symbol symbol, DataType type) {
-        if (symbol.symbolType().isValueSymbol()) {
-            return Literal.toLiteral(symbol, type);
+    public static List<DataType> extractTypes(List<? extends Symbol> symbols) {
+        List<DataType> result = new ArrayList<>(symbols.size());
+        for (Symbol symbol : symbols) {
+            result.add(symbol.valueType());
         }
-        assert symbol instanceof DataTypeSymbol;
-        return (DataTypeSymbol)symbol;
+        return result;
     }
 }

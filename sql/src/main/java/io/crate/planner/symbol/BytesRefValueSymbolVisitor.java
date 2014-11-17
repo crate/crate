@@ -42,11 +42,6 @@ public class BytesRefValueSymbolVisitor extends SymbolVisitor<Void, BytesRef> {
     }
 
     @Override
-    public BytesRef visitParameter(Parameter symbol, Void context) {
-        return BytesRefs.toBytesRef(symbol.value());
-    }
-
-    @Override
     public BytesRef visitLiteral(Literal symbol, Void context) {
         return BytesRefs.toBytesRef(symbol.value());
     }

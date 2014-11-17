@@ -74,15 +74,15 @@ public class EvaluatingNormalizerTest {
         Function load_eq_01 = new Function(
                 functionInfo(EqOperator.NAME, DataTypes.DOUBLE), Arrays.<Symbol>asList(load_1, d01));
 
-        DataTypeSymbol name_ref = new Reference(
+        Symbol name_ref = new Reference(
                 new ReferenceInfo(
                         new ReferenceIdent(new TableIdent(null, "foo"), "name"),
                         RowGranularity.DOC,
                         DataTypes.STRING
                 )
         );
-        DataTypeSymbol x_literal = Literal.newLiteral("x");
-        DataTypeSymbol y_literal = Literal.newLiteral("y");
+        Symbol x_literal = Literal.newLiteral("x");
+        Symbol y_literal = Literal.newLiteral("y");
 
         Function name_eq_x = new Function(
                 functionInfo(EqOperator.NAME, DataTypes.STRING), Arrays.<Symbol>asList(name_ref, x_literal));

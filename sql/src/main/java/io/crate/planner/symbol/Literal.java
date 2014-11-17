@@ -15,7 +15,7 @@ import java.util.*;
 
 
 public class Literal<ReturnType>
-        extends DataTypeSymbol
+        extends Symbol
         implements Input<ReturnType>, Comparable<Literal> {
 
     protected Object value;
@@ -32,19 +32,6 @@ public class Literal<ReturnType>
             return new Literal();
         }
     };
-
-    /**
-     * guesses the type from the parameters value and creates a new Literal
-     */
-    public static Literal<?> fromParameter(Parameter parameter) {
-        DataType<?> dataType = DataTypes.guessType(parameter.value(), true);
-        if (dataType.equals(DataTypes.STRING)) {
-            // force conversion to bytesRef
-            return new Literal<>(dataType, dataType.value(parameter.value()));
-        }
-        // all other types are okay as is.
-        return new Literal<>(dataType, parameter.value());
-    }
 
     public static Literal implodeCollection(DataType itemType, Set<Literal> literals) {
         ImmutableSet.Builder<Object> builder = ImmutableSet.builder();
@@ -231,28 +218,23 @@ public class Literal<ReturnType>
         return new Literal<>(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value(value));
     }
 
-    public static Literal toLiteral(Symbol symbol, DataType type) throws IllegalArgumentException {
-        switch (symbol.symbolType()) {
-            case PARAMETER:
-                return Literal.newLiteral(type, type.value(((Parameter) symbol).value()));
-            case LITERAL:
-                Literal literal = (Literal)symbol;
-                if (literal.valueType().equals(type)) {
-                    return literal;
-                }
-                return Literal.newLiteral(type, type.value(literal.value()));
+    /**
+     * convert the given symbol to a literal with the given type, unless the type already matches,
+     * in which case the symbol will be returned as is.
+     *
+     * @param symbol that is expected to be a literal
+     * @param type type that the literal should have
+     * @return converted literal
+     * @throws IllegalArgumentException if symbol isn't a literal
+     */
+    public static Literal convert(Symbol symbol, DataType type) throws IllegalArgumentException {
+        if (symbol instanceof Literal) {
+            Literal literal = (Literal) symbol;
+            if (literal.valueType().equals(type)) {
+                return literal;
+            }
+            return newLiteral(type, type.value(literal.value()));
         }
         throw new IllegalArgumentException("expected a parameter or literal symbol");
-    }
-
-    public static Literal toLiteral(Symbol s) {
-        switch (s.symbolType()) {
-            case PARAMETER:
-                return Literal.fromParameter((Parameter) s);
-            case LITERAL:
-                return (Literal) s;
-            default:
-                throw new IllegalArgumentException("expected a parameter or literal symbol");
-        }
     }
 }

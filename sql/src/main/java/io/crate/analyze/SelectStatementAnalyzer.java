@@ -74,10 +74,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     @Override
     protected Symbol visitSingleColumn(SingleColumn node, SelectAnalysis context) {
         Symbol symbol = process(node.getExpression(), context);
-        if (symbol.symbolType() == SymbolType.PARAMETER) {
-            //convert to Literal
-            symbol = Literal.fromParameter((Parameter)symbol);
-        }
         context.outputSymbols().add(symbol);
 
         if (node.getAlias().isPresent()) {
@@ -266,7 +262,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         if (symbol.symbolType().isValueSymbol()) {
             Literal longLiteral;
             try {
-                longLiteral = Literal.toLiteral(symbol, DataTypes.LONG);
+                longLiteral = Literal.convert(symbol, DataTypes.LONG);
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new UnsupportedOperationException(String.format(
                         "Cannot use %s in %s clause", SymbolFormatter.format(symbol), clause));

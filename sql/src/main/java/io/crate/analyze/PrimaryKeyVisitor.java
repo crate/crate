@@ -370,9 +370,6 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
             case LITERAL:
                 version = LongType.INSTANCE.value(((Literal)right).value());
                 break;
-            case PARAMETER:
-                version = LongType.INSTANCE.value(((Parameter)right).value());
-                break;
         }
         if (version == null) {
             throw new IllegalArgumentException("\"_version\" cannot be compared to null");

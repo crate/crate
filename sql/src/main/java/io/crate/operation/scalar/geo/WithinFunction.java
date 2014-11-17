@@ -29,7 +29,6 @@ import com.spatial4j.core.shape.SpatialRelation;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -96,8 +95,8 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     public Symbol normalizeSymbol(Function symbol) {
         Symbol left = symbol.arguments().get(0);
         Symbol right = symbol.arguments().get(1);
-        DataType leftType = DataTypeVisitor.fromSymbol(left);
-        DataType rightType = DataTypeVisitor.fromSymbol(right);
+        DataType leftType = left.valueType();
+        DataType rightType = right.valueType();
 
         boolean literalConverted = false;
         short numLiterals = 0;
@@ -105,7 +104,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         if (left.symbolType().isValueSymbol()) {
             numLiterals++;
             if (leftType.equals(DataTypes.STRING)) {
-                left = Literal.toLiteral(left, DataTypes.GEO_SHAPE);
+                left = Literal.convert(left, DataTypes.GEO_SHAPE);
                 literalConverted = true;
             }
         } else {
@@ -115,7 +114,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         if (right.symbolType().isValueSymbol()) {
             numLiterals++;
             if (rightType.equals(DataTypes.STRING)) {
-                right = Literal.toLiteral(right, DataTypes.GEO_SHAPE);
+                right = Literal.convert(right, DataTypes.GEO_SHAPE);
                 literalConverted = true;
             }
         } else {

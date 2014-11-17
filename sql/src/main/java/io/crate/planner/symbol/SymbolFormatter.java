@@ -99,11 +99,6 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
         return formatValue(symbol.value());
     }
 
-    @Override
-    public String visitParameter(Parameter symbol, Void context) {
-        return formatValue(symbol.value());
-    }
-
     private String formatValue(Object value) {
         return formatValue(value, new StringBuilder()).toString();
     }

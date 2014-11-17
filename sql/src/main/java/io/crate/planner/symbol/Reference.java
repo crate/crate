@@ -30,7 +30,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class Reference extends DataTypeSymbol {
+public class Reference extends Symbol {
 
     public static final SymbolFactory<Reference> FACTORY = new SymbolFactory<Reference>() {
         @Override

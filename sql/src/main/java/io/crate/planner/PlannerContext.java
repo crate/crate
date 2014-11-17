@@ -22,7 +22,6 @@
 package io.crate.planner;
 
 import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.DataTypeSymbol;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 
@@ -32,7 +31,7 @@ public class PlannerContext {
 
     final int numGroupKeys;
     List<Aggregation> aggregations = new ArrayList<>();
-    List<DataTypeSymbol> groupBy;
+    List<Symbol> groupBy;
     Aggregation.Step[] steps;
     int stepIdx = 0;
     Symbol parent;
@@ -64,10 +63,10 @@ public class PlannerContext {
         return steps[stepIdx];
     }
 
-    DataTypeSymbol allocateToCollect(Symbol symbol) {
+    Symbol allocateToCollect(Symbol symbol) {
         InputColumn inputColumn = toCollectAllocation.get(symbol);
         if (inputColumn == null) {
-            inputColumn = new InputColumn(toCollectAllocation.size(), DataTypeVisitor.fromSymbol(symbol));
+            inputColumn = new InputColumn(toCollectAllocation.size(), symbol.valueType());
             toCollectAllocation.put(symbol, inputColumn);
         }
         return inputColumn;

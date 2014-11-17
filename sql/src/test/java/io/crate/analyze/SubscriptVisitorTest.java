@@ -21,10 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.planner.symbol.Parameter;
+import io.crate.planner.symbol.Literal;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
+import io.crate.types.DataTypes;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -48,7 +49,8 @@ public class SubscriptVisitorTest {
 
     private SubscriptContext analyzeSubscript(String expressionString) {
         Analyzer.ParameterContext parameterContext = mock(Analyzer.ParameterContext.class);
-        when(parameterContext.getAsSymbol(anyInt())).thenReturn(new Parameter(currentParameter));
+        when(parameterContext.getAsSymbol(anyInt())).thenReturn(
+                Literal.newLiteral(DataTypes.guessType(currentParameter), currentParameter));
         SubscriptContext context = new SubscriptContext(parameterContext);
         Expression expression = SqlParser.createExpression(expressionString);
         expression.accept(visitor, context);

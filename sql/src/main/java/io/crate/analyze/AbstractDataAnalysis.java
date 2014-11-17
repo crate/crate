@@ -29,7 +29,6 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.Input;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
@@ -310,60 +309,49 @@ public abstract class AbstractDataAnalysis extends Analysis {
     /**
      * normalize and validate given value according to the corresponding {@link io.crate.planner.symbol.Reference}
      *
-     * @param inputValue the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.planner.symbol.Literal}
+     * @param valueSymbol the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.planner.symbol.Literal}
      * @param reference  the reference to which the value has to comply in terms of type-compatibility
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
-    public Literal normalizeInputForReference(Symbol inputValue, Reference reference, boolean forWrite) {
-        Literal normalized;
-        Symbol parameterOrLiteral = normalizer.process(inputValue, null);
+    public Literal normalizeInputForReference(Symbol valueSymbol, Reference reference, boolean forWrite) {
+        Literal literal;
+        try {
+            literal = (Literal) normalizer.process(valueSymbol, null);
 
-        // 1. evaluate
-        // guess type for dynamic column
-        if (reference instanceof DynamicReference) {
-            assert parameterOrLiteral instanceof Input;
-            Object value = ((Input<?>)parameterOrLiteral).value();
-            DataType guessed = DataTypes.guessType(value,
-                    reference.info().columnPolicy() == ColumnPolicy.IGNORED);
-            ((DynamicReference) reference).valueType(guessed);
+            if (reference instanceof DynamicReference) {
+                if (reference.info().columnPolicy() != ColumnPolicy.IGNORED) {
+                    // re-guess without strict to recognize timestamps
+                    DataType<?> dataType = DataTypes.guessType(literal.value(), false);
+                    ((DynamicReference) reference).valueType(dataType);
+                    literal = Literal.convert(literal, dataType); // need to update literal if the type changed
+                } else {
+                    ((DynamicReference) reference).valueType(literal.valueType());
+                }
+            } else {
+                literal = Literal.convert(literal, reference.valueType());
+            }
+        } catch (ClassCastException e) {
+            throw new ColumnValidationException(
+                    reference.info().ident().columnIdent().name(),
+                    String.format("Invalid value of type '%s'", valueSymbol.symbolType().name()));
         }
 
         try {
-            // resolve parameter to literal
-            if (parameterOrLiteral.symbolType() == SymbolType.PARAMETER) {
-                normalized = Literal.newLiteral(
-                        reference.info().type(),
-                        reference.info().type().value(((Parameter) parameterOrLiteral).value())
-                );
-            } else {
-                try {
-                    normalized = (Literal) parameterOrLiteral;
-                    if (!normalized.valueType().equals(reference.info().type())) {
-                        normalized = Literal.newLiteral(
-                                reference.info().type(),
-                                reference.info().type().value(normalized.value()));
-                    }
-                } catch (ClassCastException e) {
-                    throw new ColumnValidationException(
-                            reference.info().ident().columnIdent().name(),
-                            String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
-                }
-            }
-
             // 3. if reference is of type object - do special validation
             if (reference.info().type() == DataTypes.OBJECT) {
-                Map<String, Object> value = (Map<String, Object>) normalized.value();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> value = (Map<String, Object>) literal.value();
                 if (value == null) {
                     return Literal.NULL;
                 }
-                normalized = Literal.newLiteral(normalizeObjectValue(value, reference.info(), forWrite));
+                literal = Literal.newLiteral(normalizeObjectValue(value, reference.info(), forWrite));
             } else if (isObjectArray(reference.info().type())) {
-                Object[] value = (Object[]) normalized.value();
+                Object[] value = (Object[]) literal.value();
                 if (value == null) {
                     return Literal.NULL;
                 }
-                normalized = Literal.newLiteral(
+                literal = Literal.newLiteral(
                         reference.info().type(),
                         normalizeObjectArrayValue(value, reference.info())
                 );
@@ -373,11 +361,11 @@ public abstract class AbstractDataAnalysis extends Analysis {
                     reference.info().ident().columnIdent().name(),
                     SymbolFormatter.format(
                             "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" + reference.valueType().getName() + ")",
-                            inputValue,
+                            literal,
                             reference
                     ));
         }
-        return normalized;
+        return literal;
     }
 
     public Literal normalizeInputForReference(Symbol inputValue, Reference reference) {
@@ -396,24 +384,13 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * @return a {@link io.crate.planner.symbol.Literal} of type <code>dataType</code>
      */
     public Literal normalizeInputForType(Symbol inputValue, DataType dataType) {
-        Literal normalized;
-        Symbol processed = normalizer.process(inputValue, null);
-        if (processed instanceof Parameter) {
-            normalized = Literal.newLiteral(dataType, dataType.value(((Parameter) processed).value()));
-        } else {
-            try {
-                normalized = (Literal)processed;
-                if (!normalized.valueType().equals(dataType)) {
-                    normalized = Literal.newLiteral(dataType, dataType.value(normalized.value()));
-                }
-            } catch (ClassCastException | NumberFormatException e) {
-                throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Invalid value of type '%s'", inputValue.symbolType().name()));
-            }
+        try {
+            return Literal.convert(normalizer.process(inputValue, null), dataType);
+        } catch (ClassCastException | NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Invalid value of type '%s'", inputValue.symbolType().name()));
         }
-        return normalized;
     }
-
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info, boolean forWrite) {

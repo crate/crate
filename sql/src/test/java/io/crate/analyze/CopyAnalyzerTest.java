@@ -30,10 +30,11 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.planner.symbol.Parameter;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -123,7 +124,8 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         String path = "/some/distant/file.ext";
         CopyAnalysis analysis = (CopyAnalysis)analyze("copy users from ?", new Object[]{path});
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat((String)((Parameter)analysis.uri()).value(), is(path));
+        Object value = ((Literal) analysis.uri()).value();
+        assertThat(BytesRefs.toString(value), is(path));
     }
 
     @Test

@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Function extends DataTypeSymbol implements Cloneable {
+public class Function extends Symbol implements Cloneable {
 
     public static final SymbolFactory<Function> FACTORY = new SymbolFactory<Function>() {
         @Override

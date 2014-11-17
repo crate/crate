@@ -36,6 +36,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.ProjectionType;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
 import org.elasticsearch.common.inject.Inject;
 
@@ -191,8 +192,8 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         final Projection projection = projections.get(projectionIdx);
         final Symbol symbol = projection.outputs().get(columnIdx);
 
-        if (symbol instanceof DataTypeSymbol) {
-            streamers[columnIdx] = ((DataTypeSymbol) symbol).valueType().streamer();
+        if (!symbol.valueType().equals(DataTypes.UNDEFINED)) {
+            streamers[columnIdx] = symbol.valueType().streamer();
         } else if (symbol.symbolType() == SymbolType.AGGREGATION) {
             Aggregation aggregation = (Aggregation)symbol;
             streamers[columnIdx] = resolveStreamer(aggregation, aggregation.toStep());

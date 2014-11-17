@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class Value extends DataTypeSymbol {
+public class Value extends Symbol {
 
     public static final SymbolFactory<Value> FACTORY = new SymbolFactory<Value>() {
         @Override

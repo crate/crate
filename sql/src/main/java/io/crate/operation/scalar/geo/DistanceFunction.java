@@ -26,7 +26,6 @@ import com.google.common.collect.Sets;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
@@ -109,8 +108,8 @@ public class DistanceFunction extends Scalar<Double, Object> {
     public Symbol normalizeSymbol(Function symbol) {
         Symbol arg1 = symbol.arguments().get(0);
         Symbol arg2 = symbol.arguments().get(1);
-        DataType arg1Type = DataTypeVisitor.fromSymbol(arg1);
-        DataType arg2Type = DataTypeVisitor.fromSymbol(arg2);
+        DataType arg1Type = arg1.valueType();
+        DataType arg2Type = arg2.valueType();
 
         boolean arg1IsReference = true;
         boolean literalConverted = false;
@@ -121,7 +120,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
             arg1IsReference = false;
             if (!arg1Type.equals(DataTypes.GEO_POINT)) {
                 literalConverted = true;
-                arg1 = Literal.toLiteral(arg1, DataTypes.GEO_POINT);
+                arg1 = Literal.convert(arg1, DataTypes.GEO_POINT);
             }
         } else {
             validateType(arg1, arg1Type);
@@ -131,7 +130,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
             numLiterals++;
             if (!arg2Type.equals(DataTypes.GEO_POINT)) {
                 literalConverted = true;
-                arg2 = Literal.toLiteral(arg2, DataTypes.GEO_POINT);
+                arg2 = Literal.convert(arg2, DataTypes.GEO_POINT);
             }
         } else {
             validateType(arg2, arg2Type);

@@ -33,7 +33,7 @@ import java.io.IOException;
 /**
  * A symbol which represents a column of a result array
  */
-public class InputColumn extends DataTypeSymbol implements Comparable<InputColumn> {
+public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
     public static final SymbolFactory<InputColumn> FACTORY = new SymbolFactory<InputColumn>() {
         @Override

@@ -86,8 +86,6 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
     /**
      * validate that result columns from subquery match explicit insert columns
      * or complete table schema
-     * @param node
-     * @param context
      */
     private void validateMatchingColumns(InsertFromSubquery node, InsertFromSubQueryAnalysis context) {
         List<Reference> insertColumns = context.columns();
@@ -107,12 +105,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
             insertColumn = insertColumnsIter.next();
             subQueryColumn = subQueryColumnsIter.next();
 
-            if (!(subQueryColumn instanceof DataTypeSymbol)) {
-                throw new IllegalArgumentException(
-                        SymbolFormatter.format("Invalid column expression in subquery: '%s'", subQueryColumn)
-                );
-            }
-            DataType subQueryColumnType = ((DataTypeSymbol) subQueryColumn).valueType();
+            DataType subQueryColumnType = subQueryColumn.valueType();
 
             if (subQueryColumnType != insertColumn.valueType()) {
                 if (!subQueryColumnType.isConvertableTo(insertColumn.valueType())) {
@@ -121,7 +114,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
                                     "Type of subquery column %s (%s) does not match /" +
                                             " is not convertable to the type of table column %s (%s)",
                                     SymbolFormatter.format(subQueryColumn),
-                                    ((DataTypeSymbol) subQueryColumn).valueType(),
+                                    subQueryColumn.valueType(),
                                     insertColumn.info().ident().columnIdent().fqn(),
                                     insertColumn.valueType()
                             ));

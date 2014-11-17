@@ -491,7 +491,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         ESGetNode getNode = new ESGetNode(
                 indexName,
                 analysis.outputSymbols(),
-                extractDataTypes(analysis.outputSymbols()),
+                Symbols.extractTypes(analysis.outputSymbols()),
                 analysis.ids(),
                 analysis.routingValues(),
                 analysis.sortSymbols(),
@@ -1026,15 +1026,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         plan.expectsAffectedRows(true);
     }
 
-
-    public static List<DataType> extractDataTypes(List<Symbol> symbols) {
-        List<DataType> types = new ArrayList<>(symbols.size());
-        for (Symbol symbol : symbols) {
-            types.add(DataTypeVisitor.fromSymbol(symbol));
-        }
-        return types;
-    }
-
     static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
         if (projections.size() == 0){
             return inputTypes;
@@ -1055,7 +1046,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     private static DataType resolveType(List<Projection> projections, int projectionIdx, int columnIdx, List<DataType> inputTypes) {
         Projection projection = projections.get(projectionIdx);
         Symbol symbol = projection.outputs().get(columnIdx);
-        DataType type = DataTypeVisitor.fromSymbol(symbol);
+        DataType type = symbol.valueType();
         if (type == null || (type.equals(DataTypes.UNDEFINED) && symbol instanceof InputColumn)) {
             if (projectionIdx > 0) {
                 if (symbol instanceof InputColumn) {

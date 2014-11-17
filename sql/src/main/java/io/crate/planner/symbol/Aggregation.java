@@ -24,6 +24,8 @@ package io.crate.planner.symbol;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -77,6 +79,14 @@ public class Aggregation extends Symbol {
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitAggregation(this, context);
+    }
+
+    @Override
+    public DataType valueType() {
+        if (toStep == Step.PARTIAL) {
+            return DataTypes.UNDEFINED;
+        }
+        return functionInfo.returnType();
     }
 
     public FunctionIdent functionIdent() {

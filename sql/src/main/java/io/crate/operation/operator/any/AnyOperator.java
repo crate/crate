@@ -74,9 +74,9 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
         if (containsNull(left, right)) {
             return Literal.NULL;
         }
-        if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
-            Literal collLiteral = Literal.toLiteral(left);
-            Object rightValue = Literal.toLiteral(right).value();
+        if (left instanceof Literal && right instanceof Literal) {
+            Literal collLiteral = (Literal) left;
+            Object rightValue = ((Literal) right).value();
             if (!DataTypes.isCollectionType(collLiteral.valueType())) {
                 throw new IllegalArgumentException("invalid array expression");
             }

@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.planner.symbol.DataTypeSymbol;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 
@@ -47,11 +46,8 @@ public class OutputTypeVisitor extends AnalysisVisitor<Void, DataType[]> {
     protected DataType[] visitSelectAnalysis(SelectAnalysis analysis, Void context) {
         DataType[] types = new DataType[analysis.outputSymbols().size()];
         java.util.List<Symbol> outputSymbols = analysis.outputSymbols();
-        Symbol symbol;
         for (int i = 0, outputSymbolsSize = outputSymbols.size(); i < outputSymbolsSize; i++) {
-            symbol = outputSymbols.get(i);
-            assert symbol instanceof DataTypeSymbol;
-            types[i] = ((DataTypeSymbol) symbol).valueType();
+            types[i] = outputSymbols.get(i).valueType();
         }
         return types;
     }

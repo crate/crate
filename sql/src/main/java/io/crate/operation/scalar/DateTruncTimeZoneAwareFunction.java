@@ -80,8 +80,7 @@ public class DateTruncTimeZoneAwareFunction extends BaseDateTruncFunction {
                             DataTypes.TIMESTAMP.value(((Input) tsSymbol).value()))
             );
         } else {
-            assert tsSymbol instanceof DataTypeSymbol;
-            if ( !((DataTypeSymbol) tsSymbol).valueType().equals(DataTypes.TIMESTAMP)) {
+            if ( !tsSymbol.valueType().equals(DataTypes.TIMESTAMP)) {
                 throw new IllegalArgumentException(SymbolFormatter.format(
                         "The argument \"%s\" given to the date_trunc function has an invalid data type",
                         tsSymbol));

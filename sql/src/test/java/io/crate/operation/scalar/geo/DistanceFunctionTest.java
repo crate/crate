@@ -26,10 +26,10 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Symbols;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -41,7 +41,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -49,7 +48,8 @@ import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 public class DistanceFunctionTest {
 
@@ -72,11 +72,7 @@ public class DistanceFunctionTest {
     }
 
     private DistanceFunction functionFromArgs(List<? extends Symbol> args) {
-        List<DataType> dataTypes = new ArrayList<>(args.size());
-        for (Symbol arg : args) {
-            dataTypes.add(DataTypeVisitor.fromSymbol(arg));
-        }
-        return getFunction(dataTypes);
+        return getFunction(Symbols.extractTypes(args));
     }
 
     @SuppressWarnings("unchecked")

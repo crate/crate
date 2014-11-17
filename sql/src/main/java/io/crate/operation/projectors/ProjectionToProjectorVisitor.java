@@ -27,12 +27,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.projection.*;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.StringValueSymbolVisitor;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import io.crate.types.StringType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -129,7 +125,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
             symbolVisitor.process(aggregation, symbolContext);
         }
         return new GroupingProjector(
-                DataTypeVisitor.fromSymbols(projection.keys()),
+                Symbols.extractTypes(projection.keys()),
                 keyInputs,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 symbolContext.aggregations()

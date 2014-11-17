@@ -23,7 +23,6 @@ package io.crate.planner.projection;
 
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.DataTypeSymbol;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -34,7 +33,7 @@ import java.util.List;
 
 public class GroupProjection extends Projection {
 
-    List<DataTypeSymbol> keys;
+    List<Symbol> keys;
     List<Aggregation> values;
     List<Symbol> outputs;
 
@@ -50,16 +49,16 @@ public class GroupProjection extends Projection {
     public GroupProjection() {
     }
 
-    public GroupProjection(List<DataTypeSymbol> keys, List<Aggregation> values) {
+    public GroupProjection(List<Symbol> keys, List<Aggregation> values) {
         this.keys = keys;
         this.values = values;
     }
 
-    public List<DataTypeSymbol> keys() {
+    public List<Symbol> keys() {
         return keys;
     }
 
-    public void keys(List<DataTypeSymbol> keys) {
+    public void keys(List<Symbol> keys) {
         this.keys = keys;
     }
 
@@ -96,7 +95,7 @@ public class GroupProjection extends Projection {
         int size = in.readVInt();
         keys = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            keys.add((DataTypeSymbol) Symbol.fromStream(in));
+            keys.add(Symbol.fromStream(in));
         }
         size = in.readVInt();
         values = new ArrayList<>(size);

@@ -30,7 +30,7 @@ public abstract class Symbol implements Streamable {
 
     public static boolean isLiteral(Symbol symbol, DataType expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL
-                && ((Literal)symbol).valueType().equals(expectedType);
+                && symbol.valueType().equals(expectedType);
     }
 
     public interface SymbolFactory<T extends Symbol> {
@@ -53,10 +53,5 @@ public abstract class Symbol implements Streamable {
         return symbol;
     }
 
-    public Symbol deepCopy() throws IOException {
-        BytesStreamOutput out = new BytesStreamOutput();
-        Symbol.toStream(this, out);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
-        return Symbol.fromStream(in);
-    }
+    public abstract DataType valueType();
 }

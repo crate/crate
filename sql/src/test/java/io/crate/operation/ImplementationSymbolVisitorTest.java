@@ -124,7 +124,7 @@ public class ImplementationSymbolVisitorTest {
         Function multiply = new Function(
                 MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(1))
         );
-        List<DataTypeSymbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), multiply);
+        List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), multiply);
 
         ImplementationSymbolVisitor.Context context = visitor.process(keys);
         assertThat(context.collectExpressions().size(), is(2));
@@ -152,7 +152,7 @@ public class ImplementationSymbolVisitorTest {
         Function multiply = new Function(
                 MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(1))
         );
-        List<DataTypeSymbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), multiply);
+        List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), multiply);
 
 
         // values: [ count(in(0)) ]

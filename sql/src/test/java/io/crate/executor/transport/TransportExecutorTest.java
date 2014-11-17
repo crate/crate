@@ -115,7 +115,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         return new ESGetNode(
                 index,
                 outputs,
-                Planner.extractDataTypes(outputs),
+                Symbols.extractTypes(outputs),
                 ids,
                 ids,
                 ImmutableList.<Symbol>of(),

@@ -30,9 +30,9 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.cast.ToStringFunction;
-import io.crate.planner.symbol.DataTypeSymbol;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -81,8 +81,8 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns().size(), is(analysis.getSubQueryColumns().size()));
 
         for (int i = 0; i < analysis.columns().size(); i++) {
-            assertThat(analysis.getSubQueryColumns().get(i), instanceOf(DataTypeSymbol.class));
-            DataTypeSymbol subQueryColumn = (DataTypeSymbol)analysis.getSubQueryColumns().get(i);
+            assertThat(analysis.getSubQueryColumns().get(i), instanceOf(Symbol.class));
+            Symbol subQueryColumn = analysis.getSubQueryColumns().get(i);
             Reference insertColumn = analysis.columns().get(i);
             assertThat(
                     subQueryColumn.valueType().isConvertableTo(insertColumn.valueType()),

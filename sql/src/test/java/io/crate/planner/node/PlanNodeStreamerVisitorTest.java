@@ -166,7 +166,7 @@ public class PlanNodeStreamerVisitorTest {
         MergeNode mergeNode = new MergeNode("mörtsch", 2);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED));
         GroupProjection groupProjection = new GroupProjection(
-                Arrays.<DataTypeSymbol>asList(Literal.newLiteral("key")),
+                Arrays.<Symbol>asList(Literal.newLiteral("key")),
                 Arrays.asList(new Aggregation(
                         countInfo,
                         ImmutableList.<Symbol>of(),

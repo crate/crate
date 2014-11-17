@@ -20,14 +20,14 @@
  */
 package io.crate.analyze;
 
-import io.crate.planner.symbol.Parameter;
-import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Locale;
+
+import static io.crate.planner.symbol.Literal.newLiteral;
 
 public class Analyzer {
 
@@ -95,7 +95,7 @@ public class Analyzer {
         }
 
         private static DataType guessTypeSafe(Object value) throws IllegalArgumentException {
-            DataType guessedType = DataTypes.guessType(value);
+            DataType guessedType = DataTypes.guessType(value, true);
             if (guessedType == null) {
                 throw new IllegalArgumentException(String.format(
                         "Got an argument \"%s\" that couldn't be recognized", value));
@@ -125,14 +125,15 @@ public class Analyzer {
             return parameters;
         }
 
-        public Symbol getAsSymbol(int index) {
+        public io.crate.planner.symbol.Literal getAsSymbol(int index) {
             try {
                 if (hasBulkParams()) {
                     // already did a type guess so it is possible to create a literal directly
-                    return io.crate.planner.symbol.Literal.newLiteral(
-                            bulkTypes[index], bulkParameters[currentIdx][index]);
+                    return newLiteral(bulkTypes[index], bulkParameters[currentIdx][index]);
                 }
-                return new Parameter(parameters[index]);
+                DataType type = guessTypeSafe(parameters[index]);
+                // use type.value because some types need conversion (String to BytesRef, List to Array)
+                return newLiteral(type, type.value(parameters[index]));
             } catch (ArrayIndexOutOfBoundsException e) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Tried to resolve a parameter but the arguments provided with the " +

@@ -92,7 +92,7 @@ public class LuceneQueryBuilderTest {
         return builder.convert(eq).query;
     }
 
-    private WhereClause eq(DataTypeSymbol left, DataTypeSymbol right) {
+    private WhereClause eq(Symbol left, Symbol right) {
         return new WhereClause(new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
                 Arrays.<Symbol>asList(left, right)

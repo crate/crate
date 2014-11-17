@@ -28,7 +28,6 @@ public enum SymbolType {
     FUNCTION(Function.FACTORY),
     LITERAL(Literal.FACTORY),
     INPUT_COLUMN(InputColumn.FACTORY),
-    PARAMETER(Parameter.FACTORY),
     DYNAMIC_REFERENCE(DynamicReference.FACTORY),
     VALUE(Value.FACTORY);
 
@@ -43,6 +42,6 @@ public enum SymbolType {
     }
 
     public boolean isValueSymbol() {
-        return ordinal() == LITERAL.ordinal() || ordinal() == PARAMETER.ordinal();
+        return ordinal() == LITERAL.ordinal();
     }
 }

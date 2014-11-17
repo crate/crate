@@ -21,7 +21,7 @@
 
 package io.crate.planner.symbol;
 
-import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 public class StringValueSymbolVisitor extends SymbolVisitor<Void, String> {
 
@@ -41,19 +41,7 @@ public class StringValueSymbolVisitor extends SymbolVisitor<Void, String> {
     }
 
     @Override
-    public String visitParameter(Parameter symbol, Void context) {
-        return symbol.value().toString();
-    }
-
-    @Override
     public String visitLiteral(Literal symbol, Void context) {
-        Object o = symbol.value();
-        if (o == null) {
-            return null;
-        }
-        if (o instanceof BytesRef) {
-            return ((BytesRef)o).utf8ToString();
-        }
-        return o.toString();
+        return BytesRefs.toString(symbol.value());
     }
 }
