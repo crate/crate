@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.ActionListener;
@@ -54,7 +55,7 @@ public class TransportQueryShardActionTest extends SQLTransportIntegrationTest {
                 discoveryNodes[1].id(),
                 new QueryShardRequest("foo",
                         1,
-                        ImmutableList.<Symbol>of(),
+                        ImmutableList.<Reference>of(),
                         ImmutableList.<Symbol>of(),
                         new boolean[0],
                         new Boolean[0],

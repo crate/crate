@@ -34,7 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class ESFieldExtractor {
+public abstract class ESFieldExtractor implements FieldExtractor<SearchHit> {
 
     private static final Object NOT_FOUND = new Object();
 
@@ -105,13 +105,11 @@ public abstract class ESFieldExtractor {
     public static class PartitionedByColumnExtractor extends ESFieldExtractor {
 
         private final Reference reference;
-        private final List<ReferenceInfo> partitionedByInfos;
         private final int valueIdx;
         private final Map<String, List<BytesRef>> cache;
 
         public PartitionedByColumnExtractor(Reference reference, List<ReferenceInfo> partitionedByInfos) {
             this.reference = reference;
-            this.partitionedByInfos = partitionedByInfos;
             this.valueIdx = partitionedByInfos.indexOf(reference.info());
             this.cache = new HashMap<>();
         }
@@ -121,8 +119,7 @@ public abstract class ESFieldExtractor {
             try {
                 List<BytesRef> values = cache.get(hit.index());
                 if (values == null) {
-                    values = PartitionName
-                            .fromStringSafe(hit.index()).values();
+                    values = PartitionName.fromStringSafe(hit.index()).values();
                 }
                 BytesRef value = values.get(valueIdx);
                 if (value == null) {

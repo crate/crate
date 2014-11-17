@@ -31,12 +31,10 @@ import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Routing;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.dql.QueryThenFetchNode;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
@@ -87,9 +85,9 @@ public class QueryThenFetchTask implements Task<QueryResult> {
     private final AtomicArray<QuerySearchResult> firstResults;
     private final AtomicArray<FetchSearchResult> fetchResults;
     private final DiscoveryNodes nodes;
-    private final ESFieldExtractor[] extractor;
     private final int numColumns;
     private final ClusterState state;
+    private final List<FieldExtractor<SearchHit>> extractors;
     volatile ScoreDoc[] sortedShardList;
     private volatile AtomicArray<ShardSearchFailure> shardFailures;
     private final Object shardFailuresMutex = new Object();
@@ -101,7 +99,8 @@ public class QueryThenFetchTask implements Task<QueryResult> {
     private final static SearchRequest EMPTY_SEARCH_REQUEST = new SearchRequest();
 
 
-    public QueryThenFetchTask(QueryThenFetchNode searchNode,
+    public QueryThenFetchTask(Functions functions,
+                              QueryThenFetchNode searchNode,
                               ClusterService clusterService,
                               TransportQueryShardAction transportQueryShardAction,
                               SearchServiceTransportAction searchServiceTransportAction,
@@ -120,67 +119,63 @@ public class QueryThenFetchTask implements Task<QueryResult> {
         results = Arrays.<ListenableFuture<QueryResult>>asList(result);
 
         routing = searchNode.routing();
-        requests = prepareRequests(routing.locations());
+
+        Context context = new Context(functions);
+        Visitor fieldExtractorVisitor = new Visitor(searchNode.partitionBy());
+        extractors = new ArrayList<>(searchNode.outputs().size());
+        for (Symbol symbol : searchNode.outputs()) {
+            extractors.add(fieldExtractorVisitor.process(symbol, context));
+        }
+        requests = prepareRequests(context.references);
         docIdsToLoad = new AtomicArray<>(requests.size());
         firstResults = new AtomicArray<>(requests.size());
         fetchResults = new AtomicArray<>(requests.size());
 
-        extractor = buildExtractor(searchNode.outputs());
         numColumns = searchNode.outputs().size();
     }
 
-    private ESFieldExtractor[] buildExtractor(final List<Symbol> outputs) {
-        ESFieldExtractor[] extractors = new ESFieldExtractor[outputs.size()];
-        int i = 0;
-        for (Symbol output : outputs) {
-            assert output instanceof Reference;
-            Reference reference = ((Reference) output);
-            final ColumnIdent columnIdent = reference.info().ident().columnIdent();
-            if (DocSysColumns.VERSION.equals(columnIdent)) {
-                extractors[i] = new ESFieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        return hit.getVersion();
-                    }
-                };
-            } else if (DocSysColumns.ID.equals(columnIdent)) {
-                extractors[i] = new ESFieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        return new BytesRef(hit.getId());
-                    }
-                };
-            } else if (DocSysColumns.DOC.equals(columnIdent)) {
-                extractors[i] = new ESFieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        return hit.getSource();
-                    }
-                };
-            } else if (DocSysColumns.RAW.equals(columnIdent)) {
-                extractors[i] = new ESFieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        return hit.getSourceRef().toBytesRef();
-                    }
-                };
-            } else if (DocSysColumns.SCORE.equals(columnIdent)) {
-                extractors[i] = new ESFieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        return hit.getScore();
-                    }
-                };
-            } else if (searchNode.partitionBy().contains(reference.info())) {
-                extractors[i] = new ESFieldExtractor.PartitionedByColumnExtractor(
-                        reference, searchNode.partitionBy()
-                );
-            } else {
-                extractors[i] = new ESFieldExtractor.Source(columnIdent);
-            }
-            i++;
+    private static FieldExtractor<SearchHit> buildExtractor(Reference reference, List<ReferenceInfo> partitionBy) {
+        final ColumnIdent columnIdent = reference.info().ident().columnIdent();
+        if (DocSysColumns.VERSION.equals(columnIdent)) {
+            return new ESFieldExtractor() {
+                @Override
+                public Object extract(SearchHit hit) {
+                    return hit.getVersion();
+                }
+            };
+        } else if (DocSysColumns.ID.equals(columnIdent)) {
+            return new ESFieldExtractor() {
+                @Override
+                public Object extract(SearchHit hit) {
+                    return new BytesRef(hit.getId());
+                }
+            };
+        } else if (DocSysColumns.DOC.equals(columnIdent)) {
+            return new ESFieldExtractor() {
+                @Override
+                public Object extract(SearchHit hit) {
+                    return hit.getSource();
+                }
+            };
+        } else if (DocSysColumns.RAW.equals(columnIdent)) {
+            return new ESFieldExtractor() {
+                @Override
+                public Object extract(SearchHit hit) {
+                    return hit.getSourceRef().toBytesRef();
+                }
+            };
+        } else if (DocSysColumns.SCORE.equals(columnIdent)) {
+            return new ESFieldExtractor() {
+                @Override
+                public Object extract(SearchHit hit) {
+                    return hit.getScore();
+                }
+            };
+        } else if (partitionBy.contains(reference.info())) {
+            return new ESFieldExtractor.PartitionedByColumnExtractor(reference, partitionBy);
+        } else {
+            return new ESFieldExtractor.Source(columnIdent);
         }
-        return extractors;
     }
 
     @Override
@@ -204,8 +199,12 @@ public class QueryThenFetchTask implements Task<QueryResult> {
         }
     }
 
-    private List<Tuple<String, QueryShardRequest>> prepareRequests(Map<String, Map<String, Set<Integer>>> locations) {
+    private List<Tuple<String, QueryShardRequest>> prepareRequests(List<Reference> outputs) {
         List<Tuple<String, QueryShardRequest>> requests = new ArrayList<>();
+        Map<String, Map<String, Set<Integer>>> locations = searchNode.routing().locations();
+        if (locations == null) {
+            return requests;
+        }
         for (Map.Entry<String, Map<String, Set<Integer>>> entry : locations.entrySet()) {
             String node = entry.getKey();
             for (Map.Entry<String, Set<Integer>> indexEntry : entry.getValue().entrySet()) {
@@ -218,7 +217,7 @@ public class QueryThenFetchTask implements Task<QueryResult> {
                             new QueryShardRequest(
                                     index,
                                     shard,
-                                    searchNode.outputs(),
+                                    outputs,
                                     searchNode.orderBy(),
                                     searchNode.reverseFlags(),
                                     searchNode.nullsFirst(),
@@ -328,7 +327,7 @@ public class QueryThenFetchTask implements Task<QueryResult> {
                         for (int r = 0; r < hits.length; r++) {
                             rows[r] = new Object[numColumns];
                             for (int c = 0; c < numColumns; c++) {
-                                rows[r][c] = extractor[c].extract(hits[r]);
+                                rows[r][c] = extractors.get(c).extract(hits[r]);
                             }
                         }
                         result.set(new QueryResult(rows));
@@ -432,5 +431,58 @@ public class QueryThenFetchTask implements Task<QueryResult> {
             return;
         }
         result.setException(t);
+    }
+
+    static class Context {
+        private Functions functions;
+        List<Reference> references = new ArrayList<>();
+
+        public Context(Functions functions) {
+            this.functions = functions;
+        }
+
+        public void addReference(Reference reference) {
+            references.add(reference);
+        }
+    }
+    static class Visitor extends SymbolVisitor<Context, FieldExtractor<SearchHit>> {
+
+        private List<ReferenceInfo> partitionBy;
+
+        public Visitor(List<ReferenceInfo> partitionBy) {
+            this.partitionBy = partitionBy;
+        }
+
+        @Override
+        protected FieldExtractor<SearchHit> visitSymbol(Symbol symbol, Context context) {
+            throw new UnsupportedOperationException(
+                    SymbolFormatter.format("QueryThenFetch doesn't support \"%s\" in outputs", symbol));
+        }
+
+        @Override
+        public FieldExtractor<SearchHit> visitReference(final Reference reference, Context context) {
+            context.addReference(reference);
+            return buildExtractor(reference, partitionBy);
+        }
+
+        @Override
+        public FieldExtractor<SearchHit> visitDynamicReference(DynamicReference symbol, Context context) {
+            return visitReference(symbol, context);
+        }
+
+        @Override
+        public FieldExtractor<SearchHit> visitFunction(Function symbol, Context context) {
+            List<FieldExtractor<SearchHit>> subExtractors = new ArrayList<>(symbol.arguments().size());
+            for (Symbol argument : symbol.arguments()) {
+                subExtractors.add(process(argument, context));
+            }
+            Scalar scalar = (Scalar) context.functions.getSafe(symbol.info().ident());
+            return new FunctionExtractor<>(scalar, subExtractors);
+        }
+
+        @Override
+        public FieldExtractor<SearchHit> visitLiteral(Literal symbol, Context context) {
+            return new LiteralExtractor<>(symbol.value());
+        }
     }
 }

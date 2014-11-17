@@ -240,7 +240,7 @@ public class CrateSearchService extends InternalSearchService {
 
     private static class OutputSymbolVisitor extends SymbolVisitor<OutputContext, Void> {
 
-        public void process(List<Symbol> outputs, OutputContext context) {
+        public void process(List<? extends Symbol> outputs, OutputContext context) {
             for (Symbol output : outputs) {
                 process(output, context);
             }

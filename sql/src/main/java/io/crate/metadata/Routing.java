@@ -31,12 +31,13 @@ public class Routing implements Streamable {
      *  &nbsp;&nbsp;&nbsp;&nbsp;Map< indexName (string), Set<ShardId (int) > <br />
      *  </p>
      */
+    @Nullable
     public Map<String, Map<String, Set<Integer>>> locations() {
         return locations;
     }
 
     public boolean hasLocations() {
-        return locations != null && locations().size() > 0;
+        return locations != null && locations.size() > 0;
     }
 
     public Set<String> nodes() {

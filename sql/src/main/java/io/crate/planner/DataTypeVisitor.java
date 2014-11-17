@@ -38,10 +38,10 @@ public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
         return INSTANCE.process(symbol, null);
     }
 
-    public static List<DataType> fromSymbols(List<? extends Symbol> keys) {
-        List<DataType> types = new ArrayList<>(keys.size());
-        for (Symbol key : keys) {
-            types.add(fromSymbol(key));
+    public static List<DataType> fromSymbols(List<? extends Symbol> symbols) {
+        List<DataType> types = new ArrayList<>(symbols.size());
+        for (Symbol symbol : symbols) {
+            types.add(fromSymbol(symbol));
         }
         return types;
     }

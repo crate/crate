@@ -38,7 +38,7 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
 
     private String index;
     private Integer shard;
-    private List<Symbol> outputs;
+    private List<? extends Symbol> outputs;
     private List<Symbol> orderBy;
     private boolean[] reverseFlags;
     private Boolean[] nullsFirst;
@@ -51,7 +51,7 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
 
     public QueryShardRequest(String index,
                              int shard,
-                             List<Symbol> outputs,
+                             List<? extends Symbol> outputs,
                              List<Symbol> orderBy,
                              boolean[] reverseFlags,
                              Boolean[] nullsFirst,
@@ -84,10 +84,11 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
         shard = in.readVInt();
 
         int numOutputs = in.readVInt();
-        outputs = new ArrayList<>(numOutputs);
+        List<Symbol> outputs = new ArrayList<>(numOutputs);
         for (int i = 0; i < numOutputs; i++) {
             outputs.add(Symbol.fromStream(in));
         }
+        this.outputs = outputs;
 
         int numOrderBy = in.readVInt();
         orderBy = new ArrayList<>(numOrderBy);
@@ -166,7 +167,7 @@ public class QueryShardRequest extends ActionRequest<QueryShardRequest> {
         return shard;
     }
 
-    public List<Symbol> outputs() {
+    public List<? extends Symbol> outputs() {
         return outputs;
     }
 

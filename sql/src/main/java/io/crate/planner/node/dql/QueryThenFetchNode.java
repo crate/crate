@@ -29,6 +29,7 @@ import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
+import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
@@ -83,6 +84,7 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
         this.offset = Objects.firstNonNull(offset, 0);
 
         this.partitionBy = Objects.firstNonNull(partitionBy, ImmutableList.<ReferenceInfo>of());
+        outputTypes(DataTypeVisitor.fromSymbols(outputs));
     }
 
     public Routing routing() {
@@ -119,7 +121,7 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESSearchNode(this, context);
+        return visitor.visitQueryThenFetchNode(this, context);
     }
 
     @Override

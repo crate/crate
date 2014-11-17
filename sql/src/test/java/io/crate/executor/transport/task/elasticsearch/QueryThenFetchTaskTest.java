@@ -27,9 +27,14 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.query.QueryShardRequest;
 import io.crate.action.sql.query.TransportQueryShardAction;
+import io.crate.analyze.WhereClause;
 import io.crate.executor.QueryResult;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
+import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.search.ScoreDoc;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -45,9 +50,13 @@ import org.elasticsearch.search.fetch.FetchSearchRequest;
 import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -61,45 +70,76 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class QueyThenFetchTaskTest {
+public class QueryThenFetchTaskTest {
 
     private QueryThenFetchTask queryThenFetchTask;
-    private QueryThenFetchNode searchNode;
-    private ClusterService clusterService;
     private TransportQueryShardAction transportQueryShardAction;
     private SearchServiceTransportAction searchServiceTransportAction;
     private SearchPhaseController searchPhaseController;
 
     private DiscoveryNodes nodes = mock(DiscoveryNodes.class);
 
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    @Mock(answer = Answers.RETURNS_MOCKS)
+    ClusterService clusterService;
+
     @Before
     public void prepare() {
-        searchNode = mock(QueryThenFetchNode.class);
+        MockitoAnnotations.initMocks(this);
+        QueryThenFetchNode searchNode = mock(QueryThenFetchNode.class);
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
         HashMap<String, Set<Integer>> location1 = new HashMap<String, Set<Integer>>();
-        location1.put("loc1", new HashSet<Integer>(Arrays.asList(1)));
+        location1.put("loc1", new HashSet<>(Arrays.asList(1)));
         locations.put("node_1", location1);
         Routing routing = new Routing(locations);
         when(searchNode.routing()).thenReturn(routing);
 
-        clusterService = mock(ClusterService.class);
         ClusterState state = mock(ClusterState.class);
         when(clusterService.state()).thenReturn(state);
         when(state.blocks()).thenReturn(mock(ClusterBlocks.class));
         when(state.nodes()).thenReturn(nodes);
 
-
         transportQueryShardAction = mock(TransportQueryShardAction.class);
         searchServiceTransportAction = mock(SearchServiceTransportAction.class);
         searchPhaseController = mock(SearchPhaseController.class);
-        queryThenFetchTask = new QueryThenFetchTask(searchNode,
-                                                    clusterService,
-                                                    transportQueryShardAction,
-                                                    searchServiceTransportAction,
-                                                    searchPhaseController,
-                                                    new ThreadPool("testpool"));
+        queryThenFetchTask = new QueryThenFetchTask(
+                mock(Functions.class),
+                searchNode,
+                clusterService,
+                transportQueryShardAction,
+                searchServiceTransportAction,
+                searchPhaseController,
+                new ThreadPool("testpool"));
     }
 
+    @Test
+    public void testAggregationInOutputs() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("QueryThenFetch doesn't support \"count()\" in outputs");
+        new QueryThenFetchTask(
+                mock(Functions.class),
+                new QueryThenFetchNode(
+                        new Routing(),
+                        Arrays.<Symbol>asList(new Aggregation(CountAggregation.COUNT_STAR_FUNCTION, Collections.<Symbol>emptyList(),
+                                Aggregation.Step.ITER, Aggregation.Step.FINAL)),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        WhereClause.MATCH_ALL,
+                        null
+                ),
+                clusterService,
+                mock(TransportQueryShardAction.class),
+                mock(SearchServiceTransportAction.class),
+                mock(SearchPhaseController.class),
+                mock(ThreadPool.class)
+        );
+    }
 
     @Test
     public void testFinishWithErrors() throws Throwable{

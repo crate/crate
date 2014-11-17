@@ -49,7 +49,7 @@ public class QueryShardRequestTest {
         QueryShardRequest request = new QueryShardRequest(
                 "dummyTable",
                 1,
-                ImmutableList.<Symbol>of(nameRef),
+                ImmutableList.of(nameRef),
                 ImmutableList.<Symbol>of(nameRef),
                 new boolean[] { false },
                 new Boolean[] { null },

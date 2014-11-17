@@ -54,6 +54,7 @@ import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +84,7 @@ public class PlannerTest {
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of(".partitioned.parted.04232chj", ImmutableSet.of(1, 2)))
             .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
             .build());
+
 
     class TestModule extends MetaDataModule {
 
@@ -526,27 +528,17 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(QueryThenFetchNode.class));
         QueryThenFetchNode searchNode = (QueryThenFetchNode) planNode;
 
-        assertThat(searchNode.outputs().size(), is(1));
-        assertThat(((Reference) searchNode.outputs().get(0)).info().ident().columnIdent().fqn(), is("name"));
+        assertThat(searchNode.outputs().size(), is(2));
+        assertThat(searchNode.outputs().get(0), isFunction("format"));
+        assertThat(searchNode.outputs().get(1), isReference("name"));
 
-        assertThat(searchNode.outputTypes().size(), is(1));
+        assertThat(searchNode.outputTypes().size(), is(2));
         assertEquals(DataTypes.STRING, searchNode.outputTypes().get(0));
+        assertEquals(DataTypes.STRING, searchNode.outputTypes().get(1));
         assertTrue(searchNode.whereClause().hasQuery());
         assertThat(searchNode.partitionBy().size(), is(0));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode mergeNode = (MergeNode)planNode;
-        assertTrue(mergeNode.hasProjections());
-        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
-        assertThat(mergeNode.outputTypes().size(), is(2));
-        assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(0));
-        assertThat(mergeNode.projections().get(0).outputs().get(0), instanceOf(Function.class));
-        assertEquals(DataTypes.STRING, mergeNode.outputTypes().get(1));
-        assertThat(mergeNode.projections().get(0).outputs().get(1), instanceOf(InputColumn.class));
-
-        assertFalse(iterator.hasNext());
-        assertFalse(plan.expectsAffectedRows());
+        assertThat(iterator.hasNext(), is(false));
     }
 
     @Test

@@ -34,7 +34,6 @@ import io.crate.executor.TaskResult;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -323,30 +322,30 @@ public class ESGetTask implements Task<QueryResult> {
                         getClass().getSimpleName()));
     }
 
-    static FieldExtractor buildExtractor(final String field, final Context context) {
+    static FieldExtractor<GetResponse> buildExtractor(final String field, final Context context) {
         if (field.equals("_version")) {
-            return new FieldExtractor() {
+            return new FieldExtractor<GetResponse>() {
                 @Override
                 public Object extract(GetResponse response) {
                     return response.getVersion();
                 }
             };
         } else if (field.equals("_id")) {
-            return new FieldExtractor() {
+            return new FieldExtractor<GetResponse>() {
                 @Override
                 public Object extract(GetResponse response) {
                     return response.getId();
                 }
             };
         } else if (context.partitionValues.containsKey(field)) {
-            return new FieldExtractor() {
+            return new FieldExtractor<GetResponse>() {
                 @Override
                 public Object extract(GetResponse response) {
                     return context.partitionValues.get(field);
                 }
             };
         } else {
-            return new FieldExtractor() {
+            return new FieldExtractor<GetResponse>() {
                 @Override
                 public Object extract(GetResponse response) {
                     assert response.getSourceAsMap() != null;
@@ -379,83 +378,38 @@ public class ESGetTask implements Task<QueryResult> {
         }
     }
 
-    static class Visitor extends SymbolVisitor<Context, FieldExtractor> {
+    static class Visitor extends SymbolVisitor<Context, FieldExtractor<GetResponse>> {
 
         @Override
-        public FieldExtractor visitReference(Reference symbol, Context context) {
+        public FieldExtractor<GetResponse> visitReference(Reference symbol, Context context) {
             String fieldName = symbol.info().ident().columnIdent().fqn();
             context.addField(fieldName);
             return buildExtractor(fieldName, context);
         }
 
         @Override
-        public FieldExtractor visitDynamicReference(DynamicReference symbol, Context context) {
+        public FieldExtractor<GetResponse> visitDynamicReference(DynamicReference symbol, Context context) {
             return visitReference(symbol, context);
         }
 
         @Override
-        public FieldExtractor visitFunction(Function symbol, Context context) {
-            List<FieldExtractor> subExtractors = new ArrayList<>(symbol.arguments().size());
+        public FieldExtractor<GetResponse> visitFunction(Function symbol, Context context) {
+            List<FieldExtractor<GetResponse>> subExtractors = new ArrayList<>(symbol.arguments().size());
             for (Symbol argument : symbol.arguments()) {
                 subExtractors.add(process(argument, context));
             }
-            return new FunctionExtractor((Scalar) context.functions.getSafe(symbol.info().ident()), subExtractors);
+            return new FunctionExtractor<>((Scalar) context.functions.getSafe(symbol.info().ident()), subExtractors);
         }
 
         @Override
-        public FieldExtractor visitLiteral(Literal symbol, Context context) {
-            return new LiteralExtractor(symbol.value());
+        public FieldExtractor<GetResponse> visitLiteral(Literal symbol, Context context) {
+            return new LiteralExtractor<>(symbol.value());
         }
 
         @Override
-        protected FieldExtractor visitSymbol(Symbol symbol, Context context) {
+        protected FieldExtractor<GetResponse> visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException(
                     SymbolFormatter.format("Get operation not supported with symbol %s in the result column list", symbol));
-        }
-    }
-
-    private interface FieldExtractor {
-        Object extract(GetResponse response);
-    }
-
-    private static class LiteralExtractor implements FieldExtractor {
-        private final Object literal;
-
-        private LiteralExtractor(Object literal) {
-            this.literal = literal;
-        }
-
-        @Override
-        public Object extract(GetResponse response) {
-            return literal;
-        }
-    }
-
-    private static class FunctionExtractor implements FieldExtractor {
-
-        private final Scalar scalar;
-        private final List<FieldExtractor> subExtractors;
-
-        public FunctionExtractor(Scalar scalar, List<FieldExtractor> subExtractors) {
-            this.scalar = scalar;
-            this.subExtractors = subExtractors;
-        }
-
-        @Override
-        public Object extract(final GetResponse response) {
-            Input[] inputs = new Input[subExtractors.size()];
-            int idx = 0;
-            for (final FieldExtractor subExtractor : subExtractors) {
-                inputs[idx] = new Input() {
-                    @Override
-                    public Object value() {
-                        return subExtractor.extract(response);
-                    }
-                };
-                idx++;
-            }
-            //noinspection unchecked
-            return scalar.evaluate(inputs);
         }
     }
 }

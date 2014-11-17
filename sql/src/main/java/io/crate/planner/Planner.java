@@ -116,6 +116,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         } else if (analysis.hasAggregates()) {
             globalAggregates(analysis, plan, context);
         } else {
+
             WhereClause whereClause = analysis.whereClause();
             if (!context.indexWriterProjection.isPresent()
                 && analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
@@ -127,7 +128,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                             && !analysis.table().isAlias()) {
                         ESGet(analysis, plan, context);
                     } else {
-                        ESSearch(analysis, plan, context);
+                        queryThenFetch(analysis, plan, context);
                     }
             } else {
                 normalSelect(analysis, plan, context);
@@ -569,41 +570,13 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         plan.add(PlanNodeBuilder.localMerge(projectionBuilder.build(), collectNode));
     }
 
-    private void ESSearch(SelectAnalysis analysis, Plan plan, Context context) {
-        // this is an es query
-        // this only supports INFOS as order by
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder();
-        final Predicate<Symbol> symbolIsReference = new Predicate<Symbol>() {
-            @Override
-            public boolean apply(@Nullable Symbol input) {
-                return input instanceof Reference;
-            }
-        };
+    private void queryThenFetch(SelectAnalysis analysis, Plan plan, Context context) {
+        Preconditions.checkArgument(!context.indexWriterProjection.isPresent(),
+                "Must use QueryAndFetch with indexWriterProjection.");
 
-        boolean needsProjection = !Iterables.all(analysis.outputSymbols(), symbolIsReference)
-                || context.indexWriterProjection.isPresent();
-        List<Symbol> searchSymbols;
-        if (needsProjection) {
-            // we must create a deep copy of references if they are function arguments
-            // or they will be replaced with InputColumn instances by the context builder
-            if (analysis.whereClause().hasQuery()) {
-               analysis.whereClause(new WhereClause(functionArgumentCopier.process(analysis.whereClause().query())));
-            }
-            List<Symbol> sortSymbols = analysis.sortSymbols();
-
-            // do the same for sortsymbols if we have a function there
-            if (sortSymbols != null && !Iterables.all(sortSymbols, symbolIsReference)) {
-                functionArgumentCopier.process(sortSymbols);
-            }
-
-            contextBuilder.searchOutput(analysis.outputSymbols());
-            searchSymbols = contextBuilder.toCollect();
-        } else {
-            searchSymbols = analysis.outputSymbols();
-        }
-        QueryThenFetchNode node = new QueryThenFetchNode(
+        plan.add(new QueryThenFetchNode(
                 analysis.table().getRouting(analysis.whereClause()),
-                searchSymbols,
+                analysis.outputSymbols(),
                 analysis.sortSymbols(),
                 analysis.reverseFlags(),
                 analysis.nullsFirst(),
@@ -611,24 +584,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 analysis.offset(),
                 analysis.whereClause(),
                 analysis.table().partitionedByColumns()
-        );
-        node.outputTypes(extractDataTypes(searchSymbols));
-        plan.add(node);
-        // only add projection if we have scalar functions
-        if (needsProjection) {
-            TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                    TopN.NO_OFFSET
-            );
-            topN.outputs(contextBuilder.outputs());
-
-            ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.<Projection>builder()
-                    .add(topN);
-            if (context.indexWriterProjection.isPresent()) {
-                projectionBuilder.add(context.indexWriterProjection.get());
-           }
-            plan.add(PlanNodeBuilder.localMerge(projectionBuilder.build(), node));
-        }
+        ));
     }
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan, Context context) {
