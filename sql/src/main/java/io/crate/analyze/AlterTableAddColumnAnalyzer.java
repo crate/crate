@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.PartitionName;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTableAddColumn;
@@ -126,16 +125,9 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
     }
 
     private void setTableAndPartitionName(Table node, AddColumnAnalysis context) {
-        context.table(TableIdent.of(node));
         if (!node.partitionProperties().isEmpty()) {
-            PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                    context.table(),
-                    node.partitionProperties(),
-                    context.parameters());
-            if (!context.table().partitions().contains(partitionName)) {
-                throw new IllegalArgumentException("Referenced partition does not exist.");
-            }
-            context.partitionName(partitionName);
+            throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
+        context.table(TableIdent.of(node));
     }
 }

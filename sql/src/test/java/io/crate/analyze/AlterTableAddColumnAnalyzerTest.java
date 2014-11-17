@@ -80,6 +80,13 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testAddColumnOnSinglePartitionNotAllowed() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Adding a column to a single partition is not supported");
+        analyze("alter table parted partition (date = 1395874800000) add column foobar string");
+    }
+
+    @Test
     public void testAddColumnWithAnalyzerAndNonStringType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(

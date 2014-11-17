@@ -23,10 +23,10 @@ package io.crate.integrationtests;
 
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.PartitionName;
-import com.google.common.base.Predicate;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
@@ -57,9 +57,9 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.skyscreamer.jsonassert.JSONAssert;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -4447,7 +4447,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         refresh();
 
-        execute("alter table t partition (date='2014-01-01') add name string");
+        execute("alter table t add name string");
+        execute("select * from t");
+        assertThat(Arrays.asList(response.cols()), Matchers.contains("date", "id", "name"));
 
         GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).actionGet();
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
@@ -4456,25 +4458,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .createParser(mappingSource)
                 .mapAndClose()
                 .get(Constants.DEFAULT_MAPPING_TYPE);
-        assertNull(((Map) mapping.get("properties")).get("name"));
-
-        execute("insert into t (id, date, name) values (2, '2014-01-01', 100)"); // insert integer as name
-        refresh();
-        execute("select name from t where id = 2 and date = '2014-01-01'");
-
-        assertThat((String) response.rows()[0][0], is("100")); // is returned as string
-
-        execute("alter table t add name2 string"); // now template is also updated
-        execute("select * from t");
-        assertThat(Arrays.asList(response.cols()), Matchers.contains("date", "id", "name", "name2"));
-
-        templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).actionGet();
-        metaData = templatesResponse.getIndexTemplates().get(0);
-        mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
-        mapping = (Map) XContentFactory.xContent(mappingSource)
-                .createParser(mappingSource)
-                .mapAndClose().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertNotNull(((Map) mapping.get("properties")).get("name2"));
+        assertNotNull(((Map) mapping.get("properties")).get("name"));
     }
 
     @Test
