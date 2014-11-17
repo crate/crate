@@ -46,7 +46,7 @@ import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.action.SearchServiceListener;
 import org.elasticsearch.search.action.SearchServiceTransportAction;
 import org.elasticsearch.search.controller.SearchPhaseController;
-import org.elasticsearch.search.fetch.FetchSearchRequest;
+import org.elasticsearch.search.fetch.ShardFetchSearchRequest;
 import org.elasticsearch.search.query.QuerySearchResult;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
@@ -164,7 +164,9 @@ public class QueryThenFetchTaskTest {
         responseListener.getValue().onResponse(queryResult);
 
         ArgumentCaptor<SearchServiceListener> searchServiceListenerArgumentCaptor = ArgumentCaptor.forClass(SearchServiceListener.class);
-        verify(searchServiceTransportAction).sendExecuteFetch(any(DiscoveryNode.class), any(FetchSearchRequest.class), searchServiceListenerArgumentCaptor.capture());
+        verify(searchServiceTransportAction).sendExecuteFetch(
+                any(DiscoveryNode.class),
+                any(ShardFetchSearchRequest.class), searchServiceListenerArgumentCaptor.capture());
 
 
         OutOfMemoryError oom = new OutOfMemoryError();

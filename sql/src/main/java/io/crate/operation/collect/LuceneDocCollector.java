@@ -48,7 +48,8 @@ import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.internal.ShardSearchRequest;
+import org.elasticsearch.search.internal.ShardSearchLocalRequest;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -99,7 +100,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     private final List<Input<?>> topLevelInputs;
     private final List<LuceneCollectorExpression<?>> collectorExpressions;
 
-    public LuceneDocCollector(ClusterService clusterService,
+    public LuceneDocCollector(ThreadPool threadPool,
+                              ClusterService clusterService,
                               ShardId shardId,
                               IndexService indexService,
                               ScriptService scriptService,
@@ -118,10 +120,12 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         this.collectorExpressions = collectorExpressions;
         this.fieldsVisitor = new CollectorFieldsVisitor(collectorExpressions.size());
 
-        ShardSearchRequest shardSearchRequest = new ShardSearchRequest();
-        shardSearchRequest.types(new String[]{Constants.DEFAULT_MAPPING_TYPE});
+        ShardSearchLocalRequest searchRequest = new ShardSearchLocalRequest(
+                new String[] { Constants.DEFAULT_MAPPING_TYPE },
+                System.currentTimeMillis()
+        );
         IndexShard indexShard = indexService.shardSafe(shardId.id());
-        searchContext = new DefaultSearchContext(0, shardSearchRequest,
+        searchContext = new DefaultSearchContext(0, searchRequest,
                 searchShardTarget,
                 indexShard.acquireSearcher("search"),
                 indexService,
@@ -129,7 +133,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                 scriptService,
                 cacheRecycler,
                 pageCacheRecycler,
-                bigArrays
+                bigArrays,
+                threadPool.estimatedTimeInMillisCounter()
         );
         LuceneQueryBuilder builder = new LuceneQueryBuilder(functions, searchContext, indexService.cache());
         LuceneQueryBuilder.Context ctx = builder.convert(whereClause);

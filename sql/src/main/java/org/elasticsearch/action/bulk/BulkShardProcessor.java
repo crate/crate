@@ -62,7 +62,7 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
 public class BulkShardProcessor {
 
     private final ClusterService clusterService;
-    private final TransportShardBulkAction transportShardBulkAction;
+    private final TransportShardBulkActionDelegate transportShardBulkActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final boolean autoCreateIndices;
     private final boolean allowCreateOnly;
@@ -89,13 +89,13 @@ public class BulkShardProcessor {
 
     public BulkShardProcessor(ClusterService clusterService,
                               Settings settings,
-                              TransportShardBulkAction transportShardBulkAction,
+                              TransportShardBulkActionDelegate transportShardBulkActionDelegate,
                               TransportCreateIndexAction transportCreateIndexAction,
                               boolean autoCreateIndices,
                               boolean allowCreateOnly,
                               int bulkSize) {
         this.clusterService = clusterService;
-        this.transportShardBulkAction = transportShardBulkAction;
+        this.transportShardBulkActionDelegate = transportShardBulkActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.autoCreateIndices = autoCreateIndices;
         this.allowCreateOnly = allowCreateOnly;
@@ -216,6 +216,7 @@ public class BulkShardProcessor {
             ShardId shardId= entry.getKey();
             List<BulkItemRequest> items = entry.getValue();
             BulkShardRequest bulkShardRequest = new BulkShardRequest(
+                    new BulkRequest(),
                     shardId.index().name(),
                     shardId.id(),
                     false,
@@ -230,7 +231,7 @@ public class BulkShardProcessor {
 
     private void execute(BulkShardRequest bulkShardRequest) {
         trace(String.format("execute shard request %d", bulkShardRequest.shardId()));
-        transportShardBulkAction.execute(bulkShardRequest, new ResponseListener(bulkShardRequest));
+        transportShardBulkActionDelegate.execute(bulkShardRequest, new ResponseListener(bulkShardRequest));
     }
 
     private void doRetry(final BulkShardRequest request, final boolean repeatingRetry) {
@@ -241,7 +242,7 @@ public class BulkShardProcessor {
             } catch (InterruptedException e) {
                 Thread.interrupted();
             }
-            transportShardBulkAction.execute(request, new RetryResponseListener(request));
+            transportShardBulkActionDelegate.execute(request, new RetryResponseListener(request));
         } else {
             // new retries will be spawned in new thread because they can block
             scheduledExecutorService.schedule(
@@ -254,7 +255,7 @@ public class BulkShardProcessor {
                             } catch (InterruptedException e) {
                                 Thread.interrupted();
                             }
-                            transportShardBulkAction.execute(request, new RetryResponseListener(request));
+                            transportShardBulkActionDelegate.execute(request, new RetryResponseListener(request));
                         }
                     }, currentDelay.getAndIncrement(), TimeUnit.MILLISECONDS);
         }

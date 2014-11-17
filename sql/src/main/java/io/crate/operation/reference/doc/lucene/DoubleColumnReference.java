@@ -25,12 +25,12 @@ import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
-import org.elasticsearch.index.fielddata.DoubleValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
+import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 
 public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFieldData, Double> {
 
-    private DoubleValues values;
+    private SortedNumericDoubleValues values;
 
     public DoubleColumnReference(String columnName) {
         super(columnName);
@@ -38,11 +38,11 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
 
     @Override
     public Double value() {
-        switch (values.setDocument(docId)) {
+        switch (values.count()) {
             case 0:
                 return null;
             case 1:
-                return values.nextValue();
+                return values.valueAt(0);
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -52,6 +52,12 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
         values = indexFieldData.load(context).getDoubleValues();
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
     }
 
     @Override

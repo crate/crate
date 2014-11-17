@@ -26,12 +26,12 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.common.geo.GeoPoint;
-import org.elasticsearch.index.fielddata.GeoPointValues;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
+import org.elasticsearch.index.fielddata.MultiGeoPointValues;
 
 public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointFieldData, Double[]> {
 
-    private GeoPointValues values;
+    private MultiGeoPointValues values;
 
     public GeoPointColumnReference(String columnName) {
         super(columnName);
@@ -39,11 +39,11 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
 
     @Override
     public Double[] value() {
-        switch (values.setDocument(docId)) {
+        switch (values.count()) {
             case 0:
                 return null;
             case 1:
-                GeoPoint gp = values.nextValue();
+                GeoPoint gp = values.valueAt(0);
                 return new Double[] { gp.lon(), gp.lat() };
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
@@ -54,6 +54,12 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
         values = indexFieldData.load(context).getGeoPointValues();
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
     }
 
     @Override

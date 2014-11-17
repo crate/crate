@@ -531,7 +531,7 @@ public class DocIndexMetaData {
                 return other;
             } else if (references().size() == other.references().size() &&
                     !references().keySet().equals(other.references().keySet())) {
-                XContentHelper.update(defaultMappingMap, other.defaultMappingMap);
+                XContentHelper.update(defaultMappingMap, other.defaultMappingMap, false);
                 updateTemplate(this, transportPutIndexTemplateAction);
                 return this;
             }

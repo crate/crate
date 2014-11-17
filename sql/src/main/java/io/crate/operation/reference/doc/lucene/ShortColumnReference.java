@@ -25,12 +25,12 @@ import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
-import org.elasticsearch.index.fielddata.LongValues;
 
 public class ShortColumnReference extends FieldCacheExpression<IndexNumericFieldData, Short> {
 
-    LongValues values;
+    private SortedNumericDocValues values;
 
     public ShortColumnReference(String columnName) {
         super(columnName);
@@ -38,11 +38,11 @@ public class ShortColumnReference extends FieldCacheExpression<IndexNumericField
 
     @Override
     public Short value() {
-        switch (values.setDocument(docId)) {
+        switch (values.count()) {
             case 0:
                 return null;
             case 1:
-                return ((Long)values.nextValue()).shortValue();
+                return (short) values.valueAt(0);
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -57,6 +57,12 @@ public class ShortColumnReference extends FieldCacheExpression<IndexNumericField
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
         values = indexFieldData.load(context).getLongValues();
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
     }
 
     @Override

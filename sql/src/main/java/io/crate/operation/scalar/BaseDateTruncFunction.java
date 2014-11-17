@@ -29,6 +29,7 @@ import io.crate.planner.symbol.SymbolFormatter;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.rounding.DateTimeUnit;
+import org.elasticsearch.common.rounding.Rounding;
 import org.elasticsearch.common.rounding.TimeZoneRounding;
 import org.joda.time.DateTimeZone;
 
@@ -85,7 +86,7 @@ public abstract class BaseDateTruncFunction extends Scalar<Long, Object> {
         } else {
             return null;
         }
-        TimeZoneRounding tzRounding = tzRoundingBuilder
+        Rounding tzRounding = tzRoundingBuilder
                 .preZone(tz)
                 .preZoneAdjustLargeInterval(true)
                 .build();

@@ -14,8 +14,8 @@ dependencies {
     }
     compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
     compile 'com.carrotsearch:junit-benchmarks:0.7.2'
-    
-    compile 'org.apache.httpcomponents:httpclient:4.3.5'
+
+    compile 'org.apache.commons:commons-lang3:3.3.2'
     compile project(':es').sourceSets.test.runtimeClasspath
 }
 

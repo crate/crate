@@ -22,12 +22,11 @@
 package io.crate.blob;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -40,10 +39,16 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     private final BlobTransferTarget transferTarget;
 
     @Inject
-    public TransportPutChunkAction(Settings settings, TransportService transportService, ClusterService clusterService, IndicesService
-            indicesService, ThreadPool threadPool, ShardStateAction shardStateAction,
-            BlobTransferTarget transferTarget) {
-        super(settings, PutChunkAction.NAME, transportService, clusterService, indicesService, threadPool, shardStateAction);
+    public TransportPutChunkAction(Settings settings,
+                                   TransportService transportService,
+                                   ClusterService clusterService,
+                                   IndicesService indicesService,
+                                   ThreadPool threadPool,
+                                   ShardStateAction shardStateAction,
+                                   BlobTransferTarget transferTarget,
+                                   ActionFilters actionFilters) {
+        super(settings, PutChunkAction.NAME, transportService, clusterService,
+                indicesService, threadPool, shardStateAction, actionFilters);
         this.transferTarget = transferTarget;
     }
 
@@ -88,17 +93,17 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
         final PutChunkReplicaRequest request = shardRequest.request;
         PutChunkResponse response = newResponseInstance();
-        transferTarget.continueTransfer(request, response, shardRequest.shardId);
+        transferTarget.continueTransfer(request, response, shardRequest.shardId.id());
     }
 
     @Override
-    protected ShardIterator shards(ClusterState clusterState, PutChunkRequest request) throws ElasticsearchException {
+    protected ShardIterator shards(ClusterState clusterState, InternalRequest request) throws ElasticsearchException {
         return clusterService.operationRouting()
             .indexShards(clusterService.state(),
-                request.index(),
-                null,
-                null,
-                request.digest());
+                    request.concreteIndex(),
+                    null,
+                    null,
+                    request.request().digest());
     }
 
     @Override
@@ -107,13 +112,8 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     }
 
     @Override
-    protected ClusterBlockException checkGlobalBlock(ClusterState state, PutChunkRequest request) {
-        return state.blocks().globalBlockedException(ClusterBlockLevel.WRITE);
-    }
-
-    @Override
-    protected ClusterBlockException checkRequestBlock(ClusterState state, PutChunkRequest request) {
-        return state.blocks().indexBlockedException(ClusterBlockLevel.WRITE, request.index());
+    protected boolean resolveIndex() {
+        return false;
     }
 }
 

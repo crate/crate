@@ -23,7 +23,6 @@ package io.crate.executor.transport.task.elasticsearch.facet;
 
 import io.crate.Constants;
 import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.search.Scorer;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.index.fielddata.ScriptDocValues;
@@ -81,15 +80,9 @@ public class UpdateCollector extends FacetExecutor.Collector {
     }
 
     @Override
-    public void setScorer(Scorer scorer) {
-        lookup.setScorer(scorer);
-    }
-
-    @Override
     public void setNextReader(AtomicReaderContext context) {
         lookup.setNextReader(context);
     }
-
 
     @Override
     public void postCollection() {

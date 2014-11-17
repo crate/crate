@@ -526,7 +526,7 @@ public class LuceneQueryBuilder {
                 GeoPointFieldMapper mapper = getGeoPointFieldMapper(innerPair.reference().info().ident().columnIdent().fqn());
                 Shape shape = (Shape) innerPair.input().value();
                 Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
-                IndexGeoPointFieldData<?> fieldData = searchContext.fieldData().getForField(mapper);
+                IndexGeoPointFieldData fieldData = searchContext.fieldData().getForField(mapper);
                 Filter filter;
                 if (geometry.isRectangle()) {
                     Rectangle boundingBox = shape.getBoundingBox();
@@ -585,7 +585,7 @@ public class LuceneQueryBuilder {
                 String fieldName = distanceRefLiteral.reference().info().ident().columnIdent().fqn();
                 FieldMapper mapper = getGeoPointFieldMapper(fieldName);
                 GeoPointFieldMapper geoMapper = ((GeoPointFieldMapper) mapper);
-                IndexGeoPointFieldData<?> fieldData = searchContext.fieldData().getForField(mapper);
+                IndexGeoPointFieldData fieldData = searchContext.fieldData().getForField(mapper);
 
                 Input geoPointInput = distanceRefLiteral.input();
                 Double[] pointValue = (Double[]) geoPointInput.value();

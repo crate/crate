@@ -56,7 +56,7 @@ public class BlobPlugin extends AbstractPlugin {
     public Settings additionalSettings() {
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
         settingsBuilder.put("http.type",
-                "io.crate.http.netty.NettyHttpServerTransportModule");
+                "io.crate.http.netty.NettyHttpServerTransport");
         return settingsBuilder.build();
     }
 

@@ -3,7 +3,7 @@ package io.crate.integrationtests;
 
 import io.crate.rest.CrateRestFilter;
 import io.crate.test.integration.CrateIntegrationTest;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;

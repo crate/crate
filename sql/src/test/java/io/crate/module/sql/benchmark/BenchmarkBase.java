@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateTestCluster;
 import io.crate.test.integration.NodeSettingsSource;
+import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -34,7 +35,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
-import org.elasticsearch.test.ElasticsearchTestCase;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -65,7 +65,8 @@ public class BenchmarkBase {
         new CrateTestCluster(
             System.nanoTime(),
             0,
-            CrateTestCluster.clusterName("benchmark", ElasticsearchTestCase.CHILD_VM_ID, System.nanoTime()),
+            CrateTestCluster.clusterName("benchmark",
+                    Integer.toString(AbstractRandomizedTest.CHILD_JVM_ID), System.nanoTime()),
             NodeSettingsSource.EMPTY
         );
 

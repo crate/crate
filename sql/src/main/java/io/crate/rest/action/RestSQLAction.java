@@ -41,7 +41,7 @@ public class RestSQLAction extends BaseRestHandler {
 
     @Inject
     public RestSQLAction(Settings settings, Client client, RestController controller) {
-        super(settings, client);
+        super(settings, controller, client);
 
         controller.registerHandler(RestRequest.Method.POST, "/_sql", this);
     }

@@ -29,6 +29,7 @@ import io.crate.operation.collect.InputCollectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
+import org.elasticsearch.action.bulk.TransportShardBulkActionDelegateImpl;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Before;
@@ -72,7 +73,7 @@ public class IndexWriterProjectorUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardBulkAction.class),
+                mock(TransportShardBulkActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
                 "bulk_import",
                 Arrays.asList(ID_IDENT),
@@ -110,7 +111,7 @@ public class IndexWriterProjectorUnitTest {
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                mock(TransportShardBulkAction.class),
+                mock(TransportShardBulkActionDelegateImpl.class),
                 mock(TransportCreateIndexAction.class),
                 "bulk_import",
                 Arrays.asList(ID_IDENT),

@@ -24,10 +24,6 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.apache.http.Header;
@@ -47,7 +43,6 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;

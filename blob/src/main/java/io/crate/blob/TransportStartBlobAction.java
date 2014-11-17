@@ -22,12 +22,11 @@
 package io.crate.blob;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -35,20 +34,22 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportStartBlobAction extends TransportShardReplicationOperationAction<StartBlobRequest, StartBlobRequest,
-        StartBlobResponse> {
+public class TransportStartBlobAction
+        extends TransportShardReplicationOperationAction<StartBlobRequest, StartBlobRequest, StartBlobResponse> {
 
     private final BlobTransferTarget transferTarget;
 
     @Inject
     public TransportStartBlobAction(Settings settings,
-            TransportService transportService,
-            ClusterService clusterService,
-            IndicesService indicesService,
-            ThreadPool threadPool,
-            ShardStateAction shardStateAction,
-            BlobTransferTarget transferTarget) {
-        super(settings, StartBlobAction.NAME, transportService, clusterService, indicesService, threadPool, shardStateAction);
+                                    TransportService transportService,
+                                    ClusterService clusterService,
+                                    IndicesService indicesService,
+                                    ThreadPool threadPool,
+                                    ShardStateAction shardStateAction,
+                                    BlobTransferTarget transferTarget,
+                                    ActionFilters actionFilters) {
+        super(settings, StartBlobAction.NAME, transportService, clusterService,
+                indicesService, threadPool, shardStateAction, actionFilters);
         this.transferTarget = transferTarget;
         logger.trace("Constructor");
     }
@@ -82,7 +83,7 @@ public class TransportStartBlobAction extends TransportShardReplicationOperation
         logger.trace("shardOperationOnPrimary {}", shardRequest);
         final StartBlobRequest request = shardRequest.request;
         final StartBlobResponse response = newResponseInstance();
-        transferTarget.startTransfer(shardRequest.shardId, request, response);
+        transferTarget.startTransfer(shardRequest.shardId.id(), request, response);
         return new PrimaryResponse<>(request, response, null);
 
     }
@@ -92,16 +93,17 @@ public class TransportStartBlobAction extends TransportShardReplicationOperation
         logger.trace("shardOperationOnReplica operating on replica {}", shardRequest);
         final StartBlobRequest request = shardRequest.request;
         final StartBlobResponse response = newResponseInstance();
-        transferTarget.startTransfer(shardRequest.shardId, request, response);
+        transferTarget.startTransfer(shardRequest.shardId.id(), request, response);
     }
 
     @Override
-    protected ShardIterator shards(ClusterState clusterState, StartBlobRequest request) throws ElasticsearchException {
+    protected ShardIterator shards(ClusterState clusterState, InternalRequest request) throws ElasticsearchException {
         return clusterService.operationRouting()
                 .indexShards(clusterService.state(),
-                        request.index(),
+                        request.concreteIndex(),
                         null,
-                        null, request.id());
+                        request.request().id(),
+                        null);
     }
 
     @Override
@@ -110,13 +112,8 @@ public class TransportStartBlobAction extends TransportShardReplicationOperation
     }
 
     @Override
-    protected ClusterBlockException checkGlobalBlock(ClusterState state, StartBlobRequest request) {
-        return state.blocks().globalBlockedException(ClusterBlockLevel.WRITE);
-    }
-
-    @Override
-    protected ClusterBlockException checkRequestBlock(ClusterState state, StartBlobRequest request) {
-        return state.blocks().indexBlockedException(ClusterBlockLevel.WRITE, request.index());
+    protected boolean resolveIndex() {
+        return false;
     }
 }
 

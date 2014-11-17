@@ -25,14 +25,14 @@ import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
-import org.elasticsearch.index.fielddata.LongValues;
 import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
 public class IpColumnReference extends FieldCacheExpression<IndexNumericFieldData, BytesRef> {
 
-    private LongValues values;
+    private SortedNumericDocValues values;
 
     public IpColumnReference(String columnName) {
         super(columnName);
@@ -45,14 +45,20 @@ public class IpColumnReference extends FieldCacheExpression<IndexNumericFieldDat
 
     @Override
     public BytesRef value() {
-        switch (values.setDocument(docId)) {
+        switch (values.count()) {
             case 0:
                 return null;
             case 1:
-                return new BytesRef(IpFieldMapper.longToIp(values.nextValue()));
+                return new BytesRef(IpFieldMapper.longToIp(values.valueAt(0)));
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
     }
 
     @Override

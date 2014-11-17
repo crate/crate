@@ -23,22 +23,37 @@ package org.elasticsearch.action.bulk;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.support.ActionFilter;
+import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.action.update.UpdateHelper;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
+import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.operation.OperationRouting;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.Transport;
+import org.elasticsearch.transport.TransportRequestHandler;
+import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.*;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
+import java.util.Collections;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -67,11 +82,18 @@ public class BulkShardProcessorTest {
         expectedException.expect(RuntimeException.class);
         expectedException.expectMessage("a random exception");
 
-        TransportShardBulkAction transportShardBulkAction = mock(TransportShardBulkAction.class);
+        final AtomicReference<ActionListener<BulkShardResponse>> ref = new AtomicReference<>();
+        TransportShardBulkActionDelegate transportShardBulkActionDelegate = new TransportShardBulkActionDelegate() {
+            @Override
+            public void execute(BulkShardRequest request, ActionListener<BulkShardResponse> listener) {
+                ref.set(listener);
+            }
+        };
+
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                transportShardBulkAction,
+                transportShardBulkActionDelegate,
                 mock(TransportCreateIndexAction.class),
                 false,
                 false,
@@ -79,10 +101,7 @@ public class BulkShardProcessorTest {
         );
         bulkShardProcessor.add("foo", new BytesArray("{\"foo\": \"bar1\"}"), "1", null);
 
-        verify(transportShardBulkAction).execute(
-                any(BulkShardRequest.class),
-                bulkShardResponseListener.capture());
-        ActionListener<BulkShardResponse> listener = bulkShardResponseListener.getValue();
+        ActionListener<BulkShardResponse> listener = ref.get();
         listener.onFailure(new RuntimeException("a random exception"));
 
         assertFalse(bulkShardProcessor.add("foo", new BytesArray("{\"foo\": \"bar2\"}"), "2", null));
@@ -103,12 +122,19 @@ public class BulkShardProcessorTest {
         mockShard(operationRouting, 2);
         mockShard(operationRouting, 3);
         when(clusterService.operationRouting()).thenReturn(operationRouting);
-        final TransportShardBulkAction transportShardBulkAction = mock(TransportShardBulkAction.class);
+
+        final AtomicReference<ActionListener<BulkShardResponse>> ref = new AtomicReference<>();
+        TransportShardBulkActionDelegate transportShardBulkActionDelegate = new TransportShardBulkActionDelegate() {
+            @Override
+            public void execute(BulkShardRequest request, ActionListener<BulkShardResponse> listener) {
+                ref.set(listener);
+            }
+        };
 
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 ImmutableSettings.EMPTY,
-                transportShardBulkAction,
+                transportShardBulkActionDelegate,
                 mock(TransportCreateIndexAction.class),
                 false,
                 false,
@@ -116,11 +142,7 @@ public class BulkShardProcessorTest {
         );
 
         bulkShardProcessor.add("foo", new BytesArray("{\"foo\": \"bar1\"}"), "1", null);
-        verify(transportShardBulkAction).execute(
-                any(BulkShardRequest.class),
-                bulkShardResponseListener.capture());
-
-        final ActionListener<BulkShardResponse> listener = bulkShardResponseListener.getValue();
+        final ActionListener<BulkShardResponse> listener = ref.get();
 
         listener.onFailure(new EsRejectedExecutionException());
         // wait, failure retry lock is done in decoupled thread

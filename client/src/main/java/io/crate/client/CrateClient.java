@@ -39,11 +39,15 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.indices.breaker.CircuitBreakerModule;
 import org.elasticsearch.node.internal.InternalSettingsPreparer;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.threadpool.ThreadPoolModule;
 import org.elasticsearch.transport.TransportModule;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 
@@ -51,7 +55,8 @@ public class CrateClient {
 
     private final Settings settings;
     private final InternalCrateClient internalClient;
-
+    private final TransportService transportService;
+    private ThreadPool threadPool;
 
     public CrateClient(Settings pSettings, boolean loadConfigSettings) throws
             ElasticsearchException {
@@ -60,7 +65,7 @@ public class CrateClient {
                 .put("network.server", false)
                 .put("node.client", true)
                 .put("client.transport.ignore_cluster_name", true)
-                .put("node.name", "crate-client-"+ UUID.randomUUID().toString())
+                .put("node.name", "crate-client-" + UUID.randomUUID().toString())
                 // Client uses only the SAME or GENERIC thread-pool (see TransportNodeActionProxy)
                 // so the other thread-pools can be limited to 1 thread to not waste resources
                 .put("threadpool.search.size", 1)
@@ -80,14 +85,17 @@ public class CrateClient {
         ModulesBuilder modules = new ModulesBuilder();
         modules.add(new CrateClientModule());
         modules.add(new Version.Module(version));
+        modules.add(new ThreadPoolModule(this.settings));
 
         modules.add(new SettingsModule(this.settings));
 
         modules.add(new ClusterNameModule(this.settings));
         modules.add(new TransportModule(this.settings));
+        modules.add(new CircuitBreakerModule(this.settings));
 
         Injector injector = modules.createInjector();
-        injector.getInstance(TransportService.class).start();
+        threadPool = injector.getInstance(ThreadPool.class);
+        transportService = injector.getInstance(TransportService.class).start();
         internalClient = injector.getInstance(InternalCrateClient.class);
     }
 
@@ -137,6 +145,13 @@ public class CrateClient {
     }
 
     public void close() {
+        transportService.stop();
         internalClient.close();
+        threadPool.shutdown();
+        try {
+            threadPool.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().isInterrupted();
+        }
     }
 }
