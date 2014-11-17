@@ -195,6 +195,13 @@ public abstract class BaseAnalyzerTest {
             .add("loc", DataTypes.GEO_POINT, null)
             .build();
 
+    static final TableInfo TEST_CLUSTER_BY_STRING_TABLE_INFO = TestingTableInfo.builder(new TableIdent(null, "bystring"), RowGranularity.DOC, shardRouting)
+            .add("name", DataTypes.STRING, null)
+            .add("score", DataTypes.DOUBLE, null)
+            .addPrimaryKey("name")
+            .clusteredBy("name")
+            .build();
+
     static final TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent(null, "myblobs");
     static final TableInfo TEST_BLOB_TABLE_TABLE_INFO = TestingTableInfo.builder(TEST_BLOB_TABLE_IDENT, RowGranularity.DOC, shardRouting)
             .build();

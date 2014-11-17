@@ -128,7 +128,7 @@ public class BulkShardProcessor {
         return true;
     }
 
-    private void partitionRequestByShard(String indexName, BytesReference source, String id, String routing) {
+    private void partitionRequestByShard(String indexName, BytesReference source, String id, @Nullable String routing) {
         ShardId shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 indexName,
