@@ -4436,6 +4436,32 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testAlterTableAddColumnOnPartitionedTableWithoutPartitions() throws Exception {
+        execute("create table t (id int primary key, date timestamp primary key) " +
+                "partitioned by (date) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("alter table t add column name string");
+        execute("alter table t add column ft_name string index using fulltext");
+        ensureGreen();
+
+        execute("select * from t");
+        assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "ft_name", "id", "name"));
+
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).actionGet();
+        IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
+        String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
+        Map mapping = (Map) XContentFactory.xContent(mappingSource)
+                .createParser(mappingSource)
+                .mapAndClose()
+                .get(Constants.DEFAULT_MAPPING_TYPE);
+        assertNotNull(((Map) mapping.get("properties")).get("name"));
+        assertNotNull(((Map) mapping.get("properties")).get("ft_name"));
+    }
+
+    @Test
     public void testAlterTableAddColumnOnPartitionedTable() throws Exception {
         execute("create table t (id int primary key, date timestamp primary key) " +
                 "partitioned by (date) " +

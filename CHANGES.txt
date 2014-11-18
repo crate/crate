@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: adding column on partitioned table without partitions threw exception
+   although column was added to schema
+
 2014/11/18 0.45.5
 =================
 

@@ -202,20 +202,82 @@ matching document, which is a lot faster::
     +-----------------+
     SELECT 1 row in set (... sec)
 
+
+.. _partitioned_tables_alter:
+
 Alter
 =====
 
-Partitioned tables parameters can be changed as usual with the :ref:`ref-alter-table` statement.
-All common ``ALTER TABLE`` parameters affect all existing and future (to be created) partitions::
+Parameters of partitioned tables can be changed as usual (see
+:ref:`sql_ddl_alter_table` for more information on how to alter regular tables)
+with the :ref:`ref-alter-table` statement. Common ``ALTER TABLE`` parameters affect
+both existing partitions and partitions that will be created in the future.
 
-    cr> ALTER TABLE parted_table reset (number_of_replicas)
+::
+
+    cr> ALTER TABLE parted_table SET (number_of_replicas = '0-all')
     ALTER OK (... sec)
 
-Additionally to the common parameters, partitioned tables do support
-altering the shard configuration **of future** partitions using the
-``number_of_shards`` parameter::
 
-    cr> ALTER TABLE parted_table set (number_of_shards=10)
+Altering schema information (such as the column policy or adding
+columns) can only be done on the table (not on single partitions)
+and will take effect on both existing and future partitions of the table.
+
+::
+
+    cr> ALTER TABLE parted_table ADD COLUMN new_col string
+    ALTER OK (... sec)
+
+Unlike regular tables, it is possible to change the number of shards of
+a partitioned table. However, the shard configuration will only be applied
+on **future** partitions.
+
+::
+
+    cr> ALTER TABLE parted_table SET (number_of_shards = 10)
+    ALTER OK (... sec)
+
+.. note::
+
+    This will not change the number of shards of existing partitions, but the new
+    number of shards will be taken into account when new partitions are created.
+
+::
+
+    cr> INSERT INTO parted_table (id, title, width, day)
+    ... VALUES (2, 'All Good', 3.1415, '2014-04-08');
+    INSERT OK, 1 row affected (... sec)
+
+.. Hidden: refresh table::
+
+    cr> REFRESH TABLE parted_table;
+    REFRESH OK (... sec)
+
+::
+
+    cr> SELECT count(*) as num_shards, sum(num_docs) as num_docs
+    ... FROM sys.shards
+    ... WHERE schema_name = 'doc' AND table_name = 'parted_table';
+    +------------+----------+
+    | num_shards | num_docs |
+    +------------+----------+
+    |         10 |      1.0 |
+    +------------+----------+
+    SELECT 1 row in set (... sec)
+
+Alter Partitions
+----------------
+
+It is also possible to alter parameters of single partitions of a partitioned table.
+However, unlike with partitioned tables, it is not possible to alter the schema
+information of single partitions.
+
+To change table parameters such as ``number_of_replicas`` or ``refresh_interval`` use
+the :ref:`ref-alter-table-partition-clause`.
+
+::
+
+    cr> ALTER TABLE parted_table PARTITION (day=1396915200000) RESET (number_of_replicas)
     ALTER OK (... sec)
 
 
@@ -224,7 +286,7 @@ Limitations
 
 * ``PARTITIONED BY`` columns cannot be used in ``ORDER BY``
 * ``PARTITIONED BY`` columns cannot be updated
-* where clauses cannot contain queries like ``partitioned_by_column='x' OR normal_column=x``
+* ``WHERE`` clauses cannot contain queries like ``partitioned_by_column='x' OR normal_column=x``
 
 
 .. Hidden: drop table::
