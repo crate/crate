@@ -5,32 +5,34 @@ Changes for Crate
 Unreleased
 ==========
 
- - Updated crate-admin to version 0.10.2 which includes following changes:
-
-    - fixed issue that caused clunky scrolling with trackpad
-       in Safari that mainly occured when having a narrow browser width
-
- - Fix: correctly handle empty values and values containing commas
-   for clustered by columns in the where clause. e.g: ``where _id=''``
-
  - Updated Elasticsearch to 1.4.0
-
- - Fix: Forbid using ``alter table add column`` on a single partition.
-
- - Fix: do not consider rootfs in ``sys.nodes.fs['data']['dev']``
-
- - Updated crate-admin to version 0.10.1 which includes following changes:
-
-    - made console placeholder text darker so you can distinguish better
-      between placeholder text and actually written statement
-
-    - fixed 'Execute Query' button in console view
 
  - Added Support for Column Policies, which can be used to define
    if a table enforces its defined schema or if it's allowed
    to store additional columns which are not defined in the schema.
 
  - Throw an error while using unknown root columns on SELECT
+
+2014/11/18 0.45.5
+=================
+
+ - Updated crate-admin to version 0.10.2 which includes following changes:
+
+    - fixed issue that caused clunky scrolling with trackpad
+       in Safari that mainly occured when having a narrow browser width
+
+    - made console placeholder text darker so you can distinguish better
+      between placeholder text and actually written statement
+
+    - fixed 'Execute Query' button in console view
+ 
+ - Fix: correctly handle empty values and values containing commas
+   for clustered by columns in the where clause. e.g: ``where _id=''``
+
+ - Fix: Forbid using ``alter table add column`` on a single partition.
+
+ - Fix: do not consider rootfs in ``sys.nodes.fs['data']['dev']``
+
 
 2014/11/12 0.45.4
 =================
