@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/11/18 0.45.5
+=================
+
  - Updated crate-admin to version 0.10.2 which includes following changes:
 
     - fixed issue that caused clunky scrolling with trackpad
