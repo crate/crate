@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: adding column on partitioned table without partitions threw exception
+   although column was added to schema
+
  - Use flake ids for interal id generation
 
  - Updated Elasticsearch to 1.4.0

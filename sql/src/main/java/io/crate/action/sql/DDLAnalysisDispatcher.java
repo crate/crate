@@ -212,6 +212,13 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         // update the _meta column recursively. Instead it is overwritten and therefore partitioned by
         // and collection_type information would be lost.
         String[] indexNames = getIndexNames(analysis.table(), analysis.partitionName().orNull());
+        if (indexNames.length == 0) {
+            // if there are no indices yet we can return because we don't need to update existing mapping
+            if (operations.decrementAndGet() == 0) {
+                result.set(1L);
+            }
+            return;
+        }
         PutMappingRequest request = new PutMappingRequest();
         request.indices(indexNames);
         request.type(Constants.DEFAULT_MAPPING_TYPE);
