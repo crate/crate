@@ -67,6 +67,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.search.SearchHits;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -134,6 +135,14 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         executor = cluster.getInstance(TransportExecutor.class);
 
         docSchemaInfo = cluster.getInstance(DocSchemaInfo.class);
+    }
+
+    @After
+    public void transportTearDown() {
+        clusterService = null;
+        clusterName = null;
+        executor = null;
+        docSchemaInfo = null;
     }
 
     private void insertCharacters() {
