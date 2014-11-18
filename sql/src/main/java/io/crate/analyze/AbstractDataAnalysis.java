@@ -78,6 +78,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
     protected boolean hasAggregates = false;
     protected boolean hasSysExpressions = false;
     protected boolean sysExpressionsAllowed = false;
+    protected boolean insideNotPredicate = false;
 
     public AbstractDataAnalysis(ReferenceInfos referenceInfos,
                                 Functions functions,

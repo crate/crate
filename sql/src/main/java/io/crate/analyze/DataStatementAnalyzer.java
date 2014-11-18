@@ -62,8 +62,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     private final static String _SCORE = "_score";
     private final static DataTypeAnalyzer dataTypeAnalyzer = new DataTypeAnalyzer();
 
-    private boolean insideNotPredicate = false;
-
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, T context) {
         List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
@@ -218,9 +216,9 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
     @Override
     protected Symbol visitNotExpression(NotExpression node, T context) {
-        insideNotPredicate = true;
+        context.insideNotPredicate = true;
         Symbol argument = process(node.getValue(), context);
-        insideNotPredicate = false;
+        context.insideNotPredicate = false;
 
         DataType dataType = argument.valueType();
         if (!dataType.equals(DataTypes.BOOLEAN) && !dataType.equals(DataTypes.UNDEFINED)) {
@@ -242,7 +240,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
         Comparison comparison = new Comparison(node.getType(), left, right);
         comparison.normalize(context);
-        validateSystemColumnComparison(comparison);
+        validateSystemColumnComparison(comparison, context);
         FunctionInfo info = context.getFunctionInfo(comparison.toFunctionIdent());
         return context.allocateFunction(info, comparison.arguments());
     }
@@ -251,13 +249,13 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
      * Validates comparison of system columns like e.g. '_score'.
      * Must be called AFTER comparison normalization.
      */
-    protected void validateSystemColumnComparison(Comparison comparison) {
+    protected void validateSystemColumnComparison(Comparison comparison, T context) {
         if (comparison.left.symbolType() == SymbolType.REFERENCE) {
             Reference reference = (Reference) comparison.left;
             // _score column can only be used by > comparator
             if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)
                     && (comparison.comparisonExpressionType != ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
-                        || insideNotPredicate)) {
+                        || context.insideNotPredicate)) {
                 throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH,
                                 "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
