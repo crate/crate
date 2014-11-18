@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Use flake ids for interal id generation
+
  - Updated Elasticsearch to 1.4.0
 
  - Added Support for Column Policies, which can be used to define

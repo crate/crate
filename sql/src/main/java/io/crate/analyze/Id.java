@@ -21,11 +21,9 @@
 
 package io.crate.analyze;
 
+import org.elasticsearch.common.*;
 import io.crate.metadata.ColumnIdent;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Base64;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -53,7 +51,7 @@ public class Id {
               ColumnIdent clusteredBy, boolean create) {
         values = new ArrayList<>(primaryKeys.size());
         if (primaryKeys.size() == 1 && primaryKeys.get(0).name().equals("_id") && create) {
-            singleStringValue = Strings.randomBase64UUID();
+            singleStringValue = Strings.base64UUID();
         } else {
             singleStringValue = null;
             if (primaryKeys.size() != primaryKeyValues.size()) {
