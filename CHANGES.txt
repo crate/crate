@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to version 0.10.2 which includes following changes:
+
+    - fixed issue that caused clunky scrolling with trackpad
+       in Safari that mainly occured when having a narrow browser width
+
  - Fix: correctly handle empty values and values containing commas
    for clustered by columns in the where clause. e.g: ``where _id=''``
 
