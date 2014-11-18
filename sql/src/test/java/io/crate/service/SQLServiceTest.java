@@ -51,6 +51,7 @@ public class SQLServiceTest {
                         .put("gateway.type", "none")).build();
         node.start();
 
+
         SQLService sqlService = node.injector().getInstance(SQLService.class);
         TransportSQLAction transportSQLAction = node.injector().getInstance(TransportSQLAction.class);
         transportSQLAction.execute(new SQLRequest("select name from sys.cluster")).actionGet();
@@ -66,5 +67,7 @@ public class SQLServiceTest {
 
         sqlService.start();
         transportSQLAction.execute(new SQLRequest("select name from sys.cluster")).actionGet();
+
+        node.close();
     }
 }
