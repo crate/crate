@@ -60,7 +60,10 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             .build();
 
     private final static String _SCORE = "_score";
-    private final static DataTypeAnalyzer dataTypeAnalyzer = new DataTypeAnalyzer();
+    private final static DataTypeAnalyzer DATA_TYPE_ANALYZER = new DataTypeAnalyzer();
+    private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
+    private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
+    private final static PrimaryKeyVisitor PRIMARY_KEY_VISITOR = new PrimaryKeyVisitor();
 
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, T context) {
@@ -102,7 +105,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
     @Override
     protected Symbol visitCast(Cast node, T context) {
-        DataType returnType = dataTypeAnalyzer.process(node.getType(), null);
+        DataType returnType = DATA_TYPE_ANALYZER.process(node.getType(), null);
         Symbol argSymbol = node.getExpression().accept(this, context);
         FunctionInfo functionInfo = CastFunctionResolver.functionInfo(argSymbol.valueType(), returnType);
         return context.allocateFunction(functionInfo, Arrays.asList(argSymbol));
@@ -165,7 +168,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     @Override
     protected Symbol visitSubscriptExpression(SubscriptExpression node, T context) {
         SubscriptContext subscriptContext = new SubscriptContext(context.parameterContext());
-        node.accept(visitor, subscriptContext);
+        node.accept(SUBSCRIPT_VISITOR, subscriptContext);
         return resolveSubscriptSymbol(subscriptContext, context);
     }
 
@@ -431,7 +434,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
         // is just wrapped inside a negativeExpression
         // the visitor here swaps it to get -1 in a (symbol)LiteralInteger
-        return negativeLiteralVisitor.process(process(node.getValue(), context), null);
+        return NEGATIVE_LITERAL_VISITOR.process(process(node.getValue(), context), null);
     }
 
     protected WhereClause generateWhereClause(Optional<Expression> whereExpression, T context) {
@@ -447,7 +450,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                         "only supported by queries using group-by or global aggregates.");
             }
 
-            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause.query());
+            PrimaryKeyVisitor.Context pkc = PRIMARY_KEY_VISITOR.process(context.table(), whereClause.query());
             if (pkc != null) {
                 whereClause.clusteredByLiteral(pkc.clusteredByLiteral());
                 if (pkc.noMatch) {

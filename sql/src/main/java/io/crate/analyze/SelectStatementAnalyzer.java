@@ -41,11 +41,11 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysis> {
 
-    private final static AggregationSearcher aggregationSearcher = new AggregationSearcher();
-    private final static SortSymbolValidator sortSymbolValidator = new SortSymbolValidator();
-    private final static GroupBySymbolValidator groupBySymbolValidator = new GroupBySymbolValidator();
-    private final static SelectSymbolValidator selectSymbolVisitor = new SelectSymbolValidator();
-    private final static HavingSymbolValidator havingSymbolValidator = new HavingSymbolValidator();
+    private final static AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
+    private final static SortSymbolValidator SORT_SYMBOL_VALIDATOR = new SortSymbolValidator();
+    private final static GroupBySymbolValidator GROUP_BY_SYMBOL_VALIDATOR = new GroupBySymbolValidator();
+    private final static SelectSymbolValidator SELECT_SYMBOL_VALIDATOR = new SelectSymbolValidator();
+    private final static HavingSymbolValidator HAVING_SYMBOL_VALIDATOR = new HavingSymbolValidator();
     private final ReferenceInfos referenceInfos;
     private final Functions functions;
     private final ReferenceResolver globalReferenceResolver;
@@ -80,7 +80,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         if (node.getAlias().isPresent()) {
             context.addAlias(node.getAlias().get(), symbol);
         } else {
-            context.addAlias(outputNameFormatter.process(node.getExpression(), null), symbol);
+            context.addAlias(OutputNameFormatter.format(node.getExpression()), symbol);
         }
 
         return null;
@@ -126,7 +126,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         // validate select symbols
         for (Symbol symbol : context.outputSymbols()) {
-            selectSymbolVisitor.process(symbol, new SelectSymbolValidator.SelectContext(context.selectFromFieldCache));
+            SELECT_SYMBOL_VALIDATOR.process(symbol, new SelectSymbolValidator.SelectContext(context.selectFromFieldCache));
         }
 
         if (!node.getGroupBy().isEmpty()) {
@@ -159,7 +159,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
         // validate having symbols
         HavingSymbolValidator.HavingContext havingContext = new HavingSymbolValidator.HavingContext(context.groupBy());
-        havingSymbolValidator.process(havingQuery, havingContext);
+        HAVING_SYMBOL_VALIDATOR.process(havingQuery, havingContext);
 
         context.havingClause(havingQuery);
     }
@@ -277,7 +277,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
         for (Expression expression : groupByExpressions) {
             Symbol s = symbolFromSelectOutputReferenceOrExpression(expression, context, "GROUP BY");
-            groupBySymbolValidator.process(s, null);
+            GROUP_BY_SYMBOL_VALIDATOR.process(s, null);
             groupBy.add(s);
         }
         context.groupBy(groupBy);
@@ -302,7 +302,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                 return true;
             }
             AggregationSearcherContext searcherContext = new AggregationSearcherContext();
-            aggregationSearcher.process(s, searcherContext);
+            AGGREGATION_SEARCHER.process(s, searcherContext);
             return searcherContext.found;
         }
         return false;
@@ -312,7 +312,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     protected Symbol visitSortItem(SortItem node, SelectAnalysis context) {
         Expression sortKey = node.getSortKey();
         Symbol sortSymbol = symbolFromSelectOutputReferenceOrExpression(sortKey, context, "ORDER BY");
-        sortSymbolValidator.process(sortSymbol, new SortSymbolValidator.SortContext(context.table));
+        SORT_SYMBOL_VALIDATOR.process(sortSymbol, new SortSymbolValidator.SortContext(context.table));
         return sortSymbol;
     }
 

@@ -21,38 +21,11 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.TableIdent;
-import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public abstract class AbstractStatementAnalyzer<R extends Object, T extends Analysis> extends DefaultTraversalVisitor<R, T> {
-    protected static final OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
-    protected static final PrimaryKeyVisitor primaryKeyVisitor = new PrimaryKeyVisitor();
-
-    protected static final SubscriptVisitor visitor = new SubscriptVisitor();
-    protected static final NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
-
-    static class OutputNameFormatter extends ExpressionFormatter.Formatter {
-        @Override
-        protected String visitQualifiedNameReference(QualifiedNameReference node, Void context) {
-
-            List<String> parts = new ArrayList<>();
-            for (String part : node.getName().getParts()) {
-                parts.add(part);
-            }
-            return Joiner.on('.').join(parts);
-        }
-
-        @Override
-        protected String visitSubscriptExpression(SubscriptExpression node, Void context) {
-            return String.format("%s[%s]", process(node.name(), null), process(node.index(), null));
-        }
-    }
+public abstract class AbstractStatementAnalyzer<R, T extends Analysis> extends DefaultTraversalVisitor<R, T> {
 
     public abstract Analysis newAnalysis(Analyzer.ParameterContext parameterContext);
 
