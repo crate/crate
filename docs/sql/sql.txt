@@ -8,6 +8,12 @@ supported by Crate.
 .. toctree::
     :maxdepth: 1
 
+    reference/lexical_structure
+
+
+.. toctree::
+    :maxdepth: 1
+
     reference/select
     reference/insert
     reference/update
