@@ -262,8 +262,8 @@ public class DocIndexMetaData {
         }
 
         List<String> path = new ArrayList<>(columnIdent.path());
-        path.add(0, columnName);
         path.add(0, columnIdent.name());
+        path.add(path.size(), columnName);
         return getCollectionTypeFromNested(path);
     }
 

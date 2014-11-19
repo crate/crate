@@ -226,6 +226,26 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testAddNewNestedColumnWithArrayToRoot() throws Exception {
+        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table users add column new_obj_col object as (a array(long))");
+        List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
+        assertThat(columns.size(), is(2)); // second one is primary key
+        assertThat(columns.get(0).dataType(), is("object"));
+        assertThat(columns.get(0).children().get(0).dataType(), is("long"));
+        assertTrue(columns.get(0).children().get(0).isArrayOrInArray());
+    }
+
+    @Test
+    public void testAddNewNestedColumnWithArrayToObjectColumn() throws Exception {
+        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table users add column new_obj_col object as (o object as (b array(long)))");
+        List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
+        assertThat(columns.size(), is(2)); // second one is primary key
+        assertThat(columns.get(0).children().get(0).dataType(), is("object"));
+        assertThat(columns.get(0).children().get(0).children().get(0).dataType(), is("long"));
+        assertTrue(columns.get(0).children().get(0).children().get(0).isArrayOrInArray());
+    }
+
+    @Test
     public void testAddNewNestedColumnToNestedObjectColumn() throws Exception {
         AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table deeply_nested add column details['stuff']['foo'] object as (score float, price string)");
         List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
