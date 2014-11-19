@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: array columns that were nested inside multiple objects had
+   incorrect data type (type of their elements instead of array type)
+
  - Fix: adding column on partitioned table without partitions threw exception
    although column was added to schema
 

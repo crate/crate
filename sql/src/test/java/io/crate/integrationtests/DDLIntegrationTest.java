@@ -414,6 +414,36 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testAlterTableAddNestedObjectWithArrayToExistingObject() throws Exception {
+        execute("CREATE TABLE my_table (col1 object)");
+        ensureGreen();
+        execute("ALTER TABLE my_table ADD COLUMN col1['col2'] object as (col3 array(string))");
+        waitNoPendingTasksOnAll();
+        execute("SELECT column_name, data_type FROM information_schema.columns " +
+                "WHERE table_name = 'my_table' AND schema_name = 'doc' " +
+                "ORDER BY column_name asc");
+        assertThat(TestingHelpers.getColumn(response.rows(), 0),
+                is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']")));
+        assertThat(TestingHelpers.getColumn(response.rows(), 1),
+                is(Matchers.<Object>arrayContaining("object", "object", "string_array")));
+
+        execute("DROP TABLE my_table");
+        ensureGreen();
+
+        execute("CREATE TABLE my_table (col1 object as (col2 object))");
+        ensureGreen();
+        execute("ALTER TABLE my_table ADD COLUMN col1['col2']['col3'] object as (col4 array(long))");
+        waitNoPendingTasksOnAll();
+        execute("SELECT column_name, data_type FROM information_schema.columns " +
+                "WHERE table_name = 'my_table' AND schema_name = 'doc' " +
+                "ORDER BY column_name asc");
+        assertThat(TestingHelpers.getColumn(response.rows(), 0),
+                is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']", "col1['col2']['col3']['col4']")));
+        assertThat(TestingHelpers.getColumn(response.rows(), 1),
+                is(Matchers.<Object>arrayContaining("object", "object", "object", "long_array")));
+    }
+
+    @Test
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
