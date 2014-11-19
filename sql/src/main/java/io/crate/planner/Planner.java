@@ -22,7 +22,6 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -65,6 +64,8 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 @Singleton
 public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
@@ -550,7 +551,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (!context.indexWriterProjection.isPresent() || analysis.isLimited()) {
             // limit set, apply topN projection
             TopNProjection tnp = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
                     contextBuilder.orderBy(),
                     analysis.reverseFlags(),
@@ -788,7 +789,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 outputs = contextBuilder.outputs();
             }
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
                     orderBy,
                     analysis.reverseFlags(),
@@ -815,7 +816,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                                                  ImmutableList.Builder<Projection> projectionBuilder) {
         if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
                     0,
                     contextBuilder.orderBy(),
                     analysis.reverseFlags(),
@@ -894,7 +895,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
         // mergeNode handler
         TopNProjection topN = new TopNProjection(
-                Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
                 orderBy,
                 analysis.reverseFlags(),
@@ -955,7 +956,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (analysis.isLimited()) {
             topNDone = true;
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
                     0,
                     analysis.sortSymbols(),
                     analysis.reverseFlags(),
@@ -985,7 +986,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             }
             // mergeNode handler
             TopNProjection topN = new TopNProjection(
-                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
                     orderBy,
                     analysis.reverseFlags(),
@@ -1034,7 +1035,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         Projection lastProjection = projections.get(projectionIdx);
         List<DataType> types = new ArrayList<>(lastProjection.outputs().size());
 
-        List<DataType> dataTypes = Objects.firstNonNull(inputTypes, ImmutableList.<DataType>of());
+        List<DataType> dataTypes = firstNonNull(inputTypes, ImmutableList.<DataType>of());
 
         for (int c = 0; c < lastProjection.outputs().size(); c++) {
             types.add(resolveType(projections, projectionIdx, c, dataTypes));

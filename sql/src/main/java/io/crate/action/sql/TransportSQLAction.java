@@ -21,7 +21,7 @@
 
 package io.crate.action.sql;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.BytesRefUtils;
@@ -105,7 +105,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                 outputNames,
                 TaskResult.EMPTY_RESULT.rows(),
                 types,
-                Objects.firstNonNull(rowCount, SQLResponse.NO_ROW_COUNT),
+                MoreObjects.firstNonNull(rowCount, SQLResponse.NO_ROW_COUNT),
                 request.creationTime(),
                 request.includeTypesOnResponse()
         );

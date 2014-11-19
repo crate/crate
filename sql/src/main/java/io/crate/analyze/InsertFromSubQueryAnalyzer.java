@@ -80,7 +80,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
 
     @Override
     protected Symbol visitQuery(Query node, InsertFromSubQueryAnalysis context) {
-        return subQueryAnalyzer.visitQuery(node, context.subQueryAnalysis());
+        return subQueryAnalyzer.process(node, context.subQueryAnalysis());
     }
 
     /**

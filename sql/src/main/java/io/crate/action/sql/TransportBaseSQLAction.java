@@ -21,7 +21,6 @@
 
 package io.crate.action.sql;
 
-import com.google.common.base.Objects;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -66,6 +65,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.UUID;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TResponse extends SQLBaseResponse>
         extends TransportAction<TRequest, TResponse> {
@@ -395,7 +396,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             }
         }
         if (logger.isTraceEnabled()) {
-            message = Objects.firstNonNull(message, stackTrace.toString());
+            message = firstNonNull(message, stackTrace.toString());
         } else if (Constants.DEBUG_MODE) {
             // will be optimized/removed at compile time
             Throwable t;
@@ -409,7 +410,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             StringWriter stringWriter = new StringWriter();
             t.printStackTrace(new PrintWriter(stringWriter));
             stackTrace = stringWriter;
-            message = Objects.firstNonNull(message, stackTrace.toString());
+            message = firstNonNull(message, stackTrace.toString());
         }
         return new SQLActionException(message, errorCode, restStatus, stackTrace.toString());
     }

@@ -22,7 +22,7 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -40,7 +40,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.action.bulk.TransportShardBulkActionDelegate;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -117,7 +116,7 @@ public abstract class AbstractIndexWriterProjector implements Projector {
                 transportCreateIndexAction,
                 autoCreateIndices,
                 false,
-                Objects.firstNonNull(bulkActions, 100)
+                MoreObjects.firstNonNull(bulkActions, 100)
         );
     }
 

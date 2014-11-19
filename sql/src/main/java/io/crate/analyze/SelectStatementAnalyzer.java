@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import io.crate.exceptions.SQLParseException;
@@ -37,6 +36,8 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysis> {
 
@@ -111,7 +112,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         process(node.getFrom().get(0), context);
 
         context.limit(intFromOptionalExpression(node.getLimit(), context.parameters()));
-        context.offset(Objects.firstNonNull(
+        context.offset(firstNonNull(
                 intFromOptionalExpression(node.getOffset(), context.parameters()), 0));
 
 
@@ -313,12 +314,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         Symbol sortSymbol = symbolFromSelectOutputReferenceOrExpression(sortKey, context, "ORDER BY");
         sortSymbolValidator.process(sortSymbol, new SortSymbolValidator.SortContext(context.table));
         return sortSymbol;
-    }
-
-    @Override
-    protected Symbol visitQuery(Query node, SelectAnalysis context) {
-        context.query(node);
-        return super.visitQuery(node, context);
     }
 
     @Override

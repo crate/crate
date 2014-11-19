@@ -21,23 +21,23 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
-import io.crate.metadata.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
-import io.crate.sql.tree.Query;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
-public class SelectAnalysis extends AbstractDataAnalysis {
+import static com.google.common.base.MoreObjects.firstNonNull;
 
-    private Query query;
+public class SelectAnalysis extends AbstractDataAnalysis {
 
     private Integer limit;
     private int offset = 0;
@@ -50,14 +50,6 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     private Symbol havingClause;
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
-
-    public Query query() {
-        return query;
-    }
-
-    public void query(Query query) {
-        this.query = query;
-    }
 
     public SelectAnalysis(ReferenceInfos referenceInfos, Functions functions,
                           Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
@@ -127,7 +119,7 @@ public class SelectAnalysis extends AbstractDataAnalysis {
         }
 
         if (globalAggregate()) {
-            return Objects.firstNonNull(limit(), 1) < 1 || offset() > 0;
+            return firstNonNull(limit(), 1) < 1 || offset() > 0;
         }
         return noMatch() || (limit() != null && limit() == 0);
     }
