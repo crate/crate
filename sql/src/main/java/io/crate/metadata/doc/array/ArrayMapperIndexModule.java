@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,27 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.doc;
+package io.crate.metadata.doc.array;
 
-import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
-import org.elasticsearch.gateway.local.state.meta.LocalGatewayMetaMigrator;
-import io.crate.metadata.doc.array.ArrayMapperMetaMigration;
+import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
+import org.elasticsearch.index.mapper.core.ArrayMapper;
 
-public class MetaDataDocModule extends AbstractModule {
-
-    protected MapBinder<String, SchemaInfo> schemaBinder;
-    protected MapBinder<String, LocalGatewayMetaMigrator.LocalGatewayMetaDataMigration> migrations;
-
+public class ArrayMapperIndexModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
-        schemaBinder.addBinding(DocSchemaInfo.NAME).to(DocSchemaInfo.class).asEagerSingleton();
-
-        migrations = MapBinder.newMapBinder(binder(), String.class, LocalGatewayMetaMigrator.LocalGatewayMetaDataMigration.class);
-        migrations.addBinding("crate-arraymapper").to(ArrayMapperMetaMigration.class).asEagerSingleton();
+        bind(ArrayMapperRegistration.class).asEagerSingleton();
+        bind(DynamicArrayFieldMapperBuilderFactory.class).to(ArrayMapper.Builder.BuilderFactory.class).asEagerSingleton();
     }
-
 }

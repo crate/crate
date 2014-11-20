@@ -45,6 +45,7 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -270,31 +271,37 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCreateTableWithArray() throws Exception {
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+                "create table foo (id integer primary key, details array(string))");
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        Map<String, Object> details = (Map<String, Object>)mappingProperties.get("details");
+
+        assertThat((String)details.get("type"), is("array"));
+        Map<String, Object> inner = (Map<String, Object>)details.get("inner");
+        assertThat((String)inner.get("type"), is("string"));
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithObjectsArray() throws Exception {
         CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
                 "create table foo (id integer primary key, details array(object as (name string, age integer, tags array(string))))");
 
         Map<String, Object> metaMapping = (Map) analysis.mapping().get("_meta");
-        Map<String, Object> metaDetails = (Map<String, Object>)((Map<String, Object>)
-                metaMapping.get("columns")).get("details");
-
-        assertThat((String) metaDetails.get("collection_type"), is("array"));
-        Map<String, Object> metaDetailsProperties = (Map<String, Object>) metaDetails.get("properties");
-        Map<String, Object> tags = (Map<String, Object>)metaDetailsProperties.get("tags");
-        assertThat((String) tags.get("collection_type"), is("array"));
+        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(metaMapping), is("primary_keys:[id]"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
-        Map<String, Object> details = (Map<String, Object>)mappingProperties.get("details");
-
-        assertThat((String)details.get("type"), is("object"));
-
-        Map<String, Object> detailsProperties = (Map<String, Object>)details.get("properties");
-        Map<String, Object> nameProperties = (Map<String, Object>) detailsProperties.get("name");
-        assertThat((String)nameProperties.get("type"), is("string"));
-
-        Map<String, Object> ageProperties = (Map<String, Object>) detailsProperties.get("age");
-        assertThat((String)ageProperties.get("type"), is("integer"));
+        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(mappingProperties), is(
+                    "details:{" +
+                      "inner={dynamic=true, index=not_analyzed, store=false, properties={" +
+                            "tags={inner={index=not_analyzed, store=false, doc_values=false, type=string}, " +
+                                "type=array}, " +
+                            "age={index=not_analyzed, store=false, doc_values=true, type=integer}, " +
+                            "name={index=not_analyzed, store=false, doc_values=true, type=string}}, " +
+                          "doc_values=false, "+
+                        "type=object}, " +
+                      "type=array}, id:{index=not_analyzed, store=false, doc_values=true, type=integer}"));
     }
 
     @Test

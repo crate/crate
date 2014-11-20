@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Array types are now fully supported in dynamic schemas.
+   Note: Crate performs an internal migration, therefore downgrading to an 
+   older version is not supported
+
  - Updated Elasticsearch to 1.4.1
 
  - Fix: improve performance of regex functions by actually pre-compiling

@@ -178,28 +178,32 @@ public class AnalyzedColumnDefinition {
         }
         if (dataType().equals("string") && analyzer != null) {
             mapping.put("analyzer", analyzer());
-        } else if (dataType().equals("object")) {
-            mapping.put("dynamic", objectType);
-            Map<String, Object> childProperties = new HashMap<>();
-            for (AnalyzedColumnDefinition child : children) {
-                childProperties.put(child.name(), child.toMapping());
+        } else if(collectionType == "array"){
+            Map<String, Object> outerMapping = new HashMap<String, Object>(){{
+                put("type", "array");
+            }};
+            if(dataType().equals("object")){
+                objectMapping(mapping);
             }
-            mapping.put("properties", childProperties);
+            outerMapping.put("inner", mapping);
+            return outerMapping;
+        } else if (dataType().equals("object")) {
+            objectMapping(mapping);
         }
         return mapping;
     }
 
-    public ColumnIdent ident() {
-        return ident;
+    private void objectMapping(Map<String, Object> mapping){
+        mapping.put("dynamic", objectType);
+        Map<String, Object> childProperties = new HashMap<>();
+        for (AnalyzedColumnDefinition child : children) {
+            childProperties.put(child.name(), child.toMapping());
+        }
+        mapping.put("properties", childProperties);
     }
 
-    public boolean hasMetaInfo() {
-        for (AnalyzedColumnDefinition child : children) {
-            if (child.hasMetaInfo()) {
-                return true;
-            }
-        }
-        return collectionType != null;
+    public ColumnIdent ident() {
+        return ident;
     }
 
     public void isPrimaryKey(boolean isPrimaryKey) {
@@ -208,27 +212,6 @@ public class AnalyzedColumnDefinition {
 
     public boolean isPrimaryKey() {
         return this.isPrimaryKey;
-    }
-
-    public Map<String, Object> toMetaMapping() {
-        assert hasMetaInfo();
-        if (dataType().equals("object")) {
-            Map<String, Object> metaMapping = new HashMap<>();
-            Map<String, Object> childrenMeta = new HashMap<>();
-            metaMapping.put("properties", childrenMeta);
-
-            for (AnalyzedColumnDefinition child : children) {
-                if (child.hasMetaInfo()) {
-                    childrenMeta.put(child.name, child.toMetaMapping());
-                }
-            }
-            if (collectionType != null) {
-                metaMapping.put("collection_type", collectionType);
-            }
-            return metaMapping;
-        } else {
-            return ImmutableMap.<String, Object>of("collection_type", collectionType);
-        }
     }
 
     public Map<String, Object> toMetaIndicesMapping() {

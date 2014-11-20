@@ -65,6 +65,7 @@ import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import io.crate.metadata.doc.array.ArrayMapperIndexModule;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
 import org.elasticsearch.script.ScriptModule;
@@ -127,6 +128,16 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(AggregationImplModule.class);
             modules.add(ScalarFunctionModule.class);
             modules.add(PlanModule.class);
+        }
+        return modules;
+    }
+
+
+    @Override
+    public Collection<Class<? extends Module>> indexModules() {
+        Collection<Class<? extends Module>> modules = newArrayList();
+        if (!settings.getAsBoolean("node.client", false)) {
+            modules.add(ArrayMapperIndexModule.class);
         }
         return modules;
     }
