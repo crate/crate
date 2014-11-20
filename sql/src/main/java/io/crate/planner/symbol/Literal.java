@@ -77,7 +77,7 @@ public class Literal<ReturnType>
         this.value = value;
     }
 
-    private static <ReturnType> boolean typeMatchesValue(DataType type, ReturnType value) {
+    private static <ReturnType> boolean typeMatchesValue(DataType type, Object value) {
         if (value == null) {
             return true;
         }
@@ -86,6 +86,10 @@ public class Literal<ReturnType>
         }
         if (type instanceof ArrayType) {
             DataType innerType = ((ArrayType) type).innerType();
+            while (innerType instanceof ArrayType && value.getClass().isArray()) {
+                innerType = ((ArrayType) innerType).innerType();
+                value = ((Object[])value)[0];
+            }
             if (innerType.equals(DataTypes.STRING)) {
                 for (Object o : ((Object[]) value)) {
                     if (o != null && !(o instanceof String || o instanceof BytesRef)) {
@@ -94,11 +98,11 @@ public class Literal<ReturnType>
                 }
                 return true;
             } else {
-                return Arrays.equals(((Object[]) value), (Object[]) type.value(value));
+                return Arrays.equals((Object[]) value, ((ArrayType)type).value(value));
             }
         }
         // types like GeoPoint are represented as arrays
-        if (value.getClass().isArray() && Arrays.equals(((Object[]) value), ((Object[]) type.value(value)))) {
+        if (value.getClass().isArray() && Arrays.equals((Object[]) value, (Object[]) type.value(value))) {
             return true;
         }
         return type.value(value).equals(value);

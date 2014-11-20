@@ -53,7 +53,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                 }
 
                 @Override
-                public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+                public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
                     return new UpdateAnalyzedStatement.NestedAnalyzedStatement(
                         referenceInfos, functions, parameterContext, globalReferenceResolver);
                 }
@@ -157,7 +157,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
 
 
     @Override
-    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
         return new UpdateAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

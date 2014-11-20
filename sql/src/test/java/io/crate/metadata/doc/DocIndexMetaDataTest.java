@@ -5,10 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.analyze.AnalyzedTableElements;
-import io.crate.analyze.Analyzer;
-import io.crate.analyze.CreateTableAnalyzedStatement;
-import io.crate.analyze.CreateTableStatementAnalyzer;
+import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
@@ -646,7 +643,7 @@ public class DocIndexMetaDataTest {
         );
 
         CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyzer.newAnalysis(
-                new Analyzer.ParameterContext(new Object[0], new Object[0][]));
+                new ParameterContext(new Object[0], new Object[0][]));
         analysis.analyzedTableElements(new AnalyzedTableElements());
 
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder()

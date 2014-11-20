@@ -69,7 +69,7 @@ public class ReferenceToTrueVisitorTest {
             referenceResolver
         );
         selectAnalysis = (SelectAnalyzedStatement) analyzer.newAnalysis(
-            new Analyzer.ParameterContext(new Object[0], new Object[0][]));
+            new ParameterContext(new Object[0], new Object[0][]));
     }
 
     public Symbol fromSQL(String expression) {

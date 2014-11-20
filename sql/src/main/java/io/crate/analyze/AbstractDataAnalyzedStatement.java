@@ -81,7 +81,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
 
     public AbstractDataAnalyzedStatement(ReferenceInfos referenceInfos,
                                          Functions functions,
-                                         Analyzer.ParameterContext parameterContext,
+                                         ParameterContext parameterContext,
                                          ReferenceResolver referenceResolver) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;

@@ -30,7 +30,7 @@ public abstract class AbstractDDLAnalyzedStatement extends AnalyzedStatement {
     protected final TableParameter tableParameter = new TableParameter();
     protected TableIdent tableIdent;
 
-    protected AbstractDDLAnalyzedStatement(Analyzer.ParameterContext parameterContext) {
+    protected AbstractDDLAnalyzedStatement(ParameterContext parameterContext) {
         super(parameterContext);
     }
 

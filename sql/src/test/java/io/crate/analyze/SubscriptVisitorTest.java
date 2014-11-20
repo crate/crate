@@ -48,7 +48,7 @@ public class SubscriptVisitorTest {
     private Object currentParameter;
 
     private SubscriptContext analyzeSubscript(String expressionString) {
-        Analyzer.ParameterContext parameterContext = mock(Analyzer.ParameterContext.class);
+        ParameterContext parameterContext = mock(ParameterContext.class);
         when(parameterContext.getAsSymbol(anyInt())).thenReturn(
                 Literal.newLiteral(DataTypes.guessType(currentParameter), currentParameter));
         SubscriptContext context = new SubscriptContext(parameterContext);

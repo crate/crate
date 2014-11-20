@@ -48,7 +48,7 @@ public class UpdateAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
     public UpdateAnalyzedStatement(ReferenceInfos referenceInfos,
                                    Functions functions,
-                                   Analyzer.ParameterContext parameterContext,
+                                   ParameterContext parameterContext,
                                    ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
         int numNested = 1;
@@ -107,7 +107,7 @@ public class UpdateAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
         public NestedAnalyzedStatement(ReferenceInfos referenceInfos,
                                        Functions functions,
-                                       Analyzer.ParameterContext parameterContext,
+                                       ParameterContext parameterContext,
                                        ReferenceResolver referenceResolver) {
             super(referenceInfos, functions, parameterContext, referenceResolver);
         }

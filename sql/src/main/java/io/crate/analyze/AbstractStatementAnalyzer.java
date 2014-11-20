@@ -27,7 +27,7 @@ import io.crate.sql.tree.*;
 
 public abstract class AbstractStatementAnalyzer<R, T extends AnalyzedStatement> extends DefaultTraversalVisitor<R, T> {
 
-    public abstract AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext);
+    public abstract AnalyzedStatement newAnalysis(ParameterContext parameterContext);
 
     @Override
     protected R visitTable(Table node, T context) {

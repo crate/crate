@@ -40,7 +40,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
 
     public InsertFromValuesAnalyzedStatement(ReferenceInfos referenceInfos,
                                              Functions functions,
-                                             Analyzer.ParameterContext parameterContext,
+                                             ParameterContext parameterContext,
                                              ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }

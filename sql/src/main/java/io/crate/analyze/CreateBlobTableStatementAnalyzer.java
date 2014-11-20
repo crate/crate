@@ -61,7 +61,7 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
     }
 
     @Override
-    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
         return new CreateBlobTableAnalyzedStatement(parameterContext);
     }
 }

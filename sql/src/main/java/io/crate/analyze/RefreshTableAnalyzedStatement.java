@@ -40,7 +40,7 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
     private PartitionName partitionName;
 
     protected RefreshTableAnalyzedStatement(ReferenceInfos referenceInfos,
-                                            Analyzer.ParameterContext parameterContext) {
+                                            ParameterContext parameterContext) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
     }

@@ -40,8 +40,7 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private Optional<PartitionName> partitionName = Optional.absent();
     private Optional<ColumnPolicy> columnPolicy = Optional.absent();
 
-
-    public AlterTableAnalyzedStatement(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
+    public AlterTableAnalyzedStatement(ParameterContext parameterContext, ReferenceInfos referenceInfos) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
     }

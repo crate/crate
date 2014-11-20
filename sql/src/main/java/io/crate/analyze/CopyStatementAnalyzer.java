@@ -127,7 +127,7 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalyzedSta
     }
 
     @Override
-    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
         return new CopyAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 

@@ -58,7 +58,7 @@ public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, Refres
     }
 
     @Override
-    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
         return new RefreshTableAnalyzedStatement(referenceInfos, parameterContext);
     }
 }

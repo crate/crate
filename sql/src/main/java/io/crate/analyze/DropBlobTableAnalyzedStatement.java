@@ -33,7 +33,7 @@ public class DropBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
 
-    protected DropBlobTableAnalyzedStatement(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
+    protected DropBlobTableAnalyzedStatement(ParameterContext parameterContext, ReferenceInfos referenceInfos) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
     }

@@ -45,7 +45,7 @@ public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     protected AddColumnAnalyzedStatement(ReferenceInfos referenceInfos,
                                          FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                         Analyzer.ParameterContext parameterContext) {
+                                         ParameterContext parameterContext) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
