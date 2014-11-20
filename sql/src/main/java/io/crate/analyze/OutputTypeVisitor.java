@@ -33,17 +33,17 @@ public class OutputTypeVisitor extends AnalysisVisitor<Void, DataType[]> {
 
     public static final DataType[] EMPTY_TYPES = new DataType[0];
 
-    public DataType[] process(Analysis analysis) {
-        return super.process(analysis, null);
+    public DataType[] process(AnalyzedStatement analyzedStatement) {
+        return super.process(analyzedStatement, null);
     }
 
     @Override
-    protected DataType[] visitAnalysis(Analysis analysis, Void context) {
+    protected DataType[] visitAnalysis(AnalyzedStatement analyzedStatement, Void context) {
         return EMPTY_TYPES;
     }
 
     @Override
-    protected DataType[] visitSelectAnalysis(SelectAnalysis analysis, Void context) {
+    protected DataType[] visitSelectAnalysis(SelectAnalyzedStatement analysis, Void context) {
         DataType[] types = new DataType[analysis.outputSymbols().size()];
         java.util.List<Symbol> outputSymbols = analysis.outputSymbols();
         for (int i = 0, outputSymbolsSize = outputSymbols.size(); i < outputSymbolsSize; i++) {

@@ -77,7 +77,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         return modules;
     }
 
-    private void assertCompatibleColumns(InsertFromSubQueryAnalysis analysis) {
+    private void assertCompatibleColumns(InsertFromSubQueryAnalyzedStatement analysis) {
         assertThat(analysis.columns().size(), is(analysis.getSubQueryColumns().size()));
 
         for (int i = 0; i < analysis.columns().size(); i++) {
@@ -94,14 +94,14 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithoutColumns() throws Exception {
-        InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
+        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
                 analyze("insert into users (select * from users where name = 'Trillian')");
         assertCompatibleColumns(analysis);
     }
 
     @Test
     public void testFromQueryWithSubQueryColumns() throws Exception {
-        InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
+        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
                 analyze("insert into users (" +
                         "  select id, other_id, name, text, no_index, details, " +
                         "      awesome, counters, friends, tags, bytes, shorts, ints, floats " +
@@ -133,7 +133,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithInsertColumns() throws Exception {
-        InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
+        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
             analyze("insert into users (id, name, details) (" +
                     "  select id, name, details from users " +
                     "  where name = 'Trillian'" +
@@ -151,7 +151,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithConvertableInsertColumns() throws Exception {
-        InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
+        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
             analyze("insert into users (id, name) (" +
                 "  select id, other_id from users " +
                 "  where name = 'Trillian'" +
@@ -161,7 +161,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithFunctionSubQuery() throws Exception {
-        InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
+        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
             analyze("insert into users (id) (" +
                 "  select count(*) from users " +
                 "  where name = 'Trillian'" +
@@ -171,7 +171,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testImplicitTypeCasting() throws Exception {
-        InsertFromSubQueryAnalysis analysis = (InsertFromSubQueryAnalysis)
+        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
                 analyze("insert into users (id, name) (" +
                         "  select id, other_id from users " +
                         "  where name = 'Trillian'" +

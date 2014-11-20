@@ -29,7 +29,7 @@ import org.elasticsearch.common.inject.Inject;
 
 import java.util.List;
 
-public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, RefreshTableAnalysis> {
+public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, RefreshTableAnalyzedStatement> {
 
     private final ReferenceInfos referenceInfos;
 
@@ -39,7 +39,7 @@ public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, Refres
     }
 
     @Override
-    public Void visitRefreshStatement(RefreshStatement node, RefreshTableAnalysis context) {
+    public Void visitRefreshStatement(RefreshStatement node, RefreshTableAnalyzedStatement context) {
         context.table(TableIdent.of(node.table()));
         if (!node.table().partitionProperties().isEmpty()) {
             setParitionIdent(node.table().partitionProperties(), context);
@@ -48,7 +48,7 @@ public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, Refres
         return null;
     }
 
-    private void setParitionIdent(List<Assignment> properties, RefreshTableAnalysis context) {
+    private void setParitionIdent(List<Assignment> properties, RefreshTableAnalyzedStatement context) {
         String partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
                 context.table(),
                 properties,
@@ -58,7 +58,7 @@ public class RefreshTableAnalyzer extends AbstractStatementAnalyzer<Void, Refres
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new RefreshTableAnalysis(referenceInfos, parameterContext);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new RefreshTableAnalyzedStatement(referenceInfos, parameterContext);
     }
 }

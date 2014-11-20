@@ -26,13 +26,13 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 
-public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalysis> {
+public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalyzedStatement> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
 
 
     @Override
-    public Void visitCreateBlobTable(CreateBlobTable node, CreateBlobTableAnalysis context) {
+    public Void visitCreateBlobTable(CreateBlobTable node, CreateBlobTableAnalyzedStatement context) {
         context.table(tableToIdent(node.name()));
 
         if (node.clusteredBy().isPresent()) {
@@ -61,7 +61,7 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new CreateBlobTableAnalysis(parameterContext);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new CreateBlobTableAnalyzedStatement(parameterContext);
     }
 }

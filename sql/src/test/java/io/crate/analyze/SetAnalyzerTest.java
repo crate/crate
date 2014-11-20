@@ -54,35 +54,35 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSet() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT stats.operations_log_size=1");
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT stats.operations_log_size=1");
         assertThat(analysis.isPersistent(), is(true));
         assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,"));
 
-        analysis = (SetAnalysis) analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=2");
+        analysis = (SetAnalyzedStatement) analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=2");
         assertThat(analysis.isPersistent(), is(false));
         assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=2,"));
 
-        analysis = (SetAnalysis) analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size=0");
+        analysis = (SetAnalyzedStatement) analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size=0");
         assertThat(analysis.isPersistent(), is(false));
         assertThat(analysis.settings().toDelimitedString(','), is("stats.enabled=false,stats.operations_log_size=0,stats.jobs_log_size=0,"));
     }
 
     @Test
     public void testSetFullQualified() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT stats['operations_log_size']=1");
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT stats['operations_log_size']=1");
         assertThat(analysis.isPersistent(), is(true));
         assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,"));
     }
 
     @Test
     public void testSetTimeValue() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = 60000");
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = 60000");
         assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=60000,"));
 
-        analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = '2.5m'");
+        analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = '2.5m'");
         assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=150000,"));
 
-        analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = ?", new Object[]{ 1000.0 });
+        analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = ?", new Object[]{ 1000.0 });
         assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=1000,"));
     }
 
@@ -95,7 +95,7 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSetStringValue() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.min_availability = 'full'");
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.min_availability = 'full'");
         assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.min_availability=full,"));
     }
 
@@ -115,10 +115,10 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSetByteSizeValue() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = '1024kb'");
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = '1024kb'");
         assertThat(analysis.settings().toDelimitedString(','), is("indices.recovery.file_chunk_size=1048576,"));
 
-        analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = ?", new Object[]{ "1mb" });
+        analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = ?", new Object[]{ "1mb" });
         assertThat(analysis.settings().toDelimitedString(','), is("indices.recovery.file_chunk_size=1048576,"));
     }
 
@@ -131,13 +131,13 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testObjectValue() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop = {timeout='1h',force=false}");
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT cluster.graceful_stop = {timeout='1h',force=false}");
         assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.force=false,cluster.graceful_stop.timeout=3600000,"));
     }
 
     @Test
     public void testNestedObjectValue() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT cluster.routing.allocation = {disk ={threshold_enabled = false, watermark = {high= '75%'}}}");
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT cluster.routing.allocation = {disk ={threshold_enabled = false, watermark = {high= '75%'}}}");
         assertThat(analysis.settings().toDelimitedString(','), is("cluster.routing.allocation.disk.watermark.high=75%,cluster.routing.allocation.disk.threshold_enabled=false,"));
     }
 
@@ -150,7 +150,7 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSetParameter() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("SET GLOBAL PERSISTENT stats.operations_log_size=?, stats.jobs_log_size=?", new Object[]{1, 2});
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("SET GLOBAL PERSISTENT stats.operations_log_size=?, stats.jobs_log_size=?", new Object[]{1, 2});
         assertThat(analysis.isPersistent(), is(true));
         assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,stats.jobs_log_size=2,"));
     }
@@ -206,11 +206,11 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testReset() throws Exception {
-        SetAnalysis analysis = (SetAnalysis) analyze("RESET GLOBAL stats.enabled");
+        SetAnalyzedStatement analysis = (SetAnalyzedStatement) analyze("RESET GLOBAL stats.enabled");
         assertThat(analysis.isReset(), is(true));
         assertThat(analysis.settingsToRemove(), contains("stats.enabled"));
 
-        analysis = (SetAnalysis) analyze("RESET GLOBAL stats");
+        analysis = (SetAnalyzedStatement) analyze("RESET GLOBAL stats");
         assertThat(analysis.settingsToRemove(), containsInAnyOrder("stats.enabled", "stats.jobs_log_size", "stats.operations_log_size"));
     }
 }

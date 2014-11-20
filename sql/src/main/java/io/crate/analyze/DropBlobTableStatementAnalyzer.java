@@ -25,7 +25,7 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.sql.tree.DropBlobTable;
 import org.elasticsearch.common.inject.Inject;
 
-public class DropBlobTableStatementAnalyzer extends BlobTableAnalyzer<DropBlobTableAnalysis> {
+public class DropBlobTableStatementAnalyzer extends BlobTableAnalyzer<DropBlobTableAnalyzedStatement> {
 
     private final ReferenceInfos referenceInfos;
 
@@ -35,13 +35,13 @@ public class DropBlobTableStatementAnalyzer extends BlobTableAnalyzer<DropBlobTa
     }
 
     @Override
-    public Void visitDropBlobTable(DropBlobTable node, DropBlobTableAnalysis context) {
+    public Void visitDropBlobTable(DropBlobTable node, DropBlobTableAnalyzedStatement context) {
         context.table(tableToIdent(node.table()));
         return null;
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new DropBlobTableAnalysis(parameterContext, referenceInfos);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new DropBlobTableAnalyzedStatement(parameterContext, referenceInfos);
     }
 }

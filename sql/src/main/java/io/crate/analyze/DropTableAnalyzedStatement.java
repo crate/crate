@@ -29,12 +29,12 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
-public class DropTableAnalysis extends AbstractDDLAnalysis {
+public class DropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private TableInfo tableInfo;
     private final ReferenceInfos referenceInfos;
 
-    public DropTableAnalysis(ReferenceInfos referenceInfos) {
+    public DropTableAnalyzedStatement(ReferenceInfos referenceInfos) {
         super(null);
         this.referenceInfos = referenceInfos;
     }

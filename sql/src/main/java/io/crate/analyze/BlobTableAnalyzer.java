@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public abstract class BlobTableAnalyzer<TypeAnalysis extends Analysis>
+public abstract class BlobTableAnalyzer<TypeAnalysis extends AnalyzedStatement>
         extends AbstractStatementAnalyzer<Void, TypeAnalysis> {
 
     protected static TableIdent tableToIdent(Table table) {

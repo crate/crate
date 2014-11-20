@@ -34,22 +34,22 @@ import io.crate.planner.symbol.Symbol;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class UpdateAnalysis extends AbstractDataAnalysis {
+public class UpdateAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
-    private static final Predicate<NestedAnalysis> HAS_NO_RESULT_PREDICATE = new Predicate<NestedAnalysis>() {
+    private static final Predicate<NestedAnalyzedStatement> HAS_NO_RESULT_PREDICATE = new Predicate<NestedAnalyzedStatement>() {
         @Override
-        public boolean apply(@Nullable NestedAnalysis input) {
+        public boolean apply(@Nullable NestedAnalyzedStatement input) {
             return input != null && input.hasNoResult();
         }
     };
 
-    List<NestedAnalysis> nestedAnalysisList;
+    List<NestedAnalyzedStatement> nestedAnalysisList;
 
 
-    public UpdateAnalysis(ReferenceInfos referenceInfos,
-                          Functions functions,
-                          Analyzer.ParameterContext parameterContext,
-                          ReferenceResolver referenceResolver) {
+    public UpdateAnalyzedStatement(ReferenceInfos referenceInfos,
+                                   Functions functions,
+                                   Analyzer.ParameterContext parameterContext,
+                                   ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
         int numNested = 1;
         if (parameterContext.bulkParameters.length > 0) {
@@ -58,7 +58,7 @@ public class UpdateAnalysis extends AbstractDataAnalysis {
 
         nestedAnalysisList = new ArrayList<>(numNested);
         for (int i = 0; i < numNested; i++) {
-            nestedAnalysisList.add(new NestedAnalysis(
+            nestedAnalysisList.add(new NestedAnalyzedStatement(
                     referenceInfos,
                     functions,
                     parameterContext,
@@ -92,18 +92,18 @@ public class UpdateAnalysis extends AbstractDataAnalysis {
         return analysisVisitor.visitUpdateAnalysis(this, context);
     }
 
-    public List<NestedAnalysis> nestedAnalysis() {
+    public List<NestedAnalyzedStatement> nestedAnalysis() {
         return nestedAnalysisList;
     }
 
-    public static class NestedAnalysis extends AbstractDataAnalysis {
+    public static class NestedAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
         private Map<Reference, Symbol> assignments = new HashMap<>();
 
-        public NestedAnalysis(ReferenceInfos referenceInfos,
-                              Functions functions,
-                              Analyzer.ParameterContext parameterContext,
-                              ReferenceResolver referenceResolver) {
+        public NestedAnalyzedStatement(ReferenceInfos referenceInfos,
+                                       Functions functions,
+                                       Analyzer.ParameterContext parameterContext,
+                                       ReferenceResolver referenceResolver) {
             super(referenceInfos, functions, parameterContext, referenceResolver);
         }
 

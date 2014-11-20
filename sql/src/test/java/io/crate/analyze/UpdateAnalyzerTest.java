@@ -106,28 +106,28 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         return modules;
     }
 
-    protected UpdateAnalysis.NestedAnalysis analyze(String statement) {
-        return ((UpdateAnalysis) analyzer.analyze(SqlParser.createStatement(statement)))
+    protected UpdateAnalyzedStatement.NestedAnalyzedStatement analyze(String statement) {
+        return ((UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement)))
                 .nestedAnalysisList.get(0);
     }
 
-    protected UpdateAnalysis.NestedAnalysis analyze(String statement, Object[] params) {
-        return ((UpdateAnalysis) analyzer.analyze(
+    protected UpdateAnalyzedStatement.NestedAnalyzedStatement analyze(String statement, Object[] params) {
+        return ((UpdateAnalyzedStatement) analyzer.analyze(
                 SqlParser.createStatement(statement),
                 params,
                 new Object[0][])).nestedAnalysisList.get(0);
     }
 
-    protected UpdateAnalysis analyze(String statement, Object[][] bulkArgs) {
-        return (UpdateAnalysis) analyzer.analyze(SqlParser.createStatement(statement),
+    protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
+        return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
                 new Object[0],
                 bulkArgs);
     }
 
     @Test
     public void testUpdateAnalysis() throws Exception {
-        Analysis analysis = analyze("update users set name='Ford Prefect'");
-        assertThat(analysis, instanceOf(UpdateAnalysis.NestedAnalysis.class));
+        AnalyzedStatement analyzedStatement = analyze("update users set name='Ford Prefect'");
+        assertThat(analyzedStatement, instanceOf(UpdateAnalyzedStatement.NestedAnalyzedStatement.class));
     }
 
     @Test( expected = TableUnknownException.class)
@@ -176,7 +176,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateAssignments() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis = analyze("update users set name='Trillian'");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set name='Trillian'");
         assertThat(analysis.assignments().size(), is(1));
         assertThat(analysis.table().ident(), is(new TableIdent(null, "users")));
 
@@ -191,7 +191,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateAssignmentNestedDynamicColumn() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis = analyze("update users set details['arms']=3");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set details['arms']=3");
         assertThat(analysis.assignments().size(), is(1));
 
         Reference ref = analysis.assignments().keySet().iterator().next();
@@ -208,7 +208,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateAssignmentConvertableType() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis = analyze("update users set other_id=9.9");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set other_id=9.9");
         Reference ref = analysis.assignments().keySet().iterator().next();
         assertThat(ref, not(instanceOf(DynamicReference.class)));
         assertEquals(DataTypes.LONG, ref.info().type());
@@ -219,7 +219,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateMuchAssignments() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis = analyze(
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze(
                 "update users set other_id=9.9, name='Trillian', details=?, stuff=true, foo='bar'",
                 new Object[]{new HashMap<String, Object>()});
         assertThat(analysis.assignments().size(), is(5));
@@ -227,19 +227,19 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testNoWhereClause() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis = analyze("update users set other_id=9");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set other_id=9");
         assertThat(analysis.whereClause(), is(WhereClause.MATCH_ALL));
     }
 
     @Test
     public void testNoMatchWhereClause() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis = analyze("update users set other_id=9 where true=false");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set other_id=9 where true=false");
         assertThat(analysis.whereClause().noMatch(), is(true));
     }
 
     @Test
     public void testUpdateWhereClause() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis =
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis =
                 analyze("update users set other_id=9 where name='Trillian'");
         assertThat(analysis.whereClause().hasQuery(), is(true));
         assertThat(analysis.whereClause().noMatch(), is(false));
@@ -257,7 +257,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testQualifiedNameReference() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis = analyze("update users set users.name='Trillian'");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set users.name='Trillian'");
         Reference ref = analysis.assignments().keySet().iterator().next();
         assertThat(ref.info().ident().tableIdent().name(), is("users"));
         assertThat(ref.info().ident().columnIdent().fqn(), is("name"));
@@ -269,7 +269,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 new HashMap<String, Object>() {{ put("name", "Slartibartfast"); }},
                 new HashMap<String, Object>() {{ put("name", "Marvin"); }}
         };
-        UpdateAnalysis.NestedAnalysis analysis =
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis =
                 analyze("update users set name=?, other_id=?, friends=? where id=?",
                         new Object[]{"Jeltz", 0, friends, "9"});
         assertThat(analysis.assignments().size(), is(3));
@@ -305,7 +305,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateWithEmptyObjectArray() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis = analyze("update users set friends=? where other_id=0",
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set friends=? where other_id=0",
                 new Object[]{ new Map[0], 0 });
 
         Literal friendsLiteral = (Literal)analysis.assignments().get(
@@ -342,7 +342,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateWherePartitionedByColumn() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis = analyze(
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze(
                 "update parted set id = 2 where date = 1395874800000");
         assertThat(analysis.whereClause().hasQuery(), is(false));
         assertThat(analysis.whereClause().noMatch(), is(false));
@@ -354,9 +354,9 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateTableAlias() throws Exception {
-        UpdateAnalysis.NestedAnalysis expectedAnalysis = analyze(
+        UpdateAnalyzedStatement.NestedAnalyzedStatement expectedAnalysis = analyze(
                 "update users set awesome=true where awesome=false");
-        UpdateAnalysis.NestedAnalysis actualAnalysis = analyze(
+        UpdateAnalyzedStatement.NestedAnalyzedStatement actualAnalysis = analyze(
                 "update users as u set u.awesome=true where u.awesome=false");
 
         assertEquals(actualAnalysis.tableAlias(), "u");
@@ -385,7 +385,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateWithVersionZero() throws Exception {
-        UpdateAnalysis.NestedAnalysis analysis = analyze(
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze(
                 "update users set awesome=true where name='Ford' and _version=0");
         assertThat(analysis.whereClause().noMatch(), is(true));
     }

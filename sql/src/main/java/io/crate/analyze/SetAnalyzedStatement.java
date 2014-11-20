@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.Settings;
 
@@ -30,13 +29,13 @@ import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.Set;
 
-public class SetAnalysis extends Analysis {
+public class SetAnalyzedStatement extends AnalyzedStatement {
     private Settings settings;
     private Set<String> settingsToRemove;
     private boolean persistent = false;
     private boolean isReset = false;
 
-    protected SetAnalysis(Analyzer.ParameterContext parameterContext) {
+    protected SetAnalyzedStatement(Analyzer.ParameterContext parameterContext) {
         super(parameterContext);
     }
 

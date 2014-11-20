@@ -21,50 +21,40 @@
 
 package io.crate.analyze;
 
-import io.crate.PartitionName;
-import io.crate.exceptions.PartitionUnknownException;
-import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
-import javax.annotation.Nullable;
-import java.util.Locale;
-
-public class RefreshTableAnalysis extends AbstractDDLAnalysis {
+public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
-    private PartitionName partitionName;
 
-    protected RefreshTableAnalysis(ReferenceInfos referenceInfos,
-                                   Analyzer.ParameterContext parameterContext) {
+    public AlterBlobTableAnalyzedStatement(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
     }
 
     @Override
     public void table(TableIdent tableIdent) {
+        assert tableIdent.schema().equalsIgnoreCase(BlobSchemaInfo.NAME);
+        this.tableIdent = tableIdent;
+
         SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
-        if (schemaInfo == null) {
-            throw new SchemaUnknownException(tableIdent.schema());
-        }
-        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        assert schemaInfo != null; // schemaInfo for blob must exist.
+
+        tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
         }
-        this.tableInfo = tableInfo;
     }
 
     @Override
     public TableInfo table() {
         return tableInfo;
-    }
-
-    public @Nullable PartitionName partitionName() {
-        return partitionName;
     }
 
     @Override
@@ -74,32 +64,6 @@ public class RefreshTableAnalysis extends AbstractDDLAnalysis {
 
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitRefreshTableAnalysis(this, context);
-    }
-
-    public void partitionIdent(String ident) {
-        assert table() != null;
-
-        if (!table().isPartitioned()) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH,
-                            "Table '%s' is not partitioned", table().ident().name()));
-        }
-        try {
-            this.partitionName = PartitionName.fromPartitionIdent(
-                    table().ident().name(),
-                    ident
-            );
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid partition ident for table '%s': '%s'",
-                            table().ident().name(), ident), e);
-        }
-
-        if (!table().partitions().contains(this.partitionName)) {
-            throw new PartitionUnknownException(
-                    this.table().ident().name(),
-                    this.partitionName.ident());
-        }
+        return analysisVisitor.visitAlterBlobTableAnalysis(this, context);
     }
 }

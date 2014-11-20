@@ -23,12 +23,11 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 import java.util.List;
 
-public abstract class Analysis {
+public abstract class AnalyzedStatement {
 
     private final Analyzer.ParameterContext parameterContext;
     private List<String> outputNames = ImmutableList.of();
@@ -43,7 +42,7 @@ public abstract class Analysis {
         return tableAlias;
     }
 
-    protected Analysis(Analyzer.ParameterContext parameterContext) {
+    protected AnalyzedStatement(Analyzer.ParameterContext parameterContext) {
         this.parameterContext = parameterContext;
     }
 

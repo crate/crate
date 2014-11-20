@@ -34,7 +34,7 @@ import org.elasticsearch.common.inject.Inject;
 import java.util.Locale;
 
 
-public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalysis> {
+public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalyzedStatement> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final ReferenceInfos referenceInfos;
@@ -48,17 +48,17 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new CreateTableAnalysis(referenceInfos, fulltextAnalyzerResolver, parameterContext);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new CreateTableAnalyzedStatement(referenceInfos, fulltextAnalyzerResolver, parameterContext);
     }
 
-    protected Void visitNode(Node node, CreateTableAnalysis context) {
+    protected Void visitNode(Node node, CreateTableAnalyzedStatement context) {
         throw new RuntimeException(
                 String.format("Encountered node %s but expected a CreateTable node", node));
     }
 
     @Override
-    public Void visitCreateTable(CreateTable node, CreateTableAnalysis context) {
+    public Void visitCreateTable(CreateTable node, CreateTableAnalyzedStatement context) {
         TableIdent tableIdent = TableIdent.of(node.name());
         Preconditions.checkArgument(Strings.isNullOrEmpty(tableIdent.schema()),
                 "A custom schema name must not be specified in the CREATE TABLE clause");
@@ -87,7 +87,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     }
 
     @Override
-    public Void visitClusteredBy(ClusteredBy node, CreateTableAnalysis context) {
+    public Void visitClusteredBy(ClusteredBy node, CreateTableAnalyzedStatement context) {
         if (node.column().isPresent()) {
             ColumnIdent routingColumn = ColumnIdent.fromPath(
                     ExpressionToStringVisitor.convert(node.column().get(), context.parameters()));
@@ -118,7 +118,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     }
 
     @Override
-    public Void visitPartitionedBy(PartitionedBy node, CreateTableAnalysis context) {
+    public Void visitPartitionedBy(PartitionedBy node, CreateTableAnalyzedStatement context) {
         for (Expression partitionByColumn : node.columns()) {
             ColumnIdent partitionedByIdent = ColumnIdent.fromPath(
                     ExpressionToStringVisitor.convert(partitionByColumn, context.parameters()));

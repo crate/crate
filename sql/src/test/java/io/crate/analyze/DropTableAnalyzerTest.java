@@ -89,9 +89,9 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropExistingTable() throws Exception {
-        Analysis analysis = analyze(String.format(Locale.ENGLISH, "drop table %s", TEST_DOC_TABLE_IDENT.name()));
-        assertThat(analysis, instanceOf(DropTableAnalysis.class));
-        DropTableAnalysis dropTableAnalysis = (DropTableAnalysis) analysis;
+        AnalyzedStatement analyzedStatement = analyze(String.format(Locale.ENGLISH, "drop table %s", TEST_DOC_TABLE_IDENT.name()));
+        assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
+        DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
 
         assertThat(dropTableAnalysis.index(), is(TEST_DOC_TABLE_IDENT.name()));
     }

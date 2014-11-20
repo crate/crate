@@ -31,7 +31,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 
-public class CopyAnalysis extends AbstractDataAnalysis {
+public class CopyAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
     private Settings settings = ImmutableSettings.EMPTY;
 
@@ -45,10 +45,10 @@ public class CopyAnalysis extends AbstractDataAnalysis {
     private boolean directoryUri;
     private String partitionIdent = null;
 
-    public CopyAnalysis(ReferenceInfos referenceInfos,
-                        Functions functions,
-                        Analyzer.ParameterContext parameterContext,
-                        ReferenceResolver referenceResolver) {
+    public CopyAnalyzedStatement(ReferenceInfos referenceInfos,
+                                 Functions functions,
+                                 Analyzer.ParameterContext parameterContext,
+                                 ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 

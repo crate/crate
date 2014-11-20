@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public class CreateTableAnalysis extends AbstractDDLAnalysis {
+public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     protected final ReferenceInfos referenceInfos;
     protected final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -42,9 +42,9 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     private Map<String, Object> mapping;
     private ColumnIdent routingColumn;
 
-    public CreateTableAnalysis(ReferenceInfos referenceInfos,
-                               FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                               Analyzer.ParameterContext parameterContext) {
+    public CreateTableAnalyzedStatement(ReferenceInfos referenceInfos,
+                                        FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                        Analyzer.ParameterContext parameterContext) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;

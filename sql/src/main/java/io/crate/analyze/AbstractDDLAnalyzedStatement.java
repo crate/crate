@@ -25,12 +25,12 @@ import io.crate.Constants;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.TableIdent;
 
-public abstract class AbstractDDLAnalysis extends Analysis {
+public abstract class AbstractDDLAnalyzedStatement extends AnalyzedStatement {
 
     protected final TableParameter tableParameter = new TableParameter();
     protected TableIdent tableIdent;
 
-    protected AbstractDDLAnalysis(Analyzer.ParameterContext parameterContext) {
+    protected AbstractDDLAnalyzedStatement(Analyzer.ParameterContext parameterContext) {
         super(parameterContext);
     }
 

@@ -28,7 +28,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
-import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.OutputTypeVisitor;
 import io.crate.exceptions.*;
@@ -111,7 +111,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         this.statsTables = statsTables;
     }
 
-    public abstract Analysis getAnalysis(Statement statement, TRequest request);
+    public abstract AnalyzedStatement getAnalysis(Statement statement, TRequest request);
 
     /**
      * create an empty SQLBaseResponse instance with no rows
@@ -170,12 +170,12 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         }
         try {
             Statement statement = statementCache.get(request.stmt());
-            Analysis analysis = getAnalysis(statement, request);
+            AnalyzedStatement analyzedStatement = getAnalysis(statement, request);
 
-            if (analysis.isData()) {
-                processWithPlanner(analysis, request, listener);
+            if (analyzedStatement.isData()) {
+                processWithPlanner(analyzedStatement, request, listener);
             } else {
-                processNonData(analysis, request, listener);
+                processNonData(analyzedStatement, request, listener);
             }
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
@@ -193,11 +193,11 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         statsTables.activeRequestsDec();
     }
 
-    private void processNonData(Analysis analysis,
+    private void processNonData(AnalyzedStatement analyzedStatement,
                                 final TRequest request,
                                 final ActionListener<TResponse> listener) {
-        final String[] outputNames = analysis.outputNames().toArray(new String[analysis.outputNames().size()]);
-        ListenableFuture<Long> future = dispatcherProvider.get().process(analysis, null);
+        final String[] outputNames = analyzedStatement.outputNames().toArray(new String[analyzedStatement.outputNames().size()]);
+        ListenableFuture<Long> future = dispatcherProvider.get().process(analyzedStatement, null);
         Futures.addCallback(future, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long rowCount) {
@@ -218,15 +218,15 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     }
 
 
-    private void processWithPlanner(Analysis analysis, TRequest request, ActionListener<TResponse> listener) {
-        final String[] outputNames = analysis.outputNames().toArray(new String[analysis.outputNames().size()]);
+    private void processWithPlanner(AnalyzedStatement analyzedStatement, TRequest request, ActionListener<TResponse> listener) {
+        final String[] outputNames = analyzedStatement.outputNames().toArray(new String[analyzedStatement.outputNames().size()]);
 
-        if (analysis.hasNoResult()) {
-            DataType[] types = outputTypesExtractor.process(analysis);
+        if (analyzedStatement.hasNoResult()) {
+            DataType[] types = outputTypesExtractor.process(analyzedStatement);
             listener.onResponse(emptyResponse(request, outputNames, types));
             return;
         }
-        final Plan plan = planner.plan(analysis);
+        final Plan plan = planner.plan(analyzedStatement);
         tracePlan(plan);
 
         if (plan.isEmpty()) {

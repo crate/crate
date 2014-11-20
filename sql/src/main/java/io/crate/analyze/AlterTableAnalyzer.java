@@ -29,7 +29,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.inject.Inject;
 
-public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTableAnalysis> {
+public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTableAnalyzedStatement> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final ReferenceInfos referenceInfos;
@@ -40,7 +40,7 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
     }
 
     @Override
-    public Void visitColumnDefinition(ColumnDefinition node, AlterTableAnalysis context) {
+    public Void visitColumnDefinition(ColumnDefinition node, AlterTableAnalyzedStatement context) {
         if (node.ident().startsWith("_")) {
             throw new IllegalArgumentException("Column ident must not start with '_'");
         }
@@ -49,7 +49,7 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
     }
 
     @Override
-    public Void visitAlterTable(AlterTable node, AlterTableAnalysis context) {
+    public Void visitAlterTable(AlterTable node, AlterTableAnalyzedStatement context) {
         setTableAndPartitionName(node.table(), context);
 
         TableParameterInfo tableParameterInfo = context.table().tableParameterInfo();
@@ -69,7 +69,7 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
         return null;
     }
 
-    private void setTableAndPartitionName(Table node, AlterTableAnalysis context) {
+    private void setTableAndPartitionName(Table node, AlterTableAnalyzedStatement context) {
         context.table(TableIdent.of(node));
         if (!node.partitionProperties().isEmpty()) {
             PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
@@ -84,7 +84,7 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new AlterTableAnalysis(parameterContext, referenceInfos);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new AlterTableAnalyzedStatement(parameterContext, referenceInfos);
     }
 }

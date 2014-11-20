@@ -316,15 +316,15 @@ public abstract class BaseAnalyzerTest {
         }
     }
 
-    protected Analysis analyze(String statement) {
+    protected AnalyzedStatement analyze(String statement) {
         return analyzer.analyze(SqlParser.createStatement(statement));
     }
 
-    protected Analysis analyze(String statement, Object[] params) {
+    protected AnalyzedStatement analyze(String statement, Object[] params) {
         return analyzer.analyze(SqlParser.createStatement(statement), params, new Object[0][]);
     }
 
-    protected Analysis analyze(String statement, Object[][] bulkArgs) {
+    protected AnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
         return analyzer.analyze(SqlParser.createStatement(statement), new Object[0], bulkArgs);
     }
 

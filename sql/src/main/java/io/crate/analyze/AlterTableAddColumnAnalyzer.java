@@ -31,7 +31,7 @@ import org.elasticsearch.common.inject.Inject;
 
 import java.util.List;
 
-public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void, AddColumnAnalysis> {
+public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void, AddColumnAnalyzedStatement> {
 
     private final ReferenceInfos referenceInfos;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -44,18 +44,18 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new AddColumnAnalysis(referenceInfos, fulltextAnalyzerResolver, parameterContext);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new AddColumnAnalyzedStatement(referenceInfos, fulltextAnalyzerResolver, parameterContext);
     }
 
     @Override
-    protected Void visitNode(Node node, AddColumnAnalysis context) {
+    protected Void visitNode(Node node, AddColumnAnalyzedStatement context) {
         throw new RuntimeException(
                 String.format("Encountered node %s but expected a AlterTableAddColumn node", node));
     }
 
     @Override
-    public Void visitAlterTableAddColumnStatement(AlterTableAddColumn node, AddColumnAnalysis context) {
+    public Void visitAlterTableAddColumnStatement(AlterTableAddColumn node, AddColumnAnalyzedStatement context) {
         setTableAndPartitionName(node.table(), context);
 
         context.analyzedTableElements(TableElementsAnalyzer.analyze(
@@ -91,7 +91,7 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
         }
     }
 
-    private void addExistingPrimaryKeys(AddColumnAnalysis context) {
+    private void addExistingPrimaryKeys(AddColumnAnalyzedStatement context) {
         for (ColumnIdent pkIdent : context.table().primaryKey()) {
             if (pkIdent.name().equals("_id")) {
                 continue;
@@ -124,7 +124,7 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
         }
     }
 
-    private void setTableAndPartitionName(Table node, AddColumnAnalysis context) {
+    private void setTableAndPartitionName(Table node, AddColumnAnalyzedStatement context) {
         if (!node.partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }

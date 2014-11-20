@@ -88,7 +88,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateBlobTableAutoExpand() {
-        CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
+        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement)analyze(
                 "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
@@ -99,7 +99,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateBlobTable() {
-        CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
+        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement)analyze(
                 "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
@@ -109,7 +109,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateBlobTableWithPath() {
-        CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
+        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement)analyze(
                 "create blob table screenshots with (blobs_path='/tmp/crate_blob_data')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
@@ -118,7 +118,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateBlobTableWithPathParameter() {
-        CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
+        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement)analyze(
                 "create blob table screenshots with (blobs_path=?)", new Object[]{"/tmp/crate_blob_data"});
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
@@ -146,7 +146,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropBlobTable() {
-        DropBlobTableAnalysis analysis = (DropBlobTableAnalysis)analyze("drop blob table users");
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table users");
         assertThat(analysis.tableIdent().name(), is("users"));
         assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
     }
@@ -158,7 +158,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropBlobTableWithValidSchema() {
-        DropBlobTableAnalysis analysis = (DropBlobTableAnalysis)analyze("drop blob table \"blob\".users");
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table \"blob\".users");
         assertThat(analysis.tableIdent().name(), is("users"));
     }
 
@@ -175,7 +175,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAlterBlobTableWithReplicas() throws Exception {
-        AlterBlobTableAnalysis analysis = (AlterBlobTableAnalysis)analyze("alter blob table myblobs set (number_of_replicas=2)");
+        AlterBlobTableAnalyzedStatement analysis = (AlterBlobTableAnalyzedStatement)analyze("alter blob table myblobs set (number_of_replicas=2)");
         assertThat(analysis.table().ident().name(), is("myblobs"));
         assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
     }
@@ -189,7 +189,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateBlobTableWithParams() throws Exception {
-        CreateBlobTableAnalysis analysis = (CreateBlobTableAnalysis)analyze(
+        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement)analyze(
                 "create blob table screenshots clustered into ? shards with (number_of_replicas= ?)",
                 new Object[] { 2, "0-all" });
 

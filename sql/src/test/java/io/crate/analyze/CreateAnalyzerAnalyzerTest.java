@@ -68,9 +68,9 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateAnalyzerSimple() throws Exception {
-        Analysis analysis = analyze("CREATE ANALYZER a1 (tokenizer lowercase)");
-        assertThat(analysis, instanceOf(CreateAnalyzerAnalysis.class));
-        CreateAnalyzerAnalysis createAnalyzerAnalysis = (CreateAnalyzerAnalysis) analysis;
+        AnalyzedStatement analyzedStatement = analyze("CREATE ANALYZER a1 (tokenizer lowercase)");
+        assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
+        CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
 
         assertEquals("a1", createAnalyzerAnalysis.ident());
         assertEquals("lowercase", createAnalyzerAnalysis.tokenizerDefinition().v1());
@@ -82,15 +82,15 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateAnalyzerWithCustomTokenizer() throws Exception {
-        Analysis analysis = analyze("CREATE ANALYZER a2 (" +
+        AnalyzedStatement analyzedStatement = analyze("CREATE ANALYZER a2 (" +
                 "   tokenizer tok2 with (" +
                 "       type='ngram'," +
                 "       \"min_ngram\"=2," +
                 "       \"token_chars\"=['letter', 'digits']" +
                 "   )" +
                 ")");
-        assertThat(analysis, instanceOf(CreateAnalyzerAnalysis.class));
-        CreateAnalyzerAnalysis createAnalyzerAnalysis = (CreateAnalyzerAnalysis) analysis;
+        assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
+        CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
 
         assertEquals("a2", createAnalyzerAnalysis.ident());
         assertEquals("a2_tok2", createAnalyzerAnalysis.tokenizerDefinition().v1());
@@ -110,7 +110,7 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateAnalyzerWithCharFilters() throws Exception {
-        Analysis analysis = analyze("CREATE ANALYZER a3 (" +
+        AnalyzedStatement analyzedStatement = analyze("CREATE ANALYZER a3 (" +
                 "   tokenizer lowercase," +
                 "   char_filters (" +
                 "       \"html_strip\"," +
@@ -120,8 +120,8 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
                 "       )" +
                 "   )" +
                 ")");
-        assertThat(analysis, instanceOf(CreateAnalyzerAnalysis.class));
-        CreateAnalyzerAnalysis createAnalyzerAnalysis = (CreateAnalyzerAnalysis) analysis;
+        assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
+        CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
 
         assertEquals("a3", createAnalyzerAnalysis.ident());
         assertEquals("lowercase", createAnalyzerAnalysis.tokenizerDefinition().v1());
@@ -147,7 +147,7 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateAnalyzerWithTokenFilters() throws Exception {
-        Analysis analysis = analyze("CREATE ANALYZER a11 (" +
+        AnalyzedStatement analyzedStatement = analyze("CREATE ANALYZER a11 (" +
                 "  TOKENIZER standard," +
                 "  TOKEN_FILTERS (" +
                 "    lowercase," +
@@ -157,8 +157,8 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
                 "    )" +
                 "  )" +
                 ")");
-        assertThat(analysis, instanceOf(CreateAnalyzerAnalysis.class));
-        CreateAnalyzerAnalysis createAnalyzerAnalysis = (CreateAnalyzerAnalysis) analysis;
+        assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
+        CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
 
         assertEquals("a11", createAnalyzerAnalysis.ident());
         assertEquals("standard", createAnalyzerAnalysis.tokenizerDefinition().v1());
@@ -184,12 +184,12 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateAnalyzerExtendingBuiltin() throws Exception {
-        Analysis analysis = analyze("CREATE ANALYZER a4 EXTENDS " +
+        AnalyzedStatement analyzedStatement = analyze("CREATE ANALYZER a4 EXTENDS " +
                 "german WITH (" +
                 "   \"stop_words\"=['der', 'die', 'das']" +
                 ")");
-        assertThat(analysis, instanceOf(CreateAnalyzerAnalysis.class));
-        CreateAnalyzerAnalysis createAnalyzerAnalysis = (CreateAnalyzerAnalysis) analysis;
+        assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
+        CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
 
         assertEquals("a4", createAnalyzerAnalysis.ident());
         assertEquals("german", createAnalyzerAnalysis.extendedAnalyzerName());
@@ -205,7 +205,7 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void createAnalyzerWithoutTokenizer() throws Exception {
-        CreateAnalyzerAnalysis analysis = (CreateAnalyzerAnalysis)analyze(
+        CreateAnalyzerAnalyzedStatement analysis = (CreateAnalyzerAnalyzedStatement)analyze(
                 "CREATE ANALYZER a6 (" +
                 "  char_filters (" +
                 "    \"html_strip\"" +

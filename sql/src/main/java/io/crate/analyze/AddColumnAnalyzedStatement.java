@@ -34,7 +34,7 @@ import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
 
-public class AddColumnAnalysis extends AbstractDDLAnalysis {
+public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final ReferenceInfos referenceInfos;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -43,9 +43,9 @@ public class AddColumnAnalysis extends AbstractDDLAnalysis {
     private AnalyzedTableElements analyzedTableElements;
     private boolean newPrimaryKeys = false;
 
-    protected AddColumnAnalysis(ReferenceInfos referenceInfos,
-                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                Analyzer.ParameterContext parameterContext) {
+    protected AddColumnAnalyzedStatement(ReferenceInfos referenceInfos,
+                                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                         Analyzer.ParameterContext parameterContext) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;

@@ -34,7 +34,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public class CreateAnalyzerAnalysis extends AbstractDDLAnalysis {
+public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
@@ -47,8 +47,8 @@ public class CreateAnalyzerAnalysis extends AbstractDDLAnalysis {
     private Map<String,Settings> charFilters = new HashMap<>();
     private Map<String, Settings> tokenFilters = new HashMap<>();
 
-    public CreateAnalyzerAnalysis(FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                  Analyzer.ParameterContext parameterContext) {
+    public CreateAnalyzerAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                           Analyzer.ParameterContext parameterContext) {
         super(parameterContext);
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }

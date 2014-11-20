@@ -119,13 +119,13 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
-    protected ListenableFuture<Long> visitAnalysis(Analysis analysis, Void context) {
-        throw new UnsupportedOperationException(String.format("Can't handle \"%s\"", analysis));
+    protected ListenableFuture<Long> visitAnalysis(AnalyzedStatement analyzedStatement, Void context) {
+        throw new UnsupportedOperationException(String.format("Can't handle \"%s\"", analyzedStatement));
     }
 
    @Override
     public ListenableFuture<Long> visitCreateBlobTableAnalysis(
-            CreateBlobTableAnalysis analysis, Void context) {
+            CreateBlobTableAnalyzedStatement analysis, Void context) {
         return wrapRowCountFuture(
                 blobIndices.createBlobTable(
                         analysis.tableName(),
@@ -136,7 +136,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
-    public ListenableFuture<Long> visitAddColumnAnalysis(final AddColumnAnalysis analysis, Void context) {
+    public ListenableFuture<Long> visitAddColumnAnalysis(final AddColumnAnalyzedStatement analysis, Void context) {
         final SettableFuture<Long> result = SettableFuture.create();
         if (analysis.newPrimaryKeys()) {
             Plan plan = genCountStarPlan(analysis.table());
@@ -193,7 +193,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
         return plan;
     }
 
-    private void addColumnToTable(AddColumnAnalysis analysis, final SettableFuture<Long> result) {
+    private void addColumnToTable(AddColumnAnalyzedStatement analysis, final SettableFuture<Long> result) {
         boolean updateTemplate = analysis.table().isPartitioned() && !analysis.partitionName().isPresent();
         final AtomicInteger operations = new AtomicInteger(updateTemplate ? 2 : 1);
         final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
@@ -304,14 +304,14 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
-    public ListenableFuture<Long> visitAlterBlobTableAnalysis(AlterBlobTableAnalysis analysis, Void context) {
+    public ListenableFuture<Long> visitAlterBlobTableAnalysis(AlterBlobTableAnalyzedStatement analysis, Void context) {
         return wrapRowCountFuture(
                 blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
                 1L);
     }
 
     @Override
-    public ListenableFuture<Long> visitDropBlobTableAnalysis(DropBlobTableAnalysis analysis, Void context) {
+    public ListenableFuture<Long> visitDropBlobTableAnalysis(DropBlobTableAnalyzedStatement analysis, Void context) {
         return wrapRowCountFuture(blobIndices.dropBlobTable(analysis.table().ident().name()), 1L);
     }
 
@@ -332,7 +332,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
-    public ListenableFuture<Long> visitRefreshTableAnalysis(RefreshTableAnalysis analysis, Void context) {
+    public ListenableFuture<Long> visitRefreshTableAnalysis(RefreshTableAnalyzedStatement analysis, Void context) {
         String[] indexNames = getIndexNames(analysis.table(), analysis.partitionName());
         if (analysis.table().schemaInfo().systemSchema() || indexNames.length == 0) {
             // shortcut when refreshing on system tables
@@ -373,7 +373,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
-    public ListenableFuture<Long> visitAlterTableAnalysis(final AlterTableAnalysis analysis, Void context) {
+    public ListenableFuture<Long> visitAlterTableAnalysis(final AlterTableAnalyzedStatement analysis, Void context) {
         final SettableFuture<Long> result = SettableFuture.create();
         final String[] indices;
         boolean updateTemplate = false;

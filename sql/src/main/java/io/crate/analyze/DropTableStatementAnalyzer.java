@@ -26,7 +26,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.DropTable;
 import org.elasticsearch.common.inject.Inject;
 
-public class DropTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, DropTableAnalysis> {
+public class DropTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, DropTableAnalyzedStatement> {
 
     private final ReferenceInfos referenceInfos;
 
@@ -36,13 +36,13 @@ public class DropTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, 
     }
 
     @Override
-    public Void visitDropTable(DropTable node, DropTableAnalysis context) {
+    public Void visitDropTable(DropTable node, DropTableAnalyzedStatement context) {
         context.table(TableIdent.of(node.table()));
         return null;
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new DropTableAnalysis(referenceInfos);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new DropTableAnalyzedStatement(referenceInfos);
     }
 }

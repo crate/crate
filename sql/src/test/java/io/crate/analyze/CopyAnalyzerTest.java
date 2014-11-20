@@ -79,14 +79,14 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCopyFromExistingTable() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis)analyze("copy users from '/some/distant/file.ext'");
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users from '/some/distant/file.ext'");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertLiteralSymbol(analysis.uri(), "/some/distant/file.ext");
     }
 
     @Test
     public void testCopyFromExistingPartitionedTable() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis)analyze("copy parted from '/some/distant/file.ext'");
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy parted from '/some/distant/file.ext'");
         assertThat(analysis.table().ident(), is(TEST_PARTITIONED_TABLE_IDENT));
         assertLiteralSymbol(analysis.uri(), "/some/distant/file.ext");
     }
@@ -98,7 +98,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCopyFromPartitionedTablePARTITIONKeywordValidArgs() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis) analyze(
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement) analyze(
                 "copy parted partition (date=1395874800000) from '/some/distant/file.ext'");
         String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).encodeIdent();
         assertThat(analysis.partitionIdent(), equalTo(parted));
@@ -122,7 +122,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyFromParameter() throws Exception {
         String path = "/some/distant/file.ext";
-        CopyAnalysis analysis = (CopyAnalysis)analyze("copy users from ?", new Object[]{path});
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users from ?", new Object[]{path});
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         Object value = ((Literal) analysis.uri()).value();
         assertThat(BytesRefs.toString(value), is(path));
@@ -130,21 +130,21 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCopyToFile() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis)analyze("copy users to '/blah.txt'");
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users to '/blah.txt'");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(analysis.mode(), is(CopyAnalysis.Mode.TO));
+        assertThat(analysis.mode(), is(CopyAnalyzedStatement.Mode.TO));
         assertLiteralSymbol(analysis.uri(), "/blah.txt");
     }
 
     @Test
     public void testCopyToDirectory() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis)analyze("copy users to directory '/foo'");
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users to directory '/foo'");
         assertThat(analysis.directoryUri(), is(true));
     }
 
     @Test
     public void testCopyToWithColumnList() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis)analyze("copy users (id, name) to DIRECTORY '/tmp'");
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users (id, name) to DIRECTORY '/tmp'");
         assertThat(analysis.outputSymbols().size(), is(2));
         assertThat(((Reference)analysis.outputSymbols().get(0)).info().ident().columnIdent().name(), is("id"));
         assertThat(((Reference)analysis.outputSymbols().get(1)).info().ident().columnIdent().name(), is("name"));
@@ -152,9 +152,9 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCopyToFileWithParams() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis)analyze("copy users to '/blah.txt' with (compression='gzip')");
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement)analyze("copy users to '/blah.txt' with (compression='gzip')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(analysis.mode(), is(CopyAnalysis.Mode.TO));
+        assertThat(analysis.mode(), is(CopyAnalyzedStatement.Mode.TO));
 
         assertLiteralSymbol(analysis.uri(), "/blah.txt");
         assertThat(analysis.settings().get("compression"), is("gzip"));
@@ -162,21 +162,21 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCopyToFileWithPartitionedTable() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted to '/blah.txt'");
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement) analyze("copy parted to '/blah.txt'");
         assertThat(analysis.table().ident(), is(TEST_PARTITIONED_TABLE_IDENT));
-        assertThat(analysis.mode(), is(CopyAnalysis.Mode.TO));
+        assertThat(analysis.mode(), is(CopyAnalyzedStatement.Mode.TO));
     }
 
     @Test
     public void testCopyToFileWithPartitionClause() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted partition (date=1395874800000) to '/blah.txt'");
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement) analyze("copy parted partition (date=1395874800000) to '/blah.txt'");
         String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).encodeIdent();
         assertThat(analysis.partitionIdent(), is(parted));
     }
 
     @Test
     public void testCopyToDirectoryithPartitionClause() throws Exception {
-        CopyAnalysis analysis = (CopyAnalysis) analyze("copy parted partition (date=1395874800000) to directory '/tmp'");
+        CopyAnalyzedStatement analysis = (CopyAnalyzedStatement) analyze("copy parted partition (date=1395874800000) to directory '/tmp'");
         assertThat(analysis.directoryUri(), is(true));
         String parted = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).encodeIdent();
         assertThat(analysis.partitionIdent(), is(parted));

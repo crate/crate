@@ -142,13 +142,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Override
-    protected SelectAnalysis analyze(String statement) {
-        return (SelectAnalysis) super.analyze(statement);
+    protected SelectAnalyzedStatement analyze(String statement) {
+        return (SelectAnalyzedStatement) super.analyze(statement);
     }
 
     @Override
-    protected SelectAnalysis analyze(String statement, Object[] arguments) {
-        return (SelectAnalysis) super.analyze(statement, arguments);
+    protected SelectAnalyzedStatement analyze(String statement, Object[] arguments) {
+        return (SelectAnalyzedStatement) super.analyze(statement, arguments);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -158,7 +158,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testIsNullQuery() {
-        SelectAnalysis analysis = analyze("select * from sys.nodes where id is not null");
+        SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where id is not null");
         assertTrue(analysis.whereClause().hasQuery());
         Function query = (Function)analysis.whereClause().query();
 
@@ -170,7 +170,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testOrderedSelect() throws Exception {
-        SelectAnalysis analysis =  analyze("select load['1'] from sys.nodes order by load['5'] desc");
+        SelectAnalyzedStatement analysis =  analyze("select load['1'] from sys.nodes order by load['5'] desc");
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
 
@@ -187,7 +187,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGroupKeyNotInResultColumnList() throws Exception {
-        SelectAnalysis analysis =  analyze("select count(*) from sys.nodes group by name");
+        SelectAnalyzedStatement analysis =  analyze("select count(*) from sys.nodes group by name");
 
         assertThat(analysis.groupBy().size(), is(1));
         assertThat(analysis.outputNames().get(0), is("count(*)"));
@@ -195,7 +195,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGroupByOnAlias() throws Exception {
-        SelectAnalysis analysis =  analyze("select count(*), name as n from sys.nodes group by n");
+        SelectAnalyzedStatement analysis =  analyze("select count(*), name as n from sys.nodes group by n");
         assertThat(analysis.groupBy().size(), is(1));
         assertThat(analysis.outputNames().get(0), is("count(*)"));
         assertThat(analysis.outputNames().get(1), is("n"));
@@ -206,7 +206,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGroupByOnOrdinal() throws Exception {
         // just like in postgres access by ordinal starts with 1
-        SelectAnalysis analysis =  analyze("select count(*), name as n from sys.nodes group by 2");
+        SelectAnalyzedStatement analysis =  analyze("select count(*), name as n from sys.nodes group by 2");
         assertThat(analysis.groupBy().size(), is(1));
         assertEquals(analysis.groupBy().get(0), analysis.outputSymbols().get(1));
     }
@@ -223,7 +223,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testNegativeLiteral() throws Exception {
-        SelectAnalysis analyze = analyze("select * from sys.nodes where port['http'] = -400");
+        SelectAnalyzedStatement analyze = analyze("select * from sys.nodes where port['http'] = -400");
         Function whereClause = (Function)analyze.whereClause().query();
         Symbol symbol = whereClause.arguments().get(1);
         assertThat((Integer) ((Literal) symbol).value(), is(-400));
@@ -231,7 +231,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGroupedSelect() throws Exception {
-        SelectAnalysis analysis =  analyze("select load['1'], count(*) from sys.nodes group by load['1']");
+        SelectAnalyzedStatement analysis =  analyze("select load['1'], count(*) from sys.nodes group by load['1']");
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
 
@@ -246,7 +246,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSimpleSelect() throws Exception {
-        SelectAnalysis analysis =  analyze("select load['5'] from sys.nodes limit 2");
+        SelectAnalyzedStatement analysis =  analyze("select load['5'] from sys.nodes limit 2");
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertEquals(new Integer(2), analysis.limit());
 
@@ -263,7 +263,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAggregationSelect() throws Exception {
-        SelectAnalysis analysis =  analyze("select avg(load['5']) from sys.nodes");
+        SelectAnalyzedStatement analysis =  analyze("select avg(load['5']) from sys.nodes");
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 
         assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
@@ -277,7 +277,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAllColumnCluster() throws Exception {
-        SelectAnalysis analysis = analyze("select * from sys.cluster");
+        SelectAnalyzedStatement analysis = analyze("select * from sys.cluster");
         assertThat(analysis.outputNames().size(), is(4));
         assertThat(analysis.outputNames(), containsInAnyOrder("id", "master_node", "name", "settings"));
         assertThat(analysis.outputSymbols().size(), is(4));
@@ -285,7 +285,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAllColumnNodes() throws Exception {
-        SelectAnalysis analysis = analyze("select id, * from sys.nodes");
+        SelectAnalyzedStatement analysis = analyze("select id, * from sys.nodes");
         assertThat(analysis.outputNames().get(0), is("id"));
         assertThat(analysis.outputNames().get(1), is("id"));
         assertThat(analysis.outputNames().size(), is(14));
@@ -294,7 +294,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testWhereSelect() throws Exception {
-        SelectAnalysis analysis =  analyze("select load from sys.nodes " +
+        SelectAnalyzedStatement analysis =  analyze("select load from sys.nodes " +
                 "where load['1'] = 1.2 or 1 >= load['5']");
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 
@@ -321,7 +321,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectWithParameters() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis) analyze("select load from sys.nodes " +
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement) analyze("select load from sys.nodes " +
                 "where load['1'] = ? or load['5'] <= ? or load['15'] >= ? or load['1'] = ? " +
                 "or load['1'] = ? or name = ?", new Object[]{
                 1.2d,
@@ -352,7 +352,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testOutputNames() throws Exception {
-        SelectAnalysis analysis = analyze("select load as l, id, load['1'] from sys.nodes");
+        SelectAnalyzedStatement analysis = analyze("select load as l, id, load['1'] from sys.nodes");
         assertThat(analysis.outputNames().size(), is(3));
         assertThat(analysis.outputNames().get(0), is("l"));
         assertThat(analysis.outputNames().get(1), is("id"));
@@ -361,7 +361,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDuplicateOutputNames() throws Exception {
-        SelectAnalysis analysis = analyze("select load as l, load['1'] as l from sys.nodes");
+        SelectAnalyzedStatement analysis = analyze("select load as l, load['1'] as l from sys.nodes");
         assertThat(analysis.outputNames().size(), is(2));
         assertThat(analysis.outputNames().get(0), is("l"));
         assertThat(analysis.outputNames().get(1), is("l"));
@@ -369,7 +369,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testOrderByOnAlias() throws Exception {
-        SelectAnalysis analyze =  analyze(
+        SelectAnalyzedStatement analyze =  analyze(
                 "select name as cluster_name from sys.cluster order by cluster_name");
         assertThat(analyze.outputNames().size(), is(1));
         assertThat(analyze.outputNames().get(0), is("cluster_name"));
@@ -386,7 +386,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testOffsetSupportInAnalyzer() throws Exception {
-        SelectAnalysis analyze =  analyze("select * from sys.nodes limit 1 offset 3");
+        SelectAnalyzedStatement analyze =  analyze("select * from sys.nodes limit 1 offset 3");
         assertThat(analyze.offset(), is(3));
     }
 
@@ -397,7 +397,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 "select id from sys.nodes where 1=0",
                 "select id from sys.nodes where sys.cluster.name = 'something'"
         )) {
-            SelectAnalysis analysis = analyze(stmt);
+            SelectAnalyzedStatement analysis = analyze(stmt);
             assertTrue(stmt, analysis.noMatch());
             assertFalse(stmt, analysis.whereClause().hasQuery());
         }
@@ -405,7 +405,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testEvaluatingMatchAllStatement() throws Exception {
-        SelectAnalysis analysis = analyze("select id from sys.nodes where sys.cluster.name = 'testcluster'");
+        SelectAnalyzedStatement analysis = analyze("select id from sys.nodes where sys.cluster.name = 'testcluster'");
         assertFalse(analysis.noMatch());
         assertFalse(analysis.whereClause().hasQuery());
     }
@@ -418,7 +418,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 "select id from sys.nodes"
         )) {
             System.out.println(stmt);
-            SelectAnalysis analysis = analyze(stmt);
+            SelectAnalyzedStatement analysis = analyze(stmt);
             assertFalse(stmt, analysis.noMatch());
             assertFalse(stmt, analysis.whereClause().hasQuery());
         }
@@ -433,7 +433,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 "select * from sys.nodes where sys.nodes.name != 'something'"
         );
         for (String statement : statements) {
-            SelectAnalysis analysis = analyze(statement);
+            SelectAnalyzedStatement analysis = analyze(statement);
             WhereClause whereClause = analysis.whereClause();
 
             Function notFunction = (Function)whereClause.query();
@@ -453,7 +453,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRewriteRegexpNoMatch() throws Exception {
         String statement = "select * from sys.nodes where sys.nodes.name !~ '[sS]omething'";
-        SelectAnalysis analysis =  analyze(statement);
+        SelectAnalyzedStatement analysis =  analyze(statement);
         WhereClause whereClause = analysis.whereClause();
 
         Function notFunction = (Function) whereClause.query();
@@ -472,7 +472,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testClusteredBy() throws Exception {
-        SelectAnalysis analysis = analyze("select name from users where id=1");
+        SelectAnalyzedStatement analysis = analyze("select name from users where id=1");
         assertEquals(ImmutableList.of("1"), analysis.routingValues());
         assertEquals("1", analysis.whereClause().clusteredBy().get());
 
@@ -483,7 +483,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testClusteredByOnly() throws Exception {
-        SelectAnalysis analysis = analyze("select name from users_clustered_by_only where id=1");
+        SelectAnalyzedStatement analysis = analyze("select name from users_clustered_by_only where id=1");
         assertEquals(ImmutableList.of(), analysis.ids());
         assertEquals(ImmutableList.of("1"), analysis.routingValues());
         assertEquals("1", analysis.whereClause().clusteredBy().get());
@@ -501,7 +501,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCompositePrimaryKey() throws Exception {
-        SelectAnalysis analysis = analyze("select name from users_multi_pk where id=1");
+        SelectAnalyzedStatement analysis = analyze("select name from users_multi_pk where id=1");
         assertEquals(ImmutableList.of(), analysis.ids());
         assertEquals(ImmutableList.of(), analysis.routingValues());
         assertEquals("1", analysis.whereClause().clusteredBy().get());
@@ -524,7 +524,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testPrimaryKeyAndVersion() throws Exception {
-        SelectAnalysis analysis = analyze(
+        SelectAnalyzedStatement analysis = analyze(
             "select name from users where id = 2 and \"_version\" = 1");
         assertEquals(ImmutableList.of("2"), analysis.ids());
         assertEquals(ImmutableList.of("2"), analysis.routingValues());
@@ -533,7 +533,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testMultiplePrimaryKeys() throws Exception {
-        SelectAnalysis analysis = analyze(
+        SelectAnalyzedStatement analysis = analyze(
             "select name from users where id = 2 or id = 1");
 
         assertEquals(ImmutableList.of("1", "2"), analysis.ids());
@@ -542,21 +542,21 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testMultiplePrimaryKeysAndInvalidColumn() throws Exception {
-        SelectAnalysis analysis = analyze(
+        SelectAnalyzedStatement analysis = analyze(
             "select name from users where id = 2 or id = 1 and name = 'foo'");
         assertEquals(0, analysis.ids().size());
     }
 
     @Test
     public void testNotEqualsDoesntMatchPrimaryKey() throws Exception {
-        SelectAnalysis analysis = analyze("select name from users where id != 1");
+        SelectAnalyzedStatement analysis = analyze("select name from users where id != 1");
         assertEquals(0, analysis.ids().size());
         assertEquals(0, analysis.routingValues().size());
     }
 
     @Test
     public void testMultipleCompoundPrimaryKeys() throws Exception {
-        SelectAnalysis analysis = analyze(
+        SelectAnalyzedStatement analysis = analyze(
             "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo' and partition_ident='') " +
                     "or (schema_name='doc' and id = 2 and table_name = 'bla' and partition_ident='')");
         assertEquals(ImmutableList.of("BANkb2MDZm9vATEA", "BANkb2MDYmxhATIA"), analysis.ids());
@@ -573,7 +573,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void test1ColPrimaryKey() throws Exception {
-        SelectAnalysis analysis = analyze("select name from sys.nodes where id='jalla'");
+        SelectAnalyzedStatement analysis = analyze("select name from sys.nodes where id='jalla'");
         assertEquals(ImmutableList.of("jalla"), analysis.ids());
         assertEquals(ImmutableList.of("jalla"), analysis.routingValues());
 
@@ -603,7 +603,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void test3ColPrimaryKey() throws Exception {
-        SelectAnalysis analysis = analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc' and partition_ident=''");
+        SelectAnalyzedStatement analysis = analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc' and partition_ident=''");
         // base64 encoded versions of Streamable of ["doc","jalla","1"]
         assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.ids());
         assertEquals(ImmutableList.of("BANkb2MFamFsbGEBMQA="), analysis.routingValues());
@@ -627,7 +627,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void test1ColPrimaryKeySetLiteralDiffMatches() throws Exception {
-        SelectAnalysis analysis = analyze(
+        SelectAnalyzedStatement analysis = analyze(
                 "select name from sys.nodes where id in ('jalla', 'kelle') and id in ('jalla', 'something')");
         assertFalse(analysis.noMatch());
         assertEquals(1, analysis.ids().size());
@@ -637,7 +637,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void test1ColPrimaryKeySetLiteral() throws Exception {
-        SelectAnalysis analysis = analyze("select name from sys.nodes where id in ('jalla', 'kelle')");
+        SelectAnalyzedStatement analysis = analyze("select name from sys.nodes where id in ('jalla', 'kelle')");
         assertFalse(analysis.noMatch());
         assertEquals(2, analysis.ids().size());
         assertThat(analysis.ids(), Matchers.containsInAnyOrder("jalla", "kelle"));
@@ -645,7 +645,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void test3ColPrimaryKeySetLiteral() throws Exception {
-        SelectAnalysis analysis = analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle') and partition_ident=''");
+        SelectAnalyzedStatement analysis = analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle') and partition_ident=''");
         assertEquals(2, analysis.ids().size());
         // base64 encoded versions of Streamable of ["doc","jalla","1"] and ["doc","kelle","1"]
 
@@ -655,13 +655,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGranularityWithSingleAggregation() throws Exception {
-        SelectAnalysis analysis = analyze("select count(*) from sys.nodes");
+        SelectAnalyzedStatement analysis = analyze("select count(*) from sys.nodes");
         assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
     }
 
     @Test
     public void testRewriteCountStringLiteral() {
-        SelectAnalysis analysis = analyze("select count('id') from sys.nodes");
+        SelectAnalyzedStatement analysis = analyze("select count('id') from sys.nodes");
         List<Symbol> outputSymbols = analysis.outputSymbols;
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(Function.class));
@@ -670,7 +670,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRewriteCountNull() {
-        SelectAnalysis analysis = analyze("select count(null) from sys.nodes");
+        SelectAnalyzedStatement analysis = analyze("select count(null) from sys.nodes");
         List<Symbol> outputSymbols = analysis.outputSymbols;
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(Literal.class));
@@ -679,7 +679,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testWhereInSelect() throws Exception {
-        SelectAnalysis analysis = analyze("select load from sys.nodes where load['1'] in (1.0, 2.0, 4.0, 8.0, 16.0)");
+        SelectAnalyzedStatement analysis = analyze("select load from sys.nodes where load['1'] in (1.0, 2.0, 4.0, 8.0, 16.0)");
 
         Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(InOperator.NAME, whereClause.info().ident().name());
@@ -692,14 +692,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testWhereInSelectDifferentDataTypeList() throws Exception {
-        SelectAnalysis analysis = analyze("select 'found' from users where 1 in (1.2, 2)");
+        SelectAnalyzedStatement analysis = analyze("select 'found' from users where 1 in (1.2, 2)");
         assertFalse(analysis.whereClause().hasQuery()); // already normalized from 1 in (1, 2) --> true
         assertFalse(analysis.whereClause().noMatch());
     }
 
     @Test
     public void testWhereInSelectDifferentDataTypeValue() throws Exception {
-        SelectAnalysis analysis = analyze("select 'found' from users where 1.2 in (1, 2)");
+        SelectAnalyzedStatement analysis = analyze("select 'found' from users where 1.2 in (1, 2)");
         assertFalse(analysis.whereClause().hasQuery()); // already normalized from 1.2 in (1.0, 2.0) --> false
         assertTrue(analysis.noMatch());
         assertTrue(analysis.hasNoResult());
@@ -712,7 +712,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAggregationDistinct() {
-        SelectAnalysis analysis =  analyze("select count(distinct load['1']) from sys.nodes");
+        SelectAnalyzedStatement analysis =  analyze("select count(distinct load['1']) from sys.nodes");
 
         assertTrue(analysis.hasAggregates());
         assertEquals(2, analysis.functions().size());
@@ -749,28 +749,28 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectGlobalDistinctAggregate() {
-        SelectAnalysis distinctAnalysis =  analyze("select distinct count(*) from users");
+        SelectAnalyzedStatement distinctAnalysis =  analyze("select distinct count(*) from users");
         assertFalse(distinctAnalysis.hasGroupBy());
     }
 
     @Test
     public void testSelectGlobalDistinctRewriteAggregateionGroupBy() {
-        SelectAnalysis distinctAnalysis =  analyze("select distinct name, count(id) from users group by name");
-        SelectAnalysis groupByAnalysis =  analyze("select name, count(id) from users group by name");
+        SelectAnalyzedStatement distinctAnalysis =  analyze("select distinct name, count(id) from users group by name");
+        SelectAnalyzedStatement groupByAnalysis =  analyze("select name, count(id) from users group by name");
         assertEquals(groupByAnalysis.groupBy(), distinctAnalysis.groupBy());
     }
 
     @Test
     public void testSelectGlobalDistinctRewrite() {
-        SelectAnalysis distinctAnalysis =  analyze("select distinct name from users");
-        SelectAnalysis groupByAnalysis =  analyze("select name from users group by name");
+        SelectAnalyzedStatement distinctAnalysis =  analyze("select distinct name from users");
+        SelectAnalyzedStatement groupByAnalysis =  analyze("select name from users group by name");
         assertEquals(groupByAnalysis.groupBy(), distinctAnalysis.groupBy());
     }
 
     @Test
     public void testSelectGlobalDistinctRewriteAllColumns() {
-        SelectAnalysis distinctAnalysis =  analyze("select distinct * from transactions");
-        SelectAnalysis groupByAnalysis =
+        SelectAnalyzedStatement distinctAnalysis =  analyze("select distinct * from transactions");
+        SelectAnalyzedStatement groupByAnalysis =
                  analyze(
                         "select id, sender, recipient, amount, timestamp " +
                         "from transactions " +
@@ -787,7 +787,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         map.put("1", 1.0);
         map.put("5", 2.5);
         map.put("15", 8.0);
-        SelectAnalysis analysis =  (SelectAnalysis) analyze("select id from sys.nodes where load=?",
+        SelectAnalyzedStatement analysis =  (SelectAnalyzedStatement) analyze("select id from sys.nodes where load=?",
                 new Object[]{map});
         Function whereClause = (Function)analysis.whereClause().query();
         assertThat(whereClause.arguments().get(1), instanceOf(Literal.class));
@@ -796,7 +796,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testLikeInWhereQuery() {
-        SelectAnalysis analysis = analyze("select * from sys.nodes where name like 'foo'");
+        SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where name like 'foo'");
 
         assertNotNull(analysis.whereClause());
         Function whereClause = (Function)analysis.whereClause().query();
@@ -817,7 +817,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testLikeNoStringDataTypeInWhereQuery() {
-        SelectAnalysis analysis = analyze("select * from sys.nodes where name like 1");
+        SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where name like 1");
 
         // check if the implicit cast of the pattern worked
         ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING);
@@ -835,7 +835,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testLikeLongDataTypeInWhereQuery() {
-        SelectAnalysis analysis = analyze("select * from sys.nodes where 1 like 2");
+        SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where 1 like 2");
 
         // check if implicit cast worked of both, expression and pattern.
         Function function = (Function) analysis.functions().toArray()[0];
@@ -853,7 +853,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testIsNullInWhereQuery() {
-        SelectAnalysis analysis = analyze("select * from sys.nodes where name is null");
+        SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where name is null");
         Function isNullFunction = (Function) analysis.functions().toArray()[0];
 
         assertThat(isNullFunction.info().ident().name(), is(IsNullPredicate.NAME));
@@ -864,7 +864,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testNullIsNullInWhereQuery() {
-        SelectAnalysis analysis = analyze("select * from sys.nodes where null is null");
+        SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where null is null");
         Function isNullFunction = (Function) analysis.functions().toArray()[0];
         assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Literal.class));
         assertFalse(analysis.whereClause().hasQuery());
@@ -873,7 +873,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testLongIsNullInWhereQuery() {
-        SelectAnalysis analysis = analyze("select * from sys.nodes where 1 is null");
+        SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where 1 is null");
         Function isNullFunction = (Function) analysis.functions().toArray()[0];
         assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Literal.class));
         assertTrue(analysis.noMatch());
@@ -881,19 +881,19 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testIsNullOnDynamicReference() {
-        SelectAnalysis analysis = analyze("select \"_id\" from users where details['invalid'] is null");
+        SelectAnalyzedStatement analysis = analyze("select \"_id\" from users where details['invalid'] is null");
         assertTrue(analysis.noMatch());
     }
 
     @Test
     public void testNotPredicate() {
-        SelectAnalysis analysis = analyze("select * from users where name not like 'foo%'");
+        SelectAnalyzedStatement analysis = analyze("select * from users where name not like 'foo%'");
         assertThat(((Function)analysis.whereClause.query()).info().ident().name(), is(NotPredicate.NAME));
     }
 
     @Test
     public void testFilterByLiteralBoolean() throws Exception {
-        SelectAnalysis analysis = analyze("select * from users where awesome=TRUE");
+        SelectAnalyzedStatement analysis = analyze("select * from users where awesome=TRUE");
         assertThat(((Function) analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.LITERAL));
     }
 
@@ -910,26 +910,26 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testHasNoResult() {
-        Analysis analysis = analyze("select count(*) from users limit 1 offset 1");
-        assertTrue(analysis.hasNoResult());
+        AnalyzedStatement analyzedStatement = analyze("select count(*) from users limit 1 offset 1");
+        assertTrue(analyzedStatement.hasNoResult());
 
-        analysis = analyze("select count(*) from users limit 5 offset 1");
-        assertTrue(analysis.hasNoResult());
+        analyzedStatement = analyze("select count(*) from users limit 5 offset 1");
+        assertTrue(analyzedStatement.hasNoResult());
 
-        analysis = analyze("select count(*) from users limit 1");
-        assertFalse(analysis.hasNoResult());
+        analyzedStatement = analyze("select count(*) from users limit 1");
+        assertFalse(analyzedStatement.hasNoResult());
 
-        analysis = analyze("select count(*) from users limit 0");
-        assertTrue(analysis.hasNoResult());
+        analyzedStatement = analyze("select count(*) from users limit 0");
+        assertTrue(analyzedStatement.hasNoResult());
 
-        analysis = analyze("select name from users limit 0");
-        assertTrue(analysis.hasNoResult());
+        analyzedStatement = analyze("select name from users limit 0");
+        assertTrue(analyzedStatement.hasNoResult());
 
-        analysis = analyze("select name from users where false");
-        assertTrue(analysis.hasNoResult());
+        analyzedStatement = analyze("select name from users where false");
+        assertTrue(analyzedStatement.hasNoResult());
 
-        analysis = analyze("select name from users limit 10 offset 10");
-        assertFalse(analysis.hasNoResult());
+        analyzedStatement = analyze("select name from users limit 10 offset 10");
+        assertFalse(analyzedStatement.hasNoResult());
     }
 
     @Test(expected = UnsupportedFeatureException.class)
@@ -987,7 +987,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         String partition2 = new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).stringValue();
         String partition3 = new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).stringValue();
 
-        SelectAnalysis analysis = analyze("select id, name from parted where date = 1395874800000");
+        SelectAnalyzedStatement analysis = analyze("select id, name from parted where date = 1395874800000");
         assertEquals(ImmutableList.of(partition1), analysis.whereClause().partitions());
         assertFalse(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
@@ -1104,7 +1104,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectPartitionedTableOrderBy() throws Exception {
-        SelectAnalysis analysis = analyze(
+        SelectAnalyzedStatement analysis = analyze(
                 "select id from multi_parted order by id, abs(num)");
         List<Symbol> symbols = analysis.sortSymbols();
         assert symbols != null;
@@ -1167,7 +1167,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testArrayCompareAny() throws Exception {
-        SelectAnalysis analysis =  analyze("select * from users where 0 = ANY (counters)");
+        SelectAnalyzedStatement analysis =  analyze("select * from users where 0 = ANY (counters)");
         assertThat(analysis.whereClause().hasQuery(), is(true));
 
         FunctionInfo anyInfo = ((Function)analysis.whereClause().query()).info();
@@ -1184,7 +1184,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testArrayCompareAnyNeq() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis) analyze("select * from users where ? != ANY (counters)",
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement) analyze("select * from users where ? != ANY (counters)",
                 new Object[]{ 4.3F });
         assertThat(analysis.whereClause().hasQuery(), is(true));
 
@@ -1209,7 +1209,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAnyOnObjectArrayField() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis) analyze(
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement) analyze(
                 "select * from users where 5 = ANY (friends['id'])");
         assertThat(analysis.whereClause().hasQuery(), is(true));
         Function anyFunction = (Function)analysis.whereClause().query();
@@ -1228,14 +1228,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testTableAlias() throws Exception {
-        SelectAnalysis expectedAnalysis =  analyze("select * " +
+        SelectAnalyzedStatement expectedAnalysis =  analyze("select * " +
                 "from users where awesome = true");
 
-        SelectAnalysis actualAnalysis =  analyze("select * " +
+        SelectAnalyzedStatement actualAnalysis =  analyze("select * " +
                 "from users as u where u.awesome = true");
-        SelectAnalysis actualAnalysisColAliased =  analyze("select awesome as a " +
+        SelectAnalyzedStatement actualAnalysisColAliased =  analyze("select awesome as a " +
                 "from users as u where u.awesome = true");
-        SelectAnalysis actualAnalysisOptionalAs =  analyze("select awesome a " +
+        SelectAnalyzedStatement actualAnalysisOptionalAs =  analyze("select awesome a " +
                 "from users u where u.awesome = true");
 
         assertEquals("u", actualAnalysis.tableAlias());
@@ -1267,7 +1267,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAliasSubscript() throws Exception {
-        SelectAnalysis analysis =  analyze(
+        SelectAnalyzedStatement analysis =  analyze(
                 "select u.details['foo'] from users as u");
         assertThat(analysis.outputSymbols().size(), is(1));
         Symbol s = analysis.outputSymbols().get(0);
@@ -1279,14 +1279,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testOrderByWithOrdinal() throws Exception {
-        SelectAnalysis analysis =  analyze(
+        SelectAnalyzedStatement analysis =  analyze(
                 "select name from users u order by 1");
         assertEquals(analysis.outputSymbols().get(0), analysis.sortSymbols().get(0));
     }
 
     @Test
     public void testGroupWithIdx() throws Exception {
-        SelectAnalysis analysis =  analyze(
+        SelectAnalyzedStatement analysis =  analyze(
                 "select name from users u group by 1");
         assertEquals(analysis.outputSymbols().get(0), analysis.groupBy().get(0));
     }
@@ -1339,13 +1339,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testArithmeticPlus() throws Exception {
-        SelectAnalysis analysis = analyze("select load['1'] + load['5'] from sys.nodes");
+        SelectAnalyzedStatement analysis = analyze("select load['1'] + load['5'] from sys.nodes");
         assertThat(((Function) analysis.outputSymbols().get(0)).info().ident().name(), is(AddFunction.NAME));
     }
 
     @Test
     public void testAnyLike() throws Exception {
-        SelectAnalysis analysis =  analyze("select * from users where 'awesome' LIKE ANY (tags)");
+        SelectAnalyzedStatement analysis =  analyze("select * from users where 'awesome' LIKE ANY (tags)");
         assertThat(analysis.whereClause().hasQuery(), is(true));
         Function query = (Function)analysis.whereClause().query();
         assertThat(query.info().ident().name(), is("any_like"));
@@ -1358,21 +1358,21 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAnyLikeLiteralMatchAll() throws Exception {
-        SelectAnalysis analysis =  analyze("select * from users where 'awesome' LIKE ANY (['a', 'b', 'awesome'])");
+        SelectAnalyzedStatement analysis =  analyze("select * from users where 'awesome' LIKE ANY (['a', 'b', 'awesome'])");
         assertThat(analysis.whereClause().hasQuery(), is(false));
         assertThat(analysis.whereClause().noMatch(), is(false));
     }
 
     @Test
     public void testAnyLikeLiteralNoMatch() throws Exception {
-        SelectAnalysis analysis =  analyze("select * from users where 'awesome' LIKE ANY (['a', 'b'])");
+        SelectAnalyzedStatement analysis =  analyze("select * from users where 'awesome' LIKE ANY (['a', 'b'])");
         assertThat(analysis.whereClause().hasQuery(), is(false));
         assertThat(analysis.whereClause().noMatch(), is(true));
     }
 
     @Test
     public void testAnyNotLike() throws Exception {
-        SelectAnalysis analysis =  analyze("select * from users where 'awesome' NOT LIKE ANY (tags)");
+        SelectAnalyzedStatement analysis =  analyze("select * from users where 'awesome' NOT LIKE ANY (tags)");
         assertThat(analysis.whereClause().hasQuery(), is(true));
         Function query = (Function) analysis.whereClause().query();
         assertThat(query.info().ident().name(), is("any_not_like"));
@@ -1432,14 +1432,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     private void testDistanceOrderBy(String stmt) throws Exception{
-        SelectAnalysis analysis =  analyze(stmt);
+        SelectAnalyzedStatement analysis =  analyze(stmt);
         assertTrue(analysis.isSorted());
         assertEquals(DistanceFunction.NAME, ((Function) analysis.sortSymbols().get(0)).info().ident().name());
     }
 
     @Test
     public void testSelectAnalyzedReferenceInFunction() throws Exception {
-        SelectAnalysis analysis =  analyze("select substr(text, 0, 2) from users u");
+        SelectAnalyzedStatement analysis =  analyze("select substr(text, 0, 2) from users u");
         assertFalse(analysis.selectFromFieldCache);
     }
 
@@ -1473,7 +1473,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testWhereMatchOnColumn() throws Exception {
-        SelectAnalysis analysis = analyze("select * from users where match(name, 'Arthur Dent')");
+        SelectAnalyzedStatement analysis = analyze("select * from users where match(name, 'Arthur Dent')");
         Function query = (Function)analysis.whereClause.query();
         assertThat(query.info().ident().name(), is("match"));
         assertThat(query.arguments().size(), is(4));
@@ -1494,7 +1494,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testMatchOnIndex() throws Exception {
-        SelectAnalysis analysis =  analyze("select * from users where match(name_text_ft, 'Arthur Dent')");
+        SelectAnalyzedStatement analysis =  analyze("select * from users where match(name_text_ft, 'Arthur Dent')");
         Function query = (Function) analysis.whereClause.query();
         assertThat(query.info().ident().name(), is("match"));
         assertThat(query.arguments().size(), is(4));
@@ -1544,7 +1544,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectWhereSimpleMatchPredicate() throws Exception {
-        SelectAnalysis analysis =  analyze("select * from users where match (text, 'awesome')");
+        SelectAnalyzedStatement analysis =  analyze("select * from users where match (text, 'awesome')");
         assertThat(analysis.whereClause().hasQuery(), is(true));
         Function query = (Function)analysis.whereClause().query();
         assertThat(query.info().ident().name(), is(MatchPredicate.NAME));
@@ -1560,7 +1560,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectWhereFullMatchPredicate() throws Exception {
-        SelectAnalysis analysis =  analyze("select * from users " +
+        SelectAnalyzedStatement analysis =  analyze("select * from users " +
                 "where match ((name 1.2, text), 'awesome') using best_fields with (analyzer='german')");
         assertThat(analysis.whereClause().hasQuery(), is(true));
         Function query = (Function)analysis.whereClause().query();
@@ -1619,15 +1619,15 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testWhereMatchAllowedTypes() throws Exception {
-        SelectAnalysis best_fields_analysis = analyze("select * from users " +
+        SelectAnalyzedStatement best_fields_analysis = analyze("select * from users " +
                 "where match ((name 1.2, text), 'awesome') using best_fields");
-        SelectAnalysis most_fields_analysis = analyze("select * from users " +
+        SelectAnalyzedStatement most_fields_analysis = analyze("select * from users " +
                 "where match ((name 1.2, text), 'awesome') using most_fields");
-        SelectAnalysis cross_fields_analysis = analyze("select * from users " +
+        SelectAnalyzedStatement cross_fields_analysis = analyze("select * from users " +
                 "where match ((name 1.2, text), 'awesome') using cross_fields");
-        SelectAnalysis phrase_analysis = analyze("select * from users " +
+        SelectAnalyzedStatement phrase_analysis = analyze("select * from users " +
                 "where match ((name 1.2, text), 'awesome') using phrase");
-        SelectAnalysis phrase_prefix_analysis = analyze("select * from users " +
+        SelectAnalyzedStatement phrase_prefix_analysis = analyze("select * from users " +
                 "where match ((name 1.2, text), 'awesome') using phrase_prefix");
 
 
@@ -1645,7 +1645,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testWhereMatchAllOptions() throws Exception {
-        SelectAnalysis analysis = analyze("select * from users " +
+        SelectAnalyzedStatement analysis = analyze("select * from users " +
                 "where match ((name 1.2, text), 'awesome') using best_fields with " +
                 "(" +
                 "  analyzer='german'," +
@@ -1673,13 +1673,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testIsNotNullDynamic() {
-         SelectAnalysis analysis = analyze("select * from users where o['no_such_column'] is not null");
+         SelectAnalyzedStatement analysis = analyze("select * from users where o['no_such_column'] is not null");
          assertTrue(analysis.hasNoResult());
     }
 
     @Test
     public void testGroupByHaving() throws Exception {
-        SelectAnalysis analysis = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
+        SelectAnalyzedStatement analysis = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
         assertThat(analysis.havingClause(), isFunction("op_like"));
         Function havingFunction = (Function)analysis.havingClause();
         assertThat(havingFunction.arguments().size(), is(2));
@@ -1689,13 +1689,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGroupByHavingNormalize() throws Exception {
-        SelectAnalysis analysis = analyze("select sum(floats) from users group by name having 1 > 4");
+        SelectAnalyzedStatement analysis = analyze("select sum(floats) from users group by name having 1 > 4");
         TestingHelpers.assertLiteralSymbol(analysis.havingClause(), false);
     }
 
     @Test
     public void testGroupByHavingOtherColumnInAggregate() throws Exception {
-        SelectAnalysis analysis = analyze("select sum(floats), name from users group by name having max(bytes) = 4");
+        SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users group by name having max(bytes) = 4");
         assertThat(analysis.havingClause(), isFunction("op_="));
         Function havingFunction = (Function)analysis.havingClause();
         assertThat(havingFunction.arguments().size(), is(2));
@@ -1724,7 +1724,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGroupByHavingByGroupKey() throws Exception {
-        SelectAnalysis analysis = analyze(
+        SelectAnalyzedStatement analysis = analyze(
                 "select sum(floats), name from users group by name having name like 'Slartibart%'");
         assertThat(analysis.havingClause(), isFunction("op_like"));
         Function havingFunction = (Function)analysis.havingClause();
@@ -1735,7 +1735,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGroupByHavingComplex() throws Exception {
-        SelectAnalysis analysis = analyze("select sum(floats), name from users " +
+        SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users " +
                 "group by name having 1=0 or sum(bytes) in (42, 43, 44) and  name not like 'Slartibart%'");
         assertThat(analysis.havingClause(), instanceOf(Function.class));
         Function andFunction = (Function)analysis.havingClause();
@@ -1756,7 +1756,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGlobalAggregateHaving() throws Exception {
-        SelectAnalysis analysis = analyze("select sum(floats) from users having sum(bytes) in (42, 43, 44)");
+        SelectAnalyzedStatement analysis = analyze("select sum(floats) from users having sum(bytes) in (42, 43, 44)");
         assertThat(analysis.havingClause(), isFunction("op_in"));
         Function havingFunction = (Function)analysis.havingClause();
 
@@ -1770,7 +1770,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testHavingNoResult() throws Exception {
-        SelectAnalysis analysis = analyze("select sum(floats) from users having 1 = 2");
+        SelectAnalyzedStatement analysis = analyze("select sum(floats) from users having 1 = 2");
         assertThat(analysis.havingClause(), isLiteral(false, DataTypes.BOOLEAN));
         assertThat(analysis.hasNoResult(), is(true));
     }
@@ -1827,21 +1827,21 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRegexpMatchNull() throws Exception {
-        SelectAnalysis analysis = analyze("select * from users where name ~ null");
+        SelectAnalyzedStatement analysis = analyze("select * from users where name ~ null");
         assertThat(analysis.whereClause().hasQuery(), is(false));
         assertThat(analysis.whereClause().noMatch(), is(true));
     }
 
     @Test
     public void testRegexpMatch() throws Exception {
-        SelectAnalysis analysis = analyze("select * from users where name ~ '.*foo(bar)?'");
+        SelectAnalyzedStatement analysis = analyze("select * from users where name ~ '.*foo(bar)?'");
         assertThat(analysis.whereClause().hasQuery(), is(true));
         assertThat(((Function) analysis.whereClause().query()).info().ident().name(), is("op_~"));
     }
 
     @Test
     public void testSubscriptArray() throws Exception {
-        SelectAnalysis analysis = analyze("select tags[1] from users");
+        SelectAnalyzedStatement analysis = analyze("select tags[1] from users");
         assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
         List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
         assertThat(arguments.size(), is(2));
@@ -1865,7 +1865,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSubscriptArrayNested() throws Exception {
-        SelectAnalysis analysis = analyze("select tags[1]['name'] from deeply_nested");
+        SelectAnalyzedStatement analysis = analyze("select tags[1]['name'] from deeply_nested");
         assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
         List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
         assertThat(arguments.size(), is(2));
@@ -1882,7 +1882,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSubscriptArrayAsAlias() throws Exception {
-        SelectAnalysis analysis = analyze("select tags[1] as t_alias from users");
+        SelectAnalyzedStatement analysis = analyze("select tags[1] as t_alias from users");
         assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
         List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
         assertThat(arguments.size(), is(2));
@@ -1892,7 +1892,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSubscriptArrayOnScalarResult() throws Exception {
-        SelectAnalysis analysis = analyze("select regexp_matches(name, '.*')[1] as t_alias from users order by t_alias");
+        SelectAnalyzedStatement analysis = analyze("select regexp_matches(name, '.*')[1] as t_alias from users order by t_alias");
         assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
         assertThat(analysis.sortSymbols().get(0), is(analysis.outputSymbols().get(0)));
         List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
@@ -1909,7 +1909,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testNormalizedSubscriptOnArrayLiteral() throws Exception {
-        SelectAnalysis analysis;
+        SelectAnalyzedStatement analysis;
         for (long l = 1L; l<4; l++) {
             analysis = analyze("select [1,2,3][?] from sys.cluster", new Object[]{l});
             assertThat(analysis.outputSymbols().get(0), isLiteral(l, DataTypes.LONG));
@@ -1918,7 +1918,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testParameterSubcript() throws Exception {
-        SelectAnalysis analysis = analyze("select friends[?], counters[?], ['a','b','c'][?] from users",
+        SelectAnalyzedStatement analysis = analyze("select friends[?], counters[?], ['a','b','c'][?] from users",
                 new Object[]{"id",2,3});
         assertThat(analysis.outputSymbols().get(0), isReference("friends.id", new ArrayType(DataTypes.LONG)));
         assertThat(analysis.outputSymbols().get(1), isFunction(SubscriptFunction.NAME,
@@ -1938,7 +1938,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCastExpression() throws Exception {
-        SelectAnalysis analysis = analyze("select cast(other_id as string) from users");
+        SelectAnalyzedStatement analysis = analyze("select cast(other_id as string) from users");
         assertThat(analysis.outputSymbols().get(0), isFunction(ToStringFunction.NAME,
                 Arrays.<DataType>asList(DataTypes.LONG)));
 
@@ -1959,7 +1959,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectWithAliasRenaming() throws Exception {
-        SelectAnalysis analysis = analyze("select text as name, name as n from users");
+        SelectAnalyzedStatement analysis = analyze("select text as name, name as n from users");
 
         Symbol text = analysis.outputSymbols().get(0);
         Symbol name = analysis.outputSymbols().get(1);
@@ -1984,7 +1984,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCanSelectColumnWithAndWithoutSubscript() throws Exception {
-        SelectAnalysis analysis = analyze("select counters, counters[1] from users");
+        SelectAnalyzedStatement analysis = analyze("select counters, counters[1] from users");
         Symbol counters = analysis.outputSymbols().get(0);
         Symbol countersSubscript = analysis.outputSymbols().get(1);
 
@@ -1995,7 +1995,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testOrderByOnAliasWithSameColumnNameInSchema() throws Exception {
         // name exists in the table but isn't selected so not ambiguous
-        SelectAnalysis analysis = analyze("select other_id as name from users order by name");
+        SelectAnalyzedStatement analysis = analyze("select other_id as name from users order by name");
         assertThat(analysis.outputSymbols().get(0), isReference("other_id"));
         List<Symbol> sortSymbols = analysis.sortSymbols();
         assert sortSymbols != null;
@@ -2004,14 +2004,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testEmptyClusteredByValue() throws Exception {
-        SelectAnalysis analysis = analyze("select * from bystring where name = ''");
+        SelectAnalyzedStatement analysis = analyze("select * from bystring where name = ''");
         assertThat(analysis.whereClause().clusteredBy().isPresent(), is(false));
         assertThat(analysis.ids().isEmpty(), is(true));
     }
 
     @Test
     public void testClusteredByValueContainsComma() throws Exception {
-        SelectAnalysis analysis = analyze("select * from bystring where name = 'a,b,c'");
+        SelectAnalyzedStatement analysis = analyze("select * from bystring where name = 'a,b,c'");
         assertThat(analysis.whereClause().clusteredBy().isPresent(), is(false));
         assertThat(analysis.ids().isEmpty(), is(true));
     }

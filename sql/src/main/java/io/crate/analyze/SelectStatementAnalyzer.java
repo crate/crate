@@ -39,7 +39,7 @@ import java.util.Locale;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
-public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysis> {
+public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalyzedStatement> {
 
     private final static AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
     private final static SortSymbolValidator SORT_SYMBOL_VALIDATOR = new SortSymbolValidator();
@@ -61,7 +61,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
 
     @Override
-    protected Symbol visitSelect(Select node, SelectAnalysis context) {
+    protected Symbol visitSelect(Select node, SelectAnalyzedStatement context) {
         context.outputSymbols(new ArrayList<Symbol>(node.getSelectItems().size()));
         context.outputNames(new ArrayList<String>(node.getSelectItems().size()));
 
@@ -73,7 +73,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     }
 
     @Override
-    protected Symbol visitSingleColumn(SingleColumn node, SelectAnalysis context) {
+    protected Symbol visitSingleColumn(SingleColumn node, SelectAnalyzedStatement context) {
         Symbol symbol = process(node.getExpression(), context);
         context.outputSymbols().add(symbol);
 
@@ -87,7 +87,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     }
 
     @Override
-    protected Symbol visitAllColumns(AllColumns node, SelectAnalysis context) {
+    protected Symbol visitAllColumns(AllColumns node, SelectAnalyzedStatement context) {
         Symbol symbol;
         for (ReferenceInfo referenceInfo : context.table().columns()) {
             // ignore NOT_SUPPORTED columns
@@ -101,7 +101,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         return null;
     }
 
-    protected Symbol visitQuerySpecification(QuerySpecification node, SelectAnalysis context) {
+    protected Symbol visitQuerySpecification(QuerySpecification node, SelectAnalyzedStatement context) {
         // visit the from first, since this qualifies the select
         int numTables = node.getFrom() == null ? 0 : node.getFrom().size();
         if (numTables != 1) {
@@ -154,7 +154,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         return null;
     }
 
-    private void processHavingClause(Expression expression, SelectAnalysis context) {
+    private void processHavingClause(Expression expression, SelectAnalyzedStatement context) {
         Symbol havingQuery = process(expression, context);
 
         // validate having symbols
@@ -164,7 +164,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         context.havingClause(havingQuery);
     }
 
-    private void addSorting(List<SortItem> orderBy, SelectAnalysis context) {
+    private void addSorting(List<SortItem> orderBy, SelectAnalyzedStatement context) {
         List<Symbol> sortSymbols = new ArrayList<>(orderBy.size());
         context.reverseFlags(new boolean[orderBy.size()]);
         context.nullsFirst(new Boolean[orderBy.size()]);
@@ -204,7 +204,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         }
     }
 
-    private void rewriteGlobalDistinct(SelectAnalysis context) {
+    private void rewriteGlobalDistinct(SelectAnalyzedStatement context) {
         ArrayList<Symbol> groupBy = new ArrayList<>(context.outputSymbols().size());
         context.groupBy(groupBy);
 
@@ -247,7 +247,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
      * </pre>
      */
     private Symbol symbolFromSelectOutputReferenceOrExpression(Expression expression,
-                                                               SelectAnalysis context,
+                                                               SelectAnalyzedStatement context,
                                                                String clause) {
         Symbol symbol;
         if (expression instanceof QualifiedNameReference) {
@@ -273,7 +273,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         return symbol;
     }
 
-    private void analyzeGroupBy(List<Expression> groupByExpressions, SelectAnalysis context) {
+    private void analyzeGroupBy(List<Expression> groupByExpressions, SelectAnalyzedStatement context) {
         List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
         for (Expression expression : groupByExpressions) {
             Symbol s = symbolFromSelectOutputReferenceOrExpression(expression, context, "GROUP BY");
@@ -283,7 +283,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         context.groupBy(groupBy);
     }
 
-    private void ensureNonAggregatesInGroupBy(SelectAnalysis context) {
+    private void ensureNonAggregatesInGroupBy(SelectAnalyzedStatement context) {
         for (Symbol symbol : context.outputSymbols()) {
             List<Symbol> groupBySymbols = context.groupBy();
             if (groupBySymbols == null || !groupBySymbols.contains(symbol)) {
@@ -309,7 +309,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     }
 
     @Override
-    protected Symbol visitSortItem(SortItem node, SelectAnalysis context) {
+    protected Symbol visitSortItem(SortItem node, SelectAnalyzedStatement context) {
         Expression sortKey = node.getSortKey();
         Symbol sortSymbol = symbolFromSelectOutputReferenceOrExpression(sortKey, context, "ORDER BY");
         SORT_SYMBOL_VALIDATOR.process(sortSymbol, new SortSymbolValidator.SortContext(context.table));
@@ -317,8 +317,8 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new SelectAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new SelectAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 
     static class AggregationSearcherContext {

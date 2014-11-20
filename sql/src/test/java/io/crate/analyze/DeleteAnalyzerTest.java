@@ -77,19 +77,19 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         return modules;
     }
 
-    protected DeleteAnalysis analyze(String statement, Object[][] bulkArgs) {
-        return (DeleteAnalysis) analyzer.analyze(
+    protected DeleteAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
+        return (DeleteAnalyzedStatement) analyzer.analyze(
                 SqlParser.createStatement(statement), new Object[0], bulkArgs);
     }
 
-    protected DeleteAnalysis.NestedDeleteAnalysis analyze(String statement) {
-        DeleteAnalysis analysis = (DeleteAnalysis) analyzer.analyze(SqlParser.createStatement(statement));
+    protected DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement analyze(String statement) {
+        DeleteAnalyzedStatement analysis = (DeleteAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement));
         return analysis.nestedAnalysis().get(0);
     }
 
     @Test
     public void testDeleteWhere() throws Exception {
-        DeleteAnalysis.NestedDeleteAnalysis analysis = analyze("delete from users where name='Trillian'");
+        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement analysis = analyze("delete from users where name='Trillian'");
         assertEquals(TEST_DOC_TABLE_IDENT, analysis.table().ident());
 
         assertThat(analysis.rowGranularity(), is(RowGranularity.DOC));
@@ -115,7 +115,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDeleteWherePartitionedByColumn() throws Exception {
-        DeleteAnalysis.NestedDeleteAnalysis analysis = analyze("delete from parted where date = 1395874800000");
+        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement analysis = analyze("delete from parted where date = 1395874800000");
         assertThat(analysis.whereClause().hasQuery(), Matchers.is(false));
         assertThat(analysis.whereClause().noMatch(), Matchers.is(false));
         assertEquals(ImmutableList.of(
@@ -130,9 +130,9 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDeleteTableAlias() throws Exception {
-        DeleteAnalysis.NestedDeleteAnalysis expectedAnalysis = analyze(
+        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement expectedAnalysis = analyze(
                 "delete from users where name='Trillian'");
-        DeleteAnalysis.NestedDeleteAnalysis actualAnalysis = analyze(
+        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement actualAnalysis = analyze(
                 "delete from users as u where u.name='Trillian'");
 
         assertEquals(actualAnalysis.tableAlias(), "u");
@@ -149,7 +149,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testBulkDelete() throws Exception {
-        DeleteAnalysis analysis = analyze("delete from users where id = ?", new Object[][]{
+        DeleteAnalyzedStatement analysis = analyze("delete from users where id = ?", new Object[][]{
                 new Object[]{1},
                 new Object[]{2},
                 new Object[]{3},
@@ -157,9 +157,9 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         });
         assertThat(analysis.nestedAnalysis().size(), is(4));
 
-        DeleteAnalysis.NestedDeleteAnalysis firstAnalysis = analysis.nestedAnalysis().get(0);
+        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement firstAnalysis = analysis.nestedAnalysis().get(0);
         assertThat(firstAnalysis.ids().get(0), is("1"));
-        DeleteAnalysis.NestedDeleteAnalysis secondAnalysis = analysis.nestedAnalysis().get(1);
+        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement secondAnalysis = analysis.nestedAnalysis().get(1);
         assertThat(secondAnalysis.ids().get(0), is("2"));
     }
 }

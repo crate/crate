@@ -3,7 +3,7 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.PartitionName;
-import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
@@ -388,8 +388,8 @@ public class PlannerTest {
         String statementString = "select count(name) from users";
         Statement statement = SqlParser.createStatement(statementString);
 
-        Analysis analysis = analyzer.analyze(statement);
-        Plan plan = planner.plan(analysis);
+        AnalyzedStatement analyzedStatement = analyzer.analyze(statement);
+        Plan plan = planner.plan(analyzedStatement);
         Iterator<PlanNode> iterator = plan.iterator();
 
         PlanNode planNode = iterator.next();

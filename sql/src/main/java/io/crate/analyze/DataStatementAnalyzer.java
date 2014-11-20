@@ -50,7 +50,7 @@ import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import java.util.*;
 
 
-abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends AbstractStatementAnalyzer<Symbol, T> {
+abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> extends AbstractStatementAnalyzer<Symbol, T> {
 
     private final static Map<ComparisonExpression.Type, ComparisonExpression.Type> swapOperatorTable = ImmutableMap.<ComparisonExpression.Type, ComparisonExpression.Type>builder()
             .put(ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN)
@@ -797,7 +797,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             this.rightType = right.valueType();
         }
 
-        void normalize(AbstractDataAnalysis context) {
+        void normalize(AbstractDataAnalyzedStatement context) {
             swapIfNecessary();
             castTypes();
             rewriteNegatingOperators(context);
@@ -863,7 +863,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
          * and       exp1 !~ exp2  to not(~(exp1, exp2))
          * does nothing if operator != not equals
          */
-        private void rewriteNegatingOperators(AbstractDataAnalysis context) {
+        private void rewriteNegatingOperators(AbstractDataAnalyzedStatement context) {
             if (!NEGATING_TYPES.contains(comparisonExpressionType)) {
                 return;
             }

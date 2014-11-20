@@ -47,7 +47,7 @@ public class ReferenceToTrueVisitorTest {
 
     private ReferenceToTrueVisitor visitor;
     private EvaluatingNormalizer normalizer;
-    private SelectAnalysis selectAnalysis;
+    private SelectAnalyzedStatement selectAnalysis;
     private SelectStatementAnalyzer analyzer;
 
     @Before
@@ -68,7 +68,7 @@ public class ReferenceToTrueVisitorTest {
             functions,
             referenceResolver
         );
-        selectAnalysis = (SelectAnalysis) analyzer.newAnalysis(
+        selectAnalysis = (SelectAnalyzedStatement) analyzer.newAnalysis(
             new Analyzer.ParameterContext(new Object[0], new Object[0][]));
     }
 

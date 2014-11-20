@@ -109,7 +109,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAddColumnToATableWithoutPrimaryKey() throws Exception {
-        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze(
+        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze(
                 "alter table users_clustered_by_only add column foobar string");
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
 
@@ -119,7 +119,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAddColumnAsPrimaryKey() throws Exception {
-        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze(
+        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze(
                 "alter table users add column additional_pk string primary key");
 
         assertThat(analysis.analyzedTableElements().primaryKeys(), Matchers.contains(
@@ -153,7 +153,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAddArrayColumn() throws Exception {
-        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table users add newtags array(string)");
+        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze("alter table users add newtags array(string)");
         AnalyzedColumnDefinition columnDefinition = analysis.analyzedTableElements().columns().get(0);
         assertThat(columnDefinition.name(), Matchers.equalTo("newtags"));
         assertThat(columnDefinition.dataType(), Matchers.equalTo("string"));
@@ -162,7 +162,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAddNewNestedObjectColumn() throws Exception {
-        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze(
+        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze(
                 "alter table users add column foo['x']['y'] string");
 
         assertThat(analysis.analyzedTableElements().columns().size(), is(2)); // id pk column is also added
@@ -189,7 +189,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAddNewNestedColumnToObjectColumn() throws Exception {
-        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table users add column details['foo'] object as (score float, name string)");
+        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze("alter table users add column details['foo'] object as (score float, name string)");
         List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2)); // second one is primary key
 
@@ -227,7 +227,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAddNewNestedColumnWithArrayToRoot() throws Exception {
-        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table users add column new_obj_col object as (a array(long))");
+        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze("alter table users add column new_obj_col object as (a array(long))");
         List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2)); // second one is primary key
         assertThat(columns.get(0).dataType(), is("object"));
@@ -237,7 +237,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAddNewNestedColumnWithArrayToObjectColumn() throws Exception {
-        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table users add column new_obj_col object as (o object as (b array(long)))");
+        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze("alter table users add column new_obj_col object as (o object as (b array(long)))");
         List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2)); // second one is primary key
         assertThat(columns.get(0).children().get(0).dataType(), is("object"));
@@ -247,7 +247,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAddNewNestedColumnToNestedObjectColumn() throws Exception {
-        AddColumnAnalysis analysis = (AddColumnAnalysis) analyze("alter table deeply_nested add column details['stuff']['foo'] object as (score float, price string)");
+        AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze("alter table deeply_nested add column details['stuff']['foo'] object as (score float, price string)");
         List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(1));
         assertThat(columns.get(0).ident(), is(ColumnIdent.fromPath("details")));

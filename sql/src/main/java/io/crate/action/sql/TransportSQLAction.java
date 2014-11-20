@@ -22,7 +22,7 @@
 package io.crate.action.sql;
 
 import com.google.common.base.MoreObjects;
-import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
@@ -69,7 +69,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
     }
 
     @Override
-    public Analysis getAnalysis(Statement statement, SQLRequest request) {
+    public AnalyzedStatement getAnalysis(Statement statement, SQLRequest request) {
         return analyzer.analyze(statement, request.args(), SQLBulkRequest.EMPTY_BULK_ARGS);
     }
 

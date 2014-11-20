@@ -28,19 +28,19 @@ import io.crate.planner.symbol.Symbol;
 
 import java.util.List;
 
-public class InsertFromSubQueryAnalysis extends AbstractInsertAnalysis {
+public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedStatement {
 
-    private final SelectAnalysis subQueryAnalysis;
+    private final SelectAnalyzedStatement subQueryAnalysis;
 
-    public InsertFromSubQueryAnalysis(ReferenceInfos referenceInfos,
-                                      Functions functions,
-                                      Analyzer.ParameterContext parameterContext,
-                                      ReferenceResolver referenceResolver) {
+    public InsertFromSubQueryAnalyzedStatement(ReferenceInfos referenceInfos,
+                                               Functions functions,
+                                               Analyzer.ParameterContext parameterContext,
+                                               ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
-        this.subQueryAnalysis = new SelectAnalysis(referenceInfos, functions, parameterContext, referenceResolver);
+        this.subQueryAnalysis = new SelectAnalyzedStatement(referenceInfos, functions, parameterContext, referenceResolver);
     }
 
-    public SelectAnalysis subQueryAnalysis() {
+    public SelectAnalyzedStatement subQueryAnalysis() {
         return this.subQueryAnalysis;
     }
 

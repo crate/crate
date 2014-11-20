@@ -25,9 +25,9 @@ import com.google.common.base.Preconditions;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
 
-public abstract class AbstractStatementAnalyzer<R, T extends Analysis> extends DefaultTraversalVisitor<R, T> {
+public abstract class AbstractStatementAnalyzer<R, T extends AnalyzedStatement> extends DefaultTraversalVisitor<R, T> {
 
-    public abstract Analysis newAnalysis(Analyzer.ParameterContext parameterContext);
+    public abstract AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext);
 
     @Override
     protected R visitTable(Table node, T context) {

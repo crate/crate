@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
+public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalyzedStatement> {
 
     private final Functions functions;
     private final ReferenceInfos referenceInfos;
@@ -54,11 +54,11 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
     }
 
     @Override
-    public Symbol visitCopyFromStatement(CopyFromStatement node, CopyAnalysis context) {
+    public Symbol visitCopyFromStatement(CopyFromStatement node, CopyAnalyzedStatement context) {
         if (node.genericProperties().isPresent()) {
             context.settings(settingsFromProperties(node.genericProperties().get(), context));
         }
-        context.mode(CopyAnalysis.Mode.FROM);
+        context.mode(CopyAnalyzedStatement.Mode.FROM);
         process(node.table(), context);
 
         if (!node.table().partitionProperties().isEmpty()) {
@@ -74,8 +74,8 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
     }
 
     @Override
-    public Symbol visitCopyTo(CopyTo node, CopyAnalysis context) {
-        context.mode(CopyAnalysis.Mode.TO);
+    public Symbol visitCopyTo(CopyTo node, CopyAnalyzedStatement context) {
+        context.mode(CopyAnalyzedStatement.Mode.TO);
         if (node.genericProperties().isPresent()) {
             context.settings(settingsFromProperties(node.genericProperties().get(), context));
         }
@@ -102,7 +102,7 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         return null;
     }
 
-    private Settings settingsFromProperties(GenericProperties properties, CopyAnalysis context) {
+    private Settings settingsFromProperties(GenericProperties properties, CopyAnalyzedStatement context) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
             String key = entry.getKey();
@@ -127,12 +127,12 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new CopyAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new CopyAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 
     @Override
-    protected Symbol visitTable(Table node, CopyAnalysis context) {
+    protected Symbol visitTable(Table node, CopyAnalyzedStatement context) {
         context.editableTable(TableIdent.of(node));
         return null;
     }

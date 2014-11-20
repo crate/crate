@@ -31,13 +31,13 @@ import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.inject.Inject;
 
-public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, DeleteAnalysis> {
+public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, DeleteAnalyzedStatement> {
 
-    final DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis> innerAnalyzer =
-        new DataStatementAnalyzer<DeleteAnalysis.NestedDeleteAnalysis>() {
+    final DataStatementAnalyzer<DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement> innerAnalyzer =
+        new DataStatementAnalyzer<DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement>() {
 
             @Override
-            public Symbol visitDelete(Delete node, DeleteAnalysis.NestedDeleteAnalysis context) {
+            public Symbol visitDelete(Delete node, DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement context) {
                 process(node.getRelation(), context);
                 context.whereClause(generateWhereClause(node.getWhere(), context));
 
@@ -45,13 +45,13 @@ public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, D
             }
 
             @Override
-            public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-                return new UpdateAnalysis.NestedAnalysis(
+            public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+                return new UpdateAnalyzedStatement.NestedAnalyzedStatement(
                     referenceInfos, functions, parameterContext, globalReferenceResolver);
             }
 
             @Override
-        protected Symbol visitTable(Table node, DeleteAnalysis.NestedDeleteAnalysis context) {
+        protected Symbol visitTable(Table node, DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement context) {
             Preconditions.checkState(context.table() == null, "deleting multiple tables is not supported");
             context.editableTable(TableIdent.of(node));
             return null;
@@ -72,10 +72,10 @@ public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, D
     }
 
     @Override
-    public Symbol visitDelete(Delete node, DeleteAnalysis context) {
-        java.util.List<DeleteAnalysis.NestedDeleteAnalysis> nestedAnalysis = context.nestedAnalysisList;
+    public Symbol visitDelete(Delete node, DeleteAnalyzedStatement context) {
+        java.util.List<DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement> nestedAnalysis = context.nestedAnalysisList;
         for (int i = 0, nestedAnalysisSize = nestedAnalysis.size(); i < nestedAnalysisSize; i++) {
-            DeleteAnalysis.NestedDeleteAnalysis nestedAnalysi = nestedAnalysis.get(i);
+            DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement nestedAnalysi = nestedAnalysis.get(i);
             context.parameterContext().setBulkIdx(i);
             innerAnalyzer.process(node, nestedAnalysi);
         }
@@ -83,7 +83,7 @@ public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, D
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new DeleteAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new DeleteAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

@@ -21,36 +21,41 @@
 
 package io.crate.analyze;
 
+import io.crate.PartitionName;
+import io.crate.exceptions.PartitionUnknownException;
+import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
-public class DropBlobTableAnalysis extends AbstractDDLAnalysis {
+import javax.annotation.Nullable;
+import java.util.Locale;
+
+public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
+    private PartitionName partitionName;
 
-    protected DropBlobTableAnalysis(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
+    protected RefreshTableAnalyzedStatement(ReferenceInfos referenceInfos,
+                                            Analyzer.ParameterContext parameterContext) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
     }
 
     @Override
     public void table(TableIdent tableIdent) {
-        assert tableIdent.schema().equalsIgnoreCase(BlobSchemaInfo.NAME);
-        this.tableIdent = tableIdent;
         SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
-        assert schemaInfo != null; // schema info for blob must exist.
-
-        tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(tableIdent.schema());
+        }
+        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
-        } else if (tableInfo.isAlias()) {
-            throw new UnsupportedOperationException("Table alias not allowed in DROP BLOB TABLE statement.");
         }
+        this.tableInfo = tableInfo;
     }
 
     @Override
@@ -58,17 +63,43 @@ public class DropBlobTableAnalysis extends AbstractDDLAnalysis {
         return tableInfo;
     }
 
+    public @Nullable PartitionName partitionName() {
+        return partitionName;
+    }
+
     @Override
     public void normalize() {
 
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
-    }
-
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitDropBlobTableAnalysis(this, context);
+        return analysisVisitor.visitRefreshTableAnalysis(this, context);
+    }
+
+    public void partitionIdent(String ident) {
+        assert table() != null;
+
+        if (!table().isPartitioned()) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH,
+                            "Table '%s' is not partitioned", table().ident().name()));
+        }
+        try {
+            this.partitionName = PartitionName.fromPartitionIdent(
+                    table().ident().name(),
+                    ident
+            );
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Invalid partition ident for table '%s': '%s'",
+                            table().ident().name(), ident), e);
+        }
+
+        if (!table().partitions().contains(this.partitionName)) {
+            throw new PartitionUnknownException(
+                    this.table().ident().name(),
+                    this.partitionName.ident());
+        }
     }
 }

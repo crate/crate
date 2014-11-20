@@ -48,7 +48,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromValuesAnalysis> {
+public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromValuesAnalyzedStatement> {
 
     private final ReferenceInfos referenceInfos;
     private final Functions functions;
@@ -64,7 +64,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
     }
 
     @Override
-    public Symbol visitInsertFromValues(InsertFromValues node, InsertFromValuesAnalysis context) {
+    public Symbol visitInsertFromValues(InsertFromValues node, InsertFromValuesAnalyzedStatement context) {
         node.table().accept(this, context);
 
         handleInsertColumns(node, node.maxValuesLength(), context);
@@ -76,7 +76,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
     }
 
     @Override
-    public Symbol visitValuesList(ValuesList node, InsertFromValuesAnalysis context) {
+    public Symbol visitValuesList(ValuesList node, InsertFromValuesAnalyzedStatement context) {
         if (node.values().size() != context.columns().size()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Invalid number of values: Got %d columns specified but %d values",
@@ -99,7 +99,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
     }
 
     private void addValues(ValuesList node,
-                           InsertFromValuesAnalysis context,
+                           InsertFromValuesAnalyzedStatement context,
                            int numPrimaryKeys) throws IOException {
         if (context.table().isPartitioned()) {
             context.newPartitionMap();
@@ -176,7 +176,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
         }
     }
 
-    private String extractRoutingValue(ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalysis context) {
+    private String extractRoutingValue(ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalyzedStatement context) {
         Object clusteredByValue = columnValue;
         ColumnIdent clusteredByIdent = context.table().clusteredBy();
         if (!columnIdent.equals(clusteredByIdent)) {
@@ -190,7 +190,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
         return BytesRefs.toString(clusteredByValue);
     }
 
-    private Object processPartitionedByValues(final ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalysis context) {
+    private Object processPartitionedByValues(final ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalyzedStatement context) {
         int idx = context.table().partitionedBy().indexOf(columnIdent);
         Map<String, String> partitionMap = context.currentPartitionMap();
         if (idx < 0) {
@@ -219,7 +219,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new InsertFromValuesAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new InsertFromValuesAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

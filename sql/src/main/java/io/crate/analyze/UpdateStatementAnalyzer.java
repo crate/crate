@@ -37,13 +37,13 @@ import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
 
-public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, UpdateAnalysis> {
+public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, UpdateAnalyzedStatement> {
 
-    final DataStatementAnalyzer<UpdateAnalysis.NestedAnalysis> innerAnalyzer =
-            new DataStatementAnalyzer<UpdateAnalysis.NestedAnalysis>() {
+    final DataStatementAnalyzer<UpdateAnalyzedStatement.NestedAnalyzedStatement> innerAnalyzer =
+            new DataStatementAnalyzer<UpdateAnalyzedStatement.NestedAnalyzedStatement>() {
 
                 @Override
-                public Symbol visitUpdate(Update node, UpdateAnalysis.NestedAnalysis context) {
+                public Symbol visitUpdate(Update node, UpdateAnalyzedStatement.NestedAnalyzedStatement context) {
                     process(node.relation(), context);
                     for (Assignment assignment : node.assignements()) {
                         process(assignment, context);
@@ -53,20 +53,20 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                 }
 
                 @Override
-                public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-                    return new UpdateAnalysis.NestedAnalysis(
+                public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+                    return new UpdateAnalyzedStatement.NestedAnalyzedStatement(
                         referenceInfos, functions, parameterContext, globalReferenceResolver);
                 }
 
                 @Override
-                protected Symbol visitTable(Table node, UpdateAnalysis.NestedAnalysis context) {
+                protected Symbol visitTable(Table node, UpdateAnalyzedStatement.NestedAnalyzedStatement context) {
                     Preconditions.checkState(context.table() == null, "updating multiple tables is not supported");
                     context.editableTable(TableIdent.of(node));
                     return null;
                 }
 
                 @Override
-                public Symbol visitAssignment(Assignment node, UpdateAnalysis.NestedAnalysis context) {
+                public Symbol visitAssignment(Assignment node, UpdateAnalyzedStatement.NestedAnalyzedStatement context) {
                     // unknown columns in strict objects handled in here
                     Reference reference = (Reference)process(node.columnName(), context);
                     final ColumnIdent ident = reference.info().ident().columnIdent();
@@ -79,7 +79,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                         throw new IllegalArgumentException("Updating a clustered-by column is currently not supported");
                     }
 
-                    if (context.hasMatchingParent(reference.info(), UpdateAnalysis.NestedAnalysis.HAS_OBJECT_ARRAY_PARENT)) {
+                    if (context.hasMatchingParent(reference.info(), UpdateAnalyzedStatement.NestedAnalyzedStatement.HAS_OBJECT_ARRAY_PARENT)) {
                         // cannot update fields of object arrays
                         throw new IllegalArgumentException("Updating fields of object arrays is not supported");
                     }
@@ -105,7 +105,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                 }
 
                 @Override
-                protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalysis.NestedAnalysis context) {
+                protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalyzedStatement.NestedAnalyzedStatement context) {
                     ReferenceIdent ident = context.getReference(node.getName());
                     return context.allocateReference(ident, true);
                 }
@@ -139,10 +139,10 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
     }
 
     @Override
-    public Symbol visitUpdate(Update node, UpdateAnalysis context) {
-        java.util.List<UpdateAnalysis.NestedAnalysis> nestedAnalysisList = context.nestedAnalysisList;
+    public Symbol visitUpdate(Update node, UpdateAnalyzedStatement context) {
+        java.util.List<UpdateAnalyzedStatement.NestedAnalyzedStatement> nestedAnalysisList = context.nestedAnalysisList;
         for (int i = 0, nestedAnalysisListSize = nestedAnalysisList.size(); i < nestedAnalysisListSize; i++) {
-            UpdateAnalysis.NestedAnalysis nestedAnalysis = nestedAnalysisList.get(i);
+            UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis = nestedAnalysisList.get(i);
             context.parameterContext().setBulkIdx(i);
             innerAnalyzer.process(node, nestedAnalysis);
         }
@@ -150,14 +150,14 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
     }
 
     @Override
-    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalysis context) {
+    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalyzedStatement context) {
         ReferenceIdent ident = context.getReference(node.getName());
         return context.allocateReference(ident, true);
     }
 
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new UpdateAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new UpdateAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

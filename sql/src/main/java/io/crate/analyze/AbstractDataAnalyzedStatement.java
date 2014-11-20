@@ -45,7 +45,7 @@ import java.util.*;
 /**
  * Holds information the analyzer has gathered about a statement.
  */
-public abstract class AbstractDataAnalysis extends Analysis {
+public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
 
     protected static final Predicate<ReferenceInfo> HAS_OBJECT_ARRAY_PARENT = new Predicate<ReferenceInfo>() {
         @Override
@@ -79,10 +79,10 @@ public abstract class AbstractDataAnalysis extends Analysis {
     protected boolean sysExpressionsAllowed = false;
     protected boolean insideNotPredicate = false;
 
-    public AbstractDataAnalysis(ReferenceInfos referenceInfos,
-                                Functions functions,
-                                Analyzer.ParameterContext parameterContext,
-                                ReferenceResolver referenceResolver) {
+    public AbstractDataAnalyzedStatement(ReferenceInfos referenceInfos,
+                                         Functions functions,
+                                         Analyzer.ParameterContext parameterContext,
+                                         ReferenceResolver referenceResolver) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
         this.functions = functions;

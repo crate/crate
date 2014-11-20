@@ -53,7 +53,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class AnalysisTest {
+public class AnalyzedStatementTest {
 
     private ReferenceInfos referenceInfos;
     private ReferenceResolver resolver;
@@ -132,8 +132,8 @@ public class AnalysisTest {
         functions = injector.getInstance(Functions.class);
     }
 
-    public Analysis getAnalysis() {
-        SelectAnalysis analysis = new SelectAnalysis(
+    public AnalyzedStatement getAnalysis() {
+        SelectAnalyzedStatement analysis = new SelectAnalyzedStatement(
                 referenceInfos,
                 functions,
                 new Analyzer.ParameterContext(new Object[0], new Object[0][]),
@@ -144,7 +144,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizePrimitiveLiteral() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo info = new ReferenceInfo.Builder()
                 .granularity(RowGranularity.DOC)
                 .type(DataTypes.BOOLEAN)
@@ -162,7 +162,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeScalar() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo info = new ReferenceInfo.Builder()
                 .granularity(RowGranularity.DOC)
                 .type(DataTypes.DOUBLE)
@@ -174,7 +174,7 @@ public class AnalysisTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeDynamicEmptyObjectLiteral() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("dyn_empty"));
         Map<String, Object> map = new HashMap<>();
         map.put("time", "2014-02-16T00:00:01");
@@ -187,7 +187,7 @@ public class AnalysisTest {
 
     @Test( expected = ColumnValidationException.class)
     public void testNormalizeObjectLiteralInvalidNested() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2014-02-16T00:00:01");
@@ -196,7 +196,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeObjectLiteralConvertFromString() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2.9");
@@ -208,7 +208,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeObjectLiteral() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("d", 2.9d);
@@ -230,7 +230,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeDynamicObjectLiteralWithAdditionalColumn() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", 2.9d);
@@ -241,7 +241,7 @@ public class AnalysisTest {
 
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeStrictObjectLiteralWithAdditionalColumn() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("strict"));
         Map<String, Object> map = new HashMap<>();
         map.put("inner_d", 2.9d);
@@ -251,7 +251,7 @@ public class AnalysisTest {
 
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeStrictObjectLiteralWithAdditionalNestedColumn() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("strict"));
         Map<String, Object> map = new HashMap<>();
         map.put("inner_d", 2.9d);
@@ -263,7 +263,7 @@ public class AnalysisTest {
 
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeNestedStrictObjectLiteralWithAdditionalColumn() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("dyn"));
 
         Map<String, Object> map = new HashMap<>();
@@ -277,7 +277,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeDynamicNewColumnTimestamp() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("time", "1970-01-01T00:00:00");
@@ -291,7 +291,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeIgnoredNewColumnTimestamp() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("ignored"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("time", "1970-01-01T00:00:00");
@@ -305,7 +305,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeDynamicNewColumnNoTimestamp() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("ignored"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("no_time", "1970");
@@ -319,7 +319,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeStringToNumberColumn() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
+        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getReferenceInfo(new ColumnIdent("d"));
         Literal<BytesRef> stringDoubleLiteral = Literal.newLiteral("298.444");
         Literal literal = analysis.normalizeInputForReference(stringDoubleLiteral, new Reference(objInfo));

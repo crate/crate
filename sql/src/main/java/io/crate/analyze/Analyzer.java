@@ -41,18 +41,18 @@ public class Analyzer {
         this.dispatcher = dispatcher;
     }
 
-    public Analysis analyze(Statement statement) {
+    public AnalyzedStatement analyze(Statement statement) {
         return analyze(statement, EMPTY_ARGS, EMPTY_BULK_ARGS);
     }
 
-    public Analysis analyze(Statement statement, Object[] parameters, Object[][] bulkParams) {
+    public AnalyzedStatement analyze(Statement statement, Object[] parameters, Object[][] bulkParams) {
         ParameterContext parameterContext = new ParameterContext(parameters, bulkParams);
 
         AbstractStatementAnalyzer statementAnalyzer = dispatcher.process(statement, null);
-        Analysis analysis = statementAnalyzer.newAnalysis(parameterContext);
-        statement.accept(statementAnalyzer, analysis);
-        analysis.normalize();
-        return analysis;
+        AnalyzedStatement analyzedStatement = statementAnalyzer.newAnalysis(parameterContext);
+        statement.accept(statementAnalyzer, analyzedStatement);
+        analyzedStatement.normalize();
+        return analyzedStatement;
     }
 
     public static class ParameterContext {

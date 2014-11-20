@@ -38,7 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
-public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFromSubQueryAnalysis> {
+public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFromSubQueryAnalyzedStatement> {
 
 
     private final SelectStatementAnalyzer subQueryAnalyzer;
@@ -58,7 +58,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
     }
 
     @Override
-    public Symbol visitInsertFromSubquery(InsertFromSubquery node, InsertFromSubQueryAnalysis context) {
+    public Symbol visitInsertFromSubquery(InsertFromSubquery node, InsertFromSubQueryAnalyzedStatement context) {
         node.table().accept(this, context); // table existence check happening here
 
         process(node.subQuery(), context);
@@ -79,7 +79,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
     }
 
     @Override
-    protected Symbol visitQuery(Query node, InsertFromSubQueryAnalysis context) {
+    protected Symbol visitQuery(Query node, InsertFromSubQueryAnalyzedStatement context) {
         return subQueryAnalyzer.process(node, context.subQueryAnalysis());
     }
 
@@ -87,7 +87,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
      * validate that result columns from subquery match explicit insert columns
      * or complete table schema
      */
-    private void validateMatchingColumns(InsertFromSubquery node, InsertFromSubQueryAnalysis context) {
+    private void validateMatchingColumns(InsertFromSubquery node, InsertFromSubQueryAnalyzedStatement context) {
         List<Reference> insertColumns = context.columns();
         List<Symbol> subQueryColumns = context.getSubQueryColumns();
 
@@ -143,7 +143,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new InsertFromSubQueryAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new InsertFromSubQueryAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

@@ -34,12 +34,12 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import java.util.Locale;
 import java.util.Set;
 
-public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAnalysis> {
+public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAnalyzedStatement> {
 
     private final ESLogger logger = Loggers.getLogger(this.getClass());
 
     @Override
-    public Void visitSetStatement(SetStatement node, SetAnalysis context) {
+    public Void visitSetStatement(SetStatement node, SetAnalyzedStatement context) {
         context.persistent(node.settingType().equals(SetStatement.SettingType.PERSISTENT));
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Assignment assignment : node.assignments()) {
@@ -55,7 +55,7 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
     }
 
     @Override
-    public Void visitResetStatement(ResetStatement node, SetAnalysis context) {
+    public Void visitResetStatement(ResetStatement node, SetAnalyzedStatement context) {
         context.isReset(true);
         Set<String> settingsToRemove = Sets.newHashSet();
         for (Expression expression : node.columns()) {
@@ -74,7 +74,7 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new SetAnalysis(parameterContext);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new SetAnalyzedStatement(parameterContext);
     }
 }

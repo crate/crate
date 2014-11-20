@@ -33,15 +33,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class InsertFromValuesAnalysis extends AbstractInsertAnalysis {
+public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedStatement {
 
     private final List<BytesReference> sourceMaps = new ArrayList<>();
     private final List<Map<String, String>> partitionMaps = new ArrayList<>();
 
-    public InsertFromValuesAnalysis(ReferenceInfos referenceInfos,
-                                    Functions functions,
-                                    Analyzer.ParameterContext parameterContext,
-                                    ReferenceResolver referenceResolver) {
+    public InsertFromValuesAnalyzedStatement(ReferenceInfos referenceInfos,
+                                             Functions functions,
+                                             Analyzer.ParameterContext parameterContext,
+                                             ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 

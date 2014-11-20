@@ -33,20 +33,20 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DeleteAnalysis extends Analysis {
+public class DeleteAnalyzedStatement extends AnalyzedStatement {
 
-    private static final Predicate<NestedDeleteAnalysis> HAS_NO_RESULT_PREDICATE = new Predicate<NestedDeleteAnalysis>() {
+    private static final Predicate<NestedDeleteAnalyzedStatement> HAS_NO_RESULT_PREDICATE = new Predicate<NestedDeleteAnalyzedStatement>() {
         @Override
-        public boolean apply(@Nullable NestedDeleteAnalysis input) {
+        public boolean apply(@Nullable NestedDeleteAnalyzedStatement input) {
             return input != null && input.hasNoResult();
         }
     };
 
-    List<NestedDeleteAnalysis> nestedAnalysisList;
+    List<NestedDeleteAnalyzedStatement> nestedAnalysisList;
 
-    public DeleteAnalysis(ReferenceInfos referenceInfos,
-                          Functions functions,
-                          Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
+    public DeleteAnalyzedStatement(ReferenceInfos referenceInfos,
+                                   Functions functions,
+                                   Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
         super(parameterContext);
         int numNested = 1;
         if (parameterContext.bulkParameters.length > 0) {
@@ -54,7 +54,7 @@ public class DeleteAnalysis extends Analysis {
         }
         nestedAnalysisList = new ArrayList<>(numNested);
         for (int i = 0; i < numNested; i++) {
-            nestedAnalysisList.add(new NestedDeleteAnalysis(
+            nestedAnalysisList.add(new NestedDeleteAnalyzedStatement(
                     referenceInfos,
                     functions,
                     parameterContext,
@@ -63,7 +63,7 @@ public class DeleteAnalysis extends Analysis {
         }
     }
 
-    public List<NestedDeleteAnalysis> nestedAnalysis() {
+    public List<NestedDeleteAnalyzedStatement> nestedAnalysis() {
         return nestedAnalysisList;
     }
 
@@ -90,9 +90,9 @@ public class DeleteAnalysis extends Analysis {
         return analysisVisitor.visitDeleteAnalysis(this, context);
     }
 
-    public static class NestedDeleteAnalysis extends AbstractDataAnalysis {
+    public static class NestedDeleteAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
-        public NestedDeleteAnalysis(ReferenceInfos referenceInfos, Functions functions, Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
+        public NestedDeleteAnalyzedStatement(ReferenceInfos referenceInfos, Functions functions, Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
             super(referenceInfos, functions, parameterContext, referenceResolver);
         }
 

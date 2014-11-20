@@ -33,17 +33,17 @@ import java.util.List;
 /**
  * holding analysis results for any insert statement variant
  */
-public abstract class AbstractInsertAnalysis extends AbstractDataAnalysis {
+public abstract class AbstractInsertAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
     private List<Reference> columns;
     private IntSet primaryKeyColumnIndices = new IntOpenHashSet();
     private IntSet partitionedByColumnsIndices = new IntOpenHashSet();
     private int routingColumnIndex = -1;
 
-    public AbstractInsertAnalysis(ReferenceInfos referenceInfos,
-                                  Functions functions,
-                                  Analyzer.ParameterContext parameterContext,
-                                  ReferenceResolver referenceResolver) {
+    public AbstractInsertAnalyzedStatement(ReferenceInfos referenceInfos,
+                                           Functions functions,
+                                           Analyzer.ParameterContext parameterContext,
+                                           ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 

@@ -79,14 +79,14 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRefreshSystemTable() throws Exception {
-        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table sys.shards");
+        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table sys.shards");
         assertTrue(analysis.table().schemaInfo().systemSchema());
         assertThat(analysis.table().ident().name(), is("shards"));
     }
 
     @Test
     public void testRefreshBlobTable() throws Exception {
-        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table blob.blobs");
+        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table blob.blobs");
         assertThat(analysis.table().ident().schema(), is("blob"));
         assertThat(analysis.table().ident().name(), is("blobs"));
 
@@ -95,7 +95,7 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRefreshPartition() throws Exception {
         PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
-        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table parted PARTITION (date=1395874800000)");
+        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table parted PARTITION (date=1395874800000)");
         assertThat(analysis.table().ident().name(), is("parted"));
         assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
     }
@@ -103,7 +103,7 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRefreshPartitionsParameter() throws Exception {
         PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
-        RefreshTableAnalysis analysis = (RefreshTableAnalysis) analyze(
+        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze(
                 "refresh table parted PARTITION (date=?)", new Object[] {"1395874800000"});
         assertThat(analysis.table().ident().name(), is("parted"));
         assertThat(analysis.partitionName().stringValue(), is(partition.stringValue()));
@@ -131,7 +131,7 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRefreshPartitionedTableNullPartition() throws Exception {
-        RefreshTableAnalysis analysis = (RefreshTableAnalysis) analyze("refresh table parted PARTITION (date=null)");
+        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table parted PARTITION (date=null)");
         assertNotNull(analysis.partitionName());
         assertThat(analysis.partitionName().stringValue(), is(".partitioned.parted.0400"));
     }

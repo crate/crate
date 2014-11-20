@@ -21,46 +21,35 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
-import io.crate.PartitionName;
-import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
-import javax.annotation.Nullable;
-
-public class AlterTableAnalysis extends AbstractDDLAnalysis {
+public class DropBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
-    private Optional<PartitionName> partitionName = Optional.absent();
-    private Optional<ColumnPolicy> columnPolicy = Optional.absent();
 
-
-    public AlterTableAnalysis(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
+    protected DropBlobTableAnalyzedStatement(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
     }
 
     @Override
     public void table(TableIdent tableIdent) {
+        assert tableIdent.schema().equalsIgnoreCase(BlobSchemaInfo.NAME);
         this.tableIdent = tableIdent;
-
         SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
-        if (schemaInfo == null) {
-            throw new SchemaUnknownException(tableIdent.schema());
-        }
-        if (schemaInfo.systemSchema()) {
-            throw new IllegalArgumentException("Tables inside a system schema cannot be altered");
-        }
+        assert schemaInfo != null; // schema info for blob must exist.
 
         tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
+        } else if (tableInfo.isAlias()) {
+            throw new UnsupportedOperationException("Table alias not allowed in DROP BLOB TABLE statement.");
         }
     }
 
@@ -69,21 +58,17 @@ public class AlterTableAnalysis extends AbstractDDLAnalysis {
         return tableInfo;
     }
 
-    public void partitionName(@Nullable PartitionName partitionName) {
-        this.partitionName = Optional.fromNullable(partitionName);
-    }
-
-    public Optional<PartitionName> partitionName() {
-        return partitionName;
-    }
-
     @Override
     public void normalize() {
 
     }
 
+    public TableIdent tableIdent() {
+        return tableIdent;
+    }
+
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitAlterTableAnalysis(this, context);
+        return analysisVisitor.visitDropBlobTableAnalysis(this, context);
     }
 }

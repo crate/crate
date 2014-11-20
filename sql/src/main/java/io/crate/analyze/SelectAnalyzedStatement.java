@@ -37,7 +37,7 @@ import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
-public class SelectAnalysis extends AbstractDataAnalysis {
+public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
     private Integer limit;
     private int offset = 0;
@@ -51,8 +51,8 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
 
-    public SelectAnalysis(ReferenceInfos referenceInfos, Functions functions,
-                          Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
+    public SelectAnalyzedStatement(ReferenceInfos referenceInfos, Functions functions,
+                                   Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 

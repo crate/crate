@@ -25,83 +25,83 @@ import javax.annotation.Nullable;
 
 public class AnalysisVisitor<C, R> {
 
-    public R process(Analysis analysis, @Nullable C context) {
-        return analysis.accept(this, context);
+    public R process(AnalyzedStatement analyzedStatement, @Nullable C context) {
+        return analyzedStatement.accept(this, context);
     }
 
-    protected R visitAnalysis(Analysis analysis, C context) {
+    protected R visitAnalysis(AnalyzedStatement analyzedStatement, C context) {
         return null;
     }
 
-    protected R visitCopyAnalysis(CopyAnalysis analysis, C context) {
+    protected R visitCopyAnalysis(CopyAnalyzedStatement analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 
-    protected R visitCreateTableAnalysis(CreateTableAnalysis analysis, C context) {
+    protected R visitCreateTableAnalysis(CreateTableAnalyzedStatement analysis, C context) {
         return visitDDLAnalysis(analysis, context);
     }
 
-    protected R visitDeleteAnalysis(DeleteAnalysis analysis, C context) {
+    protected R visitDeleteAnalysis(DeleteAnalyzedStatement analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 
-    protected R visitInsertFromValuesAnalysis(InsertFromValuesAnalysis analysis, C context) {
+    protected R visitInsertFromValuesAnalysis(InsertFromValuesAnalyzedStatement analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 
-    protected R visitInsertFromSubQueryAnalysis(InsertFromSubQueryAnalysis analysis, C context) {
+    protected R visitInsertFromSubQueryAnalysis(InsertFromSubQueryAnalyzedStatement analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 
-    protected R visitSelectAnalysis(SelectAnalysis analysis, C context) {
+    protected R visitSelectAnalysis(SelectAnalyzedStatement analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 
-    protected R visitUpdateAnalysis(UpdateAnalysis analysis, C context) {
+    protected R visitUpdateAnalysis(UpdateAnalyzedStatement analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 
-    protected R visitDropTableAnalysis(DropTableAnalysis analysis, C context) {
+    protected R visitDropTableAnalysis(DropTableAnalyzedStatement analysis, C context) {
         return visitDDLAnalysis(analysis, context);
     }
 
-    protected R visitCreateAnalyzerAnalysis(CreateAnalyzerAnalysis analysis, C context) {
+    protected R visitCreateAnalyzerAnalysis(CreateAnalyzerAnalyzedStatement analysis, C context) {
         return visitDDLAnalysis(analysis, context);
     }
 
-    protected R visitDataAnalysis(AbstractDataAnalysis analysis, C context) {
+    protected R visitDataAnalysis(AbstractDataAnalyzedStatement analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 
-    protected R visitDDLAnalysis(AbstractDDLAnalysis analysis, C context) {
+    protected R visitDDLAnalysis(AbstractDDLAnalyzedStatement analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 
-    public R visitCreateBlobTableAnalysis(CreateBlobTableAnalysis analysis, C context) {
+    public R visitCreateBlobTableAnalysis(CreateBlobTableAnalyzedStatement analysis, C context) {
         return visitDDLAnalysis(analysis, context);
     }
 
-    public R visitDropBlobTableAnalysis(DropBlobTableAnalysis analysis, C context) {
+    public R visitDropBlobTableAnalysis(DropBlobTableAnalyzedStatement analysis, C context) {
         return visitDDLAnalysis(analysis, context);
     }
 
-    public R visitRefreshTableAnalysis(RefreshTableAnalysis analysis, C context) {
+    public R visitRefreshTableAnalysis(RefreshTableAnalyzedStatement analysis, C context) {
         return visitDDLAnalysis(analysis, context);
     }
 
-    public R visitAlterTableAnalysis(AlterTableAnalysis analysis, C context) {
+    public R visitAlterTableAnalysis(AlterTableAnalyzedStatement analysis, C context) {
         return visitDDLAnalysis(analysis, context);
     }
 
-    public R visitAlterBlobTableAnalysis(AlterBlobTableAnalysis analysis, C context) {
+    public R visitAlterBlobTableAnalysis(AlterBlobTableAnalyzedStatement analysis, C context) {
         return visitDDLAnalysis(analysis, context);
     }
 
-    public R visitSetAnalysis(SetAnalysis analysis, C context) {
+    public R visitSetAnalysis(SetAnalyzedStatement analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 
-    public R visitAddColumnAnalysis(AddColumnAnalysis analysis, C context) {
+    public R visitAddColumnAnalysis(AddColumnAnalyzedStatement analysis, C context) {
         return visitAnalysis(analysis, context);
     }
 }

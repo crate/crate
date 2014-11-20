@@ -7,7 +7,7 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.analyze.AnalyzedTableElements;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.CreateTableAnalysis;
+import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
@@ -645,7 +645,7 @@ public class DocIndexMetaDataTest {
             new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class))
         );
 
-        CreateTableAnalysis analysis = (CreateTableAnalysis) analyzer.newAnalysis(
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyzer.newAnalysis(
                 new Analyzer.ParameterContext(new Object[0], new Object[0][]));
         analysis.analyzedTableElements(new AnalyzedTableElements());
 

@@ -21,49 +21,40 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.TableUnknownException;
-import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
-public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
+public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    private final ReferenceInfos referenceInfos;
-    private TableInfo tableInfo;
+    private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
 
-    public AlterBlobTableAnalysis(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
+    private Settings builtSettings;
+
+    public CreateBlobTableAnalyzedStatement(Analyzer.ParameterContext parameterContext) {
         super(parameterContext);
-        this.referenceInfos = referenceInfos;
-    }
-
-    @Override
-    public void table(TableIdent tableIdent) {
-        assert tableIdent.schema().equalsIgnoreCase(BlobSchemaInfo.NAME);
-        this.tableIdent = tableIdent;
-
-        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
-        assert schemaInfo != null; // schemaInfo for blob must exist.
-
-        tableInfo = schemaInfo.getTableInfo(tableIdent.name());
-        if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.name());
-        }
     }
 
     @Override
     public TableInfo table() {
-        return tableInfo;
+        return null;
     }
 
     @Override
     public void normalize() {
+    }
 
+    public String tableName() {
+        return tableIdent.name();
     }
 
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitAlterBlobTableAnalysis(this, context);
+        return analysisVisitor.visitCreateBlobTableAnalysis(this, context);
+    }
+
+    public TableIdent tableIdent() {
+        return tableIdent;
     }
 }

@@ -92,7 +92,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testPartitionedBy() throws Exception {
-        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
                 "  id integer," +
                 "  no_index string index off," +
                 "  name string," +
@@ -114,7 +114,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testPartitionedByMultipleColumns() throws Exception {
-        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
                 "  id integer," +
                 "  no_index string index off," +
                 "  name string," +
@@ -136,7 +136,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testPartitionedByNestedColumns() throws Exception {
-        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
                 "  id integer," +
                 "  no_index string index off," +
                 "  o object as (" +
@@ -215,7 +215,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testPartitionedByPartOfPrimaryKey() throws Exception {
-        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze("create table my_table (" +
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
                 "  id1 integer," +
                 "  id2 integer," +
                 "  date timestamp," +
@@ -263,7 +263,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAlterPartitionedTable() throws Exception {
-        AlterTableAnalysis analysis = (AlterTableAnalysis)analyze(
+        AlterTableAnalyzedStatement analysis = (AlterTableAnalyzedStatement)analyze(
                 "alter table parted set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.table().isPartitioned(), is(true));
@@ -272,7 +272,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAlterPartitionedTablePartition() throws Exception {
-        AlterTableAnalysis analysis = (AlterTableAnalysis) analyze(
+        AlterTableAnalyzedStatement analysis = (AlterTableAnalyzedStatement) analyze(
                 "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.partitionName().get(), is(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")))));
@@ -304,7 +304,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAlterPartitionedTableShards() throws Exception {
-        AlterTableAnalysis analysis = (AlterTableAnalysis)analyze(
+        AlterTableAnalyzedStatement analysis = (AlterTableAnalyzedStatement)analyze(
                 "alter table parted set (number_of_shards=10)");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.table().isPartitioned(), is(true));

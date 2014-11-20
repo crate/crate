@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateAnalyzerAnalysis> {
+public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateAnalyzerAnalyzedStatement> {
 
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
@@ -42,7 +42,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
     }
 
     @Override
-    public Void visitCreateAnalyzer(CreateAnalyzer node, CreateAnalyzerAnalysis context) {
+    public Void visitCreateAnalyzer(CreateAnalyzer node, CreateAnalyzerAnalyzedStatement context) {
         context.ident(node.ident());
 
         if (node.isExtending()) {
@@ -57,7 +57,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
     }
 
     @Override
-    public Void visitTokenizer(Tokenizer tokenizer, CreateAnalyzerAnalysis context) {
+    public Void visitTokenizer(Tokenizer tokenizer, CreateAnalyzerAnalyzedStatement context) {
         String name = tokenizer.ident();
         Optional<io.crate.sql.tree.GenericProperties> properties = tokenizer.properties();
 
@@ -103,7 +103,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
     }
 
     @Override
-    public Void visitGenericProperty(GenericProperty property, CreateAnalyzerAnalysis context) {
+    public Void visitGenericProperty(GenericProperty property, CreateAnalyzerAnalyzedStatement context) {
         genericPropertyToSetting(context.genericAnalyzerSettingsBuilder(),
                 context.getSettingsKey("index.analysis.analyzer.%s.%s", context.ident(), property.key()),
                 property.value(),
@@ -113,7 +113,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
     }
 
     @Override
-    public Void visitTokenFilters(TokenFilters tokenFilters, CreateAnalyzerAnalysis context) {
+    public Void visitTokenFilters(TokenFilters tokenFilters, CreateAnalyzerAnalyzedStatement context) {
         for (NamedProperties tokenFilterNode : tokenFilters.tokenFilters()) {
 
             String name = tokenFilterNode.ident();
@@ -161,7 +161,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
     }
 
     @Override
-    public Void visitCharFilters(CharFilters charFilters, CreateAnalyzerAnalysis context) {
+    public Void visitCharFilters(CharFilters charFilters, CreateAnalyzerAnalyzedStatement context) {
         for (NamedProperties charFilterNode : charFilters.charFilters()) {
 
             String name = charFilterNode.ident();
@@ -209,7 +209,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
      * @param context
      * @return
      */
-    private String extractType(GenericProperties properties, CreateAnalyzerAnalysis context) {
+    private String extractType(GenericProperties properties, CreateAnalyzerAnalyzedStatement context) {
         Expression expression = properties.get("type");
         if (expression == null) {
             throw new IllegalArgumentException("'type' property missing");
@@ -231,7 +231,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
     private void genericPropertyToSetting(ImmutableSettings.Builder builder,
                                           String name,
                                           Expression value,
-                                          CreateAnalyzerAnalysis context) {
+                                          CreateAnalyzerAnalyzedStatement context) {
         if (value instanceof ArrayLiteral) {
             ArrayLiteral array = (ArrayLiteral)value;
             List<String> values = new ArrayList<>(array.values().size());
@@ -245,7 +245,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
-        return new CreateAnalyzerAnalysis(fulltextAnalyzerResolver, parameterContext);
+    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+        return new CreateAnalyzerAnalyzedStatement(fulltextAnalyzerResolver, parameterContext);
     }
 }

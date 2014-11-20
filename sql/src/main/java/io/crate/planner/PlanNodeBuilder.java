@@ -24,7 +24,7 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.PartitionName;
-import io.crate.analyze.AbstractDataAnalysis;
+import io.crate.analyze.AbstractDataAnalyzedStatement;
 import io.crate.metadata.Routing;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
@@ -41,7 +41,7 @@ import java.util.Set;
 
 class PlanNodeBuilder {
 
-    static CollectNode distributingCollect(AbstractDataAnalysis analysis,
+    static CollectNode distributingCollect(AbstractDataAnalyzedStatement analysis,
                                            List<Symbol> toCollect,
                                            List<String> downstreamNodes,
                                            ImmutableList<Projection> projections) {
@@ -99,7 +99,7 @@ class PlanNodeBuilder {
         nextNode.outputTypes(Planner.extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
     }
 
-    static CollectNode collect(AbstractDataAnalysis analysis,
+    static CollectNode collect(AbstractDataAnalyzedStatement analysis,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections,
                                @Nullable String partitionIdent) {
@@ -143,7 +143,7 @@ class PlanNodeBuilder {
 
     }
 
-    static CollectNode collect(AbstractDataAnalysis analysis,
+    static CollectNode collect(AbstractDataAnalyzedStatement analysis,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections) {
         return collect(analysis, toCollect, projections, null);

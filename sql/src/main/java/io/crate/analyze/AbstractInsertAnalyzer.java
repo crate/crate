@@ -30,7 +30,7 @@ import io.crate.sql.tree.Table;
 
 import java.util.ArrayList;
 
-public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> extends DataStatementAnalyzer<T> {
+public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalyzedStatement> extends DataStatementAnalyzer<T> {
 
 
     protected void handleInsertColumns(Insert node, int maxInsertValues, T context) {
