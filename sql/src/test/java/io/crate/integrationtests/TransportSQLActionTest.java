@@ -2937,6 +2937,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name from locations where substr(name, 1, 1) = substr(name, 1, 1)");
         assertThat(response.rowCount(), is(12L));
     }
+
+    @Test
+    public void testNewColumn() throws Exception {
+        execute("create table t (name string) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (name, score) values ('Ford', 1.2)");
+    }
 }
 
 
