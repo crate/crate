@@ -28,7 +28,7 @@ import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.mapper.array.ArrayValueMapperParser;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapper;
+import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
 import org.elasticsearch.index.mapper.object.DynamicValueMapperLookup;
 import org.elasticsearch.index.mapper.object.ObjectMapper;
 
@@ -67,7 +67,7 @@ import java.util.Map;
  *  will pass.
  *
  */
-public class ArrayMapper implements ArrayValueMapperParser, DynamicArrayFieldMapper, Mapper {
+public class ArrayMapper implements ArrayValueMapperParser, Mapper {
 
     public static final String CONTENT_TYPE = "array";
     public static final XContentBuilderString INNER = new XContentBuilderString("inner");
@@ -76,6 +76,13 @@ public class ArrayMapper implements ArrayValueMapperParser, DynamicArrayFieldMap
     public static class Builder extends Mapper.Builder<Builder, ArrayMapper> {
 
         private Mapper.Builder innerMapperBuilder;
+
+        public static class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
+
+            public Builder create(String name){
+                return new Builder(name);
+            }
+        }
 
         public Builder(String name) {
             super(name);
@@ -90,10 +97,10 @@ public class ArrayMapper implements ArrayValueMapperParser, DynamicArrayFieldMap
         @Override
         public ArrayMapper build(BuilderContext context) {
             if (innerMapperBuilder == null) {
-                return new ArrayMapper();
+                return new ArrayMapper(name);
             } else {
                 Mapper innerMapper = innerMapperBuilder.build(context);
-                return new ArrayMapper(innerMapper);
+                return new ArrayMapper(innerMapper, name);
             }
         }
     }
@@ -128,15 +135,20 @@ public class ArrayMapper implements ArrayValueMapperParser, DynamicArrayFieldMap
         }
     }
 
-    private ArrayMapper() {}
+    private final String name;
 
-    public ArrayMapper(Mapper innerMapper) {
+    private ArrayMapper(String name) {
+        this.name = name;
+    }
+
+    public ArrayMapper(Mapper innerMapper, String name) {
         this.innerMapper = innerMapper;
+        this.name = name;
     }
 
     @Override
     public String name() {
-        return innerMapper.name();
+        return name;
     }
 
     @Override
