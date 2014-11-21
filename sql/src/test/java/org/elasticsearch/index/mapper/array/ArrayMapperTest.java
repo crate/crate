@@ -47,7 +47,7 @@ import java.io.IOException;
 
 import static org.hamcrest.Matchers.*;
 
-public class ArrayFieldMapperTest extends CrateSingleNodeTest {
+public class ArrayMapperTest extends CrateSingleNodeTest {
 
     public static final String INDEX = "my_index";
 
@@ -95,14 +95,17 @@ public class ArrayFieldMapperTest extends CrateSingleNodeTest {
         assertThat(doc.docs().get(0).getValues("array_field"), arrayContainingInAnyOrder("a", "b", "c"));
         assertThat(
                 mapper.mappingSource().string(),
-                is("{\"type\":{\"properties\":{" +
-                        "\"array_field\":{" +
-                        "\"type\":\"array\"," +
-                        "\"inner\":{" +
-                        "\"type\":\"string\"," +
-                        "\"index\":\"not_analyzed\"}" +
+                is("{\"type\":{" +
+                        "\"properties\":{" +
+                            "\"array_field\":{" +
+                                "\"type\":\"array\"," +
+                                "\"inner\":{" +
+                                    "\"type\":\"string\"," +
+                                    "\"index\":\"not_analyzed\"}" +
+                                "}" +
+                            "}" +
                         "}" +
-                        "}}}"));
+                        "}"));
     }
 
     @Test
@@ -336,6 +339,49 @@ public class ArrayFieldMapperTest extends CrateSingleNodeTest {
                 searchResponse.getHits().getAt(0).getSource()),
                 is("array_field:[0.0, 99.9, -100.5678]"));
         assertThat(searchResponse.getHits().getAt(0).field("array_field").getValues(), Matchers.<Object>hasItems(0.0D, 99.9D, -100.5678D));
+    }
+
+    @Test
+    public void testEmptyArray() throws Exception {
+        String mapping = XContentFactory.jsonBuilder()
+                .startObject().startObject("type").startObject("properties")
+                .startObject("array_field")
+                .field("type", ArrayMapper.CONTENT_TYPE)
+                .startObject(ArrayMapper.INNER)
+                .field("type", "double")
+                .field("index", "not_analyzed")
+                .endObject()
+                .endObject()
+                .endObject().endObject().endObject()
+                .string();
+        DocumentMapper mapper = mapper(INDEX, mapping);
+
+        // parse source with empty array
+        ParsedDocument doc = mapper.parse(XContentFactory.jsonBuilder()
+                .startObject()
+                .field("_id", "abc")
+                .array("array_field")
+                .endObject()
+                .bytes());
+        assertThat(doc.mappingsModified(), is(false));
+        assertThat(doc.docs().size(), is(1));
+        assertThat(doc.docs().get(0).get("array_field"), is(nullValue())); // no lucene field generated
+
+        // insert
+        IndexResponse response = client().prepareIndex(INDEX, "type").setId("123").setSource("{array_field:[]}").execute().actionGet();
+        assertThat(response.getVersion(), is(1L));
+
+        client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
+
+        SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes("type")
+                .setFetchSource(true).addField("array_field")
+                .setQuery("{\"term\": {\"_id\": \"123\"}}").execute().actionGet();
+        assertThat(searchResponse.getHits().getTotalHits(), is(1L));
+        assertThat(Joiner.on(',').withKeyValueSeparator(":").join(
+                        searchResponse.getHits().getAt(0).getSource()),
+                is("array_field:[]"));
+        assertThat(searchResponse.getHits().getAt(0).fields().containsKey("array_field"), is(false));
+
     }
 
 }
