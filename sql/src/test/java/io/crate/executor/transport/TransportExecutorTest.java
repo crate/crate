@@ -461,8 +461,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         task.start();
         TaskResult taskResult = task.result().get(0).get();
         Object[][] rows = taskResult.rows();
-        assertThat(rows.length, is(0));
-        assertThat(taskResult.rowCount(), is(-1L));
+        assertThat(rows.length, is(1));
+        assertThat(((Long) rows[0][0]), is(-1L));
 
         // verify deletion
         DocTableInfo characters = docSchemaInfo.getTableInfo("characters");
@@ -497,8 +497,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
-        assertThat(rows.length, is(0));
-        assertThat(taskResult.rowCount(), is(1L));
+        assertThat(rows.length, is(1));
+        assertThat(((Long) rows[0][0]), is(1L));
 
         // verify deletion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(id_ref, name_ref);
@@ -538,8 +538,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
-        assertThat(rows.length, is(0));
-        assertThat(taskResult.rowCount(), is(1L));
+        assertThat(rows.length, is(1));
+        assertThat(((Long) rows[0][0]), is(1L));
 
 
         // verify insertion
@@ -585,8 +585,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
         Object[][] indexResult = taskResult.rows();
-        assertThat(indexResult.length, is(0));
-        assertThat(taskResult.rowCount(), is(1L));
+        assertThat(indexResult.length, is(1));
+        assertThat(((Long) indexResult[0][0]), is(1L));
 
         refresh();
 
@@ -655,9 +655,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         TaskResult taskResult = result.get(0).get();
-        assertThat(taskResult.rowCount(), is(2L));
-        Object[][] rows = result.get(0).get().rows();
-        assertThat(rows.length, is(0));
+        Object[][] rows = taskResult.rows();
+        assertThat(((Long) rows[0][0]), is(2L));
+        assertThat(rows.length, is(1));
 
         // verify insertion
 
@@ -702,8 +702,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         TaskResult taskResult = result.get(0).get();
         Object[][] rows = taskResult.rows();
 
-        assertThat(rows.length, is(0));
-        assertThat(taskResult.rowCount(), is(1L));
+        assertThat(rows.length, is(1));
+        assertThat(((Long) rows[0][0]), is(1L));
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(id_ref, name_ref);
@@ -756,7 +756,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
         assertThat(result.get(0).get().errorMessage(), is(nullValue()));
-        assertThat(result.get(0).get().rowCount(), is(1L));
+        assertThat(((Long) result.get(0).get().rows()[0][0]), is(1L));
 
         List<Symbol> outputs = Arrays.<Symbol>asList(id_ref, name_ref, version_ref);
         ESGetNode getNode = newGetNode("characters", outputs, "1");
@@ -805,7 +805,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
-        assertThat(result.get(0).get().rowCount(), is(2L));
+        assertThat(((Long) result.get(0).get().rows()[0][0]), is(2L));
 
         refresh();
 

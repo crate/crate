@@ -25,7 +25,6 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
-import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ResponseForwarder;
 import io.crate.operation.collect.StatsTables;
@@ -93,12 +92,13 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         TaskResult taskResult = result.get(0);
         Object[][] rows = taskResult.rows();
         long rowCount = 0;
-        if (expectsAffectedRows && taskResult instanceof QueryResult) {
+        if (expectsAffectedRows) {
             if (rows.length >= 1 && rows[0].length >= 1) {
                 rowCount = ((Number) rows[0][0]).longValue();
             }
+            rows = TaskResult.EMPTY_ROWS;
         } else {
-            rowCount = taskResult.rowCount();
+            rowCount = rows.length;
         }
         BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rows);
         return new SQLResponse(

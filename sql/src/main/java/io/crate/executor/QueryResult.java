@@ -33,9 +33,4 @@ public class QueryResult extends TaskResult {
     public Object[][] rows() {
         return rows;
     }
-
-    @Override
-    public long rowCount() {
-        return rows.length;
-    }
 }

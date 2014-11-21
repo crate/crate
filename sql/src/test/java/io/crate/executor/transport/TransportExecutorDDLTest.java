@@ -124,8 +124,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         TaskResult taskResult = listenableFuture.get().get(0);
         Object[][] objects = listenableFuture.get().get(0).rows();
 
-        assertThat(taskResult.rowCount(), is(1L));
-        assertThat(objects.length, is(0));
+        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
+        assertThat(objects.length, is(1));
 
         execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
         assertThat(response.rowCount(), is(1L));
@@ -156,8 +156,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         TaskResult taskResult = listenableFuture.get().get(0);
         Object[][] objects = listenableFuture.get().get(0).rows();
 
-        assertThat(taskResult.rowCount(), is(1L));
-        assertThat(objects.length, is(0));
+        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
+        assertThat(objects.length, is(1));
 
         execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
         assertThat(response.rowCount(), is(1L));
@@ -192,8 +192,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         TaskResult taskResult = listenableFuture.get().get(0);
         Object[][] objects = listenableFuture.get().get(0).rows();
 
-        assertThat(taskResult.rowCount(), is(1L));
-        assertThat(objects.length, is(0));
+        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
+        assertThat(objects.length, is(1));
 
         execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
         assertThat(response.rowCount(), is(1L));
@@ -225,8 +225,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         TaskResult taskResult = listenableFuture.get().get(0);
         Object[][] objects = listenableFuture.get().get(0).rows();
-        assertThat(taskResult.rowCount(), is(1L));
-        assertThat(objects.length, is(0));
+        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
+        assertThat(objects.length, is(1));
 
         execute("select * from information_schema.tables where table_name = 't'");
         assertThat(response.rowCount(), is(0L));
@@ -253,8 +253,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         TaskResult taskResult = listenableFuture.get().get(0);
         Object[][] objects = listenableFuture.get().get(0).rows();
-        assertThat(taskResult.rowCount(), is(1L));
-        assertThat(objects.length, is(0));
+        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
+        assertThat(objects.length, is(1));
 
         execute("select * from information_schema.tables where table_name = 't'");
         assertThat(response.rowCount(), is(0L));
@@ -287,8 +287,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         TaskResult taskResult = listenableFuture.get().get(0);
         Object[][] objects = listenableFuture.get().get(0).rows();
-        assertThat(taskResult.rowCount(), is(1L));
-        assertThat(objects.length, is(0));
+        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
+        assertThat(objects.length, is(1));
         assertEquals("panic", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
 
         // Update transient only
@@ -306,8 +306,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         listenableFuture = Futures.allAsList(futures);
         taskResult = listenableFuture.get().get(0);
         objects = listenableFuture.get().get(0).rows();
-        assertThat(taskResult.rowCount(), is(1L));
-        assertThat(objects.length, is(0));
+        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
+        assertThat(objects.length, is(1));
         assertEquals("123", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
 
         // Update persistent & transient
@@ -328,8 +328,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         listenableFuture = Futures.allAsList(futures);
         taskResult = listenableFuture.get().get(0);
         objects = listenableFuture.get().get(0).rows();
-        assertThat(taskResult.rowCount(), is(1L));
-        assertThat(objects.length, is(0));
+        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
+        assertThat(objects.length, is(1));
         assertEquals("normal", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
         assertEquals("243", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
     }
@@ -382,8 +382,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
         TaskResult taskResult = listenableFuture.get().get(0);
         Object[][] objects = listenableFuture.get().get(0).rows();
-        assertThat(taskResult.rowCount(), is(1L));
-        assertThat(objects.length, is(0));
+        assertThat(((Long) taskResult.rows()[0][0]), is(1L));
+        assertThat(objects.length, is(1));
 
         refresh();
 

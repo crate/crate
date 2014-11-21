@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 
 public abstract class TaskResult {
 
-    protected static final Object[][] EMPTY_ROWS = new Object[0][];
+    public static final Object[][] EMPTY_ROWS = new Object[0][];
 
     public static final RowCountResult ZERO = new RowCountResult(0L);
     public static final RowCountResult ONE_ROW = new RowCountResult(1L);
@@ -34,13 +34,7 @@ public abstract class TaskResult {
 
     public static final QueryResult EMPTY_RESULT = new QueryResult(EMPTY_ROWS);
 
-    public TaskResult() {
-
-    }
-
     public abstract Object[][] rows();
-
-    public abstract long rowCount();
 
     /**
      * can be set in bulk operations to set the error for a single operation

@@ -27,16 +27,15 @@ import javax.annotation.Nullable;
 
 public class RowCountResult extends TaskResult {
 
-    private final long rowCount;
     @Nullable private final Throwable error;
+    private final Object[][] rows;
 
     public RowCountResult(long rowCount) {
-        this.rowCount = rowCount;
-        this.error = null;
+        this(rowCount, null);
     }
 
     private RowCountResult(long rowCount, Throwable throwable) {
-        this.rowCount = rowCount;
+        this.rows = new Object[][] { new Object[] { rowCount }};
         this.error = throwable;
     }
 
@@ -46,12 +45,7 @@ public class RowCountResult extends TaskResult {
     
     @Override
     public Object[][] rows() {
-        return EMPTY_ROWS;
-    }
-
-    @Override
-    public long rowCount() {
-        return rowCount;
+        return rows;
     }
 
     @Nullable
