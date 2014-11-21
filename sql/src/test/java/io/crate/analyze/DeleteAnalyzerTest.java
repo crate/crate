@@ -33,7 +33,6 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
-import io.crate.sql.parser.SqlParser;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
@@ -78,13 +77,11 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
     }
 
     protected DeleteAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
-        return (DeleteAnalyzedStatement) analyzer.analyze(
-                SqlParser.createStatement(statement), new Object[0], bulkArgs);
+        return (DeleteAnalyzedStatement) super.analyze(statement, bulkArgs);
     }
 
     protected DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement analyze(String statement) {
-        DeleteAnalyzedStatement analysis = (DeleteAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement));
-        return analysis.nestedAnalysis().get(0);
+        return ((DeleteAnalyzedStatement) super.analyze(statement)).nestedStatements().get(0);
     }
 
     @Test
@@ -155,11 +152,11 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{3},
                 new Object[]{4},
         });
-        assertThat(analysis.nestedAnalysis().size(), is(4));
+        assertThat(analysis.nestedStatements().size(), is(4));
 
-        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement firstAnalysis = analysis.nestedAnalysis().get(0);
+        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement firstAnalysis = analysis.nestedStatements().get(0);
         assertThat(firstAnalysis.ids().get(0), is("1"));
-        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement secondAnalysis = analysis.nestedAnalysis().get(1);
+        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement secondAnalysis = analysis.nestedStatements().get(1);
         assertThat(secondAnalysis.ids().get(0), is("2"));
     }
 }

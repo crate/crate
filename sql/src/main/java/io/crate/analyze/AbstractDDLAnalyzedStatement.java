@@ -48,13 +48,13 @@ public abstract class AbstractDDLAnalyzedStatement extends AnalyzedStatement {
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitDDLAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitDDLAnalyzedStatement(this, context);
     }
 
     @Override
-    public boolean isData() {
-        return false;
+    public boolean expectsAffectedRows() {
+        return true;
     }
 
     public boolean isValidTableName(String name) {

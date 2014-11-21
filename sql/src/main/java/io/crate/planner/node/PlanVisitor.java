@@ -89,10 +89,14 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitDropTableNode(DropTableNode node, C context) {
-        return visitPlanNode(node, context);
+        return visitDDLPlanNode(node, context);
     }
 
     public R visitCreateTableNode(CreateTableNode node, C context) {
-        return visitPlanNode(node, context);
+        return visitDDLPlanNode(node, context);
+    }
+
+    public R visitGenericDDLPlanNode(GenericDDLPlanNode genericDDLPlanNode, C context) {
+        return visitPlanNode(genericDDLPlanNode, context);
     }
 }

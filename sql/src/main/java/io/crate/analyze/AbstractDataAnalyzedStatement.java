@@ -302,6 +302,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
 
     public void outputSymbols(List<Symbol> symbols) {
         this.outputSymbols = symbols;
+        this.outputTypes = Symbols.extractTypes(symbols);
     }
 
     /**
@@ -455,6 +456,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
 
     public void normalize() {
         normalizer.normalizeInplace(outputSymbols());
+        this.outputTypes = Symbols.extractTypes(outputSymbols());
         if (whereClause().hasQuery()) {
             whereClause.normalize(normalizer);
             if (onlyScalarsAllowed && whereClause().hasQuery()){
@@ -549,7 +551,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitDataAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitDataAnalyzedStatement(this, context);
     }
 }

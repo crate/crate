@@ -68,6 +68,11 @@ public class UpdateAnalyzedStatement extends AbstractDataAnalyzedStatement {
     }
 
     @Override
+    public boolean expectsAffectedRows() {
+        return true;
+    }
+
+    @Override
     public void table(TableIdent tableIdent) {
         throw new UnsupportedOperationException("used nested analysis");
     }
@@ -88,8 +93,8 @@ public class UpdateAnalyzedStatement extends AbstractDataAnalyzedStatement {
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitUpdateAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitUpdateStatement(this, context);
     }
 
     public List<NestedAnalyzedStatement> nestedAnalysis() {

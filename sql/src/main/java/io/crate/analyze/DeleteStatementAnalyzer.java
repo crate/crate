@@ -73,7 +73,7 @@ public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, D
 
     @Override
     public Symbol visitDelete(Delete node, DeleteAnalyzedStatement context) {
-        java.util.List<DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement> nestedAnalysis = context.nestedAnalysisList;
+        java.util.List<DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement> nestedAnalysis = context.nestedStatements;
         for (int i = 0, nestedAnalysisSize = nestedAnalysis.size(); i < nestedAnalysisSize; i++) {
             DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement nestedAnalysi = nestedAnalysis.get(i);
             context.parameterContext().setBulkIdx(i);

@@ -21,18 +21,14 @@
 
 package io.crate.planner;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.PlanNode;
-import io.crate.types.DataType;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 public class Plan implements Iterable<PlanNode> {
 
     private ArrayList<PlanNode> nodes = new ArrayList<>();
-    private boolean expectsAffectedRows = false;
 
     public void add(PlanNode node) {
         nodes.add(node);
@@ -41,27 +37,6 @@ public class Plan implements Iterable<PlanNode> {
     @Override
     public Iterator<PlanNode> iterator() {
         return nodes.iterator();
-    }
-
-    public void expectsAffectedRows(boolean expectsAffectedRows) {
-        this.expectsAffectedRows = expectsAffectedRows;
-    }
-
-    public boolean expectsAffectedRows() {
-        return expectsAffectedRows;
-    }
-
-    /**
-     * @return a list of {@linkplain io.crate.types.DataType}s
-     *         that the output columns of a response created from a successful execution
-     *         of this plan will have.
-     *         Returns an empty list of there are no output columns.
-     */
-    public List<DataType> outputTypes() {
-        if (nodes.isEmpty() || expectsAffectedRows) {
-            return ImmutableList.of();
-        }
-        return nodes.get(nodes.size() -1).outputTypes();
     }
 
     public boolean isEmpty() {

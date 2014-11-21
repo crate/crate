@@ -88,7 +88,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Its methods return a future returning a Long containing the response rowCount.
  * If the future returns <code>null</code>, no row count shall be created.
  */
-public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFuture<Long>> {
+public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, ListenableFuture<Long>> {
 
     private final ClusterService clusterService;
     private final BlobIndices blobIndices;
@@ -100,14 +100,14 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     private final TransportGetIndexTemplatesAction transportGetIndexTemplatesAction;
 
     @Inject
-    public DDLAnalysisDispatcher(ClusterService clusterService,
-                                 BlobIndices blobIndices,
-                                 Provider<Executor> executorProvider,
-                                 TransportPutMappingAction transportPutMappingAction,
-                                 TransportRefreshAction transportRefreshAction,
-                                 TransportUpdateSettingsAction transportUpdateSettingsAction,
-                                 TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                                 TransportGetIndexTemplatesAction transportGetIndexTemplatesAction) {
+    public DDLStatementDispatcher(ClusterService clusterService,
+                                  BlobIndices blobIndices,
+                                  Provider<Executor> executorProvider,
+                                  TransportPutMappingAction transportPutMappingAction,
+                                  TransportRefreshAction transportRefreshAction,
+                                  TransportUpdateSettingsAction transportUpdateSettingsAction,
+                                  TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                                  TransportGetIndexTemplatesAction transportGetIndexTemplatesAction) {
         this.clusterService = clusterService;
         this.blobIndices = blobIndices;
         this.executorProvider = executorProvider;
@@ -119,13 +119,13 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
-    protected ListenableFuture<Long> visitAnalysis(AnalyzedStatement analyzedStatement, Void context) {
+    protected ListenableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Void context) {
         throw new UnsupportedOperationException(String.format("Can't handle \"%s\"", analyzedStatement));
     }
 
    @Override
-    public ListenableFuture<Long> visitCreateBlobTableAnalysis(
-            CreateBlobTableAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitCreateBlobTableStatement(
+           CreateBlobTableAnalyzedStatement analysis, Void context) {
         return wrapRowCountFuture(
                 blobIndices.createBlobTable(
                         analysis.tableName(),
@@ -136,7 +136,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
-    public ListenableFuture<Long> visitAddColumnAnalysis(final AddColumnAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitAddColumnStatement(final AddColumnAnalyzedStatement analysis, Void context) {
         final SettableFuture<Long> result = SettableFuture.create();
         if (analysis.newPrimaryKeys()) {
             Plan plan = genCountStarPlan(analysis.table());
@@ -304,14 +304,14 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
-    public ListenableFuture<Long> visitAlterBlobTableAnalysis(AlterBlobTableAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, Void context) {
         return wrapRowCountFuture(
                 blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
                 1L);
     }
 
     @Override
-    public ListenableFuture<Long> visitDropBlobTableAnalysis(DropBlobTableAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, Void context) {
         return wrapRowCountFuture(blobIndices.dropBlobTable(analysis.table().ident().name()), 1L);
     }
 
@@ -332,7 +332,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
-    public ListenableFuture<Long> visitRefreshTableAnalysis(RefreshTableAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, Void context) {
         String[] indexNames = getIndexNames(analysis.table(), analysis.partitionName());
         if (analysis.table().schemaInfo().systemSchema() || indexNames.length == 0) {
             // shortcut when refreshing on system tables
@@ -373,7 +373,7 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
-    public ListenableFuture<Long> visitAlterTableAnalysis(final AlterTableAnalyzedStatement analysis, Void context) {
+    public ListenableFuture<Long> visitAlterTableStatement(final AlterTableAnalyzedStatement analysis, Void context) {
         final SettableFuture<Long> result = SettableFuture.create();
         final String[] indices;
         boolean updateTemplate = false;

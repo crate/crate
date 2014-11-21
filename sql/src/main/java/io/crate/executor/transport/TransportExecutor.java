@@ -22,10 +22,12 @@
 package io.crate.executor.transport;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
 import io.crate.executor.transport.task.CreateTableTask;
@@ -63,6 +65,7 @@ public class TransportExecutor implements Executor {
     private final Functions functions;
     private final ReferenceResolver referenceResolver;
     private final Provider<SearchPhaseController> searchPhaseControllerProvider;
+    private Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider;
     private final StatsTables statsTables;
     private final Visitor visitor;
     private final ThreadPool threadPool;
@@ -83,6 +86,7 @@ public class TransportExecutor implements Executor {
                              ReferenceResolver referenceResolver,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
                              Provider<SearchPhaseController> searchPhaseControllerProvider,
+                             Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService) {
         this.settings = settings;
@@ -92,6 +96,7 @@ public class TransportExecutor implements Executor {
         this.functions = functions;
         this.referenceResolver = referenceResolver;
         this.searchPhaseControllerProvider = searchPhaseControllerProvider;
+        this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.visitor = new Visitor();
@@ -142,6 +147,12 @@ public class TransportExecutor implements Executor {
             } else {
                 context.addTask(new LocalCollectTask(handlerSideDataCollectOperation, node));
             }
+            return null;
+        }
+
+        @Override
+        public Void visitGenericDDLPlanNode(GenericDDLPlanNode genericDDLPlanNode, Job context) {
+            context.addTask(new DDLTask(ddlAnalysisDispatcherProvider.get(), genericDDLPlanNode));
             return null;
         }
 

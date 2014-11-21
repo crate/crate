@@ -106,7 +106,7 @@ public class SetAnalyzedStatement extends AnalyzedStatement {
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitSetAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitSetStatement(this, context);
     }
 }

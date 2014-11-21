@@ -21,14 +21,13 @@
 
 package io.crate.action.sql;
 
-import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.Executor;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ResponseForwarder;
 import io.crate.operation.collect.StatsTables;
-import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -55,17 +54,16 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                                   Analyzer analyzer,
                                   Planner planner,
                                   Provider<Executor> executor,
-                                  Provider<DDLAnalysisDispatcher> dispatcher,
                                   TransportService transportService,
                                   StatsTables statsTables,
                                   ActionFilters actionFilters) {
         super(clusterService, settings, SQLBulkAction.NAME, threadPool, analyzer,
-                planner, executor, dispatcher, statsTables, actionFilters);
+                planner, executor, statsTables, actionFilters);
         transportService.registerHandler(SQLBulkAction.NAME, new TransportHandler());
     }
 
     @Override
-    public AnalyzedStatement getAnalysis(Statement statement, SQLBulkRequest request) {
+    public Analysis getAnalysis(Statement statement, SQLBulkRequest request) {
         return analyzer.analyze(statement, SQLRequest.EMPTY_ARGS, request.bulkArgs());
     }
 
@@ -80,38 +78,18 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
     }
 
     @Override
-    protected SQLBulkResponse emptyResponse(SQLBulkRequest request, Plan plan, String[] outputNames) {
-        DataType[] dataTypes = plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]);
-        return new SQLBulkResponse(outputNames,
-                SQLBulkResponse.EMPTY_RESULTS,
-                request.creationTime(),
-                dataTypes,
-                request.includeTypesOnResponse());
-    }
-
-    @Override
-    protected SQLBulkResponse createResponseFromResult(SQLBulkRequest request,
-                                                       String[] outputNames,
-                                                       Long rowCount,
-                                                       @Nullable DataType[] types) {
-        // this is just a post-apocalypse-error... should be thrown in the analyzer/planner
-        throw new UnsupportedOperationException("statement cannot be executed as bulk operation");
-    }
-
-    @Override
-    protected SQLBulkResponse createResponseFromResult(Plan plan,
-                                                       String[] outputNames,
+    protected SQLBulkResponse createResponseFromResult(String[] outputNames,
+                                                       DataType[] dataTypes,
                                                        List<TaskResult> result,
+                                                       boolean expectsAffectedRows,
                                                        long requestCreationTime,
                                                        boolean includeTypesOnResponse) {
-        DataType[] dataTypes = plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]);
         SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[result.size()];
         for (int i = 0, resultSize = result.size(); i < resultSize; i++) {
             TaskResult taskResult = result.get(i);
             assert taskResult instanceof RowCountResult : "Query operation not supported with bulk requests";
             results[i] = new SQLBulkResponse.Result(taskResult.errorMessage(), taskResult.rowCount());
         }
-
         return new SQLBulkResponse(outputNames, results, requestCreationTime, dataTypes, includeTypesOnResponse);
     }
 

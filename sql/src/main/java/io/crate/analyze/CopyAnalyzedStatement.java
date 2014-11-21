@@ -21,15 +21,18 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.symbol.Symbol;
+import io.crate.types.DataType;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class CopyAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
@@ -52,8 +55,18 @@ public class CopyAnalyzedStatement extends AbstractDataAnalyzedStatement {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 
+    @Override
+    public boolean expectsAffectedRows() {
+        return true;
+    }
+
     public Symbol uri() {
         return uri;
+    }
+
+    @Override
+    public List<DataType> outputTypes() {
+        return ImmutableList.of();
     }
 
     @Nullable
@@ -101,8 +114,8 @@ public class CopyAnalyzedStatement extends AbstractDataAnalyzedStatement {
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitCopyAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitCopyStatement(this, context);
     }
 
 }

@@ -317,15 +317,15 @@ public abstract class BaseAnalyzerTest {
     }
 
     protected AnalyzedStatement analyze(String statement) {
-        return analyzer.analyze(SqlParser.createStatement(statement));
+        return analyzer.analyze(SqlParser.createStatement(statement)).analyzedStatement();
     }
 
     protected AnalyzedStatement analyze(String statement, Object[] params) {
-        return analyzer.analyze(SqlParser.createStatement(statement), params, new Object[0][]);
+        return analyzer.analyze(SqlParser.createStatement(statement), params, new Object[0][]).analyzedStatement();
     }
 
     protected AnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
-        return analyzer.analyze(SqlParser.createStatement(statement), new Object[0], bulkArgs);
+        return analyzer.analyze(SqlParser.createStatement(statement), new Object[0], bulkArgs).analyzedStatement();
     }
 
     protected List<Module> getModules() {

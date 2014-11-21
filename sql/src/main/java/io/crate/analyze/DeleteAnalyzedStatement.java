@@ -42,7 +42,7 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
         }
     };
 
-    List<NestedDeleteAnalyzedStatement> nestedAnalysisList;
+    List<NestedDeleteAnalyzedStatement> nestedStatements;
 
     public DeleteAnalyzedStatement(ReferenceInfos referenceInfos,
                                    Functions functions,
@@ -52,9 +52,9 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
         if (parameterContext.bulkParameters.length > 0) {
             numNested = parameterContext.bulkParameters.length;
         }
-        nestedAnalysisList = new ArrayList<>(numNested);
+        nestedStatements = new ArrayList<>(numNested);
         for (int i = 0; i < numNested; i++) {
-            nestedAnalysisList.add(new NestedDeleteAnalyzedStatement(
+            nestedStatements.add(new NestedDeleteAnalyzedStatement(
                     referenceInfos,
                     functions,
                     parameterContext,
@@ -63,8 +63,14 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
         }
     }
 
-    public List<NestedDeleteAnalyzedStatement> nestedAnalysis() {
-        return nestedAnalysisList;
+    @Override
+    public boolean expectsAffectedRows() {
+        return true;
+    }
+
+
+    public List<NestedDeleteAnalyzedStatement> nestedStatements() {
+        return nestedStatements;
     }
 
     @Override
@@ -78,7 +84,7 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
 
     @Override
     public boolean hasNoResult() {
-        return Iterables.all(nestedAnalysisList, HAS_NO_RESULT_PREDICATE);
+        return Iterables.all(nestedStatements, HAS_NO_RESULT_PREDICATE);
     }
 
     @Override
@@ -86,8 +92,8 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitDeleteAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitDeleteStatement(this, context);
     }
 
     public static class NestedDeleteAnalyzedStatement extends AbstractDataAnalyzedStatement {
@@ -102,7 +108,7 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
         }
 
         @Override
-        public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
             return null;
         }
     }

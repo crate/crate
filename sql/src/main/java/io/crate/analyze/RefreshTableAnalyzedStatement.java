@@ -73,8 +73,8 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitRefreshTableAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitRefreshTableStatement(this, context);
     }
 
     public void partitionIdent(String ident) {

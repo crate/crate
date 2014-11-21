@@ -21,8 +21,7 @@
 
 package io.crate.action.sql;
 
-import com.google.common.base.MoreObjects;
-import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
@@ -30,7 +29,6 @@ import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ResponseForwarder;
 import io.crate.operation.collect.StatsTables;
-import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -59,17 +57,16 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             Analyzer analyzer,
             Planner planner,
             Provider<Executor> executor,
-            Provider<DDLAnalysisDispatcher> dispatcher,
             TransportService transportService,
             StatsTables statsTables,
             ActionFilters actionFilters) {
         super(clusterService, settings, SQLAction.NAME, threadPool,
-                analyzer, planner, executor, dispatcher, statsTables, actionFilters);
+                analyzer, planner, executor, statsTables, actionFilters);
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
     }
 
     @Override
-    public AnalyzedStatement getAnalysis(Statement statement, SQLRequest request) {
+    public Analysis getAnalysis(Statement statement, SQLRequest request) {
         return analyzer.analyze(statement, request.args(), SQLBulkRequest.EMPTY_BULK_ARGS);
     }
 
@@ -86,56 +83,28 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
     }
 
     @Override
-    protected SQLResponse emptyResponse(SQLRequest request, Plan plan, String[] outputNames) {
-        return new SQLResponse(
-                outputNames,
-                TaskResult.EMPTY_RESULT.rows(),
-                plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
-                0L,
-                request.creationTime,
-                request.includeTypesOnResponse());
-    }
-
-    @Override
-    protected SQLResponse createResponseFromResult(SQLRequest request,
-                                                   String[] outputNames,
-                                                   Long rowCount,
-                                                   @Nullable DataType[] types) {
-        return new SQLResponse(
-                outputNames,
-                TaskResult.EMPTY_RESULT.rows(),
-                types,
-                MoreObjects.firstNonNull(rowCount, SQLResponse.NO_ROW_COUNT),
-                request.creationTime(),
-                request.includeTypesOnResponse()
-        );
-    }
-
-    @Override
-    protected SQLResponse createResponseFromResult(Plan plan,
-                                                   String[] outputNames,
+    protected SQLResponse createResponseFromResult(String[] outputNames,
+                                                   DataType[] outputTypes,
                                                    List<TaskResult> result,
+                                                   boolean expectsAffectedRows,
                                                    long requestCreationTime,
                                                    boolean includeTypesOnResponse) {
         assert result.size() == 1;
-
         TaskResult taskResult = result.get(0);
         Object[][] rows = taskResult.rows();
         long rowCount = 0;
-        if (plan.expectsAffectedRows() && taskResult instanceof QueryResult) {
+        if (expectsAffectedRows && taskResult instanceof QueryResult) {
             if (rows.length >= 1 && rows[0].length >= 1) {
                 rowCount = ((Number) rows[0][0]).longValue();
             }
         } else {
             rowCount = taskResult.rowCount();
         }
-
-        DataType[] dataTypes = plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]);
-        BytesRefUtils.ensureStringTypesAreStrings(dataTypes, rows);
+        BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rows);
         return new SQLResponse(
                 outputNames,
                 rows,
-                dataTypes,
+                outputTypes,
                 rowCount,
                 requestCreationTime,
                 includeTypesOnResponse

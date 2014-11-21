@@ -177,8 +177,8 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement {
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitSelectAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitSelectStatement(this, context);
     }
 
     public void nullsFirst(Boolean[] nullsFirst) {

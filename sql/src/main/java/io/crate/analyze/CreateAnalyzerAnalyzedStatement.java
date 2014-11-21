@@ -64,8 +64,8 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitCreateAnalyzerAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitCreateAnalyzerStatement(this, context);
     }
 
     public FulltextAnalyzerResolver analyzerService() {
@@ -322,11 +322,4 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         }
         return suffix;
     }
-
-    @Override
-    public boolean isData() {
-        // TODO: remove DropTableAnalysis from Planner and extend DDLVisitor in the Transport
-        return true;
-    }
-
 }

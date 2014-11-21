@@ -3,7 +3,7 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.PartitionName;
-import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
@@ -54,7 +54,6 @@ import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -278,8 +277,6 @@ public class PlannerTest {
         assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
         assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
-
-        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -379,8 +376,6 @@ public class PlannerTest {
         assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
         assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
-
-        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -388,8 +383,8 @@ public class PlannerTest {
         String statementString = "select count(name) from users";
         Statement statement = SqlParser.createStatement(statementString);
 
-        AnalyzedStatement analyzedStatement = analyzer.analyze(statement);
-        Plan plan = planner.plan(analyzedStatement);
+        Analysis analysis = analyzer.analyze(statement);
+        Plan plan = planner.plan(analysis);
         Iterator<PlanNode> iterator = plan.iterator();
 
         PlanNode planNode = iterator.next();
@@ -410,8 +405,6 @@ public class PlannerTest {
 
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
-
-        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -445,8 +438,6 @@ public class PlannerTest {
         assertThat(((InputColumn) projection.outputs().get(1)).index(), is(0));
 
         assertFalse(iterator.hasNext());
-
-        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -475,8 +466,6 @@ public class PlannerTest {
 
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
-
-        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -493,7 +482,6 @@ public class PlannerTest {
         assertThat(searchNode.partitionBy().size(), is(0));
 
         assertFalse(iterator.hasNext());
-        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -517,7 +505,6 @@ public class PlannerTest {
         assertThat(searchNode.partitionBy().get(0).ident().columnIdent().fqn(), is("date"));
 
         assertFalse(iterator.hasNext());
-        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -560,8 +547,6 @@ public class PlannerTest {
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.LONG, indexNode.outputTypes().get(0));
-
-        assertTrue(plan.expectsAffectedRows());
     }
 
     @Test
@@ -588,8 +573,6 @@ public class PlannerTest {
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertEquals(DataTypes.LONG, indexNode.outputTypes().get(0));
-
-        assertTrue(plan.expectsAffectedRows());
     }
 
     @Test
@@ -763,8 +746,6 @@ public class PlannerTest {
         Map.Entry<String, Object> entry = updateNode.updateDoc().entrySet().iterator().next();
         assertThat(entry.getKey(), is("name"));
         assertThat((String)entry.getValue(), is("Vogon lyric fan"));
-
-        assertTrue(plan.expectsAffectedRows());
     }
 
     @Test

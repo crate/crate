@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
+import io.crate.types.DataType;
 
 import java.util.List;
 
@@ -31,6 +32,7 @@ public abstract class AnalyzedStatement {
 
     private final Analyzer.ParameterContext parameterContext;
     private List<String> outputNames = ImmutableList.of();
+    protected List<DataType> outputTypes = ImmutableList.of();
 
     protected String tableAlias;
 
@@ -62,6 +64,10 @@ public abstract class AnalyzedStatement {
         return outputNames;
     }
 
+    public List<DataType> outputTypes() {
+        return outputTypes;
+    }
+
     public Analyzer.ParameterContext parameterContext() {
         return parameterContext;
     }
@@ -70,12 +76,11 @@ public abstract class AnalyzedStatement {
         return parameterContext.parameters();
     }
 
-    public <C, R> R accept(AnalysisVisitor<C,R> analysisVisitor, C context) {
-        return analysisVisitor.visitAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C,R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitAnalyzedStatement(this, context);
     }
 
-    public boolean isData() {
-        return true;
+    public boolean expectsAffectedRows() {
+        return false;
     }
-
 }

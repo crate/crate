@@ -28,9 +28,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
+import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.OutputTypeVisitor;
 import io.crate.exceptions.*;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
@@ -71,8 +71,6 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TResponse extends SQLBaseResponse>
         extends TransportAction<TRequest, TResponse> {
 
-    private static final OutputTypeVisitor outputTypesExtractor = new OutputTypeVisitor();
-
     private final LoadingCache<String, Statement> statementCache = CacheBuilder.newBuilder()
             .maximumSize(100)
             .build(
@@ -88,7 +86,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     protected final Analyzer analyzer;
     protected final Planner planner;
     private final Provider<Executor> executorProvider;
-    private final Provider<DDLAnalysisDispatcher> dispatcherProvider;
     private final StatsTables statsTables;
     private volatile boolean disabled;
 
@@ -99,7 +96,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                   Analyzer analyzer,
                                   Planner planner,
                                   Provider<Executor> executorProvider,
-                                  Provider<DDLAnalysisDispatcher> dispatcherProvider,
                                   StatsTables statsTables,
                                   ActionFilters actionFilters) {
         super(settings, actionName, threadPool, actionFilters);
@@ -107,11 +103,10 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
-        this.dispatcherProvider = dispatcherProvider;
         this.statsTables = statsTables;
     }
 
-    public abstract AnalyzedStatement getAnalysis(Statement statement, TRequest request);
+    public abstract Analysis getAnalysis(Statement statement, TRequest request);
 
     /**
      * create an empty SQLBaseResponse instance with no rows
@@ -122,41 +117,21 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
      * @param types an array of types of the output columns,
      *              if not null it must be of the same length as <code>outputNames</code>
      */
-    protected abstract TResponse emptyResponse(TRequest request,
-                                               String[] outputNames,
-                                               @Nullable DataType[] types);
-
-
-    protected abstract TResponse emptyResponse(TRequest request, Plan plan, String[] outputNames);
-
-    /**
-     * creates an instance of SQLBaseResponse that has no rows,
-     * but a meaningful rowCount attribute
-     *
-     * @param request the request that results in the response to be created
-     * @param outputNames an array of output column names
-     * @param rowCount if >= 0L than this is the rowCount to be retunred, if null,
-     *                 a rowCount of -1L shall be returned
-     * @param types an array of types of the output columns,
-     *              if not null it must be of the same length as <code>outputNames</code>
-     */
-    protected abstract TResponse createResponseFromResult(TRequest request,
-                                                          String[] outputNames,
-                                                          Long rowCount,
-                                                          @Nullable DataType[] types);
+    protected abstract TResponse emptyResponse(TRequest request, String[] outputNames, @Nullable DataType[] types);
 
     /**
      * create an instance of SQLBaseResponse from a plan and a TaskResult
      *
-     * @param plan the plan created from an SQLBaseRequest
      * @param outputNames an array of output column names
+     * @param outputTypes the DataTypes of the columns/rows in the response
      * @param result the result of the executed plan
      * @param requestCreationTime the time the request was instantiated on the server
      * @param includeTypesOnResponse true if the response must contain columnTypes
      */
-    protected abstract TResponse createResponseFromResult(Plan plan,
-                                                          String[] outputNames,
+    protected abstract TResponse createResponseFromResult(String[] outputNames,
+                                                          DataType[] outputTypes,
                                                           List<TaskResult> result,
+                                                          boolean expectsAffectedRows,
                                                           long requestCreationTime,
                                                           boolean includeTypesOnResponse);
 
@@ -170,13 +145,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         }
         try {
             Statement statement = statementCache.get(request.stmt());
-            AnalyzedStatement analyzedStatement = getAnalysis(statement, request);
-
-            if (analyzedStatement.isData()) {
-                processWithPlanner(analyzedStatement, request, listener);
-            } else {
-                processNonData(analyzedStatement, request, listener);
-            }
+            Analysis analysis = getAnalysis(statement, request);
+            processAnalysis(analysis, request, listener);
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
             sendResponse(listener, buildSQLActionException(e));
@@ -193,59 +163,36 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         statsTables.activeRequestsDec();
     }
 
-    private void processNonData(AnalyzedStatement analyzedStatement,
-                                final TRequest request,
-                                final ActionListener<TResponse> listener) {
+    private void processAnalysis(Analysis analysis, TRequest request, ActionListener<TResponse> listener) {
+        AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
         final String[] outputNames = analyzedStatement.outputNames().toArray(new String[analyzedStatement.outputNames().size()]);
-        ListenableFuture<Long> future = dispatcherProvider.get().process(analyzedStatement, null);
-        Futures.addCallback(future, new FutureCallback<Long>() {
-            @Override
-            public void onSuccess(@Nullable Long rowCount) {
-                sendResponse(listener, createResponseFromResult(
-                        request,
-                        outputNames,
-                        rowCount,
-                        OutputTypeVisitor.EMPTY_TYPES
-                ));
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                logger.debug("Error processing non data SQLRequest", t);
-                sendResponse(listener, buildSQLActionException(t));
-            }
-        });
-    }
-
-
-    private void processWithPlanner(AnalyzedStatement analyzedStatement, TRequest request, ActionListener<TResponse> listener) {
-        final String[] outputNames = analyzedStatement.outputNames().toArray(new String[analyzedStatement.outputNames().size()]);
+        DataType[] outputTypes = analyzedStatement.outputTypes().toArray(new DataType[analyzedStatement.outputTypes().size()]);
 
         if (analyzedStatement.hasNoResult()) {
-            DataType[] types = outputTypesExtractor.process(analyzedStatement);
-            listener.onResponse(emptyResponse(request, outputNames, types));
+            listener.onResponse(emptyResponse(request, outputNames, outputTypes));
             return;
         }
-        final Plan plan = planner.plan(analyzedStatement);
+        final Plan plan = planner.plan(analysis);
         tracePlan(plan);
 
         if (plan.isEmpty()) {
-            assert plan.expectsAffectedRows();
+            assert analyzedStatement.expectsAffectedRows();
 
             UUID jobId = UUID.randomUUID();
             statsTables.jobStarted(jobId, request.stmt());
-            sendResponse(listener, emptyResponse(request,
-                    outputNames,
-                    plan.outputTypes().toArray(new DataType[plan.outputTypes().size()])
-                )
-            );
+            sendResponse(listener, emptyResponse(request, outputNames, outputTypes));
             statsTables.jobFinished(jobId, null);
         } else {
-            executePlan(plan, outputNames, listener, request);
+            executePlan(analyzedStatement, plan, outputNames, outputTypes, listener, request);
         }
     }
 
-    private void executePlan(final Plan plan, final String[] outputNames, final ActionListener<TResponse> listener, final TRequest request) {
+    private void executePlan(final AnalyzedStatement analyzedStatement,
+                             final Plan plan,
+                             final String[] outputNames,
+                             final DataType[] outputTypes,
+                             final ActionListener<TResponse> listener,
+                             final TRequest request) {
         Executor executor = executorProvider.get();
         Job job = executor.newJob(plan);
         final UUID jobId = job.id();
@@ -260,12 +207,13 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
                 try {
                     if (result == null) {
-                        response = emptyResponse(request, plan, outputNames);
+                        response = emptyResponse(request, outputNames, outputTypes);
                     } else {
                         response = createResponseFromResult(
-                                plan,
                                 outputNames,
+                                outputTypes,
                                 result,
+                                analyzedStatement.expectsAffectedRows(),
                                 request.creationTime(),
                                 request.includeTypesOnResponse()
                         );

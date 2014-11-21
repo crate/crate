@@ -90,13 +90,8 @@ public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     }
 
     @Override
-    public boolean isData() {
-        return false;
-    }
-
-    @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> visitor, C context) {
-        return visitor.visitAddColumnAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitAddColumnStatement(this, context);
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {

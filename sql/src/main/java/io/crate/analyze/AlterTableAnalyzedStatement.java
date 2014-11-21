@@ -83,7 +83,7 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitAlterTableAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitAlterTableStatement(this, context);
     }
 }

@@ -98,8 +98,8 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitCreateTableAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitCreateTableStatement(this, context);
     }
 
     public List<List<String>> partitionedBy() {
@@ -181,12 +181,6 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     public boolean hasColumnDefinition(ColumnIdent columnIdent) {
         return (analyzedTableElements().columnIdents().contains(columnIdent) ||
                 columnIdent.name().equalsIgnoreCase("_id"));
-    }
-
-    @Override
-    public boolean isData() {
-        // TODO: remove CreateTableAnalysis from Planner and extend DDLVisitor in the Transport
-        return true;
     }
 
     public void analyzedTableElements(AnalyzedTableElements analyze) {

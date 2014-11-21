@@ -19,36 +19,25 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.planner.node.ddl;
 
-import io.crate.planner.symbol.Symbol;
-import io.crate.types.DataType;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.planner.node.PlanVisitor;
 
-/**
- * extract DataTypes of output columns from an analysis
- *
- * This visitor can be used to extract datatypes
- */
-public class OutputTypeVisitor extends AnalysisVisitor<Void, DataType[]> {
+public class GenericDDLPlanNode extends DDLPlanNode {
 
-    public static final DataType[] EMPTY_TYPES = new DataType[0];
+    private AnalyzedStatement analyzedStatement;
 
-    public DataType[] process(AnalyzedStatement analyzedStatement) {
-        return super.process(analyzedStatement, null);
+    public GenericDDLPlanNode(AnalyzedStatement analyzedStatement) {
+        this.analyzedStatement = analyzedStatement;
+    }
+
+    public AnalyzedStatement analyzedStatement() {
+        return analyzedStatement;
     }
 
     @Override
-    protected DataType[] visitAnalysis(AnalyzedStatement analyzedStatement, Void context) {
-        return EMPTY_TYPES;
-    }
-
-    @Override
-    protected DataType[] visitSelectAnalysis(SelectAnalyzedStatement analysis, Void context) {
-        DataType[] types = new DataType[analysis.outputSymbols().size()];
-        java.util.List<Symbol> outputSymbols = analysis.outputSymbols();
-        for (int i = 0, outputSymbolsSize = outputSymbols.size(); i < outputSymbolsSize; i++) {
-            types[i] = outputSymbols.get(i).valueType();
-        }
-        return types;
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitGenericDDLPlanNode(this, context);
     }
 }

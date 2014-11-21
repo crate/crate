@@ -71,6 +71,11 @@ public abstract class AbstractInsertAnalyzedStatement extends AbstractDataAnalyz
         this.primaryKeyColumnIndices.add(primaryKeyColumnIdx);
     }
 
+    @Override
+    public boolean expectsAffectedRows() {
+        return true;
+    }
+
     protected List<String> partitionedByColumnNames() {
         assert table != null;
         List<String> names = new ArrayList<>(table.partitionedByColumns().size());

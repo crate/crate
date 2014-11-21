@@ -107,7 +107,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     }
 
     protected UpdateAnalyzedStatement.NestedAnalyzedStatement analyze(String statement) {
-        return ((UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement)))
+        return ((UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement)).analyzedStatement())
                 .nestedAnalysisList.get(0);
     }
 
@@ -115,13 +115,13 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         return ((UpdateAnalyzedStatement) analyzer.analyze(
                 SqlParser.createStatement(statement),
                 params,
-                new Object[0][])).nestedAnalysisList.get(0);
+                new Object[0][]).analyzedStatement()).nestedAnalysisList.get(0);
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
                 new Object[0],
-                bulkArgs);
+                bulkArgs).analyzedStatement();
     }
 
     @Test

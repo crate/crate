@@ -63,7 +63,7 @@ public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitAlterBlobTableAnalysis(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitAlterBlobTableStatement(this, context);
     }
 }

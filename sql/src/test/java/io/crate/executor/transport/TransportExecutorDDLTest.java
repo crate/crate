@@ -219,7 +219,6 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ESDeleteIndexNode deleteIndexNode = new ESDeleteIndexNode("t");
         Plan plan = new Plan();
         plan.add(deleteIndexNode);
-        plan.expectsAffectedRows(true);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -248,7 +247,6 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ESDeleteIndexNode deleteIndexNode = new ESDeleteIndexNode("t");
         Plan plan = new Plan();
         plan.add(deleteIndexNode);
-        plan.expectsAffectedRows(true);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -283,7 +281,6 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         Plan plan = new Plan();
         plan.add(node);
-        plan.expectsAffectedRows(true);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);
@@ -303,7 +300,6 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         plan = new Plan();
         plan.add(node);
-        plan.expectsAffectedRows(true);
 
         job = executor.newJob(plan);
         futures = executor.execute(job);
@@ -326,7 +322,6 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         plan = new Plan();
         plan.add(node);
-        plan.expectsAffectedRows(true);
 
         job = executor.newJob(plan);
         futures = executor.execute(job);
@@ -381,7 +376,6 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 alias);
         Plan plan = new Plan();
         plan.add(planNode);
-        plan.expectsAffectedRows(true);
 
         Job job = executor.newJob(plan);
         List<ListenableFuture<TaskResult>> futures = executor.execute(job);

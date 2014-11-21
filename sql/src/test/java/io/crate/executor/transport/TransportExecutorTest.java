@@ -42,7 +42,6 @@ import io.crate.operation.operator.OrOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.planner.Plan;
-import io.crate.planner.Planner;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
@@ -581,7 +580,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 );
         Plan plan = new Plan();
         plan.add(indexNode);
-        plan.expectsAffectedRows(true);
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
         List<ListenableFuture<TaskResult>> result = executor.execute(job);
@@ -697,7 +695,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         );
         Plan plan = new Plan();
         plan.add(updateNode);
-        plan.expectsAffectedRows(true);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByIdTask.class));
@@ -754,7 +751,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         );
         Plan plan = new Plan();
         plan.add(updateNode);
-        plan.expectsAffectedRows(true);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
@@ -766,7 +762,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESGetNode getNode = newGetNode("characters", outputs, "1");
         plan = new Plan();
         plan.add(getNode);
-        plan.expectsAffectedRows(false);
 
         job = executor.newJob(plan);
         result = executor.execute(job);
@@ -806,7 +801,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         );
         Plan plan = new Plan();
         plan.add(updateNode);
-        plan.expectsAffectedRows(true);
 
         Job job = executor.newJob(plan);
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
@@ -834,7 +828,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type()));
         plan = new Plan();
         plan.add(node);
-        plan.expectsAffectedRows(false);
 
         job = executor.newJob(plan);
         result = executor.execute(job);

@@ -72,13 +72,7 @@ public class DropTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     public void normalize() { }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitDropTableAnalysis(this, context);
-    }
-
-    @Override
-    public boolean isData() {
-        // TODO: remove DropTableAnalysis from Planner and extend DDLVisitor in the Transport
-        return true;
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitDropTableStatement(this, context);
     }
 }
