@@ -148,8 +148,10 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalyze
             processHavingClause(node.getHaving().get(), context);
         }
 
-        if (node.getOrderBy().size() > 0) {
-            addSorting(node.getOrderBy(), context);
+        if (node.getOrderBy().isEmpty()) {
+            context.orderBy(OrderBy.NO_ORDER_BY);
+        } else {
+            context.orderBy(getOrderBy(node.getOrderBy(), context));
         }
         return null;
     }
@@ -164,29 +166,29 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalyze
         context.havingClause(havingQuery);
     }
 
-    private void addSorting(List<SortItem> orderBy, SelectAnalyzedStatement context) {
+    private OrderBy getOrderBy(List<SortItem> orderBy, SelectAnalyzedStatement context) {
         List<Symbol> sortSymbols = new ArrayList<>(orderBy.size());
-        context.reverseFlags(new boolean[orderBy.size()]);
-        context.nullsFirst(new Boolean[orderBy.size()]);
+        boolean[] reverseFlags = new boolean[orderBy.size()];
+        Boolean[] nullsFirst = new Boolean[orderBy.size()];
 
         int i = 0;
         for (SortItem sortItem : orderBy) {
             sortSymbols.add(process(sortItem, context));
             switch (sortItem.getNullOrdering()) {
                 case FIRST:
-                    context.nullsFirst()[i] = true;
+                    nullsFirst[i] = true;
                     break;
                 case LAST:
-                    context.nullsFirst()[i] = false;
+                    nullsFirst[i] = false;
                     break;
                 case UNDEFINED:
-                    context.nullsFirst()[i] = null;
+                    nullsFirst[i] = null;
                     break;
             }
-            context.reverseFlags()[i] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
+            reverseFlags[i] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
             i++;
         }
-        context.sortSymbols(sortSymbols);
+        return new OrderBy(sortSymbols, reverseFlags, nullsFirst);
     }
 
     private Symbol ordinalOutputReference(List<Symbol> outputSymbols, Literal longLiteral, String clauseName) {

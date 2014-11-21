@@ -42,14 +42,12 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement {
     private Integer limit;
     private int offset = 0;
     private List<Symbol> groupBy;
-    private boolean[] reverseFlags;
-    private Boolean[] nullsFirst;
-    private List<Symbol> sortSymbols;
     protected boolean selectFromFieldCache = false;
 
     private Symbol havingClause;
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
+    private OrderBy orderBy;
 
     public SelectAnalyzedStatement(ReferenceInfos referenceInfos, Functions functions,
                                    Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
@@ -97,18 +95,6 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement {
         this.havingClause = normalizer.process(clause, null);
     }
 
-    public void reverseFlags(boolean[] reverseFlags) {
-        this.reverseFlags = reverseFlags;
-    }
-
-    public boolean[] reverseFlags() {
-        return reverseFlags;
-    }
-
-    public void sortSymbols(List<Symbol> sortSymbols) {
-        this.sortSymbols = sortSymbols;
-    }
-
     @Override
     public boolean hasNoResult() {
         if (havingClause != null && havingClause.symbolType() == SymbolType.LITERAL) {
@@ -126,15 +112,6 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
     private boolean globalAggregate() {
         return hasAggregates() && !hasGroupBy();
-    }
-
-    @Nullable
-    public List<Symbol> sortSymbols() {
-        return sortSymbols;
-    }
-
-    public boolean isSorted() {
-        return sortSymbols != null && sortSymbols.size() > 0;
     }
 
     public boolean hasAggregates() {
@@ -173,7 +150,7 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
         super.normalize();
         normalizer.normalizeInplace(groupBy());
-        normalizer.normalizeInplace(sortSymbols());
+        orderBy.normalize(normalizer);
     }
 
     @Override
@@ -181,11 +158,11 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement {
         return analyzedStatementVisitor.visitSelectStatement(this, context);
     }
 
-    public void nullsFirst(Boolean[] nullsFirst) {
-        this.nullsFirst = nullsFirst;
+    public void orderBy(OrderBy orderBy) {
+        this.orderBy = orderBy;
     }
 
-    public Boolean[] nullsFirst() {
-        return this.nullsFirst;
+    public OrderBy orderBy() {
+        return orderBy;
     }
 }

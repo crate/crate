@@ -64,7 +64,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
         process(node.subQuery(), context);
 
         // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
-        if (context.subQueryAnalysis().isLimited() || context.subQueryAnalysis().isSorted()) {
+        if (context.subQueryAnalysis().isLimited() || context.subQueryAnalysis().orderBy().isSorted()) {
             throw new UnsupportedFeatureException("Using limit, offset or order by is not" +
                     "supported on insert using a sub-query");
         }
@@ -128,10 +128,10 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
                             context.subQueryAnalysis().groupBy().set(groupByIdx, function);
                         }
                     }
-                    if (context.subQueryAnalysis().sortSymbols() != null) {
-                        int sortSymbolIdx = context.subQueryAnalysis().sortSymbols().indexOf(subQueryColumn);
+                    if (context.subQueryAnalysis().orderBy().isSorted()) {
+                        int sortSymbolIdx = context.subQueryAnalysis().orderBy().orderBySymbols().indexOf(subQueryColumn);
                         if (sortSymbolIdx != -1) {
-                            context.subQueryAnalysis().sortSymbols().set(sortSymbolIdx, function);
+                            context.subQueryAnalysis().orderBy().orderBySymbols().set(sortSymbolIdx, function);
                         }
                     }
                     subQueryColumns.set(idx, function);

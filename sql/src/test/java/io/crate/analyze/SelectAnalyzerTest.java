@@ -175,14 +175,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertNull(analysis.limit());
 
         assertFalse(analysis.hasGroupBy());
-        assertTrue(analysis.isSorted());
+        assertTrue(analysis.orderBy().isSorted());
         assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
 
         assertEquals(1, analysis.outputSymbols().size());
-        assertEquals(1, analysis.sortSymbols().size());
-        assertEquals(1, analysis.reverseFlags().length);
+        assertEquals(1, analysis.orderBy().orderBySymbols().size());
+        assertEquals(1, analysis.orderBy().reverseFlags().length);
 
-        assertEquals(LOAD5_INFO, ((Reference) analysis.sortSymbols().get(0)).info());
+        assertEquals(LOAD5_INFO, ((Reference) analysis.orderBy().orderBySymbols().get(0)).info());
     }
 
     @Test
@@ -374,9 +374,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analyze.outputNames().size(), is(1));
         assertThat(analyze.outputNames().get(0), is("cluster_name"));
 
-        assertTrue(analyze.isSorted());
-        assertThat(analyze.sortSymbols().size(), is(1));
-        assertThat(analyze.sortSymbols().get(0), is(analyze.outputSymbols().get(0)));
+        assertTrue(analyze.orderBy().isSorted());
+        assertThat(analyze.orderBy().orderBySymbols().size(), is(1));
+        assertThat(analyze.orderBy().orderBySymbols().get(0), is(analyze.outputSymbols().get(0)));
     }
 
     @Test(expected = AmbiguousColumnAliasException.class)
@@ -1106,7 +1106,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testSelectPartitionedTableOrderBy() throws Exception {
         SelectAnalyzedStatement analysis = analyze(
                 "select id from multi_parted order by id, abs(num)");
-        List<Symbol> symbols = analysis.sortSymbols();
+        List<Symbol> symbols = analysis.orderBy().orderBySymbols();
         assert symbols != null;
         assertThat(symbols.size(), is(2));
         assertThat(symbols.get(0), Matchers.instanceOf(Reference.class));
@@ -1281,7 +1281,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testOrderByWithOrdinal() throws Exception {
         SelectAnalyzedStatement analysis =  analyze(
                 "select name from users u order by 1");
-        assertEquals(analysis.outputSymbols().get(0), analysis.sortSymbols().get(0));
+        assertEquals(analysis.outputSymbols().get(0), analysis.orderBy().orderBySymbols().get(0));
     }
 
     @Test
@@ -1433,8 +1433,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     private void testDistanceOrderBy(String stmt) throws Exception{
         SelectAnalyzedStatement analysis =  analyze(stmt);
-        assertTrue(analysis.isSorted());
-        assertEquals(DistanceFunction.NAME, ((Function) analysis.sortSymbols().get(0)).info().ident().name());
+        assertTrue(analysis.orderBy().isSorted());
+        assertEquals(DistanceFunction.NAME, ((Function) analysis.orderBy().orderBySymbols().get(0)).info().ident().name());
     }
 
     @Test
@@ -1894,7 +1894,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testSubscriptArrayOnScalarResult() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select regexp_matches(name, '.*')[1] as t_alias from users order by t_alias");
         assertThat(analysis.outputSymbols().get(0), isFunction(SubscriptFunction.NAME));
-        assertThat(analysis.sortSymbols().get(0), is(analysis.outputSymbols().get(0)));
+        assertThat(analysis.orderBy().orderBySymbols().get(0), is(analysis.outputSymbols().get(0)));
         List<Symbol> arguments = ((Function) analysis.outputSymbols().get(0)).arguments();
         assertThat(arguments.size(), is(2));
 
@@ -1997,7 +1997,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         // name exists in the table but isn't selected so not ambiguous
         SelectAnalyzedStatement analysis = analyze("select other_id as name from users order by name");
         assertThat(analysis.outputSymbols().get(0), isReference("other_id"));
-        List<Symbol> sortSymbols = analysis.sortSymbols();
+        List<Symbol> sortSymbols = analysis.orderBy().orderBySymbols();
         assert sortSymbols != null;
         assertThat(sortSymbols.get(0), isReference("other_id"));
     }

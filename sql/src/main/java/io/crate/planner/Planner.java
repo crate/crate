@@ -493,9 +493,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 Symbols.extractTypes(analysis.outputSymbols()),
                 analysis.ids(),
                 analysis.routingValues(),
-                analysis.sortSymbols(),
-                analysis.reverseFlags(),
-                analysis.nullsFirst(),
+                analysis.orderBy().orderBySymbols(),
+                analysis.orderBy().reverseFlags(),
+                analysis.orderBy().nullsFirst(),
                 analysis.limit(),
                 analysis.offset(),
                 analysis.table().partitionedByColumns());
@@ -510,7 +510,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
                 .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
+                .orderBy(analysis.orderBy().orderBySymbols());
 
         ImmutableList<Projection> projections;
         if (analysis.isLimited()) {
@@ -520,8 +520,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     analysis.offset() + analysis.limit(),
                     0,
                     contextBuilder.orderBy(),
-                    analysis.reverseFlags(),
-                    analysis.nullsFirst()
+                    analysis.orderBy().reverseFlags(),
+                    analysis.orderBy().nullsFirst()
             );
             tnp.outputs(contextBuilder.outputs());
             projections = ImmutableList.<Projection>of(tnp);
@@ -552,8 +552,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
                     contextBuilder.orderBy(),
-                    analysis.reverseFlags(),
-                    analysis.nullsFirst()
+                    analysis.orderBy().reverseFlags(),
+                    analysis.orderBy().nullsFirst()
             );
             tnp.outputs(contextBuilder.outputs());
             projectionBuilder.add(tnp);
@@ -575,9 +575,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         plan.add(new QueryThenFetchNode(
                 analysis.table().getRouting(analysis.whereClause()),
                 analysis.outputSymbols(),
-                analysis.sortSymbols(),
-                analysis.reverseFlags(),
-                analysis.nullsFirst(),
+                analysis.orderBy().orderBySymbols(),
+                analysis.orderBy().reverseFlags(),
+                analysis.orderBy().nullsFirst(),
                 analysis.limit(),
                 analysis.offset(),
                 analysis.whereClause(),
@@ -729,7 +729,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         PlannerContextBuilder contextBuilder =
                 new PlannerContextBuilder(numAggregationSteps, analysis.groupBy(), ignoreSorting)
                 .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
+                .orderBy(analysis.orderBy().orderBySymbols());
 
         Symbol havingClause = null;
         if (analysis.havingClause() != null
@@ -790,8 +790,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
                     orderBy,
-                    analysis.reverseFlags(),
-                    analysis.nullsFirst()
+                    analysis.orderBy().reverseFlags(),
+                    analysis.orderBy().nullsFirst()
             );
             topN.outputs(outputs);
             builder.add(topN);
@@ -817,8 +817,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
                     0,
                     contextBuilder.orderBy(),
-                    analysis.reverseFlags(),
-                    analysis.nullsFirst()
+                    analysis.orderBy().reverseFlags(),
+                    analysis.orderBy().nullsFirst()
             );
             topN.outputs(contextBuilder.outputs());
             projectionBuilder.add(topN);
@@ -842,7 +842,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private void distributedGroupBy(SelectAnalyzedStatement analysis, Plan plan) {
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, analysis.groupBy())
                 .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
+                .orderBy(analysis.orderBy().orderBySymbols());
 
         Symbol havingClause = null;
         if (analysis.havingClause() != null
@@ -896,8 +896,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
                 orderBy,
-                analysis.reverseFlags(),
-                analysis.nullsFirst()
+                analysis.orderBy().reverseFlags(),
+                analysis.orderBy().nullsFirst()
         );
         topN.outputs(outputs);
         MergeNode localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
@@ -915,7 +915,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         boolean ignoreSorting = !analysis.isLimited();
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, analysis.groupBy(), ignoreSorting)
                 .output(analysis.outputSymbols())
-                .orderBy(analysis.sortSymbols());
+                .orderBy(analysis.orderBy().orderBySymbols());
 
         Symbol havingClause = null;
         if (analysis.havingClause() != null
@@ -956,9 +956,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             TopNProjection topN = new TopNProjection(
                     firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
                     0,
-                    analysis.sortSymbols(),
-                    analysis.reverseFlags(),
-                    analysis.nullsFirst()
+                    analysis.orderBy().orderBySymbols(),
+                    analysis.orderBy().reverseFlags(),
+                    analysis.orderBy().nullsFirst()
             );
             topN.outputs(contextBuilder.outputs());
             projectionsBuilder.add(topN);
@@ -987,8 +987,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
                     orderBy,
-                    analysis.reverseFlags(),
-                    analysis.nullsFirst()
+                    analysis.orderBy().reverseFlags(),
+                    analysis.orderBy().nullsFirst()
             );
             topN.outputs(outputs);
             builder.add(topN);
