@@ -22,10 +22,13 @@
 package org.elasticsearch.index.mapper.core;
 
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
 
 public class ArrayMapperModule extends AbstractModule {
+
     @Override
     protected void configure() {
         bind(ArrayMapperRegistration.class).asEagerSingleton();
+        bind(DynamicArrayFieldMapperBuilderFactory.class).to(ArrayMapper.Builder.BuilderFactory.class).asEagerSingleton();
     }
 }
