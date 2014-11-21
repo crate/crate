@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import io.crate.core.collections.ArrayUtils;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.AndOperator;
@@ -335,19 +334,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     }
 
     private void setClusterBy(Context context, Literal right) {
-        // the current ES implementation does not support empty string
-        // or comma as routing column value
-        // it even misinterprets values which contain a comma
-        // make sure we have no clustered by value in this case
-        // see: https://github.com/elasticsearch/elasticsearch/issues/6736
-        Object rightValue = right.value();
-        if (rightValue != null && rightValue instanceof BytesRef) {
-            BytesRef rightBytesRef = (BytesRef)rightValue;
-            if (EMPTY_BYTESREF.equals(rightBytesRef)
-                    || ArrayUtils.bytesArrayContains(rightBytesRef.bytes, rightBytesRef.offset, rightBytesRef.length, ASCII_COMMA)) {
-                invalidate(context);
-            }
-        } else if (context.currentBucket.clusteredBy == null) {
+        if (context.currentBucket.clusteredBy == null) {
             context.currentBucket.clusteredBy = right;
         } else if (!context.currentBucket.clusteredBy.equals(right)) {
             invalidate(context);

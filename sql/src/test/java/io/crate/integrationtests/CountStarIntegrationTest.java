@@ -21,7 +21,11 @@
 
 package io.crate.integrationtests;
 
+import io.crate.Constants;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.count.CountRequest;
+import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.action.count.CrateTransportCountAction;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -47,5 +51,60 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
         execute("select count(*) from t where p = 'foobar'");
         assertThat(response.rowCount(), is(1L));
         assertThat((Long) response.rows()[0][0], is(1L));
+    }
+
+    @Test
+    public void testCountRouting() throws Exception {
+        execute("create table count_routing (" +
+                  "street string, " +
+                  "number short, " +
+                  "zipcode string" +
+                ") clustered by (zipcode) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into count_routing (street, number, zipcode) values " +
+                "('Hintere Achmühler Str. 1', 8, '1,2'), " +
+                "('Ritterstr.', 12, '1')," +
+                "('Unknown Street', 69, '')");
+        assertThat(response.rowCount(), is(3L));
+        execute("refresh table count_routing");
+
+        execute("select count(*) from count_routing where zipcode='1,2'");
+        assertThat((Long)response.rows()[0][0], is(1L)); // FOUND ONLY ONE
+
+        execute("select count(*) from count_routing where zipcode=''");
+        assertThat((Long)response.rows()[0][0], is(1L)); // FOUND ONE
+
+        CrateTransportCountAction action = cluster().getInstance(CrateTransportCountAction.class);
+        CountResponse response1 = action.execute(
+                new CountRequest("count_routing")
+                        .types(Constants.DEFAULT_MAPPING_TYPE)
+                        .routing("1,2")
+        ).actionGet();
+        assertThat(response1.getCount(), is(1L));
+
+        CountResponse response2 = action.execute(
+                new CountRequest("count_routing")
+                        .types(Constants.DEFAULT_MAPPING_TYPE)
+                        .routing("")
+        ).actionGet();
+        assertThat(response2.getCount(), is(1L));
+    }
+
+    @Test
+    public void testCountRoutingClusteredById() throws Exception {
+        execute("create table auto_id (" +
+                "  name string," +
+                "  location geo_point" +
+                ") with (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("insert into auto_id (name, location) values (',', [36.567, 52.998]), ('Dornbirn', [54.45, 4.567])");
+        execute("refresh table auto_id");
+
+        execute("select count(*) from auto_id where _id=''");
+        assertThat((Long)response.rows()[0][0], is(0L)); // FOUND NONE
+
+        execute("select count(*) from auto_id where name=','");
+        assertThat((Long)response.rows()[0][0], is(1L)); // FOUND ONE
     }
 }

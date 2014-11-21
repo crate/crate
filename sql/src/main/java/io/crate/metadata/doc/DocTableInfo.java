@@ -22,6 +22,7 @@
 package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.PartitionName;
 import io.crate.analyze.AlterPartitionedTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
@@ -172,7 +173,7 @@ public class DocTableInfo extends AbstractTableInfo {
         Map<String, Set<String>> routingMap = null;
         if (whereClause.clusteredBy().isPresent()) {
             routingMap = clusterState.metaData().resolveSearchRouting(
-                    whereClause.clusteredBy().get(), routingIndices);
+                    ImmutableSet.of(whereClause.clusteredBy().get()), routingIndices);
         }
 
         GroupShardsIterator shardIterators;

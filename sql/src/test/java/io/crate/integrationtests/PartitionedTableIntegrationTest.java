@@ -1352,7 +1352,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("insert into parted (id, name, date) values (1, 'Trillian', '1970-01-01'), (2, 'Ford', '2010-01-01')");
         ensureGreen();
-        refresh();
+        execute("refresh table parted");
 
         execute("select count(*) from parted");
         assertThat(response.rowCount(), is(1L));

@@ -23,6 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.Constants;
 import io.crate.exceptions.FailedShardsException;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
@@ -31,7 +32,7 @@ import io.crate.planner.node.dql.ESCountNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
-import org.elasticsearch.action.count.TransportCountAction;
+import org.elasticsearch.action.count.CrateTransportCountAction;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -39,39 +40,33 @@ import java.util.List;
 
 public class ESCountTask implements Task<QueryResult> {
 
-    private final TransportCountAction transportCountAction;
+    private final CrateTransportCountAction transportCountAction;
     private final List<ListenableFuture<QueryResult>> results;
     private CountRequest request;
     private ActionListener<CountResponse> listener;
     private final static ESQueryBuilder queryBuilder = new ESQueryBuilder();
     private final static QueryResult ZERO_RESULT = new QueryResult(new Object[][] { new Object[] { 0L }});
 
-    public ESCountTask(ESCountNode node, TransportCountAction transportCountAction) {
+    public ESCountTask(ESCountNode node, CrateTransportCountAction transportCountAction) {
         this.transportCountAction = transportCountAction;
         assert node != null;
 
         final SettableFuture<QueryResult> result = SettableFuture.create();
         results = Arrays.<ListenableFuture<QueryResult>>asList(result);
-        // empty partitioned table does not exists
-        // or where clause on partitioned table is NO_MATCH
-        // shortcut here
 
-        String indices[];
-        if (node.tableInfo().isPartitioned()) {
-            if (node.tableInfo().partitions().isEmpty() || node.whereClause().noMatch()) {
-                result.set(ZERO_RESULT);
-                return;
-            }
-            indices = node.whereClause().partitions().toArray(new String[node.whereClause().partitions().size()]);
+        String indices[] = node.indices();
+        if (node.whereClause().noMatch() || indices.length == 0) {
+            result.set(ZERO_RESULT);
         } else {
-            indices = new String[] { node.tableInfo().ident().name() };
-        }
-        request = new CountRequest(indices);
-        listener = new CountResponseListener(result);
-        try {
-            request.source(queryBuilder.convert(node.whereClause()), false);
-        } catch (IOException e) {
-            result.setException(e);
+            request = new CountRequest(indices)
+                    .types(Constants.DEFAULT_MAPPING_TYPE)
+                    .routing(node.whereClause().clusteredBy().orNull());
+            listener = new CountResponseListener(result);
+            try {
+                request.source(queryBuilder.convert(node.whereClause()), false);
+            } catch (IOException e) {
+                result.setException(e);
+            }
         }
     }
 
