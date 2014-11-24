@@ -95,6 +95,11 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
     }
 
     @Override
+    public String visitRelationOutput(RelationOutput relationOutput, Void context) {
+        return process(relationOutput.target(), context);
+    }
+
+    @Override
     public String visitLiteral(Literal symbol, Void context) {
         return formatValue(symbol.value());
     }

@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
+import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.exceptions.SQLParseException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
