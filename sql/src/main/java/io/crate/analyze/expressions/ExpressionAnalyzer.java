@@ -658,7 +658,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            return sources.getRelationOutput(node.getName(), null);
+            return sources.getRelationOutput(node.getName());
         }
 
         @Override

@@ -30,9 +30,6 @@ import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Reference;
@@ -53,26 +50,20 @@ import java.util.*;
 
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromValuesAnalyzedStatement> {
 
-    private final ReferenceInfos referenceInfos;
-    private final Functions functions;
-    private final ReferenceResolver globalReferenceResolver;
     private ExpressionAnalyzer expressionAnalyzer;
     private ExpressionAnalysisContext expressionAnalysisContext;
+    private AnalysisMetaData analysisMetaData;
 
-    public InsertFromValuesAnalyzer(ReferenceInfos referenceInfos,
-                                    Functions functions,
-                                    ReferenceResolver globalReferenceResolver) {
-        this.referenceInfos = referenceInfos;
-        this.functions = functions;
-        this.globalReferenceResolver = globalReferenceResolver;
+    public InsertFromValuesAnalyzer(AnalysisMetaData analysisMetaData) {
+        this.analysisMetaData = analysisMetaData;
     }
 
     @Override
-    public Symbol visitInsertFromValues(InsertFromValues node, InsertFromValuesAnalyzedStatement context) {
+    public Void visitInsertFromValues(InsertFromValues node, InsertFromValuesAnalyzedStatement context) {
         node.table().accept(this, context);
         TableInfo table = context.table();
         expressionAnalyzer = new ExpressionAnalyzer(
-                new AnalysisMetaData(functions, referenceInfos, globalReferenceResolver),
+                analysisMetaData,
                 context.parameterContext(),
                 ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                         new QualifiedName(Arrays.asList(table.schemaInfo().name(), table.ident().name())),
@@ -89,7 +80,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
     }
 
     @Override
-    public Symbol visitValuesList(ValuesList node, InsertFromValuesAnalyzedStatement context) {
+    public Void visitValuesList(ValuesList node, InsertFromValuesAnalyzedStatement context) {
         if (node.values().size() != context.columns().size()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Invalid number of values: Got %d columns specified but %d values",
@@ -233,6 +224,10 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
 
     @Override
     public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new InsertFromValuesAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
+        return new InsertFromValuesAnalyzedStatement(
+                analysisMetaData.referenceInfos(),
+                analysisMetaData.functions(),
+                parameterContext,
+                analysisMetaData.referenceResolver());
     }
 }
