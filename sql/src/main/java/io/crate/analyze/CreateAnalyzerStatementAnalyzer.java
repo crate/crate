@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Optional;
+import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;

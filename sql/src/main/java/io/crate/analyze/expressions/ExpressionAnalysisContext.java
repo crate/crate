@@ -19,27 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze.relations;
+package io.crate.analyze.expressions;
 
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.metadata.FunctionInfo;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
 
-import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public abstract class RelationVisitor<C, R> {
+public class ExpressionAnalysisContext {
 
-    public R process(AnalyzedRelation relation, @Nullable C context) {
-        return relation.accept(this, context);
+    private final Map<Function, Function> functionSymbols = new HashMap<>();
+    private boolean hasAggregates = false;
+
+    public ExpressionAnalysisContext() {
     }
 
-    protected R visitAnalyzedRelation(AnalyzedRelation relation, C context) {
-        throw new UnsupportedOperationException(String.format("relation \"%s\" is not supported", relation));
-    }
+    public Function allocateFunction(FunctionInfo functionInfo, List<Symbol> arguments) {
+        Function newFunction = new Function(functionInfo, arguments);
+        Function existingFunction = functionSymbols.get(newFunction);
 
-    public R visitSelectAnalyzedStatement(SelectAnalyzedStatement selectAnalyzedStatement, C context) {
-        return visitAnalyzedRelation(selectAnalyzedStatement, context);
-    }
+        if (existingFunction == null) {
+            functionSymbols.put(newFunction, newFunction);
+            hasAggregates = hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
 
-    public R visitTableRelation(TableRelation tableRelation, C context) {
-        return visitAnalyzedRelation(tableRelation, context);
+            return newFunction;
+        } else {
+            return existingFunction;
+        }
     }
 }

@@ -21,8 +21,17 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.metadata.ColumnIdent;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+
+import java.util.Map;
+
 public interface AnalyzedRelation {
 
     public <C, R> R accept(RelationVisitor<C, R> visitor, C context);
 
+    public Reference getReference(ColumnIdent columnIdent);
+
+    public Map<String, Symbol> outputs();
 }
