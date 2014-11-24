@@ -25,14 +25,14 @@ import io.crate.analyze.SelectAnalyzedStatement;
 
 import javax.annotation.Nullable;
 
-public class RelationVisitor<C, R> {
+public abstract class RelationVisitor<C, R> {
 
     public R process(AnalyzedRelation relation, @Nullable C context) {
         return relation.accept(this, context);
     }
 
-    public R visitAnalyzedRelation(AnalyzedRelation relation, C context) {
-        return null;
+    protected R visitAnalyzedRelation(AnalyzedRelation relation, C context) {
+        throw new UnsupportedOperationException(String.format("relation \"%s\" is not supported", relation));
     }
 
     public R visitSelectAnalyzedStatement(SelectAnalyzedStatement selectAnalyzedStatement, C context) {
