@@ -50,7 +50,7 @@ public class CopyAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
     public CopyAnalyzedStatement(ReferenceInfos referenceInfos,
                                  Functions functions,
-                                 Analyzer.ParameterContext parameterContext,
+                                 ParameterContext parameterContext,
                                  ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }

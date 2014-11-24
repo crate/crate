@@ -52,7 +52,7 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement imple
     private OrderBy orderBy;
 
     public SelectAnalyzedStatement(ReferenceInfos referenceInfos, Functions functions,
-                                   Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
+                                   ParameterContext parameterContext, ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 

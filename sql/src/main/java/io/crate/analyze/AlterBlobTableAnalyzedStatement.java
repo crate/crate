@@ -33,7 +33,7 @@ public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
 
-    public AlterBlobTableAnalyzedStatement(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
+    public AlterBlobTableAnalyzedStatement(ParameterContext parameterContext, ReferenceInfos referenceInfos) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
     }

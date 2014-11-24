@@ -45,7 +45,7 @@ public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, D
             }
 
             @Override
-            public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+            public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
                 return new UpdateAnalyzedStatement.NestedAnalyzedStatement(
                     referenceInfos, functions, parameterContext, globalReferenceResolver);
             }
@@ -83,7 +83,7 @@ public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, D
     }
 
     @Override
-    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
         return new DeleteAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

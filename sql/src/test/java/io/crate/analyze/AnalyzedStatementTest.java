@@ -136,7 +136,7 @@ public class AnalyzedStatementTest {
         SelectAnalyzedStatement analysis = new SelectAnalyzedStatement(
                 referenceInfos,
                 functions,
-                new Analyzer.ParameterContext(new Object[0], new Object[0][]),
+                new ParameterContext(new Object[0], new Object[0][]),
                 resolver);
         analysis.table(TEST_TABLE_IDENT);
         return analysis;

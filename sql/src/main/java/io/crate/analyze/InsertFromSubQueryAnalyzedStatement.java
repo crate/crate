@@ -32,7 +32,7 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
 
     public InsertFromSubQueryAnalyzedStatement(ReferenceInfos referenceInfos,
                                                Functions functions,
-                                               Analyzer.ParameterContext parameterContext,
+                                               ParameterContext parameterContext,
                                                ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
         this.subQueryAnalysis = new SelectAnalyzedStatement(referenceInfos, functions, parameterContext, referenceResolver);

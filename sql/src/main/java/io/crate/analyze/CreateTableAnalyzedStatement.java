@@ -44,7 +44,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     public CreateTableAnalyzedStatement(ReferenceInfos referenceInfos,
                                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                        Analyzer.ParameterContext parameterContext) {
+                                        ParameterContext parameterContext) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;

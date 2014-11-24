@@ -46,7 +46,8 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
 
     public DeleteAnalyzedStatement(ReferenceInfos referenceInfos,
                                    Functions functions,
-                                   Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
+                                   ParameterContext parameterContext,
+                                   ReferenceResolver referenceResolver) {
         super(parameterContext);
         int numNested = 1;
         if (parameterContext.bulkParameters.length > 0) {
@@ -98,7 +99,7 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
 
     public static class NestedDeleteAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
-        public NestedDeleteAnalyzedStatement(ReferenceInfos referenceInfos, Functions functions, Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
+        public NestedDeleteAnalyzedStatement(ReferenceInfos referenceInfos, Functions functions, ParameterContext parameterContext, ReferenceResolver referenceResolver) {
             super(referenceInfos, functions, parameterContext, referenceResolver);
         }
 

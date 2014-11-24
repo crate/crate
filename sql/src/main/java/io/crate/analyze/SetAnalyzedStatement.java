@@ -35,7 +35,7 @@ public class SetAnalyzedStatement extends AnalyzedStatement {
     private boolean persistent = false;
     private boolean isReset = false;
 
-    protected SetAnalyzedStatement(Analyzer.ParameterContext parameterContext) {
+    protected SetAnalyzedStatement(ParameterContext parameterContext) {
         super(parameterContext);
     }
 

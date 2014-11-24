@@ -30,7 +30,7 @@ import java.util.List;
 
 public abstract class AnalyzedStatement {
 
-    private final Analyzer.ParameterContext parameterContext;
+    private final ParameterContext parameterContext;
     private List<String> outputNames = ImmutableList.of();
     protected List<DataType> outputTypes = ImmutableList.of();
 
@@ -44,7 +44,7 @@ public abstract class AnalyzedStatement {
         return tableAlias;
     }
 
-    protected AnalyzedStatement(Analyzer.ParameterContext parameterContext) {
+    protected AnalyzedStatement(ParameterContext parameterContext) {
         this.parameterContext = parameterContext;
     }
 
@@ -68,7 +68,7 @@ public abstract class AnalyzedStatement {
         return outputTypes;
     }
 
-    public Analyzer.ParameterContext parameterContext() {
+    public ParameterContext parameterContext() {
         return parameterContext;
     }
 

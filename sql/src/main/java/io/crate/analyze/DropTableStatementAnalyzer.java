@@ -42,7 +42,7 @@ public class DropTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, 
     }
 
     @Override
-    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
         return new DropTableAnalyzedStatement(referenceInfos);
     }
 }

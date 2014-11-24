@@ -48,7 +48,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     private Map<String, Settings> tokenFilters = new HashMap<>();
 
     public CreateAnalyzerAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                           Analyzer.ParameterContext parameterContext) {
+                                           ParameterContext parameterContext) {
         super(parameterContext);
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }

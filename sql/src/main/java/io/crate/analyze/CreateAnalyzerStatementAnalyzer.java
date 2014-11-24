@@ -245,7 +245,7 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
     }
 
     @Override
-    public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
         return new CreateAnalyzerAnalyzedStatement(fulltextAnalyzerResolver, parameterContext);
     }
 }

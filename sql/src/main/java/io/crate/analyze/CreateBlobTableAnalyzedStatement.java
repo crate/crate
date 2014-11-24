@@ -32,7 +32,7 @@ public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStateme
 
     private Settings builtSettings;
 
-    public CreateBlobTableAnalyzedStatement(Analyzer.ParameterContext parameterContext) {
+    public CreateBlobTableAnalyzedStatement(ParameterContext parameterContext) {
         super(parameterContext);
     }
 
