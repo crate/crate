@@ -99,6 +99,14 @@ public class RelationOutput extends Symbol {
         }
 
         @Override
+        public Symbol visitFunction(Function symbol, Void context) {
+            for (int i = 0; i < symbol.arguments().size(); i++) {
+                symbol.setArgument(i, process(symbol.arguments().get(i), context));
+            }
+            return symbol;
+        }
+
+        @Override
         protected Symbol visitSymbol(Symbol symbol, Void context) {
             return symbol;
         }
