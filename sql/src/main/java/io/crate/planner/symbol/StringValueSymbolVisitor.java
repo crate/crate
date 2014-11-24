@@ -40,6 +40,8 @@ public class StringValueSymbolVisitor extends SymbolVisitor<Void, String> {
                 SymbolFormatter.format("Unable to get string value from symbol: %s", symbol));
     }
 
+
+
     @Override
     public String visitLiteral(Literal symbol, Void context) {
         return BytesRefs.toString(symbol.value());

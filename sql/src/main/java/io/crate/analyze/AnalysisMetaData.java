@@ -24,6 +24,7 @@ package io.crate.analyze;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
+import org.elasticsearch.common.inject.Inject;
 
 public class AnalysisMetaData {
 
@@ -31,6 +32,7 @@ public class AnalysisMetaData {
     private final ReferenceInfos referenceInfos;
     private final ReferenceResolver referenceResolver;
 
+    @Inject
     public AnalysisMetaData(Functions functions,
                             ReferenceInfos referenceInfos,
                             ReferenceResolver referenceResolver) {

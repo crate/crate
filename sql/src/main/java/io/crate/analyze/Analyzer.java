@@ -20,9 +20,6 @@
  */
 package io.crate.analyze;
 
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
@@ -55,14 +52,10 @@ public class Analyzer {
 
     public static class AnalyzerDispatcher extends AstVisitor<AbstractStatementAnalyzer, Void> {
 
-        private final Functions functions;
-        private final ReferenceInfos referenceInfos;
-        private final ReferenceResolver referenceResolver;
         private final SelectStatementAnalyzer selectStatementAnalyzer;
         private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
         private final UpdateStatementAnalyzer updateStatementAnalyzer;
         private final DeleteStatementAnalyzer deleteStatementAnalyzer;
-        private final CopyStatementAnalyzer copyStatementAnalyzer;
         private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
         private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
@@ -73,16 +66,14 @@ public class Analyzer {
         private final AlterBlobTableAnalyzer alterBlobTableAnalyzer;
         private final SetStatementAnalyzer setStatementAnalyzer;
         private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
+        private AnalysisMetaData analysisMetaData;
 
         @Inject
-        public AnalyzerDispatcher(Functions functions,
-                                  ReferenceInfos referenceInfos,
-                                  ReferenceResolver referenceResolver,
+        public AnalyzerDispatcher(AnalysisMetaData analysisMetaData,
                                   SelectStatementAnalyzer selectStatementAnalyzer,
                                   InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                                   UpdateStatementAnalyzer updateStatementAnalyzer,
                                   DeleteStatementAnalyzer deleteStatementAnalyzer,
-                                  CopyStatementAnalyzer copyStatementAnalyzer,
                                   DropTableStatementAnalyzer dropTableStatementAnalyzer,
                                   CreateTableStatementAnalyzer createTableStatementAnalyzer,
                                   CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
@@ -93,14 +84,11 @@ public class Analyzer {
                                   AlterBlobTableAnalyzer alterBlobTableAnalyzer,
                                   SetStatementAnalyzer setStatementAnalyzer,
                                   AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer) {
-            this.functions = functions;
-            this.referenceInfos = referenceInfos;
-            this.referenceResolver = referenceResolver;
+            this.analysisMetaData = analysisMetaData;
             this.selectStatementAnalyzer = selectStatementAnalyzer;
             this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
             this.updateStatementAnalyzer = updateStatementAnalyzer;
             this.deleteStatementAnalyzer = deleteStatementAnalyzer;
-            this.copyStatementAnalyzer = copyStatementAnalyzer;
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
             this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
@@ -126,7 +114,7 @@ public class Analyzer {
 
         @Override
         public AbstractStatementAnalyzer visitInsertFromValues(InsertFromValues node, Void context) {
-            return new InsertFromValuesAnalyzer(referenceInfos, functions, referenceResolver);
+            return new InsertFromValuesAnalyzer(analysisMetaData);
         }
 
         @Override
@@ -141,12 +129,12 @@ public class Analyzer {
 
         @Override
         public AbstractStatementAnalyzer visitCopyFromStatement(CopyFromStatement node, Void context) {
-            return copyStatementAnalyzer;
+            return new CopyStatementAnalyzer(analysisMetaData);
         }
 
         @Override
         public AbstractStatementAnalyzer visitCopyTo(CopyTo node, Void context) {
-            return copyStatementAnalyzer;
+            return new CopyStatementAnalyzer(analysisMetaData);
         }
 
         @Override
