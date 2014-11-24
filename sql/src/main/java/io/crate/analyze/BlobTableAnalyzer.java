@@ -22,6 +22,8 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
+import io.crate.analyze.expressions.ExpressionToNumberVisitor;
+import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.core.NumberOfReplicas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;

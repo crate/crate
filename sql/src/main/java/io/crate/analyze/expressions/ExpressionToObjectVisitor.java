@@ -19,14 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.analyze.expressions;
 
 
 import io.crate.sql.tree.*;
 
 import java.util.*;
 
-class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
+public class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
 
     private final static ExpressionToObjectVisitor INSTANCE = new ExpressionToObjectVisitor();
     private ExpressionToObjectVisitor() {}

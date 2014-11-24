@@ -23,6 +23,8 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import io.crate.Constants;
+import io.crate.analyze.expressions.ExpressionToNumberVisitor;
+import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.ReferenceInfos;

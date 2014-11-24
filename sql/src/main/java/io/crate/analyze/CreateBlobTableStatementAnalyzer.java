@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.Constants;
+import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
