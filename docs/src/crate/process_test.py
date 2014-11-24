@@ -124,7 +124,8 @@ class TestGracefulStopPrimaries(GracefulStopTest):
                     (1, "Ford", 2, "Trillian"))
         client1.sql("refresh table t1")
         self.settings({
-            "cluster.graceful_stop.min_availability": "primaries"
+            "cluster.graceful_stop.min_availability": "primaries",
+            "cluster.routing.allocation.enable": "new_primaries"
         })
         os.kill(self.crates[0].process.pid, signal.SIGUSR2)
         self.wait_for_deallocation(self.node_names[0], client2)
@@ -152,7 +153,8 @@ class TestGracefulStopFull(GracefulStopTest):
                     (1, "Ford", 2, "Trillian"))
         client1.sql("refresh table t1")
         self.settings({
-            "cluster.graceful_stop.min_availability": "full"
+            "cluster.graceful_stop.min_availability": "full",
+            "cluster.routing.allocation.enable": "new_primaries"
         })
         os.kill(crate1.process.pid, signal.SIGUSR2)
         self.wait_for_deallocation(self.node_names[0], client2)
@@ -185,7 +187,8 @@ class TestGracefulStopNone(GracefulStopTest):
                         (i, random.choice(names)))
         client1.sql("refresh table t1")
         self.settings({
-            "cluster.graceful_stop.min_availability": "none"
+            "cluster.graceful_stop.min_availability": "none",
+            "cluster.routing.allocation.enable": "none"
         })
 
         os.kill(self.crates[0].process.pid, signal.SIGUSR2)
