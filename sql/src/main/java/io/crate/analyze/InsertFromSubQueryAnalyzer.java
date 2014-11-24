@@ -62,7 +62,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
     }
 
     @Override
-    public Symbol visitInsertFromSubquery(InsertFromSubquery node, InsertFromSubQueryAnalyzedStatement context) {
+    public Void visitInsertFromSubquery(InsertFromSubquery node, InsertFromSubQueryAnalyzedStatement context) {
         node.table().accept(this, context); // table existence check happening here
 
         process(node.subQuery(), context);
@@ -87,8 +87,9 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
     }
 
     @Override
-    protected Symbol visitQuery(Query node, InsertFromSubQueryAnalyzedStatement context) {
-        return subQueryAnalyzer.process(node, (SelectAnalyzedStatement) context.subQueryRelation());
+    protected Void visitQuery(Query node, InsertFromSubQueryAnalyzedStatement context) {
+        subQueryAnalyzer.process(node, (SelectAnalyzedStatement) context.subQueryRelation());
+        return null;
     }
 
     /**
