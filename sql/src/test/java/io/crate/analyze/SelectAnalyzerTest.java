@@ -2005,14 +2005,16 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testEmptyClusteredByValue() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from bystring where name = ''");
-        assertThat(analysis.whereClause().clusteredBy().isPresent(), is(false));
-        assertThat(analysis.ids().isEmpty(), is(true));
+        assertThat(analysis.whereClause().clusteredBy().get(), is(""));
+        assertThat(analysis.ids().size(), is(1));
+        assertThat(analysis.ids().get(0), is(""));
     }
 
     @Test
     public void testClusteredByValueContainsComma() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from bystring where name = 'a,b,c'");
-        assertThat(analysis.whereClause().clusteredBy().isPresent(), is(false));
-        assertThat(analysis.ids().isEmpty(), is(true));
+        assertThat(analysis.whereClause().clusteredBy().get(), is("a,b,c"));
+        assertThat(analysis.ids().size(), is(1));
+        assertThat(analysis.ids().get(0), is("a,b,c"));
     }
 }

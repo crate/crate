@@ -21,8 +21,11 @@
 
 package io.crate.integrationtests;
 
+import io.crate.Constants;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.action.deletebyquery.CrateTransportDeleteByQueryAction;
+import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -163,6 +166,50 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), is(Matchers.arrayContaining("location", "name")));
         assertThat(response.rowCount(), is(1L));
         assertThat(TestingHelpers.printedTable(response.rows()), is("[36.567, 52.998]| ,\n"));
+    }
+
+    @Test
+    public void testDeleteByQueryCommaRouting() throws Exception {
+        execute("create table explicit_routing (" +
+                "  name string," +
+                "  location geo_point" +
+                ") clustered by (name) into 3 shards with (number_of_replicas=0)");
+        ensureGreen();
+        // resolved routings:
+        // A -> 2
+        // W -> 0
+        // A,W, -> 1
+        execute("insert into explicit_routing (name, location) values ('A', [36.567, 52.998]), ('W', [54.45, 4.567])");
+        execute("refresh table explicit_routing");
+
+        // does not delete anything - goes to shard 1
+        execute("delete from explicit_routing where name='A,W,'");
+        assertThat(response.rowCount(), is(-1L));
+        execute("refresh table explicit_routing");
+
+        execute("select * from explicit_routing");
+        assertThat(response.rowCount(), is(2L));
+
+        // deletes no rows - goes to shard 1
+        CrateTransportDeleteByQueryAction action = cluster().getInstance(CrateTransportDeleteByQueryAction.class);
+        action.execute(new DeleteByQueryRequest("explicit_routing")
+                .types(Constants.DEFAULT_MAPPING_TYPE)
+                .source("{\"query\":{\"match_all\":{}}}")
+                .routing("A,W,")).actionGet();
+        execute("refresh table explicit_routing");
+
+        execute("select * from explicit_routing");
+        assertThat(response.rowCount(), is(2L));
+
+        // deletes one row from shard 2
+        action.execute(new DeleteByQueryRequest("explicit_routing")
+                .types(Constants.DEFAULT_MAPPING_TYPE)
+                .source("{\"query\":{\"match_all\":{}}}")
+                .routing("A")).actionGet();
+        execute("refresh table explicit_routing");
+
+        execute("select * from explicit_routing");
+        assertThat(response.rowCount(), is(1L));
     }
 }
 

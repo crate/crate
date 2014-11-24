@@ -19,21 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.core.collections;
+package org.elasticsearch.action.count;
 
-public class ArrayUtils {
+import org.elasticsearch.action.ClientAction;
+import org.elasticsearch.client.Client;
 
-    public static boolean bytesArrayContains(byte[] hayStack, int offset, int length, byte needle) {
-        boolean result = false;
-        int pos = offset;
-        final int limit = pos + length;
-        for (; pos < limit; pos++) {
+public class CrateCountAction extends ClientAction<CountRequest, CountResponse, CountRequestBuilder> {
 
-            if (hayStack[pos] == needle) {
-                result = true;
-                break;
-            }
-        }
-        return result;
+    public static final CrateCountAction INSTANCE = new CrateCountAction();
+    public static final String NAME = "crate:indices:data/read/count";
+
+    private CrateCountAction() {
+        super(NAME);
+    }
+
+    @Override
+    public CountResponse newResponse() {
+        return new CountResponse();
+    }
+
+    @Override
+    public CountRequestBuilder newRequestBuilder(Client client) {
+        return new CountRequestBuilder(client);
     }
 }

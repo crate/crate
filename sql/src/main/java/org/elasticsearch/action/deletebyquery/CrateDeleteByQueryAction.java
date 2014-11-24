@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,42 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dql;
+package org.elasticsearch.action.deletebyquery;
 
-import io.crate.analyze.WhereClause;
-import io.crate.planner.node.PlanVisitor;
-import io.crate.types.DataType;
-import io.crate.types.LongType;
+import org.elasticsearch.action.ClientAction;
+import org.elasticsearch.client.Client;
 
-import java.util.Arrays;
-import java.util.List;
+public class CrateDeleteByQueryAction extends ClientAction<DeleteByQueryRequest, DeleteByQueryResponse, DeleteByQueryRequestBuilder> {
 
-public class ESCountNode extends ESDQLPlanNode {
+    public static final CrateDeleteByQueryAction INSTANCE = new CrateDeleteByQueryAction();
+    public static final String NAME = "crate:indices:data/write/delete/by_query";
 
-    private final List<DataType> outputTypes = Arrays.<DataType>asList(LongType.INSTANCE);
-    private final String[] indices;
-    private final WhereClause whereClause;
-
-    public ESCountNode(String[] indices, WhereClause whereClause) {
-        this.indices = indices;
-        this.whereClause = whereClause;
+    private CrateDeleteByQueryAction() {
+        super(NAME);
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESCountNode(this, context);
-    }
-
-    public String[] indices() {
-        return indices;
-    }
-
-    public WhereClause whereClause() {
-        return whereClause;
+    public DeleteByQueryResponse newResponse() {
+        return new DeleteByQueryResponse();
     }
 
     @Override
-    public List<DataType> outputTypes() {
-        return outputTypes;
+    public DeleteByQueryRequestBuilder newRequestBuilder(Client client) {
+        return new DeleteByQueryRequestBuilder(client);
     }
 }

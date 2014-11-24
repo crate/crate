@@ -867,7 +867,8 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(ESCountNode.class));
 
         ESCountNode node = (ESCountNode)planNode;
-        assertThat(node.tableInfo().ident().name(), is("users"));
+        assertThat(node.indices().length, is(1));
+        assertThat(node.indices()[0], is("users"));
     }
 
     @Test

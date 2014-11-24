@@ -592,7 +592,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 && hasOnlyGlobalCount(analysis.outputSymbols())
                 && !analysis.hasSysExpressions()
                 && !context.indexWriterProjection.isPresent()) {
-            plan.add(new ESCountNode(analysis.table(), analysis.whereClause()));
+            plan.add(new ESCountNode(indices(analysis), analysis.whereClause()));
             return;
         }
         // global aggregate: collect and partial aggregate on C and final agg on H
@@ -1077,7 +1077,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             for (int i = 0; i < analysis.table().partitions().size(); i++) {
                 indices[i] = analysis.table().partitions().get(i).stringValue();
             }
-
         } else {
             indices = analysis.whereClause().partitions().toArray(
                     new String[analysis.whereClause().partitions().size()]);
