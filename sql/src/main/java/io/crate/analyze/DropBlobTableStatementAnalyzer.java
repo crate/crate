@@ -41,7 +41,7 @@ public class DropBlobTableStatementAnalyzer extends BlobTableAnalyzer<DropBlobTa
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public Analysis newAnalysis(ParameterContext parameterContext) {
         return new DropBlobTableAnalysis(parameterContext, referenceInfos);
     }
 }

@@ -20,14 +20,8 @@
  */
 package io.crate.analyze;
 
-import io.crate.planner.symbol.Parameter;
-import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.*;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
-
-import java.util.Locale;
 
 public class Analyzer {
 
@@ -53,92 +47,6 @@ public class Analyzer {
         statement.accept(statementAnalyzer, analysis);
         analysis.normalize();
         return analysis;
-    }
-
-    public static class ParameterContext {
-        final Object[] parameters;
-        final Object[][] bulkParameters;
-        DataType[] bulkTypes;
-
-        private int currentIdx = 0;
-
-        public ParameterContext(Object[] parameters, Object[][] bulkParameters) {
-            this.parameters = parameters;
-            if (bulkParameters.length > 0) {
-                validateBulkParams(bulkParameters);
-            }
-            this.bulkParameters = bulkParameters;
-        }
-
-        private void validateBulkParams(Object[][] bulkParams) {
-            for (Object[] bulkParam : bulkParams) {
-                if (bulkTypes == null) {
-                    initializeBulkTypes(bulkParam);
-                    continue;
-                } else if (bulkParam.length != bulkTypes.length) {
-                    throw new IllegalArgumentException("mixed number of arguments inside bulk arguments");
-                }
-
-                for (int i = 0; i < bulkParam.length; i++) {
-                    Object o = bulkParam[i];
-                    DataType expectedType = bulkTypes[i];
-                    DataType guessedType = guessTypeSafe(o);
-
-                    if (expectedType == DataTypes.UNDEFINED) {
-                        bulkTypes[i] = guessedType;
-                    } else if (o != null && !bulkTypes[i].equals(guessedType)) {
-                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                "argument %d of bulk arguments contains mixed data types", i + 1));
-                    }
-                }
-            }
-        }
-
-        private static DataType guessTypeSafe(Object value) throws IllegalArgumentException {
-            DataType guessedType = DataTypes.guessType(value);
-            if (guessedType == null) {
-                throw new IllegalArgumentException(String.format(
-                        "Got an argument \"%s\" that couldn't be recognized", value));
-            }
-            return guessedType;
-        }
-
-        private void initializeBulkTypes(Object[] bulkParam) {
-            bulkTypes = new DataType[bulkParam.length];
-            for (int i = 0; i < bulkParam.length; i++) {
-                bulkTypes[i] = guessTypeSafe(bulkParam[i]);
-            }
-        }
-
-        public boolean hasBulkParams() {
-            return bulkParameters.length > 0;
-        }
-
-        public void setBulkIdx(int i) {
-            this.currentIdx = i;
-        }
-
-        public Object[] parameters() {
-            if (hasBulkParams()) {
-                return bulkParameters[currentIdx];
-            }
-            return parameters;
-        }
-
-        public Symbol getAsSymbol(int index) {
-            try {
-                if (hasBulkParams()) {
-                    // already did a type guess so it is possible to create a literal directly
-                    return io.crate.planner.symbol.Literal.newLiteral(
-                            bulkTypes[index], bulkParameters[currentIdx][index]);
-                }
-                return new Parameter(parameters[index]);
-            } catch (ArrayIndexOutOfBoundsException e) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "Tried to resolve a parameter but the arguments provided with the " +
-                                "SQLRequest don't contain a parameter at position %d", index), e);
-            }
-        }
     }
 
     public static class AnalyzerDispatcher extends AstVisitor<AbstractStatementAnalyzer, Void> {

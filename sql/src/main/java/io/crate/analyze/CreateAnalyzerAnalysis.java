@@ -49,7 +49,7 @@ public class CreateAnalyzerAnalysis extends AbstractDDLAnalysis {
     private Map<String, Settings> tokenFilters = new HashMap<>();
 
     public CreateAnalyzerAnalysis(FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                  Analyzer.ParameterContext parameterContext) {
+                                  ParameterContext parameterContext) {
         super(parameterContext);
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Parameter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
@@ -47,8 +48,8 @@ public class SubscriptVisitorTest {
     private Object currentParameter;
 
     private SubscriptContext analyzeSubscript(String expressionString) {
-        Analyzer.ParameterContext parameterContext = mock(Analyzer.ParameterContext.class);
-        when(parameterContext.getAsSymbol(anyInt())).thenReturn(new Parameter(currentParameter));
+        ParameterContext parameterContext = mock(ParameterContext.class);
+        when(parameterContext.getAsSymbol(anyInt())).thenReturn(Literal.toLiteral(new Parameter(currentParameter)));
         SubscriptContext context = new SubscriptContext(parameterContext);
         Expression expression = SqlParser.createExpression(expressionString);
         expression.accept(visitor, context);

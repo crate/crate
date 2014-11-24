@@ -49,7 +49,7 @@ public class UpdateAnalysis extends Analysis {
 
     public UpdateAnalysis(ReferenceInfos referenceInfos,
                           Functions functions,
-                          Analyzer.ParameterContext parameterContext,
+                          ParameterContext parameterContext,
                           ReferenceResolver referenceResolver) {
         super(parameterContext);
         int numNested = 1;
@@ -108,7 +108,7 @@ public class UpdateAnalysis extends Analysis {
 
         public NestedAnalysis(ReferenceInfos referenceInfos,
                               Functions functions,
-                              Analyzer.ParameterContext parameterContext,
+                              ParameterContext parameterContext,
                               ReferenceResolver referenceResolver) {
             super(referenceInfos, functions, parameterContext, referenceResolver);
         }

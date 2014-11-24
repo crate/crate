@@ -54,7 +54,7 @@ public abstract class AbstractStatementAnalyzer<R extends Object, T extends Anal
         }
     }
 
-    public abstract Analysis newAnalysis(Analyzer.ParameterContext parameterContext);
+    public abstract Analysis newAnalysis(ParameterContext parameterContext);
 
     @Override
     protected R visitTable(Table node, T context) {

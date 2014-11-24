@@ -45,7 +45,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     public CreateTableAnalysis(ReferenceInfos referenceInfos,
                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                               Analyzer.ParameterContext parameterContext) {
+                               ParameterContext parameterContext) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;

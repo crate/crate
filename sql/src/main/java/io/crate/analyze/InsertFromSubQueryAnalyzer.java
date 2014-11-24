@@ -150,7 +150,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public Analysis newAnalysis(ParameterContext parameterContext) {
         return new InsertFromSubQueryAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

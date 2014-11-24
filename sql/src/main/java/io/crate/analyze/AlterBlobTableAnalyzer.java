@@ -53,7 +53,7 @@ public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnal
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public Analysis newAnalysis(ParameterContext parameterContext) {
         return new AlterBlobTableAnalysis(parameterContext, referenceInfos);
     }
 }

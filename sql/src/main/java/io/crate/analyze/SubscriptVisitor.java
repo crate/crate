@@ -24,7 +24,9 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
+import org.apache.lucene.util.BytesRef;
 
 import java.util.Locale;
 import java.util.Set;
@@ -82,11 +84,13 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
     @Override
     public Void visitParameterExpression(ParameterExpression node, SubscriptContext context) {
         validateNestedArrayAccess(context);
-        Parameter parameterSymbol = (Parameter)context.parameterContext().getAsSymbol(node.index());
-        if (parameterSymbol.value() instanceof Number) {
-            context.index(((Number) parameterSymbol.value()).intValue());
-        } else if (parameterSymbol.value() instanceof String) {
-            context.add((String)parameterSymbol.value());
+        Object value = context.parameterContext().getAsSymbol(node.index()).value();
+        if (value instanceof Number) {
+            context.index(((Number) value).intValue());
+        } else if (value instanceof String) {
+            context.add((String) value);
+        } else if (value instanceof BytesRef) {
+            context.add(((BytesRef)value).utf8ToString());
         } else {
             throw new IllegalArgumentException("Illegal subscript parameter value");
         }
