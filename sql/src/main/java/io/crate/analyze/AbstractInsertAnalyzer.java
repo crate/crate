@@ -22,15 +22,17 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.Table;
 
 import java.util.ArrayList;
 
-public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalyzedStatement> extends AbstractStatementAnalyzer<Symbol, T> {
+public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalyzedStatement> extends AbstractStatementAnalyzer<Void, T> {
 
     protected void handleInsertColumns(Insert node, int maxInsertValues, T context) {
         // allocate columnsLists
@@ -73,7 +75,7 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalyzedSta
     }
 
     @Override
-    protected Symbol visitTable(Table node, T context) {
+    protected Void visitTable(Table node, T context) {
         Preconditions.checkState(context.table() == null, "inserting into multiple tables is not supported");
 
         context.editableTable(TableIdent.of(node));
