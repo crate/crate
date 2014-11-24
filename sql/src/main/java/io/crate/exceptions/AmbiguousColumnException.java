@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,30 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.exceptions;
 
-public enum SymbolType {
+import io.crate.metadata.ColumnIdent;
 
-    AGGREGATION(Aggregation.FACTORY),
-    REFERENCE(Reference.FACTORY),
-    RELATION_OUTPUT(RelationOutput.FACTORY),
-    FUNCTION(Function.FACTORY),
-    LITERAL(Literal.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY),
-    DYNAMIC_REFERENCE(DynamicReference.FACTORY),
-    VALUE(Value.FACTORY);
+public class AmbiguousColumnException extends ValidationException {
 
-    private final Symbol.SymbolFactory factory;
-
-    SymbolType(Symbol.SymbolFactory factory) {
-        this.factory = factory;
-    }
-
-    public Symbol newInstance() {
-        return factory.newInstance();
-    }
-
-    public boolean isValueSymbol() {
-        return ordinal() == LITERAL.ordinal();
+    public AmbiguousColumnException(ColumnIdent columnIdent) {
+        super(String.format("Column \"%s\" is ambiguous", columnIdent.sqlFqn()));
     }
 }

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,30 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.analyze;
 
-public enum SymbolType {
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
 
-    AGGREGATION(Aggregation.FACTORY),
-    REFERENCE(Reference.FACTORY),
-    RELATION_OUTPUT(RelationOutput.FACTORY),
-    FUNCTION(Function.FACTORY),
-    LITERAL(Literal.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY),
-    DYNAMIC_REFERENCE(DynamicReference.FACTORY),
-    VALUE(Value.FACTORY);
+public class AnalysisMetaData {
 
-    private final Symbol.SymbolFactory factory;
+    private final Functions functions;
+    private final ReferenceInfos referenceInfos;
+    private final ReferenceResolver referenceResolver;
 
-    SymbolType(Symbol.SymbolFactory factory) {
-        this.factory = factory;
+    public AnalysisMetaData(Functions functions,
+                            ReferenceInfos referenceInfos,
+                            ReferenceResolver referenceResolver) {
+        this.functions = functions;
+        this.referenceInfos = referenceInfos;
+        this.referenceResolver = referenceResolver;
     }
 
-    public Symbol newInstance() {
-        return factory.newInstance();
+    public Functions functions() {
+        return functions;
     }
 
-    public boolean isValueSymbol() {
-        return ordinal() == LITERAL.ordinal();
+    public ReferenceInfos referenceInfos() {
+        return referenceInfos;
+    }
+
+    public ReferenceResolver referenceResolver() {
+        return referenceResolver;
     }
 }

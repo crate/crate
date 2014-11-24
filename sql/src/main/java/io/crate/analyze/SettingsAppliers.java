@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Joiner;
+import io.crate.analyze.expressions.*;
 import io.crate.metadata.settings.*;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ObjectLiteral;
