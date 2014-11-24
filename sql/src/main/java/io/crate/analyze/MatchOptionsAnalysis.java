@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 

@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.analyze.expressions;
 
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;

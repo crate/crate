@@ -21,6 +21,11 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
@@ -28,33 +33,32 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.InsertFromValues;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.ValuesList;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.text.BytesText;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromValuesAnalyzedStatement> {
 
     private final ReferenceInfos referenceInfos;
     private final Functions functions;
     private final ReferenceResolver globalReferenceResolver;
+    private ExpressionAnalyzer expressionAnalyzer;
+    private ExpressionAnalysisContext expressionAnalysisContext;
 
-    @Inject
     public InsertFromValuesAnalyzer(ReferenceInfos referenceInfos,
                                     Functions functions,
                                     ReferenceResolver globalReferenceResolver) {
@@ -66,6 +70,15 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
     @Override
     public Symbol visitInsertFromValues(InsertFromValues node, InsertFromValuesAnalyzedStatement context) {
         node.table().accept(this, context);
+        TableInfo table = context.table();
+        expressionAnalyzer = new ExpressionAnalyzer(
+                new AnalysisMetaData(functions, referenceInfos, globalReferenceResolver),
+                context.parameterContext(),
+                ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+                        new QualifiedName(Arrays.asList(table.schemaInfo().name(), table.ident().name())),
+                        new TableRelation(table))
+        );
+        expressionAnalysisContext = new ExpressionAnalysisContext();
 
         handleInsertColumns(node, node.maxValuesLength(), context);
 
@@ -112,7 +125,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
 
         for (int i = 0, valuesSize = values.size(); i < valuesSize; i++) {
             Expression expression = values.get(i);
-            Symbol valuesSymbol = process(expression, context);
+            Symbol valuesSymbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
 
             // implicit type conversion
             Reference column = context.columns().get(i);
