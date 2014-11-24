@@ -124,8 +124,7 @@ class TestGracefulStopPrimaries(GracefulStopTest):
                     (1, "Ford", 2, "Trillian"))
         client1.sql("refresh table t1")
         self.settings({
-            "cluster.graceful_stop.min_availability": "primaries",
-            "cluster.routing.allocation.enable": "new_primaries"
+            "cluster.graceful_stop.min_availability": "primaries"
         })
         os.kill(self.crates[0].process.pid, signal.SIGUSR2)
         self.wait_for_deallocation(self.node_names[0], client2)
@@ -153,8 +152,7 @@ class TestGracefulStopFull(GracefulStopTest):
                     (1, "Ford", 2, "Trillian"))
         client1.sql("refresh table t1")
         self.settings({
-            "cluster.graceful_stop.min_availability": "full",
-            "cluster.routing.allocation.enable": "new_primaries"
+            "cluster.graceful_stop.min_availability": "full"
         })
         os.kill(crate1.process.pid, signal.SIGUSR2)
         self.wait_for_deallocation(self.node_names[0], client2)
@@ -187,13 +185,12 @@ class TestGracefulStopNone(GracefulStopTest):
                         (i, random.choice(names)))
         client1.sql("refresh table t1")
         self.settings({
-            "cluster.graceful_stop.min_availability": "none",
-            "cluster.routing.allocation.enable": "none"
+            "cluster.graceful_stop.min_availability": "none"
         })
 
         os.kill(self.crates[0].process.pid, signal.SIGUSR2)
         self.wait_for_deallocation(self.node_names[0], client2)
-        time.sleep(1)  # wait some time for discovery to kick in
+        time.sleep(5)  # wait some time for discovery to kick in
         response = client2.sql("select sys.nodes.id as node_id, id, state from sys.shards "
                                "where state='UNASSIGNED'")
 
@@ -203,5 +200,3 @@ class TestGracefulStopNone(GracefulStopTest):
             unassigned_shards > 0,
             "{0} unassigned shards, expected more than 0".format(unassigned_shards)
         )
-
-
