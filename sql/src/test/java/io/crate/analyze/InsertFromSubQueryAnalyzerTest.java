@@ -77,13 +77,16 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         return modules;
     }
 
-    private void assertCompatibleColumns(InsertFromSubQueryAnalyzedStatement analysis) {
-        assertThat(analysis.columns().size(), is(analysis.getSubQueryColumns().size()));
+    private void assertCompatibleColumns(InsertFromSubQueryAnalyzedStatement statement) {
 
-        for (int i = 0; i < analysis.columns().size(); i++) {
-            assertThat(analysis.getSubQueryColumns().get(i), instanceOf(Symbol.class));
-            Symbol subQueryColumn = analysis.getSubQueryColumns().get(i);
-            Reference insertColumn = analysis.columns().get(i);
+        SelectAnalyzedStatement selectAnalyzedStatement = (SelectAnalyzedStatement) statement.subQueryRelation();
+        List<Symbol> outputSymbols = selectAnalyzedStatement.outputSymbols();
+        assertThat(statement.columns().size(), is(outputSymbols.size()));
+
+        for (int i = 0; i < statement.columns().size(); i++) {
+            Symbol subQueryColumn = outputSymbols.get(i);
+            assertThat(subQueryColumn, instanceOf(Symbol.class));
+            Reference insertColumn = statement.columns().get(i);
             assertThat(
                     subQueryColumn.valueType().isConvertableTo(insertColumn.valueType()),
                     is(true)
@@ -171,15 +174,17 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testImplicitTypeCasting() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
+        InsertFromSubQueryAnalyzedStatement statement = (InsertFromSubQueryAnalyzedStatement)
                 analyze("insert into users (id, name) (" +
                         "  select id, other_id from users " +
                         "  where name = 'Trillian'" +
                         ")");
 
-        assertThat(analysis.columns().size(), is(analysis.getSubQueryColumns().size()));
-        assertThat(analysis.getSubQueryColumns().get(1), instanceOf(Function.class));
-        Function castFunction = (Function)analysis.getSubQueryColumns().get(1);
+
+        List<Symbol> outputSymbols = ((SelectAnalyzedStatement) statement.subQueryRelation()).outputSymbols();
+        assertThat(statement.columns().size(), is(outputSymbols.size()));
+        assertThat(outputSymbols.get(1), instanceOf(Function.class));
+        Function castFunction = (Function)outputSymbols.get(1);
         assertThat(castFunction.info().ident().name(), is(ToStringFunction.NAME));
     }
 }

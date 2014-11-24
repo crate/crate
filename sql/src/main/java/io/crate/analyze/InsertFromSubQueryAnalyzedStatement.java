@@ -21,16 +21,14 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.planner.symbol.Symbol;
-
-import java.util.List;
 
 public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedStatement {
 
-    private final SelectAnalyzedStatement subQueryAnalysis;
+    private final AnalyzedRelation subQueryAnalysis;
 
     public InsertFromSubQueryAnalyzedStatement(ReferenceInfos referenceInfos,
                                                Functions functions,
@@ -40,12 +38,8 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
         this.subQueryAnalysis = new SelectAnalyzedStatement(referenceInfos, functions, parameterContext, referenceResolver);
     }
 
-    public SelectAnalyzedStatement subQueryAnalysis() {
+    public AnalyzedRelation subQueryRelation() {
         return this.subQueryAnalysis;
-    }
-
-    public List<Symbol> getSubQueryColumns() {
-       return  this.subQueryAnalysis.outputSymbols();
     }
 
     @Override

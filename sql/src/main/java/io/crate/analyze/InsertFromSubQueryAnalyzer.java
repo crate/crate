@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -40,11 +42,13 @@ import java.util.Locale;
 
 public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFromSubQueryAnalyzedStatement> {
 
-
     private final SelectStatementAnalyzer subQueryAnalyzer;
     private final Functions functions;
     private final ReferenceInfos referenceInfos;
     private final ReferenceResolver globalReferenceResolver;
+
+    private final SelectAnalyzedStatementRelationVisitor relationVisitor = new SelectAnalyzedStatementRelationVisitor();
+
 
     @Inject
     public InsertFromSubQueryAnalyzer(SelectStatementAnalyzer selectStatementAnalyzer,
@@ -63,33 +67,37 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
 
         process(node.subQuery(), context);
 
+        Context relationCtx = new Context();
+        relationVisitor.process(context.subQueryRelation(), relationCtx);
+        SelectAnalyzedStatement selectAnalyzedStatement = relationCtx.selectAnalyzedStatement;
+
         // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
-        if (context.subQueryAnalysis().isLimited() || context.subQueryAnalysis().orderBy().isSorted()) {
+        if (selectAnalyzedStatement.isLimited() || selectAnalyzedStatement.orderBy().isSorted()) {
             throw new UnsupportedFeatureException("Using limit, offset or order by is not" +
                     "supported on insert using a sub-query");
         }
 
         int numInsertColumns = node.columns().size() == 0 ? context.table().columns().size() : node.columns().size();
-        int maxInsertValues = Math.max(numInsertColumns, context.getSubQueryColumns().size());
+        int maxInsertValues = Math.max(numInsertColumns, selectAnalyzedStatement.outputSymbols().size());
         handleInsertColumns(node, maxInsertValues, context);
 
-        validateMatchingColumns(node, context);
+        validateMatchingColumns(context, selectAnalyzedStatement);
 
         return null;
     }
 
     @Override
     protected Symbol visitQuery(Query node, InsertFromSubQueryAnalyzedStatement context) {
-        return subQueryAnalyzer.process(node, context.subQueryAnalysis());
+        return subQueryAnalyzer.process(node, (SelectAnalyzedStatement) context.subQueryRelation());
     }
 
     /**
      * validate that result columns from subquery match explicit insert columns
      * or complete table schema
      */
-    private void validateMatchingColumns(InsertFromSubquery node, InsertFromSubQueryAnalyzedStatement context) {
+    private void validateMatchingColumns(InsertFromSubQueryAnalyzedStatement context, SelectAnalyzedStatement selectAnalyzedStatement) {
         List<Reference> insertColumns = context.columns();
-        List<Symbol> subQueryColumns = context.getSubQueryColumns();
+        List<Symbol> subQueryColumns = selectAnalyzedStatement.outputSymbols();
 
         if (insertColumns.size() != subQueryColumns.size()) {
             throw new IllegalArgumentException("Number of columns in insert statement and subquery differ");
@@ -122,17 +130,11 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
                     // replace column by `toX` function
                     FunctionInfo functionInfo = CastFunctionResolver.functionInfo(subQueryColumnType, insertColumn.valueType());
                     Function function = context.allocateFunction(functionInfo, Arrays.asList(subQueryColumn));
-                    if (context.subQueryAnalysis().hasGroupBy()) {
-                        int groupByIdx = context.subQueryAnalysis().groupBy().indexOf(subQueryColumn);
-                        if (groupByIdx != -1) {
-                            context.subQueryAnalysis().groupBy().set(groupByIdx, function);
-                        }
+                    if (selectAnalyzedStatement.hasGroupBy()) {
+                        replaceIfPresent(selectAnalyzedStatement.groupBy(), subQueryColumn, function);
                     }
-                    if (context.subQueryAnalysis().orderBy().isSorted()) {
-                        int sortSymbolIdx = context.subQueryAnalysis().orderBy().orderBySymbols().indexOf(subQueryColumn);
-                        if (sortSymbolIdx != -1) {
-                            context.subQueryAnalysis().orderBy().orderBySymbols().set(sortSymbolIdx, function);
-                        }
+                    if (selectAnalyzedStatement.orderBy().isSorted()) {
+                        replaceIfPresent(selectAnalyzedStatement.orderBy().orderBySymbols(), subQueryColumn, function);
                     }
                     subQueryColumns.set(idx, function);
                 }
@@ -142,8 +144,35 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer<InsertFro
         // congrats! valid statement
     }
 
+    private void replaceIfPresent(List<Symbol> symbols, Symbol oldSymbol, Symbol newSymbol) {
+        assert symbols != null : "symbols must not be null";
+        int i = symbols.indexOf(oldSymbol);
+        if (i != -1) {
+            symbols.set(i, newSymbol);
+        }
+    }
+
     @Override
     public AnalyzedStatement newAnalysis(Analyzer.ParameterContext parameterContext) {
         return new InsertFromSubQueryAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
+    }
+
+    private static class Context {
+        SelectAnalyzedStatement selectAnalyzedStatement;
+    }
+
+    private static class SelectAnalyzedStatementRelationVisitor extends RelationVisitor<Context, Void> {
+
+        @Override
+        public Void visitSelectAnalyzedStatement(SelectAnalyzedStatement selectAnalyzedStatement, Context context) {
+            context.selectAnalyzedStatement = selectAnalyzedStatement;
+            return null;
+        }
+
+        @Override
+        public Void visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
+            throw new UnsupportedOperationException(String.format(
+                    "relation \"%s\" is not supported in the query part of INSERT BY QUERY", relation));
+        }
     }
 }

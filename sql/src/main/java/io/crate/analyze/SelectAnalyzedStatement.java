@@ -23,6 +23,8 @@ package io.crate.analyze;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
@@ -37,7 +39,7 @@ import java.util.List;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
-public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement {
+public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement implements AnalyzedRelation {
 
     private Integer limit;
     private int offset = 0;
@@ -164,5 +166,10 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
     public OrderBy orderBy() {
         return orderBy;
+    }
+
+    @Override
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+        return visitor.visitSelectAnalyzedStatement(this, context);
     }
 }

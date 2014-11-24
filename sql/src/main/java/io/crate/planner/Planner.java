@@ -31,6 +31,8 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.analyze.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -70,6 +72,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
     static final PlannerReferenceExtractor referenceExtractor = new PlannerReferenceExtractor();
 
+    private final RelationPlanner relationPlanner = new RelationPlanner();
     private final ClusterService clusterService;
     private AggregationProjection localMergeProjection;
 
@@ -110,32 +113,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    protected Plan visitSelectStatement(SelectAnalyzedStatement analysis, Context context) {
-        Plan plan = new Plan();
-        if (analysis.hasGroupBy()) {
-            groupBy(analysis, plan, context);
-        } else if (analysis.hasAggregates()) {
-            globalAggregates(analysis, plan, context);
-        } else {
-
-            WhereClause whereClause = analysis.whereClause();
-            if (!context.indexWriterProjection.isPresent()
-                && analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
-                    analysis.table().getRouting(whereClause).hasLocations() &&
-                    analysis.table().schemaInfo().name().equals(DocSchemaInfo.NAME)) {
-
-                    if (analysis.ids().size() > 0
-                            && analysis.routingValues().size() > 0
-                            && !analysis.table().isAlias()) {
-                        ESGet(analysis, plan, context);
-                    } else {
-                        queryThenFetch(analysis, plan, context);
-                    }
-            } else {
-                normalSelect(analysis, plan, context);
-            }
-        }
-        return plan;
+    protected Plan visitSelectStatement(SelectAnalyzedStatement statement, Context context) {
+        return relationPlanner.process(statement, context);
     }
 
     @Override
@@ -169,10 +148,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 ImmutableSettings.EMPTY, // TODO: define reasonable writersettings
                 analysis.table().isPartitioned()
         );
-
-        SelectAnalyzedStatement subQueryAnalysis = analysis.subQueryAnalysis();
-        Plan plan = visitSelectStatement(subQueryAnalysis, new Context(indexWriterProjection));
-        return plan;
+        return relationPlanner.process(analysis.subQueryRelation(), new Context(indexWriterProjection));
     }
 
     @Override
@@ -1099,5 +1075,42 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             );
         }
         return localMergeProjection;
+    }
+
+    private class RelationPlanner extends RelationVisitor<Context, Plan> {
+
+        @Override
+        public Plan visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
+            Plan plan = new Plan();
+            if (statement.hasGroupBy()) {
+                groupBy(statement, plan, context);
+            } else if (statement.hasAggregates()) {
+                globalAggregates(statement, plan, context);
+            } else {
+
+                WhereClause whereClause = statement.whereClause();
+                if (!context.indexWriterProjection.isPresent()
+                        && statement.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
+                        statement.table().getRouting(whereClause).hasLocations() &&
+                        statement.table().schemaInfo().name().equals(DocSchemaInfo.NAME)) {
+
+                    if (statement.ids().size() > 0
+                            && statement.routingValues().size() > 0
+                            && !statement.table().isAlias()) {
+                        ESGet(statement, plan, context);
+                    } else {
+                        queryThenFetch(statement, plan, context);
+                    }
+                } else {
+                    normalSelect(statement, plan, context);
+                }
+            }
+            return plan;
+        }
+
+        @Override
+        public Plan visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
+            throw new UnsupportedOperationException(String.format("relation \"%s\" can't be planned", relation));
+        }
     }
 }
