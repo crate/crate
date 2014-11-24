@@ -19,68 +19,67 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.analyze.expressions;
 
 import io.crate.sql.tree.*;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.Locale;
 
-public class ExpressionToByteSizeValueVisitor extends AstVisitor<ByteSizeValue, Object[]> {
+public class ExpressionToTimeValueVisitor extends AstVisitor<TimeValue, Object[]> {
 
-    public static final ByteSizeValue DEFAULT_VALUE = new ByteSizeValue(0);
-    private static final ExpressionToByteSizeValueVisitor INSTANCE = new ExpressionToByteSizeValueVisitor();
+    public static final TimeValue DEFAULT_VALUE = new TimeValue(0);
+    private static final ExpressionToTimeValueVisitor INSTANCE = new ExpressionToTimeValueVisitor();
 
-    private ExpressionToByteSizeValueVisitor() {}
+    private ExpressionToTimeValueVisitor() {}
 
-    public static ByteSizeValue convert(Node node, Object[] parameters) {
+    public static TimeValue convert(Node node, Object[] parameters) {
         return INSTANCE.process(node, parameters);
     }
 
     @Override
-    protected ByteSizeValue visitStringLiteral(StringLiteral node, Object[] context) {
+    protected TimeValue visitStringLiteral(StringLiteral node, Object[] context) {
         try {
-            return ByteSizeValue.parseBytesSizeValue(node.getValue(), DEFAULT_VALUE);
+            return TimeValue.parseTimeValue(node.getValue(), DEFAULT_VALUE);
         } catch (ElasticsearchParseException e) {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid byte size value '%s'", node.getValue()));
+                    String.format(Locale.ENGLISH, "Invalid time value '%s'", node.getValue()));
         }
     }
 
     @Override
-    protected ByteSizeValue visitLongLiteral(LongLiteral node, Object[] context) {
-        return new ByteSizeValue(node.getValue());
+    protected TimeValue visitLongLiteral(LongLiteral node, Object[] context) {
+        return new TimeValue(node.getValue());
     }
 
     @Override
-    protected ByteSizeValue visitDoubleLiteral(DoubleLiteral node, Object[] context) {
-        return new ByteSizeValue(((Double) node.getValue()).longValue());
+    protected TimeValue visitDoubleLiteral(DoubleLiteral node, Object[] context) {
+        return new TimeValue((long) node.getValue());
     }
 
     @Override
-    public ByteSizeValue visitParameterExpression(ParameterExpression node, Object[] context) {
-        ByteSizeValue byteSizeValue;
+    public TimeValue visitParameterExpression(ParameterExpression node, Object[] context) {
+        TimeValue timeValue;
         Object param = context[node.index()];
         if (param instanceof Number) {
-            byteSizeValue = new ByteSizeValue(((Number) param).longValue());
+            timeValue = new TimeValue(((Number) param).longValue());
         } else if (param instanceof String) {
             try {
-                byteSizeValue = ByteSizeValue.parseBytesSizeValue((String) param, DEFAULT_VALUE);
+                timeValue = TimeValue.parseTimeValue((String) param, DEFAULT_VALUE);
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Invalid byte size value '%s'", param));
+                        String.format(Locale.ENGLISH, "Invalid time value '%s'", param));
             }
         } else {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid byte size value %s", param));
+                    String.format(Locale.ENGLISH, "Invalid time value %s", param));
         }
-        return byteSizeValue;
+        return timeValue;
     }
 
     @Override
-    protected ByteSizeValue visitNode(Node node, Object[] context) {
-        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid byte size value %s", node));
+    protected TimeValue visitNode(Node node, Object[] context) {
+        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid time value %s", node));
     }
-
 }

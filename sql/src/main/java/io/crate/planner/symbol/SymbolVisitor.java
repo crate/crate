@@ -61,5 +61,9 @@ public class SymbolVisitor<C, R> {
     public R visitValue(Value symbol, C context) {
         return visitSymbol(symbol, context);
     }
+
+    public R visitRelationOutput(RelationOutput relationOutput, C context) {
+        return visitSymbol(relationOutput, context);
+    }
 }
 
