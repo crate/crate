@@ -326,7 +326,7 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public Analysis newAnalysis(ParameterContext parameterContext) {
         return new SelectAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 

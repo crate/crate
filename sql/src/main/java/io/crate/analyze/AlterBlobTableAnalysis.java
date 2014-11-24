@@ -34,7 +34,7 @@ public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
     private TableInfo tableInfo;
     private SchemaInfo schemaInfo;
 
-    public AlterBlobTableAnalysis(Analyzer.ParameterContext parameterContext, ReferenceInfos referenceInfos) {
+    public AlterBlobTableAnalysis(ParameterContext parameterContext, ReferenceInfos referenceInfos) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
     }

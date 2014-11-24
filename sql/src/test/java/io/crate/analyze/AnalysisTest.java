@@ -135,7 +135,7 @@ public class AnalysisTest {
         SelectAnalysis analysis = new SelectAnalysis(
                 referenceInfos,
                 functions,
-                new Analyzer.ParameterContext(new Object[0], new Object[0][]),
+                new ParameterContext(new Object[0], new Object[0][]),
                 resolver);
         analysis.table(TEST_TABLE_IDENT);
         return analysis;

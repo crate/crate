@@ -40,10 +40,12 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.omg.PortableInterceptor.AdapterNameHelper;
 
 import java.util.*;
 
@@ -606,12 +608,52 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithBulkArgsNullValues() throws Exception {
-        // this test verifies that the validation is okay - so if no exception is thrown this test passes
-        analyze("insert into users (id, name) values (?, ?)",
+        InsertFromValuesAnalysis analysis;
+        analysis = (InsertFromValuesAnalysis) analyze("insert into users (id, name) values (?, ?)",
                 new Object[][] {
                         new Object[] { 10, "foo" },
                         new Object[] { 11, null }
                 });
+
+        assertThat(analysis.sourceMaps().size(), is(2));
+        Map<String, Object> args1 = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
+        assertEquals(args1.get("name"), "foo");
+        Map<String, Object> args2 = XContentHelper.convertToMap(analysis.sourceMaps().get(1), false).v2();
+        assertEquals(args2.get("name"), null);
+    }
+
+    @Test
+    public void testInsertWithBulkArgsNullValuesFirst() throws Exception {
+        InsertFromValuesAnalysis analysis;
+        analysis = (InsertFromValuesAnalysis) analyze("insert into users (id, name) values (?, ?)",
+                new Object[][] {
+                        new Object[] { 12, null },
+                        new Object[] { 13, "foo" },
+                });
+
+        assertThat(analysis.sourceMaps().size(), is(2));
+        Map<String, Object> args1 = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
+        assertEquals(args1.get("name"), null);
+        Map<String, Object> args2 = XContentHelper.convertToMap(analysis.sourceMaps().get(1), false).v2();
+        assertEquals(args2.get("name"), "foo");
+    }
+
+    @Test
+    public void testInsertWithBulkArgsArrayNullValuesFirst() throws Exception {
+        InsertFromValuesAnalysis analysis;
+        analysis = (InsertFromValuesAnalysis) analyze("insert into users (id, new_col) values (?, ?)",
+                        new Object[] { 12, new String[]{ null }  });
+        analysis = (InsertFromValuesAnalysis) analyze("insert into users (id, new_col) values (?, ?)",
+                new Object[][] {
+                        new Object[] { 12, new String[]{ null }  },
+                        new Object[] { 13, new String[]{ "foo" } },
+                });
+
+        assertThat(analysis.sourceMaps().size(), is(2));
+        Map<String, Object> args1 = XContentHelper.convertToMap(analysis.sourceMaps().get(0), false).v2();
+        assertEquals(args1.get("new_col"), new ArrayList<String>(){{ add(null); }});
+        Map<String, Object> args2 = XContentHelper.convertToMap(analysis.sourceMaps().get(1), false).v2();
+        assertEquals(args2.get("new_col"), new ArrayList<String>(){{ add("foo"); }});
     }
 
     @Test

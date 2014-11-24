@@ -74,7 +74,7 @@ public class SetStatementAnalyzer extends AbstractStatementAnalyzer<Void, SetAna
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public Analysis newAnalysis(ParameterContext parameterContext) {
         return new SetAnalysis(parameterContext);
     }
 }

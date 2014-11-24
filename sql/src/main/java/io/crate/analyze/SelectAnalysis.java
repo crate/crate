@@ -60,7 +60,7 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     }
 
     public SelectAnalysis(ReferenceInfos referenceInfos, Functions functions,
-                          Analyzer.ParameterContext parameterContext, ReferenceResolver referenceResolver) {
+                          ParameterContext parameterContext, ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }
 

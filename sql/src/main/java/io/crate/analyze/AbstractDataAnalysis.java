@@ -82,7 +82,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     public AbstractDataAnalysis(ReferenceInfos referenceInfos,
                                 Functions functions,
-                                Analyzer.ParameterContext parameterContext,
+                                ParameterContext parameterContext,
                                 ReferenceResolver referenceResolver) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;

@@ -36,7 +36,7 @@ public class SetAnalysis extends Analysis {
     private boolean persistent = false;
     private boolean isReset = false;
 
-    protected SetAnalysis(Analyzer.ParameterContext parameterContext) {
+    protected SetAnalysis(ParameterContext parameterContext) {
         super(parameterContext);
     }
 

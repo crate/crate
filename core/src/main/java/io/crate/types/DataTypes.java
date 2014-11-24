@@ -224,7 +224,7 @@ public class DataTypes {
             previous = current;
         }
 
-        if (innerTypes.size() > 0 && current == null) {
+        if (innerTypes.isEmpty() || (innerTypes.size() > 0 && current == null)) {
             return new ArrayType(UNDEFINED);
         } else {
             return new ArrayType(current);

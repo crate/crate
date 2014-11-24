@@ -84,7 +84,7 @@ public class AlterTableAnalyzer extends AbstractStatementAnalyzer<Void, AlterTab
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public Analysis newAnalysis(ParameterContext parameterContext) {
         return new AlterTableAnalysis(parameterContext, referenceInfos);
     }
 }

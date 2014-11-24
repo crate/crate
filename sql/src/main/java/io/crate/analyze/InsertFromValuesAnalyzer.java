@@ -219,7 +219,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public Analysis newAnalysis(ParameterContext parameterContext) {
         return new InsertFromValuesAnalysis(referenceInfos, functions, parameterContext, globalReferenceResolver);
     }
 }

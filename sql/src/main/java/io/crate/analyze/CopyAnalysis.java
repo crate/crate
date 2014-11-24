@@ -47,7 +47,7 @@ public class CopyAnalysis extends AbstractDataAnalysis {
 
     public CopyAnalysis(ReferenceInfos referenceInfos,
                         Functions functions,
-                        Analyzer.ParameterContext parameterContext,
+                        ParameterContext parameterContext,
                         ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }

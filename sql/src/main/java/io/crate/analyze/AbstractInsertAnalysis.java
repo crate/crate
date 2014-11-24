@@ -42,7 +42,7 @@ public abstract class AbstractInsertAnalysis extends AbstractDataAnalysis {
 
     public AbstractInsertAnalysis(ReferenceInfos referenceInfos,
                                   Functions functions,
-                                  Analyzer.ParameterContext parameterContext,
+                                  ParameterContext parameterContext,
                                   ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameterContext, referenceResolver);
     }

@@ -44,7 +44,7 @@ public class AlterTableAddColumnAnalyzer extends AbstractStatementAnalyzer<Void,
     }
 
     @Override
-    public Analysis newAnalysis(Analyzer.ParameterContext parameterContext) {
+    public Analysis newAnalysis(ParameterContext parameterContext) {
         return new AddColumnAnalysis(referenceInfos, fulltextAnalyzerResolver, parameterContext);
     }
 

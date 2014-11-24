@@ -33,7 +33,7 @@ public class CreateBlobTableAnalysis extends AbstractDDLAnalysis {
 
     private Settings builtSettings;
 
-    public CreateBlobTableAnalysis(Analyzer.ParameterContext parameterContext) {
+    public CreateBlobTableAnalysis(ParameterContext parameterContext) {
         super(parameterContext);
     }
 

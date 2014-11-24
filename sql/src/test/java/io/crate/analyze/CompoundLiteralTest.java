@@ -71,7 +71,7 @@ public class CompoundLiteralTest extends BaseAnalyzerTest {
             injector.getInstance(ReferenceResolver.class)
         );
         SelectAnalysis analysis = (SelectAnalysis) analyzer.newAnalysis(
-                new Analyzer.ParameterContext(params, new Object[0][]));
+                new ParameterContext(params, new Object[0][]));
         return SqlParser.createExpression(expression).accept(analyzer, analysis);
 
     }

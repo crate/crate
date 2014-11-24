@@ -41,7 +41,7 @@ public class RefreshTableAnalysis extends AbstractDDLAnalysis {
     private PartitionName partitionName;
 
     protected RefreshTableAnalysis(ReferenceInfos referenceInfos,
-                                   Analyzer.ParameterContext parameterContext) {
+                                   ParameterContext parameterContext) {
         super(parameterContext);
         this.referenceInfos = referenceInfos;
     }
