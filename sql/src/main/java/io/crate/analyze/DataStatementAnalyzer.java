@@ -25,6 +25,9 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import io.crate.PartitionName;
+import io.crate.analyze.expressions.ExpressionToNumberVisitor;
+import io.crate.analyze.expressions.ExpressionToObjectVisitor;
+import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
@@ -50,6 +53,10 @@ import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import java.util.*;
 
 
+/**
+ * Replaced with {@link io.crate.analyze.expressions.ExpressionAnalyzer}
+ */
+@Deprecated
 abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> extends AbstractStatementAnalyzer<Symbol, T> {
 
     private final static Map<ComparisonExpression.Type, ComparisonExpression.Type> swapOperatorTable = ImmutableMap.<ComparisonExpression.Type, ComparisonExpression.Type>builder()

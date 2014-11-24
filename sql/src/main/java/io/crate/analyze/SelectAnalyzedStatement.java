@@ -21,21 +21,27 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
@@ -171,5 +177,22 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement imple
     @Override
     public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
         return visitor.visitSelectAnalyzedStatement(this, context);
+    }
+
+    @Override
+    public Reference getReference(ColumnIdent columnIdent) {
+        throw new UnsupportedOperationException("getReference on SelectAnalyzedStatement is not implemented");
+    }
+
+    @Override
+    public Map<String, Symbol> outputs() {
+        return Maps.transformValues(aliasMap.asMap(), new Function<Collection<Symbol>, Symbol>() {
+            @Nullable
+            @Override
+            public Symbol apply(@Nullable Collection<Symbol> input) {
+                assert input != null;
+                return Iterables.getOnlyElement(input);
+            }
+        });
     }
 }

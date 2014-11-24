@@ -20,6 +20,9 @@
  */
 package io.crate.analyze;
 
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
@@ -52,8 +55,10 @@ public class Analyzer {
 
     public static class AnalyzerDispatcher extends AstVisitor<AbstractStatementAnalyzer, Void> {
 
+        private final Functions functions;
+        private final ReferenceInfos referenceInfos;
+        private final ReferenceResolver referenceResolver;
         private final SelectStatementAnalyzer selectStatementAnalyzer;
-        private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
         private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
         private final UpdateStatementAnalyzer updateStatementAnalyzer;
         private final DeleteStatementAnalyzer deleteStatementAnalyzer;
@@ -70,8 +75,10 @@ public class Analyzer {
         private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
 
         @Inject
-        public AnalyzerDispatcher(SelectStatementAnalyzer selectStatementAnalyzer,
-                                  InsertFromValuesAnalyzer insertFromValuesAnalyzer,
+        public AnalyzerDispatcher(Functions functions,
+                                  ReferenceInfos referenceInfos,
+                                  ReferenceResolver referenceResolver,
+                                  SelectStatementAnalyzer selectStatementAnalyzer,
                                   InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                                   UpdateStatementAnalyzer updateStatementAnalyzer,
                                   DeleteStatementAnalyzer deleteStatementAnalyzer,
@@ -86,8 +93,10 @@ public class Analyzer {
                                   AlterBlobTableAnalyzer alterBlobTableAnalyzer,
                                   SetStatementAnalyzer setStatementAnalyzer,
                                   AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer) {
+            this.functions = functions;
+            this.referenceInfos = referenceInfos;
+            this.referenceResolver = referenceResolver;
             this.selectStatementAnalyzer = selectStatementAnalyzer;
-            this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
             this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
             this.updateStatementAnalyzer = updateStatementAnalyzer;
             this.deleteStatementAnalyzer = deleteStatementAnalyzer;
@@ -117,7 +126,7 @@ public class Analyzer {
 
         @Override
         public AbstractStatementAnalyzer visitInsertFromValues(InsertFromValues node, Void context) {
-            return insertFromValuesAnalyzer;
+            return new InsertFromValuesAnalyzer(referenceInfos, functions, referenceResolver);
         }
 
         @Override
