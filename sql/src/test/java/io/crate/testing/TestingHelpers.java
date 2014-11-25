@@ -30,6 +30,7 @@ import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.hamcrest.TypeSafeMatcher;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -299,4 +300,32 @@ public class TestingHelpers {
         return column;
     }
 
+    private static class CauseMatcher extends TypeSafeMatcher<Throwable> {
+
+        private final Class<? extends Throwable> type;
+        private final String expectedMessage;
+
+        public CauseMatcher(Class<? extends Throwable> type, String expectedMessage) {
+            this.type = type;
+            this.expectedMessage = expectedMessage;
+        }
+
+        @Override
+        protected boolean matchesSafely(Throwable item) {
+            return item.getClass().isAssignableFrom(type)
+                    && item.getMessage().contains(expectedMessage);
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("expects type ")
+                    .appendValue(type)
+                    .appendText(" and a message ")
+                    .appendValue(expectedMessage);
+        }
+    }
+
+    public static Matcher<Throwable> cause(Class<? extends Throwable> type, String expectedMessage) {
+        return new CauseMatcher(type, expectedMessage);
+    }
 }

@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -197,5 +198,24 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
             assertThat(line, startsWith("{"));
             assertThat(line, endsWith("}"));
         }
+    }
+
+    @Test
+    public void testCopyFromNestedArrayRow() throws Exception {
+        // assert that rows with nested arrays aren't imported
+        execute("create table users (id int, " +
+                "name string) with (number_of_replicas=0)");
+        ensureGreen();
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "nested_array_copy_from.json");
+        execute("copy users from ? with (shared=true)", new Object[]{filePath});
+        // 2 nodes on same machine resulting in double affected rows
+        assertEquals(1L, response.rowCount()); // only 1 document got inserted
+        refresh();
+
+        execute("select * from users");
+        assertThat(response.rowCount(), is(1L));
+
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2| Trillian\n"));
+
     }
 }

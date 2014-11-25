@@ -23,10 +23,13 @@ package org.elasticsearch.index.mapper.array;
 
 import com.google.common.base.Joiner;
 import io.crate.test.integration.CrateSingleNodeTest;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -38,6 +41,8 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.core.ArrayMapper;
 import org.elasticsearch.index.mapper.core.StringFieldMapper;
 import org.elasticsearch.index.mapper.object.ObjectMapper;
+import org.elasticsearch.index.service.IndexService;
+import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,14 +55,27 @@ import static org.hamcrest.Matchers.*;
 public class ArrayMapperTest extends CrateSingleNodeTest {
 
     public static final String INDEX = "my_index";
+    public static final String TYPE = "type";
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private DocumentMapper mapper(String indexName, String mapping) throws IOException {
+    /**
+     * create index with type and mapping and validate DocumentMapper serialization
+     */
+    private DocumentMapper mapper(String indexName, String type, String mapping) throws IOException {
         // we serialize and deserialize the mapping to make sure serialization works just fine
-        DocumentMapperParser parser = createIndex(indexName).mapperService().documentMapperParser();
-        parser.putTypeParser(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
+        client().admin().indices().prepareCreate(indexName)
+                .addMapping(type, mapping)
+                .setSettings(ImmutableSettings.builder().put("number_of_replicas", 0).build()).execute().actionGet();
+        client().admin().cluster().prepareHealth(indexName)
+                .setWaitForGreenStatus()
+                .setWaitForRelocatingShards(0)
+                .setWaitForEvents(Priority.LANGUID).execute().actionGet();
+        IndicesService instanceFromNode = getInstanceFromNode(IndicesService.class);
+        IndexService indexService = instanceFromNode.indexServiceSafe(indexName);
+        DocumentMapperParser parser = indexService.mapperService().documentMapperParser();
+
         DocumentMapper defaultMapper = parser.parse(mapping);
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.startObject();
@@ -70,7 +88,7 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
     @Test
     public void testSimpleArrayMapping() throws Exception {
         String mapping = XContentFactory.jsonBuilder()
-                .startObject().startObject("type").startObject("properties")
+                .startObject().startObject(TYPE).startObject("properties")
                     .startObject("array_field")
                         .field("type", ArrayMapper.CONTENT_TYPE)
                         .startObject(ArrayMapper.INNER)
@@ -80,7 +98,7 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                     .endObject()
                 .endObject().endObject().endObject()
                 .string();
-        DocumentMapper mapper = mapper(INDEX, mapping);
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         // child field mapper
         assertThat(mapper.mappers().name("array_field").mappers().get(0), is(instanceOf(StringFieldMapper.class)));
@@ -121,7 +139,7 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                 .endObject()
                 .endObject().endObject().endObject()
                 .string();
-        DocumentMapper mapper = mapper(INDEX, mapping);
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         try {
             mapper.parse(XContentFactory.jsonBuilder()
@@ -150,7 +168,7 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                 .endObject()
                 .endObject().endObject().endObject()
                 .string();
-        DocumentMapper mapper = mapper(INDEX, mapping);
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         expectedException.expect(MapperParsingException.class);
         expectedException.expectMessage("failed to parse [array_field]");
@@ -182,7 +200,7 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                 .endObject()
                 .endObject().endObject().endObject()
                 .string();
-        DocumentMapper mapper = mapper(INDEX, mapping);
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
         // child object mapper
         assertThat(mapper.objectMappers().get("array_field"), is(instanceOf(ObjectMapper.class)));
         ParsedDocument doc = mapper.parse(XContentFactory.jsonBuilder()
@@ -241,7 +259,7 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                 .endObject()
                 .endObject().endObject().endObject()
                 .string();
-        DocumentMapper mapper = mapper(INDEX, mapping);
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
         // child object mapper
         assertThat(mapper.objectMappers().get("array_field"), is(instanceOf(ObjectMapper.class)));
         ParsedDocument doc = mapper.parse(XContentFactory.jsonBuilder()
@@ -291,7 +309,7 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                 .endObject()
                 .endObject().endObject().endObject()
                 .string();
-        DocumentMapper mapper = mapper(INDEX, mapping);
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
         IndexResponse response = client().prepareIndex(INDEX, "type").setId("123").setSource("{array_field:[0.0, 99.9, -100.5678]}").execute().actionGet();
         assertThat(response.getVersion(), is(1L));
 
@@ -325,7 +343,7 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                 .endObject()
                 .endObject().endObject().endObject()
                 .string();
-        DocumentMapper mapper = mapper(INDEX, mapping);
+        mapper(INDEX, TYPE, mapping);
         IndexResponse response = client().prepareIndex(INDEX, "type").setId("123").setSource("{array_field:[0.0, 99.9, -100.5678]}").execute().actionGet();
         assertThat(response.getVersion(), is(1L));
 
@@ -346,15 +364,15 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
         String mapping = XContentFactory.jsonBuilder()
                 .startObject().startObject("type").startObject("properties")
                 .startObject("array_field")
-                .field("type", ArrayMapper.CONTENT_TYPE)
-                .startObject(ArrayMapper.INNER)
-                .field("type", "double")
-                .field("index", "not_analyzed")
-                .endObject()
+                    .field("type", ArrayMapper.CONTENT_TYPE)
+                    .startObject(ArrayMapper.INNER)
+                        .field("type", "double")
+                        .field("index", "not_analyzed")
+                    .endObject()
                 .endObject()
                 .endObject().endObject().endObject()
                 .string();
-        DocumentMapper mapper = mapper(INDEX, mapping);
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
         // parse source with empty array
         ParsedDocument doc = mapper.parse(XContentFactory.jsonBuilder()
@@ -368,7 +386,7 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
         assertThat(doc.docs().get(0).get("array_field"), is(nullValue())); // no lucene field generated
 
         // insert
-        IndexResponse response = client().prepareIndex(INDEX, "type").setId("123").setSource("{array_field:[]}").execute().actionGet();
+        IndexResponse response = client().prepareIndex(INDEX, "type", "123").setSource("{array_field:[]}").execute().actionGet();
         assertThat(response.getVersion(), is(1L));
 
         client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
@@ -381,7 +399,60 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                         searchResponse.getHits().getAt(0).getSource()),
                 is("array_field:[]"));
         assertThat(searchResponse.getHits().getAt(0).fields().containsKey("array_field"), is(false));
-
     }
 
+    @Test
+    public void testNestedArrayMapping() throws Exception {
+        expectedException.expect(MapperParsingException.class);
+        expectedException.expectMessage("mapping [type]");
+        expectedException.expectCause(
+                TestingHelpers.cause(MapperParsingException.class, "nested arrays are not supported"));
+
+
+        String mapping = XContentFactory.jsonBuilder()
+                .startObject().startObject("type").startObject("properties")
+                    .startObject("array_field")
+                    .field("type", ArrayMapper.CONTENT_TYPE)
+                    .startObject(ArrayMapper.INNER)
+                        .field("type", "array")
+                        .startObject("inner")
+                            .field("type", "double")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .endObject().endObject().endObject()
+                .string();
+        mapper(INDEX, TYPE, mapping);
+    }
+
+    @Test
+    public void testParseDynamicNestedArray() throws Exception {
+        String mapping = XContentFactory.jsonBuilder()
+                .startObject().startObject("type").startObject("properties")
+                .startObject("array_field")
+                    .field("type", ArrayMapper.CONTENT_TYPE)
+                    .startObject(ArrayMapper.INNER)
+                        .field("type", "double")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                .endObject()
+                .endObject().endObject().endObject()
+                .string();
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
+
+        expectedException.expect(MapperParsingException.class);
+        expectedException.expectMessage("failed to parse");
+        expectedException.expectCause(TestingHelpers.cause(ElasticsearchParseException.class, "nested arrays are not supported"));
+        // parse source with empty array
+        mapper.parse(XContentFactory.jsonBuilder()
+                .startObject()
+                .field("_id", "abc")
+                .startArray("new_array_field")
+                    .startArray().value("a").value("b").endArray()
+                .endArray()
+                .endObject()
+                .bytes());
+
+    }
 }

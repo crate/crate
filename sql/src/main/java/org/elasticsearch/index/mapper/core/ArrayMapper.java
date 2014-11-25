@@ -123,9 +123,14 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
                     String typeName = (String)innerNode.get("type");
                     if (typeName == null && innerNode.containsKey("properties")) {
                         typeName = ObjectMapper.CONTENT_TYPE;
+                    } else if (CONTENT_TYPE.equalsIgnoreCase(typeName)) {
+                        throw new MapperParsingException("nested arrays are not supported");
                     }
+
                     Mapper.TypeParser innerTypeParser = parserContext.typeParser(typeName);
-                    builder.innerMapperBuilder(innerTypeParser.parse(name, innerNode, parserContext));
+
+                    Mapper.Builder innerBuilder = innerTypeParser.parse(name, innerNode, parserContext);
+                    builder.innerMapperBuilder(innerBuilder);
                 }
             }
             if (!innerFound) {
@@ -160,6 +165,9 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
         }
         token = parser.nextToken();
         if (innerMapper == null) {
+            if (token == XContentParser.Token.START_ARRAY) {
+                throw new ElasticsearchParseException("nested arrays are not supported");
+            }
             Mapper mapper = DynamicValueMapperLookup.getMapper(context, name(), token);
             if (mapper == null) {
                 return;
