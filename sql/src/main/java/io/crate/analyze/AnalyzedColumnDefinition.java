@@ -206,42 +206,12 @@ public class AnalyzedColumnDefinition {
         return ident;
     }
 
-    public boolean hasMetaInfo() {
-        for (AnalyzedColumnDefinition child : children) {
-            if (child.hasMetaInfo()) {
-                return true;
-            }
-        }
-        return collectionType != null;
-    }
-
     public void isPrimaryKey(boolean isPrimaryKey) {
         this.isPrimaryKey = isPrimaryKey;
     }
 
     public boolean isPrimaryKey() {
         return this.isPrimaryKey;
-    }
-
-    public Map<String, Object> toMetaMapping() {
-        assert hasMetaInfo();
-        if (dataType().equals("object")) {
-            Map<String, Object> metaMapping = new HashMap<>();
-            Map<String, Object> childrenMeta = new HashMap<>();
-            metaMapping.put("properties", childrenMeta);
-
-            for (AnalyzedColumnDefinition child : children) {
-                if (child.hasMetaInfo()) {
-                    childrenMeta.put(child.name, child.toMetaMapping());
-                }
-            }
-            if (collectionType != null) {
-                metaMapping.put("collection_type", collectionType);
-            }
-            return metaMapping;
-        } else {
-            return ImmutableMap.<String, Object>of("collection_type", collectionType);
-        }
     }
 
     public Map<String, Object> toMetaIndicesMapping() {

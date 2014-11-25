@@ -51,15 +51,11 @@ public class AnalyzedTableElements {
     public Map<String, Object> toMapping() {
         Map<String, Object> mapping = new HashMap<>();
         Map<String, Object> meta = new HashMap<>();
-        Map<String, Object> metaColumns = new HashMap<>();
         Map<String, Object> properties = new HashMap<>(columns.size());
 
         Map<String, Object> indicesMap = new HashMap<>();
         for (AnalyzedColumnDefinition column : columns) {
             properties.put(column.name(), column.toMapping());
-            if (column.hasMetaInfo()) {
-                metaColumns.put(column.name(), column.toMetaMapping());
-            }
             if (column.isIndex()) {
                 indicesMap.put(column.name(), column.toMetaIndicesMapping());
             }
@@ -67,9 +63,6 @@ public class AnalyzedTableElements {
 
         if (!partitionedByColumns.isEmpty()) {
             meta.put("partitioned_by", partitionedBy());
-        }
-        if (!metaColumns.isEmpty()) {
-            meta.put("columns", metaColumns);
         }
         if (!indicesMap.isEmpty()) {
             meta.put("indices", indicesMap);
