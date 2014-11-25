@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: correctly validate array values in INSERT and UPDATE statements
+
  - Fix: NULL element in array in first element of bulk insert threw NPE
 
  - Fix: array columns that were nested inside multiple objects had

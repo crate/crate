@@ -443,5 +443,4 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         this.setup.setUpObjectMappingWithUnknownTypes();
         execute("select count(*) from ut group by location");
     }
-
 }

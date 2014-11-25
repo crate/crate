@@ -32,10 +32,7 @@ import io.crate.operation.Input;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
+import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
@@ -47,7 +44,7 @@ import java.util.*;
  */
 public abstract class AbstractDataAnalysis extends Analysis {
 
-    protected static final Predicate<ReferenceInfo> HAS_OBJECT_ARRAY_PARENT = new Predicate<ReferenceInfo>() {
+    protected static final Predicate<ReferenceInfo> IS_OBJECT_ARRAY = new Predicate<ReferenceInfo>() {
         @Override
         public boolean apply(@Nullable ReferenceInfo input) {
             return input != null
@@ -190,7 +187,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         ReferenceInfo info = referenceInfos.getReferenceInfo(ident);
         if (info != null &&
                 !info.ident().isColumn() &&
-                hasMatchingParent(info, HAS_OBJECT_ARRAY_PARENT)) {
+                hasMatchingParent(info, IS_OBJECT_ARRAY)) {
             if (DataTypes.isCollectionType(info.type())) {
                 // TODO: remove this limitation with next type refactoring
                 throw new UnsupportedOperationException(
@@ -332,9 +329,11 @@ public abstract class AbstractDataAnalysis extends Analysis {
                         reference.info().type(),
                         reference.info().type().value(((Parameter) parameterOrLiteral).value())
                 );
+                validateInputType(normalized.valueType(), reference.info().ident().columnIdent());
             } else {
                 try {
                     normalized = (Literal) parameterOrLiteral;
+                    validateInputType(normalized.valueType(), reference.info().ident().columnIdent());
                     if (!normalized.valueType().equals(reference.info().type())) {
                         normalized = Literal.newLiteral(
                                 reference.info().type(),
@@ -374,6 +373,19 @@ public abstract class AbstractDataAnalysis extends Analysis {
                     ));
         }
         return normalized;
+    }
+
+    /**
+     * validate input types to not be nested arrays/collection types
+     * @throws ColumnValidationException if input type is a nested array type
+     */
+    private void validateInputType(DataType dataType, ColumnIdent columnIdent) throws ColumnValidationException {
+        if (dataType != null
+                && DataTypes.isCollectionType(dataType)
+                && DataTypes.isCollectionType(((CollectionType)dataType).innerType())) {
+            throw new ColumnValidationException(columnIdent.fqn(),
+                    String.format(Locale.ENGLISH, "Invalid datatype '%s'", dataType));
+        }
     }
 
     private boolean isObjectArray(DataType type) {

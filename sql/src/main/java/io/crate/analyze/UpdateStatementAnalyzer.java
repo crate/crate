@@ -78,7 +78,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                         throw new IllegalArgumentException("Updating a clustered-by column is currently not supported");
                     }
 
-                    if (context.hasMatchingParent(reference.info(), UpdateAnalysis.NestedAnalysis.HAS_OBJECT_ARRAY_PARENT)) {
+                    if (context.hasMatchingParent(reference.info(), UpdateAnalysis.NestedAnalysis.IS_OBJECT_ARRAY)) {
                         // cannot update fields of object arrays
                         throw new IllegalArgumentException("Updating fields of object arrays is not supported");
                     }

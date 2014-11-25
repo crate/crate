@@ -83,6 +83,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -388,5 +389,39 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         UpdateAnalysis.NestedAnalysis analysis = analyze(
                 "update users set awesome=true where name='Ford' and _version=0");
         assertThat(analysis.whereClause().noMatch(), is(true));
+    }
+
+    @Test
+    public void testUpdateDynamicInvalidTypeLiteral() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for new: Invalid datatype 'double_array_array'");
+        analyze("update users set new=[[1.9, 4.8], [9.7, 12.7]]");
+    }
+
+    @Test
+    public void testUpdateDynamicInvalidType() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for new: Invalid datatype 'double_array_array'");
+        analyze("update users set new=? where id=1", new Object[]{
+                new Object[] {
+                        new Object[] {
+                                1.9, 4.8
+                        },
+                        new Object[] {
+                                9.7, 12.7
+                        }
+                }
+        });
+    }
+
+    @Test
+    public void testUpdateInvalidType() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for tags: Invalid datatype 'string_array_array'");
+        analyze("update users set tags=? where id=1", new Object[]{
+                new Object[] {
+                        new Object[]{ "a", "b" }
+                }
+        });
     }
 }
