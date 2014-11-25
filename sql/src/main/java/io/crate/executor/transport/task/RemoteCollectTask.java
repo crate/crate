@@ -26,6 +26,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
@@ -33,13 +35,16 @@ import io.crate.executor.transport.NodeCollectRequest;
 import io.crate.executor.transport.NodeCollectResponse;
 import io.crate.executor.transport.TransportCollectNodeAction;
 import io.crate.operation.collect.HandlerSideDataCollectOperation;
+import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class RemoteCollectTask implements Task<QueryResult> {
 
@@ -48,13 +53,18 @@ public class RemoteCollectTask implements Task<QueryResult> {
     private final String[] nodeIds;
     private final TransportCollectNodeAction transportCollectNodeAction;
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
+    private final StatsTables statsTables;
+    private final CircuitBreaker circuitBreaker;
 
     public RemoteCollectTask(CollectNode collectNode,
                              TransportCollectNodeAction transportCollectNodeAction,
-                             HandlerSideDataCollectOperation handlerSideDataCollectOperation) {
+                             HandlerSideDataCollectOperation handlerSideDataCollectOperation,
+                             StatsTables statsTables, CircuitBreaker circuitBreaker) {
         this.collectNode = collectNode;
         this.transportCollectNodeAction = transportCollectNodeAction;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
+        this.statsTables = statsTables;
+        this.circuitBreaker = circuitBreaker;
 
         Preconditions.checkArgument(collectNode.isRouted(),
                 "RemoteCollectTask currently only works for plans with routing"
@@ -101,16 +111,32 @@ public class RemoteCollectTask implements Task<QueryResult> {
     }
 
     private void handlerSideCollect(final int resultIdx) {
-        ListenableFuture<Object[][]> future = handlerSideDataCollectOperation.collect(collectNode);
+        final UUID operationId;
+        if (collectNode.jobId().isPresent()) {
+            operationId = UUID.randomUUID();
+            statsTables.operationStarted(operationId, collectNode.jobId().get(), collectNode.id());
+        } else {
+            operationId = null;
+        }
+        String ramAccountingContextId = String.format("%s: %s", collectNode.id(), operationId);
+        final RamAccountingContext ramAccountingContext =
+                new RamAccountingContext(ramAccountingContextId, circuitBreaker);
+        ListenableFuture<Object[][]> future = handlerSideDataCollectOperation.collect(collectNode,
+                ramAccountingContext);
         Futures.addCallback(future, new FutureCallback<Object[][]>() {
             @Override
             public void onSuccess(@Nullable Object[][] rows) {
-                ((SettableFuture<QueryResult>)result.get(resultIdx)).set(new QueryResult(rows));
+                ramAccountingContext.close();
+                ((SettableFuture<QueryResult>) result.get(resultIdx)).set(new QueryResult(rows));
+                statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
+                ramAccountingContext.close();
                 ((SettableFuture<QueryResult>)result.get(resultIdx)).setException(t);
+                statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+                        ramAccountingContext.totalBytes());
             }
         });
     }

@@ -22,6 +22,7 @@
 package io.crate.operation.merge;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -48,13 +49,15 @@ public class MergeOperation implements DownstreamOperation {
     public MergeOperation(ClusterService clusterService,
                           Settings settings,
                           TransportActionProvider transportActionProvider,
-                          ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode) {
+                          ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode,
+                          RamAccountingContext ramAccountingContext) {
         projectorChain = new FlatProjectorChain(mergeNode.projections(),
                 new ProjectionToProjectorVisitor(
                         clusterService,
                         settings,
                         transportActionProvider,
-                        symbolVisitor)
+                        symbolVisitor),
+                ramAccountingContext
         );
         downstream(projectorChain.firstProjector());
         this.numUpstreams = mergeNode.numUpstreams();

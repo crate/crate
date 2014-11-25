@@ -110,7 +110,6 @@
 # location to disable it, set the following:
 # node.max_local_storage_nodes: 1
 
-
 #################################### Table ####################################
 
 # You can set a number of options (such as shard/replica options, mapping
@@ -572,6 +571,21 @@
 # your cluster. To execute such queries more failsafe even with slower hardware
 # increase this timeout
 #insert_by_query.request_timeout: 1m
+
+########################## SQL Query Circuit Breaker ##########################
+
+# The query circuit breaker allows estimation of needed memory required by
+# a query.
+
+# Specifies the limit for the query breaker.
+#
+# crate.breaker.query.limit: 60%
+
+# A constant that all query data estimations are multiplied with to
+# determine a final estimation.
+#
+# crate.breaker.query.overhead: 1.0.3
+
 
 ################################### UDC ###################################
 

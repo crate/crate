@@ -73,7 +73,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Reference clusterNameRef = new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")));
         collectNode.toCollect(Arrays.<Symbol>asList(clusterNameRef));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, is(1));
         assertTrue(((BytesRef) result[0][0]).utf8ToString().startsWith("shared-"));
     }
@@ -101,7 +101,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.whereClause(new WhereClause(whereClause));
         collectNode.toCollect(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         System.out.println(TestingHelpers.printedTable(result));
         assertEquals("sys| shards| 1| 0| NULL| NULL| NULL\n", TestingHelpers.printedTable(result));
     }
@@ -122,7 +122,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         }
         collectNode.toCollect(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
 
 
         String expected = "sys| cluster| id| 1| string\n" +
@@ -135,7 +135,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
         // second time - to check if the internal iterator resets
         System.out.println(TestingHelpers.printedTable(result));
-        result = operation.collect(collectNode).get();
+        result = operation.collect(collectNode, null).get();
         assertTrue(TestingHelpers.printedTable(result).startsWith(expected));
     }
 

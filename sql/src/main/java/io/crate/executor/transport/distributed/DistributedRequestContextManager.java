@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
 import io.crate.operation.DownstreamOperationFactory;
@@ -33,6 +34,7 @@ import io.crate.operation.collect.StatsTables;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.HandlesStreamInput;
@@ -70,12 +72,15 @@ public class DistributedRequestContextManager {
     private final DownstreamOperationFactory downstreamOperationFactory;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
     private final StatsTables statsTables;
+    private final CircuitBreaker circuitBreaker;
 
     public DistributedRequestContextManager(DownstreamOperationFactory downstreamOperationFactory,
                                             Functions functions,
-                                            StatsTables statsTables) {
+                                            StatsTables statsTables,
+                                            CircuitBreaker circuitBreaker) {
         this.downstreamOperationFactory = downstreamOperationFactory;
         this.statsTables = statsTables;
+        this.circuitBreaker = circuitBreaker;
         this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
     }
 
@@ -90,11 +95,14 @@ public class DistributedRequestContextManager {
                               final ActionListener<NodeMergeResponse> listener) throws IOException {
         logger.trace("createContext: {}", mergeNode);
         final UUID operationId = UUID.randomUUID();
+        String ramAccountingContextId = String.format("%s: %s", mergeNode.id(), operationId);
+        final RamAccountingContext ramAccountingContext =
+                new RamAccountingContext(ramAccountingContextId, circuitBreaker);
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
-        PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode);
+        PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode, ramAccountingContext);
         SettableFuture<Object[][]> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
-                downstreamOperationFactory.create(mergeNode),
+                downstreamOperationFactory.create(mergeNode, ramAccountingContext),
                 settableFuture,
                 streamerContext.inputStreamers(),
                 new DoneCallback() {
@@ -102,7 +110,8 @@ public class DistributedRequestContextManager {
                     public void finished() {
                         logger.trace("DoneCallback.finished: {} {}", mergeNode.contextId());
                         activeMergeOperations.remove(mergeNode.contextId());
-                        statsTables.operationFinished(operationId, null);
+                        statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
+                        ramAccountingContext.close();
                     }
                 }
         );

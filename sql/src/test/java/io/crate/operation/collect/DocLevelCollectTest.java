@@ -139,7 +139,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
 
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, is(2));
 
         assertThat(result[0].length, is(3));
@@ -165,7 +165,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         ));
 
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, is(1));
         assertThat(result[0].length, is(1));
         assertThat((Integer) result[0][0], is(2));
@@ -185,7 +185,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ));
         collectNode.maxRowGranularity(RowGranularity.DOC);
 
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
 
         assertThat(result.length, is(2));
         assertThat(result[0].length, is(4));
@@ -218,7 +218,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.isPartitioned(true);
 
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, is(2));
         assertThat((Integer)result[0][0], isOneOf(1,2));
         assertThat((Integer)result[1][0], isOneOf(1,2));

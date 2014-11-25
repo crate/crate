@@ -21,6 +21,8 @@
 
 package io.crate.operation.collect;
 
+import io.crate.breaker.RamAccountingContext;
+
 public interface RowCollector<T> {
 
     /**
@@ -28,7 +30,7 @@ public interface RowCollector<T> {
      *
      * @return false if no colletion is needed
      */
-    public boolean startCollect();
+    public boolean startCollect(RamAccountingContext ramAccountingContext);
 
     /**
      * Tells the collector to process the current row

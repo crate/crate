@@ -23,11 +23,15 @@ package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.SizeEstimator;
+import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.AggregationState;
+import io.crate.operation.aggregation.VariableSizeAggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,16 +39,26 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class ArbitraryAggregation<T extends Comparable<T>> extends AggregationFunction<ArbitraryAggregation.ArbitraryAggState<T>> {
+public abstract class ArbitraryAggregation<T extends Comparable<T>> extends AggregationFunction<ArbitraryAggregation.ArbitraryAggState<T>> {
 
     public static final String NAME = "arbitrary";
 
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
-        for (DataType t : DataTypes.PRIMITIVE_TYPES) {
+        for (final DataType t : DataTypes.PRIMITIVE_TYPES) {
             mod.register(new ArbitraryAggregation(
-                    new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t, FunctionInfo.Type.AGGREGATE))
+                            new FunctionInfo(
+                                    new FunctionIdent(NAME, ImmutableList.of(t)),
+                                    t, FunctionInfo.Type.AGGREGATE)
+                    ) {
+                             @Override
+                             public AggregationState newState(RamAccountingContext ramAccountingContext) {
+                                 return new ArbitraryAggState(ramAccountingContext,
+                                         t.streamer(),
+                                         SizeEstimatorFactory.create(t));
+                             }
+                         }
             );
         }
     }
@@ -64,19 +78,16 @@ public class ArbitraryAggregation<T extends Comparable<T>> extends AggregationFu
         return false;
     }
 
-    @Override
-    public ArbitraryAggState newState() {
-        return new ArbitraryAggState(info.ident().argumentTypes().get(0).streamer());
-    }
 
-
-    public static class ArbitraryAggState<T extends Comparable<T>> extends AggregationState<ArbitraryAggState<T>> {
-
+    public static class ArbitraryAggState<T extends Comparable<T>> extends VariableSizeAggregationState<ArbitraryAggState<T>> {
 
         Streamer<T> streamer;
         private T value = null;
 
-        ArbitraryAggState(Streamer<T> streamer) {
+        public ArbitraryAggState(RamAccountingContext ramAccountingContext,
+                                 Streamer<T> streamer,
+                                 SizeEstimator sizeEstimator) {
+            super(ramAccountingContext, sizeEstimator);
             this.streamer = streamer;
         }
 
@@ -88,6 +99,7 @@ public class ArbitraryAggregation<T extends Comparable<T>> extends AggregationFu
         @Override
         public void reduce(ArbitraryAggState<T> other) {
             if (this.value == null){
+                addEstimatedSize(sizeEstimator.estimateSize(value, other.value));
                 this.value = other.value;
             }
         }
@@ -102,10 +114,12 @@ public class ArbitraryAggregation<T extends Comparable<T>> extends AggregationFu
         }
 
         public void add(T otherValue) {
+            addEstimatedSize(sizeEstimator.estimateSize(value, otherValue));
             value = otherValue;
         }
 
         public void setValue(T value) {
+            addEstimatedSize(sizeEstimator.estimateSize(this.value, value));
             this.value = value;
         }
 

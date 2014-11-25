@@ -28,6 +28,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
+import io.crate.breaker.QueryOperationCircuitBreaker;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.DistributedFailureRequest;
@@ -42,6 +44,7 @@ import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -220,6 +223,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
 
     private final TransportService transportService;
     private final PlanNodeStreamerVisitor streamerVisitor;
+    private final CircuitBreaker circuitBreaker;
 
     @Inject
     public DistributingCollectOperation(ClusterService clusterService,
@@ -231,25 +235,27 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                                         ThreadPool threadPool,
                                         TransportService transportService,
                                         PlanNodeStreamerVisitor streamerVisitor,
-                                        CollectServiceResolver collectServiceResolver) {
+                                        CollectServiceResolver collectServiceResolver,
+                                        @QueryOperationCircuitBreaker CircuitBreaker circuitBreaker) {
         super(clusterService, settings, transportActionProvider,
                 functions, referenceResolver, indicesService,
                 threadPool, collectServiceResolver);
         this.transportService = transportService;
         this.streamerVisitor = streamerVisitor;
+        this.circuitBreaker = circuitBreaker;
     }
 
     @Override
-    protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
+    protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
         assert collectNode.jobId().isPresent();
         assert collectNode.hasDownstreams() : "distributing collect without downStreams";
-        ListenableFuture<Object[][]> future = super.handleNodeCollect(collectNode);
+        ListenableFuture<Object[][]> future = super.handleNodeCollect(collectNode, ramAccountingContext);
 
         final List<DiscoveryNode> downStreams = toDiscoveryNodes(collectNode.downStreamNodes());
         final List<DistributedResultRequest> requests = genRequests(
                 collectNode.jobId().get(),
                 downStreams.size(),
-                streamerVisitor.process(collectNode).outputStreamers()
+                streamerVisitor.process(collectNode, ramAccountingContext).outputStreamers()
         );
         sendRequestsOnFinish(future, downStreams, requests);
         return future;
@@ -327,16 +333,19 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
     }
 
     @Override
-    protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
+    protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
         assert collectNode.hasDownstreams() : "no downstreams";
-        return super.handleShardCollect(collectNode);
+        return super.handleShardCollect(collectNode, ramAccountingContext);
     }
 
     @Override
     protected ShardCollectFuture getShardCollectFuture(
             int numShards, ShardProjectorChain projectorChain, CollectNode collectNode) {
         assert collectNode.jobId().isPresent();
-        Streamer<?>[] streamers = streamerVisitor.process(collectNode).outputStreamers();
+        PlanNodeStreamerVisitor.Context streamerContext = new PlanNodeStreamerVisitor.Context(null);
+        streamerVisitor.process(collectNode, streamerContext);
+        Streamer<?>[] streamers = streamerVisitor.process(
+                collectNode, new RamAccountingContext("dummy", circuitBreaker)).outputStreamers();
         return new DistributingShardCollectFuture(
                 collectNode.jobId().get(),
                 numShards,

@@ -22,6 +22,7 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -63,9 +64,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
             } else {
                 return new CountAggregation(
                         new FunctionInfo(new FunctionIdent(NAME, dataTypes),
-                                DataTypes.LONG, FunctionInfo.Type.AGGREGATE),
-                        true
-                );
+                                DataTypes.LONG, FunctionInfo.Type.AGGREGATE), true);
             }
         }
     }
@@ -78,6 +77,12 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
     public static class CountAggState extends AggregationState<CountAggState> {
 
         public long value = 0;
+
+        public CountAggState(RamAccountingContext ramAccountingContext) {
+            super(ramAccountingContext);
+            // long value
+            ramAccountingContext.addBytes(8);
+        }
 
         @Override
         public Object value() {
@@ -119,8 +124,8 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
     }
 
     @Override
-    public CountAggState newState() {
-        return new CountAggState();
+    public CountAggState newState(RamAccountingContext ramAccountingContext) {
+        return new CountAggState(ramAccountingContext);
     }
 
     @Override

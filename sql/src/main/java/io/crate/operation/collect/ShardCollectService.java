@@ -23,6 +23,8 @@ package io.crate.operation.collect;
 
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.breaker.QueryOperationCircuitBreaker;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
@@ -42,6 +44,7 @@ import io.crate.planner.symbol.Literal;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -49,6 +52,8 @@ import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import java.util.UUID;
 
 public class ShardCollectService {
 
@@ -67,6 +72,7 @@ public class ShardCollectService {
     private final boolean isBlobShard;
     private final Functions functions;
     private final BlobIndices blobIndices;
+    private final CircuitBreaker circuitBreaker;
 
     @Inject
     public ShardCollectService(ThreadPool threadPool,
@@ -82,7 +88,8 @@ public class ShardCollectService {
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
-                               BlobShardReferenceResolver blobShardReferenceResolver) {
+                               BlobShardReferenceResolver blobShardReferenceResolver,
+                               @QueryOperationCircuitBreaker CircuitBreaker circuitBreaker) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.shardId = shardId;
@@ -94,6 +101,7 @@ public class ShardCollectService {
         this.bigArrays = bigArrays;
         this.functions = functions;
         this.blobIndices = blobIndices;
+        this.circuitBreaker = circuitBreaker;
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
         DocLevelReferenceResolver<? extends Input<?>> resolver = (isBlobShard ? BlobReferenceResolver.INSTANCE : LuceneDocLevelReferenceResolver.INSTANCE);
@@ -130,7 +138,13 @@ public class ShardCollectService {
     public CrateCollector getCollector(CollectNode collectNode,
                                        ShardProjectorChain projectorChain) throws Exception {
         CollectNode normalizedCollectNode = collectNode.normalize(shardNormalizer);
-        Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
+        UUID jobId = null;
+        if (collectNode.jobId().isPresent()) {
+            jobId = collectNode.jobId().get();
+        }
+        String ramAccountingContextId = String.format("%s: %s", collectNode.id(), jobId);
+        RamAccountingContext ramAccountingContext = new RamAccountingContext(ramAccountingContextId, circuitBreaker);
+        Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor, ramAccountingContext);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             return CrateCollector.NOOP;

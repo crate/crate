@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
@@ -38,6 +39,7 @@ import io.crate.operation.collect.StatsTables;
 import io.crate.operation.merge.MergeOperation;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -66,6 +68,7 @@ public class LocalMergeTask implements Task<TaskResult> {
     private final ThreadPool threadPool;
     private final SettableFuture<TaskResult> result;
     private final List<ListenableFuture<TaskResult>> resultList;
+    private final CircuitBreaker circuitBreaker;
 
     private List<ListenableFuture<TaskResult>> upstreamResults;
 
@@ -79,7 +82,8 @@ public class LocalMergeTask implements Task<TaskResult> {
                           TransportActionProvider transportActionProvider,
                           ImplementationSymbolVisitor implementationSymbolVisitor,
                           MergeNode mergeNode,
-                          StatsTables statsTables) {
+                          StatsTables statsTables,
+                          CircuitBreaker circuitBreaker) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.settings = settings;
@@ -87,6 +91,7 @@ public class LocalMergeTask implements Task<TaskResult> {
         this.symbolVisitor = implementationSymbolVisitor;
         this.mergeNode = mergeNode;
         this.statsTables = statsTables;
+        this.circuitBreaker = circuitBreaker;
         this.result = SettableFuture.create();
         this.resultList = Arrays.<ListenableFuture<TaskResult>>asList(this.result);
     }
@@ -104,22 +109,29 @@ public class LocalMergeTask implements Task<TaskResult> {
             return;
         }
 
-        final MergeOperation mergeOperation = new MergeOperation(
-                clusterService, settings, transportActionProvider, symbolVisitor, mergeNode);
-        final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
         final UUID operationId = UUID.randomUUID();
+        String ramAccountingContextId = String.format("%s: %s", mergeNode.id(), operationId.toString());
+        final RamAccountingContext ramAccountingContext =
+                new RamAccountingContext(ramAccountingContextId, circuitBreaker);
+        final MergeOperation mergeOperation = new MergeOperation(
+                clusterService, settings, transportActionProvider, symbolVisitor, mergeNode,
+                ramAccountingContext);
+        final AtomicInteger countdown = new AtomicInteger(upstreamResults.size());
         statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
 
         Futures.addCallback(mergeOperation.result(), new FutureCallback<Object[][]>() {
             @Override
             public void onSuccess(@Nullable Object[][] rows) {
-                statsTables.operationFinished(operationId, null);
+                ramAccountingContext.close();
+                statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
                 result.set(new QueryResult(rows));
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                statsTables.operationFinished(operationId, Exceptions.messageOf(t));
+                ramAccountingContext.close();
+                statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+                        ramAccountingContext.totalBytes());
                 result.setException(t);
             }
         });
@@ -135,7 +147,9 @@ public class LocalMergeTask implements Task<TaskResult> {
                     try {
                         shouldContinue = mergeOperation.addRows(rows.rows());
                     } catch (Exception ex) {
-                        statsTables.operationFinished(operationId, Exceptions.messageOf(ex));
+                        ramAccountingContext.close();
+                        statsTables.operationFinished(operationId, Exceptions.messageOf(ex),
+                                ramAccountingContext.totalBytes());
                         result.setException(ex);
                         logger.error("Failed to add rows", ex);
                         return;
@@ -148,7 +162,9 @@ public class LocalMergeTask implements Task<TaskResult> {
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
-                    statsTables.operationFinished(operationId, Exceptions.messageOf(t));
+                    ramAccountingContext.close();
+                    statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+                            ramAccountingContext.totalBytes());
                     result.setException(t);
                 }
             }, threadPool.executor(ThreadPool.Names.GENERIC));

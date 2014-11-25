@@ -26,6 +26,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -79,9 +80,10 @@ public class MaximumAggregationTest extends AggregationTest {
 
     @Test
     public void testString() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
+        Object[][] result = executeAggregation(DataTypes.STRING,
+                new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}});
 
-        assertEquals("Youri", result[0][0]);
+        assertEquals(new BytesRef("Youri"), result[0][0]);
     }
 
     @Test(expected = NullPointerException.class)

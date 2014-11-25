@@ -162,7 +162,8 @@ public class ESGetTask implements Task<QueryResult> {
             topNProjection.outputs(genInputColumns(node.outputs().size()));
             projectorChain = new FlatProjectorChain(
                     Arrays.<Projection>asList(topNProjection),
-                    projectionToProjectorVisitor
+                    projectionToProjectorVisitor,
+                    null
             );
         }
         return projectorChain;

@@ -2,6 +2,7 @@ package io.crate.executor.transport.task;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
@@ -24,6 +25,8 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import java.util.*;
@@ -32,6 +35,9 @@ import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
+
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     @Test
     public void testDistributedMergeTask() throws Exception {
@@ -71,7 +77,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         mergeNode.outputTypes(Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG));
 
         Streamer<?>[] mapperOutputStreamer = new Streamer[] {
-                new AggregationStateStreamer(countAggregation),
+                new AggregationStateStreamer(countAggregation, RAM_ACCOUNTING_CONTEXT),
                 DataTypes.STRING.streamer()
         };
 
@@ -86,13 +92,13 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
 
         DistributedResultRequest request1 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
         request1.rows(new Object[][] {
-                new Object[] { new CountAggregation.CountAggState() {{ value = 1; }}, new BytesRef("bar") },
+                new Object[] { new CountAggregation.CountAggState(RAM_ACCOUNTING_CONTEXT) {{ value = 1; }}, new BytesRef("bar") },
         });
         DistributedResultRequest request2 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
         request2.rows(new Object[][] {
-                new Object[] { new CountAggregation.CountAggState() {{ value = 1; }}, new BytesRef("bar") },
-                new Object[] { new CountAggregation.CountAggState() {{ value = 3; }}, new BytesRef("bar") },
-                new Object[] { new CountAggregation.CountAggState() {{ value = 3; }}, new BytesRef("foobar") },
+                new Object[] { new CountAggregation.CountAggState(RAM_ACCOUNTING_CONTEXT) {{ value = 1; }}, new BytesRef("bar") },
+                new Object[] { new CountAggregation.CountAggState(RAM_ACCOUNTING_CONTEXT) {{ value = 3; }}, new BytesRef("bar") },
+                new Object[] { new CountAggregation.CountAggState(RAM_ACCOUNTING_CONTEXT) {{ value = 3; }}, new BytesRef("foobar") },
         });
 
         transportMergeNodeAction.mergeRows(firstNode, request1, noopListener);
@@ -100,13 +106,13 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
 
         DistributedResultRequest request3 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
         request3.rows(new Object[][] {
-                new Object[] { new CountAggregation.CountAggState() {{ value = 10; }}, new BytesRef("foo") },
-                new Object[] { new CountAggregation.CountAggState() {{ value = 20; }}, new BytesRef("foo") },
+                new Object[] { new CountAggregation.CountAggState(RAM_ACCOUNTING_CONTEXT) {{ value = 10; }}, new BytesRef("foo") },
+                new Object[] { new CountAggregation.CountAggState(RAM_ACCOUNTING_CONTEXT) {{ value = 20; }}, new BytesRef("foo") },
         });
         DistributedResultRequest request4 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
         request4.rows(new Object[][] {
-                new Object[] { new CountAggregation.CountAggState() {{ value = 10; }}, new BytesRef("foo") },
-                new Object[] { new CountAggregation.CountAggState() {{ value = 14; }}, new BytesRef("test") },
+                new Object[] { new CountAggregation.CountAggState(RAM_ACCOUNTING_CONTEXT) {{ value = 10; }}, new BytesRef("foo") },
+                new Object[] { new CountAggregation.CountAggState(RAM_ACCOUNTING_CONTEXT) {{ value = 14; }}, new BytesRef("test") },
         });
 
         String secondNode = iterator.next();

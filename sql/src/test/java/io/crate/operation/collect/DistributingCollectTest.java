@@ -26,6 +26,7 @@ import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.breaker.QueryOperationCircuitBreaker;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
@@ -60,6 +61,8 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecidersMo
 import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -129,6 +132,7 @@ public class DistributingCollectTest {
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
 
+            bind(CircuitBreaker.class).annotatedWith(QueryOperationCircuitBreaker.class).toInstance(new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
             bind(CircuitBreakerService.class).toInstance(new NoneCircuitBreakerService());
             bind(ActionFilters.class).toInstance(mock(ActionFilters.class));
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
@@ -293,7 +297,7 @@ public class DistributingCollectTest {
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
 
 
-        assertThat(operation.collect(collectNode).get(), is(TaskResult.EMPTY_RESULT.rows()));
+        assertThat(operation.collect(collectNode, null).get(), is(TaskResult.EMPTY_RESULT.rows()));
         countDown.await();
         assertThat(buckets.size(), is(2));
         assertTrue(buckets.containsKey(TEST_NODE_ID));
@@ -312,7 +316,7 @@ public class DistributingCollectTest {
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.NODE);
         collectNode.toCollect(Arrays.<Symbol>asList(Literal.newLiteral(true)));
-        Object[][] objects = operation.collect(collectNode).get();
+        Object[][] objects = operation.collect(collectNode, null).get();
         assertThat((Boolean) objects[0][0], is(true));
 
     }
@@ -348,7 +352,7 @@ public class DistributingCollectTest {
                 Arrays.<Symbol>asList(Literal.newLiteral(false), Literal.newLiteral(false))
         )));
 
-        Object[][] pseudoResult = operation.collect(collectNode).get();
+        Object[][] pseudoResult = operation.collect(collectNode, null).get();
         assertThat(pseudoResult, is(TaskResult.EMPTY_RESULT.rows()));
         countDown.await(2, TimeUnit.SECONDS);
         assertThat(buckets.size(), is(2));

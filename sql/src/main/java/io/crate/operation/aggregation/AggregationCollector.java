@@ -21,6 +21,7 @@
 
 package io.crate.operation.aggregation;
 
+import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
 import io.crate.operation.collect.RowCollector;
 import io.crate.planner.symbol.Aggregation;
@@ -72,8 +73,8 @@ public class AggregationCollector implements RowCollector {
     }
 
 
-    public boolean startCollect() {
-        aggregationState = fromImpl.startCollect();
+    public boolean startCollect(RamAccountingContext ramAccountingContext) {
+        aggregationState = fromImpl.startCollect(ramAccountingContext);
         return true;
     }
 
@@ -96,8 +97,8 @@ public class AggregationCollector implements RowCollector {
 
     abstract class FromImpl {
 
-        public AggregationState startCollect() {
-            return aggregationFunction.newState();
+        public AggregationState startCollect(RamAccountingContext ramAccountingContext) {
+            return aggregationFunction.newState(ramAccountingContext);
         }
 
         public abstract boolean processRow();

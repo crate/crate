@@ -21,9 +21,10 @@
 
 package io.crate.operation;
 
+import io.crate.breaker.RamAccountingContext;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
 
 public interface DownstreamOperationFactory<TPlanNode extends AbstractDQLPlanNode> {
 
-    public DownstreamOperation create(TPlanNode node);
+    public DownstreamOperation create(TPlanNode node, RamAccountingContext ramAccountingContext);
 }

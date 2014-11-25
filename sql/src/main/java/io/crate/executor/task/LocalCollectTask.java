@@ -25,11 +25,13 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.QueryResult;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.node.dql.CollectNode;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -46,18 +48,23 @@ public class LocalCollectTask implements Task<QueryResult> {
     private final CollectOperation collectOperation;
     private final List<ListenableFuture<QueryResult>> resultList;
     private final SettableFuture<QueryResult> result;
+    private final RamAccountingContext ramAccountingContext;
 
-    public LocalCollectTask(CollectOperation<Object[][]> collectOperation, CollectNode collectNode) {
+    public LocalCollectTask(CollectOperation<Object[][]> collectOperation, CollectNode collectNode,
+                            CircuitBreaker circuitBreaker) {
         this.collectNode = collectNode;
         this.collectOperation = collectOperation;
         this.resultList = new ArrayList<>(1);
         this.result = SettableFuture.create();
         resultList.add(result);
+        ramAccountingContext = new RamAccountingContext(
+                String.format("%s: %s", collectNode.id(), collectNode.jobId()),
+                circuitBreaker);
     }
 
     @Override
     public void start() {
-        Futures.addCallback(collectOperation.collect(collectNode), new FutureCallback<Object[][]>() {
+        Futures.addCallback(collectOperation.collect(collectNode, ramAccountingContext), new FutureCallback<Object[][]>() {
             @Override
             public void onSuccess(@Nullable Object[][] rows) {
                 result.set(new QueryResult(rows));

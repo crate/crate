@@ -23,14 +23,18 @@ package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.SizeEstimator;
+import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.AggregationState;
+import io.crate.operation.aggregation.VariableSizeAggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -57,15 +61,18 @@ public abstract class CollectSetAggregation<T extends Comparable<T>>
                             )
                     ) {
                         @Override
-                        public CollectSetAggState newState() {
-                            return new CollectSetAggState() {
+                        public CollectSetAggState newState(RamAccountingContext ramAccountingContext) {
+                            return new CollectSetAggState(ramAccountingContext, SizeEstimatorFactory.create(dataType)) {
                                 @Override
                                 public void readFrom(StreamInput in) throws IOException {
+                                    valueSize(in.readVLong());
+                                    addEstimatedSize(valueSize());
                                     setValue(setStreamer.readValueFrom(in));
                                 }
 
                                 @Override
                                 public void writeTo(StreamOutput out) throws IOException {
+                                    out.writeVLong(valueSize());
                                     setStreamer.writeValueTo(out, value());
                                 }
                             };
@@ -86,14 +93,19 @@ public abstract class CollectSetAggregation<T extends Comparable<T>>
     }
 
     @Override
-    public boolean iterate(CollectSetAggState state, Input... args) {
+    public boolean iterate(CollectSetAggState state, Input... args) throws CircuitBreakingException {
         state.add(args[0].value());
         return true;
     }
 
-    public static abstract class CollectSetAggState extends AggregationState<CollectSetAggState> {
+    public static abstract class CollectSetAggState extends VariableSizeAggregationState<CollectSetAggState> {
 
         private Set<Object> value = new HashSet<>();
+        private long valueSize = 0;
+
+        public CollectSetAggState(RamAccountingContext ramAccountingContext, SizeEstimator sizeEstimator) {
+            super(ramAccountingContext, sizeEstimator);
+        }
 
         @Override
         public Set value() {
@@ -101,19 +113,37 @@ public abstract class CollectSetAggregation<T extends Comparable<T>>
         }
 
         @Override
-        public void reduce(CollectSetAggState other) {
-            value.addAll(other.value());
+        public void reduce(CollectSetAggState other) throws CircuitBreakingException {
+            for (Object otherValue : other.value()) {
+                if (value.add(otherValue)) {
+                    long otherValueSize = sizeEstimator.estimateSize(otherValue);
+                    addEstimatedSize(otherValueSize);
+                    valueSize += otherValueSize;
+                }
+            }
         }
 
-        void add(Object otherValue) {
+        void add(Object otherValue) throws CircuitBreakingException {
             // ignore null values? yes
             if (otherValue != null) {
-                value.add(otherValue);
+                if (value.add(otherValue)) {
+                    long otherValueSize = sizeEstimator.estimateSize(otherValue);
+                    addEstimatedSize(otherValueSize);
+                    valueSize += otherValueSize;
+                }
             }
         }
 
         public void setValue(Object value) {
             this.value = (Set)value;
+        }
+
+        public long valueSize() {
+            return this.valueSize;
+        }
+
+        public void valueSize(long valueSize) {
+            this.valueSize = valueSize;
         }
 
         @Override

@@ -22,6 +22,8 @@
 package io.crate.executor.transport.merge;
 
 import io.crate.Streamer;
+import io.crate.breaker.QueryOperationCircuitBreaker;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.DistributedResultRequestHandler;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
@@ -40,6 +42,7 @@ import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -62,6 +65,7 @@ public class TransportMergeNodeAction {
     private final ClusterService clusterService;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
     private final ThreadPool threadPool;
+    private final CircuitBreaker circuitBreaker;
 
     @Inject
     public TransportMergeNodeAction(final ClusterService clusterService,
@@ -71,10 +75,12 @@ public class TransportMergeNodeAction {
                                     ReferenceResolver referenceResolver,
                                     Functions functions,
                                     final ThreadPool threadPool,
-                                    StatsTables statsTables) {
+                                    StatsTables statsTables,
+                                    @QueryOperationCircuitBreaker final CircuitBreaker circuitBreaker) {
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
+        this.circuitBreaker = circuitBreaker;
 
         final ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver, functions, RowGranularity.DOC
@@ -83,16 +89,17 @@ public class TransportMergeNodeAction {
         planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
         this.contextManager = new DistributedRequestContextManager(new DownstreamOperationFactory<MergeNode>() {
             @Override
-            public DownstreamOperation create(MergeNode node) {
+            public DownstreamOperation create(MergeNode node, RamAccountingContext ramAccountingContext) {
                 return new MergeOperation(
                         clusterService,
                         settings,
                         transportActionProvider,
                         implementationSymbolVisitor,
-                        node
+                        node,
+                        ramAccountingContext
                 );
             }
-        }, functions, statsTables);
+        }, functions, statsTables, circuitBreaker);
 
         transportService.registerHandler(startMergeAction, new StartMergeHandler());
         transportService.registerHandler(failAction, new FailureHandler(contextManager));
@@ -167,7 +174,10 @@ public class TransportMergeNodeAction {
             this.nodeId = this.node.id();
             this.request = request;
             this.listener = listener;
-            this.streamers = planNodeStreamerVisitor.process(request.mergeNode()).outputStreamers();
+            PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(
+                    request.mergeNode(),
+                    new RamAccountingContext("dummy", circuitBreaker));
+            this.streamers = streamerContext.outputStreamers();
         }
 
         public void start() {

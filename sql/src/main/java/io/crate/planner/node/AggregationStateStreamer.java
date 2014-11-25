@@ -21,9 +21,10 @@
 
 package io.crate.planner.node;
 
+import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.AggregationState;
-import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -35,14 +36,17 @@ import java.io.IOException;
 public class AggregationStateStreamer implements Streamer<AggregationState> {
 
     private final AggregationFunction aggregationFunction;
+    private final RamAccountingContext ramAccountingContext;
 
-    public AggregationStateStreamer(AggregationFunction aggregationFunction) {
+    public AggregationStateStreamer(AggregationFunction aggregationFunction,
+                                    RamAccountingContext ramAccountingContext) {
         this.aggregationFunction = aggregationFunction;
+        this.ramAccountingContext = ramAccountingContext;
     }
 
     @Override
     public AggregationState<?> readValueFrom(StreamInput in) throws IOException {
-        AggregationState<?> aggState = this.aggregationFunction.newState();
+        AggregationState<?> aggState = this.aggregationFunction.newState(ramAccountingContext);
         aggState.readFrom(in);
         return aggState;
     }

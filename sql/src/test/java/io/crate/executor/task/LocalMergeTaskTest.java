@@ -23,6 +23,7 @@ package io.crate.executor.task;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
@@ -45,6 +46,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -64,6 +67,9 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 public class LocalMergeTaskTest {
+
+    private static final RamAccountingContext ramAccountingContext =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private ImplementationSymbolVisitor symbolVisitor;
     private AggregationFunction<MinimumAggregation.MinimumAggState> minAggFunction;
@@ -100,7 +106,7 @@ public class LocalMergeTaskTest {
         Object[][] rows = new Object[numRows][];
         for (int i=0; i<numRows; i++) {
             double d = (double)numRows*i;
-            MinimumAggregation.MinimumAggState aggState = minAggFunction.newState();
+            MinimumAggregation.MinimumAggState aggState = minAggFunction.newState(ramAccountingContext);
             aggState.setValue(d);
             rows[i] = new Object[]{
                     d % 4,
@@ -138,7 +144,8 @@ public class LocalMergeTaskTest {
                     ImmutableSettings.EMPTY,
                     mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                     symbolVisitor, mergeNode,
-                    mock(StatsTables.class));
+                    mock(StatsTables.class),
+                    new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
             localMergeTask.upstreamResult(upstreamResults);
             localMergeTask.start();
 

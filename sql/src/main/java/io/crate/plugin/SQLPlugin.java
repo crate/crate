@@ -27,6 +27,7 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
+import io.crate.breaker.CircuitBreakerModule;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacetParser;
 import io.crate.metadata.MetaDataModule;
@@ -110,6 +111,7 @@ public class SQLPlugin extends AbstractPlugin {
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(SQLModule.class);
 
+            modules.add(CircuitBreakerModule.class);
             modules.add(TransportExecutorModule.class);
             modules.add(CollectOperationModule.class);
             modules.add(MetaDataModule.class);

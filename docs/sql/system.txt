@@ -550,12 +550,12 @@ operation is listed on each node it is being executed on.
 In order to see on which nodes the operations are being executed the
 ``sys.nodes.name`` expression can be used in the query::
 
-    cr> select sys.nodes.name, job_id, name from sys.operations order by name limit 1;
-    +----------------+--------...-+---------+
-    | sys.nodes.name | job_id     | name    |
-    +----------------+--------...-+---------+
-    | crate          | ...        | collect |
-    +----------------+--------...-+---------+
+    cr> select sys.nodes.name, job_id, name, used_bytes from sys.operations order by name limit 1;
+    +----------------+--------...-+---------+------------+
+    | sys.nodes.name | job_id     | name    | used_bytes |
+    +----------------+--------...-+---------+------------+
+    | crate          | ...        | collect | ...        |
+    +----------------+--------...-+---------+------------+
     SELECT 1 row in set (... sec)
 
 Logs

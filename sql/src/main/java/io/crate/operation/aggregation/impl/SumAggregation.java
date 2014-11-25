@@ -22,6 +22,7 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
@@ -54,6 +55,11 @@ public class SumAggregation extends AggregationFunction<SumAggregation.SumAggSta
     public static class SumAggState extends AggregationState<SumAggState> {
 
         private Double value = null; // sum that aggregates nothing returns null, not 0.0
+
+        public SumAggState(RamAccountingContext ramAccountingContext) {
+            super(ramAccountingContext);
+            ramAccountingContext.addBytes(8);
+        }
 
         @Override
         public Object value() {
@@ -105,8 +111,8 @@ public class SumAggregation extends AggregationFunction<SumAggregation.SumAggSta
     }
 
     @Override
-    public SumAggState newState() {
-        return new SumAggState();
+    public SumAggState newState(RamAccountingContext ramAccountingContext) {
+        return new SumAggState(ramAccountingContext);
     }
 
     @Override

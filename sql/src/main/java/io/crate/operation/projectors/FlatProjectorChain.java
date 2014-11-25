@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.planner.projection.Projection;
 
 import java.util.ArrayList;
@@ -48,7 +49,9 @@ public class FlatProjectorChain {
     private final List<Projector> projectors;
     private ResultProvider lastProjector;
 
-    public FlatProjectorChain(List<Projection> projections, ProjectionToProjectorVisitor projectorVisitor) {
+    public FlatProjectorChain(List<Projection> projections,
+                              ProjectionToProjectorVisitor projectorVisitor,
+                              RamAccountingContext ramAccountingContext) {
         projectors = new ArrayList<>();
         if (projections.size() == 0) {
             firstProjector = new CollectingProjector();
@@ -57,7 +60,7 @@ public class FlatProjectorChain {
         } else {
             Projector previousProjector = null;
             for (Projection projection : projections) {
-                Projector projector = projectorVisitor.process(projection);
+                Projector projector = projectorVisitor.process(projection, ramAccountingContext);
                 projectors.add(projector);
                 if (previousProjector != null) {
                     previousProjector.downstream(projector);

@@ -28,6 +28,7 @@ import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.breaker.QueryOperationCircuitBreaker;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
@@ -64,6 +65,8 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
@@ -208,6 +211,7 @@ public class LocalDataCollectTest {
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
 
+            bind(CircuitBreaker.class).annotatedWith(QueryOperationCircuitBreaker.class).toInstance(new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
             bind(CircuitBreakerService.class).toInstance(new NoneCircuitBreakerService());
             bind(ActionFilters.class).toInstance(mock(ActionFilters.class));
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
@@ -348,7 +352,7 @@ public class LocalDataCollectTest {
         collectNode.maxRowGranularity(RowGranularity.NODE);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
 
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
 
         assertThat(result.length, equalTo(1));
 
@@ -368,7 +372,7 @@ public class LocalDataCollectTest {
             }});
         }}));
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        operation.collect(collectNode);
+        operation.collect(collectNode, null);
     }
 
     @Test
@@ -390,7 +394,7 @@ public class LocalDataCollectTest {
         collectNode.toCollect(Arrays.<Symbol>asList(unknownReference));
         collectNode.maxRowGranularity(RowGranularity.NODE);
         try {
-            operation.collect(collectNode).get();
+            operation.collect(collectNode, null).get();
         } catch (ExecutionException e) {
             throw e.getCause();
         }
@@ -405,7 +409,7 @@ public class LocalDataCollectTest {
         );
         collectNode.toCollect(Arrays.<Symbol>asList(twoTimesTruthFunction, testNodeReference));
         collectNode.maxRowGranularity(RowGranularity.NODE);
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, equalTo(1));
         assertThat(result[0].length, equalTo(2));
         assertThat((Integer) result[0][0], equalTo(84));
@@ -429,7 +433,7 @@ public class LocalDataCollectTest {
         );
         collectNode.toCollect(Arrays.<Symbol>asList(unknownFunction));
         try {
-            operation.collect(collectNode).get();
+            operation.collect(collectNode, null).get();
         } catch (ExecutionException e) {
             throw e.getCause();
         }
@@ -444,7 +448,7 @@ public class LocalDataCollectTest {
                 Literal.newLiteral(1),
                 Literal.newLiteral(4.2)
         ));
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, equalTo(1));
         assertThat((BytesRef) result[0][0], equalTo(new BytesRef("foobar")));
         assertThat((Boolean) result[0][1], equalTo(true));
@@ -461,7 +465,7 @@ public class LocalDataCollectTest {
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(Literal.newLiteral(false), Literal.newLiteral(false))
         )));
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertArrayEquals(new Object[0][], result);
     }
 
@@ -474,7 +478,7 @@ public class LocalDataCollectTest {
                 Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(true))
         )));
         collectNode.maxRowGranularity(RowGranularity.NODE);
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, equalTo(1));
         assertThat((Integer) result[0][0], equalTo(42));
 
@@ -490,7 +494,7 @@ public class LocalDataCollectTest {
                 op.info(),
                 Arrays.<Symbol>asList(Literal.NULL, Literal.NULL)
         )));
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertArrayEquals(new Object[0][], result);
     }
 
@@ -499,7 +503,7 @@ public class LocalDataCollectTest {
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, is(equalTo(2)));
         assertThat((Integer) result[0][0], isOneOf(0, 1));
         assertThat((Integer) result[1][0], isOneOf(0, 1));
@@ -516,7 +520,7 @@ public class LocalDataCollectTest {
         collectNode.whereClause(new WhereClause(
                 new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, Literal.newLiteral(0)))));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, is(equalTo(1)));
         assertThat((Integer) result[0][0], is(0));
     }
@@ -526,7 +530,7 @@ public class LocalDataCollectTest {
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference, Literal.newLiteral(true), testNodeReference));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
-        Object[][] result = operation.collect(collectNode).get();
+        Object[][] result = operation.collect(collectNode, null).get();
         assertThat(result.length, is(equalTo(2)));
         assertThat(result[0].length, is(equalTo(3)));
         int i, j;

@@ -22,8 +22,9 @@
 package io.crate.operation.collect;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.planner.node.dql.CollectNode;
 
 public interface CollectOperation<T> {
-    public ListenableFuture<T> collect(CollectNode collectNode);
+    public ListenableFuture<T> collect(CollectNode collectNode, RamAccountingContext ramAccountingContext);
 }

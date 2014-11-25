@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
@@ -34,7 +35,6 @@ import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
-import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.Inject;
@@ -156,7 +156,7 @@ public class UnassignedShardsCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect() throws Exception {
+        public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
             for (UnassignedShard row : rows) {
                 for (UnassignedShardCollectorExpression<?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
@@ -174,7 +174,7 @@ public class UnassignedShardsCollectService implements CollectService {
                 }
                 if (!downstream.setNextRow(newRow)) {
                     // no more rows required, we can stop here
-                    throw new CollectionTerminatedException();
+                    throw new CollectionAbortedException();
                 }
             }
 

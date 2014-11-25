@@ -26,10 +26,11 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
+import io.crate.operation.collect.CollectionAbortedException;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.Projector;
-import org.apache.lucene.search.CollectionTerminatedException;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
@@ -140,7 +141,7 @@ public class FileReadingCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect() throws IOException, CollectionTerminatedException {
+    public void doCollect(RamAccountingContext ramAccountingContext) throws IOException {
         FileInput fileInput = getFileInput();
         if (fileInput == null) {
             if (downstream != null) {
@@ -179,7 +180,7 @@ public class FileReadingCollector implements CrateCollector {
                             newRow[i++] = input.value();
                         }
                         if (!downstream.setNextRow(newRow)) {
-                            throw new CollectionTerminatedException();
+                            throw new CollectionAbortedException();
                         }
                     }
                 } finally {

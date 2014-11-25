@@ -25,11 +25,14 @@ import java.util.UUID;
 
 public class OperationContext {
 
+    public UUID id;
     public UUID jobId;
     public String name;
     public long started;
+    public long usedBytes;
 
-    public OperationContext(UUID jobId, String name, long started) {
+    public OperationContext(UUID id, UUID jobId, String name, long started) {
+        this.id = id;
         this.jobId = jobId;
         this.name = name;
         this.started = started;

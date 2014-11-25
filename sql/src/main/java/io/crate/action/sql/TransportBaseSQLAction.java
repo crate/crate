@@ -287,6 +287,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
              * Here we unwrap it to get the original exception.
              */
             return e.getCause();
+        } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
+            return new CircuitBreakingException(e.getMessage());
         }
         return e;
     }

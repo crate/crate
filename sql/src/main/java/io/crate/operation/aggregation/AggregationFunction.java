@@ -21,13 +21,14 @@
 
 package io.crate.operation.aggregation;
 
+import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 public abstract class AggregationFunction<T extends AggregationState> implements FunctionImplementation<Function> {
-
 
     /**
      * Apply the columnValue to the argument AggState using the logic in this AggFunction
@@ -36,7 +37,7 @@ public abstract class AggregationFunction<T extends AggregationState> implements
      * @param args  the arguments according to FunctionInfo.argumentTypes
      * @return false if we do not need any further iteration for this state
      */
-    public abstract boolean iterate(T state, Input... args);
+    public abstract boolean iterate(T state, Input... args)  throws CircuitBreakingException;
 
 
     /**
@@ -44,11 +45,12 @@ public abstract class AggregationFunction<T extends AggregationState> implements
      *
      * @return a new state instance
      */
-    public abstract T newState();
+    public abstract T newState(RamAccountingContext ramAccountingContext);
 
 
     @Override
     public Symbol normalizeSymbol(Function symbol) {
         return symbol;
     }
+
 }

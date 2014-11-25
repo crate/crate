@@ -22,6 +22,7 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
@@ -43,7 +44,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         for (DataType t :DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(new AverageAggregation(new FunctionInfo(
                             new FunctionIdent(NAME, ImmutableList.of(t)), DataTypes.DOUBLE,
-                    FunctionInfo.Type.AGGREGATE)));
+                                               FunctionInfo.Type.AGGREGATE)));
         }
         mod.register(new AverageAggregation(new FunctionInfo(
                 new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
@@ -58,6 +59,14 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
         private double sum = 0;
         private long count = 0;
+
+        public AverageAggState(RamAccountingContext ramAccountingContext) {
+            super(ramAccountingContext);
+            // double sum
+            ramAccountingContext.addBytes(8);
+            // long count
+            ramAccountingContext.addBytes(8);
+        }
 
         @Override
         public Object value() {
@@ -121,8 +130,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     @Override
-    public AverageAggState newState() {
-        return new AverageAggState();
+    public AverageAggState newState(RamAccountingContext ramAccountingContext) {
+        return new AverageAggState(ramAccountingContext);
     }
 
     @Override

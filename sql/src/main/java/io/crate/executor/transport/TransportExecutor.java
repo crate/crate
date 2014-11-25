@@ -23,6 +23,7 @@ package io.crate.executor.transport;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
+import io.crate.breaker.QueryOperationCircuitBreaker;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
@@ -52,6 +53,7 @@ import io.crate.planner.node.dml.ESIndexNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
@@ -77,6 +79,7 @@ public class TransportExecutor implements Executor {
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final ProjectionToProjectorVisitor projectorVisitor;
+    private final CircuitBreaker circuitBreaker;
 
     @Inject
     public TransportExecutor(Settings settings,
@@ -88,7 +91,8 @@ public class TransportExecutor implements Executor {
                              Provider<SearchPhaseController> searchPhaseControllerProvider,
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
-                             ClusterService clusterService) {
+                             ClusterService clusterService,
+                             @QueryOperationCircuitBreaker CircuitBreaker circuitBreaker) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -100,10 +104,12 @@ public class TransportExecutor implements Executor {
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.visitor = new Visitor();
+        this.circuitBreaker = circuitBreaker;
         ImplementationSymbolVisitor clusterImplementationSymbolVisitor =
                 new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         projectorVisitor = new ProjectionToProjectorVisitor(
-                clusterService, settings, transportActionProvider, clusterImplementationSymbolVisitor);
+                clusterService, settings, transportActionProvider,
+                clusterImplementationSymbolVisitor);
     }
 
     @Override
@@ -143,9 +149,10 @@ public class TransportExecutor implements Executor {
                 context.addTask(new RemoteCollectTask(
                     node,
                     transportActionProvider.transportCollectNodeAction(),
-                    handlerSideDataCollectOperation));
+                    handlerSideDataCollectOperation, statsTables, circuitBreaker));
             } else {
-                context.addTask(new LocalCollectTask(handlerSideDataCollectOperation, node));
+                context.addTask(new LocalCollectTask(
+                        handlerSideDataCollectOperation, node, circuitBreaker));
             }
             return null;
         }
@@ -167,7 +174,8 @@ public class TransportExecutor implements Executor {
                         transportActionProvider,
                         new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
                         node,
-                        statsTables));
+                        statsTables,
+                        circuitBreaker));
             } else {
                 context.addTask(new DistributedMergeTask(
                         transportActionProvider.transportMergeNodeAction(), node));

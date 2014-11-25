@@ -128,6 +128,26 @@ Ports
   of the node is not directly reachable from outside, e.g. running it
   behind a firewall or inside a Docker container.
 
+Query Circuit Breaker
+---------------------
+
+The Query circuit breaker will keep track of the used memory during
+the execution of a query. If a query consumes too much memory or if
+the cluster is already near its memory limit it will terminate the
+query to ensure the cluster keeps working.
+
+**crate.breaker.query.limit**
+  | *Runtime:*   ``no``
+
+  Specifies the limit for the query breaker, defaults to ``60%`` of
+  the JVM HEAP.
+
+**crate.breaker.query.overhead**
+  | *Runtime:*   ``no``
+
+  A constant that all data estimations are multiplied with to
+  determine a final estimation. Defaults to ``1.03``.
+
 .. _conf-cluster-settings:
 
 Cluster Wide Settings

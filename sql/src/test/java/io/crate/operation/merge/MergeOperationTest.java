@@ -21,6 +21,7 @@
 
 package io.crate.operation.merge;
 
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -40,6 +41,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -57,6 +60,9 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 public class MergeOperationTest {
+
+    private static final RamAccountingContext ramAccountingContext =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private GroupProjection groupProjection;
     private AggregationFunction<MinimumAggregation.MinimumAggState> minAggFunction;
@@ -108,12 +114,13 @@ public class MergeOperationTest {
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 symbolVisitor,
-                mergeNode
+                mergeNode,
+                ramAccountingContext
         );
 
         Object[][] rows = new Object[20][];
         for (int i=0; i<rows.length; i++) {
-            MinimumAggregation.MinimumAggState aggState = minAggFunction.newState();
+            MinimumAggregation.MinimumAggState aggState = minAggFunction.newState(ramAccountingContext);
             aggState.setValue(i+0.5d);
             rows[i] = new Object[]{ i%4, aggState};
         }
@@ -143,16 +150,17 @@ public class MergeOperationTest {
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 symbolVisitor,
-                mergeNode
+                mergeNode,
+                ramAccountingContext
         );
         Object[][] rows = new Object[1][];
-        MinimumAggregation.MinimumAggState aggState = minAggFunction.newState();
+        MinimumAggregation.MinimumAggState aggState = minAggFunction.newState(ramAccountingContext);
         aggState.setValue(100.0d);
         rows[0] = new Object[]{0, aggState};
         assertTrue(mergeOperation.addRows(rows));
 
         Object[][] otherRows = new Object[1][];
-        MinimumAggregation.MinimumAggState otherAggState = minAggFunction.newState();
+        MinimumAggregation.MinimumAggState otherAggState = minAggFunction.newState(ramAccountingContext);
         otherAggState.setValue(2.5d);
         otherRows[0] = new Object[]{0, otherAggState};
         assertTrue(mergeOperation.addRows(otherRows));

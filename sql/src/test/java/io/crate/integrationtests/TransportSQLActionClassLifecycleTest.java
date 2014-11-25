@@ -651,7 +651,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
         List<String> names = new ArrayList<>();
         for (Object[] objects : resp.rows()) {
-            names.add((String)objects[1]);
+            names.add((String)objects[2]);
         }
         assertTrue(names.contains("distributing collect"));
         assertTrue(names.contains("distributed merge"));

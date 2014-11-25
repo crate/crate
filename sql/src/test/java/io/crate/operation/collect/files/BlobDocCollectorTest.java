@@ -108,7 +108,7 @@ public class BlobDocCollectorTest {
         );
 
         projector.startProjection();
-        collector.doCollect();
+        collector.doCollect(null);
         return projector;
     }
 

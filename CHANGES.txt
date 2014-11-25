@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Add sql query breaker which will terminate a query execution if too
+   much memory will be consumened.
+
  - Fixed NPE which could occure on a shard failure while collecting
    distributed (e.g. group by query)
 

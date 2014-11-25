@@ -37,6 +37,10 @@ public class OperationContextLog {
         this.ended = System.currentTimeMillis();
     }
 
+    public UUID id() {
+        return operationContext.id;
+    }
+
     public UUID jobId() {
         return operationContext.jobId;
     }
@@ -51,6 +55,10 @@ public class OperationContextLog {
 
     public long ended() {
         return ended;
+    }
+
+    public long usedBytes() {
+        return  operationContext.usedBytes;
     }
 
     @Nullable

@@ -21,7 +21,12 @@
 
 package io.crate.operation.aggregation;
 
+import io.crate.breaker.RamAccountingContext;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.ESLoggerFactory;
+import org.elasticsearch.common.unit.ByteSizeValue;
 
 import java.util.Set;
 
@@ -35,8 +40,17 @@ import java.util.Set;
  */
 public abstract class AggregationState<T extends AggregationState> implements Comparable<T>, Streamable {
 
+    protected final RamAccountingContext ramAccountingContext;
+    private final ESLogger logger = ESLoggerFactory.getLogger(getClass().getName());
+
+    public AggregationState(RamAccountingContext ramAccountingContext) {
+        this.ramAccountingContext = ramAccountingContext;
+        // plain object size
+        addEstimatedSize(8);
+    }
+
     public abstract Object value();
-    public abstract void reduce(T other);
+    public abstract void reduce(T other) throws CircuitBreakingException;
 
     /**
      * called after the rows/state have been merged on the reducer,
@@ -52,5 +66,12 @@ public abstract class AggregationState<T extends AggregationState> implements Co
      * the set is managed by the aggStates encapsulating GroupByRow
      */
     public void setSeenValuesRef(Set<Object> seenValues) {
+    }
+
+    protected void addEstimatedSize(long size) throws CircuitBreakingException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("[{}] Adding {} bytes to RAM accounting context", getClass(), new ByteSizeValue(size));
+        }
+        ramAccountingContext.addBytes(size);
     }
 }

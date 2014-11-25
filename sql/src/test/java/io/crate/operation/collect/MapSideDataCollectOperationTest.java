@@ -114,7 +114,7 @@ public class MapSideDataCollectOperationTest {
                 null,
                 false
         );
-        ListenableFuture<Object[][]> resultFuture = collectOperation.collect(collectNode);
+        ListenableFuture<Object[][]> resultFuture = collectOperation.collect(collectNode, null);
         Object[][] objects = resultFuture.get();
 
         assertThat((String)objects[0][0], is("Arthur"));

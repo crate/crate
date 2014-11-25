@@ -24,6 +24,7 @@ package io.crate.executor.transport.merge;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.metadata.DynamicFunctionResolver;
@@ -43,6 +44,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
@@ -117,7 +120,8 @@ public class DistributedResultRequestTest {
         // receiver
         DistributedRequestContextManager contextManager =
                 new DistributedRequestContextManager(new DummyDownstreamOperationFactory(rows), functions,
-                        new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)));
+                        new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)),
+                        new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
         BytesStreamInput streamInput = new BytesStreamInput(streamOutput.bytes());
         DistributedResultRequest requestReceiver = new DistributedResultRequest(contextManager);
         requestReceiver.readFrom(streamInput);
@@ -162,7 +166,8 @@ public class DistributedResultRequestTest {
 
         DistributedRequestContextManager contextManager =
                 new DistributedRequestContextManager(new DummyDownstreamOperationFactory(rows), functions,
-                        new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)));
+                        new StatsTables(ImmutableSettings.EMPTY, mock(NodeSettingsService.class)),
+                        new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
         contextManager.createContext(dummyMergeNode, new NoopActionListener());
 
@@ -209,7 +214,7 @@ public class DistributedResultRequestTest {
         }
 
         @Override
-        public DownstreamOperation create(final MergeNode node) {
+        public DownstreamOperation create(final MergeNode node, RamAccountingContext ramAccountingContext) {
             return new DownstreamOperation() {
                 @Override
                 public boolean addRows(Object[][] rows) {

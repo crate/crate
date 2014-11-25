@@ -36,9 +36,11 @@ import java.util.*;
 public class SysOperationsTableInfo extends SysTableInfo {
 
     public static class ColumnNames {
+        public final static String ID = "id";
         public final static String JOB_ID = "job_id";
         public final static String NAME = "name";
         public final static String STARTED = "started";
+        public final static String USED_BYTES = "used_bytes";
     }
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "operations");
@@ -55,9 +57,11 @@ public class SysOperationsTableInfo extends SysTableInfo {
     }
 
     static {
+        register(ColumnNames.ID, DataTypes.STRING);
         register(ColumnNames.JOB_ID, DataTypes.STRING);
         register(ColumnNames.NAME, DataTypes.STRING);
         register(ColumnNames.STARTED, DataTypes.TIMESTAMP);
+        register(ColumnNames.USED_BYTES, DataTypes.LONG);
     }
 
     @Inject

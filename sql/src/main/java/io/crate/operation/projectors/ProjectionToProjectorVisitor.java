@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -38,17 +39,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projector> {
+public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> {
 
     private final ClusterService clusterService;
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
     private final ImplementationSymbolVisitor symbolVisitor;
     private final EvaluatingNormalizer normalizer;
-
-    public Projector process(Projection projection) {
-        return process(projection, null);
-    }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Settings settings,
@@ -70,11 +67,16 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 new EvaluatingNormalizer(
                         symbolVisitor.functions(),
                         symbolVisitor.rowGranularity(),
-                        symbolVisitor.referenceResolver()));
+                        symbolVisitor.referenceResolver())
+        );
+    }
+
+    public Projector process(Projection projection, RamAccountingContext ramAccountingContext) {
+        return super.process(projection, new Context(ramAccountingContext));
     }
 
     @Override
-    public Projector visitTopNProjection(TopNProjection projection, Void context) {
+    public Projector visitTopNProjection(TopNProjection projection, Context context) {
         Projector projector;
         List<Input<?>> inputs = new ArrayList<>();
         List<CollectExpression<?>> collectExpressions = new ArrayList<>();
@@ -117,7 +119,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
     }
 
     @Override
-    public Projector visitGroupProjection(GroupProjection projection, Void context) {
+    public Projector visitGroupProjection(GroupProjection projection, Context context) {
         ImplementationSymbolVisitor.Context symbolContext = symbolVisitor.process(projection.keys());
         List<Input<?>> keyInputs = symbolContext.topLevelInputs();
 
@@ -128,23 +130,25 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
                 Symbols.extractTypes(projection.keys()),
                 keyInputs,
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
-                symbolContext.aggregations()
+                symbolContext.aggregations(),
+                context.ramAccountingContext
         );
     }
 
     @Override
-    public Projector visitAggregationProjection(AggregationProjection projection, Void context) {
+    public Projector visitAggregationProjection(AggregationProjection projection, Context context) {
         ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
         for (Aggregation aggregation : projection.aggregations()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
         return new AggregationProjector(
                 symbolContext.collectExpressions(),
-                symbolContext.aggregations());
+                symbolContext.aggregations(),
+                context.ramAccountingContext);
     }
 
     @Override
-    public Projector visitWriterProjection(WriterProjection projection, Void context) {
+    public Projector visitWriterProjection(WriterProjection projection, Context context) {
         ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
 
         List<Input<?>> inputs = null;
@@ -194,7 +198,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         return objectMap;
     }
 
-    public Projector visitSourceIndexWriterProjection(SourceIndexWriterProjection projection, Void context) {
+    public Projector visitSourceIndexWriterProjection(SourceIndexWriterProjection projection, Context context) {
         ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
         List<Input<?>> idInputs = new ArrayList<>(projection.ids().size());
         for (Symbol idSymbol : projection.ids()) {
@@ -230,7 +234,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
     }
 
     @Override
-    public Projector visitColumnIndexWriterProjection(ColumnIndexWriterProjection projection, Void context) {
+    public Projector visitColumnIndexWriterProjection(ColumnIndexWriterProjection projection, Context context) {
         final ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
         List<Input<?>> idInputs = new ArrayList<>(projection.ids().size());
         for (Symbol idSymbol : projection.ids()) {
@@ -268,7 +272,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
     }
 
     @Override
-    public Projector visitFilterProjection(FilterProjection projection, Void context) {
+    public Projector visitFilterProjection(FilterProjection projection, Context context) {
         ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
 
         Input<Boolean> condition;
@@ -281,5 +285,15 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projec
         return new FilterProjector(
                 ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()]),
                 condition);
+    }
+
+    public static class Context {
+
+        private final RamAccountingContext ramAccountingContext;
+
+        public Context(RamAccountingContext ramAccountingContext) {
+            this.ramAccountingContext = ramAccountingContext;
+        }
+
     }
 }

@@ -24,11 +24,14 @@ package io.crate.operation.aggregation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.types.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.InputCollectExpression;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -41,10 +44,14 @@ import java.util.Map;
 
 public abstract class AggregationTest {
 
+    protected static final RamAccountingContext ramAccountingContext =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+
     private Map<String, SettableFuture<Object[][]>> nodeResults;
     protected List<ListenableFuture<Object[][]>> results;
     private Injector injector;
     protected Functions functions;
+
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -82,7 +89,7 @@ public abstract class AggregationTest {
             inputs = new InputCollectExpression[0];
         }
         AggregationFunction impl = (AggregationFunction) functions.get(fi);
-        AggregationState state = impl.newState();
+        AggregationState state = impl.newState(ramAccountingContext);
 
         for (Object[] row : data) {
             for (InputCollectExpression i : inputs) {

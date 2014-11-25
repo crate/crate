@@ -26,6 +26,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.information.RowCollectExpression;
@@ -38,7 +39,6 @@ import io.crate.operation.reference.information.InformationDocLevelReferenceReso
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
 import io.crate.types.DataTypes;
-import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -178,7 +178,7 @@ public class InformationSchemaCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect() throws Exception {
+        public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
             for (R row : rows) {
                 for (RowCollectExpression<R, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
@@ -197,7 +197,7 @@ public class InformationSchemaCollectService implements CollectService {
                 if (!downstream.setNextRow(newRow)) {
                     // no more rows required, we can stop here
                     downstream.upstreamFinished();
-                    throw new CollectionTerminatedException();
+                    throw new CollectionAbortedException();
                 }
             }
             downstream.upstreamFinished();

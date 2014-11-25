@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
@@ -34,7 +35,6 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
-import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -73,7 +73,7 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     }
 
     @Override
-    public ListenableFuture<Object[][]> collect(CollectNode collectNode) {
+    public ListenableFuture<Object[][]> collect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
         if (collectNode.isPartitioned()) {
             // edge case: partitioned table without actual indices
             // no results
@@ -81,17 +81,17 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         }
         if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
             // we assume information schema here
-            return handleWithService(informationSchemaCollectService, collectNode);
+            return handleWithService(informationSchemaCollectService, collectNode, ramAccountingContext);
         } else if (collectNode.maxRowGranularity() == RowGranularity.CLUSTER) {
-            return handleCluster(collectNode);
+            return handleCluster(collectNode, ramAccountingContext);
         } else if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
-            return handleWithService(unassignedShardsCollectService, collectNode);
+            return handleWithService(unassignedShardsCollectService, collectNode, ramAccountingContext);
         } else {
             return Futures.immediateFailedFuture(new IllegalStateException("unsupported routing"));
         }
     }
 
-    private ListenableFuture<Object[][]> handleCluster(CollectNode collectNode) {
+    private ListenableFuture<Object[][]> handleCluster(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
         collectNode = collectNode.normalize(clusterNormalizer);
         if (collectNode.whereClause().noMatch()) {
             return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
@@ -103,26 +103,31 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         List<Input<?>> inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
-        FlatProjectorChain projectorChain = new FlatProjectorChain(collectNode.projections(), projectorVisitor);
+        FlatProjectorChain projectorChain = new FlatProjectorChain(collectNode.projections(), projectorVisitor, ramAccountingContext);
         SimpleOneRowCollector collector = new SimpleOneRowCollector(
                 inputs, collectExpressions, projectorChain.firstProjector());
 
         projectorChain.startProjections();
         try {
-            collector.doCollect();
+            collector.doCollect(ramAccountingContext);
+        } catch (CollectionAbortedException e) {
+            // ignore
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
         return projectorChain.result();
     }
 
-    private ListenableFuture<Object[][]> handleWithService(CollectService collectService, CollectNode node) {
-        FlatProjectorChain projectorChain = new FlatProjectorChain(node.projections(), projectorVisitor);
+    private ListenableFuture<Object[][]> handleWithService(CollectService collectService,
+                                                           CollectNode node,
+                                                           RamAccountingContext ramAccountingContext) {
+        FlatProjectorChain projectorChain = new FlatProjectorChain(node.projections(),
+                projectorVisitor, ramAccountingContext);
         CrateCollector collector = collectService.getCollector(node, projectorChain.firstProjector());
         projectorChain.startProjections();
         try {
-            collector.doCollect();
-        } catch (CollectionTerminatedException ex) {
+            collector.doCollect(ramAccountingContext);
+        } catch (CollectionAbortedException ex) {
             // ignore
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);

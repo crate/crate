@@ -38,6 +38,10 @@ public class DataTypes {
 
     private final static ESLogger logger = Loggers.getLogger(DataTypes.class);
 
+    /**
+     * While adding new types here, please aware the {@link io.crate.breaker.SizeEstimatorFactory}
+     */
+    @SuppressWarnings("JavadocReference")
     public final static UndefinedType UNDEFINED = UndefinedType.INSTANCE;
     public final static NotSupportedType NOT_SUPPORTED = NotSupportedType.INSTANCE;
 

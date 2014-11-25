@@ -21,9 +21,11 @@
 
 package io.crate.operation.collect;
 
+import io.crate.breaker.RamAccountingContext;
+
 public abstract class AbstractRowCollector<T> implements RowCollector<T> {
-    public T collect() {
-        if (startCollect()) {
+    public T collect(RamAccountingContext ramAccountingContext) {
+        if (startCollect(ramAccountingContext)) {
             boolean carryOn;
             do {
                 carryOn = processRow();

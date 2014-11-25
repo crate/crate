@@ -1,6 +1,7 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -14,6 +15,9 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
 
@@ -26,6 +30,9 @@ import static org.junit.Assert.assertThat;
 
 public class GroupingProjectorTest {
 
+    protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+
     /**
      * NOTE:
      *
@@ -36,7 +43,7 @@ public class GroupingProjectorTest {
     public void testAggregationToPartial() throws ExecutionException, InterruptedException {
 
         ImmutableList<Input<?>> keys = ImmutableList.<Input<?>>of(
-                new DummyInput("one", "one", "three"));
+                new DummyInput(new BytesRef("one"), new BytesRef("one"), new BytesRef("three")));
 
 
         FunctionInfo countInfo = new FunctionInfo(new FunctionIdent("count", ImmutableList.<DataType>of()), DataTypes.LONG);
@@ -55,7 +62,8 @@ public class GroupingProjectorTest {
                 Arrays.asList(DataTypes.STRING),
                 keys,
                 new CollectExpression[0],
-                aggregations
+                aggregations,
+                RAM_ACCOUNTING_CONTEXT
         );
         CollectingProjector collectingProjector = new CollectingProjector();
         projector.registerUpstream(null);
@@ -71,18 +79,18 @@ public class GroupingProjectorTest {
         assertThat(rows[0][1], instanceOf(CountAggregation.CountAggState.class));
     }
 
-    class DummyInput implements Input<String> {
+    class DummyInput implements Input<BytesRef> {
 
-        private final String[] values;
+        private final BytesRef[] values;
         private int idx;
 
-        DummyInput(String... values)  {
+        DummyInput(BytesRef... values)  {
             this.values = values;
             this.idx = 0;
         }
 
         @Override
-        public String value() {
+        public BytesRef value() {
             return values[idx++];
         }
     }

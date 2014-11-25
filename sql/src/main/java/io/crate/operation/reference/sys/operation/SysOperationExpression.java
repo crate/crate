@@ -31,6 +31,12 @@ public abstract class SysOperationExpression<T> extends RowContextCollectorExpre
 
     public static final ImmutableList<SysOperationExpression<?>> IMPLEMENTATIONS =
             ImmutableList.<SysOperationExpression<?>>builder()
+            .add(new SysOperationExpression<BytesRef>(SysOperationsTableInfo.ColumnNames.ID) {
+                @Override
+                public BytesRef value() {
+                    return new BytesRef(row.id.toString());
+                }
+            })
             .add(new SysOperationExpression<BytesRef>(SysOperationsTableInfo.ColumnNames.JOB_ID) {
                 @Override
                 public BytesRef value() {
@@ -47,6 +53,15 @@ public abstract class SysOperationExpression<T> extends RowContextCollectorExpre
                 @Override
                 public Long value() {
                     return row.started;
+                }
+            })
+            .add(new SysOperationExpression<Long>(SysOperationsTableInfo.ColumnNames.USED_BYTES) {
+                @Override
+                public Long value() {
+                    if (row.usedBytes == 0) {
+                        return null;
+                    }
+                    return row.usedBytes;
                 }
             }).build();
 

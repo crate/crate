@@ -26,6 +26,8 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
+import io.crate.breaker.QueryOperationCircuitBreaker;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.DistributingCollectOperation;
 import io.crate.operation.collect.MapSideDataCollectOperation;
@@ -36,6 +38,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -61,6 +64,7 @@ public class TransportCollectNodeAction {
     private final String executor = ThreadPool.Names.SEARCH;
     private final DistributingCollectOperation distributingCollectOperation;
     private final StatsTables statsTables;
+    private final CircuitBreaker circuitBreaker;
 
     @Inject
     public TransportCollectNodeAction(ThreadPool threadPool,
@@ -69,7 +73,8 @@ public class TransportCollectNodeAction {
                                       MapSideDataCollectOperation localDataCollector,
                                       DistributingCollectOperation distributingCollectOperation,
                                       PlanNodeStreamerVisitor planNodeStreamerVisitor,
-                                      StatsTables statsTables) {
+                                      StatsTables statsTables,
+                                      @QueryOperationCircuitBreaker CircuitBreaker circuitBreaker) {
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
@@ -77,6 +82,7 @@ public class TransportCollectNodeAction {
         this.distributingCollectOperation = distributingCollectOperation;
         this.planNodeStreamerVisitor = planNodeStreamerVisitor;
         this.statsTables = statsTables;
+        this.circuitBreaker = circuitBreaker;
 
         transportService.registerHandler(transportAction, new TransportHandler());
     }
@@ -98,24 +104,28 @@ public class TransportCollectNodeAction {
         final ListenableFuture<Object[][]> collectResult;
 
         final UUID operationId;
-        if (request.collectNode().jobId().isPresent()) {
+        if (node.jobId().isPresent()) {
             operationId = UUID.randomUUID();
-            statsTables.operationStarted(
-                    operationId, request.collectNode().jobId().get(), request.collectNode().id());
+            statsTables.operationStarted(operationId, node.jobId().get(), node.id());
         } else {
             operationId = null;
         }
+        String ramAccountingContextId = String.format("%s: %s", node.id(), operationId);
+        final RamAccountingContext ramAccountingContext =
+                new RamAccountingContext(ramAccountingContextId, circuitBreaker);
 
         try {
             if (node.hasDownstreams()) {
-                collectResult = distributingCollectOperation.collect(node);
+                collectResult = distributingCollectOperation.collect(node, ramAccountingContext);
             } else {
-                collectResult = localDataCollector.collect(node);
+                collectResult = localDataCollector.collect(node, ramAccountingContext);
             }
         } catch (Throwable e){
             logger.error("Error when creating result futures", e);
             collectResponse.onFailure(e);
-            statsTables.operationFinished(operationId, Exceptions.messageOf(e));
+            statsTables.operationFinished(operationId, Exceptions.messageOf(e),
+                    ramAccountingContext.totalBytes());
+            ramAccountingContext.close();
             return;
         }
 
@@ -123,18 +133,21 @@ public class TransportCollectNodeAction {
             @Override
             public void onSuccess(@Nullable Object[][] result) {
                 assert result != null;
-                PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(node);
-                NodeCollectResponse response = new NodeCollectResponse(streamerContext.outputStreamers());
+                NodeCollectResponse response = new NodeCollectResponse(
+                        planNodeStreamerVisitor.process(node, ramAccountingContext).outputStreamers());
                 response.rows(result);
 
                 collectResponse.onResponse(response);
-                statsTables.operationFinished(operationId, null);
+                statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
+                ramAccountingContext.close();
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 collectResponse.onFailure(t);
-                statsTables.operationFinished(operationId, Exceptions.messageOf(t));
+                statsTables.operationFinished(operationId, Exceptions.messageOf(t),
+                        ramAccountingContext.totalBytes());
+                ramAccountingContext.close();
             }
         });
     }
@@ -157,7 +170,9 @@ public class TransportCollectNodeAction {
             this.nodeId = nodeId;
             this.request = request;
             this.listener = listener;
-            PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(request.collectNode());
+            PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(
+                    request.collectNode(),
+                    new RamAccountingContext("dummy", circuitBreaker));
             this.streamers = streamerContext.outputStreamers();
         }
 

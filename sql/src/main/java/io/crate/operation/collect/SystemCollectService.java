@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.sys.SysJobsLogTableInfo;
@@ -33,7 +34,6 @@ import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.sys.job.RowContextDocLevelReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
-import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
@@ -109,7 +109,7 @@ public class SystemCollectService implements CollectService {
         }
 
         @Override
-        public void doCollect() throws Exception {
+        public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
             for (R row : rows) {
                 for (RowContextCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
@@ -128,7 +128,7 @@ public class SystemCollectService implements CollectService {
                 if (!downstream.setNextRow(newRow)) {
                     // no more rows required, we can stop here
                     downstream.upstreamFinished();
-                    throw new CollectionTerminatedException();
+                    throw new CollectionAbortedException();
                 }
             }
             downstream.upstreamFinished();

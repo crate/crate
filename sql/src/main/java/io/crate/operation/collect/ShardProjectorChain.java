@@ -24,13 +24,16 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.projectors.CollectingProjector;
 import io.crate.operation.projectors.ResultProvider;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.Projection;
+import org.elasticsearch.search.facet.FacetExecutor;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -75,7 +78,10 @@ public class ShardProjectorChain implements ResultProvider {
     private int shardProjectionsIndex = -1;
 
 
-    public ShardProjectorChain(int numShards, List<Projection> projections, ProjectionToProjectorVisitor nodeProjectorVisitor) {
+    public ShardProjectorChain(int numShards,
+                               List<Projection> projections,
+                               ProjectionToProjectorVisitor nodeProjectorVisitor,
+                               RamAccountingContext ramAccountingContext) {
         this.projections = projections;
         nodeProjectors = new ArrayList<>();
 
@@ -100,7 +106,7 @@ public class ShardProjectorChain implements ResultProvider {
         Projector previousProjector = null;
         // create the node level projectors
         for (int i = shardProjectionsIndex + 1; i < projections.size(); i++) {
-            Projector projector = nodeProjectorVisitor.process(projections.get(i));
+            Projector projector = nodeProjectorVisitor.process(projections.get(i), ramAccountingContext);
             nodeProjectors.add(projector);
             if (previousProjector != null) {
                 previousProjector.downstream(projector);
@@ -136,14 +142,15 @@ public class ShardProjectorChain implements ResultProvider {
      * @param projectorVisitor the visitor to create projections out of a projection
      * @return a new projector connected to the internal chain
      */
-    public Projector newShardDownstreamProjector(ProjectionToProjectorVisitor projectorVisitor) {
+    public Projector newShardDownstreamProjector(ProjectionToProjectorVisitor projectorVisitor,
+                                                 RamAccountingContext ramAccountingContext) {
         if (shardProjectionsIndex < 0) {
             return firstNodeProjector;
         }
         Projector previousProjector = firstNodeProjector;
         Projector projector = null;
         for (int i = shardProjectionsIndex; i >= 0; i--) {
-            projector = projectorVisitor.process(projections.get(i));
+            projector = projectorVisitor.process(projections.get(i), ramAccountingContext);
             projector.downstream(previousProjector);
             shardProjectors.add(projector);
             previousProjector = projector;

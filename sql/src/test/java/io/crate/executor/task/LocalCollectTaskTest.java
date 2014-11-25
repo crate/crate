@@ -24,6 +24,7 @@ package io.crate.executor.task;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.QueryResult;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.CollectOperation;
@@ -31,6 +32,8 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import java.util.List;
@@ -56,14 +59,14 @@ public class LocalCollectTaskTest {
 
         CollectOperation collectOperation = new CollectOperation() {
             @Override
-            public ListenableFuture collect(CollectNode cn) {
+            public ListenableFuture collect(CollectNode cn, RamAccountingContext ramAccountingContext) {
                 assertEquals(cn, collectNode);
                 SettableFuture<Object[][]> result = SettableFuture.create();
                 result.set(new Object[][]{{1}});
                 return result;
             }
         };
-        LocalCollectTask collectTask = new LocalCollectTask(collectOperation, collectNode);
+        LocalCollectTask collectTask = new LocalCollectTask(collectOperation, collectNode, new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
         collectTask.start();
         List<ListenableFuture<QueryResult>> results = collectTask.result();
         assertThat(results.size(), is(1));

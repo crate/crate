@@ -90,9 +90,9 @@ public class StatsTablesTest {
 
 
         stats.operationsLog.get().add(new OperationContextLog(
-                new OperationContext(UUID.randomUUID(), "foo", 2L), null));
+                new OperationContext(UUID.randomUUID(), UUID.randomUUID(), "foo", 2L), null));
         stats.operationsLog.get().add(new OperationContextLog(
-                new OperationContext(UUID.randomUUID(), "foo", 3L), null));
+                new OperationContext(UUID.randomUUID(), UUID.randomUUID(), "foo", 3L), null));
 
         stats.listener.onRefreshSettings(ImmutableSettings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), true)

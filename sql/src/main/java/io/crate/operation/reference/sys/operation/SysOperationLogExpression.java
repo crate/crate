@@ -31,6 +31,12 @@ public abstract class SysOperationLogExpression<T> extends RowContextCollectorEx
 
     public static final ImmutableList<SysOperationLogExpression<?>> IMPLEMENTATIONS =
             ImmutableList.<SysOperationLogExpression<?>>builder()
+            .add(new SysOperationLogExpression<BytesRef>(SysOperationsLogTableInfo.ColumnNames.ID) {
+                @Override
+                public BytesRef value() {
+                    return new BytesRef(row.id().toString());
+                }
+            })
             .add(new SysOperationLogExpression<BytesRef>(SysOperationsLogTableInfo.ColumnNames.JOB_ID) {
                 @Override
                 public BytesRef value() {
@@ -53,6 +59,15 @@ public abstract class SysOperationLogExpression<T> extends RowContextCollectorEx
                 @Override
                 public Long value() {
                     return row.ended();
+                }
+            })
+            .add(new SysOperationLogExpression<Long>(SysOperationsLogTableInfo.ColumnNames.USED_BYTES) {
+                @Override
+                public Long value() {
+                    if (row.usedBytes() == 0) {
+                        return null;
+                    }
+                    return row.usedBytes();
                 }
             })
             .add(new SysOperationLogExpression<BytesRef>(SysOperationsLogTableInfo.ColumnNames.ERROR) {

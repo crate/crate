@@ -36,10 +36,12 @@ import java.util.*;
 public class SysOperationsLogTableInfo extends SysTableInfo {
 
     public static class ColumnNames {
+        public static final String ID = "id";
         public static final String JOB_ID = "job_id";
         public static final String NAME = "name";
         public static final String STARTED = "started";
         public static final String ENDED = "ended";
+        public static final String USED_BYTES = "used_bytes";
         public static final String ERROR = "error";
     }
 
@@ -57,10 +59,12 @@ public class SysOperationsLogTableInfo extends SysTableInfo {
     }
 
     static {
+        register(ColumnNames.ID, DataTypes.STRING);
         register(ColumnNames.JOB_ID, DataTypes.STRING);
         register(ColumnNames.NAME, DataTypes.STRING);
         register(ColumnNames.STARTED, DataTypes.TIMESTAMP);
         register(ColumnNames.ENDED, DataTypes.TIMESTAMP);
+        register(ColumnNames.USED_BYTES, DataTypes.LONG);
         register(ColumnNames.ERROR, DataTypes.STRING);
     }
 

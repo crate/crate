@@ -193,7 +193,7 @@ public class FileReadingCollectorTest {
                 0
         );
         projector.startProjection();
-        collector.doCollect();
+        collector.doCollect(null);
         return projector;
     }
 }

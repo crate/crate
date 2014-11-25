@@ -21,9 +21,11 @@
 
 package io.crate.operation.collect;
 
+import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -47,7 +49,7 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implem
     }
 
     @Override
-    public boolean startCollect() {
+    public boolean startCollect(RamAccountingContext ramAccountingContext) {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
@@ -73,8 +75,8 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implem
     }
 
     @Override
-    public void doCollect() {
-        collect();
+    public void doCollect(RamAccountingContext ramAccountingContext) throws IOException {
+        collect(ramAccountingContext);
     }
 
     @Override

@@ -22,13 +22,17 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.SizeEstimator;
+import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.AggregationState;
+import io.crate.operation.aggregation.VariableSizeAggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -50,8 +54,9 @@ public abstract class MaximumAggregation extends AggregationFunction<MaximumAggr
                             )
                     ) {
                         @Override
-                        public MaximumAggState newState() {
-                            return new MaximumAggState() {
+                        public MaximumAggState newState(RamAccountingContext ramAccountingContext) {
+                            return new MaximumAggState(ramAccountingContext, SizeEstimatorFactory.create(dataType)) {
+
                                 @Override
                                 public void readFrom(StreamInput in) throws IOException {
                                     if (!in.readBoolean()) {
@@ -84,16 +89,20 @@ public abstract class MaximumAggregation extends AggregationFunction<MaximumAggr
     }
 
     @Override
-    public boolean iterate(MaximumAggState state, Input... args) {
+    public boolean iterate(MaximumAggState state, Input... args) throws CircuitBreakingException {
         Object value = args[0].value();
         assert value == null || value instanceof Comparable;
         state.add((Comparable) value);
         return true;
     }
 
-    public static abstract class MaximumAggState extends AggregationState<MaximumAggState> {
+    public static abstract class MaximumAggState extends VariableSizeAggregationState<MaximumAggState> {
 
         private Comparable value = null;
+
+        public MaximumAggState(RamAccountingContext ramAccountingContext, SizeEstimator sizeEstimator) {
+            super(ramAccountingContext, sizeEstimator);
+        }
 
         @Override
         public Object value() {
@@ -101,33 +110,28 @@ public abstract class MaximumAggregation extends AggregationFunction<MaximumAggr
         }
 
         @Override
-        public void reduce(MaximumAggState other) {
-            if (other.value() == null) {
-                return;
-            } else if (value() == null) {
-                value = other.value;
+        public void reduce(MaximumAggState other) throws CircuitBreakingException {
+            if (other.value == null) {
                 return;
             }
-
-            if (compareTo(other) < 0) {
+            if (value == null || compareTo(other) < 0) {
+                addEstimatedSize(sizeEstimator.estimateSize(value, other.value));
                 value = other.value;
             }
         }
 
-        void add(Comparable otherValue) {
+        void add(Comparable otherValue) throws CircuitBreakingException {
             if (otherValue == null) {
                 return;
-            } else if (value() == null) {
-                value = otherValue;
-                return;
             }
-
-            if (compareValue(otherValue) < 0) {
+            if (value == null || compareValue(otherValue) < 0) {
+                addEstimatedSize(sizeEstimator.estimateSize(value, otherValue));
                 value = otherValue;
             }
         }
 
-        public void setValue(Comparable value) {
+        public void setValue(Comparable value) throws CircuitBreakingException {
+            addEstimatedSize(sizeEstimator.estimateSize(this.value, value));
             this.value = value;
         }
 

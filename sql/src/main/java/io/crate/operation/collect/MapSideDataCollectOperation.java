@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.TaskResult;
@@ -44,7 +45,6 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.FileUriCollectNode;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
-import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
@@ -145,16 +145,16 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      * -> run node level collect (cluster level)
      */
     @Override
-    public ListenableFuture<Object[][]> collect(CollectNode collectNode) {
+    public ListenableFuture<Object[][]> collect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
         assert collectNode.isRouted(); // not routed collect is not handled here
         String localNodeId = clusterService.localNode().id();
         if (collectNode.executionNodes().contains(localNodeId)) {
             if (!collectNode.routing().containsShards(localNodeId)) {
                 // node collect
-                return handleNodeCollect(collectNode);
+                return handleNodeCollect(collectNode, ramAccountingContext);
             } else {
                 // shard or doc level
-                return handleShardCollect(collectNode);
+                return handleShardCollect(collectNode, ramAccountingContext);
             }
         }
         throw new UnhandledServerException("unsupported routing");
@@ -166,14 +166,14 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      * @param collectNode {@link io.crate.planner.node.dql.CollectNode} instance containing routing information and symbols to collect
      * @return the collect result from this node, one row only so return value is <code>Object[1][]</code>
      */
-    protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
+    protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
         collectNode = collectNode.normalize(nodeNormalizer);
         if (collectNode.whereClause().noMatch()) {
             return Futures.immediateFuture(TaskResult.EMPTY_RESULT.rows());
         }
 
         FlatProjectorChain projectorChain = new FlatProjectorChain(
-                collectNode.projections(), projectorVisitor);
+                collectNode.projections(), projectorVisitor, ramAccountingContext);
 
         CrateCollector collector;
         try {
@@ -183,8 +183,8 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         }
         projectorChain.startProjections();
         try {
-            collector.doCollect();
-        } catch (CollectionTerminatedException ex) {
+            collector.doCollect(ramAccountingContext);
+        } catch (CollectionAbortedException ex) {
             // ignore
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -234,13 +234,14 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      * @param collectNode {@link io.crate.planner.node.dql.CollectNode} containing routing information and symbols to collect
      * @return the collect results from all shards on this node that were given in {@link io.crate.planner.node.dql.CollectNode#routing}
      */
-    protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
+    protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode, RamAccountingContext ramAccountingContext) {
 
         String localNodeId = clusterService.localNode().id();
         final int numShards = collectNode.routing().numShards(localNodeId);
 
         collectNode = collectNode.normalize(nodeNormalizer);
-        ShardProjectorChain projectorChain = new ShardProjectorChain(numShards, collectNode.projections(), projectorVisitor);
+        ShardProjectorChain projectorChain = new ShardProjectorChain(numShards,
+                collectNode.projections(), projectorVisitor, ramAccountingContext);
 
         final ShardCollectFuture result = getShardCollectFuture(numShards, projectorChain, collectNode);
 
@@ -287,7 +288,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         // start the projection
         projectorChain.startProjections();
         try {
-            runCollectThreaded(collectNode, result, shardCollectors);
+            runCollectThreaded(collectNode, result, shardCollectors, ramAccountingContext);
         } catch (RejectedExecutionException e) {
             // on distributing collects the merge nodes need to be informed about the failure
             // so they can clean up their context
@@ -303,7 +304,8 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
 
     private void runCollectThreaded(CollectNode collectNode,
                                     final ShardCollectFuture result,
-                                    final List<CrateCollector> shardCollectors) throws RejectedExecutionException {
+                                    final List<CrateCollector> shardCollectors,
+                                    final RamAccountingContext ramAccountingContext) throws RejectedExecutionException {
         if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
             // run sequential to prevent sys.shards queries from using too many threads
             // and overflowing the threadpool queues
@@ -311,7 +313,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                 @Override
                 public void run() {
                     for (CrateCollector shardCollector : shardCollectors) {
-                        doCollect(result, shardCollector);
+                        doCollect(result, shardCollector, ramAccountingContext);
                     }
                 }
             });
@@ -325,7 +327,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                         @Override
                         public void run() {
                             for (CrateCollector collector : collectors) {
-                                doCollect(result, collector);
+                                doCollect(result, collector, ramAccountingContext);
                             }
                         }
                     });
@@ -335,7 +337,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     executor.execute(new Runnable() {
                         @Override
                         public void run() {
-                            doCollect(result, shardCollector);
+                            doCollect(result, shardCollector, ramAccountingContext);
                         }
                     });
                 }
@@ -344,10 +346,13 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     }
 
 
-    private void doCollect(ShardCollectFuture result, CrateCollector shardCollector) {
+    private void doCollect(ShardCollectFuture result, CrateCollector shardCollector,
+                           RamAccountingContext ramAccountingContext) {
         try {
-            shardCollector.doCollect();
+            shardCollector.doCollect(ramAccountingContext);
             result.shardFinished();
+        } catch (CollectionAbortedException ex) {
+            // ignore
         } catch (Exception ex) {
             result.shardFailure(ex);
         }

@@ -23,6 +23,7 @@ package io.crate.operation.collect.blobs;
 
 import io.crate.blob.BlobContainer;
 import io.crate.blob.v2.BlobShard;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.Projector;
@@ -53,7 +54,7 @@ public class BlobDocCollector implements CrateCollector {
     }
 
     @Override
-    public void doCollect() throws Exception {
+    public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
         BlobContainer.FileVisitor fileVisitor = new FileListingsFileVisitor();
         try {
             blobShard.blobContainer().walkFiles(null, fileVisitor);

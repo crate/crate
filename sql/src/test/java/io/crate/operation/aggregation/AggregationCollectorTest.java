@@ -21,6 +21,7 @@
 
 package io.crate.operation.aggregation;
 
+import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
@@ -31,6 +32,8 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
@@ -42,6 +45,9 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class AggregationCollectorTest {
+
+    protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
     private FunctionIdent countAggIdent;
     private AggregationFunction countImpl;
@@ -63,7 +69,7 @@ public class AggregationCollectorTest {
                 Aggregation.Step.FINAL
         );
         Input dummyInput = new Input() {
-            CountAggregation.CountAggState state = new CountAggregation.CountAggState() {{ value = 10L; }};
+            CountAggregation.CountAggState state = new CountAggregation.CountAggState(RAM_ACCOUNTING_CONTEXT) {{ value = 10L; }};
 
 
             @Override
@@ -73,7 +79,7 @@ public class AggregationCollectorTest {
         };
 
         AggregationCollector collector = new AggregationCollector(aggregation, countImpl, dummyInput);
-        collector.startCollect();
+        collector.startCollect(RAM_ACCOUNTING_CONTEXT);
         collector.processRow();
         collector.processRow();
         Object result = collector.finishCollect();
@@ -99,7 +105,7 @@ public class AggregationCollectorTest {
         };
 
         AggregationCollector collector = new AggregationCollector(aggregation, countImpl, dummyInput);
-        collector.startCollect();
+        collector.startCollect(RAM_ACCOUNTING_CONTEXT);
         for (int i = 0; i < 5; i++) {
             collector.processRow();
         }

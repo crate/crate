@@ -22,13 +22,17 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.SizeEstimator;
+import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.AggregationState;
+import io.crate.operation.aggregation.VariableSizeAggregationState;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -48,8 +52,8 @@ public abstract class MinimumAggregation extends AggregationFunction<MinimumAggr
                                     ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE)
                     ) {
                         @Override
-                        public MinimumAggState newState() {
-                            return new MinimumAggState() {
+                        public MinimumAggState newState(RamAccountingContext ramAccountingContext) {
+                            return new MinimumAggState(ramAccountingContext, SizeEstimatorFactory.create(dataType)) {
                                 @Override
                                 public void readFrom(StreamInput in) throws IOException {
                                     if (!in.readBoolean()) {
@@ -82,16 +86,20 @@ public abstract class MinimumAggregation extends AggregationFunction<MinimumAggr
     }
 
     @Override
-    public boolean iterate(MinimumAggState state, Input... args) {
+    public boolean iterate(MinimumAggState state, Input... args) throws CircuitBreakingException {
         Object value = args[0].value();
         assert value == null || value instanceof Comparable;
         state.add((Comparable) value);
         return true;
     }
 
-    public static abstract class MinimumAggState extends AggregationState<MinimumAggState> {
+    public static abstract class MinimumAggState extends VariableSizeAggregationState<MinimumAggState> {
 
         private Comparable value = null;
+
+        public MinimumAggState(RamAccountingContext ramAccountingContext, SizeEstimator sizeEstimator) {
+            super(ramAccountingContext, sizeEstimator);
+        }
 
         @Override
         public Object value() {
@@ -99,33 +107,28 @@ public abstract class MinimumAggregation extends AggregationFunction<MinimumAggr
         }
 
         @Override
-        public void reduce(MinimumAggState other) {
+        public void reduce(MinimumAggState other) throws CircuitBreakingException {
             if (other.value() == null) {
                 return;
-            } else if (value() == null) {
-                value = other.value;
-                return;
             }
-
-            if (compareTo(other) > 0) {
+            if (value() == null || compareTo(other) > 0) {
+                addEstimatedSize(sizeEstimator.estimateSize(value, other.value));
                 value = other.value;
             }
         }
 
-        void add(Comparable otherValue) {
+        void add(Comparable otherValue) throws CircuitBreakingException {
             if (otherValue == null) {
                 return;
-            } else if (value() == null) {
-                value = otherValue;
-                return;
             }
-
-            if (compareValue(otherValue) > 0) {
+            if (value() == null || compareValue(otherValue) > 0) {
+                addEstimatedSize(sizeEstimator.estimateSize(value, otherValue));
                 value = otherValue;
             }
         }
 
-        public void setValue(Comparable value) {
+        public void setValue(Comparable value) throws CircuitBreakingException {
+            addEstimatedSize(sizeEstimator.estimateSize(this.value, value));
             this.value = value;
         }
 

@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -41,6 +42,8 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -63,6 +66,8 @@ import static org.mockito.Mockito.mock;
 
 public class ProjectionToProjectorVisitorTest {
 
+    protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
     private ProjectionToProjectorVisitor visitor;
     private FunctionInfo countInfo;
     private FunctionInfo avgInfo;
@@ -101,7 +106,7 @@ public class ProjectionToProjectorVisitorTest {
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0)));
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        Projector projector = visitor.process(projection);
+        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
         projector.registerUpstream(null);
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
@@ -129,7 +134,7 @@ public class ProjectionToProjectorVisitorTest {
                 new Boolean[] { null, null }
         );
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
-        Projector projector = visitor.process(projection);
+        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
         projector.registerUpstream(null);
         assertThat(projector, instanceOf(SortingTopNProjector.class));
 
@@ -167,7 +172,7 @@ public class ProjectionToProjectorVisitorTest {
                 new Aggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
                 new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
-        Projector projector = visitor.process(projection);
+        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
         CollectingProjector collectingProjector = new CollectingProjector();
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(AggregationProjector.class));
@@ -193,34 +198,49 @@ public class ProjectionToProjectorVisitorTest {
                 new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
 
-        Projector projector = visitor.process(projection);
+        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
         projector.registerUpstream(null);
-        CollectingProjector collectingProjector = new CollectingProjector();
-        projector.downstream(collectingProjector);
+
+        // use a topN projection in order to get sorted outputs
+        TopNProjection topNProjection = new TopNProjection(10, 0,
+                ImmutableList.<Symbol>of(new InputColumn(2, DataTypes.DOUBLE)),
+                new boolean[]{false},
+                new Boolean[] { null });
+        topNProjection.outputs(Arrays.<Symbol>asList(
+                new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
+                new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG)));
+        SortingTopNProjector topNProjector = (SortingTopNProjector)visitor.process(topNProjection, RAM_ACCOUNTING_CONTEXT);
+        projector.downstream(topNProjector);
+        topNProjector.startProjection();
+
         assertThat(projector, instanceOf(GroupingProjector.class));
 
         projector.startProjection();
-        projector.setNextRow("human", 34, "male");
-        projector.setNextRow("human", 22, "female");
-        projector.setNextRow("vogon", 40, "male");
-        projector.setNextRow("vogon", 48, "male");
-        projector.setNextRow("human", 34, "male");
+        BytesRef human = new BytesRef("human");
+        BytesRef vogon = new BytesRef("vogon");
+        BytesRef male = new BytesRef("male");
+        BytesRef female = new BytesRef("female");
+        projector.setNextRow(human, 34, male);
+        projector.setNextRow(human, 22, female);
+        projector.setNextRow(vogon, 40, male);
+        projector.setNextRow(vogon, 48, male);
+        projector.setNextRow(human, 34, male);
         projector.upstreamFinished();
 
-        Object[][] rows = collectingProjector.result().get();
+        Object[][] rows = topNProjector.result().get();
         assertThat(rows.length, is(3));
-        assertThat((String)rows[0][0], is("human"));
-        assertThat((String)rows[0][1], is("female"));
+        assertThat((BytesRef)rows[0][0], is(human));
+        assertThat((BytesRef)rows[0][1], is(female));
         assertThat((Double)rows[0][2], is(22.0));
         assertThat((Long)rows[0][3], is(1L));
 
-        assertThat((String)rows[1][0], is("human"));
-        assertThat((String)rows[1][1], is("male"));
+        assertThat((BytesRef)rows[1][0], is(human));
+        assertThat((BytesRef)rows[1][1], is(male));
         assertThat((Double)rows[1][2], is(34.0));
         assertThat((Long)rows[1][3], is(2L));
 
-        assertThat((String)rows[2][0], is("vogon"));
-        assertThat((String)rows[2][1], is("male"));
+        assertThat((BytesRef)rows[2][0], is(vogon));
+        assertThat((BytesRef)rows[2][1], is(male));
         assertThat((Double)rows[2][2], is(44.0));
         assertThat((Long)rows[2][3], is(2L));
     }
@@ -235,7 +255,7 @@ public class ProjectionToProjectorVisitorTest {
         projection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         CollectingProjector collectingProjector = new CollectingProjector();
-        Projector projector = visitor.process(projection);
+        Projector projector = visitor.process(projection, RAM_ACCOUNTING_CONTEXT);
         projector.registerUpstream(null);
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(FilterProjector.class));

@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
@@ -63,6 +64,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     private final CollectorFieldsVisitor fieldsVisitor;
     private boolean visitorEnabled = false;
     private AtomicReader currentReader;
+    private RamAccountingContext ramAccountingContext;
 
     public static class CollectorFieldsVisitor extends FieldsVisitor {
 
@@ -161,6 +163,10 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
 
     @Override
     public void collect(int doc) throws IOException {
+        if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
+            // stop collecting because breaker limit was reached
+            throw new UnexpectedCollectionTerminatedException("circuit breaker already tripped");
+        }
         Object[] newRow = new Object[topLevelInputs.size()];
         if (visitorEnabled){
             fieldsVisitor.reset();
@@ -175,7 +181,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         }
         if (!downstream.setNextRow(newRow)) {
             // no more rows required, we can stop here
-            throw new CollectionTerminatedException();
+            throw new CollectionAbortedException();
         }
     }
 
@@ -193,7 +199,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     }
 
     @Override
-    public void doCollect() throws Exception {
+    public void doCollect(RamAccountingContext ramAccountingContext) throws Exception {
+        this.ramAccountingContext = ramAccountingContext;
         // start collect
         CollectorContext collectorContext = new CollectorContext()
                 .searchContext(searchContext)

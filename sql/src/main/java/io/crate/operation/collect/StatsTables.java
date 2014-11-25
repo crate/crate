@@ -153,11 +153,11 @@ public class StatsTables {
         if (isEnabled()) {
             operationsTable.put(
                     operationId,
-                    new OperationContext(jobId, name, System.currentTimeMillis()));
+                    new OperationContext(operationId, jobId, name, System.currentTimeMillis()));
         }
     }
 
-    public void operationFinished(@Nullable UUID operationId, @Nullable String errorMessage) {
+    public void operationFinished(@Nullable UUID operationId, @Nullable String errorMessage, @Nullable long usedBytes) {
         if (operationId == null || !isEnabled()) {
             return;
         }
@@ -167,6 +167,7 @@ public class StatsTables {
             // been enabled before the finish
             return;
         }
+        operationContext.usedBytes = usedBytes;
         BlockingQueue<OperationContextLog> operationContextLogs = operationsLog.get();
         operationContextLogs.offer(new OperationContextLog(operationContext, errorMessage));
     }

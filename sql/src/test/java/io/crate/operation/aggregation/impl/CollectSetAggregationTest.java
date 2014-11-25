@@ -28,6 +28,7 @@ import io.crate.operation.aggregation.AggregationState;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
@@ -62,12 +63,12 @@ public class CollectSetAggregationTest extends AggregationTest {
     public void testLongSerialization() throws Exception {
         FunctionIdent fi = new FunctionIdent("collect_set", ImmutableList.<DataType>of(DataTypes.LONG));
         AggregationFunction impl = (AggregationFunction) functions.get(fi);
-        AggregationState state = impl.newState();
+        AggregationState state = impl.newState(ramAccountingContext);
 
         BytesStreamOutput streamOutput = new BytesStreamOutput();
         state.writeTo(streamOutput);
 
-        AggregationState newState = impl.newState();
+        AggregationState newState = impl.newState(ramAccountingContext);
         newState.readFrom(new BytesStreamInput(streamOutput.bytes()));
         assertEquals(state.value(), newState.value());
     }
@@ -110,11 +111,12 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testString() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}});
+        Object[][] result = executeAggregation(DataTypes.STRING,
+                new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}, {new BytesRef("Ruben")}});
 
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());
-        assertTrue(((Set)result[0][0]).contains("Youri"));
+        assertTrue(((Set)result[0][0]).contains(new BytesRef("Youri")));
     }
 
     @Test
@@ -128,7 +130,8 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testNullValue() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}});
+        Object[][] result = executeAggregation(DataTypes.STRING,
+                new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}, {null}});
         // null values currently ignored
         assertThat(result[0][0], instanceOf(Set.class));
         assertEquals(2, ((Set)result[0][0]).size());

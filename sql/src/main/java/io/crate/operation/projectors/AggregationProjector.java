@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.aggregation.AggregationCollector;
@@ -40,7 +41,8 @@ public class AggregationProjector implements Projector {
     private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
 
     public AggregationProjector(Set<CollectExpression<?>> collectExpressions,
-                                AggregationContext[] aggregations) {
+                                AggregationContext[] aggregations,
+                                RamAccountingContext ramAccountingContext) {
 
         row = new Object[aggregations.length];
         this.collectExpressions = collectExpressions;
@@ -53,7 +55,7 @@ public class AggregationProjector implements Projector {
             );
             // startCollect creates the aggregationState. In case of the AggregationProjector
             // we only want to have 1 global state not 1 state per node/shard or even document.
-            aggregationCollectors[i].startCollect();
+            aggregationCollectors[i].startCollect(ramAccountingContext);
         }
     }
 
