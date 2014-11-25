@@ -40,7 +40,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.xcontent.XContentHelper;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -51,7 +50,6 @@ import java.util.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -344,16 +342,20 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 });
     }
 
-    @Test(expected = ColumnValidationException.class)
+    @Test
     public void testInsertInvalidObjectArrayInObject() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for details: invalid value for object array type");
         analyze("insert into deeply_nested (details) " +
                 "values (" +
                 "  {awesome=true, arguments=[1,2,3]}" +
                 ")");
     }
 
-    @Test(expected = ColumnValidationException.class)
+    @Test
     public void testInsertInvalidObjectArrayFieldInObjectArray() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for tags.metadata.id: Invalid long");
         analyze("insert into deeply_nested (tags) " +
                 "values (" +
                 "  [" +
@@ -702,4 +704,81 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{}
         });
     }
+
+    @Test
+    public void testRejectNestedArrayLiteral() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for tags: Invalid datatype 'string_array_array'");
+
+        analyze("insert into users (id, name, tags) values (42, 'Deep Thought', [['the', 'answer'], ['what''s', 'the', 'question', '?']])");
+
+    }
+
+    @Test
+    public void testRejectNestedArrayParam() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for tags: Invalid datatype 'string_array_array'");
+
+        analyze("insert into users (id, name, tags) values (42, 'Deep Thought', ?)", new Object[]{
+                new String[][] {
+                        new String[] {"the", "answer"},
+                        new String[] {"what's", "the", "question", "?"}
+                }
+        });
+
+    }
+
+    @Test
+    public void testRejectNestedArrayBulkParam() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for tags: Invalid datatype 'string_array_array'");
+
+        analyze("insert into users (id, name, tags) values (42, 'Deep Thought', ?)", new Object[][]{
+                new Object[] {
+                        new String[][] {
+                                new String[] {"the", "answer"},
+                                new String[] {"what's", "the", "question", "?"}
+                        }
+                }
+        });
+    }
+
+    @Test
+    public void testRejectDynamicNestedArrayLiteral() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for theses: Invalid datatype 'string_array_array'");
+
+        analyze("insert into users (id, name, theses) values (1, 'Marx', [[" +
+                "'Feuerbach, mit dem abstrakten Denken nicht zufrieden, appellirt an die sinnliche Anschauung', " +
+                "'aber er fasst die Sinnlichkeit nicht als praktische, menschlich-sinnliche Thätigkeit']])");
+    }
+
+    @Test
+    public void testRejectDynamicNestedArrayParam() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for theses: Invalid datatype 'string_array_array'");
+
+        analyze("insert into users (id, name, theses) values (1, 'Marx', ?)", new Object[]{
+                new String[][]{
+                        new String[]{ "Feuerbach, mit dem abstrakten Denken nicht zufrieden, appellirt an die sinnliche Anschauung" },
+                        new String[]{ "aber er fasst die Sinnlichkeit nicht als praktische, menschlich-sinnliche Thätigkeit" }
+                }
+        });
+    }
+
+    @Test
+    public void testRejectDynamicNestedArrayBulkParam() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for theses: Invalid datatype 'string_array_array'");
+
+        analyze("insert into users (id, name, theses) values (1, 'Marx', ?)", new Object[][]{
+                new Object[] {
+                        new String[][]{
+                                new String[]{ "Feuerbach, mit dem abstrakten Denken nicht zufrieden, appellirt an die sinnliche Anschauung" },
+                                new String[]{ "aber er fasst die Sinnlichkeit nicht als praktische, menschlich-sinnliche Thätigkeit" }
+                        }
+                }
+        });
+    }
 }
+

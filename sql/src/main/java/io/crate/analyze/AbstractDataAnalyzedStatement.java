@@ -32,10 +32,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
+import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
@@ -47,7 +44,7 @@ import java.util.*;
  */
 public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
 
-    protected static final Predicate<ReferenceInfo> HAS_OBJECT_ARRAY_PARENT = new Predicate<ReferenceInfo>() {
+    protected static final Predicate<ReferenceInfo> IS_OBJECT_ARRAY = new Predicate<ReferenceInfo>() {
         @Override
         public boolean apply(@Nullable ReferenceInfo input) {
             return input != null
@@ -195,7 +192,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
         ReferenceInfo info = referenceInfos.getReferenceInfo(ident);
         if (info != null &&
                 !info.ident().isColumn() &&
-                hasMatchingParent(info, HAS_OBJECT_ARRAY_PARENT)) {
+                hasMatchingParent(info, IS_OBJECT_ARRAY)) {
             if (DataTypes.isCollectionType(info.type())) {
                 // TODO: remove this limitation with next type refactoring
                 throw new UnsupportedOperationException(
@@ -317,23 +314,24 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
         Literal literal;
         try {
             literal = (Literal) normalizer.process(valueSymbol, null);
-
             if (reference instanceof DynamicReference) {
                 if (reference.info().columnPolicy() != ColumnPolicy.IGNORED) {
                     // re-guess without strict to recognize timestamps
                     DataType<?> dataType = DataTypes.guessType(literal.value(), false);
+                    validateInputType(dataType, reference.info().ident().columnIdent());
                     ((DynamicReference) reference).valueType(dataType);
                     literal = Literal.convert(literal, dataType); // need to update literal if the type changed
                 } else {
                     ((DynamicReference) reference).valueType(literal.valueType());
                 }
             } else {
+                validateInputType(literal.valueType(), reference.info().ident().columnIdent());
                 literal = Literal.convert(literal, reference.valueType());
             }
         } catch (ClassCastException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
-                    String.format("Invalid value of type '%s'", valueSymbol.symbolType().name()));
+                    String.format(Locale.ENGLISH, "Invalid value of type '%s'", valueSymbol.symbolType().name()));
         }
 
         try {
@@ -365,6 +363,19 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
                     ));
         }
         return literal;
+    }
+
+    /**
+     * validate input types to not be nested arrays/collection types
+     * @throws ColumnValidationException if input type is a nested array type
+     */
+    private void validateInputType(DataType dataType, ColumnIdent columnIdent) throws ColumnValidationException {
+        if (dataType != null
+                && DataTypes.isCollectionType(dataType)
+                && DataTypes.isCollectionType(((CollectionType)dataType).innerType())) {
+            throw new ColumnValidationException(columnIdent.fqn(),
+                    String.format(Locale.ENGLISH, "Invalid datatype '%s'", dataType));
+        }
     }
 
     public Literal normalizeInputForReference(Symbol inputValue, Reference reference) {

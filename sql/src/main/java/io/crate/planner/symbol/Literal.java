@@ -46,7 +46,7 @@ public class Literal<ReturnType>
     public static Literal implodeCollection(DataType itemType, List<Literal> literals) {
        Object[] values = new Object[literals.size()];
         for (int i = 0; i<literals.size(); i++) {
-            assert literals.get(i).valueType() == itemType :
+            assert literals.get(i).valueType().equals(itemType) :
                     String.format("Literal type: %s does not match item type: %s",
                             literals.get(i).valueType(), itemType);
             values[i] = literals.get(i).value();
@@ -87,6 +87,7 @@ public class Literal<ReturnType>
         if (type instanceof ArrayType) {
             DataType innerType = ((ArrayType) type).innerType();
             while (innerType instanceof ArrayType && value.getClass().isArray()) {
+                type = innerType;
                 innerType = ((ArrayType) innerType).innerType();
                 value = ((Object[])value)[0];
             }

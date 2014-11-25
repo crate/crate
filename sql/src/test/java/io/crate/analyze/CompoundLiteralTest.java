@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.ReferenceInfos;
@@ -38,15 +39,37 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.types.*;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class CompoundLiteralTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    private SelectStatementAnalyzer analyzer;
+
+    @Before
+    public void prepare() {
+        analyzer = new SelectStatementAnalyzer(
+                injector.getInstance(ReferenceInfos.class),
+                injector.getInstance(Functions.class),
+                injector.getInstance(ReferenceResolver.class)
+        );
+
+    }
 
     @Override
     protected List<Module> getModules() {
@@ -65,11 +88,6 @@ public class CompoundLiteralTest extends BaseAnalyzerTest {
     }
 
     public Symbol analyzeExpression(String expression, Object[] params) {
-        SelectStatementAnalyzer analyzer = new SelectStatementAnalyzer(
-            injector.getInstance(ReferenceInfos.class),
-            injector.getInstance(Functions.class),
-            injector.getInstance(ReferenceResolver.class)
-        );
         SelectAnalyzedStatement analysis = (SelectAnalyzedStatement) analyzer.newAnalysis(
                 new ParameterContext(params, new Object[0][]));
         return SqlParser.createExpression(expression).accept(analyzer, analysis);
@@ -104,13 +122,17 @@ public class CompoundLiteralTest extends BaseAnalyzerTest {
         assertThat(objectLiteral.value(), is((Object) new MapBuilder<String, Object>().put("ident", 1).map()));
     }
 
-    @Test(expected = ParsingException.class)
+    @Test
     public void testObjectLiteralWithFunction() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:4: no viable alternative at input 'format'");
         analyzeExpression("{a=format('%s.', 'dot')}");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testObjectLiteralKeyTwice() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("key 'a' listed twice in object literal");
         analyzeExpression("{a=1, a=2}");
     }
 
@@ -139,13 +161,33 @@ public class CompoundLiteralTest extends BaseAnalyzerTest {
         assertThat((Object[])array.value(), is(new Object[]{1L, 4L}));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testArrayDifferentTypes() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("array element 'string' not of array item type long");
         analyzeExpression("[1, 'string']");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testArrayDifferentTypesString() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("array element 1 not of array item type string");
         analyzeExpression("['string', 1]");
+    }
+
+    @Test
+    public void testNestedArrayLiteral() throws Exception {
+        Map<String, DataType> expected = ImmutableMap.<String, DataType>builder()
+                .put("'string'", DataTypes.STRING)
+                .put("0", DataTypes.LONG)
+                .put("1.8", DataTypes.DOUBLE)
+                .put("TRUE", DataTypes.BOOLEAN)
+                .build();
+        for (Map.Entry<String, DataType> entry : expected.entrySet()) {
+            Symbol nestedArraySymbol = analyzeExpression("[[" + entry.getKey() + "]]");
+            assertThat(nestedArraySymbol, Matchers.instanceOf(Literal.class));
+            Literal nestedArray = (Literal)nestedArraySymbol;
+            assertThat(nestedArray.valueType(), is((DataType)new ArrayType(new ArrayType(entry.getValue()))));
+        }
     }
 }

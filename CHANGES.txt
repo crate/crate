@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: correctly validate array values in INSERT and UPDATE statements
+
  - Fix: NULL element in array in first element of bulk insert threw NPE
 
  - Fix: array columns that were nested inside multiple objects had
@@ -35,7 +37,7 @@ Unreleased
       between placeholder text and actually written statement
 
     - fixed 'Execute Query' button in console view
- 
+
  - Fix: correctly handle empty values and values containing commas
    for clustered by columns in the where clause. e.g: ``where _id=''``
 
