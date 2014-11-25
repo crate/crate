@@ -22,8 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
 
 import java.util.List;
@@ -34,24 +32,9 @@ public abstract class AnalyzedStatement {
     private List<String> outputNames = ImmutableList.of();
     protected List<DataType> outputTypes = ImmutableList.of();
 
-    protected String tableAlias;
-
-    public void tableAlias(String tableAlias) {
-        this.tableAlias = tableAlias;
-    }
-
-    public String tableAlias() {
-        return tableAlias;
-    }
-
     protected AnalyzedStatement(ParameterContext parameterContext) {
         this.parameterContext = parameterContext;
     }
-
-    public abstract void table(TableIdent tableIdent);
-
-    public abstract TableInfo table();
-
     public abstract boolean hasNoResult();
 
     public abstract void normalize();

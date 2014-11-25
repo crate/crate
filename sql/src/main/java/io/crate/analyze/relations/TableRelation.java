@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -118,5 +119,31 @@ public class TableRelation implements AnalyzedRelation {
             parent = parent.getParent();
         }
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this).add("table", tableInfo).toString();
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TableRelation that = (TableRelation) o;
+
+        if (outputs != null ? !outputs.equals(that.outputs) : that.outputs != null) return false;
+        if (!tableInfo.equals(that.tableInfo)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = tableInfo.hashCode();
+        result = 31 * result + (outputs != null ? outputs.hashCode() : 0);
+        return result;
     }
 }

@@ -35,6 +35,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.planner.RowGranularity;
+import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -92,7 +93,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new TestModule(),
+                new MockedClusterServiceModule(),
                 new TestMetaDataModule(),
                 new MetaDataSysModule(),
                 new PredicateModule()

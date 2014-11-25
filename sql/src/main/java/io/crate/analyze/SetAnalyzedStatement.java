@@ -21,12 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import java.util.Locale;
 import java.util.Set;
 
 public class SetAnalyzedStatement extends AnalyzedStatement {
@@ -70,19 +67,6 @@ public class SetAnalyzedStatement extends AnalyzedStatement {
 
     public void persistent(boolean persistent) {
         this.persistent = persistent;
-    }
-
-    @Override
-    public void table(TableIdent tableIdent) {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "table() not supported on %s", getClass().getSimpleName())
-        );
-    }
-
-    @Override
-    public TableInfo table() {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "table() not supported on %s", getClass().getSimpleName()));
     }
 
     @Override
