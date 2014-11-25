@@ -39,6 +39,7 @@ import io.crate.operation.predicate.PredicateModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
+import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import junit.framework.Assert;
@@ -105,7 +106,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new TestModule(),
+                new MockedClusterServiceModule(),
                 new TestMetaDataModule(),
                 new OperatorModule(),
                 new PredicateModule(),

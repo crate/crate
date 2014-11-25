@@ -32,6 +32,7 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.StringLiteral;
+import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -47,7 +48,7 @@ public class PartitionPropertiesAnalyzerTest extends BaseAnalyzerTest {
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
-        modules.add(new TestModule());
+        modules.add(new MockedClusterServiceModule());
         modules.add(new MetaDataModule());
         return modules;
     }

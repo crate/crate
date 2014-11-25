@@ -21,21 +21,21 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.PartitionName;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
-import org.apache.lucene.util.BytesRef;
+import io.crate.planner.symbol.RelationOutput;
+import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
-import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 
@@ -44,7 +44,8 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
@@ -68,34 +69,36 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new TestModule(),
-                new TestMetaDataModule(),
-                new MetaDataSysModule(),
-                new OperatorModule())
+                        new MockedClusterServiceModule(),
+                        new TestMetaDataModule(),
+                        new MetaDataSysModule(),
+                        new OperatorModule())
         );
         return modules;
+    }
+
+    @Override
+    protected DeleteAnalyzedStatement analyze(String statement) {
+        return (DeleteAnalyzedStatement)super.analyze(statement);
     }
 
     protected DeleteAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
         return (DeleteAnalyzedStatement) super.analyze(statement, bulkArgs);
     }
 
-    protected DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement analyze(String statement) {
-        return ((DeleteAnalyzedStatement) super.analyze(statement)).nestedStatements().get(0);
-    }
-
     @Test
     public void testDeleteWhere() throws Exception {
-        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement analysis = analyze("delete from users where name='Trillian'");
-        assertEquals(TEST_DOC_TABLE_IDENT, analysis.table().ident());
+        DeleteAnalyzedStatement statement = analyze("delete from users where name='Trillian'");
+        TableInfo tableInfo = ((TableRelation) statement.analyzedRelation()).tableInfo();
+        assertThat(TEST_DOC_TABLE_IDENT, equalTo(tableInfo.ident()));
 
-        assertThat(analysis.table().rowGranularity(), is(RowGranularity.DOC));
+        assertThat(tableInfo.rowGranularity(), is(RowGranularity.DOC));
 
-        Function whereClause = (Function)analysis.whereClause().query();
+        Function whereClause = (Function)statement.whereClauses.get(0).query();
         assertEquals(EqOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().type() == FunctionInfo.Type.AGGREGATE);
 
-        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(RelationOutput.unwrap(whereClause.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
 
         assertLiteralSymbol(whereClause.arguments().get(1), "Trillian");
     }
@@ -112,31 +115,18 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDeleteWherePartitionedByColumn() throws Exception {
-        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement analysis = analyze("delete from parted where date = 1395874800000");
-        assertThat(analysis.whereClause().hasQuery(), Matchers.is(false));
-        assertThat(analysis.whereClause().noMatch(), Matchers.is(false));
-        assertEquals(ImmutableList.of(
-                        new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()),
-                analysis.whereClause().partitions());
-
-        analysis = analyze("delete from parted");
-        assertThat(analysis.whereClause().hasQuery(), Matchers.is(false));
-        assertThat(analysis.whereClause().noMatch(), Matchers.is(false));
-        assertEquals(ImmutableList.<String>of(), analysis.whereClause().partitions());
+        DeleteAnalyzedStatement statement = analyze("delete from parted where date = 1395874800000");
+        assertThat(statement.whereClauses().get(0).hasQuery(), is(true));
+        assertThat(statement.whereClauses().get(0).noMatch(), is(false));
     }
 
     @Test
     public void testDeleteTableAlias() throws Exception {
-        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement expectedAnalysis = analyze(
-                "delete from users where name='Trillian'");
-        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement actualAnalysis = analyze(
-                "delete from users as u where u.name='Trillian'");
+        DeleteAnalyzedStatement expectedStatement = analyze("delete from users where name='Trillian'");
+        DeleteAnalyzedStatement actualStatement = analyze("delete from users as u where u.name='Trillian'");
 
-        assertEquals(actualAnalysis.tableAlias(), "u");
-        assertEquals(
-                ((Function)expectedAnalysis.whereClause().query()).arguments().get(0),
-                ((Function)actualAnalysis.whereClause().query()).arguments().get(0)
-        );
+        assertThat(actualStatement.analyzedRelation, equalTo(expectedStatement.analyzedRelation()));
+        assertThat(actualStatement.whereClauses().get(0), equalTo(expectedStatement.whereClauses().get(0)));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -152,11 +142,6 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{3},
                 new Object[]{4},
         });
-        assertThat(analysis.nestedStatements().size(), is(4));
-
-        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement firstAnalysis = analysis.nestedStatements().get(0);
-        assertThat(firstAnalysis.ids().get(0), is("1"));
-        DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement secondAnalysis = analysis.nestedStatements().get(1);
-        assertThat(secondAnalysis.ids().get(0), is("2"));
+        assertThat(analysis.whereClauses().size(), is(4));
     }
 }

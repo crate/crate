@@ -21,69 +21,78 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.Symbol;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationAnalysisContext;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.relations.Relations;
+import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Delete;
-import io.crate.sql.tree.Table;
-import org.elasticsearch.common.inject.Inject;
 
-public class DeleteStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, DeleteAnalyzedStatement> {
+public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Void> {
 
-    final DataStatementAnalyzer<DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement> innerAnalyzer =
-        new DataStatementAnalyzer<DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement>() {
+    final DefaultTraversalVisitor<Void, InnerAnalysisContext> innerAnalyzer =
+        new DefaultTraversalVisitor<Void, InnerAnalysisContext>() {
 
             @Override
-            public Symbol visitDelete(Delete node, DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement context) {
-                process(node.getRelation(), context);
-                context.whereClause(generateWhereClause(node.getWhere(), context));
-
+            public Void visitDelete(Delete node, InnerAnalysisContext context) {
+                context.deleteAnalyzedStatement.whereClauses.add(
+                        context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext));
                 return null;
             }
-
-            @Override
-            public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-                return new UpdateAnalyzedStatement.NestedAnalyzedStatement(
-                    referenceInfos, functions, parameterContext, globalReferenceResolver);
-            }
-
-            @Override
-        protected Symbol visitTable(Table node, DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement context) {
-            Preconditions.checkState(context.table() == null, "deleting multiple tables is not supported");
-            context.editableTable(TableIdent.of(node));
-            return null;
-        }
     };
 
-    private final ReferenceInfos referenceInfos;
-    private final Functions functions;
-    private final ReferenceResolver globalReferenceResolver;
+    private AnalysisMetaData analysisMetaData;
+    private ParameterContext parameterContext;
 
-    @Inject
-    public DeleteStatementAnalyzer(ReferenceInfos referenceInfos,
-                                   Functions functions,
-                                   ReferenceResolver globalReferenceResolver) {
-        this.referenceInfos = referenceInfos;
-        this.functions = functions;
-        this.globalReferenceResolver = globalReferenceResolver;
+    public DeleteStatementAnalyzer(AnalysisMetaData analysisMetaData, ParameterContext parameterContext) {
+        this.analysisMetaData = analysisMetaData;
+        this.parameterContext = parameterContext;
     }
 
-    @Override
-    public Symbol visitDelete(Delete node, DeleteAnalyzedStatement context) {
-        java.util.List<DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement> nestedAnalysis = context.nestedStatements;
-        for (int i = 0, nestedAnalysisSize = nestedAnalysis.size(); i < nestedAnalysisSize; i++) {
-            DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement nestedAnalysi = nestedAnalysis.get(i);
-            context.parameterContext().setBulkIdx(i);
-            innerAnalyzer.process(node, nestedAnalysi);
+    private static class InnerAnalysisContext {
+        ExpressionAnalyzer expressionAnalyzer;
+        ExpressionAnalysisContext expressionAnalysisContext;
+        DeleteAnalyzedStatement deleteAnalyzedStatement;
+
+        public InnerAnalysisContext(ExpressionAnalyzer expressionAnalyzer,
+                                    ExpressionAnalysisContext expressionAnalysisContext,
+                                    DeleteAnalyzedStatement deleteAnalyzedStatement) {
+
+            this.expressionAnalyzer = expressionAnalyzer;
+            this.expressionAnalysisContext = expressionAnalysisContext;
+            this.deleteAnalyzedStatement = deleteAnalyzedStatement;
         }
-        return null;
     }
 
     @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new DeleteAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
+    public AnalyzedStatement visitDelete(Delete node, Void context) {
+        int numNested = 1;
+
+        RelationAnalyzer relationAnalyzer = new RelationAnalyzer(analysisMetaData);
+        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext();
+
+        AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.getRelation(), relationAnalysisContext);
+        if (Relations.isReadOnly(analyzedRelation)) {
+            throw new UnsupportedOperationException(String.format(
+                    "relation \"%s\" is read-only and cannot be updated", analyzedRelation));
+        }
+
+        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(parameterContext, analyzedRelation);
+        InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
+                new ExpressionAnalyzer(analysisMetaData, parameterContext, relationAnalysisContext.sources()),
+                new ExpressionAnalysisContext(),
+                deleteAnalyzedStatement
+        );
+
+        if (parameterContext.hasBulkParams()) {
+            numNested = parameterContext.bulkParameters.length;
+        }
+        for (int i = 0; i < numNested; i++) {
+            parameterContext.setBulkIdx(i);
+            innerAnalyzer.process(node, innerAnalysisContext);
+        }
+        return deleteAnalyzedStatement;
     }
 }

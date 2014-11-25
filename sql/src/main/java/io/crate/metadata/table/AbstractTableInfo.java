@@ -134,4 +134,9 @@ public abstract class AbstractTableInfo implements TableInfo {
     public TableParameterInfo tableParameterInfo() {
         return null;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s.%s", schemaInfo.name(), ident().name());
+    }
 }

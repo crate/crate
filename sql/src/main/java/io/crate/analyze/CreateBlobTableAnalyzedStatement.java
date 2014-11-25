@@ -22,18 +22,11 @@
 package io.crate.analyze;
 
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
 
 public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-
     public CreateBlobTableAnalyzedStatement(ParameterContext parameterContext) {
         super(parameterContext);
-    }
-
-    @Override
-    public TableInfo table() {
-        return null;
     }
 
     @Override

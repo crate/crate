@@ -29,6 +29,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.ParsingException;
+import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -67,7 +68,7 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
-        modules.add(new TestModule());
+        modules.add(new MockedClusterServiceModule());
         modules.add(new TestMetaDataModule());
         modules.add(new MetaDataSysModule());
         return modules;
