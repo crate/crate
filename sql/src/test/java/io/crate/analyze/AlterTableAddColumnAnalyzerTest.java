@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.*;
@@ -158,6 +159,13 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
         assertThat(columnDefinition.name(), Matchers.equalTo("newtags"));
         assertThat(columnDefinition.dataType(), Matchers.equalTo("string"));
         assertTrue(columnDefinition.isArrayOrInArray());
+
+        Map<String, Object> mappingProperties = (Map)analysis.analyzedTableElements().toMapping().get("properties");
+        Map<String, Object> newtags = (Map<String, Object>)mappingProperties.get("newtags");
+
+        assertThat((String)newtags.get("type"), is("array"));
+        Map<String, Object> inner = (Map<String, Object>)newtags.get("inner");
+        assertThat((String)inner.get("type"), is("string"));
     }
 
     @Test

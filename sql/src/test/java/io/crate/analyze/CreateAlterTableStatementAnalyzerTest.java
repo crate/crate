@@ -270,6 +270,18 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCreateTableWithArray() throws Exception {
+        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+                "create table foo (id integer primary key, details array(string))");
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        Map<String, Object> details = (Map<String, Object>)mappingProperties.get("details");
+
+        assertThat((String)details.get("type"), is("array"));
+        Map<String, Object> inner = (Map<String, Object>)details.get("inner");
+        assertThat((String)inner.get("type"), is("string"));
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithObjectsArray() throws Exception {
         CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
@@ -285,16 +297,16 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat((String) tags.get("collection_type"), is("array"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
-        Map<String, Object> details = (Map<String, Object>)mappingProperties.get("details");
-
-        assertThat((String)details.get("type"), is("object"));
-
-        Map<String, Object> detailsProperties = (Map<String, Object>)details.get("properties");
-        Map<String, Object> nameProperties = (Map<String, Object>) detailsProperties.get("name");
-        assertThat((String)nameProperties.get("type"), is("string"));
-
-        Map<String, Object> ageProperties = (Map<String, Object>) detailsProperties.get("age");
-        assertThat((String)ageProperties.get("type"), is("integer"));
+        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(mappingProperties), is(
+                    "details:{" +
+                      "inner={dynamic=true, index=not_analyzed, store=false, properties={" +
+                            "tags={inner={index=not_analyzed, store=false, doc_values=false, type=string}, " +
+                                "type=array}, " +
+                            "age={index=not_analyzed, store=false, doc_values=true, type=integer}, " +
+                            "name={index=not_analyzed, store=false, doc_values=true, type=string}}, " +
+                          "doc_values=false, "+
+                        "type=object}, " +
+                      "type=array}, id:{index=not_analyzed, store=false, doc_values=true, type=integer}"));
     }
 
     @Test
