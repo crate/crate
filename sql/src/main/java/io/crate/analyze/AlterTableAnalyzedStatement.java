@@ -63,7 +63,6 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         }
     }
 
-    @Override
     public TableInfo table() {
         return tableInfo;
     }

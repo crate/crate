@@ -29,6 +29,7 @@ import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Rule;
@@ -68,7 +69,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new TestModule(),
+                new MockedClusterServiceModule(),
                 new MetaDataInformationModule(),
                 new TestMetaDataModule(),
                 new MetaDataSysModule()

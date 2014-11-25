@@ -23,11 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
+import io.crate.analyze.relations.AnalyzedRelation;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -35,33 +31,23 @@ import java.util.List;
 
 public class DeleteAnalyzedStatement extends AnalyzedStatement {
 
-    private static final Predicate<NestedDeleteAnalyzedStatement> HAS_NO_RESULT_PREDICATE = new Predicate<NestedDeleteAnalyzedStatement>() {
+    private static final Predicate<WhereClause> HAS_NO_RESULT_PREDICATE = new Predicate<WhereClause>() {
         @Override
-        public boolean apply(@Nullable NestedDeleteAnalyzedStatement input) {
-            return input != null && input.hasNoResult();
+        public boolean apply(@Nullable WhereClause input) {
+            return input != null && input.noMatch();
         }
     };
 
-    List<NestedDeleteAnalyzedStatement> nestedStatements;
+    final List<WhereClause> whereClauses = new ArrayList<>();
+    final AnalyzedRelation analyzedRelation;
 
-    public DeleteAnalyzedStatement(ReferenceInfos referenceInfos,
-                                   Functions functions,
-                                   ParameterContext parameterContext,
-                                   ReferenceResolver referenceResolver) {
+    public DeleteAnalyzedStatement(ParameterContext parameterContext, AnalyzedRelation analyzedRelation) {
         super(parameterContext);
-        int numNested = 1;
-        if (parameterContext.bulkParameters.length > 0) {
-            numNested = parameterContext.bulkParameters.length;
-        }
-        nestedStatements = new ArrayList<>(numNested);
-        for (int i = 0; i < numNested; i++) {
-            nestedStatements.add(new NestedDeleteAnalyzedStatement(
-                    referenceInfos,
-                    functions,
-                    parameterContext,
-                    referenceResolver
-            ));
-        }
+        this.analyzedRelation = analyzedRelation;
+    }
+
+    public AnalyzedRelation analyzedRelation() {
+        return analyzedRelation;
     }
 
     @Override
@@ -69,23 +55,13 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
         return true;
     }
 
-
-    public List<NestedDeleteAnalyzedStatement> nestedStatements() {
-        return nestedStatements;
-    }
-
-    @Override
-    public void table(TableIdent tableIdent) {
-    }
-
-    @Override
-    public TableInfo table() {
-        throw new UnsupportedOperationException("use nested analysis");
+    public List<WhereClause> whereClauses() {
+        return whereClauses;
     }
 
     @Override
     public boolean hasNoResult() {
-        return Iterables.all(nestedStatements, HAS_NO_RESULT_PREDICATE);
+        return Iterables.all(whereClauses, HAS_NO_RESULT_PREDICATE);
     }
 
     @Override
@@ -95,22 +71,5 @@ public class DeleteAnalyzedStatement extends AnalyzedStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitDeleteStatement(this, context);
-    }
-
-    public static class NestedDeleteAnalyzedStatement extends AbstractDataAnalyzedStatement {
-
-        public NestedDeleteAnalyzedStatement(ReferenceInfos referenceInfos, Functions functions, ParameterContext parameterContext, ReferenceResolver referenceResolver) {
-            super(referenceInfos, functions, parameterContext, referenceResolver);
-        }
-
-        @Override
-        public boolean hasNoResult() {
-            return whereClause.noMatch();
-        }
-
-        @Override
-        public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-            return null;
-        }
     }
 }

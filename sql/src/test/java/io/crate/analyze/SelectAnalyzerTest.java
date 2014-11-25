@@ -56,6 +56,7 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.testing.MockedClusterServiceModule;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -130,7 +131,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new TestModule(),
+                new MockedClusterServiceModule(),
                 new TestMetaDataModule(),
                 new MetaDataSysModule(),
                 new OperatorModule(),

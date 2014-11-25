@@ -36,6 +36,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
+import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.*;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
@@ -74,7 +75,7 @@ public class CompoundLiteralTest extends BaseAnalyzerTest {
     @Override
     protected List<Module> getModules() {
         return Arrays.<Module>asList(
-                new TestModule(),
+                new MockedClusterServiceModule(),
                 new MetaDataModule(),
                 new MetaDataSysModule(),
                 new OperatorModule(),

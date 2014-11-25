@@ -75,6 +75,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
     protected boolean hasSysExpressions = false;
     protected boolean sysExpressionsAllowed = false;
     protected boolean insideNotPredicate = false;
+    private String tableAlias;
 
     public AbstractDataAnalyzedStatement(ReferenceInfos referenceInfos,
                                          Functions functions,
@@ -87,7 +88,14 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
         this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
     }
 
-    @Override
+    public void tableAlias(String tableAlias) {
+        this.tableAlias = tableAlias;
+    }
+
+    public String tableAlias() {
+        return this.tableAlias;
+    }
+
     public void table(TableIdent tableIdent) {
         SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
         if (schemaInfo == null) {
@@ -124,7 +132,6 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
         updateRowGranularity(table.rowGranularity());
     }
 
-    @Override
     public TableInfo table() {
         return this.table;
     }
@@ -305,11 +312,14 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
     /**
      * normalize and validate given value according to the corresponding {@link io.crate.planner.symbol.Reference}
      *
+     * Replaced with {@link io.crate.analyze.expressions.ExpressionAnalyzer}
+     *
      * @param valueSymbol the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.planner.symbol.Literal}
      * @param reference  the reference to which the value has to comply in terms of type-compatibility
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
+    @Deprecated
     public Literal normalizeInputForReference(Symbol valueSymbol, Reference reference, boolean forWrite) {
         Literal literal;
         try {
@@ -389,10 +399,13 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
     /**
      * normalize and validate the given value according to the given {@link io.crate.types.DataType}
      *
+     * Replaced with {@link io.crate.analyze.expressions.ExpressionAnalyzer}
+     *
      * @param inputValue any {@link io.crate.planner.symbol.Symbol} that evaluates to a Literal or Parameter
      * @param dataType the type to convert this input to
      * @return a {@link io.crate.planner.symbol.Literal} of type <code>dataType</code>
      */
+    @Deprecated
     public Literal normalizeInputForType(Symbol inputValue, DataType dataType) {
         try {
             return Literal.convert(normalizer.process(inputValue, null), dataType);
@@ -549,10 +562,12 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
         }
     }
 
+    @Deprecated
     public List<String> ids() {
         return ids;
     }
 
+    @Deprecated
     public List<String> routingValues() {
         return routingValues;
     }

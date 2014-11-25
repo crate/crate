@@ -111,4 +111,24 @@ public class RelationOutput extends Symbol {
             return symbol;
         }
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        RelationOutput that = (RelationOutput) o;
+
+        if (!relation.equals(that.relation)) return false;
+        if (!target.equals(that.target)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = relation.hashCode();
+        result = 31 * result + target.hashCode();
+        return result;
+    }
 }

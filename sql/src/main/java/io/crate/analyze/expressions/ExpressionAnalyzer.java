@@ -132,6 +132,19 @@ public class ExpressionAnalyzer {
         return innerAnalyzer.process(expression, expressionAnalysisContext);
     }
 
+    public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
+        if (whereExpression.isPresent()) {
+            WhereClause whereClause = new WhereClause(normalize(convert(whereExpression.get(), context)));
+            if (whereClause.hasQuery() && !context.sysExpressionsAllowed && context.hasSysExpressions) {
+                throw new UnsupportedOperationException("Filtering system columns is currently " +
+                        "only supported by queries using group-by or global aggregates.");
+            }
+            return whereClause;
+        } else {
+            return WhereClause.MATCH_ALL;
+        }
+    }
+
     private FunctionInfo getFunctionInfo(FunctionIdent ident) {
         return functions.getSafe(ident).info();
     }
@@ -658,7 +671,10 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            return sources.getRelationOutput(node.getName());
+            RelationOutput relationOutput = sources.getRelationOutput(node.getName());
+            context.hasSysExpressions = context.hasSysExpressions || SysSchemaInfo.NAME.equals(
+                    ((Reference) relationOutput.target()).info().ident().tableIdent().schema());
+            return relationOutput;
         }
 
         @Override

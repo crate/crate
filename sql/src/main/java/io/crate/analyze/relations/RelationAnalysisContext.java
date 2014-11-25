@@ -19,37 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze.expressions;
+package io.crate.analyze.relations;
 
-import io.crate.metadata.FunctionInfo;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
+import io.crate.sql.tree.QualifiedName;
 
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-public class ExpressionAnalysisContext {
+public class RelationAnalysisContext {
 
-    private final Map<Function, Function> functionSymbols = new HashMap<>();
-    private boolean hasAggregates = false;
-    public boolean sysExpressionsAllowed = false;
-    public boolean hasSysExpressions = false;
+    private Map<QualifiedName, AnalyzedRelation> sources = new HashMap<>();
 
-    public ExpressionAnalysisContext() {
+    public RelationAnalysisContext() {
     }
 
-    public Function allocateFunction(FunctionInfo functionInfo, List<Symbol> arguments) {
-        Function newFunction = new Function(functionInfo, arguments);
-        Function existingFunction = functionSymbols.get(newFunction);
+    public void addSourceRelation(String nameOrAlias, AnalyzedRelation relation) {
+        sources.put(new QualifiedName(nameOrAlias), relation);
+    }
 
-        if (existingFunction == null) {
-            functionSymbols.put(newFunction, newFunction);
-            hasAggregates = hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
+    public void addSourceRelation(String schemaName, String nameOrAlias, AnalyzedRelation relation) {
+        sources.put(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation);
+    }
 
-            return newFunction;
-        } else {
-            return existingFunction;
-        }
+    public Map<QualifiedName, AnalyzedRelation> sources() {
+        return sources;
     }
 }

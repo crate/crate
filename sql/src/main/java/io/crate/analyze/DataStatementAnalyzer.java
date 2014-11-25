@@ -23,31 +23,32 @@ package io.crate.analyze;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
-import io.crate.PartitionName;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.analyze.where.WhereClauseAnalyzer;
+import io.crate.analyze.where.WhereClauseContext;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.*;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
-import io.crate.operation.reference.partitioned.PartitionExpression;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
 import io.crate.types.*;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
 import java.util.*;
@@ -71,6 +72,13 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> ex
     private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
     private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
     private final static PrimaryKeyVisitor PRIMARY_KEY_VISITOR = new PrimaryKeyVisitor();
+
+    @Override
+    protected Symbol visitTable(Table node, T context) {
+        Preconditions.checkArgument(context.table() == null, "selecting from multiple tables is not supported");
+        context.table(TableIdent.of(node));
+        return null;
+    }
 
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, T context) {
@@ -444,6 +452,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> ex
         return NEGATIVE_LITERAL_VISITOR.process(process(node.getValue(), context), null);
     }
 
+    @Deprecated
     protected WhereClause generateWhereClause(Optional<Expression> whereExpression, T context) {
         if (!whereExpression.isPresent()) {
             return WhereClause.MATCH_ALL;
@@ -451,195 +460,24 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> ex
 
         WhereClause whereClause = new WhereClause(
                 context.normalizer.normalize(process(whereExpression.get(), context)));
-        if (whereClause.hasQuery()){
+        if (whereClause.hasQuery()) {
             if (!context.sysExpressionsAllowed && context.hasSysExpressions) {
                 throw new UnsupportedOperationException("Filtering system columns is currently " +
                         "only supported by queries using group-by or global aggregates.");
             }
 
-            PrimaryKeyVisitor.Context pkc = PRIMARY_KEY_VISITOR.process(context.table(), whereClause.query());
-            if (pkc != null) {
-                whereClause.clusteredByLiteral(pkc.clusteredByLiteral());
-                if (pkc.noMatch) {
-                    whereClause = WhereClause.NO_MATCH;
-                } else {
-                    whereClause.version(pkc.version());
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
+                    new AnalysisMetaData(context.functions, context.referenceInfos, context.referenceResolver),
+                    context.table()
+            );
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(whereClause);
+            context.ids.addAll(whereClauseContext.ids());
+            context.routingValues.addAll(whereClauseContext.routingValues());
 
-                    if (pkc.keyLiterals() != null) {
-                        processPrimaryKeyLiterals(pkc.keyLiterals(), whereClause, context);
-                    }
-                }
-            }
-
-            // TODO: this should be part of the getRouting on tableInfo
-            if (context.table().isPartitioned()) {
-                whereClause = resolvePartitions(
-                        context.referenceResolver,
-                        context.functions, whereClause, context.table());
-            }
-        }
-        return whereClause;
-    }
-
-    private PartitionReferenceResolver preparePartitionResolver(
-            ReferenceResolver referenceResolver, List<ReferenceInfo> partitionColumns) {
-        List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
-        int idx = 0;
-        for (ReferenceInfo partitionedByColumn : partitionColumns) {
-            partitionExpressions.add(new PartitionExpression(partitionedByColumn, idx));
-            idx++;
-        }
-        return new PartitionReferenceResolver(referenceResolver, partitionExpressions);
-    }
-
-    private WhereClause resolvePartitions(ReferenceResolver referenceResolver,
-                                          Functions functions,
-                                          WhereClause whereClause,
-                                          TableInfo table) {
-        assert table.isPartitioned() : "table must be partitioned in order to resolve partitions";
-        if (table.partitions().isEmpty()) {
-            return WhereClause.NO_MATCH; // table is partitioned but has no data / no partitions
-        }
-        PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
-                referenceResolver,
-                table.partitionedByColumns());
-        EvaluatingNormalizer normalizer =
-                new EvaluatingNormalizer(functions, RowGranularity.PARTITION, partitionReferenceResolver);
-
-        Symbol normalized = null;
-        Map<Symbol, List<Literal>> queryPartitionMap = new HashMap<>();
-
-        for (PartitionName partitionName : table.partitions()) {
-            for (PartitionExpression partitionExpression : partitionReferenceResolver.expressions()) {
-                partitionExpression.setNextRow(partitionName);
-            }
-            normalized = normalizer.normalize(whereClause.query());
-            assert normalized != null : "normalizing a query must not return null";
-
-            if (normalized.equals(whereClause.query())) {
-                return whereClause; // no partition columns inside the where clause
-            }
-
-            boolean canMatch = WhereClause.canMatch(normalized);
-            if (canMatch) {
-                List<Literal> partitions = queryPartitionMap.get(normalized);
-                if (partitions == null) {
-                    partitions = new ArrayList<>();
-                    queryPartitionMap.put(normalized, partitions);
-                }
-                partitions.add(Literal.newLiteral(partitionName.stringValue()));
-            }
-        }
-
-        if (queryPartitionMap.size() == 1) {
-            Map.Entry<Symbol, List<Literal>> entry = queryPartitionMap.entrySet().iterator().next();
-            whereClause = new WhereClause(entry.getKey());
-            whereClause.partitions(entry.getValue());
-        } else if (queryPartitionMap.size() > 0) {
-            whereClause = tieBreakPartitionQueries(normalizer, queryPartitionMap);
-        } else {
-            whereClause = WhereClause.NO_MATCH;
+            return whereClauseContext.whereClause();
         }
 
         return whereClause;
-    }
-
-    private WhereClause tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
-                                                 Map<Symbol, List<Literal>> queryPartitionMap) throws UnsupportedOperationException{
-        /**
-         * Got multiple normalized queries which all could match.
-         * This might be the case if one partition resolved to null
-         *
-         * e.g.
-         *
-         *  p = 1 and x = 2
-         *
-         * might lead to
-         *
-         *  null and x = 2
-         *  true and x = 2
-         *
-         * At this point it is unknown if they really match.
-         * In order to figure out if they could potentially match all conditions involving references are now set to true
-         *
-         *  null and true   -> can't match
-         *  true and true   -> can match, can use this query + partition
-         *
-         * If there is still more than 1 query that can match it's not possible to execute the query :(
-         */
-
-        List<Tuple<Symbol, List<Literal>>> canMatch = new ArrayList<>();
-        ReferenceToTrueVisitor referenceToTrueVisitor = new ReferenceToTrueVisitor();
-        for (Map.Entry<Symbol, List<Literal>> entry : queryPartitionMap.entrySet()) {
-            Symbol query = entry.getKey();
-            List<Literal> partitions = entry.getValue();
-
-            Symbol symbol = referenceToTrueVisitor.process(query, null);
-            Symbol normalized = normalizer.normalize(symbol);
-
-            assert normalized instanceof Literal && ((Literal) normalized).valueType().equals(DataTypes.BOOLEAN) :
-                "after normalization and replacing all reference occurrences with true there must only be a boolean left";
-
-            Object value = ((Literal) normalized).value();
-            if (value != null && (Boolean) value) {
-                canMatch.add(new Tuple<>(query, partitions));
-            }
-        }
-        if (canMatch.size() == 1) {
-            Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
-            WhereClause whereClause = new WhereClause(symbolListTuple.v1());
-            whereClause.partitions(symbolListTuple.v2());
-            return whereClause;
-        }
-        throw new UnsupportedOperationException(
-            "logical conjunction of the conditions in the WHERE clause which " +
-                "involve partitioned columns led to a query that can't be executed.");
-    }
-
-    protected void processPrimaryKeyLiterals(List primaryKeyLiterals, WhereClause whereClause, T context) {
-        List<List<BytesRef>> primaryKeyValuesList = new ArrayList<>(primaryKeyLiterals.size());
-        primaryKeyValuesList.add(new ArrayList<BytesRef>(context.table().primaryKey().size()));
-
-        for (int i=0; i<primaryKeyLiterals.size(); i++) {
-            Object primaryKey = primaryKeyLiterals.get(i);
-            if (primaryKey instanceof Literal) {
-                Literal pkLiteral = (Literal)primaryKey;
-                // support e.g. pk IN (Value..,)
-                if (pkLiteral.valueType().id() == SetType.ID) {
-                    Set<Literal> literals = Sets.newHashSet(Literal.explodeCollection(pkLiteral));
-                    Iterator<Literal> literalIterator = literals.iterator();
-                    for (int s=0; s<literals.size(); s++) {
-                        Literal pk = literalIterator.next();
-                        if (s >= primaryKeyValuesList.size()) {
-                            // copy already parsed pk values, so we have all possible multiple pk for all sets
-                            primaryKeyValuesList.add(Lists.newArrayList(primaryKeyValuesList.get(s - 1)));
-                        }
-                        List<BytesRef> primaryKeyValues = primaryKeyValuesList.get(s);
-                        if (primaryKeyValues.size() > i) {
-                            primaryKeyValues.set(i, BytesRefValueSymbolVisitor.INSTANCE.process(pk));
-                        } else {
-                            primaryKeyValues.add(BytesRefValueSymbolVisitor.INSTANCE.process(pk));
-                        }
-                    }
-                } else {
-                    for (List<BytesRef> primaryKeyValues : primaryKeyValuesList) {
-                        primaryKeyValues.add((BytesRefValueSymbolVisitor.INSTANCE.process(pkLiteral)));
-                    }
-                }
-            } else if (primaryKey instanceof List) {
-                primaryKey = Lists.transform((List<Literal>) primaryKey, new com.google.common.base.Function<Literal, BytesRef>() {
-                    @Override
-                    public BytesRef apply(Literal input) {
-                        return BytesRefValueSymbolVisitor.INSTANCE.process(input);
-                    }
-                });
-                primaryKeyValuesList.add((List<BytesRef>) primaryKey);
-            }
-        }
-
-        for (List<BytesRef> primaryKeyValues : primaryKeyValuesList) {
-            context.addIdAndRouting(primaryKeyValues, whereClause.clusteredBy().orNull());
-        }
     }
 
     @Override
@@ -651,7 +489,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> ex
                 node.getType().name().toLowerCase(Locale.ENGLISH),
                 Arrays.asList(left.valueType(), right.valueType())
         );
-        return context.allocateFunction(context.getFunctionInfo(functionIdent),  Arrays.asList(left, right));
+        return context.allocateFunction(context.getFunctionInfo(functionIdent), Arrays.asList(left, right));
     }
 
     @Override

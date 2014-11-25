@@ -41,26 +41,13 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.monitor.os.OsStats;
 import org.joda.time.DateTime;
 import org.junit.Before;
 
 import java.util.*;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public abstract class BaseAnalyzerTest {
 
@@ -281,38 +268,6 @@ public abstract class BaseAnalyzerTest {
                 return Literal.newLiteral(evaluate((Input<Long>) symbol.arguments().get(0)));
             }
             return symbol;
-        }
-    }
-
-    /**
-     * borrowed from {@link io.crate.operation.reference.sys.TestGlobalSysExpressions}
-     * // TODO share it
-     */
-    static class TestModule extends AbstractModule {
-
-        @Override
-        protected void configure() {
-            ClusterService clusterService = mock(ClusterService.class);
-            ClusterState state = mock(ClusterState.class);
-            MetaData metaData = mock(MetaData.class);
-            when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
-            when(metaData.persistentSettings()).thenReturn(ImmutableSettings.EMPTY);
-            when(metaData.transientSettings()).thenReturn(ImmutableSettings.EMPTY);
-            when(state.metaData()).thenReturn(metaData);
-            when(clusterService.state()).thenReturn(state);
-            bind(ClusterService.class).toInstance(clusterService);
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
-            OsService osService = mock(OsService.class);
-            OsStats osStats = mock(OsStats.class);
-            when(osService.stats()).thenReturn(osStats);
-            when(osStats.loadAverage()).thenReturn(new double[]{1, 5, 15});
-            bind(OsService.class).toInstance(osService);
-            Discovery discovery = mock(Discovery.class);
-            bind(Discovery.class).toInstance(discovery);
-            DiscoveryNode node = mock(DiscoveryNode.class);
-            when(discovery.localNode()).thenReturn(node);
-            when(node.getId()).thenReturn("node-id-1");
-            when(node.getName()).thenReturn("node 1");
         }
     }
 

@@ -27,6 +27,7 @@ import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
@@ -56,7 +57,7 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new TestModule(),
+                new MockedClusterServiceModule(),
                 new MetaDataInformationModule(),
                 new TestMetaDataModule(),
                 new MetaDataSysModule(),

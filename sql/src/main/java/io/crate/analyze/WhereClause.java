@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
@@ -203,7 +203,7 @@ public class WhereClause implements Streamable {
 
     @Override
     public String toString() {
-        Objects.ToStringHelper helper = Objects.toStringHelper(this);
+        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this);
         if (noMatch()) {
             helper.add("NO_MATCH", true);
         } else if (!hasQuery()) {

@@ -19,37 +19,29 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze.expressions;
+package io.crate.analyze.relations;
 
-import io.crate.metadata.FunctionInfo;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
+import io.crate.metadata.table.TableInfo;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+public class Relations {
 
-public class ExpressionAnalysisContext {
+    private static final IsReadOnlyVisitor IS_READ_ONLY_VISITOR = new IsReadOnlyVisitor();
 
-    private final Map<Function, Function> functionSymbols = new HashMap<>();
-    private boolean hasAggregates = false;
-    public boolean sysExpressionsAllowed = false;
-    public boolean hasSysExpressions = false;
-
-    public ExpressionAnalysisContext() {
+    public static boolean isReadOnly(AnalyzedRelation relation) {
+        return IS_READ_ONLY_VISITOR.process(relation, null);
     }
 
-    public Function allocateFunction(FunctionInfo functionInfo, List<Symbol> arguments) {
-        Function newFunction = new Function(functionInfo, arguments);
-        Function existingFunction = functionSymbols.get(newFunction);
+    private static class IsReadOnlyVisitor extends RelationVisitor<Void, Boolean> {
 
-        if (existingFunction == null) {
-            functionSymbols.put(newFunction, newFunction);
-            hasAggregates = hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
+        @Override
+        protected Boolean visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+            return true;
+        }
 
-            return newFunction;
-        } else {
-            return existingFunction;
+        @Override
+        public Boolean visitTableRelation(TableRelation tableRelation, Void context) {
+            TableInfo tableInfo = tableRelation.tableInfo();
+            return tableInfo.schemaInfo().systemSchema() || (tableInfo.isAlias() && !tableInfo.isPartitioned());
         }
     }
 }
