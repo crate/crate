@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import io.crate.Constants;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -51,12 +50,6 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
                                            ParameterContext parameterContext) {
         super(parameterContext);
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
-    }
-
-    @Nullable
-    @Override
-    public TableInfo table() {
-        return null;
     }
 
     @Override

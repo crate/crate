@@ -32,6 +32,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
+import io.crate.testing.MockedClusterServiceModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -69,7 +70,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new TestModule(),
+                new MockedClusterServiceModule(),
                 new TestMetaDataModule(),
                 new MetaDataSysModule(),
                 new OperatorModule())

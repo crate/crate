@@ -2,8 +2,8 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.analyze.TableParameterInfo;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceIdent;
@@ -139,5 +139,10 @@ public abstract class AbstractTableInfo implements TableInfo {
     @Override
     public TableParameterInfo tableParameterInfo() {
         return null;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s.%s", schemaInfo.name(), ident().name());
     }
 }

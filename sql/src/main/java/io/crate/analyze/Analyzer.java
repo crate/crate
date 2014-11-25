@@ -41,21 +41,16 @@ public class Analyzer {
 
     public Analysis analyze(Statement statement, Object[] parameters, Object[][] bulkParams) {
         ParameterContext parameterContext = new ParameterContext(parameters, bulkParams);
-
-        AbstractStatementAnalyzer statementAnalyzer = dispatcher.process(statement, null);
-        AnalyzedStatement analyzedStatement = statementAnalyzer.newAnalysis(parameterContext);
-        statement.accept(statementAnalyzer, analyzedStatement);
-        analyzedStatement.normalize();
+        AnalyzedStatement analyzedStatement = dispatcher.process(statement, parameterContext);
         return new Analysis(analyzedStatement);
     }
 
 
-    public static class AnalyzerDispatcher extends AstVisitor<AbstractStatementAnalyzer, Void> {
+    public static class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, ParameterContext> {
 
         private final SelectStatementAnalyzer selectStatementAnalyzer;
         private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
         private final UpdateStatementAnalyzer updateStatementAnalyzer;
-        private final DeleteStatementAnalyzer deleteStatementAnalyzer;
         private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
         private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
@@ -73,7 +68,6 @@ public class Analyzer {
                                   SelectStatementAnalyzer selectStatementAnalyzer,
                                   InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                                   UpdateStatementAnalyzer updateStatementAnalyzer,
-                                  DeleteStatementAnalyzer deleteStatementAnalyzer,
                                   DropTableStatementAnalyzer dropTableStatementAnalyzer,
                                   CreateTableStatementAnalyzer createTableStatementAnalyzer,
                                   CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
@@ -88,7 +82,6 @@ public class Analyzer {
             this.selectStatementAnalyzer = selectStatementAnalyzer;
             this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
             this.updateStatementAnalyzer = updateStatementAnalyzer;
-            this.deleteStatementAnalyzer = deleteStatementAnalyzer;
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
             this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
@@ -101,99 +94,106 @@ public class Analyzer {
             this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
         }
 
-        @Override
-        protected AbstractStatementAnalyzer visitQuery(Query node, Void context) {
-            return selectStatementAnalyzer;
+        private AnalyzedStatement analyze(Node node, AbstractStatementAnalyzer statementAnalyzer, ParameterContext parameterContext) {
+            AnalyzedStatement analyzedStatement = statementAnalyzer.newAnalysis(parameterContext);
+            node.accept(statementAnalyzer, analyzedStatement);
+            analyzedStatement.normalize();
+            return analyzedStatement;
         }
 
         @Override
-        public AbstractStatementAnalyzer visitDelete(Delete node, Void context) {
-            return deleteStatementAnalyzer;
-        }
-
-
-        @Override
-        public AbstractStatementAnalyzer visitInsertFromValues(InsertFromValues node, Void context) {
-            return new InsertFromValuesAnalyzer(analysisMetaData);
+        protected AnalyzedStatement visitQuery(Query node, ParameterContext context) {
+            return analyze(node, selectStatementAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitInsertFromSubquery(InsertFromSubquery node, Void context) {
-            return insertFromSubQueryAnalyzer;
+        public AnalyzedStatement visitDelete(Delete node, ParameterContext context) {
+            DeleteStatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer(analysisMetaData, context);
+            return deleteStatementAnalyzer.process(node, null);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitUpdate(Update node, Void context) {
-            return updateStatementAnalyzer;
+        public AnalyzedStatement visitInsertFromValues(InsertFromValues node, ParameterContext context) {
+            return analyze(node, new InsertFromValuesAnalyzer(analysisMetaData), context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitCopyFromStatement(CopyFromStatement node, Void context) {
-            return new CopyStatementAnalyzer(analysisMetaData);
+        public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, ParameterContext context) {
+            return analyze(node, insertFromSubQueryAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitCopyTo(CopyTo node, Void context) {
-            return new CopyStatementAnalyzer(analysisMetaData);
+        public AnalyzedStatement visitUpdate(Update node, ParameterContext context) {
+            return analyze(node, updateStatementAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitDropTable(DropTable node, Void context) {
-            return dropTableStatementAnalyzer;
+        public AnalyzedStatement visitCopyFromStatement(CopyFromStatement node, ParameterContext context) {
+            return analyze(node, new CopyStatementAnalyzer(analysisMetaData), context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitCreateTable(CreateTable node, Void context) {
-            return createTableStatementAnalyzer;
+        public AnalyzedStatement visitCopyTo(CopyTo node, ParameterContext context) {
+            return analyze(node, new CopyStatementAnalyzer(analysisMetaData), context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitCreateAnalyzer(CreateAnalyzer node, Void context) {
-            return createAnalyzerStatementAnalyzer;
+        public AnalyzedStatement visitDropTable(DropTable node, ParameterContext context) {
+            return analyze(node, dropTableStatementAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitCreateBlobTable(CreateBlobTable node, Void context) {
-            return createBlobTableStatementAnalyzer;
+        public AnalyzedStatement visitCreateTable(CreateTable node, ParameterContext context) {
+            return analyze(node, createTableStatementAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitDropBlobTable(DropBlobTable node, Void context) {
-            return dropBlobTableStatementAnalyzer;
+        public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, ParameterContext context) {
+            return analyze(node, createAnalyzerStatementAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitAlterBlobTable(AlterBlobTable node, Void context) {
-            return alterBlobTableAnalyzer;
+        public AnalyzedStatement visitCreateBlobTable(CreateBlobTable node, ParameterContext context) {
+            return analyze(node, createBlobTableStatementAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitRefreshStatement(RefreshStatement node, Void context) {
-            return refreshTableAnalyzer;
+        public AnalyzedStatement visitDropBlobTable(DropBlobTable node, ParameterContext context) {
+            return analyze(node, dropBlobTableStatementAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitAlterTable(AlterTable node, Void context) {
-            return alterTableAnalyzer;
+        public AnalyzedStatement visitAlterBlobTable(AlterBlobTable node, ParameterContext context) {
+            return analyze(node, alterBlobTableAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitAlterTableAddColumnStatement(AlterTableAddColumn node, Void context) {
-            return alterTableAddColumnAnalyzer;
+        public AnalyzedStatement visitRefreshStatement(RefreshStatement node, ParameterContext context) {
+            return analyze(node, refreshTableAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitSetStatement(SetStatement node, Void context) {
-            return setStatementAnalyzer;
+        public AnalyzedStatement visitAlterTable(AlterTable node, ParameterContext context) {
+            return analyze(node, alterTableAnalyzer, context);
         }
 
         @Override
-        public AbstractStatementAnalyzer visitResetStatement(ResetStatement node, Void context) {
-            return setStatementAnalyzer;
+        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, ParameterContext context) {
+            return analyze(node, alterTableAddColumnAnalyzer, context);
         }
 
         @Override
-        protected AbstractStatementAnalyzer visitNode(Node node, Void context) {
+        public AnalyzedStatement visitSetStatement(SetStatement node, ParameterContext context) {
+            return analyze(node, setStatementAnalyzer, context);
+        }
+
+        @Override
+        public AnalyzedStatement visitResetStatement(ResetStatement node, ParameterContext context) {
+            return analyze(node, setStatementAnalyzer, context);
+        }
+
+        @Override
+        protected AnalyzedStatement visitNode(Node node, ParameterContext context) {
             throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", node));
         }
     }

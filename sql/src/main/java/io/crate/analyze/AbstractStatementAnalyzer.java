@@ -21,21 +21,12 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
-import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
 
 public abstract class AbstractStatementAnalyzer<R, T extends AnalyzedStatement> extends DefaultTraversalVisitor<R, T> {
 
+    @Deprecated
     public abstract AnalyzedStatement newAnalysis(ParameterContext parameterContext);
-
-    @Override
-    protected R visitTable(Table node, T context) {
-        Preconditions.checkState(context.table() == null, "selecting from multiple tables is not supported");
-        TableIdent tableIdent = TableIdent.of(node);
-        context.table(tableIdent);
-        return null;
-    }
 
     @Override
     protected R visitNode(Node node, T context) {
