@@ -50,7 +50,9 @@ public abstract class ShardCollectFuture extends AbstractFuture<Object[][]> {
 
     protected void shardFailure(Throwable t) {
         lastException.set(t);
-        onAllShardsFinished();
+        if (numShards.decrementAndGet() <= 0) {
+            onAllShardsFinished();
+        }
         setException(t);
     }
 
