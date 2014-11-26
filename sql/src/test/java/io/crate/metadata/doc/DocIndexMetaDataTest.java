@@ -610,7 +610,7 @@ public class DocIndexMetaDataTest {
 
         assertThat(md.columns().size(), is(4));
         assertThat(md.primaryKey(), Matchers.contains(new ColumnIdent("id"), new ColumnIdent("date")));
-        assertTrue(md.references().get(new ColumnIdent("tags")).type().equals(new ArrayType(DataTypes.STRING)));
+        assertThat(md.references().get(new ColumnIdent("tags")).type(), is((DataType) new ArrayType(DataTypes.STRING)));
     }
 
     @Test
@@ -790,6 +790,144 @@ public class DocIndexMetaDataTest {
         DocIndexMetaData mdWrong = newMeta(getIndexMetaData("test_wrong", wrongBuilder), "test_wrong");
         assertThat(mdWrong.columnPolicy(), is(ColumnPolicy.DYNAMIC));
     }
+
+    @Test
+    public void testCreateArrayMapping() throws Exception {
+        DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table t (" +
+                "  id integer primary key," +
+                "  tags array(string)," +
+                "  scores array(short)" +
+                ")");
+        assertThat(md.references().get(ColumnIdent.fromPath("tags")).type(),
+                is((DataType)new ArrayType(DataTypes.STRING)));
+        assertThat(md.references().get(ColumnIdent.fromPath("scores")).type(),
+                is((DataType)new ArrayType(DataTypes.SHORT)));
+    }
+
+    @Test
+    public void testCreateObjectArrayMapping() throws Exception {
+        DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table t (" +
+                "  id integer primary key," +
+                "  tags array(object(strict) as (" +
+                "    size double index off," +
+                "    numbers array(integer)," +
+                "    quote string index using fulltext" +
+                "  ))" +
+                ")");
+        assertThat(md.references().get(ColumnIdent.fromPath("tags")).type(),
+                is((DataType)new ArrayType(DataTypes.OBJECT)));
+        assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy(),
+                is(ColumnPolicy.STRICT));
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).type(),
+                is((DataType)DataTypes.DOUBLE));
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).indexType(),
+                is(ReferenceInfo.IndexType.NO));
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.numbers")).type(),
+                is((DataType)new ArrayType(DataTypes.INTEGER)));
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).type(),
+                is((DataType)DataTypes.STRING));
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).indexType(),
+                is(ReferenceInfo.IndexType.ANALYZED));
+    }
+
+    @Test
+    public void testNoBackwardCompatibleArrayMapping() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject("_meta")
+                    .field("primary_keys", "id")
+                    .startObject("columns")
+                        .startObject("array_col")
+                            .field("collection_type", "array")
+                        .endObject()
+                        .startObject("nested")
+                            .startObject("properties")
+                                .startObject("inner_nested")
+                                    .field("collection_type", "array")
+                                .endObject()
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .startObject("properties")
+                .startObject("id")
+                .field("type", "integer")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("title")
+                .field("type", "string")
+                .field("index", "no")
+                .endObject()
+                .startObject("array_col")
+                    .field("type", "ip")
+                    .field("index", "not_analyzed")
+                .endObject()
+                .startObject("nested")
+                    .field("type", "nested")
+                    .startObject("properties")
+                        .startObject("inner_nested")
+                            .field("type", "date")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        IndexMetaData indexMetaData = getIndexMetaData("test1", builder);
+        DocIndexMetaData docIndexMetaData = newMeta(indexMetaData, "test1");
+
+        // ARRAY TYPES NOT DETECTED
+        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("array_col")).type(),
+                is((DataType)DataTypes.IP));
+        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).type(),
+                is((DataType)DataTypes.TIMESTAMP));
+    }
+
+    @Test
+    public void testNewArrayMapping() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                    .startObject("_meta")
+                        .field("primary_keys", "id")
+                    .endObject()
+                    .startObject("properties")
+                    .startObject("id")
+                        .field("type", "integer")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("title")
+                        .field("type", "string")
+                        .field("index", "no")
+                    .endObject()
+                    .startObject("array_col")
+                        .field("type", "array")
+                        .startObject("inner")
+                            .field("type", "ip")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                    .endObject()
+                    .startObject("nested")
+                        .field("type", "object")
+                        .startObject("properties")
+                            .startObject("inner_nested")
+                                .field("type", "array")
+                                .startObject("inner")
+                                    .field("type", "date")
+                                    .field("index", "not_analyzed")
+                                .endObject()
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .endObject();
+        IndexMetaData indexMetaData = getIndexMetaData("test1", builder);
+        DocIndexMetaData docIndexMetaData = newMeta(indexMetaData, "test1");
+        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("array_col")).type(),
+                is((DataType) new ArrayType(DataTypes.IP)));
+        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).type(),
+                is((DataType) new ArrayType(DataTypes.TIMESTAMP)));
+    }
+
 }
 
 

@@ -279,7 +279,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("insert into test (message, person) values " +
                 "('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
-        refresh();
+        execute("refresh table test");
         waitNoPendingTasksOnAll();
 
         execute("select message, person['name'], person['addresses']['city'] from test " +

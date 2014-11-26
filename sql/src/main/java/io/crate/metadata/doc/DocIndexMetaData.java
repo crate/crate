@@ -21,8 +21,7 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Optional;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
 import io.crate.PartitionName;
@@ -211,20 +210,18 @@ public class DocIndexMetaData {
             } else {
                 return DataTypes.NOT_SUPPORTED;
             }
+        } else if (typeName.equalsIgnoreCase("array")) {
+            Map<String, Object> innerProperties = (Map<String, Object>)columnProperties.get("inner");
+            DataType innerType = getColumnDataType(columnName, columnIdent, innerProperties);
+            type = new ArrayType(innerType);
         } else {
             typeName = typeName.toLowerCase(Locale.ENGLISH);
-            type = Objects.firstNonNull(dataTypeMap.get(typeName), DataTypes.NOT_SUPPORTED);
-        }
-
-        Optional<String> collectionType = getCollectionType(columnName, columnIdent);
-        if (collectionType.isPresent() && collectionType.get().equals("array")) {
-            type = new ArrayType(type);
+            type = MoreObjects.firstNonNull(dataTypeMap.get(typeName), DataTypes.NOT_SUPPORTED);
         }
         return type;
     }
 
-    private ReferenceInfo.IndexType getColumnIndexType(String columnName,
-                                                       Map<String, Object> columnProperties) {
+    private ReferenceInfo.IndexType getColumnIndexType(Map<String, Object> columnProperties) {
         String indexType = (String) columnProperties.get("index");
         String analyzerName = (String) columnProperties.get("analyzer");
         if (indexType != null) {
@@ -241,60 +238,6 @@ public class DocIndexMetaData {
             return ReferenceInfo.IndexType.ANALYZED;
         }
         return ReferenceInfo.IndexType.NOT_ANALYZED;
-    }
-
-    /**
-     * use to get the collection type (array | set | null) from the "_meta" columns property.
-     *
-     * @param columnName the name of the column that is being looked at.
-     * @param columnIdent the "previous" parts of the column if it is a nested column
-     */
-    private Optional<String> getCollectionType(String columnName, @Nullable ColumnIdent columnIdent) {
-        if (columnIdent == null) {
-            Object o = metaColumnsMap.get(columnName);
-            if (o == null) {
-                return Optional.absent();
-            }
-            assert o instanceof Map;
-            Map metaColumn = (Map)o;
-            Object collection_type = metaColumn.get("collection_type");
-            if (collection_type != null) {
-                return Optional.of(collection_type.toString());
-            }
-            return Optional.absent();
-        }
-
-        List<String> path = new ArrayList<>(columnIdent.path());
-        path.add(0, columnIdent.name());
-        path.add(path.size(), columnName);
-        return getCollectionTypeFromNested(path);
-    }
-
-    private Optional<String> getCollectionTypeFromNested(List<String> path) {
-        Map metaColumn = metaColumnsMap;
-        while (path.size() > 1) {
-            Object o = metaColumn.get(path.get(0));
-            if (o == null) {
-                break;
-            }
-            assert o instanceof Map;
-            metaColumn = (Map) ((Map) o).get("properties");
-            path = path.subList(1, path.size());
-        }
-        if (metaColumn == null) {
-            return Optional.absent();
-        }
-
-        Object o = metaColumn.get(path.get(0));
-        if (o == null) {
-            return Optional.absent();
-        }
-        assert o instanceof Map;
-        Object collection_type = ((Map)o).get("collection_type");
-        if (collection_type != null) {
-            return Optional.of(collection_type.toString());
-        }
-        return Optional.absent();
     }
 
     private ColumnIdent childIdent(ColumnIdent ident, String name) {
@@ -326,23 +269,23 @@ public class DocIndexMetaData {
         for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
             Map<String, Object> columnProperties = (Map) columnEntry.getValue();
             DataType columnDataType = getColumnDataType(columnEntry.getKey(), columnIdent, columnProperties);
-            ReferenceInfo.IndexType columnIndexType = getColumnIndexType(columnEntry.getKey(), columnProperties);
-            List<String> copyToColumns = getNested(columnProperties, "copy_to");
+            ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
 
+            columnProperties = furtherColumnProperties(columnProperties);
+            ReferenceInfo.IndexType columnIndexType = getColumnIndexType(columnProperties);
             if (columnDataType == DataTypes.OBJECT
                     || ( columnDataType.id() == ArrayType.ID
                         && ((ArrayType)columnDataType).innerType() == DataTypes.OBJECT )) {
                 ColumnPolicy columnPolicy =
                         ColumnPolicy.of(columnProperties.get("dynamic"));
-                ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
                 add(newIdent, columnDataType, columnPolicy, ReferenceInfo.IndexType.NO, false);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
-                    internalExtractColumnDefinitions(newIdent, (Map<String, Object>) columnProperties.get("properties"));
+                    internalExtractColumnDefinitions(newIdent, (Map<String, Object>)columnProperties.get("properties"));
                 }
             } else if (columnDataType != DataTypes.NOT_SUPPORTED) {
-                ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
+                List<String> copyToColumns = getNested(columnProperties, "copy_to");
 
                 // extract columns this column is copied to, needed for indices
                 if (copyToColumns != null) {
@@ -357,11 +300,24 @@ public class DocIndexMetaData {
                     String analyzer = getNested(columnProperties, "analyzer");
                     IndexReferenceInfo.Builder builder = getOrCreateIndexBuilder(newIdent);
                     builder.indexType(columnIndexType)
-                           .ident(new ReferenceIdent(ident, newIdent));
+                            .analyzer(analyzer)
+                            .ident(new ReferenceIdent(ident, newIdent));
                 } else {
                     add(newIdent, columnDataType, columnIndexType);
                 }
             }
+        }
+    }
+
+    /**
+     * get the real column properties from a possible array mapping,
+     * keeping most of this stuff inside "inner"
+     */
+    private Map<String, Object> furtherColumnProperties(Map<String, Object> columnProperties) {
+        if (columnProperties.get("inner") != null) {
+            return (Map<String, Object>)columnProperties.get("inner");
+        } else {
+            return columnProperties;
         }
     }
 
