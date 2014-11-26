@@ -50,6 +50,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
+    private String nestedArrayCopyFilePath = getClass().getResource("/essetup/data/nested_array").getPath();
 
     private Setup setup = new Setup(sqlExecutor);
 
@@ -206,7 +207,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table users (id int, " +
                 "name string) with (number_of_replicas=0)");
         ensureGreen();
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "nested_array_copy_from.json");
+        String filePath = Joiner.on(File.separator).join(nestedArrayCopyFilePath, "nested_array_copy_from.json");
         execute("copy users from ? with (shared=true)", new Object[]{filePath});
         // 2 nodes on same machine resulting in double affected rows
         assertEquals(1L, response.rowCount()); // only 1 document got inserted
