@@ -72,6 +72,42 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
     public static final String CONTENT_TYPE = "array";
     public static final XContentBuilderString INNER = new XContentBuilderString("inner");
     private Mapper innerMapper;
+    private InnerParser innerParser;
+
+    /**
+     * inner class used to parse single values from arrays
+     * for non-object fields
+     */
+    private class InnerParser {
+        protected final String fieldName;
+
+        private InnerParser(String fieldName) {
+            this.fieldName = fieldName;
+        }
+
+        public void parse(Mapper mapper, ParseContext ctx) throws IOException {
+            mapper.parse(ctx);
+        }
+    }
+
+    /**
+     * used to parse single object values from arrays
+     * the current field name must be set when traversing the inner objectMapper
+     */
+    private class InnerObjectParser extends InnerParser {
+
+        private InnerObjectParser(String fieldName) {
+            super(fieldName);
+        }
+
+        @Override
+        public void parse(Mapper mapper, ParseContext ctx) throws IOException {
+            ctx.path().add(fieldName);
+            super.parse(mapper, ctx);
+            ctx.path().remove();
+        }
+    }
+
 
     public static class Builder extends Mapper.Builder<Builder, ArrayMapper> {
 
@@ -142,13 +178,22 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
 
     private final String name;
 
+    /**
+     * only called when creating a new ArrayMapper for a dynamic array
+     * whose inner type is not known yet.
+     *
+     * The {@linkplain #innerMapper} and {@linkplain #innerParser} will be set
+     * when calling {@linkplain #parse(org.elasticsearch.index.mapper.ParseContext)}.
+     *
+     */
     private ArrayMapper(String name) {
         this.name = name;
     }
 
     public ArrayMapper(Mapper innerMapper, String name) {
+        this(name);
         this.innerMapper = innerMapper;
-        this.name = name;
+        setInnerParser();
     }
 
     @Override
@@ -160,11 +205,15 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
     public void parse(ParseContext context) throws IOException {
         XContentParser parser = context.parser();
         XContentParser.Token token = parser.currentToken();
-        if (token != XContentParser.Token.START_ARRAY) {
+        if (token == XContentParser.Token.VALUE_NULL) {
+            parseNull(context);
+            return;
+        } else if  (token != XContentParser.Token.START_ARRAY) {
             throw new ElasticsearchParseException("invalid array");
         }
         token = parser.nextToken();
         if (innerMapper == null) {
+            // this is the case for new dynamic arrays
             if (token == XContentParser.Token.START_ARRAY) {
                 throw new ElasticsearchParseException("nested arrays are not supported");
             }
@@ -173,15 +222,30 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
                 return;
             }
             innerMapper = mapper;
+            setInnerParser();
         }
+
         while (token != XContentParser.Token.END_ARRAY) {
             // we only get here for non-empty arrays
-            if (innerMapper instanceof ObjectMapper) {
-                context.path().add(name());
-            }
-            innerMapper.parse(context);
+            innerParser.parse(innerMapper, context);
             token = parser.nextToken();
         }
+    }
+
+    private void setInnerParser() {
+        if (innerMapper != null && innerMapper instanceof ObjectMapper) {
+            this.innerParser = new InnerObjectParser(this.name);
+        } else {
+            this.innerParser = new InnerParser(name);
+        }
+    }
+
+    private void parseNull(ParseContext context) throws IOException {
+        assert innerMapper != null : "should only end up here, if mapper is not dynamic, so innerMapper is not null";
+        if (innerMapper instanceof FieldMapper && !((FieldMapper) innerMapper).supportsNullValue()) {
+            throw new MapperParsingException("no object mapping found for null value in [" + name() + "]");
+        }
+        innerParser.parse(innerMapper, context);
     }
 
     @Override
