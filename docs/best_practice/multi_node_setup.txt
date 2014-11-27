@@ -6,7 +6,7 @@ Multi Node Setup
 ================
 
 Crate is a distributed datastore by design so in a production environment
-you usually have a cluster of 2 or more nodes. We at Crate.IO try to make
+you usually have a cluster of 3 or more nodes. We at Crate.IO try to make
 the cluster setup as easy as possible. However, there are a few things to
 bear in mind when you start building a new cluster.
 
@@ -100,23 +100,48 @@ or use internal netork IPs + transport port::
   as soon as the new node will ping existing ones.
 
 
+.. _master_node_election:
+
 Master Node Election
 ====================
 
-Although all Crate nodes in a cluster are equal, there is one node elected as master.
-Like any other peer-to-peer system, nodes communicate with each other directly.
-The master node is responsible for making changes to and publishing the
-global cluster state, as well as for delegating redistribution of shards when
-nodes join or leave the cluster.
+Although all Crate nodes in a cluster are equal, there is one node
+elected as master for managing cluster meta data.  Like any other
+peer-to-peer system, nodes communicate with each other directly.  The
+master node is responsible for making changes to and publishing the
+global cluster state, as well as for delegating redistribution of
+shards when nodes join or leave the cluster. All nodes are eligible to
+become master.
 
-By default all nodes are eligible to become master. The settings ``minimum_master_nodes``
-defines how many nodes need to be available in the cluster to elect a master.
-We highly recommend to set the quorum as follows::
+There must be only one single master per cluster. To ensure this,
+Crate allows for setting a quorum, which needs to be present in order
+to elect a master and for the cluster to be operational.
+
+This quorum can be configured using the ``minimum_master_nodes``
+setting. We highly recommend to set the quorum to be greater than the
+half of the maximum number of nodes in the cluster. The formula is as
+follows::
 
   (N / 2) + 1
 
-where ``N`` is the number of nodes in the cluster. In a 3-node cluster it would mean
-that at least 2 nodes need to be started before they elect the master.
+where ``N`` is the maximum number of nodes in the cluster.
+
+.. note::
+
+  Setting the quorum lower than described above may lead to split
+  brain scenarios. This means that in case of a network paritioning
+  there could be more than one pool of nodes meeting the quorum and
+  start to elect a master on their own. This can cause data loss and
+  inconsistencies.
+
+  Also, if the planned number of nodes changes in a cluster, the quorum
+  needs to be updated too, since it should never get below the half of
+  the available nodes, but also should allow for operation without
+  having all nodes online, so it should not be too high to.
+
+For example, in a 3-node cluster it would mean that at least 2 nodes
+need to see each other before they are allowed to elect a master. So
+the following line needs to be added to the configuration file.
 
 ::
 
@@ -124,8 +149,12 @@ that at least 2 nodes need to be started before they elect the master.
 
 .. note::
 
-  Note that this value must be updated according to the amount of nodes
-  when you add new or remove nodes from the cluster.
+  Given the formula above it means that in a cluster with a maximum of
+  2 nodes the quorum is also 2. In practice this means that a 2-node
+  cluster needs to have both nodes online in order to be operational
+  and therefore a highly available and fault-tolerant multi-node setup
+  requires at least 3 nodes.
+
 
 Publish Host and Port
 =====================
