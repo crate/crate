@@ -7,11 +7,8 @@ import socket
 from crate.testing.layer import CrateLayer
 from crate.client.http import Client
 from .paths import crate_path
-from .ports import random_available_port
+from .ports import public_ip, random_available_port
 from lovely.testlayers.layer import CascadedLayer
-
-def public_ip():
-    return socket.gethostbyname(socket.gethostname())
 
 
 class GracefulStopCrateLayer(CrateLayer):
