@@ -6,12 +6,9 @@ import random
 from crate.testing.layer import CrateLayer
 from crate.client.http import Client
 from .paths import crate_path
+
+from .ports import public_ip, random_available_port
 from lovely.testlayers.layer import CascadedLayer
-
-
-def public_ip():
-    import socket
-    return socket.gethostbyname(socket.gethostname())
 
 
 class GracefulStopCrateLayer(CrateLayer):
@@ -41,8 +38,8 @@ class GracefulStopTest(unittest.TestCase):
             layer = GracefulStopCrateLayer(self.node_name(i),
                            crate_path(),
                            host=public_ip(),
-                           port=44200+i,
-                           transport_port=44300+i,
+                           port=random_available_port(),
+                           transport_port=random_available_port(),
                            multicast=True,
                            cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
