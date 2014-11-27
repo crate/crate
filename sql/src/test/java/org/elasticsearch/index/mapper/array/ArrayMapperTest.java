@@ -24,6 +24,7 @@ package org.elasticsearch.index.mapper.array;
 import com.google.common.base.Joiner;
 import io.crate.test.integration.CrateSingleNodeTest;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -207,21 +208,22 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                 .startObject()
                 .field("_id", "abc")
                 .startArray("array_field")
-                    .startObject()
-                    .field("s", "a")
-                    .endObject()
-                    .startObject()
-                    .field("s", "b")
-                    .endObject()
-                    .startObject()
-                    .field("s", "c")
-                    .endObject()
+                .startObject()
+                .field("s", "a")
+                .endObject()
+                .startObject()
+                .field("s", "b")
+                .endObject()
+                .startObject()
+                .field("s", "c")
+                .endObject()
                 .endArray()
                 .endObject()
                 .bytes());
         assertThat(doc.mappingsModified(), is(false));
         assertThat(doc.docs().size(), is(1));
         assertThat(doc.docs().get(0).getValues("array_field.s"), arrayContainingInAnyOrder("a", "b", "c"));
+        assertThat(mapper.mappers().smartNameFieldMapper("array_field.s"), instanceOf(StringFieldMapper.class));
         assertThat(
                 mapper.mappingSource().string(),
                 is("{\"type\":{\"properties\":{" +
@@ -454,5 +456,50 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                 .endObject()
                 .bytes());
 
+    }
+
+    @Test
+    public void testParseNull() throws Exception {
+        String mapping = XContentFactory.jsonBuilder()
+                .startObject().startObject("type").startObject("properties")
+                .startObject("array_field")
+                .field("type", ArrayMapper.CONTENT_TYPE)
+                .startObject(ArrayMapper.INNER)
+                .field("type", "double")
+                .field("index", "not_analyzed")
+                .endObject()
+                .endObject()
+                .endObject().endObject().endObject()
+                .string();
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
+        ParsedDocument parsedDoc = mapper.parse(XContentFactory.jsonBuilder()
+                .startObject()
+                    .field("_id", "abc")
+                    .nullField("array_field")
+                .endObject()
+                .bytes());
+        assertThat(parsedDoc.docs().size(), is(1));
+        assertThat(parsedDoc.docs().get(0).getField("array_field"), is(nullValue()));
+    }
+
+    @Test
+    public void testParseDynamicNullArray() throws Exception {
+        String mapping = XContentFactory.jsonBuilder()
+                .startObject().startObject("type").startObject("properties")
+                .endObject().endObject().endObject()
+                .string();
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
+
+        expectedException.expect(MapperParsingException.class);
+        expectedException.expectCause(TestingHelpers.cause(ElasticsearchIllegalStateException.class,
+                "Can't handle serializing a dynamic type with content token [VALUE_NULL] and field name [new_array_field]"));
+        // parse source with null array
+        mapper.parse(XContentFactory.jsonBuilder()
+                .startObject()
+                .field("_id", "abc")
+                .startArray("new_array_field").nullValue()
+                .endArray()
+                .endObject()
+                .bytes());
     }
 }
