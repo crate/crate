@@ -176,7 +176,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         assertFalse(analysis.hasGroupBy());
         assertTrue(analysis.orderBy().isSorted());
-        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
+        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
 
         assertEquals(1, analysis.outputSymbols().size());
         assertEquals(1, analysis.orderBy().orderBySymbols().size());
@@ -235,7 +235,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
 
-        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
+        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
         assertTrue(analysis.hasGroupBy());
         assertEquals(2, analysis.outputSymbols().size());
         assertEquals(1, analysis.groupBy().size());
@@ -252,7 +252,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         assertFalse(analysis.hasGroupBy());
 
-        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
+        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
 
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
         assertEquals(1, analysis.outputSymbols().size());
@@ -266,7 +266,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis =  analyze("select avg(load['5']) from sys.nodes");
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 
-        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
+        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
 
         assertFalse(analysis.hasGroupBy());
         assertEquals(1, analysis.outputSymbols().size());
@@ -298,7 +298,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 "where load['1'] = 1.2 or 1 >= load['5']");
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 
-        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
+        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
 
         assertFalse(analysis.hasGroupBy());
 
@@ -656,7 +656,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testGranularityWithSingleAggregation() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select count(*) from sys.nodes");
-        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
+        assertThat(analysis.table().rowGranularity(), is(RowGranularity.NODE));
     }
 
     @Test
@@ -2016,5 +2016,12 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.whereClause().clusteredBy().get(), is("a,b,c"));
         assertThat(analysis.ids().size(), is(1));
         assertThat(analysis.ids().get(0), is("a,b,c"));
+    }
+
+    @Test
+    public void testShardGranularityFromNodeGranularityTable() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot resolve reference 'sys.shards.id', reason: finer granularity than table 'sys.nodes'");
+        analyze("select sys.shards.id from sys.nodes");
     }
 }

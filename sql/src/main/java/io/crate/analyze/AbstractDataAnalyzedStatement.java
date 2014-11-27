@@ -70,7 +70,6 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
     protected List<Symbol> outputSymbols = ImmutableList.of();
 
     protected WhereClause whereClause = WhereClause.MATCH_ALL;
-    protected RowGranularity rowGranularity;
     protected boolean hasAggregates = false;
     protected boolean hasSysExpressions = false;
     protected boolean sysExpressionsAllowed = false;
@@ -101,7 +100,6 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
         onlyScalarsAllowed = schemaInfo.systemSchema();
         sysExpressionsAllowed = schemaInfo.systemSchema();
         table = tableInfo;
-        updateRowGranularity(table.rowGranularity());
     }
 
     public void editableTable(TableIdent tableIdent) throws TableUnknownException,
@@ -121,7 +119,6 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
                     String.format("aliases are read only cannot modify \"%s\"", tableIdent.name()));
         }
         table = tableInfo;
-        updateRowGranularity(table.rowGranularity());
     }
 
     @Override
@@ -152,10 +149,9 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
                 }
             }
             if (info.granularity().finerThan(table.rowGranularity())) {
-                throw new UnsupportedOperationException(
-                        String.format(Locale.ENGLISH,
-                                "Cannot resolve reference '%s.%s', reason: finer granularity than table '%s'",
-                                info.ident().tableIdent().fqn(), info.ident().columnIdent().fqn(), table.ident().fqn()));
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                        "Cannot resolve reference '%s.%s', reason: finer granularity than table '%s'",
+                        info.ident().tableIdent().fqn(), info.ident().columnIdent().fqn(), table.ident().fqn()));
             }
             if (reference == null) {
                 reference = new Reference(info);
@@ -164,7 +160,6 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
         } else if (unique) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", ident.columnIdent().fqn()));
         }
-        updateRowGranularity(reference.info().granularity());
         return reference;
     }
 
@@ -275,22 +270,6 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
 
     public WhereClause whereClause() {
         return whereClause;
-    }
-
-    /**
-     * Updates the row granularity of this query if it is higher than the current row granularity.
-     *
-     * @param granularity the row granularity as seen by a reference
-     */
-    protected RowGranularity updateRowGranularity(RowGranularity granularity) {
-        if (rowGranularity == null || rowGranularity.ordinal() < granularity.ordinal()) {
-            rowGranularity = granularity;
-        }
-        return rowGranularity;
-    }
-
-    public RowGranularity rowGranularity() {
-        return rowGranularity;
     }
 
     public List<Symbol> outputSymbols() {

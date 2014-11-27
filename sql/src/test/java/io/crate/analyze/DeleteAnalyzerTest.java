@@ -89,7 +89,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         DeleteAnalyzedStatement.NestedDeleteAnalyzedStatement analysis = analyze("delete from users where name='Trillian'");
         assertEquals(TEST_DOC_TABLE_IDENT, analysis.table().ident());
 
-        assertThat(analysis.rowGranularity(), is(RowGranularity.DOC));
+        assertThat(analysis.table().rowGranularity(), is(RowGranularity.DOC));
 
         Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(EqOperator.NAME, whereClause.info().ident().name());

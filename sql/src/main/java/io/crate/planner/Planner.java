@@ -635,8 +635,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     private void groupBy(SelectAnalyzedStatement analysis, Plan plan, Context context) {
-
-        if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
+        if (analysis.table().rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
                 || !requiresDistribution(analysis)) {
             nonDistributedGroupBy(analysis, plan, context);
         } else if (context.indexWriterProjection.isPresent()) {
@@ -695,7 +694,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         boolean groupedByClusteredPk = groupedByClusteredColumnOrPrimaryKeys(analysis);
 
         int numAggregationSteps = 2;
-        if (analysis.rowGranularity() == RowGranularity.DOC) {
+        if (analysis.table().rowGranularity() == RowGranularity.DOC) {
             /**
              * this is only the case if the group by key is the clustered by column.
              * collectNode has row-authority and there is no need to group again on the handler node
@@ -1090,7 +1089,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
                 WhereClause whereClause = statement.whereClause();
                 if (!context.indexWriterProjection.isPresent()
-                        && statement.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
+                        && statement.table().rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
                         statement.table().getRouting(whereClause).hasLocations() &&
                         statement.table().schemaInfo().name().equals(DocSchemaInfo.NAME)) {
 

@@ -47,7 +47,7 @@ class PlanNodeBuilder {
                                            ImmutableList<Projection> projections) {
         CollectNode node = new CollectNode("distributing collect", analysis.table().getRouting(analysis.whereClause()));
         node.whereClause(analysis.whereClause());
-        node.maxRowGranularity(analysis.rowGranularity());
+        node.maxRowGranularity(analysis.table().rowGranularity());
         node.downStreamNodes(downstreamNodes);
         node.toCollect(toCollect);
         node.projections(projections);
@@ -111,7 +111,7 @@ class PlanNodeBuilder {
         CollectNode node = new CollectNode("collect", routing);
         node.whereClause(analysis.whereClause());
         node.toCollect(toCollect);
-        node.maxRowGranularity(analysis.rowGranularity());
+        node.maxRowGranularity(analysis.table().rowGranularity());
         node.projections(projections);
         node.isPartitioned(analysis.table().isPartitioned());
         setOutputTypes(node);
