@@ -1,3 +1,5 @@
+.. _multi_zone_setup:
+
 ================
 Multi Zone Setup
 ================

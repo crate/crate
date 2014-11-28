@@ -29,22 +29,36 @@ fetching data from a specific marker.
 
 An arbitrary number of replica shards can be configured per
 table. Every operational replica holds a full synchronized copy of the
-primary shard. Writes are synchronous over all active replicas with
-the following flow:
+primary shard.
 
-1. The operation is routed to the according primary shard for
+In terms of read operations, there is no difference between executing
+the operation on the primary shard or on any of the replicas. Crate
+randomly assigns a shard when routing an operation. However it is
+possible to configure this behaviour if required - for example in a
+:ref:`multi_zone_setup`.
+
+Write operations are handled differently than reads. Such operations
+are synchronous over all active replicas with the following flow:
+
+1. The primary shard and the active replicas are looked up in the
+   cluster state for the given operation. The primary shard and a
+   quorum of the configured replicas need to be available for this
+   step to succeed.
+
+2. The operation is routed to the according primary shard for
    execution.
 
-2. The operation gets executed on the primary shard
+3. The operation gets executed on the primary shard
 
-3. If the operation succeeds on the primary, the operation gets
+4. If the operation succeeds on the primary, the operation gets
    executed on all replicas in parallel.
 
-4. After all replica operations are finished the operation result gets
+5. After all replica operations are finished the operation result gets
    returned to the caller.
 
 Should any replica shard fail to write the data or times out in step
-4, it is immediatly considered as unavailable.
+5, it is immediatly considered as unavailable.
+
 
 Atomic on Document Level
 ========================
@@ -77,7 +91,7 @@ operations are permanent.
 
 The translog is also directly transfered when a newly allocated
 replica initialises itself from the primary shard. So there is no need
-to flush segements to disc just for replica-recovery purposes.
+to flush segments to disc just for replica-recovery purposes.
 
 Adressing of Documents
 ======================
@@ -113,7 +127,7 @@ Consistency
 Crate is eventual consistent for search operations. Search operations
 are performed on shared ``IndexReaders`` which besides other
 functionalities, provide caching and reverse lookup capabilities for
-shards. An ``IndexReader`` is always bound to the Lucene_ segement it
+shards. An ``IndexReader`` is always bound to the Lucene_ segment it
 was started from, which means it has to be refreshed in order to see
 new changes, this is done on a time based mannner, but can also be
 done manually (see :ref:`refresh_data`). Therefore a search only sees

@@ -134,18 +134,25 @@ where ``N`` is the maximum number of nodes in the cluster.
   start to elect a master on their own. This can cause data loss and
   inconsistencies.
 
-  Also, if the planned number of nodes changes in a cluster, the quorum
-  needs to be updated too, since it should never get below the half of
-  the available nodes, but also should allow for operation without
-  having all nodes online, so it should not be too high to.
+  Also, if the planned number of nodes changes in a cluster, the
+  quorum needs to be updated too. This is not only because the quorum
+  should never get below the half of the available nodes, but also
+  should allow for operation without having all nodes online, so it
+  should not be too high to.
+
 
 For example, in a 3-node cluster it would mean that at least 2 nodes
 need to see each other before they are allowed to elect a master. So
-the following line needs to be added to the configuration file.
-
-::
+the following line needs to be added to the configuration file::
 
   discovery.zen.minimum_master_nodes: 2
+
+or on an already running cluster it is also possible to set it using
+the following statement:
+
+.. code-block:: psql
+
+  SET GLOBAL PERSISTENT discovery.zen.minimum_master_nodes = 2;
 
 .. note::
 
