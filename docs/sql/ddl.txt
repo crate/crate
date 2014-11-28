@@ -89,6 +89,8 @@ table creation. Example::
 
   The number of shards can only be set on table creation, it cannot be changed later on.
 
+.. _routing:
+
 Routing
 -------
 
