@@ -31,10 +31,7 @@ import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.Matchers;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
@@ -79,6 +76,12 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             executor.ensureGreen();
             dataInitialized = true;
         }
+    }
+
+    @After
+    public void resetSettings() throws Exception {
+        // reset stats settings in case of some tests changed it and failed without resetting.
+        executor.exec("reset global stats.enabled, stats.jobs_log_size, stats.operations_log_size");
     }
 
     @AfterClass
@@ -642,7 +645,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse resp = executor.exec("select count(*) from sys.operations_log");
         assertThat((Long)resp.rows()[0][0], is(0L));
 
-        executor.exec("set global transient stats.enabled = true, stats.operations_log_size=10");
+        executor.exec("set global transient stats.enabled = true, stats.operations_log_size=100");
         waitNoPendingTasksOnAll();
 
         executor.exec(
