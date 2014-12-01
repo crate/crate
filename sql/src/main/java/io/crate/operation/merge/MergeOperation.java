@@ -44,6 +44,7 @@ public class MergeOperation implements DownstreamOperation {
     private Projector downstream;
 
     private AtomicBoolean wantMore = new AtomicBoolean(true);
+    private final Object lock = new Object();
 
     public MergeOperation(ClusterService clusterService,
                           Settings settings,
@@ -62,10 +63,17 @@ public class MergeOperation implements DownstreamOperation {
     }
 
     public boolean addRows(Object[][] rows) throws Exception {
-        for (int i = 0, length = rows.length; i < length && wantMore.get(); i++) {
-            // assume that all projectors .setNextRow(...) methods are threadsafe
-            if (!downstream.setNextRow(rows[i])) {
-                wantMore.set(false);
+        for (Object[] row : rows) {
+            boolean more = wantMore.get();
+            if (more) {
+                synchronized (lock) {
+                    if (wantMore.get() && !downstream.setNextRow(row)) {
+                        wantMore.set(false);
+                        return false;
+                    }
+                }
+            } else {
+                return false;
             }
         }
         return wantMore.get();

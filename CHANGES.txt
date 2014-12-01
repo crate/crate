@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed possible race condition that could cause the `LIMIT` to not be applied
+   correctly.
+
  - Fixed NPE which could occure on a shard failure while collecting
    distributed (e.g. group by query)
 
