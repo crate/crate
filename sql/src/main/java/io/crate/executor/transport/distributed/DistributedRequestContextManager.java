@@ -24,13 +24,16 @@ package io.crate.executor.transport.distributed;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
+import io.crate.operation.DownstreamOperation;
 import io.crate.operation.DownstreamOperationFactory;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
@@ -68,6 +71,7 @@ public class DistributedRequestContextManager {
     private final Map<UUID, DownstreamOperationContext> activeMergeOperations = new HashMap<>();
     private final Map<UUID, List<BytesReference>> unreadStreams = new HashMap<>();
     private final Set<UUID> unreadFailures = new HashSet<>();
+    private final Set<UUID> contextFailures = new HashSet<>();
     private final Object lock = new Object();
     private final DownstreamOperationFactory downstreamOperationFactory;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
@@ -82,6 +86,7 @@ public class DistributedRequestContextManager {
         this.statsTables = statsTables;
         this.circuitBreaker = circuitBreaker;
         this.planNodeStreamerVisitor = new PlanNodeStreamerVisitor(functions);
+        logger.setLevel("trace");
     }
 
     /**
@@ -98,23 +103,86 @@ public class DistributedRequestContextManager {
         String ramAccountingContextId = String.format("%s: %s", mergeNode.id(), operationId);
         final RamAccountingContext ramAccountingContext =
                 new RamAccountingContext(ramAccountingContextId, circuitBreaker);
-        statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
         PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode, ramAccountingContext);
         SettableFuture<Object[][]> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
+
+        DownstreamOperation downstreamOperation;
+        DoneCallback doneCallback;
+        try {
+            downstreamOperation = downstreamOperationFactory.create(mergeNode, ramAccountingContext);
+            doneCallback = new DoneCallback() {
+                @Override
+                public void finished() {
+                    logger.trace("DoneCallback.finished: {} {}", mergeNode.contextId());
+                    activeMergeOperations.remove(mergeNode.contextId());
+                    statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
+                    ramAccountingContext.close();
+                }
+            };
+        } catch (final Exception e) {
+            logger.error("Error while creating merge context: {}", e.getMessage());
+            //contextFailures.add(mergeNode.contextId());
+            //ramAccountingContext.close();
+            //listener.onFailure(e);
+            //return;
+            downstreamOperation = new DownstreamOperation() {
+                private SettableFuture<Object[][]> result = SettableFuture.create();
+                private Projector downstream;
+
+                @Override
+                public boolean addRows(Object[][] rows) throws Exception {
+                    logger.trace("addRows on dummy operation called");
+                    return false;
+                }
+
+                @Override
+                public int numUpstreams() {
+                    return mergeNode.numUpstreams();
+                }
+
+                @Override
+                public void finished() {
+                    logger.trace("Finish on dummy operation called");
+                    downstream.upstreamFinished();
+                }
+
+                @Override
+                public ListenableFuture<Object[][]> result() {
+                    logger.trace("result on dummy operation called");
+                    return result;
+                }
+
+                @Override
+                public void downstream(Projector downstream) {
+                    downstream.registerUpstream(this);
+                    this.downstream = downstream;
+                }
+
+                @Override
+                public Projector downstream() {
+                    logger.trace("downstream on dummy operation called");
+                    return downstream;
+                }
+            };
+            doneCallback = new DoneCallback() {
+                @Override
+                public void finished() {
+                    logger.trace("DoneCallback.finished: {} {}", mergeNode.contextId());
+                    activeMergeOperations.remove(mergeNode.contextId());
+                    statsTables.operationFinished(operationId, e.getMessage(), ramAccountingContext.totalBytes());
+                    ramAccountingContext.close();
+                }
+            };
+        }
+
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
-                downstreamOperationFactory.create(mergeNode, ramAccountingContext),
+                downstreamOperation,
                 settableFuture,
                 streamerContext.inputStreamers(),
-                new DoneCallback() {
-                    @Override
-                    public void finished() {
-                        logger.trace("DoneCallback.finished: {} {}", mergeNode.contextId());
-                        activeMergeOperations.remove(mergeNode.contextId());
-                        statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
-                        ramAccountingContext.close();
-                    }
-                }
+                doneCallback
         );
+
+        statsTables.operationStarted(operationId, mergeNode.contextId(), mergeNode.id());
         logger.trace("createContext.put: {} {}", this, mergeNode.contextId(), downstreamOperationContext);
         put(mergeNode.contextId(), downstreamOperationContext);
     }
