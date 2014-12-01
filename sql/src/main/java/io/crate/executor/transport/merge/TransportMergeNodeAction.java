@@ -200,7 +200,7 @@ public class TransportMergeNodeAction {
                                     listener.onFailure(e);
                                 }
                             });
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                             logger.error("createContext.catched local exception node: {}", nodeId, e);
                             listener.onFailure(e);
                         }
@@ -249,25 +249,29 @@ public class TransportMergeNodeAction {
 
         @Override
         public void messageReceived(final NodeMergeRequest request, final TransportChannel channel) throws Exception {
-            contextManager.createContext(request.mergeNode(), new ActionListener<NodeMergeResponse>() {
-                @Override
-                public void onResponse(NodeMergeResponse nodeMergeResponse) {
-                    try {
-                        channel.sendResponse(nodeMergeResponse);
-                    } catch (IOException e) {
-                        onFailure(e);
+            try {
+                contextManager.createContext(request.mergeNode(), new ActionListener<NodeMergeResponse>() {
+                    @Override
+                    public void onResponse(NodeMergeResponse nodeMergeResponse) {
+                        try {
+                            channel.sendResponse(nodeMergeResponse);
+                        } catch (IOException e) {
+                            onFailure(e);
+                        }
                     }
-                }
 
-                @Override
-                public void onFailure(Throwable e) {
-                    try {
-                        channel.sendResponse(e);
-                    } catch (IOException e1) {
-                        logger.error(e.getMessage(), e);
+                    @Override
+                    public void onFailure(Throwable e) {
+                        try {
+                            channel.sendResponse(e);
+                        } catch (IOException e1) {
+                            logger.error(e.getMessage(), e);
+                        }
                     }
-                }
-            });
+                });
+            } catch (Exception e) {
+                channel.sendResponse(e);
+            }
         }
 
         @Override

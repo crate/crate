@@ -21,17 +21,26 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.executor.transport.distributed.DistributedRequestContextManager;
+import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import java.lang.reflect.Field;
+import java.util.Map;
+
+import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE)
 public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
@@ -64,10 +73,24 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
         }
     }
 
+    @After
+    public void checkStates() throws Exception {
+        Field contextManagerField = TransportMergeNodeAction.class.getDeclaredField("contextManager");
+        contextManagerField.setAccessible(true);
+        Field activeMergeOperationsField = DistributedRequestContextManager.class.getDeclaredField("activeMergeOperations");
+        activeMergeOperationsField.setAccessible(true);
+        for (String node : new String[]{"node_0", "node_1"}) {
+            TransportMergeNodeAction transportMergeNodeAction = cluster().getInstance(TransportMergeNodeAction.class, node);
+            DistributedRequestContextManager contextManager = (DistributedRequestContextManager)contextManagerField.get(transportMergeNodeAction);
+            assertThat(((Map)activeMergeOperationsField.get(contextManager)).size(), is(0));
+        }
+    }
+
+    @Repeat(iterations = 10)
     @Test
     public void selectGroupByWithBreaking() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(Matchers.startsWith("Too much HEAP memory used by [distributing collect:"));
+        expectedException.expectMessage(Matchers.startsWith("Too much HEAP memory used by "));
         execute("select name, department, max(income), min(age) from employees group by name, department order by 3");
     }
 }
