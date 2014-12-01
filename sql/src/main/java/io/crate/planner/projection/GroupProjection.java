@@ -80,6 +80,10 @@ public class GroupProjection extends Projection {
         return visitor.visitGroupProjection(this, context);
     }
 
+    /**
+     * returns a list of outputs, with the group by keys going first,
+     * and the aggregations coming last
+     */
     @Override
     public List<? extends Symbol> outputs() {
         if (outputs == null) {

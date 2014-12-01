@@ -60,6 +60,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
 
 public class PlanNodeStreamerVisitorTest {
 
@@ -120,6 +121,25 @@ public class PlanNodeStreamerVisitorTest {
         assertThat(streamers[1], instanceOf(DataTypes.INTEGER.streamer().getClass()));
         assertThat(streamers[2], instanceOf(AggregationStateStreamer.class));
         assertThat(streamers[3], instanceOf(DataTypes.DOUBLE.streamer().getClass()));
+    }
+
+    @Test
+    public void testGetOutputStreamersFromCollectNodeWithGroupAndTopNProjection() throws Exception {
+        CollectNode collectNode = new CollectNode("mynode", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
+        collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED));
+        GroupProjection groupProjection = new GroupProjection(
+                Arrays.<Symbol>asList(Literal.newLiteral("key")),
+                Arrays.asList(new Aggregation(
+                        countInfo,
+                        ImmutableList.<Symbol>of(),
+                        Aggregation.Step.PARTIAL, Aggregation.Step.FINAL))
+        );
+        collectNode.projections(Arrays.<Projection>asList(groupProjection, new TopNProjection(10,0)));
+        RamAccountingContext mockedRamCtx = mock(RamAccountingContext.class);
+        PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode, mockedRamCtx);
+        Streamer<?>[] streamers = ctx.outputStreamers();
+        assertThat(streamers.length, is(1));
+        assertThat(streamers[0], instanceOf(DataTypes.LONG.streamer().getClass()));
     }
 
     @Test

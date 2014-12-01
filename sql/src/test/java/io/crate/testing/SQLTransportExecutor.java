@@ -92,17 +92,25 @@ public class SQLTransportExecutor {
     }
 
     public ClusterHealthStatus ensureGreen() {
+        return ensureState(ClusterHealthStatus.GREEN);
+    }
+
+    public ClusterHealthStatus ensureYellow() {
+        return ensureState(ClusterHealthStatus.YELLOW);
+    }
+
+    private ClusterHealthStatus ensureState(ClusterHealthStatus state) {
         ClusterHealthResponse actionGet = client().admin().cluster().health(
-            Requests.clusterHealthRequest()
-                .waitForGreenStatus()
-                .waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)
+                Requests.clusterHealthRequest()
+                        .waitForStatus(state)
+                        .waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)
         ).actionGet();
 
         if (actionGet.isTimedOut()) {
-            logger.info("ensureGreen timed out, cluster state:\n{}\n{}", client().admin().cluster().prepareState().get().getState().prettyPrint(), client().admin().cluster().preparePendingClusterTasks().get().prettyPrint());
-            assertThat("timed out waiting for green state", actionGet.isTimedOut(), equalTo(false));
+            logger.info("ensure state timed out, cluster state:\n{}\n{}", client().admin().cluster().prepareState().get().getState().prettyPrint(), client().admin().cluster().preparePendingClusterTasks().get().prettyPrint());
+            assertThat("timed out waiting for state", actionGet.isTimedOut(), equalTo(false));
         }
-        assertThat(actionGet.getStatus(), equalTo(ClusterHealthStatus.GREEN));
+        assertThat(actionGet.getStatus(), equalTo(state));
         return actionGet.getStatus();
     }
 

@@ -27,6 +27,7 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -37,6 +38,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 
 public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
@@ -92,6 +94,24 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         assertEquals("blobs", response.rows()[0][1]);
         assertEquals("characters", response.rows()[1][1]);
         assertEquals("quotes", response.rows()[2][1]);
+    }
+
+    @Test
+    public void testGroupByWithLimitUnassignedShards() throws Exception {
+        try {
+            transportExecutor.exec("create table t (id int, name string) with (number_of_replicas=2)");
+            transportExecutor.ensureYellow();
+
+            SQLResponse response = transportExecutor.exec("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
+            assertThat(response.rowCount(), is(4L));
+            assertThat(TestingHelpers.printedTable(response.rows()),
+                    is("0.0| t| 0.0\n" +
+                            "0.0| quotes| 0.0\n" +
+                            "14.0| characters| 14.0\n" +
+                            "0.0| blobs| 0.0\n"));
+        } finally {
+            transportExecutor.exec("drop table t");
+        }
     }
 
     @Test
@@ -256,7 +276,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testGroupByUnknownWhere() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column 'lol' unknown");
-        SQLResponse response = transportExecutor.exec(
+        transportExecutor.exec(
             "select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name");
     }
 
@@ -264,7 +284,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testGlobalAggregateUnknownWhere() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column 'lol' unknown");
-        SQLResponse response = transportExecutor.exec(
+        transportExecutor.exec(
             "select sum(num_docs) from sys.shards where lol='funky'");
     }
 }
