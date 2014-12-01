@@ -22,11 +22,13 @@
 package io.crate.analyze.where;
 
 import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.PartitionName;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.DeleteAnalyzedStatement;
+import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
@@ -53,6 +55,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -108,6 +111,11 @@ public class WhereClauseAnalyzerTest {
         return analyzeDelete(stmt, new Object[0][]);
     }
 
+    private UpdateAnalyzedStatement analyzeUpdate(String stmt) {
+        return (UpdateAnalyzedStatement) analyzer.analyze(
+                SqlParser.createStatement(stmt), new Object[0], new Object[0][]).analyzedStatement();
+    }
+
     @Test
     public void testWhereSinglePKColumnEq() throws Exception {
         DeleteAnalyzedStatement statement = analyzeDelete("delete from t where id = ?", new Object[][]{
@@ -136,4 +144,35 @@ public class WhereClauseAnalyzerTest {
                 Matchers.contains(new PartitionName("p", Arrays.asList(new BytesRef("1395874800000"))).stringValue()));
     }
 
+    @Test
+    public void testUpdateWithVersionZeroIsNoMatch() throws Exception {
+        UpdateAnalyzedStatement updateAnalyzedStatement = analyzeUpdate("update t set awesome = true where name = 'Ford' and _version = 0");
+        TableInfo tableInfo = ((TableRelation) updateAnalyzedStatement.sourceRelation()).tableInfo();
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableInfo);
+        assertThat(updateAnalyzedStatement.nestedStatements().get(0).whereClause().noMatch(), is(false));
+
+        WhereClauseContext ctx = whereClauseAnalyzer.analyze(updateAnalyzedStatement.nestedStatements().get(0).whereClause());
+        assertThat(ctx.whereClause().noMatch(), is(true));
+    }
+
+    @Test
+    public void testUpdateWherePartitionedByColumn() throws Exception {
+        UpdateAnalyzedStatement updateAnalyzedStatement = analyzeUpdate("update p set id = 2 where date = 1395874800000");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement = updateAnalyzedStatement.nestedStatements().get(0);
+
+        assertThat(nestedAnalyzedStatement.whereClause().hasQuery(), is(true));
+        assertThat(nestedAnalyzedStatement.whereClause().noMatch(), is(false));
+
+        TableInfo tableInfo = ((TableRelation) updateAnalyzedStatement.sourceRelation()).tableInfo();
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableInfo);
+        WhereClauseContext context = whereClauseAnalyzer.analyze(nestedAnalyzedStatement.whereClause());
+
+        assertThat(context.whereClause().hasQuery(), is(false));
+        assertThat(context.whereClause().noMatch(), is(false));
+
+        assertEquals(ImmutableList.of(
+                        new PartitionName("p", Arrays.asList(new BytesRef("1395874800000"))).stringValue()),
+                context.whereClause().partitions()
+        );
+    }
 }

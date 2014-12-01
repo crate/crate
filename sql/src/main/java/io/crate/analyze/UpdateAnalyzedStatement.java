@@ -23,48 +23,42 @@ package io.crate.analyze;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
-public class UpdateAnalyzedStatement extends AbstractDataAnalyzedStatement {
+public class UpdateAnalyzedStatement extends AnalyzedStatement {
 
     private static final Predicate<NestedAnalyzedStatement> HAS_NO_RESULT_PREDICATE = new Predicate<NestedAnalyzedStatement>() {
         @Override
         public boolean apply(@Nullable NestedAnalyzedStatement input) {
-            return input != null && input.hasNoResult();
+            return input != null && input.whereClause.noMatch();
         }
     };
 
-    List<NestedAnalyzedStatement> nestedAnalysisList;
+
+    private final List<NestedAnalyzedStatement> nestedStatements;
+    private final AnalyzedRelation sourceRelation;
 
 
-    public UpdateAnalyzedStatement(ReferenceInfos referenceInfos,
-                                   Functions functions,
-                                   ParameterContext parameterContext,
-                                   ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameterContext, referenceResolver);
-        int numNested = 1;
-        if (parameterContext.bulkParameters.length > 0) {
-            numNested = parameterContext.bulkParameters.length;
-        }
+    public UpdateAnalyzedStatement(AnalyzedRelation sourceRelation, List<NestedAnalyzedStatement> nestedStatements) {
+        super(null);
+        this.sourceRelation = sourceRelation;
+        this.nestedStatements = nestedStatements;
+    }
 
-        nestedAnalysisList = new ArrayList<>(numNested);
-        for (int i = 0; i < numNested; i++) {
-            nestedAnalysisList.add(new NestedAnalyzedStatement(
-                    referenceInfos,
-                    functions,
-                    parameterContext,
-                    referenceResolver
-            ));
-        }
+    public AnalyzedRelation sourceRelation() {
+        return sourceRelation;
+    }
+
+    public List<NestedAnalyzedStatement> nestedStatements() {
+        return nestedStatements;
     }
 
     @Override
@@ -73,62 +67,39 @@ public class UpdateAnalyzedStatement extends AbstractDataAnalyzedStatement {
     }
 
     @Override
-    public void table(TableIdent tableIdent) {
-        throw new UnsupportedOperationException("used nested analysis");
-    }
-
-    @Override
-    public TableInfo table() {
-        throw new UnsupportedOperationException("used nested analysis");
-    }
-
-    @Override
     public boolean hasNoResult() {
-        return Iterables.all(nestedAnalysisList, HAS_NO_RESULT_PREDICATE);
+        return Iterables.all(nestedStatements, HAS_NO_RESULT_PREDICATE);
     }
 
     @Override
-    public void normalize() {
-
-    }
+    public void normalize() {}
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitUpdateStatement(this, context);
     }
 
-    public List<NestedAnalyzedStatement> nestedAnalysis() {
-        return nestedAnalysisList;
-    }
+    public static class NestedAnalyzedStatement {
 
-    public static class NestedAnalyzedStatement extends AbstractDataAnalyzedStatement {
+        private final WhereClause whereClause;
+        private final Map<Reference, Symbol> assignments = new HashMap<>();
 
-        private Map<Reference, Symbol> assignments = new HashMap<>();
-
-        public NestedAnalyzedStatement(ReferenceInfos referenceInfos,
-                                       Functions functions,
-                                       ParameterContext parameterContext,
-                                       ReferenceResolver referenceResolver) {
-            super(referenceInfos, functions, parameterContext, referenceResolver);
-        }
-
-        @Override
-        public boolean hasNoResult() {
-            return whereClause().noMatch();
+        public NestedAnalyzedStatement(WhereClause whereClause) {
+            this.whereClause = whereClause;
         }
 
         public Map<Reference, Symbol> assignments() {
             return assignments;
         }
 
+        public WhereClause whereClause() {
+            return whereClause;
+        }
+
         public void addAssignment(Reference reference, Symbol value) {
-            if (assignments.containsKey(reference)) {
+            if (assignments.put(reference, value) != null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.info().ident().columnIdent().fqn()));
             }
-            if (!reference.info().ident().tableIdent().equals(table().ident())) {
-                throw new UnsupportedOperationException("cannot update references from other tables.");
-            }
-            assignments.put(reference, value);
         }
     }
 }

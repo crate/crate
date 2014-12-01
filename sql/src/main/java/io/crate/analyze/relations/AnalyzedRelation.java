@@ -31,7 +31,7 @@ public interface AnalyzedRelation {
 
     public <C, R> R accept(RelationVisitor<C, R> visitor, C context);
 
-    public Reference getReference(ColumnIdent columnIdent);
+    public Reference getReference(ColumnIdent columnIdent, boolean forWrite);
 
     public Map<String, Symbol> outputs();
 }
