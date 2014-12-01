@@ -21,8 +21,10 @@
 
 package io.crate.planner;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.crate.PartitionName;
 import io.crate.analyze.AbstractDataAnalyzedStatement;
 import io.crate.metadata.Routing;
@@ -30,6 +32,7 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
 
@@ -103,6 +106,7 @@ class PlanNodeBuilder {
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections,
                                @Nullable String partitionIdent) {
+        assert !Iterables.any(toCollect, Predicates.instanceOf(InputColumn.class)) : "cannot collect inputcolumns";
         Routing routing = analysis.table().getRouting(analysis.whereClause());
         if (partitionIdent != null && routing.hasLocations()) {
             routing = filterRouting(routing, PartitionName.fromPartitionIdent(
