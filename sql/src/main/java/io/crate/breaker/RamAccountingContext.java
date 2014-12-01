@@ -83,9 +83,10 @@ public class RamAccountingContext {
             tripped = true;
             // re-throw the original exception
             throw e;
+        } finally {
+            totalBytes.addAndGet(bytes);
+            flushBuffer.addAndGet(-bytes);
         }
-        totalBytes.addAndGet(bytes);
-        flushBuffer.addAndGet(-bytes);
     }
 
     /**

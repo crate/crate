@@ -141,7 +141,7 @@ public class GroupingProjector implements Projector {
                 cleanUp();
             }
         }
-        if (ramAccountingContext != null && logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled()) {
             logger.debug("grouping operation size is: {}", new ByteSizeValue(ramAccountingContext.totalBytes()));
         }
     }
@@ -220,8 +220,6 @@ public class GroupingProjector implements Projector {
             this.keyInput = keyInput;
             this.aggregationCollectors = aggregationCollectors;
             sizeEstimator = SizeEstimatorFactory.create(keyInputType);
-            // hash map overhead
-            ramAccountingContext.addBytes(48);
         }
 
         @Override
@@ -302,8 +300,6 @@ public class GroupingProjector implements Projector {
             for (DataType dataType : keyTypes) {
                 sizeEstimators.add(SizeEstimatorFactory.create(dataType));
             }
-            // hash map overhead
-            ramAccountingContext.addBytes(48);
         }
 
         @Override

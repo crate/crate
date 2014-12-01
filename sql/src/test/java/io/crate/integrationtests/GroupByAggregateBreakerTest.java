@@ -67,7 +67,7 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
     @Test
     public void selectGroupByWithBreaking() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(Matchers.startsWith("Too much HEAP memory used by [distributing collect:"));
+        expectedException.expectMessage(Matchers.startsWith("Too much HEAP memory used by "));
         execute("select name, department, max(income), min(age) from employees group by name, department order by 3");
     }
 }
