@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: The clustered-by columns could be updated if they were nested.
+
  - Fix: Fixed an edge case where group by queries on system tables or
    grouping on primary key or routing column and using limit or selecting
    the same aggregation twice did not execute correctly.

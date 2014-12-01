@@ -66,6 +66,12 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    private final static TableIdent NESTED_CLUSTERED_BY_TABLE_IDENT = new TableIdent("doc", "nestedclustered");
+    private final static TableInfo NESTED_CLUSTERED_BY_TABLE_INFO = TestingTableInfo.builder(
+            NESTED_CLUSTERED_BY_TABLE_IDENT, RowGranularity.DOC, shardRouting)
+            .add("obj", DataTypes.OBJECT, null)
+            .add("obj", DataTypes.STRING, Arrays.asList("name"))
+            .clusteredBy("obj.name").build();
 
     private final static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
     private final static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
@@ -84,6 +90,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(NESTED_CLUSTERED_BY_TABLE_IDENT.name())).thenReturn(NESTED_CLUSTERED_BY_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -423,5 +430,12 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                         new Object[]{ "a", "b" }
                 }
         });
+    }
+
+    @Test
+    public void testUpdateNestedClusteredByColumn() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Updating a clustered-by column is not supported");
+        analyze("update nestedclustered set obj = {name='foobar'}");
     }
 }
