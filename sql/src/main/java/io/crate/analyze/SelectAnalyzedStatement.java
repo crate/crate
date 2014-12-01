@@ -180,7 +180,7 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement imple
     }
 
     @Override
-    public Reference getReference(ColumnIdent columnIdent) {
+    public Reference getReference(ColumnIdent columnIdent, boolean forWrite) {
         throw new UnsupportedOperationException("getReference on SelectAnalyzedStatement is not implemented");
     }
 

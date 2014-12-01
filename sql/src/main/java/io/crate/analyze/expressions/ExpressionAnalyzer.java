@@ -84,12 +84,14 @@ public class ExpressionAnalyzer {
     private final RelationOutputResolver sources;
     private final Functions functions;
     private final ReferenceInfos referenceInfos;
-
-    private ParameterContext parameterContext;
+    private final ParameterContext parameterContext;
+    private final boolean forWrite;
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                               ParameterContext parameterContext,
-                              Map<QualifiedName, AnalyzedRelation> sources) {
+                              Map<QualifiedName, AnalyzedRelation> sources,
+                              boolean forWrite) {
+        this.forWrite = forWrite;
         functions = analysisMetaData.functions();
         referenceInfos = analysisMetaData.referenceInfos();
         this.parameterContext = parameterContext;
@@ -166,12 +168,14 @@ public class ExpressionAnalyzer {
                 if (reference.info().columnPolicy() != ColumnPolicy.IGNORED) {
                     // re-guess without strict to recognize timestamps
                     DataType<?> dataType = DataTypes.guessType(literal.value(), false);
+                    validateInputType(dataType, reference.info().ident().columnIdent());
                     ((DynamicReference) reference).valueType(dataType);
                     literal = Literal.convert(literal, dataType); // need to update literal if the type changed
                 } else {
                     ((DynamicReference) reference).valueType(literal.valueType());
                 }
             } else {
+                validateInputType(literal.valueType(), reference.info().ident().columnIdent());
                 literal = Literal.convert(literal, reference.valueType());
             }
         } catch (ClassCastException e) {
@@ -210,6 +214,20 @@ public class ExpressionAnalyzer {
         }
         return literal;
     }
+
+    /**
+     * validate input types to not be nested arrays/collection types
+     * @throws ColumnValidationException if input type is a nested array type
+     */
+    private void validateInputType(DataType dataType, ColumnIdent columnIdent) throws ColumnValidationException {
+        if (dataType != null
+                && DataTypes.isCollectionType(dataType)
+                && DataTypes.isCollectionType(((CollectionType)dataType).innerType())) {
+            throw new ColumnValidationException(columnIdent.fqn(),
+                    String.format(Locale.ENGLISH, "Invalid datatype '%s'", dataType));
+        }
+    }
+
 
     /**
      * normalize and validate the given value according to the given {@link io.crate.types.DataType}
@@ -404,7 +422,7 @@ public class ExpressionAnalyzer {
             Symbol subscriptSymbol;
             Expression subscriptExpression = subscriptContext.expression();
             if (subscriptContext.qName() != null && subscriptExpression == null) {
-                subscriptSymbol = sources.getRelationOutput(subscriptContext.qName(), subscriptContext.parts());
+                subscriptSymbol = sources.getRelationOutput(subscriptContext.qName(), subscriptContext.parts(), forWrite);
             } else if (subscriptExpression != null) {
                 subscriptSymbol = subscriptExpression.accept(this, context);
             } else {
@@ -671,7 +689,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            RelationOutput relationOutput = sources.getRelationOutput(node.getName());
+            RelationOutput relationOutput = sources.getRelationOutput(node.getName(), forWrite);
             context.hasSysExpressions = context.hasSysExpressions || SysSchemaInfo.NAME.equals(
                     ((Reference) relationOutput.target()).info().ident().tableIdent().schema());
             return relationOutput;

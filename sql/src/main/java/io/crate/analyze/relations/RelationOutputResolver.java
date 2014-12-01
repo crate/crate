@@ -54,11 +54,11 @@ public class RelationOutputResolver {
         this.sysSchemaInfo = sysSchemaInfo;
     }
 
-    public RelationOutput getRelationOutput(QualifiedName qualifiedName) {
-        return getRelationOutput(qualifiedName, null);
+    public RelationOutput getRelationOutput(QualifiedName qualifiedName, boolean forWrite) {
+        return getRelationOutput(qualifiedName, null, forWrite);
     }
 
-    public RelationOutput getRelationOutput(QualifiedName qualifiedName, @Nullable List<String> path) {
+    public RelationOutput getRelationOutput(QualifiedName qualifiedName, @Nullable List<String> path, boolean forWrite) {
         List<String> parts = qualifiedName.getParts();
         String columnSchema = null;
         String columnTableName = null;
@@ -74,6 +74,9 @@ public class RelationOutputResolver {
                 columnTableName = parts.get(1).toLowerCase(Locale.ENGLISH);
 
                 if (columnSchema.equals(SysSchemaInfo.NAME)) {
+                    if (forWrite) {
+                        throw new UnsupportedOperationException("Cannot write on tables inside the 'sys' schema");
+                    }
                     return fromSysTable(columnTableName, columnIdent);
                 }
                 break;
@@ -111,7 +114,7 @@ public class RelationOutputResolver {
                 continue;
             }
             tableNameMatched = true;
-            Reference newReference = sourceRelation.getReference(columnIdent);
+            Reference newReference = sourceRelation.getReference(columnIdent, forWrite);
             if (newReference != null) {
                 if (newReference instanceof DynamicReference) {
                     dynamicMatches.add(new Tuple<>(newReference, sourceRelation));

@@ -111,7 +111,8 @@ public class CopyStatementAnalyzer extends AbstractStatementAnalyzer<Void, CopyA
                 context.parameterContext(),
                 ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                         new QualifiedName(Arrays.asList(tableInfo.schemaInfo().name(), tableInfo.ident().name())),
-                        new TableRelation(tableInfo)));
+                        new TableRelation(tableInfo)),
+                context.mode() == CopyAnalyzedStatement.Mode.FROM);
         expressionAnalysisContext = new ExpressionAnalysisContext();
     }
 

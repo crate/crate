@@ -76,12 +76,12 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.getRelation(), relationAnalysisContext);
         if (Relations.isReadOnly(analyzedRelation)) {
             throw new UnsupportedOperationException(String.format(
-                    "relation \"%s\" is read-only and cannot be updated", analyzedRelation));
+                    "relation \"%s\" is read-only and cannot be deleted", analyzedRelation));
         }
 
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(parameterContext, analyzedRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
-                new ExpressionAnalyzer(analysisMetaData, parameterContext, relationAnalysisContext.sources()),
+                new ExpressionAnalyzer(analysisMetaData, parameterContext, relationAnalysisContext.sources(), false),
                 new ExpressionAnalysisContext(),
                 deleteAnalyzedStatement
         );
