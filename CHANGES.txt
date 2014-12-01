@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed possible race condition that could cause the `LIMIT` to not be applied
+   correctly.
+
  - Add sql query breaker which will terminate a query execution if too
    much memory will be consumened.
 
