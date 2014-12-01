@@ -80,7 +80,7 @@ public class RelationOutputResolverTest {
         when(sysSchemaInfo.getTableInfo(anyString())).thenReturn(null);
         RelationOutputResolver resolver = new RelationOutputResolver(dummySources, sysSchemaInfo);
 
-        resolver.getRelationOutput(newQN("sys.foo.name"));
+        resolver.getRelationOutput(newQN("sys.foo.name"), false);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class RelationOutputResolverTest {
         AnalyzedRelation relation = new DummyRelation(newTI("dummy.t"), "name");
         RelationOutputResolver resolver = new RelationOutputResolver(
                 ImmutableMap.of(newQN("too.many.parts"), relation), null);
-        resolver.getRelationOutput(newQN("name"));
+        resolver.getRelationOutput(newQN("name"), false);
     }
 
     @Test
@@ -102,21 +102,21 @@ public class RelationOutputResolverTest {
         when(tableInfo.getReferenceInfo(Matchers.<ColumnIdent>anyObject())).thenReturn(null);
 
         RelationOutputResolver resolver = new RelationOutputResolver(dummySources, sysSchemaInfo);
-        resolver.getRelationOutput(newQN("sys.nodes.unknown"));
+        resolver.getRelationOutput(newQN("sys.nodes.unknown"), false);
     }
 
     @Test
     public void testUnknownSchema() throws Exception {
         expectedException.expect(SchemaUnknownException.class);
         RelationOutputResolver resolver = new RelationOutputResolver(dummySources, null);
-        resolver.getRelationOutput(newQN("invalid.table.name"));
+        resolver.getRelationOutput(newQN("invalid.table.name"), false);
     }
 
     @Test
     public void testUnknownTable() throws Exception {
         expectedException.expect(TableUnknownException.class);
         RelationOutputResolver resolver = new RelationOutputResolver(dummySources, null);
-        resolver.getRelationOutput(newQN("dummy.invalid.name"));
+        resolver.getRelationOutput(newQN("dummy.invalid.name"), false);
     }
 
     @Test
@@ -129,7 +129,7 @@ public class RelationOutputResolverTest {
 
         RelationOutputResolver resolver = new RelationOutputResolver(dummySources, sysSchemaInfo);
 
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("sys.nodes.name"));
+        RelationOutput relationOutput = resolver.getRelationOutput(newQN("sys.nodes.name"), false);
         assertThat(relationOutput.target(), isReference("name"));
         assertThat(relationOutput.relation(), instanceOf(TableRelation.class));
     }
@@ -138,14 +138,14 @@ public class RelationOutputResolverTest {
     public void testRegularColumnUnknown() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
         RelationOutputResolver resolver = new RelationOutputResolver(dummySources, null);
-        resolver.getRelationOutput(newQN("age"));
+        resolver.getRelationOutput(newQN("age"), false);
     }
 
     @Test
     public void testResolveDynamicReference() throws Exception {
         AnalyzedRelation barT = new DummyRelation(newTI("bar.t"), "name", "age");
         RelationOutputResolver resolver = new RelationOutputResolver(ImmutableMap.of(newQN("bar.t"), barT), null);
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("t.age"));
+        RelationOutput relationOutput = resolver.getRelationOutput(newQN("t.age"), false);
         assertThat(relationOutput.target(), instanceOf(DynamicReference.class));
     }
 
@@ -161,14 +161,14 @@ public class RelationOutputResolverTest {
                 newQN("foo.t"), fooT,
                 newQN("foo.a"), fooA,
                 newQN("custom.t"), customT), null);
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("foo.t.name"));
+        RelationOutput relationOutput = resolver.getRelationOutput(newQN("foo.t.name"), false);
         assertThat(relationOutput.relation(), equalTo(fooT));
 
         // reference > dynamicReference - not ambiguous
-        RelationOutput tags = resolver.getRelationOutput(newQN("tags"));
+        RelationOutput tags = resolver.getRelationOutput(newQN("tags"), false);
         assertThat(tags.relation(), equalTo(customT));
 
-        relationOutput = resolver.getRelationOutput(newQN("a.name"));
+        relationOutput = resolver.getRelationOutput(newQN("a.name"), false);
         assertThat(relationOutput.relation(), equalTo(fooA));
     }
 
@@ -179,7 +179,7 @@ public class RelationOutputResolverTest {
         RelationOutputResolver resolver = new RelationOutputResolver(ImmutableMap.of(
                 new QualifiedName(Arrays.asList("t")), relation),
                 null);
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("t.name"));
+        RelationOutput relationOutput = resolver.getRelationOutput(newQN("t.name"), false);
         assertThat(relationOutput.relation(), equalTo(relation));
         assertThat(relationOutput.target(), isReference("name"));
     }
@@ -189,7 +189,7 @@ public class RelationOutputResolverTest {
         // select name from t
         AnalyzedRelation relation = new DummyRelation(newTI("doc.t"), "name");
         RelationOutputResolver resolver = new RelationOutputResolver(ImmutableMap.of(newQN("doc.t"), relation), null);
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("name"));
+        RelationOutput relationOutput = resolver.getRelationOutput(newQN("name"), false);
         assertThat(relationOutput.relation(), equalTo(relation));
         assertThat(relationOutput.target(), isReference("name"));
     }
@@ -200,7 +200,7 @@ public class RelationOutputResolverTest {
 
         AnalyzedRelation relation = new DummyRelation(newTI("doc.t"), "name");
         RelationOutputResolver resolver = new RelationOutputResolver(ImmutableMap.of(newQN("doc.t"), relation), null);
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("doc.t.name"));
+        RelationOutput relationOutput = resolver.getRelationOutput(newQN("doc.t.name"), false);
         assertThat(relationOutput.relation(), equalTo(relation));
         assertThat(relationOutput.target(), isReference("name"));
     }
@@ -209,7 +209,7 @@ public class RelationOutputResolverTest {
     public void testTooManyParts() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         RelationOutputResolver resolver = new RelationOutputResolver(dummySources, null);
-        resolver.getRelationOutput(new QualifiedName(Arrays.asList("a", "b", "c", "d")));
+        resolver.getRelationOutput(new QualifiedName(Arrays.asList("a", "b", "c", "d")), false);
     }
 
     @Test
@@ -224,7 +224,7 @@ public class RelationOutputResolverTest {
                         new QualifiedName(Arrays.asList("doc", "t")), new DummyRelation(new TableIdent("doc", "t"), "name")),
                 new SysSchemaInfo(mock(ClusterService.class))
         );
-        resolver.getRelationOutput(new QualifiedName(Arrays.asList("t", "name")));
+        resolver.getRelationOutput(new QualifiedName(Arrays.asList("t", "name")), false);
     }
 
 
@@ -251,7 +251,7 @@ public class RelationOutputResolverTest {
         }
 
         @Override
-        public Reference getReference(ColumnIdent columnIdent) {
+        public Reference getReference(ColumnIdent columnIdent, boolean forWrite) {
             if (supportedReference.contains(columnIdent.name())) {
                 return new Reference(new ReferenceInfo(
                         new ReferenceIdent(tableIdent, columnIdent), RowGranularity.DOC, DataTypes.STRING));

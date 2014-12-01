@@ -21,8 +21,7 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.PartitionName;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ColumnIdent;
@@ -43,7 +42,6 @@ import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import junit.framework.Assert;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Rule;
 import org.junit.Test;
@@ -115,16 +113,15 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         return modules;
     }
 
-    protected UpdateAnalyzedStatement.NestedAnalyzedStatement analyze(String statement) {
-        return ((UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement)).analyzedStatement())
-                .nestedAnalysisList.get(0);
+    protected UpdateAnalyzedStatement analyze(String statement) {
+        return ((UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement)).analyzedStatement());
     }
 
-    protected UpdateAnalyzedStatement.NestedAnalyzedStatement analyze(String statement, Object[] params) {
+    protected UpdateAnalyzedStatement analyze(String statement, Object[] params) {
         return ((UpdateAnalyzedStatement) analyzer.analyze(
                 SqlParser.createStatement(statement),
                 params,
-                new Object[0][]).analyzedStatement()).nestedAnalysisList.get(0);
+                new Object[0][]).analyzedStatement());
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
@@ -136,7 +133,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testUpdateAnalysis() throws Exception {
         AnalyzedStatement analyzedStatement = analyze("update users set name='Ford Prefect'");
-        assertThat(analyzedStatement, instanceOf(UpdateAnalyzedStatement.NestedAnalyzedStatement.class));
+        assertThat(analyzedStatement, instanceOf(UpdateAnalyzedStatement.class));
     }
 
     @Test( expected = TableUnknownException.class)
@@ -185,25 +182,27 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateAssignments() throws Exception {
-        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set name='Trillian'");
-        assertThat(analysis.assignments().size(), is(1));
-        assertThat(analysis.table().ident(), is(new TableIdent(null, "users")));
+        UpdateAnalyzedStatement statement = analyze("update users set name='Trillian'");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement statement1 = statement.nestedStatements().get(0);
+        assertThat(statement1.assignments().size(), is(1));
+        assertThat(((TableRelation) statement.sourceRelation()).tableInfo().ident(), is(new TableIdent(null, "users")));
 
-        Reference ref = analysis.assignments().keySet().iterator().next();
+        Reference ref = statement1.assignments().keySet().iterator().next();
         assertThat(ref.info().ident().tableIdent().name(), is("users"));
         assertThat(ref.info().ident().columnIdent().name(), is("name"));
-        assertTrue(analysis.assignments().containsKey(ref));
+        assertTrue(statement1.assignments().containsKey(ref));
 
-        Symbol value = analysis.assignments().entrySet().iterator().next().getValue();
+        Symbol value = statement1.assignments().entrySet().iterator().next().getValue();
         assertLiteralSymbol(value, "Trillian");
     }
 
     @Test
     public void testUpdateAssignmentNestedDynamicColumn() throws Exception {
-        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set details['arms']=3");
-        assertThat(analysis.assignments().size(), is(1));
+        UpdateAnalyzedStatement.NestedAnalyzedStatement statement =
+                analyze("update users set details['arms']=3").nestedStatements().get(0);
+        assertThat(statement.assignments().size(), is(1));
 
-        Reference ref = analysis.assignments().keySet().iterator().next();
+        Reference ref = statement.assignments().keySet().iterator().next();
         assertThat(ref, instanceOf(DynamicReference.class));
         Assert.assertEquals(DataTypes.LONG, ref.info().type());
         assertThat(ref.info().ident().columnIdent().isColumn(), is(false));
@@ -217,56 +216,64 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateAssignmentConvertableType() throws Exception {
-        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set other_id=9.9");
-        Reference ref = analysis.assignments().keySet().iterator().next();
+        UpdateAnalyzedStatement.NestedAnalyzedStatement statement =
+                analyze("update users set other_id=9.9").nestedStatements().get(0);
+        Reference ref = statement.assignments().keySet().iterator().next();
         assertThat(ref, not(instanceOf(DynamicReference.class)));
         assertEquals(DataTypes.LONG, ref.info().type());
 
-        Symbol value = analysis.assignments().entrySet().iterator().next().getValue();
+        Symbol value = statement.assignments().entrySet().iterator().next().getValue();
         assertLiteralSymbol(value, 9L);
     }
 
     @Test
     public void testUpdateMuchAssignments() throws Exception {
-        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze(
+        UpdateAnalyzedStatement.NestedAnalyzedStatement statement = analyze(
                 "update users set other_id=9.9, name='Trillian', details=?, stuff=true, foo='bar'",
-                new Object[]{new HashMap<String, Object>()});
-        assertThat(analysis.assignments().size(), is(5));
+                new Object[]{new HashMap<String, Object>()}).nestedStatements().get(0);
+        assertThat(statement.assignments().size(), is(5));
     }
 
     @Test
     public void testNoWhereClause() throws Exception {
-        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set other_id=9");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis =
+                analyze("update users set other_id=9").nestedStatements().get(0);
         assertThat(analysis.whereClause(), is(WhereClause.MATCH_ALL));
     }
 
     @Test
     public void testNoMatchWhereClause() throws Exception {
-        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set other_id=9 where true=false");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis =
+                analyze("update users set other_id=9 where true=false").nestedStatements().get(0);
         assertThat(analysis.whereClause().noMatch(), is(true));
     }
 
     @Test
     public void testUpdateWhereClause() throws Exception {
         UpdateAnalyzedStatement.NestedAnalyzedStatement analysis =
-                analyze("update users set other_id=9 where name='Trillian'");
+                analyze("update users set other_id=9 where name='Trillian'").nestedStatements().get(0);
         assertThat(analysis.whereClause().hasQuery(), is(true));
         assertThat(analysis.whereClause().noMatch(), is(false));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testWrongQualifiedNameReferenceWithSchema() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot write on tables inside the 'sys' schema");
         analyze("update users set sys.nodes.fs=?", new Object[]{new HashMap<String, Object>()});
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testWrongQualifiedNameReference() throws Exception {
+        expectedException.expect(TableUnknownException.class);
+        expectedException.expectMessage("Table 'unknown' unknown");
         analyze("update users set unknown.name='Trillian'");
     }
 
     @Test
     public void testQualifiedNameReference() throws Exception {
-        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set users.name='Trillian'");
+        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis =
+                analyze("update users set users.name='Trillian'").nestedStatements().get(0);
         Reference ref = analysis.assignments().keySet().iterator().next();
         assertThat(ref.info().ident().tableIdent().name(), is("users"));
         assertThat(ref.info().ident().columnIdent().fqn(), is("name"));
@@ -280,7 +287,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         };
         UpdateAnalyzedStatement.NestedAnalyzedStatement analysis =
                 analyze("update users set name=?, other_id=?, friends=? where id=?",
-                        new Object[]{"Jeltz", 0, friends, "9"});
+                        new Object[]{"Jeltz", 0, friends, "9"}).nestedStatements().get(0);
         assertThat(analysis.assignments().size(), is(3));
         assertLiteralSymbol(
                 analysis.assignments().get(new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("name")))),
@@ -302,8 +309,8 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateWithWrongParameters() throws Exception {
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for name: cannot cast {} to string");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("type of \"users.other_id\" doesn't match type of \"[1, 2, 3]\" and cannot be cast implicitly");
 
         analyze("update users set name=?, friends=? where other_id=?",
                 new Object[]{
@@ -316,7 +323,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testUpdateWithEmptyObjectArray() throws Exception {
         UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze("update users set friends=? where other_id=0",
-                new Object[]{ new Map[0], 0 });
+                new Object[]{ new Map[0], 0 }).nestedStatements().get(0);
 
         Literal friendsLiteral = (Literal)analysis.assignments().get(
                 new Reference(userTableInfo.getReferenceInfo(new ColumnIdent("friends"))));
@@ -351,25 +358,12 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testUpdateWherePartitionedByColumn() throws Exception {
-        UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze(
-                "update parted set id = 2 where date = 1395874800000");
-        assertThat(analysis.whereClause().hasQuery(), is(false));
-        assertThat(analysis.whereClause().noMatch(), is(false));
-        assertEquals(ImmutableList.of(
-                        new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).stringValue()),
-                analysis.whereClause().partitions()
-        );
-    }
-
-    @Test
     public void testUpdateTableAlias() throws Exception {
         UpdateAnalyzedStatement.NestedAnalyzedStatement expectedAnalysis = analyze(
-                "update users set awesome=true where awesome=false");
+                "update users set awesome=true where awesome=false").nestedStatements().get(0);
         UpdateAnalyzedStatement.NestedAnalyzedStatement actualAnalysis = analyze(
-                "update users as u set u.awesome=true where u.awesome=false");
+                "update users as u set u.awesome=true where u.awesome=false").nestedStatements().get(0);
 
-        assertEquals(actualAnalysis.tableAlias(), "u");
         assertEquals(
                 expectedAnalysis.assignments(),
                 actualAnalysis.assignments()
@@ -378,7 +372,6 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 ((Function) expectedAnalysis.whereClause().query()).arguments().get(0),
                 ((Function) actualAnalysis.whereClause().query()).arguments().get(0)
         );
-        System.out.println();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -396,8 +389,8 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testUpdateWithVersionZero() throws Exception {
         UpdateAnalyzedStatement.NestedAnalyzedStatement analysis = analyze(
-                "update users set awesome=true where name='Ford' and _version=0");
-        assertThat(analysis.whereClause().noMatch(), is(true));
+                "update users set awesome=true where name='Ford' and _version=0").nestedStatements().get(0);
+        assertThat(analysis.whereClause().noMatch(), is(false));
     }
 
     @Test

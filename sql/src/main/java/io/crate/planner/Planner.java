@@ -156,16 +156,23 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    protected Plan visitUpdateStatement(UpdateAnalyzedStatement analysis, Context context) {
+    protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
         Plan plan = new Plan();
-        for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : analysis.nestedAnalysis()) {
-            if (!nestedAnalysis.hasNoResult()) {
+        assert statement.sourceRelation() instanceof TableRelation : "sourceRelation of update statement must be a TableRelation";
+        TableInfo tableInfo = ((TableRelation) statement.sourceRelation()).tableInfo();
+
+        for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableInfo);
+            WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
+            WhereClause whereClause = whereClauseContext.whereClause();
+
+            if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {
                 ESUpdateNode node = new ESUpdateNode(
-                        indices(nestedAnalysis.table(), nestedAnalysis.whereClause()),
+                        indices(tableInfo, whereClause),
                         nestedAnalysis.assignments(),
-                        nestedAnalysis.whereClause(),
-                        nestedAnalysis.ids(),
-                        nestedAnalysis.routingValues()
+                        whereClause,
+                        whereClauseContext.ids(),
+                        whereClauseContext.routingValues()
                 );
                 plan.add(node);
             }
@@ -1045,7 +1052,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         } else if (!tableInfo.isPartitioned()) {
             // table name for non-partitioned tables
             indices = new String[]{ tableInfo.ident().name() };
-        } else if (whereClause.partitions().size() == 0) {
+        } else if (whereClause.partitions().isEmpty()) {
+            if (whereClause.noMatch()) {
+                return new String[0];
+            }
             // all partitions
             indices = new String[tableInfo.partitions().size()];
             for (int i = 0; i < tableInfo.partitions().size(); i++) {

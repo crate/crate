@@ -204,24 +204,18 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testUpdateWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("aliases are read only");
+        expectedException.expectMessage("relation \"TableRelation{table=doc.mytablealias}\" is read-only and cannot be updated");
 
-        execute(
-                String.format("update %s set id=?, content=?", tableAlias),
-                new Object[]{1, "bla"}
-        );
+        execute(String.format("update %s set id=?, content=?", tableAlias), new Object[]{1, "bla"});
     }
 
     @Test
     public void testDeleteWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"TableRelation{table=doc.mytablealias}\" is read-only and cannot be updated");
+        expectedException.expectMessage("relation \"TableRelation{table=doc.mytablealias}\" is read-only and cannot be deleted");
 
-        execute(
-                String.format("delete from %s where id=?", tableAlias),
-                new Object[]{1}
-        );
+        execute(String.format("delete from %s where id=?", tableAlias), new Object[]{1});
     }
 
 

@@ -50,7 +50,6 @@ public class Analyzer {
 
         private final SelectStatementAnalyzer selectStatementAnalyzer;
         private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
-        private final UpdateStatementAnalyzer updateStatementAnalyzer;
         private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
         private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
@@ -67,7 +66,6 @@ public class Analyzer {
         public AnalyzerDispatcher(AnalysisMetaData analysisMetaData,
                                   SelectStatementAnalyzer selectStatementAnalyzer,
                                   InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
-                                  UpdateStatementAnalyzer updateStatementAnalyzer,
                                   DropTableStatementAnalyzer dropTableStatementAnalyzer,
                                   CreateTableStatementAnalyzer createTableStatementAnalyzer,
                                   CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
@@ -81,7 +79,6 @@ public class Analyzer {
             this.analysisMetaData = analysisMetaData;
             this.selectStatementAnalyzer = selectStatementAnalyzer;
             this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
-            this.updateStatementAnalyzer = updateStatementAnalyzer;
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
             this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
@@ -124,7 +121,8 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitUpdate(Update node, ParameterContext context) {
-            return analyze(node, updateStatementAnalyzer, context);
+            UpdateStatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer(analysisMetaData, context);
+            return updateStatementAnalyzer.process(node, null);
         }
 
         @Override

@@ -21,142 +21,156 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.*;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.sql.tree.Table;
+import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Update;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Inject;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, UpdateAnalyzedStatement> {
+import static io.crate.planner.symbol.RelationOutput.unwrap;
 
-    final DataStatementAnalyzer<UpdateAnalyzedStatement.NestedAnalyzedStatement> innerAnalyzer =
-            new DataStatementAnalyzer<UpdateAnalyzedStatement.NestedAnalyzedStatement>() {
+public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Void> {
 
-                @Override
-                public Symbol visitUpdate(Update node, UpdateAnalyzedStatement.NestedAnalyzedStatement context) {
-                    process(node.relation(), context);
-                    for (Assignment assignment : node.assignements()) {
-                        process(assignment, context);
-                    }
-                    context.whereClause(generateWhereClause(node.whereClause(), context));
-                    return null;
-                }
-
-                @Override
-                public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-                    return new UpdateAnalyzedStatement.NestedAnalyzedStatement(
-                        referenceInfos, functions, parameterContext, globalReferenceResolver);
-                }
-
-                @Override
-                protected Symbol visitTable(Table node, UpdateAnalyzedStatement.NestedAnalyzedStatement context) {
-                    Preconditions.checkState(context.table() == null, "updating multiple tables is not supported");
-                    context.editableTable(TableIdent.of(node));
-                    return null;
-                }
-
-                @Override
-                public Symbol visitAssignment(Assignment node, UpdateAnalyzedStatement.NestedAnalyzedStatement context) {
-                    // unknown columns in strict objects handled in here
-                    Reference reference = (Reference)process(node.columnName(), context);
-                    final ColumnIdent ident = reference.info().ident().columnIdent();
-                    if (ident.name().startsWith("_")) {
-                        throw new IllegalArgumentException("Updating system columns is not allowed");
-                    }
-                    if (context.hasMatchingParent(reference.info(), UpdateAnalyzedStatement.NestedAnalyzedStatement.IS_OBJECT_ARRAY)) {
-                        // cannot update fields of object arrays
-                        throw new IllegalArgumentException("Updating fields of object arrays is not supported");
-                    }
-
-                    // it's something that we can normalize to a literal
-                    Symbol value = process(node.expression(), context);
-                    Literal updateValue;
-                    try {
-                        updateValue = context.normalizeInputForReference(value, reference, true);
-                    } catch(IllegalArgumentException|UnsupportedOperationException e) {
-                        throw new ColumnValidationException(ident.fqn(), e);
-                    }
-
-                    if (context.table.clusteredBy() != null) {
-                        ensureNotUpdated(ident, updateValue, context.table.clusteredBy(),
-                                "Updating a clustered-by column is not supported");
-                    }
-
-                    for (ColumnIdent pkIdent : context.table().primaryKey()) {
-                        ensureNotUpdated(ident, updateValue, pkIdent, "Updating a primary key is not supported");
-                    }
-                    for (ColumnIdent partitionIdent : context.table.partitionedBy()) {
-                        ensureNotUpdated(ident, updateValue, partitionIdent, "Updating a partitioned-by column is not supported");
-                    }
-
-                    context.addAssignment(reference, updateValue);
-                    return null;
-                }
-
-                @Override
-                protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalyzedStatement.NestedAnalyzedStatement context) {
-                    ReferenceIdent ident = context.getReference(node.getName());
-                    return context.allocateReference(ident, true);
-                }
-
-                private void ensureNotUpdated(ColumnIdent columnUpdated,
-                                              Literal newValue,
-                                              ColumnIdent protectedColumnIdent,
-                                              String errorMessage) {
-                    if (columnUpdated.equals(protectedColumnIdent)) {
-                        throw new IllegalArgumentException(errorMessage);
-                    }
-
-                    if (protectedColumnIdent.isChildOf(columnUpdated) &&
-                            !(newValue.valueType().equals(DataTypes.OBJECT)
-                                    && StringObjectMaps.fromMapByPath((Map) newValue.value(), protectedColumnIdent.path()) == null)) {
-                        throw new IllegalArgumentException(errorMessage);
-                    }
-                }
-    };
-    private final ReferenceInfos referenceInfos;
-    private final Functions functions;
-    private final ReferenceResolver globalReferenceResolver;
-
-    @Inject
-    public UpdateStatementAnalyzer(ReferenceInfos referenceInfos,
-                                   Functions functions,
-                                   ReferenceResolver globalReferenceResolver) {
-        this.referenceInfos = referenceInfos;
-        this.functions = functions;
-        this.globalReferenceResolver = globalReferenceResolver;
-    }
-
-    @Override
-    public Symbol visitUpdate(Update node, UpdateAnalyzedStatement context) {
-        java.util.List<UpdateAnalyzedStatement.NestedAnalyzedStatement> nestedAnalysisList = context.nestedAnalysisList;
-        for (int i = 0, nestedAnalysisListSize = nestedAnalysisList.size(); i < nestedAnalysisListSize; i++) {
-            UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis = nestedAnalysisList.get(i);
-            context.parameterContext().setBulkIdx(i);
-            innerAnalyzer.process(node, nestedAnalysis);
+    private static final Predicate<ReferenceInfo> IS_OBJECT_ARRAY = new Predicate<ReferenceInfo>() {
+        @Override
+        public boolean apply(@Nullable ReferenceInfo input) {
+            return input != null
+                    && input.type().id() == ArrayType.ID
+                    && ((ArrayType)input.type()).innerType().equals(DataTypes.OBJECT);
         }
-        return null;
+    };
+
+    private AnalysisMetaData analysisMetaData;
+    private ParameterContext parameterContext;
+
+    public UpdateStatementAnalyzer(AnalysisMetaData analysisMetaData, ParameterContext parameterContext) {
+        this.analysisMetaData = analysisMetaData;
+        this.parameterContext = parameterContext;
     }
 
     @Override
-    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalyzedStatement context) {
-        ReferenceIdent ident = context.getReference(node.getName());
-        return context.allocateReference(ident, true);
+    public AnalyzedStatement visitUpdate(Update node, Void context) {
+        RelationAnalyzer relationAnalyzer = new RelationAnalyzer(analysisMetaData);
+        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext();
+
+        AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.relation(), relationAnalysisContext);
+        if (Relations.isReadOnly(analyzedRelation)) {
+            throw new UnsupportedOperationException(String.format(
+                    "relation \"%s\" is read-only and cannot be updated", analyzedRelation));
+        }
+        assert analyzedRelation instanceof TableRelation : "sourceRelation must be a TableRelation";
+        TableInfo tableInfo = ((TableRelation) analyzedRelation).tableInfo();
+
+        ExpressionAnalyzer expressionAnalyzer =
+                new ExpressionAnalyzer(analysisMetaData, parameterContext, relationAnalysisContext.sources(), true);
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+
+        int numNested = 1;
+        if (parameterContext.bulkParameters.length > 0) {
+            numNested = parameterContext.bulkParameters.length;
+        }
+        List<UpdateAnalyzedStatement.NestedAnalyzedStatement> nestedAnalyzedStatements = new ArrayList<>(numNested);
+        for (int i = 0; i < numNested; i++) {
+            parameterContext.setBulkIdx(i);
+
+            UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement = new UpdateAnalyzedStatement.NestedAnalyzedStatement(
+                    expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext));
+            for (Assignment assignment : node.assignements()) {
+                analyzeAssignment(
+                        assignment,
+                        nestedAnalyzedStatement,
+                        tableInfo,
+                        expressionAnalyzer,
+                        expressionAnalysisContext
+                );
+            }
+            nestedAnalyzedStatements.add(nestedAnalyzedStatement);
+        }
+
+        return new UpdateAnalyzedStatement(analyzedRelation, nestedAnalyzedStatements);
     }
 
+    public void analyzeAssignment(Assignment node,
+                                  UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement,
+                                  TableInfo tableInfo,
+                                  ExpressionAnalyzer expressionAnalyzer,
+                                  ExpressionAnalysisContext expressionAnalysisContext) {
+        // unknown columns in strict objects handled in here
+        Reference reference = (Reference) expressionAnalyzer.normalize(
+                unwrap(expressionAnalyzer.convert(node.columnName(), expressionAnalysisContext)));
+        final ColumnIdent ident = reference.info().ident().columnIdent();
+        if (ident.name().startsWith("_")) {
+            throw new IllegalArgumentException("Updating system columns is not allowed");
+        }
 
-    @Override
-    public AnalyzedStatement newAnalysis(ParameterContext parameterContext) {
-        return new UpdateAnalyzedStatement(referenceInfos, functions, parameterContext, globalReferenceResolver);
+        if (hasMatchingParent(tableInfo, reference.info(), IS_OBJECT_ARRAY)) {
+            // cannot update fields of object arrays
+            throw new IllegalArgumentException("Updating fields of object arrays is not supported");
+        }
+
+        // it's something that we can normalize to a literal
+        Symbol value = expressionAnalyzer.normalize(
+                unwrap(expressionAnalyzer.convert(node.expression(), expressionAnalysisContext)));
+        Literal updateValue;
+        try {
+            updateValue = expressionAnalyzer.normalizeInputForReference(value, reference, true);
+        } catch (IllegalArgumentException | UnsupportedOperationException e) {
+            throw new ColumnValidationException(ident.fqn(), e);
+        }
+
+        if (tableInfo.clusteredBy() != null) {
+            ensureNotUpdated(ident, updateValue, tableInfo.clusteredBy(),
+                    "Updating a clustered-by column is not supported");
+        }
+        for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
+            ensureNotUpdated(ident, updateValue, pkIdent, "Updating a primary key is not supported");
+        }
+        for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
+            ensureNotUpdated(ident, updateValue, partitionIdent, "Updating a partitioned-by column is not supported");
+        }
+        nestedAnalyzedStatement.addAssignment(reference, updateValue);
+    }
+
+    private void ensureNotUpdated(ColumnIdent columnUpdated,
+                                  Literal newValue,
+                                  ColumnIdent protectedColumnIdent,
+                                  String errorMessage) {
+        if (columnUpdated.equals(protectedColumnIdent)) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+        if (protectedColumnIdent.isChildOf(columnUpdated) &&
+                !(newValue.valueType().equals(DataTypes.OBJECT)
+                        && StringObjectMaps.fromMapByPath((Map) newValue.value(), protectedColumnIdent.path()) == null)) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+    }
+
+    private boolean hasMatchingParent(TableInfo tableInfo, ReferenceInfo info, Predicate<ReferenceInfo> parentMatchPredicate) {
+        ColumnIdent parent = info.ident().columnIdent().getParent();
+        while (parent != null) {
+            ReferenceInfo parentInfo = tableInfo.getReferenceInfo(parent);
+            if (parentMatchPredicate.apply(parentInfo)) {
+                return true;
+            }
+            parent = parent.getParent();
+        }
+        return false;
     }
 }

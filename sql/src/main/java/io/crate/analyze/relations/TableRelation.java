@@ -63,12 +63,12 @@ public class TableRelation implements AnalyzedRelation {
     }
 
     @Override
-    public Reference getReference(ColumnIdent columnIdent) {
+    public Reference getReference(ColumnIdent columnIdent, boolean forWrite) {
         ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(columnIdent);
         if (referenceInfo == null) {
             referenceInfo = tableInfo.indexColumn(columnIdent);
             if (referenceInfo == null) {
-                return tableInfo.getDynamic(columnIdent, false);
+                return tableInfo.getDynamic(columnIdent, forWrite);
             }
         }
         // TODO: build type correctly as array when the tableInfo is created and remove the conversion here
@@ -98,7 +98,7 @@ public class TableRelation implements AnalyzedRelation {
                     continue;
                 }
                 ColumnIdent columnIdent = referenceInfo.ident().columnIdent();
-                outputs.put(columnIdent.name(), getReference(columnIdent));
+                outputs.put(columnIdent.name(), getReference(columnIdent, false));
             }
         }
         return outputs;

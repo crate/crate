@@ -67,7 +67,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer<InsertFromV
                 context.parameterContext(),
                 ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                         new QualifiedName(Arrays.asList(table.schemaInfo().name(), table.ident().name())),
-                        new TableRelation(table))
+                        new TableRelation(table)),
+                true
         );
         expressionAnalysisContext = new ExpressionAnalysisContext();
 
