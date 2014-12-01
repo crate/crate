@@ -73,12 +73,6 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                     if (ident.name().startsWith("_")) {
                         throw new IllegalArgumentException("Updating system columns is not allowed");
                     }
-
-                    ColumnIdent clusteredBy = context.table().clusteredBy();
-                    if (clusteredBy != null && clusteredBy.equals(ident)) {
-                        throw new IllegalArgumentException("Updating a clustered-by column is currently not supported");
-                    }
-
                     if (context.hasMatchingParent(reference.info(), UpdateAnalyzedStatement.NestedAnalyzedStatement.IS_OBJECT_ARRAY)) {
                         // cannot update fields of object arrays
                         throw new IllegalArgumentException("Updating fields of object arrays is not supported");
@@ -91,6 +85,11 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                         updateValue = context.normalizeInputForReference(value, reference, true);
                     } catch(IllegalArgumentException|UnsupportedOperationException e) {
                         throw new ColumnValidationException(ident.fqn(), e);
+                    }
+
+                    if (context.table.clusteredBy() != null) {
+                        ensureNotUpdated(ident, updateValue, context.table.clusteredBy(),
+                                "Updating a clustered-by column is not supported");
                     }
 
                     for (ColumnIdent pkIdent : context.table().primaryKey()) {
@@ -118,7 +117,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                         throw new IllegalArgumentException(errorMessage);
                     }
 
-                    if (columnUpdated.isChildOf(protectedColumnIdent) &&
+                    if (protectedColumnIdent.isChildOf(columnUpdated) &&
                             !(newValue.valueType().equals(DataTypes.OBJECT)
                                     && StringObjectMaps.fromMapByPath((Map) newValue.value(), protectedColumnIdent.path()) == null)) {
                         throw new IllegalArgumentException(errorMessage);
