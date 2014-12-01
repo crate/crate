@@ -797,8 +797,24 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         contextBuilder.nextStep();
 
         projectionBuilder.add(groupProjection);
-        boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionBuilder);
+        if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
 
+            TopNProjection topN = new TopNProjection(
+                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
+                    0,
+                    contextBuilder.orderBy(),
+                    analysis.reverseFlags(),
+                    analysis.nullsFirst()
+            );
+            // pass through on collectnode
+            List<Symbol> topNOutputs = new ArrayList<>(groupProjection.outputs().size());
+            int i = 0;
+            for (Symbol groupOutput : groupProjection.outputs()) {
+                topNOutputs.add(new InputColumn(i++));
+            }
+            topN.outputs(topNOutputs);
+            projectionBuilder.add(topN);
+        }
         CollectNode collectNode = PlanNodeBuilder.collect(
                 analysis,
                 toCollect,
@@ -809,7 +825,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         contextBuilder.nextStep();
 
         // handler
-        ImmutableList.Builder<Projection> builder = ImmutableList.<Projection>builder();
+        ImmutableList.Builder<Projection> builder = ImmutableList.builder();
 
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
@@ -823,23 +839,14 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
             builder.add(new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations()));
         }
         if (!ignoreSorting) {
-            List<Symbol> outputs;
-            List<Symbol> orderBy;
-            if (topNDone) {
-                orderBy = contextBuilder.passThroughOrderBy();
-                outputs = contextBuilder.passThroughOutputs();
-            } else {
-                orderBy = contextBuilder.orderBy();
-                outputs = contextBuilder.outputs();
-            }
             TopNProjection topN = new TopNProjection(
                     Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
-                    orderBy,
+                    contextBuilder.orderBy(),
                     analysis.reverseFlags(),
                     analysis.nullsFirst()
             );
-            topN.outputs(outputs);
+            topN.outputs(contextBuilder.outputs());
             builder.add(topN);
         }
         if (context.indexWriterProjection.isPresent()) {

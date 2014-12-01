@@ -21,10 +21,10 @@
 
 package io.crate.planner.node;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.exceptions.ResourceUnknownException;
 import io.crate.Streamer;
+import com.google.common.collect.Lists;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
@@ -104,15 +104,18 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
     @Override
     public Void visitCollectNode(CollectNode node, Context context) {
         // get aggregations, if any
-        Optional<Projection> finalProjection = node.finalProjection();
         List<Aggregation> aggregations = ImmutableList.of();
-        if (finalProjection.isPresent()) {
-            if (finalProjection.get().projectionType() == ProjectionType.AGGREGATION) {
-                aggregations = ((AggregationProjection)finalProjection.get()).aggregations();
-            } else if (finalProjection.get().projectionType() == ProjectionType.GROUP) {
-                aggregations = ((GroupProjection)finalProjection.get()).values();
+        List<Projection> projections = Lists.reverse(node.projections());
+        for(Projection projection : projections){
+            if (projection.projectionType() == ProjectionType.AGGREGATION) {
+                aggregations = ((AggregationProjection)projection).aggregations();
+                break;
+            } else if (projection.projectionType() == ProjectionType.GROUP) {
+                aggregations = ((GroupProjection)projection).values();
+                break;
             }
         }
+
 
         int aggIdx = 0;
         Aggregation aggregation;

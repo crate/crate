@@ -24,6 +24,7 @@ package io.crate.planner;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolFormatter;
 
 import java.util.*;
 
@@ -64,6 +65,17 @@ public class PlannerContext {
     }
 
     Symbol allocateToCollect(Symbol symbol) {
+
+        // handle the case that we got 1 function twice
+        // symbol is already an InputColumn
+        if (symbol instanceof InputColumn) {
+            if (toCollectAllocation.containsValue(symbol)) {
+                return symbol;
+            } else {
+                throw new IllegalArgumentException(
+                        SymbolFormatter.format("Symbol %s cannot be collected.", symbol));
+            }
+        }
         InputColumn inputColumn = toCollectAllocation.get(symbol);
         if (inputColumn == null) {
             inputColumn = new InputColumn(toCollectAllocation.size());

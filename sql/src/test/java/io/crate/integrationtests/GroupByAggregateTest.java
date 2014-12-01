@@ -749,4 +749,22 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select count(*), \"pageURL\" from rankings group by \"pageURL\" order by 1 desc limit 100");
         assertThat(response.rowCount(), is(100L));
     }
+
+    @Test
+    public void testAggregateTwiceOnRoutingColumn() throws Exception {
+        execute("create table twice (" +
+                "name string, " +
+                "url string, " +
+                "score double" +
+                ") clustered by (url) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into twice (\"name\", \"url\", \"score\") values (?, ?, ?)",
+                    new Object[]{
+                            "A",
+                            "https://Ä.com",
+                            99.6d});
+        refresh();
+        execute("select avg(score), url, avg(score) from twice group by url limit 10");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("99.6| https://Ä.com| 99.6\n"));
+    }
 }

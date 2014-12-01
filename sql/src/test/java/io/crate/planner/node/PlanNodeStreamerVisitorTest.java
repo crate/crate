@@ -115,6 +115,24 @@ public class PlanNodeStreamerVisitorTest {
     }
 
     @Test
+    public void testGetOutputStreamersFromCollectNodeWithGroupAndTopNProjection() throws Exception {
+        CollectNode collectNode = new CollectNode("mynode", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
+        collectNode.outputTypes(Arrays.<DataType>asList(DataTypes.UNDEFINED));
+        GroupProjection groupProjection = new GroupProjection(
+                Arrays.<Symbol>asList(Literal.newLiteral("key")),
+                Arrays.asList(new Aggregation(
+                        countInfo,
+                        ImmutableList.<Symbol>of(),
+                        Aggregation.Step.PARTIAL, Aggregation.Step.FINAL))
+        );
+        collectNode.projections(Arrays.<Projection>asList(groupProjection, new TopNProjection(10,0)));
+        PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode);
+        Streamer<?>[] streamers = ctx.outputStreamers();
+        assertThat(streamers.length, is(1));
+        assertThat(streamers[0], instanceOf(DataTypes.LONG.streamer().getClass()));
+    }
+
+    @Test
     public void testGetInputStreamersForMergeNode() throws Exception {
         MergeNode mergeNode = new MergeNode("mörtsch", 2);
         mergeNode.inputTypes(Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.SHORT, DataTypes.TIMESTAMP));

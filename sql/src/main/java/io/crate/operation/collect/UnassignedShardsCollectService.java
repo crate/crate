@@ -30,7 +30,6 @@ import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.Projector;
-import io.crate.operation.reference.DocLevelReferenceResolver;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Literal;
@@ -57,9 +56,9 @@ public class UnassignedShardsCollectService implements CollectService {
     public UnassignedShardsCollectService(Functions functions,
                                           ClusterService clusterService,
                                           UnassignedShardsReferenceResolver unassignedShardsReferenceResolver) {
-        this.inputSymbolVisitor = new CollectInputSymbolVisitor<Input<?>>(
+        this.inputSymbolVisitor = new CollectInputSymbolVisitor(
             functions,
-            (DocLevelReferenceResolver)unassignedShardsReferenceResolver
+            unassignedShardsReferenceResolver
         );
         this.clusterService = clusterService;
     }
