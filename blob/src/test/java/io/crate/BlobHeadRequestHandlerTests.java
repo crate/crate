@@ -31,7 +31,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -46,6 +48,8 @@ public class BlobHeadRequestHandlerTests {
 
     protected ThreadPool threadPool;
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -107,9 +111,10 @@ public class BlobHeadRequestHandlerTests {
         );
     }
 
-    @Test(expected = HeadChunkFileTooSmallException.class)
+    @Test
     public void testPutHeadChunkRunnableFileDoesntGrow() throws Exception {
         // this test is rather slow, tune wait time in PutHeadChunkRunnable?
+        expectedException.expect(HeadChunkFileTooSmallException.class);
 
         File file = File.createTempFile("test", "");
         final FileOutputStream outputStream = new FileOutputStream(file);
