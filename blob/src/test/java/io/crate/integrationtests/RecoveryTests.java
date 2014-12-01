@@ -211,7 +211,7 @@ public class RecoveryTests extends CrateIntegrationTest {
 
         // increase time between chunks in order to make sure that the upload is taking place while relocating
         timeBetweenChunks.set(10);
-        stop.set(true);
+
         logger.trace("--> starting relocations...");
         for (int i = 0; i < numberOfRelocations; i++) {
             String fromNode = (i % 2 == 0) ? node1 : node2;
