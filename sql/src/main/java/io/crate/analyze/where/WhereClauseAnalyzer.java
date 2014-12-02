@@ -33,7 +33,7 @@ import io.crate.operation.reference.partitioned.PartitionExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.BytesRefValueSymbolVisitor;
 import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.RelationOutput;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
@@ -55,12 +55,11 @@ public class WhereClauseAnalyzer {
     }
 
     public WhereClauseContext analyze(WhereClause whereClause) {
-        if (!whereClause.hasQuery()) {
-            return new WhereClauseContext(WhereClause.MATCH_ALL);
+        if (whereClause.noMatch() || !whereClause.hasQuery()) {
+            return new WhereClauseContext(whereClause);
         }
-
         WhereClauseContext whereClauseContext = new WhereClauseContext(whereClause);
-        PrimaryKeyVisitor.Context ctx = PRIMARY_KEY_VISITOR.process(tableInfo, RelationOutput.unwrap(whereClause.query()));
+        PrimaryKeyVisitor.Context ctx = PRIMARY_KEY_VISITOR.process(tableInfo, Field.unwrap(whereClause.query()));
         if (ctx != null) {
             whereClause.clusteredByLiteral(ctx.clusteredByLiteral());
             if (ctx.noMatch) {

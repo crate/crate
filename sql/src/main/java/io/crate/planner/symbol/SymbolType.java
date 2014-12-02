@@ -25,7 +25,7 @@ public enum SymbolType {
 
     AGGREGATION(Aggregation.FACTORY),
     REFERENCE(Reference.FACTORY),
-    RELATION_OUTPUT(RelationOutput.FACTORY),
+    RELATION_OUTPUT(Field.FACTORY),
     FUNCTION(Function.FACTORY),
     LITERAL(Literal.FACTORY),
     INPUT_COLUMN(InputColumn.FACTORY),

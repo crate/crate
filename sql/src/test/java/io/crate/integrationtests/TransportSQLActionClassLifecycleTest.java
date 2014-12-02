@@ -102,7 +102,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testSelectNonExistentGlobalExpression() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("suess.cluster");
+        expectedException.expectMessage("Schema 'suess' unknown");
         executor.exec("select count(race), suess.cluster.name from characters");
     }
 

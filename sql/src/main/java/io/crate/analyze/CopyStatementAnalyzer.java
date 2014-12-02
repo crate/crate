@@ -30,7 +30,7 @@ import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.RelationOutput;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.StringValueSymbolVisitor;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.*;
@@ -69,7 +69,7 @@ public class CopyStatementAnalyzer extends AbstractStatementAnalyzer<Void, CopyA
         }
 
         Symbol pathSymbol = expressionAnalyzer.convert(node.path(), expressionAnalysisContext);
-        context.uri(RelationOutput.unwrap(pathSymbol));
+        context.uri(Field.unwrap(pathSymbol));
         return null;
     }
 
@@ -93,12 +93,12 @@ public class CopyStatementAnalyzer extends AbstractStatementAnalyzer<Void, CopyA
             context.partitionIdent(partitionIdent);
         }
         Symbol uri = expressionAnalyzer.convert(node.targetUri(), expressionAnalysisContext);
-        context.uri(RelationOutput.unwrap(uri));
+        context.uri(Field.unwrap(uri));
         context.directoryUri(node.directoryUri());
 
         List<Symbol> columns = new ArrayList<>(node.columns().size());
         for (Expression expression : node.columns()) {
-            columns.add(RelationOutput.unwrap(expressionAnalyzer.convert(expression, expressionAnalysisContext)));
+            columns.add(Field.unwrap(expressionAnalyzer.convert(expression, expressionAnalysisContext)));
         }
         context.outputSymbols(columns);
         return null;
@@ -111,8 +111,10 @@ public class CopyStatementAnalyzer extends AbstractStatementAnalyzer<Void, CopyA
                 context.parameterContext(),
                 ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                         new QualifiedName(Arrays.asList(tableInfo.schemaInfo().name(), tableInfo.ident().name())),
-                        new TableRelation(tableInfo)),
-                context.mode() == CopyAnalyzedStatement.Mode.FROM);
+                        new TableRelation(tableInfo)));
+        if (context.mode() == CopyAnalyzedStatement.Mode.FROM) {
+            expressionAnalyzer.resolveWritableFields(true);
+        }
         expressionAnalysisContext = new ExpressionAnalysisContext();
     }
 
@@ -131,7 +133,7 @@ public class CopyStatementAnalyzer extends AbstractStatementAnalyzer<Void, CopyA
                         ((QualifiedNameReference) expression).getName().toString()));
             }
 
-            Symbol v = RelationOutput.unwrap(expressionAnalyzer.convert(expression, expressionAnalysisContext));
+            Symbol v = Field.unwrap(expressionAnalyzer.convert(expression, expressionAnalysisContext));
             if (!v.symbolType().isValueSymbol()) {
                 throw new UnsupportedFeatureException("Only literals are allowed as parameter values");
             }

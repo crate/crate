@@ -78,6 +78,11 @@ public class GroupBySymbolValidator {
         }
 
         @Override
+        public Void visitField(Field field, Void context) {
+            return process(field.target(), context);
+        }
+
+        @Override
         protected Void visitSymbol(Symbol symbol, Void context) {
             throw new UnsupportedOperationException(
                     String.format("Cannot GROUP BY for '%s'", SymbolFormatter.format(symbol))

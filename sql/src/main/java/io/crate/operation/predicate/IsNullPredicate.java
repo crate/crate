@@ -33,6 +33,8 @@ import io.crate.types.DataTypes;
 
 import java.util.List;
 
+import static io.crate.planner.symbol.Field.unwrap;
+
 public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
@@ -61,7 +63,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         assert (symbol != null);
         assert (symbol.arguments().size() == 1);
 
-        Symbol arg = symbol.arguments().get(0);
+        Symbol arg = unwrap(symbol.arguments().get(0));
         if (arg.equals(Literal.NULL) || arg.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
             return Literal.newLiteral(true);
         } else if (arg.symbolType().isValueSymbol()) {

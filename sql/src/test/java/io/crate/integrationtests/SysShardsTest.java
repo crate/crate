@@ -178,9 +178,8 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectStarMatch() throws Exception {
-
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("function not supported on system tables: FunctionIdent{name=match, argumentTypes=[object, string, string, object]}");
+        expectedException.expectMessage("Cannot use match predicate on system tables");
         transportExecutor.exec("select * from sys.shards where match(table_name, 'characters')");
     }
 
@@ -286,5 +285,13 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         expectedException.expectMessage("Column 'lol' unknown");
         transportExecutor.exec(
             "select sum(num_docs) from sys.shards where lol='funky'");
+    }
+
+
+    @Test
+    public void testShardGranularityFromNodeGranularityTable() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot handle Reference sys.shards.id");
+        transportExecutor.exec("select sys.shards.id from sys.nodes");
     }
 }

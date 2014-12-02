@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationOutputResolver;
+import io.crate.analyze.relations.FieldResolver;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
@@ -55,6 +55,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 import static io.crate.planner.symbol.Literal.newLiteral;
+import static io.crate.planner.symbol.Field.unwrap;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -81,21 +82,19 @@ public class ExpressionAnalyzer {
     private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
     private final InnerExpressionAnalyzer innerAnalyzer;
     private final EvaluatingNormalizer normalizer;
-    private final RelationOutputResolver sources;
+    private final FieldResolver sources;
     private final Functions functions;
     private final ReferenceInfos referenceInfos;
     private final ParameterContext parameterContext;
-    private final boolean forWrite;
+    private boolean forWrite = false;
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                               ParameterContext parameterContext,
-                              Map<QualifiedName, AnalyzedRelation> sources,
-                              boolean forWrite) {
-        this.forWrite = forWrite;
+                              Map<QualifiedName, AnalyzedRelation> sources) {
         functions = analysisMetaData.functions();
         referenceInfos = analysisMetaData.referenceInfos();
         this.parameterContext = parameterContext;
-        this.sources = new RelationOutputResolver(sources,
+        this.sources = new FieldResolver(sources,
                 analysisMetaData.referenceInfos().getSchemaInfo(SysSchemaInfo.NAME));
         this.innerAnalyzer = new InnerExpressionAnalyzer();
         this.normalizer = new EvaluatingNormalizer(
@@ -136,12 +135,7 @@ public class ExpressionAnalyzer {
 
     public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
         if (whereExpression.isPresent()) {
-            WhereClause whereClause = new WhereClause(normalize(convert(whereExpression.get(), context)));
-            if (whereClause.hasQuery() && !context.sysExpressionsAllowed && context.hasSysExpressions) {
-                throw new UnsupportedOperationException("Filtering system columns is currently " +
-                        "only supported by queries using group-by or global aggregates.");
-            }
-            return whereClause;
+            return new WhereClause(normalize(convert(whereExpression.get(), context)));
         } else {
             return WhereClause.MATCH_ALL;
         }
@@ -313,6 +307,10 @@ public class ExpressionAnalyzer {
         return normalizeInputForReference(inputValue, reference, false);
     }
 
+    public void resolveWritableFields(boolean value) {
+        forWrite = value;
+    }
+
     class InnerExpressionAnalyzer extends DefaultTraversalVisitor<Symbol, ExpressionAnalysisContext> {
 
         private boolean insideNotPredicate;
@@ -422,7 +420,7 @@ public class ExpressionAnalyzer {
             Symbol subscriptSymbol;
             Expression subscriptExpression = subscriptContext.expression();
             if (subscriptContext.qName() != null && subscriptExpression == null) {
-                subscriptSymbol = sources.getRelationOutput(subscriptContext.qName(), subscriptContext.parts(), forWrite);
+                subscriptSymbol = sources.resolveField(subscriptContext.qName(), subscriptContext.parts(), forWrite);
             } else if (subscriptExpression != null) {
                 subscriptSymbol = subscriptExpression.accept(this, context);
             } else {
@@ -479,7 +477,7 @@ public class ExpressionAnalyzer {
         protected Symbol visitComparisonExpression(ComparisonExpression node, ExpressionAnalysisContext context) {
             Symbol left = process(node.getLeft(), context);
             Symbol right = process(node.getRight(), context);
-            if (left.symbolType() == SymbolType.DYNAMIC_REFERENCE || right.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
+            if (unwrap(left).symbolType() == SymbolType.DYNAMIC_REFERENCE || unwrap(right).symbolType() == SymbolType.DYNAMIC_REFERENCE) {
                 return Literal.NULL;
             }
             Comparison comparison = new Comparison(node.getType(), left, right);
@@ -494,8 +492,9 @@ public class ExpressionAnalyzer {
          * Must be called AFTER comparison normalization.
          */
         protected void validateSystemColumnComparison(Comparison comparison) {
-            if (comparison.left.symbolType() == SymbolType.REFERENCE) {
-                Reference reference = (Reference) comparison.left;
+            Symbol unwrapped = unwrap(comparison.left);
+            if (unwrapped instanceof Reference) {
+                Reference reference = (Reference) unwrapped;
                 // _score column can only be used by > comparator
                 if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)
                         && (comparison.comparisonExpressionType != ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
@@ -512,8 +511,9 @@ public class ExpressionAnalyzer {
          * Validates usage of system columns (e.g. '_score') within predicates.
          */
         protected void validateSystemColumnPredicate(Symbol node) {
-            if (node.symbolType() == SymbolType.REFERENCE) {
-                Reference reference = (Reference) node;
+            Symbol symbol = unwrap(node);
+            if (symbol.symbolType() == SymbolType.REFERENCE) {
+                Reference reference = (Reference) symbol;
                 if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)) {
                     throw new UnsupportedOperationException(
                             String.format(Locale.ENGLISH,
@@ -578,7 +578,7 @@ public class ExpressionAnalyzer {
 
             DataType leftInnerType = ((CollectionType) leftType).innerType();
             if (leftInnerType.id() != StringType.ID) {
-                if (!(left instanceof Reference)) {
+                if (!(unwrap(left) instanceof Reference)) {
                     left = normalizeInputForType(left, new ArrayType(DataTypes.STRING));
                 } else {
                     throw new IllegalArgumentException(
@@ -606,13 +606,14 @@ public class ExpressionAnalyzer {
             }
 
             Symbol expressionSymbol = process(node.getValue(), context);
+            Symbol unwrappedExpressionSymbol = unwrap(expressionSymbol);
             Symbol patternSymbol = process(node.getPattern(), context);
 
             // handle possible parameter for expression
             // try implicit conversion
-            if (!(expressionSymbol instanceof Reference)) {
+            if (!(unwrappedExpressionSymbol instanceof Reference)) {
                 try {
-                    expressionSymbol = normalizeInputForType(expressionSymbol, StringType.INSTANCE);
+                    expressionSymbol = normalizeInputForType(unwrappedExpressionSymbol, StringType.INSTANCE);
                 } catch (IllegalArgumentException | UnsupportedOperationException e) {
                     throw new UnsupportedOperationException("<expression> LIKE <pattern>: expression couldn't be implicitly casted to string. Try to explicitly cast to string.");
                 }
@@ -621,8 +622,8 @@ public class ExpressionAnalyzer {
             DataType expressionType = expressionSymbol.valueType();
             DataType patternType;
             try {
-                if (expressionSymbol instanceof Reference) {
-                    patternSymbol = normalizeInputForReference(patternSymbol, (Reference) expressionSymbol);
+                if (unwrappedExpressionSymbol instanceof Reference) {
+                    patternSymbol = normalizeInputForReference(patternSymbol, (Reference) unwrappedExpressionSymbol);
                     patternType = patternSymbol.valueType();
                 } else {
                     patternSymbol = normalizeInputForType(patternSymbol, DataTypes.STRING);
@@ -656,7 +657,7 @@ public class ExpressionAnalyzer {
             Symbol value = process(node.getValue(), context);
 
             // currently there will be no result for dynamic references, so return here
-            if (value.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
+            if (unwrap(value).symbolType() == SymbolType.DYNAMIC_REFERENCE) {
                 return Literal.NULL;
             }
             validateSystemColumnPredicate(value);
@@ -689,10 +690,10 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            RelationOutput relationOutput = sources.getRelationOutput(node.getName(), forWrite);
+            Field field = sources.resolveField(node.getName(), forWrite);
             context.hasSysExpressions = context.hasSysExpressions || SysSchemaInfo.NAME.equals(
-                    ((Reference) relationOutput.target()).info().ident().tableIdent().schema());
-            return relationOutput;
+                    ((Reference) field.target()).info().ident().tableIdent().schema());
+            return field;
         }
 
         @Override
@@ -778,7 +779,7 @@ public class ExpressionAnalyzer {
 
             Map<String, Object> identBoostMap = new HashMap<>();
             for (MatchPredicateColumnIdent ident : node.idents()) {
-                Symbol reference = RelationOutput.unwrap(process(ident.columnIdent(), context));
+                Symbol reference = unwrap(process(ident.columnIdent(), context));
                 Preconditions.checkArgument(
                         reference instanceof Reference,
                         SymbolFormatter.format("can only MATCH on references, not on %s", reference)
@@ -850,7 +851,7 @@ public class ExpressionAnalyzer {
          *      eq(2, name)  becomes  eq(name, 2)
          */
         private void swapIfNecessary() {
-            if (!(left.symbolType().isValueSymbol() && (right instanceof Reference || right instanceof RelationOutput))) {
+            if (!(left.symbolType().isValueSymbol() && (right instanceof Reference || right instanceof Field))) {
                 return;
             }
             ComparisonExpression.Type type = SWAP_OPERATOR_TABLE.get(comparisonExpressionType);

@@ -98,6 +98,23 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
         return symbol;
     }
 
+    /**
+     * Same as with {@link Field#unwrap(Symbol symbol)}.
+     * This is migration specific and will be removed in the future.
+     */
+    @Deprecated
+    @Override
+    public Symbol visitField(Field field, Void context) {
+        Symbol target = process(field.target(), context);
+        if (target.symbolType().isValueSymbol()) {
+            return target;
+        }
+        if (!field.target().equals(target)) {
+            return new Field(field.relation(), field.name(), target);
+        }
+        return field;
+    }
+
     @Override
     protected Symbol visitSymbol(Symbol symbol, Void context) {
         return symbol;

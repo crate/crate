@@ -27,6 +27,8 @@ import io.crate.planner.symbol.*;
 import javax.annotation.Nullable;
 import java.util.List;
 
+import static io.crate.planner.symbol.Field.unwrap;
+
 public class HavingSymbolValidator {
 
     private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
@@ -42,7 +44,7 @@ public class HavingSymbolValidator {
         private boolean insideAggregation = false;
 
         public HavingContext(@Nullable List<Symbol> groupBySymbols) {
-            this.groupBySymbols = groupBySymbols;
+            this.groupBySymbols = unwrap(groupBySymbols);
         }
     }
 
@@ -68,6 +70,11 @@ public class HavingSymbolValidator {
             }
             context.insideAggregation = false;
             return null;
+        }
+
+        @Override
+        public Void visitField(Field field, HavingContext context) {
+            return process(field.target(), context);
         }
 
         @Override

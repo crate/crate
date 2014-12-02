@@ -24,13 +24,13 @@ package io.crate.analyze.validator;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.*;
 
-import java.util.List;
+import java.util.Collection;
 
 public class SelectSymbolValidator {
 
     private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
 
-    public static void validate(List<Symbol> symbols, boolean selectFromFieldCache) {
+    public static void validate(Collection<Symbol> symbols, boolean selectFromFieldCache) {
         for (Symbol symbol : symbols) {
             INNER_VALIDATOR.process(symbol, new SelectContext(selectFromFieldCache));
         }
@@ -83,6 +83,11 @@ public class SelectSymbolValidator {
                 process(arg, context);
             }
             return null;
+        }
+
+        @Override
+        public Void visitField(Field field, SelectContext context) {
+            return process(field.target(), context);
         }
 
         @Override

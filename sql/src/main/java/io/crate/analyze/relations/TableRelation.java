@@ -23,17 +23,19 @@ package io.crate.analyze.relations;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.symbol.DynamicReference;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TableRelation implements AnalyzedRelation {
 
@@ -47,7 +49,7 @@ public class TableRelation implements AnalyzedRelation {
     };
 
     private TableInfo tableInfo;
-    private Map<String, Symbol> outputs;
+    private List<Field> outputs;
 
     public TableRelation(TableInfo tableInfo) {
         this.tableInfo = tableInfo;
@@ -62,19 +64,30 @@ public class TableRelation implements AnalyzedRelation {
         return visitor.visitTableRelation(this, context);
     }
 
+    @Nullable
     @Override
-    public Reference getReference(ColumnIdent columnIdent, boolean forWrite) {
-        ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(columnIdent);
+    public Field getField(ColumnIdent path) {
+        return getField(path, false);
+    }
+
+    @Override
+    public Field getWritableField(ColumnIdent path) throws ColumnUnknownException {
+        return getField(path, true);
+    }
+
+    private Field getField(ColumnIdent path, boolean forWrite) {
+        ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(path);
         if (referenceInfo == null) {
-            referenceInfo = tableInfo.indexColumn(columnIdent);
+            referenceInfo = tableInfo.indexColumn(path);
             if (referenceInfo == null) {
-                return tableInfo.getDynamic(columnIdent, forWrite);
+                DynamicReference dynamic = tableInfo.getDynamic(path, forWrite);
+                return new Field(this, path.sqlFqn(), dynamic);
             }
         }
         // TODO: build type correctly as array when the tableInfo is created and remove the conversion here
-        if (!columnIdent.isColumn() && hasMatchingParent(referenceInfo, IS_OBJECT_ARRAY)) {
+        if (!path.isColumn() && hasMatchingParent(referenceInfo, IS_OBJECT_ARRAY)) {
             if (DataTypes.isCollectionType(referenceInfo.type())) {
-            // TODO: remove this limitation with next type refactoring
+                // TODO: remove this limitation with next type refactoring
                 throw new UnsupportedOperationException("cannot query for arrays inside object arrays explicitly");
             }
             // for child fields of object arrays
@@ -86,19 +99,19 @@ public class TableRelation implements AnalyzedRelation {
                     .type(new ArrayType(referenceInfo.type()))
                     .build();
         }
-        return new Reference(referenceInfo);
+        return new Field(this, path.sqlFqn(), new Reference(referenceInfo));
     }
 
     @Override
-    public Map<String, Symbol> outputs() {
+    public List<Field> fields() {
         if (outputs == null) {
-            outputs = new HashMap<>();
+            outputs = new ArrayList<>(tableInfo.columns().size());
             for (ReferenceInfo referenceInfo : tableInfo.columns()) {
                 if (referenceInfo.type().equals(DataTypes.NOT_SUPPORTED)) {
                     continue;
                 }
                 ColumnIdent columnIdent = referenceInfo.ident().columnIdent();
-                outputs.put(columnIdent.name(), getReference(columnIdent, false));
+                outputs.add(getField(columnIdent));
             }
         }
         return outputs;
@@ -134,7 +147,6 @@ public class TableRelation implements AnalyzedRelation {
 
         TableRelation that = (TableRelation) o;
 
-        if (outputs != null ? !outputs.equals(that.outputs) : that.outputs != null) return false;
         if (!tableInfo.equals(that.tableInfo)) return false;
 
         return true;
@@ -142,8 +154,6 @@ public class TableRelation implements AnalyzedRelation {
 
     @Override
     public int hashCode() {
-        int result = tableInfo.hashCode();
-        result = 31 * result + (outputs != null ? outputs.hashCode() : 0);
-        return result;
+        return tableInfo.hashCode();
     }
 }

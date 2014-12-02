@@ -20,6 +20,7 @@
  */
 package io.crate.analyze;
 
+import io.crate.planner.RowGranularity;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
@@ -42,14 +43,13 @@ public class Analyzer {
     public Analysis analyze(Statement statement, Object[] parameters, Object[][] bulkParams) {
         ParameterContext parameterContext = new ParameterContext(parameters, bulkParams);
         AnalyzedStatement analyzedStatement = dispatcher.process(statement, parameterContext);
+        assert analyzedStatement != null : "analyzed statement must not be null";
         return new Analysis(analyzedStatement);
     }
 
 
     public static class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, ParameterContext> {
 
-        private final SelectStatementAnalyzer selectStatementAnalyzer;
-        private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
         private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
         private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
@@ -60,12 +60,11 @@ public class Analyzer {
         private final AlterBlobTableAnalyzer alterBlobTableAnalyzer;
         private final SetStatementAnalyzer setStatementAnalyzer;
         private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
+        private final EvaluatingNormalizer normalizer;
         private AnalysisMetaData analysisMetaData;
 
         @Inject
         public AnalyzerDispatcher(AnalysisMetaData analysisMetaData,
-                                  SelectStatementAnalyzer selectStatementAnalyzer,
-                                  InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                                   DropTableStatementAnalyzer dropTableStatementAnalyzer,
                                   CreateTableStatementAnalyzer createTableStatementAnalyzer,
                                   CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
@@ -77,8 +76,6 @@ public class Analyzer {
                                   SetStatementAnalyzer setStatementAnalyzer,
                                   AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer) {
             this.analysisMetaData = analysisMetaData;
-            this.selectStatementAnalyzer = selectStatementAnalyzer;
-            this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
             this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
             this.createTableStatementAnalyzer = createTableStatementAnalyzer;
             this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
@@ -89,6 +86,8 @@ public class Analyzer {
             this.alterBlobTableAnalyzer = alterBlobTableAnalyzer;
             this.setStatementAnalyzer = setStatementAnalyzer;
             this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
+            this.normalizer = new EvaluatingNormalizer(
+                    analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver());
         }
 
         private AnalyzedStatement analyze(Node node, AbstractStatementAnalyzer statementAnalyzer, ParameterContext parameterContext) {
@@ -100,7 +99,10 @@ public class Analyzer {
 
         @Override
         protected AnalyzedStatement visitQuery(Query node, ParameterContext context) {
-            return analyze(node, selectStatementAnalyzer, context);
+            SelectStatementAnalyzer analyzer = new SelectStatementAnalyzer(analysisMetaData, context);
+            SelectAnalyzedStatement statement = (SelectAnalyzedStatement )analyzer.process(node, null);
+            statement.normalize(normalizer);
+            return statement;
         }
 
         @Override
@@ -111,12 +113,14 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitInsertFromValues(InsertFromValues node, ParameterContext context) {
-            return analyze(node, new InsertFromValuesAnalyzer(analysisMetaData), context);
+            InsertFromValuesAnalyzer analyzer = new InsertFromValuesAnalyzer(analysisMetaData, context);
+            return analyzer.process(node, null);
         }
 
         @Override
         public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, ParameterContext context) {
-            return analyze(node, insertFromSubQueryAnalyzer, context);
+            InsertFromSubQueryAnalyzer analyzer = new InsertFromSubQueryAnalyzer(analysisMetaData, context);
+            return analyzer.process(node, null);
         }
 
         @Override

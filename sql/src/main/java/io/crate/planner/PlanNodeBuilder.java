@@ -26,8 +26,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.crate.PartitionName;
-import io.crate.analyze.AbstractDataAnalyzedStatement;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.node.dql.MergeNode;
@@ -44,18 +45,19 @@ import java.util.Set;
 
 class PlanNodeBuilder {
 
-    static CollectNode distributingCollect(AbstractDataAnalyzedStatement analysis,
+    static CollectNode distributingCollect(TableInfo tableInfo,
+                                           WhereClause whereClause,
                                            List<Symbol> toCollect,
                                            List<String> downstreamNodes,
                                            ImmutableList<Projection> projections) {
-        CollectNode node = new CollectNode("distributing collect", analysis.table().getRouting(analysis.whereClause()));
-        node.whereClause(analysis.whereClause());
-        node.maxRowGranularity(analysis.table().rowGranularity());
+        CollectNode node = new CollectNode("distributing collect", tableInfo.getRouting(whereClause));
+        node.whereClause(whereClause);
+        node.maxRowGranularity(tableInfo.rowGranularity());
         node.downStreamNodes(downstreamNodes);
         node.toCollect(toCollect);
         node.projections(projections);
 
-        node.isPartitioned(analysis.table().isPartitioned());
+        node.isPartitioned(tableInfo.isPartitioned());
         setOutputTypes(node);
         return node;
     }
@@ -102,22 +104,23 @@ class PlanNodeBuilder {
         nextNode.outputTypes(Planner.extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
     }
 
-    static CollectNode collect(AbstractDataAnalyzedStatement analysis,
+    static CollectNode collect(TableInfo tableInfo,
+                               WhereClause whereClause,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections,
                                @Nullable String partitionIdent) {
         assert !Iterables.any(toCollect, Predicates.instanceOf(InputColumn.class)) : "cannot collect inputcolumns";
-        Routing routing = analysis.table().getRouting(analysis.whereClause());
+        Routing routing = tableInfo.getRouting(whereClause);
         if (partitionIdent != null && routing.hasLocations()) {
             routing = filterRouting(routing, PartitionName.fromPartitionIdent(
-                            analysis.table().ident().name(), partitionIdent).stringValue());
+                    tableInfo.ident().name(), partitionIdent).stringValue());
         }
         CollectNode node = new CollectNode("collect", routing);
-        node.whereClause(analysis.whereClause());
+        node.whereClause(whereClause);
         node.toCollect(toCollect);
-        node.maxRowGranularity(analysis.table().rowGranularity());
+        node.maxRowGranularity(tableInfo.rowGranularity());
         node.projections(projections);
-        node.isPartitioned(analysis.table().isPartitioned());
+        node.isPartitioned(tableInfo.isPartitioned());
         setOutputTypes(node);
         return node;
     }
@@ -147,9 +150,10 @@ class PlanNodeBuilder {
 
     }
 
-    static CollectNode collect(AbstractDataAnalyzedStatement analysis,
+    static CollectNode collect(TableInfo tableInfo,
+                               WhereClause whereClause,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections) {
-        return collect(analysis, toCollect, projections, null);
+        return collect(tableInfo, whereClause, toCollect, projections, null);
     }
 }

@@ -104,7 +104,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithColumns() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users (id, name) values (1, 'Trillian')");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -123,7 +123,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithTwistedColumns() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users (name, id) values ('Trillian', 2)");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("name"));
@@ -189,7 +189,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithFunction() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users (id, name) values (ABS(-1), 'Trillian')");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -208,7 +208,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithoutColumns() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users values (1, 1, 'Trillian')");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(3));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -231,7 +231,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertWithoutColumnsAndOnlyOneColumn() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = (InsertFromValuesAnalyzedStatement) analyze("insert into users values (1)");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.tableInfo().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(1));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
@@ -248,8 +248,10 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
     }
 
-    @Test (expected = UnsupportedOperationException.class)
+    @Test
     public void testInsertIntoAliasTable() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("aliases are read only");
         analyze("insert into alias (bla) values ('blubb')");
     }
 

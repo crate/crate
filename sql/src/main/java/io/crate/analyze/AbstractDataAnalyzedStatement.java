@@ -33,7 +33,6 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.*;
-import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -42,6 +41,7 @@ import java.util.*;
 /**
  * Holds information the analyzer has gathered about a statement.
  */
+@Deprecated
 public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
 
     protected static final Predicate<ReferenceInfo> IS_OBJECT_ARRAY = new Predicate<ReferenceInfo>() {
@@ -514,28 +514,6 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
 
     }
 
-    /**
-     * Compute an id and adds it, also add routing value
-     */
-    public void addIdAndRouting(List<BytesRef> primaryKeyValues, String clusteredByValue) {
-        addIdAndRouting(false, primaryKeyValues, clusteredByValue);
-    }
-
-    protected void addIdAndRouting(Boolean create, List<BytesRef> primaryKeyValues, String clusteredByValue) {
-
-        ColumnIdent clusteredBy = table().clusteredBy();
-        Id id = new Id(table().primaryKey(), primaryKeyValues, clusteredBy == null ? null : clusteredBy, create);
-        if (id.isValid()) {
-            String idString = id.stringValue();
-            ids.add(idString);
-            if (clusteredByValue == null) {
-                clusteredByValue = idString;
-            }
-        }
-        if (clusteredByValue != null) {
-            routingValues.add(clusteredByValue);
-        }
-    }
 
     @Deprecated
     public List<String> ids() {

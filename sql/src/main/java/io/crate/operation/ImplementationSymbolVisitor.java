@@ -123,7 +123,7 @@ public class ImplementationSymbolVisitor extends
             }
             context.setMaxGranularity(symbol.info().granularity());
         } else {
-            throw new UnhandledServerException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
+            throw new IllegalArgumentException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
         }
         return result;
     }

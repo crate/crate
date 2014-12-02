@@ -32,8 +32,7 @@ import java.util.Map;
 public class ExpressionAnalysisContext {
 
     private final Map<Function, Function> functionSymbols = new HashMap<>();
-    private boolean hasAggregates = false;
-    public boolean sysExpressionsAllowed = false;
+    public boolean hasAggregates = false;
     public boolean hasSysExpressions = false;
 
     public ExpressionAnalysisContext() {

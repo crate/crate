@@ -21,7 +21,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.Iterables;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
@@ -31,34 +30,31 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.DynamicReference;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.RelationOutput;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class RelationOutputResolver {
+public class FieldResolver {
 
     private Map<QualifiedName, AnalyzedRelation> sources;
     private SchemaInfo sysSchemaInfo;
 
-    public RelationOutputResolver(Map<QualifiedName, AnalyzedRelation> sources, SchemaInfo sysSchemaInfo) {
+    public FieldResolver(Map<QualifiedName, AnalyzedRelation> sources, SchemaInfo sysSchemaInfo) {
         assert !sources.isEmpty() : "Must have at least one source";
         this.sources = sources;
         this.sysSchemaInfo = sysSchemaInfo;
     }
 
-    public RelationOutput getRelationOutput(QualifiedName qualifiedName, boolean forWrite) {
-        return getRelationOutput(qualifiedName, null, forWrite);
+    public Field resolveField(QualifiedName qualifiedName, boolean forWrite) {
+        return resolveField(qualifiedName, null, forWrite);
     }
 
-    public RelationOutput getRelationOutput(QualifiedName qualifiedName, @Nullable List<String> path, boolean forWrite) {
+    public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, boolean forWrite) {
         List<String> parts = qualifiedName.getParts();
         String columnSchema = null;
         String columnTableName = null;
@@ -88,8 +84,8 @@ public class RelationOutputResolver {
 
         boolean schemaMatched = false;
         boolean tableNameMatched = false;
-        List<Tuple<Reference, AnalyzedRelation>> matches = new ArrayList<>();
-        List<Tuple<Reference, AnalyzedRelation>> dynamicMatches = new ArrayList<>();
+        Field lastField = null;
+
         for (Map.Entry<QualifiedName, AnalyzedRelation> entry : sources.entrySet()) {
             List<String> sourceParts = entry.getKey().getParts();
             String sourceSchema = null;
@@ -106,7 +102,7 @@ public class RelationOutputResolver {
             }
             AnalyzedRelation sourceRelation = entry.getValue();
 
-            if (columnSchema != null && !columnSchema.equals(sourceSchema)) {
+            if (columnSchema != null && sourceSchema != null && !columnSchema.equals(sourceSchema)) {
                 continue;
             }
             schemaMatched = true;
@@ -114,39 +110,33 @@ public class RelationOutputResolver {
                 continue;
             }
             tableNameMatched = true;
-            Reference newReference = sourceRelation.getReference(columnIdent, forWrite);
-            if (newReference != null) {
-                if (newReference instanceof DynamicReference) {
-                    dynamicMatches.add(new Tuple<>(newReference, sourceRelation));
-                } else {
-                    matches.add(new Tuple<>(newReference, sourceRelation));
+
+            Field newField;
+            if (forWrite) {
+                newField = sourceRelation.getWritableField(columnIdent);
+            } else {
+                newField = sourceRelation.getField(columnIdent);
+            }
+            if (newField != null) {
+                if (lastField != null) {
+                    throw new AmbiguousColumnException(columnIdent);
                 }
+                lastField = newField;
             }
         }
-        Tuple<Reference, AnalyzedRelation> match;
-        switch (matches.size()) {
-            case 1:
-                match = Iterables.getOnlyElement(matches);
-                return new RelationOutput(match.v2(), match.v1());
-            case 0:
-                switch (dynamicMatches.size()) {
-                    case 0:
-                        if (!schemaMatched) {
-                            throw new SchemaUnknownException(columnSchema);
-                        }
-                        if (!tableNameMatched) {
-                            throw new TableUnknownException(columnTableName);
-                        }
-                        throw new ColumnUnknownException(columnIdent.sqlFqn());
-                    case 1:
-                        match = Iterables.getOnlyElement(dynamicMatches);
-                        return new RelationOutput(match.v2(), match.v1());
-                }
+        if (lastField == null) {
+            if (!schemaMatched) {
+                throw new SchemaUnknownException(columnSchema);
+            }
+            if (!tableNameMatched) {
+                throw new TableUnknownException(columnTableName);
+            }
+            throw new ColumnUnknownException(columnIdent.fqn());
         }
-        throw new AmbiguousColumnException(columnIdent);
+        return lastField;
     }
 
-    private RelationOutput fromSysTable(String tableName, ColumnIdent columnIdent) {
+    private Field fromSysTable(String tableName, ColumnIdent columnIdent) {
         TableInfo tableInfo = sysSchemaInfo.getTableInfo(tableName);
         if (tableInfo == null) {
             throw new TableUnknownException(tableName);
@@ -155,6 +145,6 @@ public class RelationOutputResolver {
         if (referenceInfo == null) {
             throw new ColumnUnknownException(columnIdent.sqlFqn());
         }
-        return new RelationOutput(new TableRelation(tableInfo), new Reference(referenceInfo));
+        return new Field(new TableRelation(tableInfo), columnIdent.sqlFqn(), new Reference(referenceInfo));
     }
 }

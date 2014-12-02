@@ -62,8 +62,8 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
-    public R visitRelationOutput(RelationOutput relationOutput, C context) {
-        return visitSymbol(relationOutput, context);
+    public R visitField(Field field, C context) {
+        return visitSymbol(field, context);
     }
 }
 
