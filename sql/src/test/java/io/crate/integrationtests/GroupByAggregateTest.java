@@ -44,20 +44,14 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
-
     private Setup setup = new Setup(sqlExecutor);
-    private boolean setUpDone = false;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-
     @Before
     public void initTestData() {
-        if (!setUpDone) {
-            this.setup.setUpEmployees();
-            setUpDone = true;
-        }
+        setup.setUpEmployees();
     }
 
     @Test

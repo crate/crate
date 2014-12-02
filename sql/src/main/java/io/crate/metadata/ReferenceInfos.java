@@ -21,7 +21,9 @@
 
 package io.crate.metadata;
 
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -74,7 +76,11 @@ public class ReferenceInfos implements Iterable<SchemaInfo>{
                 throw new TableUnknownException(ident.name());
             }
         } catch (Exception e) {
-            throw new TableUnknownException(ident.name(), e);
+            Throwable throwable = Exceptions.unwrap(e);
+            if (throwable instanceof TableAliasSchemaException) {
+                throw (TableAliasSchemaException) throwable;
+            }
+            throw new TableUnknownException(ident.name(), throwable);
         }
         return info;
     }

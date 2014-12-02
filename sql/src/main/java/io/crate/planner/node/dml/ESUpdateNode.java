@@ -59,7 +59,7 @@ public class ESUpdateNode extends DMLPlanNode {
         for (Map.Entry<Reference, Symbol> entry: assignments.entrySet()) {
             Object value;
             if (Symbol.isLiteral(entry.getValue(), DataTypes.STRING)) {
-               value = StringValueSymbolVisitor.INSTANCE.process(entry.getValue());
+                value = StringValueSymbolVisitor.INSTANCE.process(entry.getValue());
             } else {
                 value = ((Input)entry.getValue()).value();
             }

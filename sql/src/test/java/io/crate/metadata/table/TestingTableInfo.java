@@ -21,6 +21,7 @@
 
 package io.crate.metadata.table;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.PartitionName;
@@ -35,6 +36,7 @@ import io.crate.planner.symbol.DynamicReference;
 import io.crate.types.DataType;
 import org.mockito.Answers;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -68,6 +70,7 @@ public class TestingTableInfo extends AbstractTableInfo {
         private final Routing routing;
         private boolean isAlias = false;
         private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
+        private SchemaInfo schemaInfo = null;
 
         public Builder(TableIdent ident, RowGranularity granularity, Routing routing) {
             this.granularity = granularity;
@@ -149,6 +152,11 @@ public class TestingTableInfo extends AbstractTableInfo {
             return this;
         }
 
+        public Builder schemaInfo(SchemaInfo schemaInfo) {
+            this.schemaInfo = schemaInfo;
+            return this;
+        }
+
         public Builder addPartitions(String... partitionNames) {
             for (String partitionName : partitionNames) {
                 PartitionName partition = PartitionName.fromString(partitionName, ident.name());
@@ -160,6 +168,7 @@ public class TestingTableInfo extends AbstractTableInfo {
         public TableInfo build() {
             addDocSysColumns();
             return new TestingTableInfo(
+                    schemaInfo,
                     columns.build(),
                     partitionedByColumns.build(),
                     indexColumns.build(),
@@ -193,7 +202,8 @@ public class TestingTableInfo extends AbstractTableInfo {
     private final TableParameterInfo tableParameterInfo;
 
 
-    public TestingTableInfo(List<ReferenceInfo> columns,
+    public TestingTableInfo(@Nullable SchemaInfo schemaInfo,
+                            List<ReferenceInfo> columns,
                             List<ReferenceInfo> partitionedByColumns,
                             Map<ColumnIdent, IndexReferenceInfo> indexColumns,
                             Map<ColumnIdent, ReferenceInfo> references,
@@ -205,7 +215,7 @@ public class TestingTableInfo extends AbstractTableInfo {
                             List<ColumnIdent> partitionedBy,
                             List<PartitionName> partitions,
                             ColumnPolicy columnPolicy) {
-        super(mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get()));
+        super(MoreObjects.firstNonNull(schemaInfo, mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get())));
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
         this.indexColumns = indexColumns;

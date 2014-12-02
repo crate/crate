@@ -23,28 +23,35 @@ package io.crate.analyze;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.IntSet;
-import io.crate.metadata.*;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * holding analysis results for any insert statement variant
  */
-public abstract class AbstractInsertAnalyzedStatement extends AbstractDataAnalyzedStatement {
+public abstract class AbstractInsertAnalyzedStatement extends AnalyzedStatement {
 
     private List<Reference> columns;
     private IntSet primaryKeyColumnIndices = new IntOpenHashSet();
     private IntSet partitionedByColumnsIndices = new IntOpenHashSet();
     private int routingColumnIndex = -1;
+    private TableInfo tableInfo;
 
-    public AbstractInsertAnalyzedStatement(ReferenceInfos referenceInfos,
-                                           Functions functions,
-                                           ParameterContext parameterContext,
-                                           ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameterContext, referenceResolver);
+    private final Set<ReferenceInfo> allocatedReferences = new HashSet<>();
+
+    protected AbstractInsertAnalyzedStatement() {
+        super(null);
     }
 
     public List<Reference> columns() {
@@ -77,9 +84,9 @@ public abstract class AbstractInsertAnalyzedStatement extends AbstractDataAnalyz
     }
 
     protected List<String> partitionedByColumnNames() {
-        assert table != null;
-        List<String> names = new ArrayList<>(table.partitionedByColumns().size());
-        for (ReferenceInfo info : table.partitionedByColumns()) {
+        assert tableInfo != null;
+        List<String> names = new ArrayList<>(tableInfo.partitionedByColumns().size());
+        for (ReferenceInfo info : tableInfo.partitionedByColumns()) {
             names.add(info.ident().columnIdent().fqn());
         }
         return names;
@@ -100,15 +107,38 @@ public abstract class AbstractInsertAnalyzedStatement extends AbstractDataAnalyz
     public @Nullable ColumnIdent routingColumn() {
         if (routingColumnIndex < 0) { return null; }
         else {
-            return table().clusteredBy();
+            return tableInfo.clusteredBy();
         }
     }
 
-    @Nullable
-    @Override
-    public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
-        // fields of object arrays interpreted as they were created
-        return referenceInfos.getReferenceInfo(ident);
+    public TableInfo tableInfo() {
+        return tableInfo;
     }
 
+    public void tableInfo(TableInfo tableInfo) {
+        this.tableInfo = tableInfo;
+    }
+
+    public Reference allocateUniqueReference(ReferenceIdent ident) {
+        ColumnIdent column = ident.columnIdent();
+        ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(column);
+        if (referenceInfo == null) {
+            referenceInfo = tableInfo.indexColumn(column);
+            if (referenceInfo == null) {
+                DynamicReference reference = tableInfo.getDynamic(column, true);
+                if (reference == null) {
+                    throw new ColumnUnknownException(column.fqn());
+                }
+                referenceInfo = reference.info();
+                if (!allocatedReferences.add(referenceInfo)) {
+                    throw new IllegalArgumentException(String.format("reference '%s' repeated", ident.columnIdent().fqn()));
+                }
+                return reference;
+            }
+        }
+        if (!allocatedReferences.add(referenceInfo)) {
+            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident.columnIdent().fqn()));
+        }
+        return new Reference(referenceInfo);
+    }
 }

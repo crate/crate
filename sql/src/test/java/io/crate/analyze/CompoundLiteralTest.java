@@ -22,77 +22,89 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.Functions;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.metadata.sys.MetaDataSysModule;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationVisitor;
+import io.crate.metadata.*;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.planner.symbol.*;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
-import io.crate.testing.MockedClusterServiceModule;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.types.*;
+import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.inject.Module;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.Arrays;
+import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class CompoundLiteralTest extends BaseAnalyzerTest {
+public class CompoundLiteralTest extends AbstractRandomizedTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private SelectStatementAnalyzer analyzer;
+    private AnalysisMetaData analysisMetaData;
 
     @Before
     public void prepare() {
-        analyzer = new SelectStatementAnalyzer(
-                injector.getInstance(ReferenceInfos.class),
-                injector.getInstance(Functions.class),
-                injector.getInstance(ReferenceResolver.class)
+        analysisMetaData = new AnalysisMetaData(
+                new Functions(
+                        Collections.<FunctionIdent, FunctionImplementation>emptyMap(),
+                        Collections.<String, DynamicFunctionResolver>emptyMap()),
+                new ReferenceInfos(Collections.<String, SchemaInfo>emptyMap()),
+                new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap())
         );
-
     }
 
-    @Override
-    protected List<Module> getModules() {
-        return Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new MetaDataModule(),
-                new MetaDataSysModule(),
-                new OperatorModule(),
-                new AggregationImplModule(),
-                new PredicateModule(),
-                new ScalarFunctionModule());
-    }
-
-    public Symbol analyzeExpression(String expression) {
+    private Symbol analyzeExpression(String expression) {
         return analyzeExpression(expression, new Object[0]);
     }
 
-    public Symbol analyzeExpression(String expression, Object[] params) {
-        SelectAnalyzedStatement analysis = (SelectAnalyzedStatement) analyzer.newAnalysis(
-                new ParameterContext(params, new Object[0][]));
-        return SqlParser.createExpression(expression).accept(analyzer, analysis);
+    private static class DummyRelation implements AnalyzedRelation {
 
+        @Override
+        public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public Field getField(ColumnIdent path) {
+            return null;
+        }
+
+        @Override
+        public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException {
+            return null;
+        }
+
+        @Override
+        public List<Field> fields() {
+            return null;
+        }
+    }
+
+    private Symbol analyzeExpression(String expression, Object[] params) {
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                analysisMetaData,
+                new ParameterContext(params, new Object[0][]),
+                ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+                        new QualifiedName("dummy"), new DummyRelation()
+                )
+        );
+        return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext());
     }
 
     @Test

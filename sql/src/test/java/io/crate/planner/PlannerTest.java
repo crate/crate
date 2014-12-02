@@ -13,11 +13,13 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
@@ -66,7 +68,6 @@ public class PlannerTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private Injector injector;
     private Analyzer analyzer;
     private Planner planner;
     Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
@@ -149,17 +150,34 @@ public class PlannerTest {
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
+            TableIdent multiplePartitionedTableIdent= new TableIdent(null, "multi_parted");
+            TableInfo multiplePartitionedTableInfo = new TestingTableInfo.Builder(
+                    multiplePartitionedTableIdent, RowGranularity.DOC, new Routing())
+                    .add("id", DataTypes.INTEGER, null)
+                    .add("date", DataTypes.TIMESTAMP, null, true)
+                    .add("num", DataTypes.LONG, null)
+                    .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
+                    .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
+                            // add 3 partitions/simulate already done inserts
+                    .addPartitions(
+                            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).stringValue(),
+                            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).stringValue(),
+                            new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).stringValue())
+                    .build();
             when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
             when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
+            when(schemaInfo.getTableInfo(multiplePartitionedTableIdent.name())).thenReturn(multiplePartitionedTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
         }
 
         private SchemaInfo mockSysSchemaInfo() {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.name()).thenReturn(SysSchemaInfo.NAME);
+            when(schemaInfo.systemSchema()).thenReturn(true);
 
             TableInfo sysClusterTableInfo = TestingTableInfo.builder(
                     SysClusterTableInfo.IDENT,
@@ -167,21 +185,25 @@ public class PlannerTest {
                     // here we want a table with handlerSideRouting and DOC granularity.
                     RowGranularity.DOC,
                     SysClusterTableInfo.ROUTING
-            ).add("name", DataTypes.STRING, null).build();
+            ).schemaInfo(schemaInfo).add("name", DataTypes.STRING, null).build();
             when(schemaInfo.getTableInfo(sysClusterTableInfo.ident().name())).thenReturn(sysClusterTableInfo);
 
             TableInfo sysNodesTableInfo = TestingTableInfo.builder(
                     SysNodesTableInfo.IDENT,
                     RowGranularity.NODE,
                     nodesRouting)
+                    .schemaInfo(schemaInfo)
                     .add("name", DataTypes.STRING, null).build();
             when(schemaInfo.getTableInfo(sysNodesTableInfo.ident().name())).thenReturn(sysNodesTableInfo);
 
             TableInfo sysShardsTableInfo = TestingTableInfo.builder(
                     SysShardsTableInfo.IDENT,
                     RowGranularity.SHARD,
-                    nodesRouting
-            ).add("id", DataTypes.INTEGER, null).build();
+                    nodesRouting)
+                    .schemaInfo(schemaInfo)
+                    .add("id", DataTypes.INTEGER, null)
+                    .add("table_name", DataTypes.STRING, null)
+                    .build();
             when(schemaInfo.getTableInfo(sysShardsTableInfo.ident().name())).thenReturn(sysShardsTableInfo);
             when(schemaInfo.systemSchema()).thenReturn(true);
             return schemaInfo;
@@ -190,10 +212,11 @@ public class PlannerTest {
 
     @Before
     public void setUp() throws Exception {
-        injector = new ModulesBuilder()
+        Injector injector = new ModulesBuilder()
                 .add(new TestModule())
                 .add(new AggregationImplModule())
                 .add(new ScalarFunctionModule())
+                .add(new PredicateModule())
                 .add(new OperatorModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
@@ -1274,4 +1297,57 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(ESCountNode.class));
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectPartitionedTableOrderByPartitionedColumn() throws Exception {
+        plan("select name from parted order by date");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectPartitionedTableOrderByPartitionedColumnInFunction() throws Exception {
+        plan("select name from parted order by year(date)");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectOrderByPartitionedNestedColumn() throws Exception {
+        plan("select id from multi_parted order by obj['name']");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testSelectOrderByPartitionedNestedColumnInFunction() throws Exception {
+        plan("select id from multi_parted order by format('abc %s', obj['name'])");
+    }
+
+    @Test (expected = UnsupportedOperationException.class)
+    public void testWhereSysExpressionWithoutGroupBy() throws Exception {
+        plan("select id from users where sys.cluster.name ='crate'");
+    }
+
+    @Test (expected = UnsupportedOperationException.class)
+    public void testSelectSysExpressionWithoutGroupBy() throws Exception {
+        plan("select sys.cluster.name, id from users");
+    }
+
+    @Test
+    public void testClusterRefAndPartitionInWhereClause() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(
+                "Using system expressions is only possible on sys tables or if the statement does some sort of aggregation");
+        plan("select * from parted " +
+                "where sys.cluster.name = 'foo' and date = 1395874800000");
+    }
+
+    @Test (expected = UnsupportedOperationException.class)
+    public void testWhereFunctionWithSysExpressionWithoutGroupBy() throws Exception {
+        plan("select name from users where format('%s', sys.nodes.name) = 'foo'");
+    }
+    @Test (expected = UnsupportedOperationException.class)
+    public void testSelectFunctionWithSysExpressionWithoutGroupBy() throws Exception {
+        plan("select format('%s', sys.nodes.name), id from users");
+    }
+
+    @Test(expected = UnsupportedFeatureException.class)
+    public void testQueryRequiresScalar() throws Exception {
+        // only scalar functions are allowed on system tables because we have no lucene queries
+        plan("select * from sys.shards where match(table_name, 'characters')");
+    }
 }

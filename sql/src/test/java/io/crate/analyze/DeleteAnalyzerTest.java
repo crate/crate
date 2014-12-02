@@ -33,7 +33,7 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.RelationOutput;
+import io.crate.planner.symbol.Field;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
@@ -98,7 +98,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(EqOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().type() == FunctionInfo.Type.AGGREGATE);
 
-        assertThat(RelationOutput.unwrap(whereClause.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(Field.unwrap(whereClause.arguments().get(0)), IsInstanceOf.instanceOf(Reference.class));
 
         assertLiteralSymbol(whereClause.arguments().get(1), "Trillian");
     }

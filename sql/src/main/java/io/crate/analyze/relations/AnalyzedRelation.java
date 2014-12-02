@@ -21,17 +21,21 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.Field;
 
-import java.util.Map;
+import javax.annotation.Nullable;
+import java.util.List;
 
 public interface AnalyzedRelation {
 
     public <C, R> R accept(RelationVisitor<C, R> visitor, C context);
 
-    public Reference getReference(ColumnIdent columnIdent, boolean forWrite);
+    @Nullable
+    public Field getField(ColumnIdent path); // TODO: change ColumnIdent to Path
 
-    public Map<String, Symbol> outputs();
+    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException, ColumnUnknownException;
+
+    public List<Field> fields();
 }

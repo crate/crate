@@ -21,25 +21,43 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.table.TableInfo;
+import io.crate.types.DataType;
+
+import java.util.List;
 
 public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedStatement {
 
-    private final AnalyzedRelation subQueryAnalysis;
+    private final AnalyzedRelation subQueryRelation;
 
-    public InsertFromSubQueryAnalyzedStatement(ReferenceInfos referenceInfos,
-                                               Functions functions,
-                                               ParameterContext parameterContext,
-                                               ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameterContext, referenceResolver);
-        this.subQueryAnalysis = new SelectAnalyzedStatement(referenceInfos, functions, parameterContext, referenceResolver);
+    public InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation, TableInfo targetTableInfo) {
+        tableInfo(targetTableInfo);
+        this.subQueryRelation = subQueryRelation;
     }
 
     public AnalyzedRelation subQueryRelation() {
-        return this.subQueryAnalysis;
+        return this.subQueryRelation;
+    }
+
+    @Override
+    public boolean hasNoResult() {
+        return false;
+    }
+
+    @Override
+    public void normalize() {
+    }
+
+    @Override
+    public List<String> outputNames() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<DataType> outputTypes() {
+        return ImmutableList.of();
     }
 
     @Override

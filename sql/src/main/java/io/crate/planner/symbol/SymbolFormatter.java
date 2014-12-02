@@ -95,8 +95,8 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
     }
 
     @Override
-    public String visitRelationOutput(RelationOutput relationOutput, Void context) {
-        return process(relationOutput.target(), context);
+    public String visitField(Field field, Void context) {
+        return process(field.target(), context);
     }
 
     @Override

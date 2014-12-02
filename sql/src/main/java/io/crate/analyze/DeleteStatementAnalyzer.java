@@ -70,7 +70,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     public AnalyzedStatement visitDelete(Delete node, Void context) {
         int numNested = 1;
 
-        RelationAnalyzer relationAnalyzer = new RelationAnalyzer(analysisMetaData);
+        RelationAnalyzer relationAnalyzer = new RelationAnalyzer(analysisMetaData, parameterContext);
         RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext();
 
         AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.getRelation(), relationAnalysisContext);
@@ -81,7 +81,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(parameterContext, analyzedRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
-                new ExpressionAnalyzer(analysisMetaData, parameterContext, relationAnalysisContext.sources(), false),
+                new ExpressionAnalyzer(analysisMetaData, parameterContext, relationAnalysisContext.sources()),
                 new ExpressionAnalysisContext(),
                 deleteAnalyzedStatement
         );
@@ -93,6 +93,10 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             parameterContext.setBulkIdx(i);
             innerAnalyzer.process(node, innerAnalysisContext);
         }
+        if (innerAnalysisContext.expressionAnalysisContext.hasSysExpressions) {
+            throw new UnsupportedOperationException("Cannot use sys expressions in DELETE statements");
+        }
+
         return deleteAnalyzedStatement;
     }
 }

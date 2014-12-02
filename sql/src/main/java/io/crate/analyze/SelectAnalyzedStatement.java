@@ -21,49 +21,72 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
-import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
+import io.crate.planner.symbol.*;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
-public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement implements AnalyzedRelation {
+public class SelectAnalyzedStatement extends AnalyzedStatement implements AnalyzedRelation {
 
-    private Integer limit;
-    private int offset = 0;
-    private List<Symbol> groupBy;
-    protected boolean selectFromFieldCache = false;
+    private final List<Symbol> groupBy;
+    private final OrderBy orderBy;
+    private final Symbol having;
+    private final Map<QualifiedName, AnalyzedRelation> sources;
+    private final List<Field> fields;
+    private final List<String> outputNames;
+    private final List<Symbol> outputSymbols;
+    private WhereClause whereClause;
+    private final Integer limit;
+    private final int offset;
+    private boolean hasSysExpressions;
+    private boolean hasAggregates;
 
-    private Symbol havingClause;
+    public SelectAnalyzedStatement(List<String> outputNames,
+                                   List<Symbol> outputSymbols,
+                                   Map<QualifiedName, AnalyzedRelation> sources,
+                                   WhereClause whereClause,
+                                   List<Symbol> groupBy,
+                                   OrderBy orderBy,
+                                   Symbol having,
+                                   Integer limit,
+                                   int offset,
+                                   boolean hasSysExpressions,
+                                   boolean hasAggregates) {
+        super(null);
+        this.outputNames = outputNames;
+        this.outputSymbols = outputSymbols;
+        this.sources = sources;
+        this.whereClause = whereClause;
+        this.groupBy = groupBy;
+        this.orderBy = orderBy;
+        this.having = having;
+        this.limit = limit;
+        this.offset = offset;
+        this.hasSysExpressions = hasSysExpressions;
+        this.hasAggregates = hasAggregates;
 
-    private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
-    private OrderBy orderBy;
-
-    public SelectAnalyzedStatement(ReferenceInfos referenceInfos, Functions functions,
-                                   ParameterContext parameterContext, ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameterContext, referenceResolver);
+        assert outputNames.size() == outputSymbols.size() : "size of outputNames and outputSymbols must match";
+        fields = new ArrayList<>(outputNames.size());
+        for (int i = 0; i < outputNames.size(); i++) {
+            fields.add(new Field(this, outputNames.get(i), outputSymbols.get(i)));
+        }
     }
 
-    public void limit(Integer limit) {
-        this.limit = limit;
+    public Map<QualifiedName, AnalyzedRelation> sources() {
+        return sources;
+    }
+
+    public WhereClause whereClause() {
+        return whereClause;
     }
 
     public Integer limit() {
@@ -78,13 +101,6 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement imple
         return limit != null || offset > 0;
     }
 
-    public void groupBy(List<Symbol> groupBy) {
-        if (groupBy != null && groupBy.size() > 0) {
-            sysExpressionsAllowed = true;
-        }
-        this.groupBy = groupBy;
-    }
-
     @Nullable
     public List<Symbol> groupBy() {
         return groupBy;
@@ -96,17 +112,13 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement imple
 
     @Nullable
     public Symbol havingClause() {
-        return havingClause;
-    }
-
-    public void havingClause(Symbol clause) {
-        this.havingClause = normalizer.process(clause, null);
+        return having;
     }
 
     @Override
     public boolean hasNoResult() {
-        if (havingClause != null && havingClause.symbolType() == SymbolType.LITERAL) {
-            Literal havingLiteral = (Literal)havingClause;
+        if (having != null && having.symbolType() == SymbolType.LITERAL) {
+            Literal havingLiteral = (Literal) having;
             if (havingLiteral.value() == false) {
                 return true;
             }
@@ -115,7 +127,7 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement imple
         if (globalAggregate()) {
             return firstNonNull(limit(), 1) < 1 || offset() > 0;
         }
-        return noMatch() || (limit() != null && limit() == 0);
+        return whereClause.noMatch() || limit != null && limit == 0;
     }
 
     private boolean globalAggregate() {
@@ -126,39 +138,15 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement imple
         return hasAggregates;
     }
 
-    public void offset(int offset) {
-        this.offset = offset;
-    }
-
-    public void addAlias(String alias, Symbol symbol) {
-        outputNames().add(alias);
-        aliasMap.put(alias, symbol);
-    }
-
-    @Nullable
-    public Symbol symbolFromAlias(String alias) {
-        Collection<Symbol> symbols = aliasMap.get(alias);
-        if (symbols.size() > 1) {
-            throw new AmbiguousColumnAliasException(alias);
-        }
-        if (symbols.isEmpty()) {
-            return null;
-        }
-
-        return symbols.iterator().next();
+    public void normalize(EvaluatingNormalizer normalizer) {
+        normalizer.normalizeInplace(groupBy);
+        orderBy.normalize(normalizer);
+        normalizer.normalizeInplace(outputSymbols);
+        whereClause = whereClause.normalize(normalizer);
     }
 
     @Override
     public void normalize() {
-        if (!sysExpressionsAllowed && hasSysExpressions) {
-            throw new UnsupportedOperationException("Selecting system columns from regular " +
-                    "tables is currently only supported by queries using group-by or " +
-                    "global aggregates.");
-        }
-
-        super.normalize();
-        normalizer.normalizeInplace(groupBy());
-        orderBy.normalize(normalizer);
     }
 
     @Override
@@ -166,8 +154,9 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement imple
         return analyzedStatementVisitor.visitSelectStatement(this, context);
     }
 
-    public void orderBy(OrderBy orderBy) {
-        this.orderBy = orderBy;
+    @Override
+    public boolean expectsAffectedRows() {
+        return false;
     }
 
     public OrderBy orderBy() {
@@ -180,19 +169,35 @@ public class SelectAnalyzedStatement extends AbstractDataAnalyzedStatement imple
     }
 
     @Override
-    public Reference getReference(ColumnIdent columnIdent, boolean forWrite) {
-        throw new UnsupportedOperationException("getReference on SelectAnalyzedStatement is not implemented");
+    public Field getField(ColumnIdent path) {
+        throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is not implemented");
     }
 
     @Override
-    public Map<String, Symbol> outputs() {
-        return Maps.transformValues(aliasMap.asMap(), new Function<Collection<Symbol>, Symbol>() {
-            @Nullable
-            @Override
-            public Symbol apply(@Nullable Collection<Symbol> input) {
-                assert input != null;
-                return Iterables.getOnlyElement(input);
-            }
-        });
+    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("SelectAnalyzedStatement is not writable");
+    }
+
+    @Override
+    public List<String> outputNames() {
+        return outputNames;
+    }
+
+    @Override
+    public List<DataType> outputTypes() {
+        return Symbols.extractTypes(outputSymbols);
+    }
+
+    public List<Symbol> outputSymbols() {
+        return outputSymbols;
+    }
+
+    @Override
+    public List<Field> fields() {
+        return fields;
+    }
+
+    public boolean hasSysExpressions() {
+        return hasSysExpressions;
     }
 }

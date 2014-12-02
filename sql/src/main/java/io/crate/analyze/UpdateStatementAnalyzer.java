@@ -44,7 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.planner.symbol.RelationOutput.unwrap;
+import static io.crate.planner.symbol.Field.unwrap;
 
 public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Void> {
 
@@ -67,7 +67,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
     @Override
     public AnalyzedStatement visitUpdate(Update node, Void context) {
-        RelationAnalyzer relationAnalyzer = new RelationAnalyzer(analysisMetaData);
+        RelationAnalyzer relationAnalyzer = new RelationAnalyzer(analysisMetaData, parameterContext);
         RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext();
 
         AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.relation(), relationAnalysisContext);
@@ -79,7 +79,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         TableInfo tableInfo = ((TableRelation) analyzedRelation).tableInfo();
 
         ExpressionAnalyzer expressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, parameterContext, relationAnalysisContext.sources(), true);
+                new ExpressionAnalyzer(analysisMetaData, parameterContext, relationAnalysisContext.sources());
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;
@@ -103,6 +103,9 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             }
             nestedAnalyzedStatements.add(nestedAnalyzedStatement);
         }
+        if (expressionAnalysisContext.hasSysExpressions) {
+            throw new UnsupportedOperationException("Cannot use sys expressions in UPDATE statements");
+        }
 
         return new UpdateAnalyzedStatement(analyzedRelation, nestedAnalyzedStatements);
     }
@@ -112,9 +115,12 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                                   TableInfo tableInfo,
                                   ExpressionAnalyzer expressionAnalyzer,
                                   ExpressionAnalysisContext expressionAnalysisContext) {
+        expressionAnalyzer.resolveWritableFields(true);
         // unknown columns in strict objects handled in here
         Reference reference = (Reference) expressionAnalyzer.normalize(
                 unwrap(expressionAnalyzer.convert(node.columnName(), expressionAnalysisContext)));
+
+        expressionAnalyzer.resolveWritableFields(false);
         final ColumnIdent ident = reference.info().ident().columnIdent();
         if (ident.name().startsWith("_")) {
             throw new IllegalArgumentException("Updating system columns is not allowed");

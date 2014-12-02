@@ -21,34 +21,37 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.Functions;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
+import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationVisitor;
+import io.crate.metadata.*;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Field;
+import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.Table;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
+
 import static io.crate.testing.TestingHelpers.assertLiteralSymbol;
 
 public class ReferenceToTrueVisitorTest {
 
     private ReferenceToTrueVisitor visitor;
-    private EvaluatingNormalizer normalizer;
-    private SelectAnalyzedStatement selectAnalysis;
-    private SelectStatementAnalyzer analyzer;
+    private ExpressionAnalyzer expressionAnalyzer;
+    private ExpressionAnalysisContext expressionAnalysisContext;
 
     @Before
     public void setUp() throws Exception {
@@ -59,22 +62,48 @@ public class ReferenceToTrueVisitorTest {
             .add(new ScalarFunctionModule())
             .add(new PredicateModule()).createInjector();
         visitor = new ReferenceToTrueVisitor();
-        Functions functions = injector.getInstance(Functions.class);
-        ReferenceResolver referenceResolver = injector.getInstance(ReferenceResolver.class);
-        ReferenceInfos referenceInfos = injector.getInstance(ReferenceInfos.class);
-        normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
-        analyzer = new SelectStatementAnalyzer(
-            referenceInfos,
-            functions,
-            referenceResolver
+        expressionAnalyzer = new ExpressionAnalyzer(
+                injector.getInstance(AnalysisMetaData.class),
+                new ParameterContext(new Object[0], new Object[0][]),
+                ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("dummy"), new DummyRelation())
         );
-        selectAnalysis = (SelectAnalyzedStatement) analyzer.newAnalysis(
-            new ParameterContext(new Object[0], new Object[0][]));
+        expressionAnalysisContext = new ExpressionAnalysisContext();
+    }
+
+    private Symbol convert(Symbol symbol) {
+        return expressionAnalyzer.normalize(visitor.process(symbol, null));
+    }
+
+    /**
+     * relation that will return a Reference with Doc granularity / String type for all columns
+     */
+    private static class DummyRelation implements AnalyzedRelation {
+
+        @Override
+        public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+            return null;
+        }
+
+        @Override
+        public Field getField(ColumnIdent columnIdent) {
+            return new Field(this, columnIdent.sqlFqn(),
+                    new Reference(new ReferenceInfo(new ReferenceIdent(
+                    new TableIdent("doc", "dummy"), columnIdent), RowGranularity.DOC, DataTypes.STRING)));
+        }
+
+        @Override
+        public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException {
+            return null;
+        }
+
+        @Override
+        public List<Field> fields() {
+            return null;
+        }
     }
 
     public Symbol fromSQL(String expression) {
-        analyzer.process(new Table(new QualifiedName(ImmutableList.of("information_schema", "tables"))), selectAnalysis);
-        return analyzer.process(SqlParser.createExpression(expression), selectAnalysis);
+        return expressionAnalyzer.convert(SqlParser.createExpression(expression), expressionAnalysisContext);
     }
 
     @Test
@@ -135,7 +164,4 @@ public class ReferenceToTrueVisitorTest {
         assertLiteralSymbol(symbol, null, DataTypes.BOOLEAN);
     }
 
-    public Symbol convert(Symbol symbol) {
-        return normalizer.normalize(visitor.process(symbol, null));
-    }
 }

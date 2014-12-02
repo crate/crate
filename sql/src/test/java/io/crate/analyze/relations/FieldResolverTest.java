@@ -33,10 +33,8 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.DynamicReference;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.RelationOutput;
-import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
@@ -55,7 +53,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class RelationOutputResolverTest {
+public class FieldResolverTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -78,18 +76,18 @@ public class RelationOutputResolverTest {
 
         SysSchemaInfo sysSchemaInfo = mock(SysSchemaInfo.class);
         when(sysSchemaInfo.getTableInfo(anyString())).thenReturn(null);
-        RelationOutputResolver resolver = new RelationOutputResolver(dummySources, sysSchemaInfo);
+        FieldResolver resolver = new FieldResolver(dummySources, sysSchemaInfo);
 
-        resolver.getRelationOutput(newQN("sys.foo.name"), false);
+        resolver.resolveField(newQN("sys.foo.name"), false);
     }
 
     @Test
     public void testInvalidSources() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         AnalyzedRelation relation = new DummyRelation(newTI("dummy.t"), "name");
-        RelationOutputResolver resolver = new RelationOutputResolver(
+        FieldResolver resolver = new FieldResolver(
                 ImmutableMap.of(newQN("too.many.parts"), relation), null);
-        resolver.getRelationOutput(newQN("name"), false);
+        resolver.resolveField(newQN("name"), false);
     }
 
     @Test
@@ -101,22 +99,22 @@ public class RelationOutputResolverTest {
         when(sysSchemaInfo.getTableInfo(anyString())).thenReturn(tableInfo);
         when(tableInfo.getReferenceInfo(Matchers.<ColumnIdent>anyObject())).thenReturn(null);
 
-        RelationOutputResolver resolver = new RelationOutputResolver(dummySources, sysSchemaInfo);
-        resolver.getRelationOutput(newQN("sys.nodes.unknown"), false);
+        FieldResolver resolver = new FieldResolver(dummySources, sysSchemaInfo);
+        resolver.resolveField(newQN("sys.nodes.unknown"), false);
     }
 
     @Test
     public void testUnknownSchema() throws Exception {
         expectedException.expect(SchemaUnknownException.class);
-        RelationOutputResolver resolver = new RelationOutputResolver(dummySources, null);
-        resolver.getRelationOutput(newQN("invalid.table.name"), false);
+        FieldResolver resolver = new FieldResolver(dummySources, null);
+        resolver.resolveField(newQN("invalid.table.name"), false);
     }
 
     @Test
     public void testUnknownTable() throws Exception {
         expectedException.expect(TableUnknownException.class);
-        RelationOutputResolver resolver = new RelationOutputResolver(dummySources, null);
-        resolver.getRelationOutput(newQN("dummy.invalid.name"), false);
+        FieldResolver resolver = new FieldResolver(dummySources, null);
+        resolver.resolveField(newQN("dummy.invalid.name"), false);
     }
 
     @Test
@@ -127,71 +125,72 @@ public class RelationOutputResolverTest {
         when(tableInfo.getReferenceInfo(Matchers.<ColumnIdent>anyObject())).thenReturn(new ReferenceInfo(
                 new ReferenceIdent(newTI("sys.nodes"), "name"), RowGranularity.NODE, DataTypes.STRING));
 
-        RelationOutputResolver resolver = new RelationOutputResolver(dummySources, sysSchemaInfo);
+        FieldResolver resolver = new FieldResolver(dummySources, sysSchemaInfo);
 
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("sys.nodes.name"), false);
-        assertThat(relationOutput.target(), isReference("name"));
-        assertThat(relationOutput.relation(), instanceOf(TableRelation.class));
+        Field field = resolver.resolveField(newQN("sys.nodes.name"), false);
+        assertThat(field.target(), isReference("name"));
+        assertThat(field.relation(), instanceOf(TableRelation.class));
     }
 
     @Test
     public void testRegularColumnUnknown() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        RelationOutputResolver resolver = new RelationOutputResolver(dummySources, null);
-        resolver.getRelationOutput(newQN("age"), false);
+        FieldResolver resolver = new FieldResolver(dummySources, null);
+        resolver.resolveField(newQN("age"), false);
     }
 
     @Test
     public void testResolveDynamicReference() throws Exception {
-        AnalyzedRelation barT = new DummyRelation(newTI("bar.t"), "name", "age");
-        RelationOutputResolver resolver = new RelationOutputResolver(ImmutableMap.of(newQN("bar.t"), barT), null);
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("t.age"), false);
-        assertThat(relationOutput.target(), instanceOf(DynamicReference.class));
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column 'age' unknown");
+        AnalyzedRelation barT = new DummyRelation(newTI("bar.t"), "name");
+        FieldResolver resolver = new FieldResolver(ImmutableMap.of(newQN("bar.t"), barT), null);
+        resolver.resolveField(newQN("t.age"), false);
     }
 
     @Test
     public void testMultipleSourcesWithDynamicReferenceAndReference() throws Exception {
         AnalyzedRelation barT = new DummyRelation(newTI("bar.t"), "name");
-        AnalyzedRelation fooT = new DummyRelation(newTI("foo.t"), "name", "tags");
-        AnalyzedRelation fooA = new DummyRelation(newTI("foo.a"), "name", "tags");
+        AnalyzedRelation fooT = new DummyRelation(newTI("foo.t"), "name");
+        AnalyzedRelation fooA = new DummyRelation(newTI("foo.a"), "name");
         AnalyzedRelation customT = new DummyRelation(newTI("custom.t"), "tags");
 
-        RelationOutputResolver resolver = new RelationOutputResolver(ImmutableMap.of(
+        FieldResolver resolver = new FieldResolver(ImmutableMap.of(
                 newQN("bar.t"), barT,
                 newQN("foo.t"), fooT,
                 newQN("foo.a"), fooA,
                 newQN("custom.t"), customT), null);
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("foo.t.name"), false);
-        assertThat(relationOutput.relation(), equalTo(fooT));
+        Field field = resolver.resolveField(newQN("foo.t.name"), false);
+        assertThat(field.relation(), equalTo(fooT));
 
         // reference > dynamicReference - not ambiguous
-        RelationOutput tags = resolver.getRelationOutput(newQN("tags"), false);
+        Field tags = resolver.resolveField(newQN("tags"), false);
         assertThat(tags.relation(), equalTo(customT));
 
-        relationOutput = resolver.getRelationOutput(newQN("a.name"), false);
-        assertThat(relationOutput.relation(), equalTo(fooA));
+        field = resolver.resolveField(newQN("a.name"), false);
+        assertThat(field.relation(), equalTo(fooA));
     }
 
     @Test
     public void testRelationOutputFromAlias() throws Exception {
         // t.name from doc.foo t
         AnalyzedRelation relation = new DummyRelation(newTI("doc.foo"), "name");
-        RelationOutputResolver resolver = new RelationOutputResolver(ImmutableMap.of(
+        FieldResolver resolver = new FieldResolver(ImmutableMap.of(
                 new QualifiedName(Arrays.asList("t")), relation),
                 null);
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("t.name"), false);
-        assertThat(relationOutput.relation(), equalTo(relation));
-        assertThat(relationOutput.target(), isReference("name"));
+        Field field = resolver.resolveField(newQN("t.name"), false);
+        assertThat(field.relation(), equalTo(relation));
+        assertThat(field.target(), isReference("name"));
     }
 
     @Test
     public void testRelationOutputFromSingleColumnName() throws Exception {
         // select name from t
         AnalyzedRelation relation = new DummyRelation(newTI("doc.t"), "name");
-        RelationOutputResolver resolver = new RelationOutputResolver(ImmutableMap.of(newQN("doc.t"), relation), null);
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("name"), false);
-        assertThat(relationOutput.relation(), equalTo(relation));
-        assertThat(relationOutput.target(), isReference("name"));
+        FieldResolver resolver = new FieldResolver(ImmutableMap.of(newQN("doc.t"), relation), null);
+        Field field = resolver.resolveField(newQN("name"), false);
+        assertThat(field.relation(), equalTo(relation));
+        assertThat(field.target(), isReference("name"));
     }
 
     @Test
@@ -199,17 +198,17 @@ public class RelationOutputResolverTest {
         // doc.t.name from t.name
 
         AnalyzedRelation relation = new DummyRelation(newTI("doc.t"), "name");
-        RelationOutputResolver resolver = new RelationOutputResolver(ImmutableMap.of(newQN("doc.t"), relation), null);
-        RelationOutput relationOutput = resolver.getRelationOutput(newQN("doc.t.name"), false);
-        assertThat(relationOutput.relation(), equalTo(relation));
-        assertThat(relationOutput.target(), isReference("name"));
+        FieldResolver resolver = new FieldResolver(ImmutableMap.of(newQN("doc.t"), relation), null);
+        Field field = resolver.resolveField(newQN("doc.t.name"), false);
+        assertThat(field.relation(), equalTo(relation));
+        assertThat(field.target(), isReference("name"));
     }
 
     @Test
     public void testTooManyParts() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        RelationOutputResolver resolver = new RelationOutputResolver(dummySources, null);
-        resolver.getRelationOutput(new QualifiedName(Arrays.asList("a", "b", "c", "d")), false);
+        FieldResolver resolver = new FieldResolver(dummySources, null);
+        resolver.resolveField(new QualifiedName(Arrays.asList("a", "b", "c", "d")), false);
     }
 
     @Test
@@ -218,27 +217,20 @@ public class RelationOutputResolverTest {
         expectedException.expect(AmbiguousColumnException.class);
         expectedException.expectMessage("Column \"name\" is ambiguous");
 
-        RelationOutputResolver resolver = new RelationOutputResolver(
+        FieldResolver resolver = new FieldResolver(
                 ImmutableMap.<QualifiedName, AnalyzedRelation>of(
                         new QualifiedName(Arrays.asList("custom", "t")), new DummyRelation(new TableIdent("custom", "t"), "name"),
                         new QualifiedName(Arrays.asList("doc", "t")), new DummyRelation(new TableIdent("doc", "t"), "name")),
                 new SysSchemaInfo(mock(ClusterService.class))
         );
-        resolver.getRelationOutput(new QualifiedName(Arrays.asList("t", "name")), false);
+        resolver.resolveField(new QualifiedName(Arrays.asList("t", "name")), false);
     }
 
 
     private static class DummyRelation implements AnalyzedRelation {
 
         private final Set<String> supportedReference = new HashSet<>();
-        private final Set<String> supportedDynamicReference = new HashSet<>();
         private final TableIdent tableIdent;
-
-        public DummyRelation(TableIdent tableIdent, String referenceName, String dynamicReferenceName) {
-            this.tableIdent = tableIdent;
-            supportedReference.add(referenceName);
-            supportedDynamicReference.add(dynamicReferenceName);
-        }
 
         public DummyRelation(TableIdent tableIdent, String referenceName) {
             this.tableIdent = tableIdent;
@@ -251,19 +243,21 @@ public class RelationOutputResolverTest {
         }
 
         @Override
-        public Reference getReference(ColumnIdent columnIdent, boolean forWrite) {
+        public Field getField(ColumnIdent columnIdent) {
             if (supportedReference.contains(columnIdent.name())) {
-                return new Reference(new ReferenceInfo(
-                        new ReferenceIdent(tableIdent, columnIdent), RowGranularity.DOC, DataTypes.STRING));
-            }
-            if (supportedDynamicReference.contains(columnIdent.name())) {
-                return new DynamicReference(new ReferenceIdent(tableIdent, columnIdent), RowGranularity.DOC);
+                return new Field(this, columnIdent.sqlFqn(), new Reference(new ReferenceInfo(
+                        new ReferenceIdent(tableIdent, columnIdent), RowGranularity.DOC, DataTypes.STRING)));
             }
             return null;
         }
 
         @Override
-        public Map<String, Symbol> outputs() {
+        public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException {
+            return null;
+        }
+
+        @Override
+        public List<Field> fields() {
             return null;
         }
     }

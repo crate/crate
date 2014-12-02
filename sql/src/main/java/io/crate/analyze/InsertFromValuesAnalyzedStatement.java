@@ -22,7 +22,9 @@
 package io.crate.analyze;
 
 import io.crate.PartitionName;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -38,20 +40,17 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
     private final List<BytesReference> sourceMaps = new ArrayList<>();
     private final List<Map<String, String>> partitionMaps = new ArrayList<>();
 
-    public InsertFromValuesAnalyzedStatement(ReferenceInfos referenceInfos,
-                                             Functions functions,
-                                             ParameterContext parameterContext,
-                                             ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameterContext, referenceResolver);
-    }
+    private final List<String> ids = new ArrayList<>();
+    private final List<String> routingValues = new ArrayList<>();
+    private final boolean isBulkRequest;
 
-    @Override
-    public void editableTable(TableIdent tableIdent) {
-        super.editableTable(tableIdent);
-        if (table().isPartitioned()) {
+    public InsertFromValuesAnalyzedStatement(TableInfo tableInfo, boolean isBulkRequest) {
+        this.isBulkRequest = isBulkRequest;
+        super.tableInfo(tableInfo);
+        if (tableInfo.isPartitioned()) {
             for (Map<String, String> partitionMap : partitionMaps) {
-                partitionMap = new HashMap<>(table().partitionedByColumns().size());
-                for (ReferenceInfo partInfo : table().partitionedByColumns()) {
+                partitionMap = new HashMap<>(tableInfo.partitionedByColumns().size());
+                for (ReferenceInfo partInfo : tableInfo.partitionedByColumns()) {
                     // initialize with null values for missing partitioned columns
                     partitionMap.put(partInfo.ident().columnIdent().name(), null);
                 }
@@ -65,8 +64,8 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
 
     // create and add a new partition map
     public Map<String, String> newPartitionMap() {
-        Map<String, String> map = new HashMap<>(table().partitionedByColumns().size());
-        for (ReferenceInfo partInfo : table().partitionedByColumns()) {
+        Map<String, String> map = new HashMap<>(tableInfo().partitionedByColumns().size());
+        for (ReferenceInfo partInfo : tableInfo().partitionedByColumns()) {
             // initialize with null values for missing partitioned columns
             map.put(partInfo.ident().columnIdent().fqn(), null);
         }
@@ -86,10 +85,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
             for (String columnName : columnNames) {
                 values.add(BytesRefs.toBytesRef(map.get(columnName)));
             }
-            PartitionName partitionName = new PartitionName(
-                table().ident().name(),
-                values
-            );
+            PartitionName partitionName = new PartitionName(tableInfo().ident().name(), values);
             partitionValues.add(partitionName.stringValue());
         }
         return partitionValues;
@@ -99,13 +95,45 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         return sourceMaps;
     }
 
+    protected void addIdAndRouting(List<BytesRef> primaryKeyValues, String clusteredByValue) {
+        ColumnIdent clusteredBy = tableInfo().clusteredBy();
+        Id id = new Id(tableInfo().primaryKey(), primaryKeyValues, clusteredBy == null ? null : clusteredBy, true);
+        if (id.isValid()) {
+            String idString = id.stringValue();
+            ids.add(idString);
+            if (clusteredByValue == null) {
+                clusteredByValue = idString;
+            }
+        }
+        if (clusteredByValue != null) {
+            routingValues.add(clusteredByValue);
+        }
+    }
+
+    public List<String> ids() {
+        return ids;
+    }
+
+    public List<String> routingValues() {
+        return routingValues;
+    }
+
     @Override
-    public void addIdAndRouting(List<BytesRef> primaryKeyValues, String clusteredByValue) {
-        addIdAndRouting(true, primaryKeyValues, clusteredByValue);
+    public boolean hasNoResult() {
+        return false;
+    }
+
+    @Override
+    public void normalize() {
+
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitInsertFromValuesStatement(this, context);
+    }
+
+    public boolean isBulkRequest() {
+        return isBulkRequest;
     }
 }

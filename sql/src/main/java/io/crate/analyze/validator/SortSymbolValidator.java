@@ -21,12 +21,15 @@
 
 package io.crate.analyze.validator;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.*;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 
@@ -37,17 +40,17 @@ public class SortSymbolValidator {
 
     private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
 
-    public static void validate(Symbol symbol, List<ColumnIdent> partitionedByColumns) throws UnsupportedOperationException {
+    public static void validate(Symbol symbol, @Nullable List<ColumnIdent> partitionedByColumns) throws UnsupportedOperationException {
         INNER_VALIDATOR.process(symbol, new SortContext(partitionedByColumns));
     }
 
     static class SortContext {
 
+        private final List<ColumnIdent> partitionedByColumns;
         private boolean inFunction;
-        private List<ColumnIdent> partitionedByColumns;
 
         public SortContext(List<ColumnIdent> partitionedByColumns) {
-            this.partitionedByColumns = partitionedByColumns;
+            this.partitionedByColumns = MoreObjects.firstNonNull(partitionedByColumns, ImmutableList.<ColumnIdent>of());
             this.inFunction = false;
         }
     }
@@ -88,6 +91,7 @@ public class SortSymbolValidator {
                                 "cannot use partitioned column %s in ORDER BY clause",
                                 symbol));
             }
+
             // if we are in a function, we do not need to check the data type.
             // the function will do that for us.
             if (!context.inFunction && !DataTypes.PRIMITIVE_TYPES.contains(symbol.info().type())) {
@@ -107,6 +111,11 @@ public class SortSymbolValidator {
                                 SymbolFormatter.format(symbol)));
             }
             return null;
+        }
+
+        @Override
+        public Void visitField(Field field, SortContext context) {
+            return process(field.target(), context);
         }
 
         @Override
