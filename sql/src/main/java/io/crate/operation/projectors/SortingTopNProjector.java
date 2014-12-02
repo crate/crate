@@ -58,10 +58,6 @@ public class SortingTopNProjector implements Projector, ResultProvider {
             }
             return false;
         }
-
-        public Object[] result() {
-            return getHeapArray();
-        }
     }
 
     static class ColOrdering extends Ordering<Object[]> {
@@ -229,10 +225,5 @@ public class SortingTopNProjector implements Projector, ResultProvider {
     public void downstream(Projector downstream) {
         throw new UnsupportedOperationException(
                 "SortingTopNProjector is a ResultProvider. Doesn't support downstreams");
-    }
-
-    @Override
-    public Projector downstream() {
-        return null;
     }
 }

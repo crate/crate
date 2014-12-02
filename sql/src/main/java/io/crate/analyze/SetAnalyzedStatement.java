@@ -60,10 +60,6 @@ public class SetAnalyzedStatement extends AnalyzedStatement {
         return persistent;
     }
 
-    public boolean isTransient() {
-        return !persistent;
-    }
-
     public boolean isReset() {
         return isReset;
     }

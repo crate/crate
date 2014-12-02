@@ -186,7 +186,7 @@ public class AnalyzedTableElements {
         for (Map.Entry<String, Set<String>> entry : copyToMap.entrySet()) {
             ColumnIdent columnIdent = ColumnIdent.fromPath(entry.getKey());
             if (!columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.sqlFqn());
+                throw new ColumnUnknownException(columnIdent.fqn());
             }
             if (!columnTypes.get(columnIdent).equalsIgnoreCase("string")) {
                 throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
@@ -268,7 +268,7 @@ public class AnalyzedTableElements {
             if (skipIfNotFound) {
                 return;
             }
-            throw new ColumnUnknownException(partitionedByIdent.sqlFqn());
+            throw new ColumnUnknownException(partitionedByIdent.fqn());
         }
         if (columnDefinition.dataType().equals("object")) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,

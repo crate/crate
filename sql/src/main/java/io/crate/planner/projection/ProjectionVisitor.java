@@ -24,18 +24,10 @@ package io.crate.planner.projection;
 
 import org.elasticsearch.common.Nullable;
 
-import java.util.Collection;
-
 public class ProjectionVisitor<C, R> {
 
     public R process(Projection projection, @Nullable C context) {
         return projection.accept(this, context);
-    }
-
-    public void process(Collection<Projection> projections, C context) {
-        for (Projection s : projections) {
-            process(s, context);
-        }
     }
 
     protected R visitProjection(Projection projection, C context) {

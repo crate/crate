@@ -125,7 +125,6 @@ public class InternalUpdateFacet extends InternalFacet implements UpdateFacet {
         return facet;
     }
 
-    @Override
     public void reduce() {
         // Currently only the rowcount gets accumulated
         for (Facet facet : reduceContext.facets()) {
@@ -133,10 +132,6 @@ public class InternalUpdateFacet extends InternalFacet implements UpdateFacet {
                 rowCount += ((InternalUpdateFacet) facet).rowCount();
             }
         }
-    }
-
-    public Object[][] rows() {
-        return rows;
     }
 
     public long rowCount() {

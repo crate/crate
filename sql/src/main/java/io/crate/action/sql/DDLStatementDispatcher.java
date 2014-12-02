@@ -194,7 +194,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
     }
 
     private void addColumnToTable(AddColumnAnalyzedStatement analysis, final SettableFuture<Long> result) {
-        boolean updateTemplate = analysis.table().isPartitioned() && !analysis.partitionName().isPresent();
+        boolean updateTemplate = analysis.table().isPartitioned();
         final AtomicInteger operations = new AtomicInteger(updateTemplate ? 2 : 1);
         final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
 
@@ -211,7 +211,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
         // need to merge the _meta part of the mapping mapping before-hand because ES doesn't
         // update the _meta column recursively. Instead it is overwritten and therefore partitioned by
         // and collection_type information would be lost.
-        String[] indexNames = getIndexNames(analysis.table(), analysis.partitionName().orNull());
+        String[] indexNames = getIndexNames(analysis.table(), null);
         if (indexNames.length == 0) {
             // if there are no indices yet we can return because we don't need to update existing mapping
             if (operations.decrementAndGet() == 0) {

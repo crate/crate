@@ -27,25 +27,16 @@ public class TableAlreadyExistsException extends ConflictException {
 
     private static final String MESSAGE_TMPL = "The table '%s' already exists.";
 
-    String tableName;
-
     public TableAlreadyExistsException(String tableName) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableName));
-        this.tableName = tableName;
     }
 
     public TableAlreadyExistsException(String tableName, Throwable e) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableName), e);
-        this.tableName = tableName;
     }
 
     @Override
     public int errorCode() {
         return 3;
-    }
-
-    @Override
-    public Object[] args() {
-        return new Object[]{tableName};
     }
 }

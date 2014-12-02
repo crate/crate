@@ -22,7 +22,6 @@
 package io.crate.operation.reference.file;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.operation.collect.files.CollectorContext;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -31,7 +30,7 @@ import static org.junit.Assert.assertNull;
 public class LineContextTest {
     @Test
     public void testGet() throws Exception {
-        LineContext context = new LineContext(new CollectorContext());
+        LineContext context = new LineContext();
 
         String source = "{\"name\": \"foo\", \"details\": {\"age\": 43}}";
         context.rawSource(source.getBytes());

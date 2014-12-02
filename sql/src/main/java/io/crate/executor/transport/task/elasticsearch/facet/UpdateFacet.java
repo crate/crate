@@ -30,12 +30,4 @@ public interface UpdateFacet extends Facet {
      * The type of the facet.
      */
     public static final String TYPE = "update";
-
-    /**
-     * This is the "real" reduce hook for sql facets, where the sub-results of the shards are
-     * merged together based on the given statement.
-     */
-    public void reduce();
-
-
 }

@@ -45,6 +45,5 @@ public class ColumnExtractingLineExpression extends LineCollectorExpression<Obje
     @Override
     public void startCollect(CollectorContext context) {
         this.context = context.lineContext();
-        context.addPrefetchColumn(columnIdent);
     }
 }

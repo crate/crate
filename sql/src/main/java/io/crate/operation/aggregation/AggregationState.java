@@ -28,8 +28,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
-import java.util.Set;
-
 /**
  * State of a aggregation function
  *
@@ -58,14 +56,6 @@ public abstract class AggregationState<T extends AggregationState> implements Co
      */
     public void terminatePartial() {
         // noop;
-    }
-
-
-    /**
-     * can be used to get a reference to a set of unique values
-     * the set is managed by the aggStates encapsulating GroupByRow
-     */
-    public void setSeenValuesRef(Set<Object> seenValues) {
     }
 
     protected void addEstimatedSize(long size) throws CircuitBreakingException {

@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.task.AsyncChainedTask;
 import io.crate.planner.node.dml.ESUpdateNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.update.TransportUpdateAction;
@@ -32,7 +33,7 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
-public class ESUpdateByIdTask extends AbstractESUpdateTask {
+public class ESUpdateByIdTask extends AsyncChainedTask {
 
     private final TransportUpdateAction transport;
     private final ActionListener<UpdateResponse> listener;
@@ -67,7 +68,6 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
     }
 
     public ESUpdateByIdTask(TransportUpdateAction transport, ESUpdateNode node) {
-        super(node);
         this.transport = transport;
 
         assert node.ids().size() == 1;

@@ -203,11 +203,6 @@ public class WriterProjector implements Projector {
         downstream.registerUpstream(this);
     }
 
-    @Override
-    public Projector downstream() {
-        return downstream;
-    }
-
 
     interface RowWriter {
         void write(Object[] row);

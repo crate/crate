@@ -22,8 +22,6 @@
 package io.crate.operation.reference.doc.lucene;
 
 
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.search.lookup.SourceLookup;
 
@@ -52,10 +50,6 @@ public class ObjectColumnReference extends ColumnReferenceCollectorExpression<Ma
         sourceLookup = context.searchContext().lookup().source();
     }
 
-    @Override
-    public DataType returnType() {
-        return DataTypes.OBJECT;
-    }
 
     @Override
     public Map<String, Object> value() {

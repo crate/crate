@@ -22,13 +22,11 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.operation.collect.LuceneDocCollector;
-import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.search.internal.SearchContext;
 
 public class CollectorContext {
 
     private SearchContext searchContext;
-    private CacheRecycler cacheRecycler;
     private LuceneDocCollector.CollectorFieldsVisitor fieldsVisitor;
 
     public CollectorContext() {
@@ -40,18 +38,6 @@ public class CollectorContext {
 
     public CollectorContext searchContext(SearchContext searchContext) {
         this.searchContext = searchContext;
-        if (searchContext().cacheRecycler()!=null){
-            this.cacheRecycler(searchContext.cacheRecycler());
-        }
-        return this;
-    }
-
-    public CacheRecycler cacheRecycler() {
-        return cacheRecycler;
-    }
-
-    public CollectorContext cacheRecycler(CacheRecycler cacheRecycler) {
-        this.cacheRecycler = cacheRecycler;
         return this;
     }
 

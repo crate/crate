@@ -31,8 +31,4 @@ public class SQLParseSourceException extends ElasticsearchException {
     public SQLParseSourceException(SQLXContentSourceContext context, String msg) {
         super("Parse Failure [" + msg + "]");
     }
-
-    public SQLParseSourceException(SQLXContentSourceContext context, String msg, Throwable cause) {
-        super("Parse Failure [" + msg + "]", cause);
-    }
 }

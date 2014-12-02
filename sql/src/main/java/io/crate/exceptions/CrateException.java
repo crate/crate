@@ -24,7 +24,4 @@ package io.crate.exceptions;
 public interface CrateException {
 
     public int errorCode();
-
-    public Object[] args();
-
 }

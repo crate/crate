@@ -139,10 +139,5 @@ public class SystemCollectService implements CollectService {
             downstream.registerUpstream(this);
             this.downstream = downstream;
         }
-
-        @Override
-        public Projector downstream() {
-            return downstream;
-        }
     }
 }

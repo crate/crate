@@ -63,32 +63,9 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
             return this;
         }
 
-        public ReferenceIdent ident() {
-            return ident;
-        }
-
         public Builder columnPolicy(ColumnPolicy columnPolicy) {
             this.columnPolicy = columnPolicy;
             return this;
-        }
-
-        public Builder columnPolicy(boolean dynamic, boolean strict) {
-            if (dynamic) {
-                this.columnPolicy = ColumnPolicy.DYNAMIC;
-            } else if (!strict) {
-                this.columnPolicy = ColumnPolicy.IGNORED;
-            } else {
-                this.columnPolicy = ColumnPolicy.STRICT;
-            }
-            return this;
-        }
-
-        public void indexType(IndexType indexType) {
-            this.indexType = indexType;
-        }
-
-        public IndexType indexType() {
-            return indexType;
         }
 
         public ReferenceInfo build() {

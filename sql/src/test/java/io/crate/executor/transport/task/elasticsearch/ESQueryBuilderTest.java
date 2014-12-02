@@ -93,9 +93,6 @@ public class ESQueryBuilderTest {
     static final Reference tagsField = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "tags"), RowGranularity.DOC, new ArrayType(DataTypes.STRING)
     ));
-    static final Reference objectField = new Reference(new ReferenceInfo(
-            new ReferenceIdent(characters, "object_field"), RowGranularity.DOC, DataTypes.OBJECT
-    ));
     static final Reference nestedField = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "object_field", Arrays.asList("nested")), RowGranularity.DOC, DataTypes.STRING
     ));

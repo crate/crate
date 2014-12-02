@@ -94,10 +94,6 @@ public class TransportCollectNodeAction {
         new AsyncAction(targetNode, request, listener).start();
     }
 
-    protected String executor() {
-        return ThreadPool.Names.SEARCH;
-    }
-
     private void nodeOperation(final NodeCollectRequest request,
                                final ActionListener<NodeCollectResponse> collectResponse) {
         final CollectNode node = request.collectNode();

@@ -22,40 +22,17 @@
 package io.crate.exceptions;
 
 public class ColumnUnknownException extends ResourceUnknownException {
-    private final String tableName;
-    private final String columnName;
 
     public ColumnUnknownException(String columnName) {
         super(String.format("Column '%s' unknown", columnName));
-        this.tableName = null;
-        this.columnName = columnName;
     }
 
     public ColumnUnknownException(String columnName, Throwable e) {
         super(String.format("Column '%s' unknown", columnName), e);
-        this.tableName = null;
-        this.columnName = columnName;
-    }
-
-    public ColumnUnknownException(String tableName, String columnName) {
-        super(String.format("Column '%s' unknown", columnName));
-        this.tableName = tableName;
-        this.columnName = columnName;
-    }
-
-    public ColumnUnknownException(String tableName, String columnName, Throwable e) {
-        super(String.format("Column '%s' unknown", columnName), e);
-        this.tableName = tableName;
-        this.columnName = columnName;
     }
 
     @Override
     public int errorCode() {
         return 3;
-    }
-
-    @Override
-    public Object[] args() {
-        return new Object[]{tableName, columnName};
     }
 }

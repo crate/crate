@@ -82,15 +82,6 @@ public class WriterProjection extends Projection {
         return RowGranularity.SHARD;
     }
 
-    public void outputNames(List<String> outputNames) {
-        this.outputNames = outputNames;
-    }
-
-    @Nullable
-    public List<String> outputNames() {
-        return outputNames;
-    }
-
     public Symbol uri() {
         return uri;
     }
@@ -228,7 +219,6 @@ public class WriterProjection extends Projection {
                 '}';
     }
 
-    @Override
     public WriterProjection normalize(EvaluatingNormalizer normalizer) {
         Symbol nUri = normalizer.normalize(uri);
         if (uri != nUri){

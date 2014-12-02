@@ -46,7 +46,6 @@ public class NumericScalarSortScript extends AbstractCatchingSearchScript {
             super(functions);
         }
 
-        @Override
         protected Context prepare(@Nullable Map<String, Object> params) {
             if (params == null) {
                 throw new ScriptException("Parameter required");

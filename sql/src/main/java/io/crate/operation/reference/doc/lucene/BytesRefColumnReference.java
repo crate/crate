@@ -21,12 +21,10 @@
 
 package io.crate.operation.reference.doc.lucene;
 
-import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.util.BytesRef;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.exceptions.ValidationException;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
@@ -60,11 +58,6 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
     public void setNextDocId(int docId) {
         super.setNextDocId(docId);
         values.setDocument(docId);
-    }
-
-    @Override
-    public DataType returnType() {
-        return DataTypes.STRING;
     }
 
     @Override

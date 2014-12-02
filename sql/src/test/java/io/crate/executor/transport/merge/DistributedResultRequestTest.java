@@ -240,11 +240,6 @@ public class DistributedResultRequestTest {
                 public void downstream(Projector downstream) {
                     downstream.registerUpstream(this);
                 }
-
-                @Override
-                public Projector downstream() {
-                    return null;
-                }
             };
         }
     }

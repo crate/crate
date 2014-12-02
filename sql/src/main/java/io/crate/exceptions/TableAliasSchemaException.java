@@ -23,25 +23,12 @@ package io.crate.exceptions;
 
 public class TableAliasSchemaException extends ConflictException {
 
-    private String tableName;
-
-    public TableAliasSchemaException(String tableName, Throwable e) {
-        super("Table alias contains tables with different schema", e);
-        this.tableName = tableName;
-    }
-
-    public TableAliasSchemaException(String tableName) {
-        super("Table alias contains tables with different schema");
-        this.tableName = tableName;
+    public TableAliasSchemaException(String tableAlias) {
+        super(String.format("Table alias \"%s\" contains tables with different schema", tableAlias));
     }
 
     @Override
     public int errorCode() {
         return 4;
-    }
-
-    @Override
-    public Object[] args() {
-        return new Object[]{tableName};
     }
 }

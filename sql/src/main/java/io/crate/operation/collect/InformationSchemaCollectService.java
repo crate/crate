@@ -208,11 +208,6 @@ public class InformationSchemaCollectService implements CollectService {
             downstream.registerUpstream(this);
             this.downstream = downstream;
         }
-
-        @Override
-        public Projector downstream() {
-            return downstream;
-        }
     }
 
     @SuppressWarnings("unchecked")

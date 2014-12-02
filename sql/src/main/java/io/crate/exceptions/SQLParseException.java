@@ -35,9 +35,4 @@ public class SQLParseException extends ValidationException {
     public int errorCode() {
         return 0;
     }
-
-    @Override
-    public Object[] args() {
-        return new Object[0];
-    }
 }

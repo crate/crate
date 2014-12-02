@@ -32,6 +32,4 @@ public interface ProjectorUpstream {
      * @param downstream the Projector to hand over projected rows
      */
     public void downstream(Projector downstream);
-
-    public Projector downstream();
 }

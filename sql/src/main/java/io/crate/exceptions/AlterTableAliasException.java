@@ -23,20 +23,12 @@ package io.crate.exceptions;
 
 public class AlterTableAliasException extends ValidationException {
 
-    private String aliasName;
-
-    public AlterTableAliasException(String aliasName) {
-        super("Alter table using a table alias is not supported");
-        this.aliasName = aliasName;
+    public AlterTableAliasException(String tableAlias) {
+        super(String.format("Alter table using a \"%s\" as table alias is not supported", tableAlias));
     }
 
     @Override
     public int errorCode() {
         return 5;
-    }
-
-    @Override
-    public Object[] args() {
-        return new Object[]{aliasName};
     }
 }

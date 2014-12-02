@@ -76,10 +76,6 @@ public class MergeNode extends AbstractDQLPlanNode {
         this.contextId = contextId;
     }
 
-    public void numUpstreams(int numUpstreams) {
-        this.numUpstreams = numUpstreams;
-    }
-
     public List<DataType> inputTypes() {
         return inputTypes;
     }

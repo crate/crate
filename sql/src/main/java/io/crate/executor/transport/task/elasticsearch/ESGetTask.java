@@ -261,11 +261,6 @@ public class ESGetTask implements Task<QueryResult> {
         public void downstream(Projector downstream) {
             throw new UnsupportedOperationException("Setting downstream isn't supported on MultiGetResponseListener");
         }
-
-        @Override
-        public Projector downstream() {
-            return downstream ;
-        }
     }
 
     static class GetResponseListener implements ActionListener<GetResponse> {

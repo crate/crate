@@ -27,15 +27,13 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 public class MetaDataShardModule extends AbstractModule {
 
-    protected MapBinder<ReferenceIdent, ShardReferenceImplementation> referenceBinder;
-
     @Override
     protected void configure() {
         bindShardReferences();
     }
 
     protected void bindShardReferences() {
-        referenceBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
+        MapBinder.newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
         bind(ShardReferenceResolver.class).asEagerSingleton();
     }
 }

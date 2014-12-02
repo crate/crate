@@ -35,7 +35,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 import io.crate.types.SetType;
-import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -60,9 +59,6 @@ import java.util.*;
  */
 public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, Symbol> {
 
-    public static final BytesRef EMPTY_BYTESREF = new BytesRef("");
-    public static final byte ASCII_COMMA = (byte) 0x2c;
-
     private static final ImmutableSet<String> logicalBinaryExpressions = ImmutableSet.of(
             AndOperator.NAME, OrOperator.NAME
     );
@@ -74,7 +70,6 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     public static class Context {
 
         private final TableInfo table;
-        private Symbol whereClause;
         private final ArrayList<KeyBucket> buckets;
 
         private KeyBucket currentBucket;
@@ -112,19 +107,6 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         @Nullable
         public Literal clusteredByLiteral() {
             return clusteredBy;
-        }
-
-        @Nullable
-        public BytesRef clusteredBy() {
-            if (clusteredBy != null) {
-                return BytesRefValueSymbolVisitor.INSTANCE.process(clusteredBy);
-            }
-            return null;
-        }
-
-
-        public Symbol whereClause() {
-            return whereClause;
         }
 
         void newBucket() {
@@ -204,7 +186,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     public Context process(TableInfo tableInfo, Symbol whereClause) {
         if (tableInfo.primaryKey().size() > 0 || tableInfo.clusteredBy() != null) {
             Context context = new Context(tableInfo);
-            context.whereClause = process(whereClause, context);
+            process(whereClause, context);
             context.finish();
             return context;
         }

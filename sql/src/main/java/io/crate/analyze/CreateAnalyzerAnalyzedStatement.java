@@ -103,11 +103,6 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         return extendedAnalyzerName;
     }
 
-    @Nullable
-    public Settings extendedCustomAnalyzer() {
-        return extendedCustomAnalyzer;
-    }
-
     public void tokenDefinition(String name, Settings settings) {
         tokenizerDefinition = new Tuple<>(name, settings);
     }
@@ -115,10 +110,6 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     @Nullable
     public Tuple<String, Settings> tokenizerDefinition() {
         return tokenizerDefinition;
-    }
-
-    public void genericAnalyzerSettings(Settings settings) {
-        genericAnalyzerSettings = settings;
     }
 
     public Settings genericAnalyzerSettings() {

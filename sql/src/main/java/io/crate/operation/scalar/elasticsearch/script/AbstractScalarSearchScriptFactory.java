@@ -55,7 +55,6 @@ public abstract class AbstractScalarSearchScriptFactory extends AbstractScalarSc
         }
     }
 
-    @Override
     protected Context prepare(@Nullable Map<String, Object> params) {
         if (params == null) {
             throw new ScriptException("Parameter required");

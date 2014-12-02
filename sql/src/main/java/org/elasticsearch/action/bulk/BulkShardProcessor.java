@@ -407,17 +407,8 @@ public class BulkShardProcessor {
             }
         }
 
-        public void readUnlock() {
-            // does nothing, writeUnlock() will unlock all readers
-            throw new UnsupportedOperationException("readUnlock() is actually not supported");
-        }
-
         public int activeWriters() {
             return activeWriters.get();
-        }
-
-        public int waitingReaders() {
-            return waitingReaders.get();
         }
 
     }

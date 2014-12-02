@@ -23,10 +23,6 @@ package io.crate.exceptions;
 
 public class DuplicateKeyException extends ConflictException {
 
-    public DuplicateKeyException(String msg) {
-        super(msg);
-    }
-
     public DuplicateKeyException(String msg, Throwable e) {
         super(msg, e);
     }
@@ -34,10 +30,5 @@ public class DuplicateKeyException extends ConflictException {
     @Override
     public int errorCode() {
         return 1;
-    }
-
-    @Override
-    public Object[] args() {
-        return new Object[0];
     }
 }

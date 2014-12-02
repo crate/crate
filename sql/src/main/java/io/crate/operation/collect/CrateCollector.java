@@ -36,11 +36,6 @@ public interface CrateCollector extends ProjectorUpstream {
         public void downstream(Projector downstream) {
             downstream.registerUpstream(this);
         }
-
-        @Override
-        public Projector downstream() {
-            return null;
-        }
     };
 
     public void doCollect(RamAccountingContext ramAccountingContext) throws Exception;

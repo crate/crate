@@ -21,7 +21,6 @@
 
 package io.crate.operation.reference.doc.lucene;
 
-import org.apache.lucene.index.AtomicReaderContext;
 import io.crate.Constants;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
@@ -34,7 +33,6 @@ public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnTyp
             Constants.DEFAULT_MAPPING_TYPE};
 
     protected IFD indexFieldData;
-    protected int docId;
 
     public FieldCacheExpression(String columnName) {
         super(columnName);
@@ -45,15 +43,4 @@ public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnTyp
                 (columnName, DEFAULT_MAPPING_TYPES);
         indexFieldData = (IFD) context.searchContext().fieldData().getForField(mapper);
     }
-
-    @Override
-    public void setNextReader(AtomicReaderContext context) {
-        this.docId = -1;
-    }
-
-    @Override
-    public void setNextDocId(int docId) {
-        this.docId = docId;
-    }
-
 }

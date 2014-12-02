@@ -39,7 +39,6 @@ public class AddFunctionTest {
 
     class TestModule extends ScalarFunctionModule {
         private MapBinder<String, DynamicFunctionResolver> resolver;
-        private MapBinder<FunctionIdent, FunctionImplementation> functions;
 
         @Override
         public void register(String name, DynamicFunctionResolver dynamicFunctionResolver) {
@@ -49,7 +48,7 @@ public class AddFunctionTest {
         @Override
         protected void configure() {
             resolver = MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
-            functions = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+            MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
             AddFunction.register(this);
         }
     }

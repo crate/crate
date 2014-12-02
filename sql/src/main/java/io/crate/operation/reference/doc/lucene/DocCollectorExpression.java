@@ -26,8 +26,6 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.LuceneDocCollector;
 import io.crate.operation.reference.doc.ColumnReferenceExpression;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.search.lookup.SourceLookup;
@@ -48,18 +46,8 @@ public class DocCollectorExpression extends
     }
 
     @Override
-    public DataType returnType() {
-        return DataTypes.OBJECT;
-    }
-
-    @Override
     public Map<String, Object> value() {
         return XContentHelper.convertToMap(visitor.source(), false).v2();
-    }
-
-    @Override
-    public String columnName() {
-        return COLUMN_NAME;
     }
 
     public static LuceneCollectorExpression<?> create(final ReferenceInfo referenceInfo) {
@@ -78,11 +66,6 @@ public class DocCollectorExpression extends
             }
 
             @Override
-            public DataType returnType() {
-                return referenceInfo.type();
-            }
-
-            @Override
             public Object value() {
                 // need to make sure it has the correct type;
                 // for example:
@@ -91,7 +74,6 @@ public class DocCollectorExpression extends
                 return referenceInfo.type().value(sourceLookup.extractValue(fqn));
             }
 
-            @Override
             public String columnName() {
                 return referenceInfo.ident().columnIdent().path().get(0);
             }

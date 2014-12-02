@@ -76,7 +76,6 @@ public class OptionParser {
                 zeroTermsQuery(options.remove(OPTIONS.ZERO_TERMS_QUERY)),
                 intValue(options, OPTIONS.MAX_EXPANSIONS, FuzzyQuery.defaultMaxExpansions),
                 fuzziness(options.remove(OPTIONS.FUZZINESS)),
-                rewrite(options.remove(OPTIONS.FUZZY_REWRITE)),
                 intValue(options, OPTIONS.PREFIX_LENGTH, FuzzyQuery.defaultPrefixLength),
                 transpositions(options.remove(OPTIONS.FUZZY_TRANSPOSITIONS))
         );

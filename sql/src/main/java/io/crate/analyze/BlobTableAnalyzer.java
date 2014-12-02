@@ -22,16 +22,11 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.core.NumberOfReplicas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 public abstract class BlobTableAnalyzer<TypeAnalysis extends AnalyzedStatement>
         extends AbstractStatementAnalyzer<Void, TypeAnalysis> {
@@ -49,30 +44,5 @@ public abstract class BlobTableAnalyzer<TypeAnalysis extends AnalyzedStatement>
         }
         assert tableNameParts.size() == 1;
         return new TableIdent(BlobSchemaInfo.NAME, tableNameParts.get(0));
-    }
-
-    protected static NumberOfReplicas extractNumberOfReplicas(
-            GenericProperties genericProperties,
-            Object[] parameters) {
-        Map<String,Expression> properties = genericProperties.properties();
-        Expression number_of_replicas = properties.remove("number_of_replicas");
-
-        NumberOfReplicas numberOfReplicas = null;
-        if (number_of_replicas != null) {
-            try {
-                Integer numReplicas = ExpressionToNumberVisitor.convert(number_of_replicas, parameters).intValue();
-                numberOfReplicas = new NumberOfReplicas(numReplicas);
-            } catch (IllegalArgumentException e) {
-                String numReplicas = ExpressionToObjectVisitor.convert(number_of_replicas, parameters).toString();
-                numberOfReplicas = new NumberOfReplicas(numReplicas);
-            }
-        }
-
-        if (properties.size() > 0) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid properties \"%s\" passed to [ALTER | CREATE] BLOB TABLE statement",
-                            properties.keySet()));
-        }
-        return numberOfReplicas;
     }
 }

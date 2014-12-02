@@ -109,11 +109,6 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public Collection<IndexReferenceInfo> indexColumns() {
-        return ImmutableList.of();
-    }
-
-    @Override
     public IndexReferenceInfo indexColumn(ColumnIdent ident) {
         return null;
     }

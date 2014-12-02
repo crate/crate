@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.base.Optional;
 import io.crate.PartitionName;
-import io.crate.exceptions.InvalidTableNameException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -38,7 +37,6 @@ public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final ReferenceInfos referenceInfos;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
-    private Optional<PartitionName> partitionName = Optional.absent();
     private TableInfo tableInfo;
     private AnalyzedTableElements analyzedTableElements;
     private boolean newPrimaryKeys = false;
@@ -51,19 +49,8 @@ public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
-    public void partitionName(@Nullable PartitionName partitionName) {
-        this.partitionName = Optional.fromNullable(partitionName);
-    }
-
-    public Optional<PartitionName> partitionName() {
-        return partitionName;
-    }
-
     @Override
     public void table(TableIdent tableIdent) {
-        if (!isValidTableName(tableIdent.name())) {
-            throw new InvalidTableNameException(tableIdent.name());
-        }
         SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
         if (schemaInfo == null) {
             throw new SchemaUnknownException(tableIdent.schema());

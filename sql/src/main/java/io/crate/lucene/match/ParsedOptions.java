@@ -35,7 +35,6 @@ public class ParsedOptions {
     private final MatchQuery.ZeroTermsQuery zeroTermsQuery;
     private final int maxExpansions;
     private final Fuzziness fuzziness;
-    private final MultiTermQuery.RewriteMethod fuzzyRewrite;
     private final int prefixLength;
     private final boolean transpositions;
 
@@ -51,7 +50,6 @@ public class ParsedOptions {
                          MatchQuery.ZeroTermsQuery zeroTermsQuery,
                          int maxExpansions,
                          Fuzziness fuzziness,
-                         MultiTermQuery.RewriteMethod fuzzyRewrite,
                          int prefixLength,
                          boolean transpositions) {
         this.boost = boost;
@@ -59,7 +57,6 @@ public class ParsedOptions {
         this.zeroTermsQuery = zeroTermsQuery;
         this.maxExpansions = maxExpansions;
         this.fuzziness = fuzziness;
-        this.fuzzyRewrite = fuzzyRewrite;
         this.prefixLength = prefixLength;
         this.transpositions = transpositions;
     }
@@ -132,11 +129,6 @@ public class ParsedOptions {
     @Nullable
     public Fuzziness fuzziness() {
         return fuzziness;
-    }
-
-    @Nullable
-    public MultiTermQuery.RewriteMethod fuzzyRewriteMethod() {
-        return fuzzyRewrite;
     }
 
     @Nullable

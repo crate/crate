@@ -69,13 +69,6 @@ public class PlannerContextBuilder {
         return Lists.newArrayList(context.toCollectAllocation.keySet());
     }
 
-    public PlannerContextBuilder searchOutput(List<Symbol> symbols) {
-        for (Symbol symbol : symbols) {
-            context.outputs.add(Planner.referenceExtractor.process(symbol, context));
-        }
-        return this;
-    }
-
     /**
      * calculates the toCollect symbols and generates the outputs which can be used
      * for the first TopNProjection

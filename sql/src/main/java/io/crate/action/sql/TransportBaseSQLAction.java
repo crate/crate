@@ -44,7 +44,6 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.ClusterService;
@@ -275,18 +274,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
         } else if (e instanceof IndexMissingException) {
             return new TableUnknownException(((IndexMissingException)e).index().name(), e);
-        } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {
-            /**
-             * For update or search requests we use upstream ES SearchRequests
-             * These requests are executed using the transportSearchAction.
-             *
-             * The transportSearchAction (or the more specific QueryThenFetch/../ Action inside it
-             * executes the TransportSQLAction.SearchResponseListener onResponse/onFailure
-             * but adds its own error handling around it.
-             * By doing so it wraps every exception raised inside our onResponse in its own ReduceSearchPhaseException
-             * Here we unwrap it to get the original exception.
-             */
-            return e.getCause();
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(e.getMessage());
         }

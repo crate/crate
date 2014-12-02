@@ -52,11 +52,6 @@ public class CollectingProjector implements ResultProvider, Projector {
     }
 
     @Override
-    public Projector downstream() {
-        return null;
-    }
-
-    @Override
     public void startProjection() {
         if (upstreamsRemaining.get() <= 0) {
             upstreamFinished();

@@ -21,8 +21,6 @@
 
 package io.crate.planner.projection;
 
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.Normalizable;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -32,7 +30,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 import java.io.IOException;
 import java.util.List;
 
-public abstract class Projection implements Streamable, Normalizable<Projection> {
+public abstract class Projection implements Streamable {
 
     /**
      * The granularity required to run this projection
@@ -70,10 +68,5 @@ public abstract class Projection implements Streamable, Normalizable<Projection>
     @Override
     public int hashCode() {
         return projectionType().hashCode();
-    }
-
-    @Override
-    public Projection normalize(EvaluatingNormalizer normalizer) {
-        return this;
     }
 }

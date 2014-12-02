@@ -40,10 +40,6 @@ public abstract class ESDQLPlanNode implements DQLPlanNode {
         return outputs;
     }
 
-    public void outputs(List<Symbol> outputs) {
-        this.outputs = outputs;
-    }
-
     @Override
     public boolean hasProjections() {
         return false;

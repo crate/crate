@@ -22,14 +22,12 @@
 package io.crate.operation.aggregation;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.types.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.InputCollectExpression;
+import io.crate.types.DataType;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -39,24 +37,15 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
-import java.util.List;
-import java.util.Map;
-
 public abstract class AggregationTest {
 
     protected static final RamAccountingContext ramAccountingContext =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
-    private Map<String, SettableFuture<Object[][]>> nodeResults;
-    protected List<ListenableFuture<Object[][]>> results;
-    private Injector injector;
     protected Functions functions;
-
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-    private Object[][] testData;
-
 
     class AggregationTestModule extends AbstractModule {
 
@@ -68,7 +57,7 @@ public abstract class AggregationTest {
 
     @Before
     public void setUp() throws Exception {
-        injector = new ModulesBuilder().add(
+        Injector injector = new ModulesBuilder().add(
                 new AggregationTestModule(),
                 new AggregationImplModule()
         ).createInjector();

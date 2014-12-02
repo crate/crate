@@ -36,9 +36,4 @@ public class PartitionUnknownException extends ResourceUnknownException{
     public int errorCode() {
         return 6;
     }
-
-    @Override
-    public Object[] args() {
-        return new Object[0];
-    }
 }

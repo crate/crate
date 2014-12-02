@@ -111,10 +111,6 @@ public class CollectNode extends AbstractDQLPlanNode {
         return routing;
     }
 
-    public void routing(Routing routing) {
-        this.routing = routing;
-    }
-
     public List<Symbol> toCollect() {
         return toCollect;
     }

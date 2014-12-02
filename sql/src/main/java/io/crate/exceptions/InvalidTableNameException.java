@@ -23,25 +23,16 @@ package io.crate.exceptions;
 
 public class InvalidTableNameException extends ValidationException {
 
-    private String tableName;
-
     public InvalidTableNameException(String tableName, Throwable e) {
-        super("Invalid table name", e);
-        this.tableName = tableName;
+        super(String.format("table name \"%s\" is invalid.", tableName), e);
     }
 
     public InvalidTableNameException(String tableName) {
-        super("Invalid table name");
-        this.tableName = tableName;
+        super(String.format("table name \"%s\" is invalid.", tableName));
     }
 
     @Override
     public int errorCode() {
         return 2;
-    }
-
-    @Override
-    public Object[] args() {
-        return new Object[]{tableName};
     }
 }

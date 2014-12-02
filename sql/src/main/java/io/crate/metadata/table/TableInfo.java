@@ -54,8 +54,6 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
 
     public List<ReferenceInfo> partitionedByColumns();
 
-    public Collection<IndexReferenceInfo> indexColumns();
-
     @Nullable
     public IndexReferenceInfo indexColumn(ColumnIdent ident);
 

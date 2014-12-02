@@ -70,7 +70,6 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
-    static final PlannerReferenceExtractor referenceExtractor = new PlannerReferenceExtractor();
 
     private final RelationPlanner relationPlanner = new RelationPlanner();
     private final ClusterService clusterService;

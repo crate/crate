@@ -143,7 +143,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
                     }
                     reference = tableInfo.getDynamic(ident.columnIdent(), forWrite);
                     if (reference == null) {
-                        throw new ColumnUnknownException(ident.tableIdent().name(), ident.columnIdent().fqn());
+                        throw new ColumnUnknownException(ident.columnIdent().fqn());
                     }
                     info = reference.info();
                 }
@@ -227,10 +227,6 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
 
     public FunctionInfo getFunctionInfo(FunctionIdent ident) {
         return functions.getSafe(ident).info();
-    }
-
-    public Collection<Reference> references() {
-        return referenceSymbols.values();
     }
 
     public Collection<Function> functions() {

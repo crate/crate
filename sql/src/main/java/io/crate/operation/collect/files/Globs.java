@@ -211,7 +211,4 @@ public class Globs {
         return toRegexPattern(globPattern, false);
     }
 
-    public static String toWindowsRegexPattern(String globPattern) {
-        return toRegexPattern(globPattern, true);
-    }
 }

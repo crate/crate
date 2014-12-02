@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.lucene.analysis.Analyzer;
 import io.crate.Constants;
 import io.crate.exceptions.AnalyzerInvalidException;
 import io.crate.exceptions.AnalyzerUnknownException;
@@ -37,7 +36,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.analysis.TokenizerFactory;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 
 import java.io.IOException;
@@ -104,10 +102,6 @@ public class FulltextAnalyzerResolver {
         return indicesAnalysisService.hasAnalyzer(name);
     }
 
-    public Analyzer getBuiltInAnalyzer(String name) {
-        return indicesAnalysisService.analyzer(name);
-    }
-
     /**
      * get all the builtin Analyzers defined in Crate
      * @return an Iterable of Strings
@@ -128,19 +122,6 @@ public class FulltextAnalyzerResolver {
         return getCustomThingy(name, CustomType.ANALYZER);
     }
 
-    /**
-     * get the source of the custom analyzer with name ``name``.
-     * This is the statement it was created with.
-     *
-     * @param name the name of the custom analyzer
-     * @return the source as String or null if no source exists)
-     */
-    public String getCustomAnalyzerSource(String name) {
-        return clusterService.state().metaData().persistentSettings().get(
-                String.format("%s.%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX,
-                        CustomType.ANALYZER.getName(), name, SQL_STATEMENT_KEY)
-        );
-    }
 
     public Map<String, Settings> getCustomAnalyzers() throws IOException {
         Map<String, Settings> result = new HashMap<>();
@@ -158,10 +139,6 @@ public class FulltextAnalyzerResolver {
     }
 
 
-    public boolean hasTokenizer(String name) {
-        return hasBuiltInTokenizer(name) || hasCustomTokenizer(name);
-    }
-
     public boolean hasBuiltInTokenizer(String name) {
         return indicesAnalysisService.hasTokenizer(name);
     }
@@ -170,10 +147,6 @@ public class FulltextAnalyzerResolver {
         return new ImmutableSet.Builder<String>()
                 .addAll(indicesAnalysisService.tokenizerFactories().keySet())
                 .build();
-    }
-
-    public boolean hasCustomTokenizer(String name) {
-        return hasCustomThingy(name, CustomType.TOKENIZER);
     }
 
     public Map<String, Settings> getCustomTokenizers() throws IOException {
@@ -185,17 +158,8 @@ public class FulltextAnalyzerResolver {
         return result;
     }
 
-
-    public boolean hasCharFilter(String name) {
-        return hasBuiltInCharFilter(name) || hasCustomCharFilter(name);
-    }
-
     public boolean hasBuiltInCharFilter(String name) {
         return EXTENDED_BUILTIN_CHAR_FILTERS.contains(name) || indicesAnalysisService.hasCharFilter(name);
-    }
-
-    public boolean hasCustomCharFilter(String name) {
-        return hasCustomThingy(name, CustomType.CHAR_FILTER);
     }
 
     public Set<String> getBuiltInCharFilters() {
@@ -213,10 +177,6 @@ public class FulltextAnalyzerResolver {
         return result;
     }
 
-    public boolean hasTokenFilter(String name) {
-        return hasBuiltInTokenFilter(name) || hasCustomTokenFilter(name);
-    }
-
     public boolean hasBuiltInTokenFilter(String name) {
         return EXTENDED_BUILTIN_TOKEN_FILTERS.contains(name) || indicesAnalysisService.hasTokenFilter(name);
     }
@@ -226,10 +186,6 @@ public class FulltextAnalyzerResolver {
                 .addAll(EXTENDED_BUILTIN_TOKEN_FILTERS)
                 .addAll(indicesAnalysisService.tokenFilterFactories().keySet())
                 .build();
-    }
-
-    public boolean hasCustomTokenFilter(String name) {
-        return hasCustomThingy(name, CustomType.TOKEN_FILTER);
     }
 
     public Map<String, Settings> getCustomTokenFilters() throws IOException {
@@ -353,10 +309,6 @@ public class FulltextAnalyzerResolver {
             throw new AnalyzerUnknownException(name);
         }
         return builder.build();
-    }
-
-    public TokenizerFactory getBuiltinTokenizer(String name) {
-        return indicesAnalysisService.tokenizerFactoryFactory(name).create(null, null); // arguments do not matter here
     }
 
     public Settings getCustomTokenizer(String name) {

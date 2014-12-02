@@ -86,7 +86,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Table alias contains tables with different schema");
+        expectedException.expectMessage("Table alias \"quotes\" contains tables with different schema");
         execute("select quote from quotes where id = ?", new Object[]{1});
     }
 
@@ -99,7 +99,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Table alias contains tables with different schema");
+        expectedException.expectMessage("Table alias \"quotes\" contains tables with different schema");
         execute("select quote from quotes where id = ?", new Object[]{1});
     }
 
@@ -112,7 +112,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Table alias contains tables with different schema");
+        expectedException.expectMessage("Table alias \"quotes\" contains tables with different schema");
         execute("select quote from quotes where id = ?", new Object[]{1});
     }
 
@@ -125,7 +125,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Table alias contains tables with different schema");
+        expectedException.expectMessage("Table alias \"quotes\" contains tables with different schema");
         execute("select quote from quotes where id = ?", new Object[]{1});
     }
 

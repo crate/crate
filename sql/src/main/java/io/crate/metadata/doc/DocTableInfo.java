@@ -200,10 +200,6 @@ public class DocTableInfo extends AbstractTableInfo {
         return new Routing(locations);
     }
 
-    Map<ColumnIdent, ReferenceInfo> references() {
-        return references;
-    }
-
     public List<ColumnIdent> primaryKey() {
         return primaryKeys;
     }
@@ -267,10 +263,6 @@ public class DocTableInfo extends AbstractTableInfo {
     @Override
     public boolean isPartitioned() {
         return isPartitioned;
-    }
-
-    public Collection<IndexReferenceInfo> indexColumns() {
-        return indexColumns.values();
     }
 
     @Override

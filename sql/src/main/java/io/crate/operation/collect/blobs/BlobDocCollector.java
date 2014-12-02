@@ -89,10 +89,4 @@ public class BlobDocCollector implements CrateCollector {
         this.downstream = downstream;
         downstream.registerUpstream(this);
     }
-
-    @Override
-    public Projector downstream() {
-        return this.downstream;
-    }
-
 }

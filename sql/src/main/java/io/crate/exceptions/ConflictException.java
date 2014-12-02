@@ -23,9 +23,6 @@ package io.crate.exceptions;
 
 public class ConflictException extends RuntimeException implements CrateException {
 
-    public ConflictException() {
-    }
-
     public ConflictException(String message) {
         super(message);
     }
@@ -38,17 +35,9 @@ public class ConflictException extends RuntimeException implements CrateExceptio
         super(cause);
     }
 
-    public ConflictException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
 
     @Override
     public int errorCode() {
         return 0;
-    }
-
-    @Override
-    public Object[] args() {
-        return new Object[0];
     }
 }

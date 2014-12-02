@@ -23,25 +23,16 @@ package io.crate.exceptions;
 
 public class TableUnknownException extends ResourceUnknownException {
 
-    private String tableName;
-
     public TableUnknownException(String tableName, Throwable e) {
         super(String.format("Table '%s' unknown", tableName), e);
-        this.tableName = tableName;
     }
 
     public TableUnknownException(String tableName) {
         super(String.format("Table '%s' unknown", tableName));
-        this.tableName = tableName;
     }
 
     @Override
     public int errorCode() {
         return 1;
-    }
-
-    @Override
-    public Object[] args() {
-        return new Object[]{tableName};
     }
 }

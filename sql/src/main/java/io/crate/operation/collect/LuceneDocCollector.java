@@ -154,11 +154,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     }
 
     @Override
-    public Projector downstream() {
-        return downstream;
-    }
-
-    @Override
     public void setScorer(Scorer scorer) throws IOException {}
 
     @Override

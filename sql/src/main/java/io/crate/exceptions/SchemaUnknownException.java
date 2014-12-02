@@ -25,11 +25,8 @@ public class SchemaUnknownException extends ResourceUnknownException {
 
     private static final String MESSAGE_TMPL = "Schema '%s' unknown";
 
-    private final String schema;
-
     public SchemaUnknownException(String schema) {
         super(String.format(MESSAGE_TMPL, schema));
-        this.schema = schema;
     }
 
     @Override
@@ -37,8 +34,4 @@ public class SchemaUnknownException extends ResourceUnknownException {
         return 5;
     }
 
-    @Override
-    public Object[] args() {
-        return new Object[]{schema};
-    }
 }

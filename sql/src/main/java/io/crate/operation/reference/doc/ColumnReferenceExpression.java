@@ -22,5 +22,4 @@
 package io.crate.operation.reference.doc;
 
 public interface ColumnReferenceExpression {
-    public String columnName();
 }

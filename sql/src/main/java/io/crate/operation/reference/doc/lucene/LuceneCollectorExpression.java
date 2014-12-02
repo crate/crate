@@ -22,7 +22,6 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.operation.Input;
-import io.crate.types.DataType;
 import org.apache.lucene.index.AtomicReaderContext;
 
 /**
@@ -39,6 +38,4 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
 
     public void setNextReader(AtomicReaderContext context){
     }
-
-    public abstract DataType returnType();
 }

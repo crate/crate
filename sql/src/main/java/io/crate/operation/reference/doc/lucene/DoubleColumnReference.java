@@ -22,8 +22,6 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
@@ -58,11 +56,6 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     public void setNextDocId(int docId) {
         super.setNextDocId(docId);
         values.setDocument(docId);
-    }
-
-    @Override
-    public DataType returnType(){
-        return DataTypes.DOUBLE;
     }
 
     @Override

@@ -91,10 +91,6 @@ public class TestingTableInfo extends AbstractTableInfo {
             }
         }
 
-        public Builder add(ColumnIdent columnIdent, DataType type) {
-            return add(columnIdent.name(), type, columnIdent.path());
-        }
-
         public Builder add(String column, DataType type, List<String> path) {
             return add(column, type, path, ColumnPolicy.DYNAMIC);
         }
@@ -158,11 +154,6 @@ public class TestingTableInfo extends AbstractTableInfo {
                 PartitionName partition = PartitionName.fromString(partitionName, ident.name());
                 partitions.add(partition);
             }
-            return this;
-        }
-
-        public Builder columnPolicy(ColumnPolicy columnPolicy) {
-            this.columnPolicy = columnPolicy;
             return this;
         }
 
@@ -253,11 +244,6 @@ public class TestingTableInfo extends AbstractTableInfo {
     }
 
     @Override
-    public Collection<IndexReferenceInfo> indexColumns() {
-        return indexColumns.values();
-    }
-
-    @Override
     public IndexReferenceInfo indexColumn(ColumnIdent ident) {
         return indexColumns.get(ident);
     }
@@ -313,7 +299,7 @@ public class TestingTableInfo extends AbstractTableInfo {
             ColumnIdent parentIdent = ident.getParent();
             ReferenceInfo parentInfo = getReferenceInfo(parentIdent);
             if (parentInfo != null && parentInfo.columnPolicy() == ColumnPolicy.STRICT) {
-                throw new ColumnUnknownException(ident().name(), ident.fqn());
+                throw new ColumnUnknownException(ident.fqn());
             }
         }
         return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());

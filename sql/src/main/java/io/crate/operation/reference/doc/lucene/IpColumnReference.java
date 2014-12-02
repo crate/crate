@@ -22,8 +22,6 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.BytesRef;
@@ -36,11 +34,6 @@ public class IpColumnReference extends FieldCacheExpression<IndexNumericFieldDat
 
     public IpColumnReference(String columnName) {
         super(columnName);
-    }
-
-    @Override
-    public DataType returnType() {
-        return DataTypes.STRING;
     }
 
     @Override

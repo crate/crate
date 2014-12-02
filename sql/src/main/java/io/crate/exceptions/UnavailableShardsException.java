@@ -38,9 +38,4 @@ public class UnavailableShardsException extends RuntimeException implements Crat
     public int errorCode() {
         return 5002;
     }
-
-    @Override
-    public Object[] args() {
-        return new Object[0];
-    }
 }

@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.task.AsyncChainedTask;
 import io.crate.executor.transport.task.elasticsearch.facet.InternalUpdateFacet;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.planner.node.dml.ESUpdateNode;
@@ -35,7 +36,7 @@ import org.elasticsearch.action.search.TransportSearchAction;
 
 import java.io.IOException;
 
-public class ESUpdateByQueryTask extends AbstractESUpdateTask {
+public class ESUpdateByQueryTask extends AsyncChainedTask {
 
     static class UpdateByQueryResponseListener implements ActionListener<SearchResponse> {
 
@@ -64,7 +65,6 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
     private final ESQueryBuilder queryBuilder;
 
     public ESUpdateByQueryTask(TransportSearchAction transport, ESUpdateNode node) {
-        super(node);
         this.transport = transport;
         this.queryBuilder = new ESQueryBuilder();
 

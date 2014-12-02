@@ -66,9 +66,4 @@ public class FailedShardsException extends RuntimeException implements CrateExce
     public int errorCode() {
         return 5002;
     }
-
-    @Override
-    public Object[] args() {
-        return new Object[0];
-    }
 }

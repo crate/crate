@@ -100,11 +100,6 @@ public class GroupingProjector implements Projector {
     }
 
     @Override
-    public Projector downstream() {
-        return null;
-    }
-
-    @Override
     public void startProjection() {
         for (CollectExpression collectExpression : collectExpressions) {
             collectExpression.startCollect();
@@ -200,7 +195,6 @@ public class GroupingProjector implements Projector {
     private interface Grouper {
         boolean setNextRow(final Object... row);
         Object[][] finish();
-        Iterator<Object[]> iterator();
     }
 
     private class SingleKeyGrouper implements Grouper {
@@ -271,12 +265,6 @@ public class GroupingProjector implements Projector {
                 downstream.upstreamFinished();
             }
             return rows;
-        }
-
-        @Override
-        public Iterator<Object[]> iterator() {
-            return new SingleEntryToRowIterator(
-                    result.entrySet().iterator(), aggregationCollectors.length + 1, aggregationCollectors);
         }
     }
 
@@ -360,79 +348,6 @@ public class GroupingProjector implements Projector {
                 downstream.upstreamFinished();
             }
             return rows;
-        }
-
-        @Override
-        public Iterator<Object[]> iterator() {
-            return new MultiEntryToRowIterator(
-                    result.entrySet().iterator(),
-                    keyInputs.size() + aggregationCollectors.length,
-                    aggregationCollectors);
-        }
-    }
-
-
-    private static class SingleEntryToRowIterator implements Iterator<Object[]> {
-
-        private final Iterator<Map.Entry<Object, AggregationState[]>> iter;
-        private final int rowLength;
-        private final AggregationCollector[] aggregationCollectors;
-
-        private SingleEntryToRowIterator(Iterator<Map.Entry<Object, AggregationState[]>> iter,
-                                   int rowLength, AggregationCollector[] aggregationCollectors) {
-            this.iter = iter;
-            this.rowLength = rowLength;
-            this.aggregationCollectors = aggregationCollectors;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return iter.hasNext();
-        }
-
-        @Override
-        public Object[] next() {
-            Map.Entry<Object, AggregationState[]> entry = iter.next();
-            Object[] row = new Object[rowLength];
-            singleTransformToRow(entry, row, aggregationCollectors);
-            return row;
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("remove not supported");
-        }
-    }
-
-    private static class MultiEntryToRowIterator implements Iterator<Object[]> {
-
-        private final Iterator<Map.Entry<List<Object>, AggregationState[]>> iter;
-        private final int rowLength;
-        private final AggregationCollector[] aggregationCollectors;
-
-        private MultiEntryToRowIterator(Iterator<Map.Entry<List<Object>, AggregationState[]>> iter,
-                                   int rowLength, AggregationCollector[] aggregationCollectors) {
-            this.iter = iter;
-            this.rowLength = rowLength;
-            this.aggregationCollectors = aggregationCollectors;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return iter.hasNext();
-        }
-
-        @Override
-        public Object[] next() {
-            Map.Entry<List<Object>, AggregationState[]> entry = iter.next();
-            Object[] row = new Object[rowLength];
-            transformToRow(entry, row, aggregationCollectors);
-            return row;
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("remove not supported");
         }
     }
 }

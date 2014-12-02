@@ -311,6 +311,4 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
         }
         return (Scalar)functions.get(functionIdent);
     }
-
-    protected abstract Context prepare(@Nullable Map<String, Object> params);
 }

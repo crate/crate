@@ -103,9 +103,4 @@ public class FilterProjector implements Projector {
         this.downstream = downstream;
         downstream.registerUpstream(this);
     }
-
-    @Override
-    public Projector downstream() {
-        return downstream;
-    }
 }

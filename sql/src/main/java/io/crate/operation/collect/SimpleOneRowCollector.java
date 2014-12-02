@@ -84,9 +84,4 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implem
         downstream.registerUpstream(this);
         this.downstream = downstream;
     }
-
-    @Override
-    public Projector downstream() {
-        return downstream;
-    }
 }

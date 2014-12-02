@@ -22,8 +22,6 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
@@ -60,11 +58,6 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
     public void setNextDocId(int docId) {
         super.setNextDocId(docId);
         values.setDocument(docId);
-    }
-
-    @Override
-    public DataType returnType() {
-        return DataTypes.GEO_POINT;
     }
 
     @Override

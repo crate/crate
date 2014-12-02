@@ -27,7 +27,6 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
@@ -38,7 +37,6 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private final ReferenceInfos referenceInfos;
     private TableInfo tableInfo;
     private Optional<PartitionName> partitionName = Optional.absent();
-    private Optional<ColumnPolicy> columnPolicy = Optional.absent();
 
     public AlterTableAnalyzedStatement(ParameterContext parameterContext, ReferenceInfos referenceInfos) {
         super(parameterContext);

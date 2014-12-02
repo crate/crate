@@ -299,6 +299,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     }
 
 
+    @Test
     public void testUpdateWithWrongParameters() throws Exception {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for name: cannot cast {} to string");

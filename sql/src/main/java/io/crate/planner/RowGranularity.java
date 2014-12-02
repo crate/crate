@@ -46,37 +46,6 @@ public enum RowGranularity {
         return ordinal() > other.ordinal();
     }
 
-    public boolean largerThan(RowGranularity other) {
-        return ordinal() < other.ordinal();
-    }
-    /**
-     * return the highest RowGranularity of the two arguments.
-     * Higher means finer granularity, e.g. DOC is higher than SHARD
-     *
-     * @param granularity1
-     * @param granularity2
-     * @return
-     */
-    public static RowGranularity max(RowGranularity granularity1, RowGranularity granularity2) {
-        if (granularity2.ordinal() > granularity1.ordinal()) {
-            return granularity2;
-        }
-        return granularity1;
-    }
-
-    /**
-     * return the lowest RowGranularity of the two arguments.
-     * Lower means rougher granularity, e.g. CLUSTER is lower than NODE.
-     * @param granularity1
-     * @param granularity2
-     * @return
-     */
-    public static RowGranularity min(RowGranularity granularity1, RowGranularity granularity2) {
-        if (granularity2.ordinal() < granularity1.ordinal()) {
-            return granularity2;
-        }
-        return granularity1;
-    }
 
     public static RowGranularity fromStream(StreamInput in) throws IOException {
         return RowGranularity.values()[in.readVInt()];

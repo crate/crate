@@ -30,10 +30,6 @@ public abstract class SysNodeObjectArrayReference extends SysObjectArrayReferenc
 
     private final ReferenceInfo info;
 
-    protected SysNodeObjectArrayReference(String name) {
-        this(new ColumnIdent(name));
-    }
-
     protected SysNodeObjectArrayReference(ColumnIdent ident) {
         info = SysNodesTableInfo.INFOS.get(ident);
         Preconditions.checkNotNull(info, "info");

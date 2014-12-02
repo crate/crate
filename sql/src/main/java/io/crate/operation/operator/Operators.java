@@ -22,7 +22,6 @@
 package io.crate.operation.operator;
 
 import com.google.common.collect.ImmutableSet;
-import io.crate.operation.operator.any.*;
 import io.crate.operation.predicate.NotPredicate;
 
 public class Operators {
@@ -30,21 +29,4 @@ public class Operators {
     public static final ImmutableSet<String> LOGICAL_OPERATORS = ImmutableSet.of(
             AndOperator.NAME, OrOperator.NAME, NotPredicate.NAME
     );
-
-    public static final ImmutableSet<String> COMPARATORS = ImmutableSet.<String>builder()
-            .add(EqOperator.NAME)
-            .add(GteOperator.NAME)
-            .add(GtOperator.NAME)
-            .add(LikeOperator.NAME)
-            .add(LteOperator.NAME)
-            .add(LtOperator.NAME)
-            .add(RegexpMatchOperator.NAME)
-            .add(AnyEqOperator.NAME)
-            .add(AnyGteOperator.NAME)
-            .add(AnyGtOperator.NAME)
-            .add(AnyLikeOperator.NAME)
-            .add(AnyLteOperator.NAME)
-            .add(AnyLtOperator.NAME)
-            .add(AnyNeqOperator.NAME)
-            .build();
 }

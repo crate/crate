@@ -43,9 +43,4 @@ public class ValidationException extends RuntimeException implements CrateExcept
         return 0;
     }
 
-    @Override
-    public Object[] args() {
-        return new Object[0];
-    }
-
 }

@@ -27,11 +27,9 @@ import java.util.Locale;
 public class TaskExecutionException extends UnhandledServerException {
 
     private static final String MSG = "Error executing task '%s'";
-    private Task task;
 
     public TaskExecutionException(Task task, Throwable e) {
         super(String.format(Locale.ENGLISH, MSG, task.toString()), e);
-        this.task = task;
     }
 
     @Override
@@ -39,8 +37,4 @@ public class TaskExecutionException extends UnhandledServerException {
         return 1;
     }
 
-    @Override
-    public Object[] args() {
-        return new Object[]{task};
-    }
 }

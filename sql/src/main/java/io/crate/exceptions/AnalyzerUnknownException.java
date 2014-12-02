@@ -23,20 +23,12 @@ package io.crate.exceptions;
 
 public class AnalyzerUnknownException extends ResourceUnknownException {
 
-    private String analyzerName;
-
     public AnalyzerUnknownException(String analyzerName) {
         super(String.format("Analyzer '%s' unknown", analyzerName));
-        this.analyzerName = analyzerName;
     }
 
     @Override
     public int errorCode() {
         return 2;
-    }
-
-    @Override
-    public Object[] args() {
-        return new Object[]{analyzerName};
     }
 }

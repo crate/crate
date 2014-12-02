@@ -2,8 +2,8 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.PartitionName;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.analyze.TableParameterInfo;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReferenceInfo;
 import io.crate.metadata.ReferenceIdent;
@@ -13,7 +13,6 @@ import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public abstract class AbstractTableInfo implements TableInfo {
@@ -60,11 +59,6 @@ public abstract class AbstractTableInfo implements TableInfo {
         return ImmutableList.of();
     }
 
-    @Override
-    public Collection<IndexReferenceInfo> indexColumns() {
-        return ImmutableList.of();
-    }
-
     @Nullable
     @Override
     public IndexReferenceInfo indexColumn(ColumnIdent ident) {
@@ -100,18 +94,18 @@ public abstract class AbstractTableInfo implements TableInfo {
             if (parentInfo != null) {
                 switch (parentInfo.columnPolicy()) {
                     case STRICT:
-                        throw new ColumnUnknownException(ident().name(), ident.fqn());
+                        throw new ColumnUnknownException(ident.fqn());
                     case IGNORED:
                         parentIsIgnored = true;
                         break;
                 }
             }
         } else if(forWrite == false && columnPolicy() != ColumnPolicy.IGNORED) {
-            throw new ColumnUnknownException(ident().name(), ident.fqn());
+            throw new ColumnUnknownException(ident.fqn());
         } else {
             switch (columnPolicy()) {
                 case STRICT:
-                    throw new ColumnUnknownException(ident().name(), ident.fqn());
+                    throw new ColumnUnknownException(ident.fqn());
                 case IGNORED:
                     parentIsIgnored = true;
                     break;

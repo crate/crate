@@ -908,10 +908,6 @@ public class LuceneQueryBuilder {
             return input;
         }
 
-        public Function function() {
-            return function;
-        }
-
         public String functionName() {
             return functionName;
         }
@@ -921,14 +917,11 @@ public class LuceneQueryBuilder {
 
         private final Reference reference;
         private final Input input;
-        private final String functionName;
 
         RefLiteralPair(Function function) {
             assert function.arguments().size() == 2 : "function requires 2 arguments";
             Symbol left = function.arguments().get(0);
             Symbol right = function.arguments().get(1);
-
-            functionName = function.info().ident().name();
 
             if (left instanceof Reference) {
                 reference = (Reference) left;
@@ -945,10 +938,6 @@ public class LuceneQueryBuilder {
             } else {
                 input = null;
             }
-        }
-
-        public String functionName() {
-            return functionName;
         }
 
         public boolean isValid() {

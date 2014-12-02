@@ -35,10 +35,4 @@ public class AnalyzerInvalidException extends ValidationException {
     public int errorCode() {
         return 1;
     }
-
-    @Override
-    public Object[] args() {
-        return new Object[0];
-    }
-
 }

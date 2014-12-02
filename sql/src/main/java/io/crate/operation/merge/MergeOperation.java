@@ -101,9 +101,4 @@ public class MergeOperation implements DownstreamOperation {
         downstream.registerUpstream(this);
         this.downstream = downstream;
     }
-
-    @Override
-    public Projector downstream() {
-        return downstream;
-    }
 }

@@ -23,20 +23,12 @@ package io.crate.exceptions;
 
 public class AmbiguousColumnAliasException extends ValidationException {
 
-    private final String alias;
-
     public AmbiguousColumnAliasException(String alias) {
         super(String.format("Column alias \"%s\" is ambiguous", alias));
-        this.alias = alias;
     }
 
     @Override
     public int errorCode() {
         return 6;
-    }
-
-    @Override
-    public Object[] args() {
-        return new Object[]{alias};
     }
 }

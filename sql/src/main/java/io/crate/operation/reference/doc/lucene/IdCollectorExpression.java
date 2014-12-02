@@ -24,8 +24,6 @@ package io.crate.operation.reference.doc.lucene;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.LuceneDocCollector;
 import io.crate.operation.reference.doc.ColumnReferenceExpression;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
 public class IdCollectorExpression extends
@@ -43,17 +41,7 @@ public class IdCollectorExpression extends
     }
 
     @Override
-    public DataType returnType() {
-        return DataTypes.STRING;
-    }
-
-    @Override
     public BytesRef value() {
         return new BytesRef(visitor.uid().id());
-    }
-
-    @Override
-    public String columnName() {
-        return COLUMN_NAME;
     }
 }

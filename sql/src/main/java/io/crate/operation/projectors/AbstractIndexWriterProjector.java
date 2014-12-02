@@ -224,9 +224,4 @@ public abstract class AbstractIndexWriterProjector implements Projector {
         this.downstream = downstream;
         setResultCallback();
     }
-
-    @Override
-    public Projector downstream() {
-        return downstream;
-    }
 }

@@ -54,11 +54,6 @@ public class IndexReferenceInfo extends ReferenceInfo {
             return this;
         }
 
-        public Builder analyzer(String analyzer) {
-            this.analyzer = analyzer;
-            return this;
-        }
-
         public Builder addColumn(ReferenceInfo info) {
             this.columns.add(info);
             return this;
@@ -80,15 +75,6 @@ public class IndexReferenceInfo extends ReferenceInfo {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType);
         this.columns = Objects.firstNonNull(columns, Collections.<ReferenceInfo>emptyList());
         this.analyzer = analyzer;
-    }
-
-    @Nullable
-    public String analyzer() {
-        return analyzer;
-    }
-
-    public List<ReferenceInfo> columns() {
-        return columns;
     }
 
     @Override

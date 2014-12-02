@@ -44,7 +44,6 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
         CHAR_FILTER(CustomType.CHAR_FILTER.getName().toUpperCase(Locale.ENGLISH)),
         TOKEN_FILTER("TOKEN_FILTER"),
         TOKENIZER(CustomType.TOKENIZER.getName().toUpperCase(Locale.ENGLISH)),
-        FUNCTION("FUNCTION")
         ;
         private String name;
         private RoutineType(String name) {

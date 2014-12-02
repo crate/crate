@@ -64,11 +64,6 @@ public class SimpleTopNProjector implements Projector {
     }
 
     @Override
-    public Projector downstream() {
-        return downstream;
-    }
-
-    @Override
     public void startProjection() {
         if (remainingUpstreams.get() <= 0) {
             upstreamFinished();

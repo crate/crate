@@ -77,11 +77,6 @@ public class AggregationProjector implements Projector {
     }
 
     @Override
-    public Projector downstream() {
-        return downstream;
-    }
-
-    @Override
     public synchronized boolean setNextRow(Object... row) {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);

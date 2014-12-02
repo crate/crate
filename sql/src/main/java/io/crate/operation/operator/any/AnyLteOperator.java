@@ -48,9 +48,6 @@ public class AnyLteOperator extends AnyOperator<AnyLteOperator> {
         module.registerDynamicOperatorFunction(NAME, new AnyLteResolver());
     }
 
-    protected AnyLteOperator() {
-    }
-
     protected AnyLteOperator(FunctionInfo functionInfo) {
         super(functionInfo);
     }

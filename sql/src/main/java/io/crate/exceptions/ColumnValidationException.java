@@ -25,16 +25,12 @@ import java.util.Locale;
 
 public class ColumnValidationException extends ValidationException {
 
-    private final String column;
-
     public ColumnValidationException(String column, String message) {
         super(String.format(Locale.ENGLISH, "Validation failed for %s: %s", column, message));
-        this.column = column;
     }
 
     public ColumnValidationException(String column, Throwable e) {
         super(String.format(Locale.ENGLISH, "Validation failed for %s: %s", column, e.getMessage()));
-        this.column = column;
     }
 
     @Override
@@ -42,8 +38,4 @@ public class ColumnValidationException extends ValidationException {
         return 3;
     }
 
-    @Override
-    public Object[] args() {
-        return new Object[]{column};
-    }
 }

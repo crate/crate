@@ -29,7 +29,6 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -39,8 +38,6 @@ import java.util.List;
 public class ReplaceFunction extends Scalar<BytesRef, Object> implements DynamicFunctionResolver {
 
     public static final String NAME = "regexp_replace";
-
-    private static final DataType arrayStringType = new ArrayType(DataTypes.STRING);
 
     private static FunctionInfo createInfo(List<DataType> types) {
         return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
@@ -83,7 +80,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
         final Object inputValue = ((Input) input).value();
         final Object patternValue = ((Input) pattern).value();
         final Object replacementValue = ((Input) replacement).value();
-        if (inputValue == null || patternValue == null || replacement == null) {
+        if (inputValue == null || patternValue == null || replacementValue == null) {
             return Literal.NULL;
         }
 

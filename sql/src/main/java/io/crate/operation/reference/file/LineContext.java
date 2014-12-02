@@ -22,7 +22,6 @@
 package io.crate.operation.reference.file;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.operation.collect.files.CollectorContext;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
@@ -31,12 +30,6 @@ import java.util.LinkedList;
 import java.util.Map;
 
 public class LineContext {
-
-    private final CollectorContext collectorContext;
-
-    public LineContext(CollectorContext collectorContext) {
-        this.collectorContext = collectorContext;
-    }
 
     private byte[] rawSource;
     private Map<String, Object> parsedSource;

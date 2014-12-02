@@ -21,10 +21,8 @@
 
 package io.crate.operation.reference.doc.lucene;
 
-import io.crate.types.FloatType;
-import org.apache.lucene.index.AtomicReaderContext;
-import io.crate.types.DataType;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 
@@ -58,11 +56,6 @@ public class FloatColumnReference extends FieldCacheExpression<IndexNumericField
     public void setNextDocId(int docId) {
         super.setNextDocId(docId);
         values.setDocument(docId);
-    }
-
-    @Override
-    public DataType returnType(){
-        return FloatType.INSTANCE;
     }
 
     @Override

@@ -77,14 +77,6 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
         return returnType;
     }
 
-    /**
-     * return true if this function returns the same results given the same arguments.
-     * Same arguments includes the same column for the same table with the same data.
-     */
-    public boolean isDeterministic() {
-        return deterministic;
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {

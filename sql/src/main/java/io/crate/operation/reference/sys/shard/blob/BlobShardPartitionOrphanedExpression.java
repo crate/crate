@@ -24,18 +24,14 @@ package io.crate.operation.reference.sys.shard.blob;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.shard.ShardId;
 
 public class BlobShardPartitionOrphanedExpression extends SysShardExpression<Boolean> implements BlobShardReferenceImplementation {
 
     public static final String NAME = "orphan_partition";
-    private String tableName;
-
 
     @Inject
-    public BlobShardPartitionOrphanedExpression(ShardId shardId) {
+    public BlobShardPartitionOrphanedExpression() {
         super(NAME);
-        tableName = shardId.getIndex();
     }
 
     @Override

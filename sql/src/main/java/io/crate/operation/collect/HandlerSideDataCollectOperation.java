@@ -37,16 +37,12 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 import java.util.Set;
 
 public class HandlerSideDataCollectOperation implements CollectOperation<Object[][]> {
-
-    private ESLogger logger = Loggers.getLogger(getClass());
 
     private final EvaluatingNormalizer clusterNormalizer;
     private final ImplementationSymbolVisitor implementationVisitor;
