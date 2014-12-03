@@ -53,7 +53,7 @@ public abstract class CollectSetAggregation<T extends Comparable<T>>
                     new CollectSetAggregation(
                             new FunctionInfo(new FunctionIdent(NAME,
                                     ImmutableList.of(dataType)),
-                                    dataType, FunctionInfo.Type.AGGREGATE
+                                    new SetType(dataType), FunctionInfo.Type.AGGREGATE
                             )
                     ) {
                         @Override

@@ -27,8 +27,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportResponse;
 
-import java.io.IOException;
-
 public class ResponseForwarder {
 
     private static final ESLogger logger = Loggers.getLogger(ResponseForwarder.class);
@@ -39,7 +37,7 @@ public class ResponseForwarder {
             public void onResponse(Response response) {
                 try {
                     channel.sendResponse(response);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     onFailure(e);
                 }
             }
@@ -48,7 +46,7 @@ public class ResponseForwarder {
             public void onFailure(Throwable e) {
                 try {
                     channel.sendResponse(e);
-                } catch (IOException e1) {
+                } catch (Exception e1) {
                     logger.error(String.format("error sending failure: %s", e.toString()), e1);
                 }
             }

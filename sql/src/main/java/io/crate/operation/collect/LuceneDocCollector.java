@@ -206,10 +206,13 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         // do the lucene search
         try {
             searchContext.searcher().search(query, this);
+            downstream.upstreamFinished();
+        } catch (Exception e) {
+            downstream.upstreamFailed(e);
+            throw e;
         } finally {
             searchContext.close();
             SearchContext.removeCurrent();
-            downstream.upstreamFinished();
         }
     }
 }
