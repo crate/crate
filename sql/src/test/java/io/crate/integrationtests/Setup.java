@@ -25,7 +25,6 @@ import io.crate.Constants;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -195,32 +194,32 @@ public class Setup {
 
     public void setUpObjectTable() {
         transportExecutor.exec("create table ot (" +
-            "  title string," +
-            "  author object(dynamic) as (" +
-            "    name object(strict) as (" +
-            "      first_name string," +
-            "      last_name string" +
-            "    )," +
-            "    age integer" +
-            "  )," +
-            "  details object(ignored) as (" +
-            "    num_pages integer" +
-            "  )" +
-            ") with (number_of_replicas = 0)");
+                "  title string," +
+                "  author object(dynamic) as (" +
+                "    name object(strict) as (" +
+                "      first_name string," +
+                "      last_name string" +
+                "    )," +
+                "    age integer" +
+                "  )," +
+                "  details object(ignored) as (" +
+                "    num_pages integer" +
+                "  )" +
+                ") with (number_of_replicas = 0)");
         transportExecutor.exec("insert into ot (title, author, details) values (?, ?, ?)",
-            new Object[]{
-                "The Hitchhiker's Guide to the Galaxy",
-                new HashMap<String, Object>() {{
-                    put("name", new HashMap<String, Object>() {{
-                        put("first_name", "Douglas");
-                        put("last_name", "Adams");
-                    }});
-                    put("age", 49);
-                }},
-                new HashMap<String, Object>() {{
-                    put("num_pages", 224);
-                }}
-            }
+                new Object[]{
+                        "The Hitchhiker's Guide to the Galaxy",
+                        new HashMap<String, Object>() {{
+                            put("name", new HashMap<String, Object>() {{
+                                put("first_name", "Douglas");
+                                put("last_name", "Adams");
+                            }});
+                            put("age", 49);
+                        }},
+                        new HashMap<String, Object>() {{
+                            put("num_pages", 224);
+                        }}
+                }
         );
         transportExecutor.refresh("ot");
     }
@@ -289,18 +288,10 @@ public class Setup {
         transportExecutor.refresh("parted");
     }
 
-    public void createTestIndexWithPkMapping() {
+    public void createTestTableWithPrimaryKey() {
         transportExecutor.exec("create table test (" +
                 "  pk_col string primary key, " +
                 "  message string" +
-                ") with (number_of_replicas=0)");
-        transportExecutor.ensureGreen();
-    }
-
-    public void createTestIndexWithSomeIdPkMapping() throws IOException {
-        transportExecutor.exec("create table test (" +
-                "  some_id string primary key, " +
-                "  type string" +
                 ") with (number_of_replicas=0)");
         transportExecutor.ensureGreen();
     }

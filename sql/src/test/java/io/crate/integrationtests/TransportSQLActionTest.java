@@ -33,7 +33,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Rule;
@@ -45,7 +44,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.collect.Maps.newHashMap;
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -1002,13 +1000,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateNestedNestedObject() throws Exception {
-        Settings settings = settingsBuilder()
-                .put("mapper.dynamic", true)
-                .put("number_of_replicas", 0)
-                .build();
-        prepareCreate("test")
-                .setSettings(settings)
-                .execute().actionGet();
+        execute("create table test (" +
+                "coolness object as (x object as (y object as (z int), a string, b string))," +
+                "a object as (x string, y int)," +
+                "firstcol int, othercol int" +
+                ") with (number_of_replicas=0)");
         ensureGreen();
 
         Map<String, Object> map = new HashMap<>();
@@ -1047,13 +1043,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateNestedObjectDeleteWithArgs() throws Exception {
-        Settings settings = settingsBuilder()
-                .put("mapper.dynamic", true)
-                .put("number_of_replicas", 0)
-                .build();
-        prepareCreate("test")
-                .setSettings(settings)
-                .execute().actionGet();
+        execute("create table test (a object as (x object as (y int, z int))) with (number_of_replicas=0)");
         ensureGreen();
 
         Map<String, Object> map = newHashMap();
@@ -1080,13 +1070,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateNestedObjectDeleteWithoutArgs() throws Exception {
-        Settings settings = settingsBuilder()
-                .put("mapper.dynamic", true)
-                .put("number_of_replicas", 0)
-                .build();
-        prepareCreate("test")
-                .setSettings(settings)
-                .execute().actionGet();
+        execute("create table test (a object as (x object as (y int, z int))) with (number_of_replicas=0)");
         ensureGreen();
 
         Map<String, Object> map = newHashMap();
@@ -1308,7 +1292,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertWithPrimaryKey() throws Exception {
-        this.setup.createTestIndexWithPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
         Object[] args = new Object[]{"1",
                 "A towel is about the most massively useful thing an interstellar hitch hiker can have."};
@@ -1321,7 +1305,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertWithPrimaryKeyMultiValues() throws Exception {
-        this.setup.createTestIndexWithPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
         Object[] args = new Object[]{
                 "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
@@ -1336,7 +1320,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertWithUniqueConstraintViolation() throws Exception {
-        this.setup.createTestIndexWithPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
         Object[] args = new Object[]{
                 "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
@@ -1355,7 +1339,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertWithPKMissingOnInsert() throws Exception {
-        this.setup.createTestIndexWithPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
         Object[] args = new Object[]{
                 "In the beginning the Universe was created.\n" +
@@ -1370,14 +1354,14 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectToGetRequestByPlanner() throws Exception {
-        this.setup.createTestIndexWithSomeIdPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
-        execute("insert into test (some_id, foo) values ('124', 'bar1')");
+        execute("insert into test (pk_col, message) values ('124', 'bar1')");
         assertEquals(1, response.rowCount());
         refresh();
         waitNoPendingTasksOnAll(); // wait for mapping update as foo is being added
 
-        execute("select some_id, foo from test where some_id='124'");
+        execute("select pk_col, message from test where pk_col='124'");
         assertEquals(1, response.rowCount());
         assertEquals("124", response.rows()[0][0]);
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
@@ -1386,62 +1370,62 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDeleteToDeleteRequestByPlanner() throws Exception {
-        this.setup.createTestIndexWithSomeIdPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
-        execute("insert into test (some_id, foo) values ('123', 'bar')");
+        execute("insert into test (pk_col, message) values ('123', 'bar')");
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("delete from test where some_id='123'");
+        execute("delete from test where pk_col='123'");
         assertEquals(1, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
-        execute("select * from test where some_id='123'");
+        execute("select * from test where pk_col='123'");
         assertEquals(0, response.rowCount());
     }
 
     @Test
     public void testUpdateToUpdateRequestByPlanner() throws Exception {
-        this.setup.createTestIndexWithSomeIdPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
-        execute("insert into test (some_id, foo) values ('123', 'bar')");
+        execute("insert into test (pk_col, message) values ('123', 'bar')");
         assertEquals(1, response.rowCount());
         waitNoPendingTasksOnAll(); // wait for new columns to be available
         refresh();
 
-        execute("update test set foo='bar1' where some_id='123'");
+        execute("update test set message='bar1' where pk_col='123'");
         assertEquals(1, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
-        execute("select foo from test where some_id='123'");
+        execute("select message from test where pk_col='123'");
         assertEquals(1, response.rowCount());
         assertEquals("bar1", response.rows()[0][0]);
     }
 
     @Test
     public void testSelectToRoutedRequestByPlanner() throws Exception {
-        this.setup.createTestIndexWithSomeIdPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
-        execute("insert into test (some_id, foo) values ('1', 'foo')");
-        execute("insert into test (some_id, foo) values ('2', 'bar')");
-        execute("insert into test (some_id, foo) values ('3', 'baz')");
+        execute("insert into test (pk_col, message) values ('1', 'foo')");
+        execute("insert into test (pk_col, message) values ('2', 'bar')");
+        execute("insert into test (pk_col, message) values ('3', 'baz')");
         refresh();
 
-        execute("SELECT * FROM test WHERE some_id='1' OR some_id='2'");
+        execute("SELECT * FROM test WHERE pk_col='1' OR pk_col='2'");
         assertEquals(2, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
-        execute("SELECT * FROM test WHERE some_id=? OR some_id=?", new Object[]{"1", "2"});
+        execute("SELECT * FROM test WHERE pk_col=? OR pk_col=?", new Object[]{"1", "2"});
         assertEquals(2, response.rowCount());
 
         awaitBusy(new Predicate<Object>() {
             @Override
             public boolean apply(@Nullable Object input) {
-                execute("SELECT * FROM test WHERE (some_id=? OR some_id=?) OR some_id=?", new Object[]{"1", "2", "3"});
+                execute("SELECT * FROM test WHERE (pk_col=? OR pk_col=?) OR pk_col=?", new Object[]{"1", "2", "3"});
                 return response.rowCount() == 3
-                        && Joiner.on(',').join(Arrays.asList(response.cols())).equals("foo,some_id,type");
+                        && Joiner.on(',').join(Arrays.asList(response.cols())).equals("message,pk_col");
             }
         }, 10, TimeUnit.SECONDS);
 
@@ -1449,50 +1433,50 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectToRoutedRequestByPlannerMissingDocuments() throws Exception {
-        this.setup.createTestIndexWithSomeIdPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
-        execute("insert into test (some_id, foo) values ('1', 'foo')");
-        execute("insert into test (some_id, foo) values ('2', 'bar')");
-        execute("insert into test (some_id, foo) values ('3', 'baz')");
+        execute("insert into test (pk_col, message) values ('1', 'foo')");
+        execute("insert into test (pk_col, message) values ('2', 'bar')");
+        execute("insert into test (pk_col, message) values ('3', 'baz')");
         refresh();
 
-        execute("SELECT some_id, foo FROM test WHERE some_id='4' OR some_id='3'");
+        execute("SELECT pk_col, message FROM test WHERE pk_col='4' OR pk_col='3'");
         assertEquals(1, response.rowCount());
         assertThat(Arrays.asList(response.rows()[0]), hasItems(new Object[]{"3", "baz"}));
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
-        execute("SELECT some_id, foo FROM test WHERE some_id='4' OR some_id='99'");
+        execute("SELECT pk_col, message FROM test WHERE pk_col='4' OR pk_col='99'");
         assertEquals(0, response.rowCount());
     }
 
     @Test
     public void testSelectToRoutedRequestByPlannerWhereIn() throws Exception {
-        this.setup.createTestIndexWithSomeIdPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
-        execute("insert into test (some_id, foo) values ('1', 'foo')");
-        execute("insert into test (some_id, foo) values ('2', 'bar')");
-        execute("insert into test (some_id, foo) values ('3', 'baz')");
+        execute("insert into test (pk_col, message) values ('1', 'foo')");
+        execute("insert into test (pk_col, message) values ('2', 'bar')");
+        execute("insert into test (pk_col, message) values ('3', 'baz')");
         refresh();
 
-        execute("SELECT * FROM test WHERE some_id IN (?,?,?)", new Object[]{"1", "2", "3"});
+        execute("SELECT * FROM test WHERE pk_col IN (?,?,?)", new Object[]{"1", "2", "3"});
         assertEquals(3, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
     @Test
     public void testDeleteToRoutedRequestByPlannerWhereIn() throws Exception {
-        this.setup.createTestIndexWithSomeIdPkMapping();
+        this.setup.createTestTableWithPrimaryKey();
 
-        execute("insert into test (some_id, foo) values ('1', 'foo')");
-        execute("insert into test (some_id, foo) values ('2', 'bar')");
-        execute("insert into test (some_id, foo) values ('3', 'baz')");
+        execute("insert into test (pk_col, message) values ('1', 'foo')");
+        execute("insert into test (pk_col, message) values ('2', 'bar')");
+        execute("insert into test (pk_col, message) values ('3', 'baz')");
         refresh();
 
-        execute("DELETE FROM test WHERE some_Id IN (?, ?, ?)", new Object[]{"1", "2", "4"});
+        execute("DELETE FROM test WHERE pk_col IN (?, ?, ?)", new Object[]{"1", "2", "4"});
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
-        execute("SELECT some_id FROM test");
+        execute("SELECT pk_col FROM test");
         assertThat(response.rowCount(), is(1L));
         assertEquals(response.rows()[0][0], "3");
 

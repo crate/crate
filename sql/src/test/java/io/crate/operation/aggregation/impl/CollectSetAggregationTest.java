@@ -28,6 +28,7 @@ import io.crate.operation.aggregation.AggregationState;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -47,7 +48,7 @@ public class CollectSetAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         FunctionIdent fi = new FunctionIdent("collect_set", ImmutableList.<DataType>of(DataTypes.INTEGER));
-        assertEquals(DataTypes.INTEGER, functions.get(fi).info().returnType());
+        assertEquals(new SetType(DataTypes.INTEGER), functions.get(fi).info().returnType());
     }
 
     @Test

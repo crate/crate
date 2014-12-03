@@ -33,7 +33,7 @@ import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.TEST)
 public class SysClusterTest extends SQLTransportIntegrationTest {
 
     static {

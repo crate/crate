@@ -46,14 +46,14 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
 
     @Test
     public void selectMultiGetRequestWithColumnAlias() throws IOException {
-        this.setup.createTestIndexWithSomeIdPkMapping();
-        execute("insert into test (some_id, foo) values ('1', 'foo')");
-        execute("insert into test (some_id, foo) values ('2', 'bar')");
-        execute("insert into test (some_id, foo) values ('3', 'baz')");
+        this.setup.createTestTableWithPrimaryKey();
+        execute("insert into test (pk_col, message) values ('1', 'foo')");
+        execute("insert into test (pk_col, message) values ('2', 'bar')");
+        execute("insert into test (pk_col, message) values ('3', 'baz')");
         refresh();
-        execute("SELECT some_id as id, foo from test where some_id IN (?,?)", new Object[]{'1', '2'});
+        execute("SELECT pk_col as id, message from test where pk_col IN (?,?)", new Object[]{'1', '2'});
         assertThat(response.rowCount(), is(2L));
-        assertThat(response.cols(), arrayContainingInAnyOrder("id", "foo"));
+        assertThat(response.cols(), arrayContainingInAnyOrder("id", "message"));
         assertThat(new String[]{(String) response.rows()[0][0], (String) response.rows()[1][0]}, arrayContainingInAnyOrder("1", "2"));
     }
 
