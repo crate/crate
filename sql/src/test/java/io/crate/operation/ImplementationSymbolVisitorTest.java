@@ -22,12 +22,16 @@
 package io.crate.operation;
 
 import io.crate.metadata.*;
+import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -37,9 +41,12 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
@@ -56,6 +63,9 @@ public class ImplementationSymbolVisitorTest {
                 DataTypes.LONG
         );
 
+        private AtomicBoolean compiled = new AtomicBoolean(false);
+
+
         @Override
         public Long evaluate(Input<Object>... args) {
             return (Long)args[0].value() * 2L;
@@ -69,6 +79,12 @@ public class ImplementationSymbolVisitorTest {
         @Override
         public Symbol normalizeSymbol(Function symbol) {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Scalar<Long, Object> compile(List<Symbol> arguments) {
+            compiled.set(true);
+            return this;
         }
     }
 
@@ -190,5 +206,20 @@ public class ImplementationSymbolVisitorTest {
         assertThat(keyInputs.size(), is(2));
         assertThat((Long)keyInputs.get(0).value(), is(1L));
         assertThat((Long) keyInputs.get(1).value(), is(4L));  // multiplied value
+    }
+
+    @Test
+    public void testCompiled() throws Exception {
+        Function multiply = new Function(
+                MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(0))
+        );
+        ImplementationSymbolVisitor.Context context = visitor.process(Arrays.asList(multiply));
+        assertThat(context.topLevelInputs().get(0), is(instanceOf(FunctionExpression.class)));
+        FunctionExpression expression = (FunctionExpression) context.topLevelInputs().get(0);
+        Field f = expression.getClass().getDeclaredField("functionImplementation");
+        f.setAccessible(true);
+        FunctionImplementation impl = (FunctionImplementation)f.get(expression);
+        assertThat(impl, is(instanceOf(MultiplyFunction.class)));
+        assertThat(((MultiplyFunction)impl).compiled.get(), is(true));
     }
 }
