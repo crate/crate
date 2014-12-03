@@ -60,6 +60,13 @@ Or if you want to test that a specific file executes correctly run::
 There is also a gradle task called ``itest`` which will execute all of the
 above steps.
 
+.. note::
+
+    To run the tests your network connection should be up and running, else
+    some of the tests will fail, because crate needs to bind to a network interface
+    that is capable of handling ip multicast requests.
+    This is not possible on localhost.
+
 Building and running Crate
 --------------------------
 
