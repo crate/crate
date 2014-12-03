@@ -4,8 +4,8 @@
     :alt: Crate
     :target: https://crate.io
 
-.. image:: https://travis-ci.org/crate/crate-dbal.svg?branch=master
-    :target: https://travis-ci.org/crate/crate-dbal
+.. image:: https://travis-ci.org/crate/crate.svg?branch=master
+    :target: https://travis-ci.org/crate/crate
     :alt: Build status
 
 ==============================
