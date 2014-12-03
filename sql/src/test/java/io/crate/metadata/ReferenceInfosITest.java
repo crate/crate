@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -52,7 +53,11 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDocTable() throws Exception {
-        execute("create table t1 (id int primary key, name string, details object(dynamic) as (size byte, created timestamp)) clustered into 10 shards with(number_of_replicas=1)");
+        execute("create table t1 (" +
+                  "id int primary key, " +
+                  "name string, " +
+                  "details object(dynamic) as (size byte, created timestamp)" +
+                ") clustered into 10 shards with (number_of_replicas=1)");
         ensureGreen();
 
         DocTableInfo ti = (DocTableInfo) referenceInfos.getTableInfo(new TableIdent(null, "t1"));
@@ -67,7 +72,8 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
         Set<String> nodes = routing.nodes();
 
-        assertThat(nodes.size(), is(2));
+        assertThat(nodes.size(), isOneOf(1, 2)); // for the rare case
+                                                 // where all shards are on 1 node
         int numShards = 0;
         for (Map.Entry<String, Map<String, Set<Integer>>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, Set<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {
