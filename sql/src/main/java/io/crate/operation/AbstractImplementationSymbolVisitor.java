@@ -90,14 +90,14 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
     public Input<?> visitFunction(Function function, C context) {
         final FunctionImplementation functionImplementation = functions.get(function.info().ident());
         if (functionImplementation != null && functionImplementation instanceof Scalar<?, ?>) {
-
             List<Symbol> arguments = function.arguments();
+            Scalar<?, ?> scalarImpl = ((Scalar) functionImplementation).compile(arguments);
             Input[] argumentInputs = new Input[arguments.size()];
             int i = 0;
             for (Symbol argument : function.arguments()) {
                 argumentInputs[i++] = process(argument, context);
             }
-            return new FunctionExpression<>((Scalar<?, ?>) functionImplementation, argumentInputs);
+            return new FunctionExpression<>(scalarImpl, argumentInputs);
         } else {
             throw new IllegalArgumentException(
                     SymbolFormatter.format("Cannot find implementation for function %s", function));
