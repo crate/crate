@@ -649,9 +649,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (!routing.hasLocations()) return false;
         if (groupedByClusteredColumnOrPrimaryKeys(analysis)) return false;
         if (routing.locations().size() > 1) return true;
-
-        String nodeId = routing.locations().keySet().iterator().next();
-        return !(nodeId == null || nodeId.equals(clusterService.localNode().id()));
+        return false;
     }
 
     private boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalyzedStatement analysis) {
@@ -722,26 +720,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         List<Symbol> toCollect = contextBuilder.toCollect();
-        contextBuilder.nextStep();
 
         projectionBuilder.add(groupProjection);
-        if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
-
-            TopNProjection topN = new TopNProjection(
-                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
-                    0,
-                    contextBuilder.orderBy(),
-                    analysis.orderBy().reverseFlags(),
-                    analysis.orderBy().nullsFirst()
-            );
-            // pass through on collectnode
-            List<Symbol> topNOutputs = new ArrayList<>(groupProjection.outputs().size());
-            int i = 0;
-            for (Symbol groupOutput : groupProjection.outputs()) {
-                topNOutputs.add(new InputColumn(i++, groupOutput.valueType()));
-            }
-            topN.outputs(topNOutputs);
-            projectionBuilder.add(topN);
+        boolean topNDone = false;
+        if (numAggregationSteps == 1) {
+            topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionBuilder);
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
                 analysis,
@@ -755,6 +738,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         // handler
         ImmutableList.Builder<Projection> builder = ImmutableList.builder();
 
+        if (numAggregationSteps == 2) {
+            builder.add(new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations()));
+        }
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
             fp.outputs(contextBuilder.passThroughOutputs());
@@ -763,18 +749,24 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
             builder.add(fp);
         }
-        if (numAggregationSteps == 2) {
-            builder.add(new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations()));
-        }
         if (!ignoreSorting) {
+            List<Symbol> outputs;
+            List<Symbol> orderBy;
+            if (topNDone) {
+                orderBy = contextBuilder.passThroughOrderBy();
+                outputs = contextBuilder.passThroughOutputs();
+            } else {
+                orderBy = contextBuilder.orderBy();
+                outputs = contextBuilder.outputs();
+            }
             TopNProjection topN = new TopNProjection(
                     firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
-                    contextBuilder.orderBy(),
+                    orderBy,
                     analysis.orderBy().reverseFlags(),
                     analysis.orderBy().nullsFirst()
             );
-            topN.outputs(contextBuilder.outputs());
+            topN.outputs(outputs);
             builder.add(topN);
         }
         if (context.indexWriterProjection.isPresent()) {
