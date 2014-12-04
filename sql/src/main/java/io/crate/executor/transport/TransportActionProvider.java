@@ -26,7 +26,11 @@ import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
+import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
+import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
+import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemplatesAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.action.bulk.TransportShardBulkActionDelegate;
@@ -53,6 +57,7 @@ public class TransportActionProvider {
 
     private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
     private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
+    private final Provider<TransportGetIndexTemplatesAction> transportGetIndexTemplatesActionProvider;
     private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider;
     private final Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider;
     private final Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider;
@@ -65,6 +70,9 @@ public class TransportActionProvider {
     private final Provider<TransportIndexAction> transportIndexActionProvider;
     private final Provider<TransportQueryShardAction> transportQueryShardActionProvider;
     private final Provider<TransportUpdateAction> transportUpdateActionProvider;
+    private final Provider<TransportPutMappingAction> transportPutMappingActionProvider;
+    private final Provider<TransportRefreshAction> transportRefreshActionProvider;
+    private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
 
     @Inject
     public TransportActionProvider(Provider<TransportShardBulkAction> transportShardBulkActionProvider,
@@ -72,6 +80,7 @@ public class TransportActionProvider {
                                    Provider<TransportMergeNodeAction> transportMergeNodeActionProvider,
                                    Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
                                    Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
+                                   Provider<TransportGetIndexTemplatesAction> transportGetIndexTemplatesActionProvider,
                                    Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider,
                                    Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider,
                                    Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider,
@@ -84,10 +93,14 @@ public class TransportActionProvider {
                                    Provider<TransportUpdateAction> transportUpdateActionProvider,
                                    Provider<TransportQueryShardAction> transportQueryShardActionProvider,
                                    Provider<TransportSearchAction> transportSearchActionProvider,
-                                   Provider<SearchServiceTransportAction> searchServiceTransportActionProvider) {
+                                   Provider<SearchServiceTransportAction> searchServiceTransportActionProvider,
+                                   Provider<TransportPutMappingAction> transportPutMappingActionProvider,
+                                   Provider<TransportRefreshAction> transportRefreshActionProvider,
+                                   Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
+        this.transportGetIndexTemplatesActionProvider = transportGetIndexTemplatesActionProvider;
         this.transportDeleteIndexTemplateActionProvider = transportDeleteIndexTemplateActionProvider;
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
         this.transportCountActionProvider = transportCountActionProvider;
@@ -103,6 +116,9 @@ public class TransportActionProvider {
         this.transportMergeNodeActionProvider = transportMergeNodeActionProvider;
         this.transportSearchActionProvider = transportSearchActionProvider;
         this.searchServiceTransportActionProvider = searchServiceTransportActionProvider;
+        this.transportPutMappingActionProvider = transportPutMappingActionProvider;
+        this.transportRefreshActionProvider = transportRefreshActionProvider;
+        this.transportUpdateSettingsActionProvider = transportUpdateSettingsActionProvider;
     }
 
 
@@ -112,6 +128,10 @@ public class TransportActionProvider {
 
     public TransportDeleteIndexAction transportDeleteIndexAction() {
         return transportDeleteIndexActionProvider.get();
+    }
+
+    public TransportGetIndexTemplatesAction transportGetIndexTemplatesAction() {
+        return transportGetIndexTemplatesActionProvider.get();
     }
 
     public TransportPutIndexTemplateAction transportPutIndexTemplateAction() {
@@ -176,5 +196,17 @@ public class TransportActionProvider {
 
     public SearchServiceTransportAction searchServiceTransportAction() {
         return searchServiceTransportActionProvider.get();
+    }
+
+    public TransportPutMappingAction transportPutMappingAction() {
+        return transportPutMappingActionProvider.get();
+    }
+
+    public TransportRefreshAction transportRefreshAction() {
+        return transportRefreshActionProvider.get();
+    }
+
+    public TransportUpdateSettingsAction transportUpdateSettingsAction() {
+        return transportUpdateSettingsActionProvider.get();
     }
 }

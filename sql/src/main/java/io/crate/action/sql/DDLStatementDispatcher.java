@@ -35,6 +35,7 @@ import io.crate.exceptions.AlterTableAliasException;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Plan;
@@ -52,19 +53,14 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
-import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
-import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemplatesAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -92,30 +88,18 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
 
     private final ClusterService clusterService;
     private final BlobIndices blobIndices;
-    private final TransportRefreshAction transportRefreshAction;
     private final Provider<Executor> executorProvider;
-    private final TransportPutMappingAction transportPutMappingAction;
-    private final TransportUpdateSettingsAction transportUpdateSettingsAction;
-    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
-    private final TransportGetIndexTemplatesAction transportGetIndexTemplatesAction;
+    private final TransportActionProvider transportActionProvider;
 
     @Inject
     public DDLStatementDispatcher(ClusterService clusterService,
                                   BlobIndices blobIndices,
                                   Provider<Executor> executorProvider,
-                                  TransportPutMappingAction transportPutMappingAction,
-                                  TransportRefreshAction transportRefreshAction,
-                                  TransportUpdateSettingsAction transportUpdateSettingsAction,
-                                  TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                                  TransportGetIndexTemplatesAction transportGetIndexTemplatesAction) {
+                                  TransportActionProvider transportActionProvider) {
         this.clusterService = clusterService;
         this.blobIndices = blobIndices;
         this.executorProvider = executorProvider;
-        this.transportPutMappingAction = transportPutMappingAction;
-        this.transportRefreshAction = transportRefreshAction;
-        this.transportUpdateSettingsAction = transportUpdateSettingsAction;
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-        this.transportGetIndexTemplatesAction = transportGetIndexTemplatesAction;
+        this.transportActionProvider = transportActionProvider;
     }
 
     @Override
@@ -236,7 +220,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
         } catch (IOException e) {
             result.setException(e);
         }
-        transportPutMappingAction.execute(request, new ActionListener<PutMappingResponse>() {
+        transportActionProvider.transportPutMappingAction().execute(request, new ActionListener<PutMappingResponse>() {
             @Override
             public void onResponse(PutMappingResponse putMappingResponse) {
                 if (operations.decrementAndGet() == 0) {
@@ -270,7 +254,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
                 Alias alias = new Alias(container.key);
                 updateTemplateRequest.alias(alias);
             }
-            transportPutIndexTemplateAction.execute(updateTemplateRequest, new ActionListener<PutIndexTemplateResponse>() {
+            transportActionProvider.transportPutIndexTemplateAction().execute(updateTemplateRequest, new ActionListener<PutIndexTemplateResponse>() {
                 @Override
                 public void onResponse(PutIndexTemplateResponse putIndexTemplateResponse) {
                     if (operations.decrementAndGet() == 0) {
@@ -341,7 +325,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
         } else {
             final SettableFuture<Long> future = SettableFuture.create();
             RefreshRequest request = new RefreshRequest(indexNames);
-            transportRefreshAction.execute(request, new ActionListener<RefreshResponse>() {
+            transportActionProvider.transportRefreshAction().execute(request, new ActionListener<RefreshResponse>() {
                 @Override
                 public void onResponse(RefreshResponse refreshResponse) {
                     future.set(null); // no row count
@@ -412,7 +396,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
             final String templateName = PartitionName.templateName(analysis.table().ident().name());
             GetIndexTemplatesRequest getRequest = new GetIndexTemplatesRequest(templateName);
 
-            transportGetIndexTemplatesAction.execute(getRequest, new ActionListener<GetIndexTemplatesResponse>() {
+            transportActionProvider.transportGetIndexTemplatesAction().execute(getRequest, new ActionListener<GetIndexTemplatesResponse>() {
                 @Override
                 public void onResponse(GetIndexTemplatesResponse response) {
                     Map<String, Object> mapping = new HashMap<>();
@@ -432,7 +416,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
                         Alias alias = new Alias(container.key);
                         request.alias(alias);
                     }
-                    transportPutIndexTemplateAction.execute(request, new ActionListener<PutIndexTemplateResponse>() {
+                    transportActionProvider.transportPutIndexTemplateAction().execute(request, new ActionListener<PutIndexTemplateResponse>() {
                         @Override
                         public void onResponse(PutIndexTemplateResponse putIndexTemplateResponse) {
                             templateFuture.set(null);
@@ -461,7 +445,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
                         index);
                 final SettableFuture<?> future = SettableFuture.create();
                 results.add(future);
-                transportUpdateSettingsAction.execute(request, new ActionListener<UpdateSettingsResponse>() {
+                transportActionProvider.transportUpdateSettingsAction().execute(request, new ActionListener<UpdateSettingsResponse>() {
                     @Override
                     public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
                         future.set(null);
@@ -480,7 +464,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
             request.source(analysis.tableParameter().mappings());
             final SettableFuture<?> future = SettableFuture.create();
             results.add(future);
-            transportPutMappingAction.execute(request, new ActionListener<PutMappingResponse>() {
+            transportActionProvider.transportPutMappingAction().execute(request, new ActionListener<PutMappingResponse>() {
                 @Override
                 public void onResponse(PutMappingResponse putMappingResponse) {
                     future.set(null);

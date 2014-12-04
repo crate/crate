@@ -23,11 +23,11 @@ package io.crate.plugin;
 
 
 import com.google.common.collect.Lists;
-import io.crate.blob.BlobModule;
-import io.crate.blob.BlobService;
+import io.crate.blob.*;
 import io.crate.blob.v2.BlobIndexModule;
 import io.crate.blob.v2.BlobIndicesModule;
 import io.crate.blob.v2.BlobShardModule;
+import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -93,5 +93,11 @@ public class BlobPlugin extends AbstractPlugin {
         Collection<Class<? extends Module>> modules = Lists.newArrayList();
         modules.add(BlobShardModule.class);
         return modules;
+    }
+
+    public void onModule(ActionModule module) {
+        module.registerAction(PutChunkAction.INSTANCE, TransportPutChunkAction.class);
+        module.registerAction(StartBlobAction.INSTANCE, TransportStartBlobAction.class);
+        module.registerAction(DeleteBlobAction.INSTANCE, TransportDeleteBlobAction.class);
     }
 }

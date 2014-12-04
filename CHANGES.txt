@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated Elasticsearch to 1.4.1
+
  - Fix: improve performance of regex functions by actually pre-compiling
    their used patterns (if given as literal)
 

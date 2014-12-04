@@ -56,9 +56,11 @@ import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettin
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.TransportShardBulkAction;
 import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
+import org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
@@ -67,10 +69,7 @@ import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.*;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -239,11 +238,21 @@ public class LocalDataCollectTest {
             bind(IndicesService.class).toInstance(indicesService);
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
 
+            bind(MetaDataUpdateSettingsService.class).toInstance(mock(MetaDataUpdateSettingsService.class));
+            bind(Client.class).toInstance(mock(Client.class));
+
+            Provider<TransportCreateIndexAction> transportCreateIndexActionProvider = mock(Provider.class);
+            when(transportCreateIndexActionProvider.get()).thenReturn(mock(TransportCreateIndexAction.class));
+            Provider<TransportDeleteIndexAction> transportDeleteActionProvider = mock(Provider.class);
+            when(transportDeleteActionProvider.get()).thenReturn(mock(TransportDeleteIndexAction.class));
+            Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider = mock(Provider.class);
+            when(transportUpdateSettingsActionProvider.get()).thenReturn(mock(TransportUpdateSettingsAction.class));
+
             BlobIndices blobIndices = new BlobIndices(
                     ImmutableSettings.EMPTY,
-                    mock(TransportCreateIndexAction.class),
-                    mock(TransportDeleteIndexAction.class),
-                    mock(TransportUpdateSettingsAction.class),
+                    transportCreateIndexActionProvider,
+                    transportDeleteActionProvider,
+                    transportUpdateSettingsActionProvider,
                     indicesService,
                     mock(IndicesLifecycle.class),
                     mock(BlobEnvironment.class),

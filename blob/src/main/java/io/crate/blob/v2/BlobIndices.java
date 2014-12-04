@@ -46,6 +46,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -64,9 +65,9 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     public static final String SETTING_INDEX_BLOBS_PATH = "index.blobs.path";
     public static final String INDEX_PREFIX = ".blob_";
 
-    private final TransportUpdateSettingsAction transportUpdateSettingsAction;
-    private final TransportCreateIndexAction transportCreateIndexAction;
-    private final TransportDeleteIndexAction transportDeleteIndexAction;
+    private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
+    private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
+    private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
     private final IndicesService indicesService;
     private final IndicesLifecycle indicesLifecycle;
     private final BlobEnvironment blobEnvironment;
@@ -94,17 +95,17 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     @Inject
     public BlobIndices(Settings settings,
-                       TransportCreateIndexAction transportCreateIndexAction,
-                       TransportDeleteIndexAction transportDeleteIndexAction,
-                       TransportUpdateSettingsAction transportUpdateSettingsAction,
+                       Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
+                       Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
+                       Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
                        IndicesService indicesService,
                        IndicesLifecycle indicesLifecycle,
                        BlobEnvironment blobEnvironment,
                        ClusterService clusterService) {
         super(settings);
-        this.transportCreateIndexAction = transportCreateIndexAction;
-        this.transportDeleteIndexAction = transportDeleteIndexAction;
-        this.transportUpdateSettingsAction = transportUpdateSettingsAction;
+        this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
+        this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
+        this.transportUpdateSettingsActionProvider = transportUpdateSettingsActionProvider;
         this.indicesService = indicesService;
         this.indicesLifecycle = indicesLifecycle;
         this.blobEnvironment = blobEnvironment;
@@ -124,7 +125,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
      */
     public ListenableFuture<Void> alterBlobTable(String tableName, Settings indexSettings) {
         final SettableFuture<Void> result = SettableFuture.create();
-        transportUpdateSettingsAction.execute(
+        transportUpdateSettingsActionProvider.get().execute(
                 new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)),
                 new ActionListener<UpdateSettingsResponse>() {
                     @Override
@@ -148,7 +149,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         builder.put(SETTING_INDEX_BLOBS_ENABLED, true);
 
         final SettableFuture<Void> result = SettableFuture.create();
-        transportCreateIndexAction.execute(new CreateIndexRequest(fullIndexName(tableName), builder.build()), new ActionListener<CreateIndexResponse>() {
+        transportCreateIndexActionProvider.get().execute(new CreateIndexRequest(fullIndexName(tableName), builder.build()), new ActionListener<CreateIndexResponse>() {
             @Override
             public void onResponse(CreateIndexResponse createIndexResponse) {
                 assert createIndexResponse.isAcknowledged();
@@ -165,7 +166,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     public ListenableFuture<Void> dropBlobTable(final String tableName) {
         final SettableFuture<Void> result = SettableFuture.create();
-        transportDeleteIndexAction.execute(new DeleteIndexRequest(fullIndexName(tableName)), new ActionListener<DeleteIndexResponse>() {
+        transportDeleteIndexActionProvider.get().execute(new DeleteIndexRequest(fullIndexName(tableName)), new ActionListener<DeleteIndexResponse>() {
             @Override
             public void onResponse(DeleteIndexResponse deleteIndexResponse) {
                 result.set(null);
