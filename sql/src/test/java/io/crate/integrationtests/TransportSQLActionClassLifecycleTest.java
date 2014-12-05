@@ -645,7 +645,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         SQLResponse resp = executor.exec("select count(*) from sys.operations_log");
         assertThat((Long)resp.rows()[0][0], is(0L));
 
-        executor.exec("set global transient stats.enabled = true, stats.operations_log_size=100");
+        executor.exec("set global transient stats.enabled = true, stats.operations_log_size=10");
         waitNoPendingTasksOnAll();
 
         executor.exec(
@@ -656,8 +656,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         for (Object[] objects : resp.rows()) {
             names.add((String)objects[2]);
         }
-        assertTrue(names.contains("distributing collect"));
-        assertTrue(names.contains("distributed merge"));
+        assertTrue((names.contains("distributing collect") && names.contains("distributed merge")) || names.contains("collect"));
         assertTrue(names.contains("localMerge"));
 
         executor.exec("reset global stats.enabled, stats.operations_log_size");
