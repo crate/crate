@@ -1,7 +1,9 @@
 language: java
 jdk:
   - openjdk7
-
+env:
+  global:
+    _JAVA_OPTIONS="-Xmx512m -XX:MaxPermSize=128m -XX:MaxDirectMemorySize=512m"
 notifications:
   email: false
 
