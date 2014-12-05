@@ -253,5 +253,8 @@ public class RecoveryTests extends CrateIntegrationTest {
             assertThat(length, greaterThanOrEqualTo(1L));
         }
 
+        for (Thread writer : writers) {
+            writer.join(6000);
+        }
     }
 }
