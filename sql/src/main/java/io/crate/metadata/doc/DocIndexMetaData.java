@@ -297,10 +297,8 @@ public class DocIndexMetaData {
                 }
                 // is it an index?
                 if (indicesMap.containsKey(newIdent.fqn())) {
-                    String analyzer = getNested(columnProperties, "analyzer");
                     IndexReferenceInfo.Builder builder = getOrCreateIndexBuilder(newIdent);
                     builder.indexType(columnIndexType)
-                            .analyzer(analyzer)
                             .ident(new ReferenceIdent(ident, newIdent));
                 } else {
                     add(newIdent, columnDataType, columnIndexType);

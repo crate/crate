@@ -19,16 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.elasticsearch.index.mapper.core;
+package io.crate.metadata.doc.array;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.AbstractIndexComponent;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.core.ArrayMapper;
+import org.elasticsearch.index.settings.IndexSettings;
 
-public class ArrayMapperModule extends AbstractModule {
+public class ArrayMapperRegistration extends AbstractIndexComponent {
 
-    @Override
-    protected void configure() {
-        bind(ArrayMapperRegistration.class).asEagerSingleton();
-        bind(DynamicArrayFieldMapperBuilderFactory.class).to(ArrayMapper.Builder.BuilderFactory.class).asEagerSingleton();
+    @Inject
+    protected ArrayMapperRegistration(Index index, @IndexSettings Settings indexSettings, MapperService mapperService) {
+        super(index, indexSettings);
+
+        mapperService.documentMapperParser().putTypeParser(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
     }
 }

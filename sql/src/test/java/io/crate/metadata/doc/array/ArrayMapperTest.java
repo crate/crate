@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.elasticsearch.index.mapper.array;
+package io.crate.metadata.doc.array;
 
 import com.google.common.base.Joiner;
 import io.crate.test.integration.CrateSingleNodeTest;
