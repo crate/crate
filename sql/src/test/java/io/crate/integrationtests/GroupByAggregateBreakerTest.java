@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.breaker.CircuitBreakerModule;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -52,7 +52,7 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         RamAccountingContext.FLUSH_BUFFER_SIZE = 24;
         return ImmutableSettings.builder()
-                .put(CircuitBreakerModule.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, 512)
+                .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, 512)
                 .build();
     }
 
@@ -67,7 +67,7 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
     @Test
     public void selectGroupByWithBreaking() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(Matchers.startsWith("Too much HEAP memory used by "));
+        expectedException.expectMessage(Matchers.startsWith("[QUERY] Data too large, data for "));
         execute("select name, department, max(income), min(age) from employees group by name, department order by 3");
     }
 }

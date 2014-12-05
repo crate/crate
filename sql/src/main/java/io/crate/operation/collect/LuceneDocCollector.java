@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
@@ -160,7 +161,9 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     public void collect(int doc) throws IOException {
         if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
             // stop collecting because breaker limit was reached
-            throw new UnexpectedCollectionTerminatedException("circuit breaker already tripped");
+            throw new UnexpectedCollectionTerminatedException(
+                    CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
+                            ramAccountingContext.limit()));
         }
         Object[] newRow = new Object[topLevelInputs.size()];
         if (visitorEnabled){

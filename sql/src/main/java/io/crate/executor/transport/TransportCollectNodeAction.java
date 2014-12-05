@@ -26,7 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
-import io.crate.breaker.QueryOperationCircuitBreaker;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.DistributingCollectOperation;
@@ -74,7 +74,7 @@ public class TransportCollectNodeAction {
                                       DistributingCollectOperation distributingCollectOperation,
                                       PlanNodeStreamerVisitor planNodeStreamerVisitor,
                                       StatsTables statsTables,
-                                      @QueryOperationCircuitBreaker CircuitBreaker circuitBreaker) {
+                                      CrateCircuitBreakerService breakerService) {
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
@@ -82,7 +82,7 @@ public class TransportCollectNodeAction {
         this.distributingCollectOperation = distributingCollectOperation;
         this.planNodeStreamerVisitor = planNodeStreamerVisitor;
         this.statsTables = statsTables;
-        this.circuitBreaker = circuitBreaker;
+        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
 
         transportService.registerHandler(transportAction, new TransportHandler());
     }

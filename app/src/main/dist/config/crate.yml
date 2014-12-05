@@ -579,12 +579,12 @@
 
 # Specifies the limit for the query breaker.
 #
-# crate.breaker.query.limit: 60%
+# node.breaker.query.limit: 60%
 
 # A constant that all query data estimations are multiplied with to
 # determine a final estimation.
 #
-# crate.breaker.query.overhead: 1.0.3
+# node.breaker.query.overhead: 1.09
 
 
 ################################### UDC ###################################

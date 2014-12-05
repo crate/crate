@@ -23,7 +23,7 @@ package io.crate.executor.transport;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
-import io.crate.breaker.QueryOperationCircuitBreaker;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
@@ -92,7 +92,7 @@ public class TransportExecutor implements Executor {
                              Provider<DDLStatementDispatcher> ddlAnalysisDispatcherProvider,
                              StatsTables statsTables,
                              ClusterService clusterService,
-                             @QueryOperationCircuitBreaker CircuitBreaker circuitBreaker) {
+                             CrateCircuitBreakerService breakerService) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -104,7 +104,7 @@ public class TransportExecutor implements Executor {
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.visitor = new Visitor();
-        this.circuitBreaker = circuitBreaker;
+        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         ImplementationSymbolVisitor clusterImplementationSymbolVisitor =
                 new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         projectorVisitor = new ProjectionToProjectorVisitor(

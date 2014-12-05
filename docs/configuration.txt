@@ -136,17 +136,21 @@ the execution of a query. If a query consumes too much memory or if
 the cluster is already near its memory limit it will terminate the
 query to ensure the cluster keeps working.
 
-**crate.breaker.query.limit**
-  | *Runtime:*   ``no``
+**node.breaker.query.limit**
+  | *Default:*   ``60%``
+  | *Runtime:*   ``yes``
 
-  Specifies the limit for the query breaker, defaults to ``60%`` of
-  the JVM HEAP.
+  Specifies the limit for the query breaker. Provided values can
+  either be absolute values (intepreted as a number of bytes), byte
+  sizes (eg. 1mb) or percentage of the heap size (eg. 12%). A value of
+  ``-1`` disables breaking the circuit while still accounting memory usage.
 
-**crate.breaker.query.overhead**
-  | *Runtime:*   ``no``
+**node.breaker.query.overhead**
+  | *Default:*   ``1.09``
+  | *Runtime:*   ``yes``
 
   A constant that all data estimations are multiplied with to
-  determine a final estimation. Defaults to ``1.03``.
+  determine a final estimation.
 
 .. _conf-cluster-settings:
 

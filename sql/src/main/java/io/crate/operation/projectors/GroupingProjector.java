@@ -75,6 +75,8 @@ public class GroupingProjector implements Projector {
             );
         }
 
+        // grouper object size overhead
+        ramAccountingContext.addBytes(8);
         if (keyInputs.size() == 1) {
             grouper = new SingleKeyGrouper(keyInputs.get(0), keyTypes.get(0),
                     collectExpressions, aggregationCollectors);
@@ -223,6 +225,9 @@ public class GroupingProjector implements Projector {
             }
 
             Object key = keyInput.value();
+
+            // HashMap.get requires some objects (iterators) and at least 2 integers
+            ramAccountingContext.addBytes(32);
             AggregationState[] states = result.get(key);
             if (states == null) {
                 states = new AggregationState[aggregationCollectors.length];
@@ -231,7 +236,8 @@ public class GroupingProjector implements Projector {
                     aggregationCollectors[i].processRow();
                     states[i] = aggregationCollectors[i].state();
                 }
-                ramAccountingContext.addBytes(sizeEstimator.estimateSize(key) + 24); // 24 bytes overhead per entry
+                ramAccountingContext.addBytes(
+                        ramAccountingContext.roundUp(sizeEstimator.estimateSize(key)) + 24); // 24 bytes overhead per entry
                 result.put(key, states);
             } else {
                 for (int i = 0; i < aggregationCollectors.length; i++) {
@@ -250,6 +256,12 @@ public class GroupingProjector implements Projector {
                 downstream.upstreamFailed(throwable);
             }
 
+            // account the multi-dimension `rows` array
+            // 1st level
+            ramAccountingContext.addBytes(ramAccountingContext.roundUp(12 + result.size() * 4));
+            // 2nd level
+            ramAccountingContext.addBytes(ramAccountingContext.roundUp(
+                    (1 + aggregationCollectors.length) * 4 + 12));
             Object[][] rows = new Object[result.size()][1 + aggregationCollectors.length];
             boolean sendToDownStream = downstream != null;
             int r = 0;
@@ -296,14 +308,22 @@ public class GroupingProjector implements Projector {
                 collectExpression.setNextRow(row);
             }
 
-            // key array list overhead
+            // key list ram accounting
             ramAccountingContext.addBytes(12);
             // TODO: use something with better equals() performance for the keys
             List<Object> key = new ArrayList<>(keyInputs.size());
+            int keyIdx = 0;
             for (Input keyInput : keyInputs) {
                 key.add(keyInput.value());
+                // 4 bytes overhead per list entry + 4 bytes overhead for later hashCode
+                // calculation while using list.get()
+                ramAccountingContext.addBytes(ramAccountingContext.roundUp(
+                        sizeEstimators.get(keyIdx).estimateSize(keyInput.value()) + 4) + 4);
+                keyIdx++;
             }
 
+            // HashMap.get requires some objects (iterators) and at least 2 integers
+            ramAccountingContext.addBytes(32);
             AggregationState[] states = result.get(key);
             if (states == null) {
                 states = new AggregationState[aggregationCollectors.length];
@@ -311,9 +331,6 @@ public class GroupingProjector implements Projector {
                     aggregationCollectors[i].startCollect(ramAccountingContext);
                     aggregationCollectors[i].processRow();
                     states[i] = aggregationCollectors[i].state();
-                }
-                for (int i = 0; i < key.size(); i++) {
-                    ramAccountingContext.addBytes(sizeEstimators.get(i).estimateSize(key.get(i)) + 4); // 4 bytes overhead per list entry
                 }
                 ramAccountingContext.addBytes(24); // 24 bytes overhead per map entry
                 result.put(key, states);
@@ -333,6 +350,12 @@ public class GroupingProjector implements Projector {
             if (throwable != null && downstream != null) {
                 downstream.upstreamFailed(throwable);
             }
+            // account the multi-dimension `rows` array
+            // 1st level
+            ramAccountingContext.addBytes(ramAccountingContext.roundUp(12 + result.size() * 4));
+            // 2nd level
+            ramAccountingContext.addBytes(ramAccountingContext.roundUp(12 +
+                    (keyInputs.size() + aggregationCollectors.length) * 4));
             Object[][] rows = new Object[result.size()][keyInputs.size() + aggregationCollectors.length];
             boolean sendToDownStream = downstream != null;
             int r = 0;

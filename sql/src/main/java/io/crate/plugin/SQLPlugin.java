@@ -28,6 +28,7 @@ import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.breaker.CircuitBreakerModule;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacetParser;
 import io.crate.metadata.MetaDataModule;
@@ -153,6 +154,8 @@ public class SQLPlugin extends AbstractPlugin {
     public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {
         // add our dynamic cluster settings
         clusterDynamicSettingsModule.addDynamicSettings(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
+        clusterDynamicSettingsModule.addDynamicSettings(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
+        clusterDynamicSettingsModule.addDynamicSettings(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
         registerSettings(clusterDynamicSettingsModule, CrateSettings.CRATE_SETTINGS);
     }
 

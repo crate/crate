@@ -28,7 +28,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
-import io.crate.breaker.QueryOperationCircuitBreaker;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportActionProvider;
@@ -236,13 +236,13 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                                         TransportService transportService,
                                         PlanNodeStreamerVisitor streamerVisitor,
                                         CollectServiceResolver collectServiceResolver,
-                                        @QueryOperationCircuitBreaker CircuitBreaker circuitBreaker) {
+                                        CrateCircuitBreakerService breakerService) {
         super(clusterService, settings, transportActionProvider,
                 functions, referenceResolver, indicesService,
                 threadPool, collectServiceResolver);
         this.transportService = transportService;
         this.streamerVisitor = streamerVisitor;
-        this.circuitBreaker = circuitBreaker;
+        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
     }
 
     @Override

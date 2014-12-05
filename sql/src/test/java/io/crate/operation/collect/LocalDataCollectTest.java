@@ -28,7 +28,7 @@ import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.breaker.QueryOperationCircuitBreaker;
+import io.crate.breaker.CircuitBreakerModule;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
@@ -67,8 +67,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.*;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -210,7 +208,6 @@ public class LocalDataCollectTest {
             bind(Functions.class).asEagerSingleton();
             bind(ThreadPool.class).toInstance(testThreadPool);
 
-            bind(CircuitBreaker.class).annotatedWith(QueryOperationCircuitBreaker.class).toInstance(new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
             bind(CircuitBreakerService.class).toInstance(new NoneCircuitBreakerService());
             bind(ActionFilters.class).toInstance(mock(ActionFilters.class));
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
@@ -309,6 +306,7 @@ public class LocalDataCollectTest {
     @Before
     public void configure() {
         Injector injector = new ModulesBuilder().add(
+                new CircuitBreakerModule(),
                 new OperatorModule(),
                 new TestModule()
         ).createInjector();

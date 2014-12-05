@@ -28,8 +28,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class RamAccountingContext {
 
-    // Flush every 5mb
-    public static long FLUSH_BUFFER_SIZE = 1024 * 1024 * 5;
+    // Flush every 2mb
+    public static long FLUSH_BUFFER_SIZE = 1024 * 1024 * 2;
 
     private final String contextId;
     private final CircuitBreaker breaker;
@@ -112,7 +112,39 @@ public class RamAccountingContext {
         totalBytes.addAndGet(flushBuffer.getAndSet(0));
     }
 
+    /**
+     * Returns true if the limit of the breaker was already reached
+     */
     public boolean trippedBreaker() {
         return tripped;
+    }
+
+    /**
+     * Returns the configured bytes limit of the breaker
+     */
+    public long limit() {
+        return breaker.getLimit();
+    }
+
+    /**
+     * Returns the context id string.
+     */
+    public String contextId() {
+        return contextId;
+    }
+
+
+    /**
+     * round n up to the nearest multiple of m
+     */
+    public static long roundUp(long n, long m) {
+        return n + (n % m);
+    }
+
+    /**
+     * round n up to the nearest multiple of 8
+     */
+    public static long roundUp(long n) {
+        return roundUp(n, 8);
     }
 }

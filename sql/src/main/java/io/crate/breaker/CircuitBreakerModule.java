@@ -21,39 +21,12 @@
 
 package io.crate.breaker;
 
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeValue;
 
 public class CircuitBreakerModule extends AbstractModule {
 
-    public static final String QUERY_CIRCUIT_BREAKER_LIMIT_SETTING = "crate.breaker.query.limit";
-    public static final String QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING = "crate.breaker.query.overhead";
-    public static final String DEFAULT_CIRCUIT_BREAKER_LIMIT = "60%";
-    public static final double DEFAULT_CIRCUIT_BREAKER_OVERHEAD_CONSTANT = 1.03;
-
-
-    private final Settings settings;
-
-    public CircuitBreakerModule(Settings settings) {
-        this.settings = settings;
-    }
-
     @Override
     protected void configure() {
-        ByteSizeValue memoryLimit = settings.getAsMemory(
-                QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-                DEFAULT_CIRCUIT_BREAKER_LIMIT);
-        double overhead = settings.getAsDouble(
-                QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
-                DEFAULT_CIRCUIT_BREAKER_OVERHEAD_CONSTANT);
-
-        ESLogger logger = Loggers.getLogger(QueryOperationCircuitBreaker.class);
-
-        bind(CircuitBreaker.class).annotatedWith(QueryOperationCircuitBreaker.class)
-                .toInstance(new MemoryCircuitBreaker(memoryLimit, overhead, logger));
+        bind(CrateCircuitBreakerService.class).asEagerSingleton();
     }
 }

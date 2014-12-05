@@ -22,7 +22,7 @@
 package io.crate.executor.transport.merge;
 
 import io.crate.Streamer;
-import io.crate.breaker.QueryOperationCircuitBreaker;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.DistributedResultRequestHandler;
 import io.crate.executor.transport.TransportActionProvider;
@@ -76,11 +76,11 @@ public class TransportMergeNodeAction {
                                     Functions functions,
                                     final ThreadPool threadPool,
                                     StatsTables statsTables,
-                                    @QueryOperationCircuitBreaker final CircuitBreaker circuitBreaker) {
+                                    CrateCircuitBreakerService breakerService) {
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
-        this.circuitBreaker = circuitBreaker;
+        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
 
         final ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver, functions, RowGranularity.DOC

@@ -23,7 +23,8 @@ package io.crate.operation.collect;
 
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.breaker.QueryOperationCircuitBreaker;
+import io.crate.breaker.CircuitBreakerModule;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
@@ -50,6 +51,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -89,7 +91,7 @@ public class ShardCollectService {
                                ShardReferenceResolver referenceResolver,
                                BlobIndices blobIndices,
                                BlobShardReferenceResolver blobShardReferenceResolver,
-                               @QueryOperationCircuitBreaker CircuitBreaker circuitBreaker) {
+                               CrateCircuitBreakerService breakerService) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.shardId = shardId;
@@ -101,7 +103,7 @@ public class ShardCollectService {
         this.bigArrays = bigArrays;
         this.functions = functions;
         this.blobIndices = blobIndices;
-        this.circuitBreaker = circuitBreaker;
+        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         isBlobShard = BlobIndices.isBlobShard(this.shardId);
 
         DocLevelReferenceResolver<? extends Input<?>> resolver = (isBlobShard ? BlobReferenceResolver.INSTANCE : LuceneDocLevelReferenceResolver.INSTANCE);
