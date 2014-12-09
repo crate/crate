@@ -161,8 +161,8 @@ links are necessary::
 
     for i in {1..2}; do mkdir -p sandbox/crate_$i/plugins/crate-admin/; done
 
-    ln -s $PWD/admin-ui/crate-admin/dist/ sandbox/crate_1/plugins/crate-admin/_site
-    ln -s $PWD/admin-ui/crate-admin/dist/ sandbox/crate_2/plugins/crate-admin/_site
+    ln -s ../../../../app/plugins/crate-admin/_site sandbox/crate_1/plugins/crate-admin/_site
+    ln -s ../../../../app/plugins/crate-admin/_site sandbox/crate_2/plugins/crate-admin/_site
 
 
 Then create the configuration files for both nodes::
