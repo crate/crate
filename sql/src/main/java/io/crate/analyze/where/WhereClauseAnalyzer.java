@@ -25,6 +25,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.PartitionName;
 import io.crate.analyze.*;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.PartitionReferenceResolver;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.ReferenceResolver;
@@ -33,7 +34,6 @@ import io.crate.operation.reference.partitioned.PartitionExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.BytesRefValueSymbolVisitor;
 import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
@@ -48,18 +48,21 @@ public class WhereClauseAnalyzer {
     private final static PrimaryKeyVisitor PRIMARY_KEY_VISITOR = new PrimaryKeyVisitor();
     private final AnalysisMetaData analysisMetaData;
     private final TableInfo tableInfo;
+    private final TableRelation tableRelation;
 
-    public WhereClauseAnalyzer(AnalysisMetaData analysisMetaData, TableInfo tableInfo) {
+    public WhereClauseAnalyzer(AnalysisMetaData analysisMetaData, TableRelation tableRelation) {
         this.analysisMetaData = analysisMetaData;
-        this.tableInfo = tableInfo;
+        this.tableRelation = tableRelation;
+        this.tableInfo = tableRelation.tableInfo();
     }
 
     public WhereClauseContext analyze(WhereClause whereClause) {
         if (whereClause.noMatch() || !whereClause.hasQuery()) {
             return new WhereClauseContext(whereClause);
         }
+        whereClause = tableRelation.normalizeWhereClause(whereClause);
         WhereClauseContext whereClauseContext = new WhereClauseContext(whereClause);
-        PrimaryKeyVisitor.Context ctx = PRIMARY_KEY_VISITOR.process(tableInfo, Field.unwrap(whereClause.query()));
+        PrimaryKeyVisitor.Context ctx = PRIMARY_KEY_VISITOR.process(tableInfo, whereClause.query());
         if (ctx != null) {
             whereClause.clusteredByLiteral(ctx.clusteredByLiteral());
             if (ctx.noMatch) {

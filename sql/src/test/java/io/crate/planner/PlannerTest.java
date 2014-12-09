@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -887,9 +888,10 @@ public class PlannerTest {
         Plan plan = plan("select count(*) from users");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(PlannedAnalyzedRelation.class));
         assertThat(planNode, instanceOf(ESCountNode.class));
 
-        ESCountNode node = (ESCountNode)planNode;
+        ESCountNode node = (ESCountNode) planNode;
         assertThat(node.indices().length, is(1));
         assertThat(node.indices()[0], is("users"));
     }
@@ -1294,7 +1296,12 @@ public class PlannerTest {
         Plan plan = plan("select count(*) from parted");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(PlannedAnalyzedRelation.class));
         assertThat(planNode, instanceOf(ESCountNode.class));
+        ESCountNode esCountNode = (ESCountNode) planNode;
+
+        assertThat(esCountNode.indices(), arrayContainingInAnyOrder(
+                ".partitioned.parted.0400", ".partitioned.parted.04130", ".partitioned.parted.04232chj"));
     }
 
     @Test(expected = UnsupportedOperationException.class)

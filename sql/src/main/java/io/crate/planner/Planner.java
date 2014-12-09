@@ -56,6 +56,7 @@ import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
+import io.crate.planner.v2.ConsumingPlanner;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
@@ -166,10 +167,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
         Plan plan = new Plan();
         assert statement.sourceRelation() instanceof TableRelation : "sourceRelation of update statement must be a TableRelation";
-        TableInfo tableInfo = ((TableRelation) statement.sourceRelation()).tableInfo();
+        TableRelation tableRelation = (TableRelation) statement.sourceRelation();
+        TableInfo tableInfo = tableRelation.tableInfo();
 
         for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableInfo);
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(nestedAnalysis.whereClause());
             WhereClause whereClause = whereClauseContext.whereClause();
 
@@ -191,7 +193,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
         Plan plan = new Plan();
         TableRelation tableRelation = (TableRelation) analyzedStatement.analyzedRelation();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation.tableInfo());
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
         for (WhereClause whereClause : analyzedStatement.whereClauses()) {
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(whereClause);
             if (whereClauseContext.ids().size() == 1 && whereClauseContext.routingValues().size() == 1) {
@@ -1075,7 +1077,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     /**
      * return the ES index names the query should go to
      */
-    private String[] indices(TableInfo tableInfo, WhereClause whereClause) {
+    public static String[] indices(TableInfo tableInfo, WhereClause whereClause) {
         String[] indices;
 
         if (whereClause.noMatch()) {
@@ -1119,13 +1121,22 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         @Override
         public Plan visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
+            if (!context.indexWriterProjection.isPresent()) {
+                ConsumingPlanner consumingPlanner = new ConsumingPlanner(analysisMetaData);
+                Plan plan = consumingPlanner.plan(statement);
+                if (plan != null) {
+                    return plan;
+                }
+            }
+
             assert statement.sources().size() == 1 : "more then 1 source is not supported";
             AnalyzedRelation sourceRelation = Iterables.getOnlyElement(statement.sources().entrySet()).getValue();
             assert sourceRelation instanceof TableRelation : "source must be a TableRelation";
 
-            TableInfo tableInfo = ((TableRelation) sourceRelation).tableInfo();
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableInfo);
+            TableRelation tableRelation = (TableRelation) sourceRelation;
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(unwrap(statement.whereClause()));
+            TableInfo tableInfo = tableRelation.tableInfo();
 
             for (Symbol symbol : statement.orderBy().orderBySymbols()) {
                 SortSymbolValidator.validate(symbol, tableInfo.partitionedBy());

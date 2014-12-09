@@ -19,31 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze.relations;
+package io.crate.planner.v2;
 
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.relations.AnalyzedRelation;
 
-import javax.annotation.Nullable;
+public interface Consumer {
 
-public abstract class RelationVisitor<C, R> {
-
-    public R process(AnalyzedRelation relation, @Nullable C context) {
-        return relation.accept(this, context);
-    }
-
-    protected R visitAnalyzedRelation(AnalyzedRelation relation, C context) {
-        throw new UnsupportedOperationException(String.format("relation \"%s\" is not supported", relation));
-    }
-
-    public R visitSelectAnalyzedStatement(SelectAnalyzedStatement selectAnalyzedStatement, C context) {
-        return visitAnalyzedRelation(selectAnalyzedStatement, context);
-    }
-
-    public R visitTableRelation(TableRelation tableRelation, C context) {
-        return visitAnalyzedRelation(tableRelation, context);
-    }
-
-    public R visitPlanedAnalyzedRelation(PlannedAnalyzedRelation plannedAnalyzedRelation, C context) {
-        return visitAnalyzedRelation(plannedAnalyzedRelation, context);
-    }
+    public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context);
 }

@@ -23,6 +23,7 @@ package io.crate.analyze.relations;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
+import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -155,5 +156,9 @@ public class TableRelation implements AnalyzedRelation {
     @Override
     public int hashCode() {
         return tableInfo.hashCode();
+    }
+
+    public WhereClause normalizeWhereClause(WhereClause whereClause) {
+        return Field.unwrap(whereClause);
     }
 }

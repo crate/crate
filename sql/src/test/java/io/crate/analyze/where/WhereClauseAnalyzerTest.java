@@ -162,8 +162,9 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         assertThat(statement.sources().size(), is(1));
         AnalyzedRelation sourceRelation = Iterables.getOnlyElement(statement.sources().values());
         assertThat(sourceRelation, instanceOf(TableRelation.class));
-        TableInfo tableInfo = ((TableRelation) sourceRelation).tableInfo();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableInfo);
+        TableRelation tableRelation = (TableRelation) sourceRelation;
+        TableInfo tableInfo = tableRelation.tableInfo();
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
         return whereClauseAnalyzer.analyze(statement.whereClause());
     }
 
@@ -174,8 +175,8 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
                 new Object[]{2},
                 new Object[]{3},
         });
-        TableInfo tableInfo = ((TableRelation) statement.analyzedRelation()).tableInfo();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableInfo);
+        TableRelation tableRelation = (TableRelation) statement.analyzedRelation();
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
 
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0)).ids().get(0), is("1"));
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1)).ids().get(0), is("2"));
@@ -185,8 +186,8 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     @Test
     public void testWherePartitionedByColumn() throws Exception {
         DeleteAnalyzedStatement statement = analyzeDelete("delete from parted where date = 1395874800000");
-        TableInfo tableInfo = ((TableRelation) statement.analyzedRelation()).tableInfo();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableInfo);
+        TableRelation tableRelation = (TableRelation) statement.analyzedRelation();
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
         WhereClauseContext ctx = whereClauseAnalyzer.analyze(statement.whereClauses().get(0));
 
         assertThat(ctx.whereClause().hasQuery(), is(false));
@@ -198,8 +199,8 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
     @Test
     public void testUpdateWithVersionZeroIsNoMatch() throws Exception {
         UpdateAnalyzedStatement updateAnalyzedStatement = analyzeUpdate("update users set awesome = true where name = 'Ford' and _version = 0");
-        TableInfo tableInfo = ((TableRelation) updateAnalyzedStatement.sourceRelation()).tableInfo();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableInfo);
+        TableRelation tableRelation = (TableRelation) updateAnalyzedStatement.sourceRelation();
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
         assertThat(updateAnalyzedStatement.nestedStatements().get(0).whereClause().noMatch(), is(false));
 
         WhereClauseContext ctx = whereClauseAnalyzer.analyze(updateAnalyzedStatement.nestedStatements().get(0).whereClause());
@@ -214,8 +215,8 @@ public class WhereClauseAnalyzerTest extends AbstractRandomizedTest {
         assertThat(nestedAnalyzedStatement.whereClause().hasQuery(), is(true));
         assertThat(nestedAnalyzedStatement.whereClause().noMatch(), is(false));
 
-        TableInfo tableInfo = ((TableRelation) updateAnalyzedStatement.sourceRelation()).tableInfo();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableInfo);
+        TableRelation tableRelation = (TableRelation) updateAnalyzedStatement.sourceRelation();
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
         WhereClauseContext context = whereClauseAnalyzer.analyze(nestedAnalyzedStatement.whereClause());
 
         assertThat(context.whereClause().hasQuery(), is(false));
