@@ -12,7 +12,7 @@ Synopsis
 ::
 
     SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
-      FROM table_ident [ [AS] table_alias ]
+      FROM [ schema_name . ] table_name [ [AS] table_alias ]
       [ WHERE condition ]
       [ GROUP BY expression [, ...] [HAVING condition] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
@@ -91,9 +91,12 @@ FROM Clause
 
 The FROM clause specifies the source table for the SELECT::
 
-    FROM table_ident [ [AS] table_alias ]
+    FROM [ schema_name . ] table_name [ [AS] table_alias ]
 
-:table_ident: The name (optionally schema-qualified) of an existing table.
+:schema_name: (optional) The name of an existing schema. If no schema is provided,
+    the ``doc`` schema will be used.
+
+:table_name: The name of an existing table.
 
 :table_alias: A substitute name for the FROM item containing the alias.
   An alias is used for brevity. When an alias is provided, it completely hides
