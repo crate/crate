@@ -29,6 +29,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.mapper.array.ArrayValueMapperParser;
 import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
+import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperException;
 import org.elasticsearch.index.mapper.object.DynamicValueMapperLookup;
 import org.elasticsearch.index.mapper.object.ObjectMapper;
 
@@ -214,12 +215,23 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
         token = parser.nextToken();
         if (innerMapper == null) {
             // this is the case for new dynamic arrays
+
+            // skip nulls for detection
+            while (token == XContentParser.Token.VALUE_NULL) {
+                token = parser.nextToken();
+            }
+            // nested arrays
             if (token == XContentParser.Token.START_ARRAY) {
                 throw new ElasticsearchParseException("nested arrays are not supported");
+            } else if  (token == XContentParser.Token.END_ARRAY) {
+                // empty or null arrays -- cannot guess
+                throw new DynamicArrayFieldMapperException();
             }
+
             Mapper mapper = DynamicValueMapperLookup.getMapper(context, name(), token);
             if (mapper == null) {
-                return;
+                // no mapper detected -- cannot guess
+                throw new DynamicArrayFieldMapperException();
             }
             innerMapper = mapper;
             setInnerParser();
