@@ -207,6 +207,14 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
     maxHeapSize = '512m'
 }
 
+task(run, dependsOn: 'classes', type: JavaExec) {
+    main = 'io.crate.bootstrap.CrateF'
+    debug = false
+    classpath = sourceSets.main.runtimeClasspath
+    maxHeapSize = '512m'
+    systemProperties System.getProperties()
+}
+
 test {
 
     testLogging {
