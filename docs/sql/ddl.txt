@@ -38,7 +38,8 @@ length, see :ref:`ref-create-table`. For example they may not contain uppercase 
 Schemas
 -------
 
-Tables can be created in different schemas. If the schema did not exist yet,
+Tables can be created in different schemas. These are created implicitly on
+table creation and cannot be created explicitly. If a schema did not exist yet,
 it will be created::
 
     cr> create table "my_shiny-schema"."my_shiny_table" (
@@ -47,6 +48,17 @@ it will be created::
     ...   position geo_point
     ... );
     CREATE OK (... sec)
+
+::
+
+    cr> select schema_name, table_name from information_schema.tables
+    ... where table_name='my_shiny_table';
+    +-----------------+----------------+
+    | schema_name     | table_name     |
+    +-----------------+----------------+
+    | my_shiny-schema | my_shiny_table |
+    +-----------------+----------------+
+    SELECT 1 row in set (... sec)
 
 Schemas are primarily namespaces for tables. There is no notion of access control.
 Everybody can see and manipulate tables in every schema.
