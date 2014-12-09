@@ -24,7 +24,6 @@ package io.crate.metadata.doc.array;
 import com.google.common.base.Joiner;
 import io.crate.test.integration.CrateSingleNodeTest;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -483,6 +482,25 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
     }
 
     @Test
+    public void testParseDynamicEmptyArray() throws Exception {
+        String mapping = XContentFactory.jsonBuilder()
+                .startObject().startObject("type").startObject("properties")
+                .endObject().endObject().endObject()
+                .string();
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
+
+        // parse source with empty array
+        ParsedDocument doc = mapper.parse(XContentFactory.jsonBuilder()
+                .startObject()
+                .field("_id", "abc")
+                .array("new_array_field")
+                .endObject()
+                .bytes());
+        assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
+        assertThat(mapper.mappers().smartName("new_array_field"), is(nullValue()));
+    }
+
+    @Test
     public void testParseDynamicNullArray() throws Exception {
         String mapping = XContentFactory.jsonBuilder()
                 .startObject().startObject("type").startObject("properties")
@@ -490,16 +508,14 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
                 .string();
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
-        expectedException.expect(MapperParsingException.class);
-        expectedException.expectCause(TestingHelpers.cause(ElasticsearchIllegalStateException.class,
-                "Can't handle serializing a dynamic type with content token [VALUE_NULL] and field name [new_array_field]"));
         // parse source with null array
-        mapper.parse(XContentFactory.jsonBuilder()
+        ParsedDocument doc = mapper.parse(XContentFactory.jsonBuilder()
                 .startObject()
                 .field("_id", "abc")
-                .startArray("new_array_field").nullValue()
-                .endArray()
+                .startArray("new_array_field").nullValue().endArray()
                 .endObject()
                 .bytes());
+        assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
+        assertThat(mapper.mappers().smartName("new_array_field"), is(nullValue()));
     }
 }

@@ -21,23 +21,22 @@
 
 package io.crate.integrationtests;
 
+import com.google.common.base.Predicate;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.client.Client;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -457,5 +456,51 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
         this.setup.setUpObjectMappingWithUnknownTypes();
         execute("select count(*) from ut group by o['location']");
+    }
+
+
+    @Test
+    public void testDynamicEmptyArray() throws Exception {
+        execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into arr (id, tags, new) values (1, ['wow', 'much', 'wow'], [])");
+        refresh();
+        waitNoPendingTasksOnAll();
+        execute("select column_name, data_type from information_schema.columns where table_name='arr'");
+        Object[] columns = TestingHelpers.getColumn(response.rows(), 0);
+        assertThat(Arrays.asList(columns), not(hasItems((Object)"new")));
+    }
+
+    @Test
+    public void testDynamicNullArray() throws Exception {
+        execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into arr (id, tags, new) values (2, ['wow', 'much', 'wow'], [null])");
+        refresh();
+        waitNoPendingTasksOnAll();
+        execute("select column_name, data_type from information_schema.columns where table_name='arr'");
+        Object[] columns = TestingHelpers.getColumn(response.rows(), 0);
+        assertThat(Arrays.asList(columns), not(hasItems((Object)"new")));
+    }
+
+    @Test
+    public void testDynamicNullArrayAndDouble() throws Exception {
+        execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into arr (id, tags, new) values (3, ['wow', 'much', 'wow'], ?)", new Object[]{ new Double[]{null, 42.7} });
+        refresh();
+        waitNoPendingTasksOnAll();
+        awaitBusy(new Predicate<Object>() {
+            @Override
+            public boolean apply(Object input) {
+                SQLResponse res = execute("select column_name, data_type from information_schema.columns where table_name='arr'");
+                for (Object[] row : res.rows()) {
+                    if ("new".equals(row[0]) && "double_array".equals(row[1])) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
     }
 }
