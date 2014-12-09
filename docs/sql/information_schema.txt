@@ -9,8 +9,6 @@ The Information Schema is a special schema that contains virtual tables which
 are read-only and can be queried to get information about the state of the
 cluster.
 
-.. note:: currently only the tables ``tables`` and ``columns`` are implemented.
-
 Tables
 ======
 
