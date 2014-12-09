@@ -38,17 +38,17 @@ Example::
 
 This means that::
 
-  CREATE TABLE foo;
+  select foo from t;
 
 is equivalent to::
 
-  Create Table Foo;
+  select Foo from t;
 
 or::
 
-  create table FOO;
+  select FOO from t;
 
-A widly used convention is to write key words in uppercase and identifiers in
+A widely used convention is to write key words in uppercase and identifiers in
 lowercase, such as
 
 ::
