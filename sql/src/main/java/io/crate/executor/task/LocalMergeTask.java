@@ -146,7 +146,7 @@ public class LocalMergeTask implements Task<TaskResult> {
 
                     try {
                         shouldContinue = mergeOperation.addRows(rows.rows());
-                    } catch (Exception ex) {
+                    } catch (Throwable ex) {
                         ramAccountingContext.close();
                         statsTables.operationFinished(operationId, Exceptions.messageOf(ex),
                                 ramAccountingContext.totalBytes());

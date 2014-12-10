@@ -24,14 +24,18 @@ package io.crate.executor.transport.merge;
 import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 
 public class NodeMergeResponse extends TransportResponse {
 
+    private final ESLogger logger = Loggers.getLogger(getClass());
     private final Streamer<?>[] streamers;
     private Object[][] rows;
+
 
     public NodeMergeResponse(Streamer<?>[] streamers, Object[][] rows) {
         this.streamers = streamers;
@@ -69,7 +73,14 @@ public class NodeMergeResponse extends TransportResponse {
         out.writeVInt(rows.length);
         for (Object[] row : rows) {
             for (int c = 0; c < numColumns; c++) {
-                streamers[c].writeValueTo(out, row[c]);
+                try {
+                    streamers[c].writeValueTo(out, row[c]);
+                } catch (ClassCastException e) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("streamer pos {} failed. Got {} for streamer {}",
+                                e, c, row[c].getClass().getName(), streamers[c]);
+                    }
+                }
             }
         }
     }
