@@ -502,7 +502,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     private void validateBulkIndexPartitionedTableAnalysis(InsertFromValuesAnalyzedStatement analysis) {
-        assertThat(analysis.partitions(), contains(
+        assertThat(analysis.generatePartitions(), contains(
                 new PartitionName("parted", Arrays.asList(new BytesRef("13963670051500"))).stringValue(),
                 new PartitionName("parted", Arrays.asList(new BytesRef("0"))).stringValue(),
                 new PartitionName("parted", new ArrayList<BytesRef>() {{
@@ -542,7 +542,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                         1, "1970-01-01", new MapBuilder<String, Object>().put("name", "Zaphod").map(),
                         2, "2014-05-21", new MapBuilder<String, Object>().put("name", "Arthur").map()
                 });
-        assertThat(analysis.partitions(), contains(
+        assertThat(analysis.generatePartitions(), contains(
                 new PartitionName("nested_parted", Arrays.asList(new BytesRef("0"), new BytesRef("Zaphod"))).stringValue(),
                 new PartitionName("nested_parted", Arrays.asList(new BytesRef("1400630400000"), new BytesRef("Arthur"))).stringValue()
 

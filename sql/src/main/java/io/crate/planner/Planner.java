@@ -981,7 +981,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private void ESIndex(InsertFromValuesAnalyzedStatement analysis, Plan plan) {
         String[] indices;
         if (analysis.table().isPartitioned()) {
-            List<String> partitions = analysis.partitions();
+            List<String> partitions = analysis.generatePartitions();
             indices = partitions.toArray(new String[partitions.size()]);
         } else {
             indices = new String[]{ analysis.table().ident().name() };
