@@ -31,6 +31,7 @@ import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
@@ -1274,4 +1275,171 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(ESCountNode.class));
     }
 
+    @Test
+    public void testGroupByWithHavingAndLimit() throws Exception {
+        Plan plan = plan("select count(*), name from users group by name having count(*) > 1 limit 100");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode collectNode = iterator.next();
+        assertThat(collectNode, instanceOf(CollectNode.class));
+
+        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+
+        // group projection
+        //      outputs: name, count(*)
+        // filter projection
+        //      outputs: name, count(*)
+        // topN projection
+        //      outputs: count(*), name     -> swaps symbols to match original selectList
+
+        Projection projection = mergeNode.projections().get(1);
+        assertThat(projection, instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) projection;
+
+        Symbol countArgument = filterProjection.query().arguments().get(0);
+        assertThat(countArgument, instanceOf(InputColumn.class));
+        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+
+        // outputs: name, count(*)
+        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+
+        // outputs: count(*), name
+        TopNProjection topN = (TopNProjection) mergeNode.projections().get(2);
+        // swapped!
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
+
+
+        MergeNode localMerge = (MergeNode) iterator.next();
+        assertThat(localMerge, instanceOf(MergeNode.class));
+        assertThat(iterator.hasNext(), is(false));
+
+        // topN projection
+        //      outputs: count(*), name
+        topN = (TopNProjection) localMerge.projections().get(0);
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+    }
+
+    @Test
+    public void testGroupByWithHavingAndNoLimit() throws Exception {
+        Plan plan = plan("select count(*), name from users group by name having count(*) > 1");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode collectNode = iterator.next();
+        assertThat(collectNode, instanceOf(CollectNode.class));
+
+        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+
+        // group projection
+        //      outputs: name, count(*)
+
+        Projection projection = mergeNode.projections().get(1);
+        assertThat(projection, instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) projection;
+
+        Symbol countArgument = filterProjection.query().arguments().get(0);
+        assertThat(countArgument, instanceOf(InputColumn.class));
+        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+
+        // filter projection - can't reorder here
+        //      outputs: name, count(*)
+        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+
+        assertThat(mergeNode.outputTypes().get(0), equalTo((DataType) DataTypes.STRING));
+        assertThat(mergeNode.outputTypes().get(1), equalTo((DataType) DataTypes.LONG));
+
+        MergeNode localMerge = (MergeNode) iterator.next();
+        assertThat(localMerge, instanceOf(MergeNode.class));
+        assertThat(iterator.hasNext(), is(false));
+
+        // topN projection
+        //      outputs: name, count(*)
+        TopNProjection topN = (TopNProjection) localMerge.projections().get(0);
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
+    }
+
+    @Test
+    public void testGroupByWithHavingAndNoSelectListReordering() throws Exception {
+        Plan plan = plan("select name, count(*) from users group by name having count(*) > 1");
+
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode collectNode = iterator.next();
+        assertThat(collectNode, instanceOf(CollectNode.class));
+
+        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+
+        // group projection
+        //      outputs: name, count(*)
+        // filter projection
+        //      outputs: name, count(*)
+
+        Projection projection = mergeNode.projections().get(1);
+        assertThat(projection, instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) projection;
+
+        Symbol countArgument = filterProjection.query().arguments().get(0);
+        assertThat(countArgument, instanceOf(InputColumn.class));
+        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+
+        // outputs: name, count(*)
+        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+
+        MergeNode localMerge = (MergeNode) iterator.next();
+        assertThat(localMerge, instanceOf(MergeNode.class));
+        assertThat(iterator.hasNext(), is(false));
+
+        // topN projection
+        //      outputs: name, count(*)
+        TopNProjection topN = (TopNProjection) localMerge.projections().get(0);
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+    }
+
+    @Test
+    public void testGroupByHavingAndNoSelectListReOrderingWithLimit() throws Exception {
+        Plan plan = plan("select name, count(*) from users group by name having count(*) > 1 limit 100");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode collectNode = iterator.next();
+        assertThat(collectNode, instanceOf(CollectNode.class));
+
+        MergeNode mergeNode = (MergeNode) iterator.next(); // reducer
+
+        // group projection
+        //      outputs: name, count(*)
+        // filter projection
+        //      outputs: name, count(*)
+        // topN projection
+        //      outputs: name, count(*)
+
+        Projection projection = mergeNode.projections().get(1);
+        assertThat(projection, instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) projection;
+
+        Symbol countArgument = filterProjection.query().arguments().get(0);
+        assertThat(countArgument, instanceOf(InputColumn.class));
+        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+
+        // outputs: name, count(*)
+        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+
+        // outputs: name, count(*)
+        TopNProjection topN = (TopNProjection) mergeNode.projections().get(2);
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+
+
+        MergeNode localMerge = (MergeNode) iterator.next();
+        assertThat(localMerge, instanceOf(MergeNode.class));
+        assertThat(iterator.hasNext(), is(false));
+
+        // topN projection
+        //      outputs: name, count(*)
+        topN = (TopNProjection) localMerge.projections().get(0);
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+    }
 }
