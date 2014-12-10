@@ -25,6 +25,7 @@ import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.DistributedResultRequestHandler;
+import io.crate.executor.transport.ResponseForwarder;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
@@ -49,8 +50,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
-
-import java.io.IOException;
 
 
 public class TransportMergeNodeAction {
@@ -200,8 +199,8 @@ public class TransportMergeNodeAction {
                                     listener.onFailure(e);
                                 }
                             });
-                        } catch (IOException e) {
-                            logger.error("createContext.catched local exception node: {}", nodeId, e);
+                        } catch (Throwable e) {
+                            logger.error("createContext.catched local exception node: {}", e, nodeId);
                             listener.onFailure(e);
                         }
                     }
@@ -249,25 +248,8 @@ public class TransportMergeNodeAction {
 
         @Override
         public void messageReceived(final NodeMergeRequest request, final TransportChannel channel) throws Exception {
-            contextManager.createContext(request.mergeNode(), new ActionListener<NodeMergeResponse>() {
-                @Override
-                public void onResponse(NodeMergeResponse nodeMergeResponse) {
-                    try {
-                        channel.sendResponse(nodeMergeResponse);
-                    } catch (IOException e) {
-                        onFailure(e);
-                    }
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    try {
-                        channel.sendResponse(e);
-                    } catch (IOException e1) {
-                        logger.error(e.getMessage(), e);
-                    }
-                }
-            });
+            ActionListener<NodeMergeResponse> listener = ResponseForwarder.forwardTo(channel);
+            contextManager.createContext(request.mergeNode(), listener);
         }
 
         @Override
