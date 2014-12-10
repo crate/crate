@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - improved speed of bulk inserts in partitioned tables to avoid request
+   timeouts
+
  - Fix: The clustered-by columns could be updated if they were nested.
 
  - Fix: Fixed an edge case where group by queries on system tables or
