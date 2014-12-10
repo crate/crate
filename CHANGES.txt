@@ -5,23 +5,23 @@ Changes for Crate
 Unreleased
 ==========
 
- - Array types are now fully supported in dynamic schemas.
-   Note: Crate performs an internal migration, therefore downgrading to an 
+ - Array types are now fully supported in dynamic schemas. Note that
+   Crate performs an internal migration, therefore downgrading to an
    older version is not supported
 
  - Updated Elasticsearch to 1.4.1
 
- - Fix: improve performance of regex functions by actually pre-compiling
-   their used patterns (if given as literal)
+ - Fix: improve performance of regex functions by actually
+   pre-compiling their used patterns (if given as literal)
 
  - Fix: The clustered-by columns could be updated if they were nested.
 
  - Fix: Fixed an edge case where group by queries on system tables or
-   grouping on primary key or routing column and using limit or selecting
-   the same aggregation twice did not execute correctly.
+   grouping on primary key or routing column and using limit or
+   selecting the same aggregation twice did not execute correctly.
 
- - Fixed possible race condition that could cause the `LIMIT` to not be applied
-   correctly.
+ - Fixed possible race condition that could cause the `LIMIT` to not
+   be applied correctly.
 
  - Add sql query breaker which will terminate a query execution if too
    much memory will be consumed.
@@ -29,23 +29,23 @@ Unreleased
  - Fixed NPE which could occur on a shard failure while collecting
    distributed (e.g. group by query)
 
- - Fix: correctly validate array values in INSERT and UPDATE statements
+ - Fix: correctly validate array values in INSERT and UPDATE
+   statements
 
- - Fix: NULL element in array in first element of bulk insert threw NPE
+ - Fix: NULL element in array in first element of bulk insert threw
+   NPE
 
  - Fix: array columns that were nested inside multiple objects had
    incorrect data type (type of their elements instead of array type)
 
- - Fix: adding column on partitioned table without partitions threw exception
-   although column was added to schema
+ - Fix: adding column on partitioned table without partitions threw
+   exception although column was added to schema
 
  - Use flake ids for interal id generation
 
- - Updated Elasticsearch to 1.4.0
-
- - Added Support for Column Policies, which can be used to define
-   if a table enforces its defined schema or if it's allowed
-   to store additional columns which are not defined in the schema.
+ - Added Support for Column Policies, which can be used to define if a
+   table enforces its defined schema or if it's allowed to store
+   additional columns which are not defined in the schema.
 
  - Throw an error while using unknown root columns on SELECT
 
