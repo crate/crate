@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - improved speed of bulk inserts in partitioned tables to avoid request
+   timeouts
+
  - implemented table ``information_schema.schemata`` with column ``schema_name``
    listing all available schemas
 
