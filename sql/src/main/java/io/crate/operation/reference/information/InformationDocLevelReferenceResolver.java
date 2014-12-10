@@ -71,6 +71,9 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
         add(builder, InformationRoutinesExpression.ROUTINE_NAME_EXPRESSION);
         add(builder, InformationRoutinesExpression.ROUTINE_TYPE_EXPRESSION);
 
+        // information_schema.schemata
+        add(builder, InformationSchemataExpression.SCHEMA_NAME_EXPRESSION);
+
         implementations = builder.build();
     }
 

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - implemented table ``information_schema.schemata`` with column ``schema_name``
+   listing all available schemas
+
  - Array types are now fully supported in dynamic schemas. Note that
    Crate performs an internal migration, therefore downgrading to an
    older version is not supported

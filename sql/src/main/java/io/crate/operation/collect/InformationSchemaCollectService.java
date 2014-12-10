@@ -47,15 +47,8 @@ import java.util.List;
 
 public class InformationSchemaCollectService implements CollectService {
 
-    private final Iterable<TableInfo> tablesIterable;
-    private final Iterable<ColumnContext> columnsIterable;
-    private final Iterable<TableInfo> tableConstraintsIterable;
-    private final Iterable<RoutineInfo> routinesIterable;
-
     private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> docInputSymbolVisitor;
     private final ImmutableMap<String, Iterable<?>> iterables;
-
-    private final Iterable<TablePartitionInfo> tablePartitionsIterable;
 
     @Inject
     protected InformationSchemaCollectService(Functions functions,
@@ -66,7 +59,7 @@ public class InformationSchemaCollectService implements CollectService {
         RoutineInfos routineInfos = new RoutineInfos(ftResolver);
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, refResolver);
 
-        tablesIterable = FluentIterable.from(referenceInfos)
+        Iterable<TableInfo> tablesIterable = FluentIterable.from(referenceInfos)
                 .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {
                     @Nullable
                     @Override
@@ -82,8 +75,8 @@ public class InformationSchemaCollectService implements CollectService {
                         });
                     }
                 });
-        tablePartitionsIterable = FluentIterable.from(new TablePartitionInfos(tablesIterable));
-        columnsIterable = FluentIterable
+        Iterable<TablePartitionInfo> tablePartitionsIterable = FluentIterable.from(new TablePartitionInfos(tablesIterable));
+        Iterable<ColumnContext> columnsIterable = FluentIterable
                 .from(tablesIterable)
                 .transformAndConcat(new Function<TableInfo, Iterable<ColumnContext>>() {
                     @Nullable
@@ -93,26 +86,26 @@ public class InformationSchemaCollectService implements CollectService {
                         return new ColumnsIterator(input);
                     }
                 });
-        tableConstraintsIterable = FluentIterable.from(tablesIterable).filter(new Predicate<TableInfo>() {
-                @Override
-                public boolean apply(@Nullable TableInfo input) {
-                    return input != null && input.primaryKey().size() > 0;
-                }
+        Iterable<TableInfo> tableConstraintsIterable = FluentIterable.from(tablesIterable).filter(new Predicate<TableInfo>() {
+            @Override
+            public boolean apply(@Nullable TableInfo input) {
+                return input != null && input.primaryKey().size() > 0;
+            }
         });
-        routinesIterable = FluentIterable.from(routineInfos)
+        Iterable<RoutineInfo> routinesIterable = FluentIterable.from(routineInfos)
                 .filter(new Predicate<RoutineInfo>() {
                     @Override
                     public boolean apply(@Nullable RoutineInfo input) {
                         return input != null;
                     }
                 });
-        this.iterables = ImmutableMap.of(
-                "information_schema.tables", tablesIterable,
-                "information_schema.columns", columnsIterable,
-                "information_schema.table_constraints", tableConstraintsIterable,
-                "information_schema.table_partitions", tablePartitionsIterable,
-                "information_schema.routines", routinesIterable
-        );
+        this.iterables = ImmutableMap.<String, Iterable<?>>builder()
+                .put("information_schema.tables", tablesIterable)
+                .put("information_schema.columns", columnsIterable)
+                .put("information_schema.table_constraints", tableConstraintsIterable)
+                .put("information_schema.table_partitions", tablePartitionsIterable)
+                .put("information_schema.routines", routinesIterable)
+                .put("information_schema.schemata", referenceInfos).build();
     }
 
     class ColumnsIterator implements Iterator<ColumnContext>, Iterable<ColumnContext> {

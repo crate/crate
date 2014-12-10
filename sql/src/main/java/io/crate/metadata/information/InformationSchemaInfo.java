@@ -42,6 +42,7 @@ public class InformationSchemaInfo implements SchemaInfo {
                 .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(this))
                 .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo(this))
                 .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo(this))
+                .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo(this))
         .build();
     }
 
