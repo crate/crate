@@ -27,10 +27,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 
 public class PlannerContextBuilder {
 
@@ -126,7 +123,7 @@ public class PlannerContextBuilder {
 
     /**
      * this can be used after the first GroupProjection or AggregationProjection
-     * it will move the groupBy and aggregations inputColumns to point to the outputs of the previous projection
+     * it will move the groupBy and aggregations genInputColumns to point to the outputs of the previous projection
      */
     public void nextStep() {
         context.stepIdx++;
@@ -217,11 +214,20 @@ public class PlannerContextBuilder {
      * Make sure to use {@link #outputs()} before this is used..
      */
     public List<Symbol> passThroughOutputs() {
-        List<Symbol> outputs = new ArrayList<>();
-        for (int i = 0; i < context.outputs.size(); i++) {
-            outputs.add(new InputColumn(i));
+        return genInputColumns(context.outputs.size());
+    }
+
+    /**
+     * generate input columns pointing to the given outputs
+     * @param previousOutputs the outputs from a previous projection.
+     * @return a list with input columns
+     */
+    public List<Symbol> genInputColumns(int max) {
+        List<Symbol> result = new ArrayList<>(max);
+        for (int i = 0; i < max; i++) {
+            result.add(new InputColumn(i));
         }
-        return outputs;
+        return result;
     }
 
     /**

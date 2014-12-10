@@ -694,12 +694,12 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         execute("insert into foo (id, name, country) values (?, ?, ?)", new Object[][]{
-                new Object[] { 1, "Arthur", "Austria" },
-                new Object[] { 2, "Trillian", "Austria" },
-                new Object[] { 3, "Marvin", "Austria" },
-                new Object[] { 4, "Jeltz", "German" },
-                new Object[] { 5, "Ford", "German" },
-                new Object[] { 6, "Slartibardfast", "Italy" },
+                new Object[]{1, "Arthur", "Austria"},
+                new Object[]{2, "Trillian", "Austria"},
+                new Object[]{3, "Marvin", "Austria"},
+                new Object[]{4, "Jeltz", "German"},
+                new Object[]{5, "Ford", "German"},
+                new Object[]{6, "Slartibardfast", "Italy"},
         });
         refresh();
 
@@ -766,5 +766,96 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select avg(score), url, avg(score) from twice group by url limit 10");
         assertThat(TestingHelpers.printedTable(response.rows()), is("99.6| https://Ä.com| 99.6\n"));
+    }
+
+    @Test
+    public void testGroupByWithHavingAndLimit() throws Exception {
+        execute("create table likes (" +
+                "   event_id string," +
+                "   item_id string" +
+                ") clustered into 2 shards with (number_of_replicas = 0)");
+        ensureGreen();
+        execute("insert into likes (event_id, item_id) values (?, ?)", new Object[][] {
+                new Object[] { "event1", "item1" },
+                new Object[] { "event1", "item1" },
+                new Object[] { "event1", "item2" },
+                new Object[] { "event2", "item1" },
+                new Object[] { "event2", "item2" },
+        });
+        execute("refresh table likes");
+
+        try {
+            execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1");
+            assertThat(response.rowCount(), is(1L));
+        } catch (SQLActionException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1 limit 100");
+            assertThat(response.rowCount(), is(1L));
+        } catch (SQLActionException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1");
+            assertThat(response.rowCount(), is(1L));
+        } catch (SQLActionException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1 limit 100");
+            assertThat(response.rowCount(), is(1L));
+        } catch (SQLActionException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    @Test
+    public void testNonDistributedGroupByWithHavingAndLimit() throws Exception {
+        execute("create table likes (" +
+                "   event_id string," +
+                "   item_id string" +
+                ") clustered into 1 shards with (number_of_replicas = 0)");
+        // only 1 shard to force non-distribution
+        ensureGreen();
+        execute("insert into likes (event_id, item_id) values (?, ?)", new Object[][] {
+                new Object[] { "event1", "item1" },
+                new Object[] { "event1", "item1" },
+                new Object[] { "event1", "item2" },
+                new Object[] { "event2", "item1" },
+                new Object[] { "event2", "item2" },
+        });
+        execute("refresh table likes");
+
+        try {
+            execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1");
+            assertThat(response.rowCount(), is(1L));
+        } catch (SQLActionException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1 limit 100");
+            assertThat(response.rowCount(), is(1L));
+        } catch (SQLActionException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1");
+            assertThat(response.rowCount(), is(1L));
+        } catch (SQLActionException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1 limit 100");
+            assertThat(response.rowCount(), is(1L));
+        } catch (SQLActionException e) {
+            fail(e.getMessage());
+        }
     }
 }

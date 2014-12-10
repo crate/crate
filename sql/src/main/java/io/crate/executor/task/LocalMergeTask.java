@@ -134,7 +134,7 @@ public class LocalMergeTask implements Task<TaskResult> {
 
                     try {
                         shouldContinue = mergeOperation.addRows(rows.rows());
-                    } catch (Exception ex) {
+                    } catch (Throwable ex) {
                         statsTables.operationFinished(operationId, Exceptions.messageOf(ex));
                         result.setException(ex);
                         logger.error("Failed to add rows", ex);

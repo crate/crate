@@ -57,6 +57,8 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -72,6 +74,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     static final PlannerReferenceExtractor referenceExtractor = new PlannerReferenceExtractor();
     static final PlannerFunctionArgumentCopier functionArgumentCopier = new PlannerFunctionArgumentCopier();
 
+    private final ESLogger logger = Loggers.getLogger(getClass());
     private final ClusterService clusterService;
     private AggregationProjection localMergeProjection;
 
@@ -708,10 +711,12 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
         if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
                 || !requiresDistribution(analysis)) {
+            logger.debug("choosing non distributed group by plan for {}", analysis);
             nonDistributedGroupBy(analysis, plan, context);
         } else if (context.indexWriterProjection.isPresent()) {
             distributedWriterGroupBy(analysis, plan, context.indexWriterProjection.get());
         } else {
+            logger.debug("choosing distributed group by for {}", analysis);
             distributedGroupBy(analysis, plan);
         }
     }
@@ -720,7 +725,10 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         Routing routing = analysis.table().getRouting(analysis.whereClause());
         if (!routing.hasLocations()) return false;
         if (groupedByClusteredColumnOrPrimaryKeys(analysis)) return false;
-        if (routing.locations().size() > 1) return true;
+        Map<String, Map<String, Set<Integer>>> locations = routing.locations();
+        if (locations != null && locations.size() > 1) {
+            return true;
+        }
         return false;
     }
 
@@ -761,7 +769,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 && analysis.limit() == null
                 && analysis.offset() == TopN.NO_OFFSET;
         boolean groupedByClusteredPk = groupedByClusteredColumnOrPrimaryKeys(analysis);
-
         int numAggregationSteps = 2;
         if (analysis.rowGranularity() == RowGranularity.DOC) {
             /**
@@ -776,27 +783,25 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 .orderBy(analysis.sortSymbols());
 
         Symbol havingClause = null;
-        if (analysis.havingClause() != null
-                && analysis.havingClause().symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(analysis.havingClause());
+        Symbol having = analysis.havingClause();
+        if (having != null && having.symbolType() == SymbolType.FUNCTION) {
+            havingClause = contextBuilder.having(having);
         }
 
         ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
         GroupProjection groupProjection =
                 new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
 
-        if(groupedByClusteredPk){
+        if (groupedByClusteredPk) {
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
-
         }
 
         List<Symbol> toCollect = contextBuilder.toCollect();
 
         projectionBuilder.add(groupProjection);
-        boolean topNDone = false;
-        if (numAggregationSteps == 1) {
-            topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionBuilder);
+        TopNProjection topNReducer = getTopNForReducer(analysis, contextBuilder);
+        if (topNReducer != null) {
+            projectionBuilder.add(topNReducer);
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
                 analysis,
@@ -816,7 +821,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
             fp.outputs(contextBuilder.passThroughOutputs());
-            if(groupedByClusteredPk){
+            if (groupedByClusteredPk) {
                 fp.requiredGranularity(RowGranularity.SHARD);
             }
             builder.add(fp);
@@ -824,7 +829,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         if (!ignoreSorting) {
             List<Symbol> outputs;
             List<Symbol> orderBy;
-            if (topNDone) {
+            if (topNReducer != null) {
                 orderBy = contextBuilder.passThroughOrderBy();
                 outputs = contextBuilder.passThroughOutputs();
             } else {
@@ -848,15 +853,15 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
     }
 
     /**
-     * this method adds a TopNProjection to the given projectBuilder
-     * if the analysis has a limit, offset or if an aggregation is wrapped inside a scalar.
+     * returns a topNProjection intended for the reducer in a group by query.
+     *
+     * result will be null if topN on reducer is not needed or possible.
      *
      * the limit given to the topN projection will be limit + offset because there will be another
-     * topN projection on the handler node which will do the final sort + limiting (if applicable)
      */
-    private boolean addTopNIfApplicableOnReducer(SelectAnalysis analysis,
-                                                 PlannerContextBuilder contextBuilder,
-                                                 ImmutableList.Builder<Projection> projectionBuilder) {
+    @Nullable
+    private TopNProjection getTopNForReducer(SelectAnalysis analysis,
+                                             PlannerContextBuilder contextBuilder) {
         if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
             TopNProjection topN = new TopNProjection(
                     Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
@@ -866,10 +871,9 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     analysis.nullsFirst()
             );
             topN.outputs(contextBuilder.outputs());
-            projectionBuilder.add(topN);
-            return true;
+            return topN;
         }
-        return false;
+        return null;
     }
 
     private boolean requireLimitOnReducer(SelectAnalysis analysis, boolean aggregationsWrappedInScalar) {
@@ -910,7 +914,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         contextBuilder.nextStep();
 
         // mergeNode for reducer
-        ImmutableList.Builder<Projection> projectionsBuilder = ImmutableList.<Projection>builder();
+        ImmutableList.Builder<Projection> projectionsBuilder = ImmutableList.builder();
         projectionsBuilder.add(new GroupProjection(
                 contextBuilder.groupBy(),
                 contextBuilder.aggregations()));
@@ -918,23 +922,42 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.passThroughOutputs());
+            /**
+             * Pass through outputs from previous group by projection as-is.
+             * In case group by has more outputs than the select statement strip those outputs away.
+             *
+             * E.g.
+             *      select count(*), name from t having avg(y) > 10
+             *
+             * output from group by projection:
+             *      name, count(*), avg(y)
+             *
+             * outputs from fp:
+             *      name, count(*)
+             *
+             * Any additional aggregations in the having clause that are not part of the selectList must come
+             * AFTER the selectList aggregations
+             */
+            fp.outputs(contextBuilder.genInputColumns(analysis.outputSymbols().size()));
             projectionsBuilder.add(fp);
         }
+        TopNProjection topNForReducer = getTopNForReducer(analysis, contextBuilder);
+        if (topNForReducer != null) {
+            projectionsBuilder.add(topNForReducer);
+        }
 
-        boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionsBuilder);
         MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
         plan.add(mergeNode);
 
 
         List<Symbol> outputs;
         List<Symbol> orderBy;
-        if (topNDone) {
-            orderBy = contextBuilder.passThroughOrderBy();
-            outputs = contextBuilder.passThroughOutputs();
-        } else {
+        if (topNForReducer == null) {
             orderBy = contextBuilder.orderBy();
             outputs = contextBuilder.outputs();
+        } else {
+            orderBy = contextBuilder.passThroughOrderBy();
+            outputs = contextBuilder.passThroughOutputs();
         }
         // mergeNode handler
         TopNProjection topN = new TopNProjection(
