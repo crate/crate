@@ -72,7 +72,7 @@ public class DocTableInfoBuilder {
 
     public DocIndexMetaData docIndexMetaData() {
         DocIndexMetaData docIndexMetaData;
-        String templateName = PartitionName.templateName(ident.esName());
+        String templateName = PartitionName.templateName(ident.schema(), ident.name());
         boolean createdFromTemplate = false;
         if (metaData.getTemplates().containsKey(templateName)) {
             docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.esName(), templateName);

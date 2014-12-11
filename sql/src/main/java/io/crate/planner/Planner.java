@@ -1087,7 +1087,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 if (!context.indexWriterProjection.isPresent()
                         && statement.table().rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
                         statement.table().getRouting(whereClause).hasLocations() &&
-                        statement.table().schemaInfo().name().equals(DocSchemaInfo.NAME)) {
+                        !statement.table().schemaInfo().systemSchema()) {
 
                     if (statement.ids().size() > 0
                             && statement.routingValues().size() > 0

@@ -149,7 +149,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
         ensureGreen();
-        String templateName = PartitionName.templateName("parted");
+        String templateName = PartitionName.templateName(null, "parted");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         assertThat(templatesResponse.getIndexTemplates().get(0).template(),
@@ -911,7 +911,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertEquals(1L, response.rowCount());
 
         GetIndexTemplatesResponse getIndexTemplatesResponse = client().admin().indices()
-                .prepareGetTemplates(PartitionName.templateName("quotes")).execute().get();
+                .prepareGetTemplates(PartitionName.templateName(null, "quotes")).execute().get();
         assertThat(getIndexTemplatesResponse.getIndexTemplates().size(), is(0));
 
         assertThat(cluster().clusterService().state().metaData().indices().size(), is(0));
@@ -1018,6 +1018,44 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    public void testPartitionedTableSchemaAllConstraintsRoundTrip() throws Exception {
+        execute("create table my_schema.quotes (id integer primary key, quote string, " +
+                "date timestamp primary key, user_id string primary key) " +
+                "partitioned by(date, user_id) clustered by (id) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into my_schema.quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
+                new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
+        assertEquals(1L, response.rowCount());
+        execute("insert into my_schema.quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
+                new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
+        assertEquals(1L, response.rowCount());
+        ensureGreen();
+        refresh();
+
+        execute("select id, quote from my_schema.quotes where user_id = 'Arthur'");
+        assertEquals(1L, response.rowCount());
+
+        execute("update my_schema.quotes set quote = ? where user_id = ?",
+                new Object[]{"I'd far rather be happy than right any day", "Arthur"});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("delete from my_schema.quotes where user_id = 'Arthur' and id = 1 and date = 1395874800000");
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select * from my_schema.quotes");
+        assertEquals(1L, response.rowCount());
+
+        execute("delete from my_schema.quotes"); // this will delete all partitions
+        execute("delete from my_schema.quotes"); // this should still work even though only the template exists
+
+        execute("drop table my_schema.quotes");
+        assertEquals(1L, response.rowCount());
+    }
+
+
+    @Test
     public void testPartitionedTableSchemaUpdateSameColumnNumber() throws Exception {
         execute("create table foo (" +
                 "   id int primary key," +
@@ -1093,7 +1131,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureGreen();
         assertThat(response.rowCount(), is(1L));
 
-        String templateName = PartitionName.templateName("quotes");
+        String templateName = PartitionName.templateName(null, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
@@ -1160,7 +1198,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureGreen();
         assertThat(response.rowCount(), is(1L));
 
-        String templateName = PartitionName.templateName("quotes");
+        String templateName = PartitionName.templateName(null, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
@@ -1196,7 +1234,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("alter table quotes reset (number_of_replicas)");
         ensureGreen();
 
-        String templateName = PartitionName.templateName("quotes");
+        String templateName = PartitionName.templateName(null, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
@@ -1247,7 +1285,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(settingsResponse.getSetting(partitions.get(0), IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
         assertThat(settingsResponse.getSetting(partitions.get(1), IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("0"));
 
-        String templateName = PartitionName.templateName("quotes");
+        String templateName = PartitionName.templateName(null, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();

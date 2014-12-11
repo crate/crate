@@ -58,11 +58,11 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
         if (PartitionName.isPartition(index.name())) {
             TableIdent tableIdent = new TableIdent(PartitionName.schemaName(index.name()), PartitionName.tableName(index.name()));
             // check if alias exists
-            if (clusterService.state().metaData().hasConcreteIndex(tableIdent.fqn())) {
+            if (clusterService.state().metaData().hasConcreteIndex(tableIdent.esName())) {
                 // get DocTableInfo for virtual partitioned table
                 DocTableInfo info = new DocTableInfoBuilder(
                         docSchemaInfo,
-                        new TableIdent(DocSchemaInfo.NAME, tableIdent.fqn()),
+                        tableIdent,
                         clusterService, transportPutIndexTemplateAction, true).build();
                 assert info.isPartitioned();
                 int i = 0;
@@ -93,7 +93,6 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
             } else {
                 logger.error("Orphaned partition '{}' with missing table '{}' found",
                         index, tableIdent.fqn());
-
             }
         }
         this.implementations = builder.build();

@@ -61,7 +61,7 @@ public class DropTableTask extends AbstractChainedTask {
     @Override
     protected void doStart(List<TaskResult> upstreamResults) {
         if (tableInfo.isPartitioned()) {
-            String templateName = PartitionName.templateName(tableInfo.ident().esName());
+            String templateName = PartitionName.templateName(tableInfo.ident().schema(), tableInfo.ident().name());
             deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {
                 @Override
                 public void onResponse(DeleteIndexTemplateResponse response) {

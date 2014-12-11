@@ -303,6 +303,7 @@ public abstract class BaseAnalyzerTest {
             when(metaData.transientSettings()).thenReturn(ImmutableSettings.EMPTY);
             when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
             when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
             when(state.metaData()).thenReturn(metaData);
             when(clusterService.state()).thenReturn(state);
             bind(ClusterService.class).toInstance(clusterService);

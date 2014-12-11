@@ -183,7 +183,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
         final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
 
         if (updateTemplate) {
-            String templateName = PartitionName.templateName(analysis.table().ident().esName());
+            String templateName = PartitionName.templateName(analysis.table().ident().schema(), analysis.table().ident().name());
             IndexTemplateMetaData indexTemplateMetaData =
                     clusterService.state().metaData().templates().get(templateName);
             if (indexTemplateMetaData == null) {
@@ -393,7 +393,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
             results.add(templateFuture);
 
             // update template
-            final String templateName = PartitionName.templateName(analysis.table().ident().esName());
+            final String templateName = PartitionName.templateName(analysis.table().ident().schema(), analysis.table().ident().name());
             GetIndexTemplatesRequest getRequest = new GetIndexTemplatesRequest(templateName);
 
             transportActionProvider.transportGetIndexTemplatesAction().execute(getRequest, new ActionListener<GetIndexTemplatesResponse>() {
