@@ -110,7 +110,7 @@ class PlanNodeBuilder {
         Routing routing = analysis.table().getRouting(analysis.whereClause());
         if (partitionIdent != null && routing.hasLocations()) {
             routing = filterRouting(routing, PartitionName.fromPartitionIdent(
-                            analysis.table().ident().name(), partitionIdent).stringValue());
+                    analysis.table().ident().schema(), analysis.table().ident().name(), partitionIdent).stringValue());
         }
         CollectNode node = new CollectNode("collect", routing);
         node.whereClause(analysis.whereClause());

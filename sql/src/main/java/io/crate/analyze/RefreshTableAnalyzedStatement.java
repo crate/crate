@@ -87,6 +87,7 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
         }
         try {
             this.partitionName = PartitionName.fromPartitionIdent(
+                    table().ident().schema(),
                     table().ident().name(),
                     ident
             );

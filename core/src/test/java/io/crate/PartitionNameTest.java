@@ -23,17 +23,23 @@ package io.crate;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.collect.Tuple;
+import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 public class PartitionNameTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testSingleColumn() throws Exception {
@@ -43,13 +49,31 @@ public class PartitionNameTest {
         assertThat(partitionName.values().size(), is(1));
         assertEquals(ImmutableList.of(new BytesRef("1")), partitionName.values());
 
-        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), null, "test");
+        assertEquals(partitionName.values(), partitionName1.values());
+    }
+
+    @Test
+    public void testSingleColumnSchema() throws Exception {
+        PartitionName partitionName = new PartitionName("schema", "test", ImmutableList.of(new BytesRef("1")));
+
+        assertTrue(partitionName.isValid());
+        assertThat(partitionName.values().size(), is(1));
+        assertEquals(ImmutableList.of(new BytesRef("1")), partitionName.values());
+
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "schema", "test");
         assertEquals(partitionName.values(), partitionName1.values());
     }
 
     @Test
     public void testWithoutValue() throws Exception {
         PartitionName partitionName = new PartitionName("test", ImmutableList.<BytesRef>of());
+        assertFalse(partitionName.isValid());
+    }
+
+    @Test
+    public void testWithoutValueSchema() throws Exception {
+        PartitionName partitionName = new PartitionName("schema", "test", ImmutableList.<BytesRef>of());
         assertFalse(partitionName.isValid());
     }
 
@@ -61,19 +85,47 @@ public class PartitionNameTest {
         assertThat(partitionName.values().size(), is(2));
         assertEquals(ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), partitionName.values());
 
-        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), null, "test");
+        assertEquals(partitionName.values(), partitionName1.values());
+    }
+
+    @Test
+    public void testMultipleColumnsSchema() throws Exception {
+        PartitionName partitionName = new PartitionName("schema", "test", ImmutableList.of(new BytesRef("1"), new BytesRef("foo")));
+
+        assertTrue(partitionName.isValid());
+        assertThat(partitionName.values().size(), is(2));
+        assertEquals(ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), partitionName.values());
+
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "schema", "test");
         assertEquals(partitionName.values(), partitionName1.values());
     }
 
     @Test
     public void testNull() throws Exception {
-        PartitionName partitionName = new PartitionName("test", new ArrayList<BytesRef>(){{add(null);}});
+        PartitionName partitionName = new PartitionName("test", new ArrayList<BytesRef>() {{
+            add(null);
+        }});
 
         assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(1));
         assertEquals(null, partitionName.values().get(0));
 
-        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), null, "test");
+        assertEquals(partitionName.values(), partitionName1.values());
+    }
+
+    @Test
+    public void testNullSchema() throws Exception {
+        PartitionName partitionName = new PartitionName("schema", "test", new ArrayList<BytesRef>() {{
+            add(null);
+        }});
+
+        assertTrue(partitionName.isValid());
+        assertThat(partitionName.values().size(), is(1));
+        assertEquals(null, partitionName.values().get(0));
+
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "schema", "test");
         assertEquals(partitionName.values(), partitionName1.values());
     }
 
@@ -85,7 +137,7 @@ public class PartitionNameTest {
         assertThat(partitionName.values().size(), is(1));
         assertEquals(ImmutableList.of(new BytesRef("")), partitionName.values());
 
-        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test");
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), null, "test");
         assertEquals(partitionName.values(), partitionName1.values());
     }
 
@@ -95,86 +147,179 @@ public class PartitionNameTest {
         assertFalse(PartitionName.tableName(partitionName).equals("test"));
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
+    public void testPartitionNameNotFromSchema() throws Exception {
+        String partitionName = "schema1." + Constants.PARTITIONED_TABLE_PREFIX + ".test1._1";
+        assertFalse(PartitionName.schemaName(partitionName).equals("schema"));
+    }
+
+    @Test
     public void testInvalidValueString() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid partition ident: 1");
+
         String partitionName = Constants.PARTITIONED_TABLE_PREFIX + ".test.1";
-        PartitionName.fromString(partitionName, "test");
+        PartitionName.fromString(partitionName, null, "test");
     }
 
     @Test
     public void testIsPartition() throws Exception {
         assertFalse(
-                PartitionName.isPartition("test", "test")
+                PartitionName.isPartition("test", null, "test")
         );
+        assertFalse(
+                PartitionName.isPartition("test", "schema", "test")
+        );
+
         assertTrue(PartitionName.isPartition(
-                Constants.PARTITIONED_TABLE_PREFIX + ".test.", "test"
+                Constants.PARTITIONED_TABLE_PREFIX + ".test.", null, "test"
         ));
+        assertTrue(PartitionName.isPartition(
+                "schema." + Constants.PARTITIONED_TABLE_PREFIX + ".test.", "schema", "test"
+        ));
+
         assertFalse(
                 PartitionName.isPartition(
                         Constants.PARTITIONED_TABLE_PREFIX + ".tast.djfhjhdgfjy",
+                        null,
                         "test"
                 )
         );
         assertFalse(
-                PartitionName.isPartition("partitioned.test.dshhjfgjsdh", "test")
+                PartitionName.isPartition(
+                        "schema." + Constants.PARTITIONED_TABLE_PREFIX + ".tast.djfhjhdgfjy",
+                        "schema",
+                        "test"
+                )
         );
         assertFalse(
-                PartitionName.isPartition(".test.dshhjfgjsdh", "test")
+                PartitionName.isPartition(
+                        "schama." + Constants.PARTITIONED_TABLE_PREFIX + ".test.djfhjhdgfjy",
+                        "schema",
+                        "test"
+                )
         );
+
+        assertFalse(
+                PartitionName.isPartition("partitioned.test.dshhjfgjsdh", null, "test")
+        );
+        assertFalse(
+                PartitionName.isPartition("schema.partitioned.test.dshhjfgjsdh", "schema", "test")
+        );
+        assertFalse(
+                PartitionName.isPartition(".test.dshhjfgjsdh", null, "test")
+        );
+        assertFalse(
+                PartitionName.isPartition("schema.test.dshhjfgjsdh", "schema", "test")
+        );
+        assertTrue(PartitionName.isPartition(".partitioned.test.dshhjfgjsdh"));
+        assertTrue(PartitionName.isPartition("schema..partitioned.test.dshhjfgjsdh"));
     }
 
     @Test
     public void testSplit() throws Exception {
-        Tuple<String, String> tableNameValues = PartitionName.split(
+        String[] splitted = PartitionName.split(
                 new PartitionName("t", Arrays.asList(new BytesRef("a"), new BytesRef("b"))).stringValue());
-        assertThat(tableNameValues.v1(), is("t"));
-        assertThat(tableNameValues.v2(), is("081620j2"));
+        assertThat(splitted, arrayContaining(null, "t", "081620j2"));
 
-        tableNameValues = PartitionName.split(
+        splitted = PartitionName.split(new PartitionName(null, "t", Arrays.asList(new BytesRef("a"), new BytesRef("b"))).stringValue());
+        assertThat(splitted, arrayContaining(null, "t", "081620j2"));
+
+        splitted = PartitionName.split(new PartitionName("schema", "t", Arrays.asList(new BytesRef("a"), new BytesRef("b"))).stringValue());
+        assertThat(splitted, arrayContaining("schema", "t", "081620j2"));
+
+        splitted = PartitionName.split(
                 new PartitionName("t", Arrays.asList(null, new BytesRef("b"))).stringValue());
-        assertThat(tableNameValues.v1(), is("t"));
-        assertThat(tableNameValues.v2(), is("08004og"));
+        assertThat(splitted, arrayContaining(null, "t", "08004og"));
 
-        tableNameValues = PartitionName.split(
-                new PartitionName("t",  new ArrayList<BytesRef>() {{ add(null); }}).stringValue());
-        assertThat(tableNameValues.v1(), is("t"));
-        assertThat(tableNameValues.v2(), is("0400"));
+        splitted = PartitionName.split(
+                new PartitionName("t", new ArrayList<BytesRef>() {{
+                    add(null);
+                }}).stringValue());
+        assertThat(splitted, arrayContaining(null, "t", "0400"));
 
-        tableNameValues = PartitionName.split(
+        splitted = PartitionName.split(
                 new PartitionName("t", Arrays.asList(new BytesRef("hoschi"))).stringValue());
-        assertThat(tableNameValues.v1(), is("t"));
-        assertThat(tableNameValues.v2(), is("043mgrrjcdk6i"));
+        assertThat(splitted, arrayContaining(null, "t", "043mgrrjcdk6i"));
 
     }
 
     @Test
     public void splitTemplateName() throws Exception {
-        assertThat(
-                PartitionName.split(PartitionName.templateName("t")).v1(),
-                is("t"));
-        assertThat(
-                PartitionName.split(PartitionName.templateName("t")).v2(),
-                is(""));
-
+        assertThat(PartitionName.split(PartitionName.templateName("t")), arrayContaining(null, "t", ""));
+        assertThat(PartitionName.split(PartitionName.templateName("schema", "t")), arrayContaining("schema", "t", ""));
+        assertThat(PartitionName.split(PartitionName.templateName(null, "t")), arrayContaining(null, "t", ""));
+        assertThat(PartitionName.split(PartitionName.templateName(Constants.DOC_SCHEMA_NAME, "t")), arrayContaining(null, "t", ""));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSplitInvalid1() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid partition name");
         PartitionName.split(Constants.PARTITIONED_TABLE_PREFIX + "lalala.n");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSplitInvalid2() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid partition name");
         PartitionName.split(Constants.PARTITIONED_TABLE_PREFIX.substring(1) + ".lalala.n");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSplitInvalid3() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid partition name");
         PartitionName.split("lalala");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSplitInvalid4() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid partition name");
         PartitionName.split(Constants.PARTITIONED_TABLE_PREFIX + ".lalala");
+    }
+
+    @Test
+    public void testSplitInvalidWithSchema1() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid partition name");
+        PartitionName.split("schema" + Constants.PARTITIONED_TABLE_PREFIX + ".lalala");
+    }
+
+    @Test
+    public void testSplitInvalidWithSchema2() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid partition name");
+        PartitionName.split("schema." + Constants.PARTITIONED_TABLE_PREFIX + ".lalala");
+    }
+
+    @Test
+    public void testIdent() throws Exception {
+        Assert.assertThat(
+                PartitionName.ident(new PartitionName("table", ImmutableList.of(new BytesRef("a"), new BytesRef("b"))).stringValue()),
+                is("081620j2")
+        );
+        Assert.assertThat(
+                PartitionName.ident(new PartitionName(Constants.DOC_SCHEMA_NAME, "table", new ArrayList<BytesRef>() {{
+                    add(null);
+                }}).stringValue()),
+                is("0400")
+        );
+    }
+
+    @Test
+    public void testEquals() throws Exception {
+        assertTrue(
+                new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
+                        new PartitionName("table", Arrays.asList(new BytesRef("xxx")))));
+        assertTrue(
+                new PartitionName(null, "table", Arrays.asList(new BytesRef("xxx"))).equals(
+                        new PartitionName(Constants.DOC_SCHEMA_NAME, "table", Arrays.asList(new BytesRef("xxx")))));
+        assertFalse(
+                new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
+                        new PartitionName("schema", "table", Arrays.asList(new BytesRef("xxx")))));
+        PartitionName name = new PartitionName(null, "table", Arrays.asList(new BytesRef("xxx")));
+        assertTrue(name.equals(PartitionName.fromStringSafe(name.stringValue())));
     }
 }
