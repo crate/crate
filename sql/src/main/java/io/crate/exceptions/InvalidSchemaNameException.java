@@ -19,26 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.ddl;
+package io.crate.exceptions;
 
-import io.crate.metadata.table.TableInfo;
-import io.crate.planner.node.PlanVisitor;
+public class InvalidSchemaNameException extends ValidationException {
 
-public class DropTableNode extends DDLPlanNode {
-
-    private final TableInfo table;
-
-
-    public DropTableNode(TableInfo table) {
-        this.table = table;
-    }
-
-    public TableInfo tableInfo() {
-        return table;
+    public InvalidSchemaNameException(String tableName) {
+        super(String.format("schema name \"%s\" is invalid.", tableName));
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitDropTableNode(this, context);
+    public int errorCode() {
+        return 2;
     }
 }

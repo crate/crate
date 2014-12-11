@@ -20,8 +20,6 @@
  */
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import io.crate.Constants;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -60,8 +58,6 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     @Override
     public Void visitCreateTable(CreateTable node, CreateTableAnalyzedStatement context) {
         TableIdent tableIdent = TableIdent.of(node.name());
-        Preconditions.checkArgument(Strings.isNullOrEmpty(tableIdent.schema()),
-                "A custom schema name must not be specified in the CREATE TABLE clause");
         context.table(tableIdent);
 
         // apply default in case it is not specified in the genericProperties,

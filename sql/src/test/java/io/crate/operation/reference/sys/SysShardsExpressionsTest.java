@@ -121,6 +121,7 @@ public class SysShardsExpressionsTest {
 
             MetaData metaData = mock(MetaData.class);
             when(metaData.hasConcreteIndex(Constants.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1")).thenReturn(false);
+            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
             ClusterState clusterState = mock(ClusterState.class);
             when(clusterService.state()).thenReturn(clusterState);
             when(clusterState.metaData()).thenReturn(metaData);

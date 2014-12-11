@@ -109,7 +109,7 @@ public class DocIndexMetaData {
     public DocIndexMetaData(IndexMetaData metaData, TableIdent ident) throws IOException {
         this.ident = ident;
         this.metaData = metaData;
-        this.isAlias = !metaData.getIndex().equals(ident.name());
+        this.isAlias = !metaData.getIndex().equals(ident.esName());
         this.numberOfShards = metaData.numberOfShards();
         Settings settings = metaData.getSettings();
         String autoExpandReplicas = settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);

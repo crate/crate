@@ -61,7 +61,7 @@ public class DropTableTask extends AbstractChainedTask {
     @Override
     protected void doStart(List<TaskResult> upstreamResults) {
         if (tableInfo.isPartitioned()) {
-            String templateName = PartitionName.templateName(tableInfo.ident().name());
+            String templateName = PartitionName.templateName(tableInfo.ident().esName());
             deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {
                 @Override
                 public void onResponse(DeleteIndexTemplateResponse response) {
@@ -69,7 +69,7 @@ public class DropTableTask extends AbstractChainedTask {
                         warnNotAcknowledged(String.format(Locale.ENGLISH, "dropping table '%s'", tableInfo.ident().fqn()));
                     }
                     if (!tableInfo.partitions().isEmpty()) {
-                        deleteESIndex(tableInfo.ident().name());
+                        deleteESIndex(tableInfo.ident().esName());
                     } else {
                         result.set(SUCCESS_RESULT);
                     }
@@ -81,7 +81,7 @@ public class DropTableTask extends AbstractChainedTask {
                 }
             });
         } else {
-            deleteESIndex(tableInfo.ident().name());
+            deleteESIndex(tableInfo.ident().esName());
         }
 
     }

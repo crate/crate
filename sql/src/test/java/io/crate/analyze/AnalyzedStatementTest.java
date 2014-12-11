@@ -125,6 +125,7 @@ public class AnalyzedStatementTest {
     @Before
     public void prepare() {
         Injector injector = new ModulesBuilder()
+                .add(new BaseAnalyzerTest.TestModule())
                 .add(new TestMetaDataModule())
                 .createInjector();
         referenceInfos = injector.getInstance(ReferenceInfos.class);

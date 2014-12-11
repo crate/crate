@@ -23,25 +23,47 @@ package io.crate.metadata;
 
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class ReferenceInfos implements Iterable<SchemaInfo>{
+public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListener {
 
     public static final String DEFAULT_SCHEMA = "doc";
+    public static final String SCHEMA_REGEX = "^([^.]+)\\..+";
+    public static final Pattern SCHEMA_PATTERN = Pattern.compile(SCHEMA_REGEX);
 
-    private final Map<String, SchemaInfo> schemas;
+    private final Map<String, SchemaInfo> builtInSchemas;
     private final SchemaInfo defaultSchemaInfo;
+    private final ClusterService clusterService;
+    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+
+    private volatile Map<String, SchemaInfo> schemas = new HashMap<>();
 
     @Inject
-    public ReferenceInfos(Map<String, SchemaInfo> schemas) {
-        this.schemas = schemas;
-        this.defaultSchemaInfo = schemas.get(DEFAULT_SCHEMA);
+    public ReferenceInfos(Map<String, SchemaInfo> builtInSchemas,
+                          ClusterService clusterService,
+                          TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
+        this.builtInSchemas = builtInSchemas;
+        this.defaultSchemaInfo = builtInSchemas.get(DEFAULT_SCHEMA);
+        this.clusterService = clusterService;
+        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        schemas.putAll(builtInSchemas);
+        schemas.putAll(resolveCustomSchemas(clusterService.state().metaData()));
+        clusterService.add(this);
     }
 
     @Nullable
@@ -101,4 +123,47 @@ public class ReferenceInfos implements Iterable<SchemaInfo>{
     public Iterator<SchemaInfo> iterator() {
         return schemas.values().iterator();
     }
+
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        Map<String, SchemaInfo> newSchemas = new HashMap<>();
+        newSchemas.putAll(builtInSchemas);
+        newSchemas.putAll(resolveCustomSchemas(event.state().metaData()));
+        schemas = newSchemas;
+    }
+
+    /**
+     * Create a custom schema info.
+     *
+     * @param name The schema name
+     * @return an instance of SchemaInfo for the given name
+     */
+    private SchemaInfo getCustomSchemaInfo(final String name) {
+        return new DocSchemaInfo(clusterService, transportPutIndexTemplateAction) {
+            @Override
+            public String name() {
+                return name;
+            }
+        };
+    }
+
+    /**
+     * Parse indices with custom schema name patterns out of the cluster state
+     * and creates custom schema infos.
+     *
+     * @param metaData The cluster state meta data
+     * @return a map of schema names and schema infos
+     */
+    private Map<String, SchemaInfo> resolveCustomSchemas(MetaData metaData) {
+        Map<String, SchemaInfo> customSchemas = new HashMap<>();
+        for (String index : metaData.concreteAllOpenIndices()) {
+            Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(index);
+            if (matcher.matches()) {
+                String schemaName = matcher.group(1);
+                customSchemas.put(schemaName, getCustomSchemaInfo(schemaName));
+            }
+        }
+        return customSchemas;
+    }
+
 }
