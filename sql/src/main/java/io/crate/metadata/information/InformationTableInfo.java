@@ -55,7 +55,7 @@ public class InformationTableInfo extends AbstractTableInfo {
         this.primaryKeyIdentList = primaryKeyIdentList;
         this.references = references;
         this.columns = columns;
-        this.concreteIndices = new String[]{ident.name()};
+        this.concreteIndices = new String[]{ident.esName()};
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(1);
         Map<String, Set<Integer>> tableLocation = new HashMap<>(1);
         tableLocation.put(ident.fqn(), null);

@@ -53,6 +53,7 @@ public class ReferenceToTrueVisitorTest {
     @Before
     public void setUp() throws Exception {
         Injector injector = new ModulesBuilder()
+            .add(new BaseAnalyzerTest.TestModule())
             .add(new MetaDataModule())
             .add(new OperatorModule())
             .add(new MetaDataInformationModule())

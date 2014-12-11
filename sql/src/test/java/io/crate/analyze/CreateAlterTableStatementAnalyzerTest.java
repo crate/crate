@@ -27,6 +27,7 @@ import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -45,7 +46,6 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -350,9 +350,13 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.tableParameter().settings().get("search"), is("foobar"));
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
     public void testCreateTableWithSchemaName() throws Exception {
-        analyze("create table something.foo (id integer primary key)");
+        CreateTableAnalyzedStatement analysis =
+                (CreateTableAnalyzedStatement)analyze("create table something.foo (id integer primary key)");
+        TableIdent tableIdent = analysis.tableIdent();
+        assertThat(tableIdent.schema(), is("something"));
+        assertThat(tableIdent.name(), is("foo"));
     }
 
     @Test

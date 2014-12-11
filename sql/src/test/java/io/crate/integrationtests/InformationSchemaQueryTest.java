@@ -222,9 +222,9 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectUnkownTableFromInformationSchema() throws Exception {
+    public void testSelectUnknownTableFromInformationSchema() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Table 'non_existent' unknown");
+        expectedException.expectMessage("Table 'information_schema.non_existent' unknown");
         exec("select * from information_schema.non_existent");
     }
 

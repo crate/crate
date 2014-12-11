@@ -57,7 +57,7 @@ public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
         tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.name());
+            throw new TableUnknownException(tableIdent.fqn());
         }
     }
 

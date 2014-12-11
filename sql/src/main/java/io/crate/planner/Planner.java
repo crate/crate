@@ -24,7 +24,6 @@ package io.crate.planner;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -140,7 +139,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
         });
         ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
-                analysis.table().ident().name(),
+                analysis.table().ident().esName(),
                 analysis.table().primaryKey(),
                 columns,
                 analysis.primaryKeyColumnIndices(),
@@ -258,7 +257,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         String tableName;
 
         if (analysis.partitionIdent() == null) {
-            tableName = table.ident().name();
+            tableName = table.ident().esName();
             if (table.isPartitioned()) {
                 partitionedByNames = Lists.newArrayList(
                         Lists.transform(table.partitionedBy(), ColumnIdent.GET_FQN_NAME_FUNCTION));
@@ -363,13 +362,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     protected Plan visitCreateTableStatement(CreateTableAnalyzedStatement analysis, Context context) {
         Plan plan = new Plan();
         TableIdent tableIdent = analysis.tableIdent();
-        Preconditions.checkArgument(Strings.isNullOrEmpty(tableIdent.schema()),
-                "a SCHEMA name other than null isn't allowed.");
 
         CreateTableNode createTableNode;
         if (analysis.isPartitioned()) {
             createTableNode = CreateTableNode.createPartitionedTableNode(
-                    tableIdent.name(),
+                    tableIdent.esName(),
                     analysis.tableParameter().settings().getByPrefix("index."),
                     analysis.mapping(),
                     analysis.templateName(),
@@ -377,7 +374,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             );
         } else {
             createTableNode = CreateTableNode.createTableNode(
-                    tableIdent.name(),
+                    tableIdent.esName(),
                     analysis.tableParameter().settings(),
                     analysis.mapping()
             );
@@ -463,7 +460,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             assert analysis.whereClause().partitions().size() == 1 : "ambiguous partitions for ESGet";
             indexName = analysis.whereClause().partitions().get(0);
         } else {
-            indexName = analysis.table().ident().name();
+            indexName = analysis.table().ident().esName();
         }
         ESGetNode getNode = new ESGetNode(
                 indexName,
@@ -1084,7 +1081,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             List<String> partitions = analysis.generatePartitions();
             indices = partitions.toArray(new String[partitions.size()]);
         } else {
-            indices = new String[]{ analysis.table().ident().name() };
+            indices = new String[]{ analysis.table().ident().esName() };
         }
 
         ESIndexNode indexNode = new ESIndexNode(
@@ -1144,7 +1141,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             indices = org.elasticsearch.common.Strings.EMPTY_ARRAY;
         } else if (!analysis.table().isPartitioned()) {
             // table name for non-partitioned tables
-            indices = new String[]{ analysis.table().ident().name() };
+            indices = new String[]{ analysis.table().ident().esName() };
         } else if (analysis.whereClause().partitions().size() == 0) {
             // all partitions
             indices = new String[analysis.table().partitions().size()];
