@@ -25,20 +25,20 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import io.crate.core.StringUtils;
-import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.io.stream.*;
+import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class PartitionName implements Streamable {
+public class PartitionName {
 
     private static final Base32 BASE32 = new Base32(true);
     private static final Joiner DOT_JOINER = Joiner.on(".");
@@ -70,29 +70,6 @@ public class PartitionName implements Streamable {
 
     public boolean isValid() {
         return values.size() > 0;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        tableName = in.readString();
-        int size = in.readVInt();
-        for (int i=0; i < size; i++) {
-            BytesRef value = DataTypes.STRING.streamer().readValueFrom(in);
-            if (value == null) {
-                values.add(null);
-            } else {
-                values.add(value);
-            }
-        }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(tableName);
-        out.writeVInt(values.size());
-        for (BytesRef value : values) {
-            StringType.INSTANCE.streamer().writeValueTo(out, value);
-        }
     }
 
     @Nullable
