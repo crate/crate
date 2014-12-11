@@ -151,7 +151,7 @@ public class TestingTableInfo extends AbstractTableInfo {
 
         public Builder addPartitions(String... partitionNames) {
             for (String partitionName : partitionNames) {
-                PartitionName partition = PartitionName.fromString(partitionName, ident.name());
+                PartitionName partition = PartitionName.fromString(partitionName, ident.schema(), ident.name());
                 partitions.add(partition);
             }
             return this;

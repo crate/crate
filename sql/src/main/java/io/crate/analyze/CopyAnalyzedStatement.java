@@ -108,7 +108,7 @@ public class CopyAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
     public boolean partitionExists(String partitionIdent){
         if (table.isPartitioned() && partitionIdent != null ){
-            return table.partitions().contains(PartitionName.fromPartitionIdent(table.ident().name(), partitionIdent));
+            return table.partitions().contains(PartitionName.fromPartitionIdent(table.ident().schema(), table.ident().name(), partitionIdent));
         }
         return false;
     }
