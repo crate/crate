@@ -5,7 +5,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.analyze.*;
+import io.crate.analyze.AnalyzedTableElements;
+import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.CreateTableStatementAnalyzer;
+import io.crate.analyze.ParameterContext;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
@@ -17,9 +20,11 @@ import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -39,6 +44,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DocIndexMetaDataTest {
 
@@ -634,11 +640,18 @@ public class DocIndexMetaDataTest {
     private DocIndexMetaData getDocIndexMetaDataFromStatement(String stmt) throws IOException {
         Statement statement = SqlParser.createStatement(stmt);
         ClusterService clusterService = mock(ClusterService.class);
+        ClusterState state = mock(ClusterState.class);
+        MetaData metaData = mock(MetaData.class);
+        when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+        when(state.metaData()).thenReturn(metaData);
+        when(clusterService.state()).thenReturn(state);
+        TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new ReferenceInfos(
                 ImmutableMap.<String, SchemaInfo>of("doc",
-                    new DocSchemaInfo(clusterService,
-                        mock(TransportPutIndexTemplateAction.class)))),
+                    new DocSchemaInfo(clusterService, transportPutIndexTemplateAction)),
+                    clusterService,
+                    transportPutIndexTemplateAction),
             new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class))
         );
 

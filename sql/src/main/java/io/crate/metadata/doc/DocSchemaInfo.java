@@ -35,6 +35,7 @@ import com.google.common.collect.UnmodifiableIterator;
 import io.crate.PartitionName;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -59,10 +60,17 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
 
-    private static final Predicate<String> tablesFilter = new Predicate<String>() {
+    private final Predicate<String> tablesFilter = new Predicate<String>() {
         @Override
         public boolean apply(String input) {
-            return !BlobIndices.isBlobIndex(input);
+            if (BlobIndices.isBlobIndex(input)) {
+                return false;
+            }
+            if (name().equalsIgnoreCase(DocSchemaInfo.NAME)) {
+                return !input.matches(ReferenceInfos.SCHEMA_REGEX);
+            } else {
+                return input.matches(ReferenceInfos.SCHEMA_REGEX);
+            }
         }
     };
 
@@ -88,6 +96,9 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             @Nullable
             @Override
             public TableInfo apply(@Nullable String input) {
+                if (input.matches(ReferenceInfos.SCHEMA_REGEX)) {
+                    input = input.substring(name().length()+1);
+                }
                 return getTableInfo(input);
             }
         };
@@ -97,7 +108,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         boolean checkAliasSchema = clusterService.state().metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
                 this,
-                new TableIdent(NAME, name),
+                new TableIdent(name(), name),
                 clusterService,
                 transportPutIndexTemplateAction,
                 checkAliasSchema

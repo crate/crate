@@ -511,4 +511,33 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(settingsResponse.getSetting(partition, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("5"));
     }
 
+
+    @Test
+    public void testCreateTableWithCustomSchema() throws Exception {
+        execute("create table a.t (name string) with (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("insert into a.t (name) values ('Ford')");
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        execute("select name from a.t");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String)response.rows()[0][0], is("Ford"));
+
+        execute("select schema_name from information_schema.tables where table_name = 't'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String)response.rows()[0][0], is("a"));
+    }
+
+    @Test
+    public void testDropTableWithCustomSchema() throws Exception {
+        execute("create table a.t (name string) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("drop table a.t");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select schema_name from information_schema.tables where table_name = 't'");
+        assertThat(response.rowCount(), is(0L));
+    }
 }

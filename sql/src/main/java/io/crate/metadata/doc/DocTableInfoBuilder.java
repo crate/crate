@@ -72,23 +72,23 @@ public class DocTableInfoBuilder {
 
     public DocIndexMetaData docIndexMetaData() {
         DocIndexMetaData docIndexMetaData;
-        String templateName = PartitionName.templateName(ident.name());
+        String templateName = PartitionName.templateName(ident.esName());
         boolean createdFromTemplate = false;
         if (metaData.getTemplates().containsKey(templateName)) {
-            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.name(), templateName);
+            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.esName(), templateName);
             createdFromTemplate = true;
             try {
-                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.name());
+                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.esName());
             } catch(IndexMissingException e) {
                 // no partition created yet
                 concreteIndices = new String[]{};
             }
         } else {
             try {
-                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.name());
+                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.esName());
                 docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
             } catch (IndexMissingException ex) {
-                throw new TableUnknownException(ident.name(), ex);
+                throw new TableUnknownException(ident.fqn(), ex);
             }
         }
 
@@ -150,7 +150,7 @@ public class DocTableInfoBuilder {
                         partitions.add(partitionName);
                     } catch (IllegalArgumentException e) {
                         // ignore
-                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", index, ident.name()));
+                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", index, ident.esName()));
                     }
                 }
             }

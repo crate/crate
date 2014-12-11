@@ -53,7 +53,7 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
         }
         TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.name());
+            throw new TableUnknownException(tableIdent.fqn());
         }
         this.tableInfo = tableInfo;
     }
@@ -83,7 +83,7 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
         if (!table().isPartitioned()) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH,
-                            "Table '%s' is not partitioned", table().ident().name()));
+                            "Table '%s' is not partitioned", table().ident().fqn()));
         }
         try {
             this.partitionName = PartitionName.fromPartitionIdent(
@@ -93,12 +93,12 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid partition ident for table '%s': '%s'",
-                            table().ident().name(), ident), e);
+                            table().ident().fqn(), ident), e);
         }
 
         if (!table().partitions().contains(this.partitionName)) {
             throw new PartitionUnknownException(
-                    this.table().ident().name(),
+                    this.table().ident().fqn(),
                     this.partitionName.ident());
         }
     }
