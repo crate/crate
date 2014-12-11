@@ -246,7 +246,6 @@ public class PartitionNameTest {
 
     @Test
     public void splitTemplateName() throws Exception {
-        assertThat(PartitionName.split(PartitionName.templateName("t")), arrayContaining(null, "t", ""));
         assertThat(PartitionName.split(PartitionName.templateName("schema", "t")), arrayContaining("schema", "t", ""));
         assertThat(PartitionName.split(PartitionName.templateName(null, "t")), arrayContaining(null, "t", ""));
         assertThat(PartitionName.split(PartitionName.templateName(Constants.DOC_SCHEMA_NAME, "t")), arrayContaining(null, "t", ""));

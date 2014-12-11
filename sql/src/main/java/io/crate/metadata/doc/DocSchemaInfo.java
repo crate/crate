@@ -70,7 +70,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             if (name().equalsIgnoreCase(DocSchemaInfo.NAME)) {
                 return !input.matches(ReferenceInfos.SCHEMA_REGEX);
             } else {
-                return input.matches(ReferenceInfos.SCHEMA_REGEX);
+                return input.startsWith(name());
             }
         }
     };
@@ -140,7 +140,10 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             String templateName = templates.next();
             try {
                 String tableName = PartitionName.tableName(templateName);
-                tables.add(tableName);
+                String schemaName = PartitionName.schemaName(templateName);
+                if (schemaName.equalsIgnoreCase(name())) {
+                    tables.add(tableName);
+                }
             } catch (IllegalArgumentException e) {
                 // do nothing
             }
@@ -211,7 +214,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                     }
                 } else {
                     // this is the case if a single partition has been modified using alter table <t> partition (...)
-                    String possibleTemplateName = PartitionName.templateName(tableName);
+                    String possibleTemplateName = PartitionName.templateName(name(), tableName);
                     if (templates.contains(possibleTemplateName)) {
                         for (ObjectObjectCursor<String, IndexMetaData> indexEntry : indices) {
                             if (PartitionName.isPartition(indexEntry.key)) {

@@ -158,7 +158,7 @@ public class TestingTableInfo extends AbstractTableInfo {
             return this;
         }
 
-        public Builder schemainfo(SchemaInfo schemaInfo) {
+        public Builder schemaInfo(SchemaInfo schemaInfo) {
             this.schemaInfo = schemaInfo;
             return this;
         }
@@ -179,7 +179,7 @@ public class TestingTableInfo extends AbstractTableInfo {
                     partitionedBy.build(),
                     partitions.build(),
                     columnPolicy,
-                    schemaInfo);
+                    schemaInfo == null ? mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get()) : schemaInfo);
         }
 
     }
@@ -212,7 +212,8 @@ public class TestingTableInfo extends AbstractTableInfo {
                             List<ColumnIdent> partitionedBy,
                             List<PartitionName> partitions,
                             ColumnPolicy columnPolicy,
-                            SchemaInfo schemaInfo) {
+                            SchemaInfo schemaInfo
+                            ) {
         super(schemaInfo);
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;

@@ -98,6 +98,7 @@ public class PlannerTest {
             MetaData metaData = mock(MetaData.class);
             when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
             when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
             when(clusterState.metaData()).thenReturn(metaData);
             DiscoveryNodes nodes = mock(DiscoveryNodes.class);
             DiscoveryNode node = mock(DiscoveryNode.class);
@@ -177,21 +178,21 @@ public class PlannerTest {
                     // here we want a table with handlerSideRouting and DOC granularity.
                     RowGranularity.DOC,
                     SysClusterTableInfo.ROUTING
-            ).add("name", DataTypes.STRING, null).schemainfo(schemaInfo).build();
+            ).add("name", DataTypes.STRING, null).schemaInfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysClusterTableInfo.ident().name())).thenReturn(sysClusterTableInfo);
 
             TableInfo sysNodesTableInfo = TestingTableInfo.builder(
                     SysNodesTableInfo.IDENT,
                     RowGranularity.NODE,
                     nodesRouting)
-                    .add("name", DataTypes.STRING, null).schemainfo(schemaInfo).build();
+                    .add("name", DataTypes.STRING, null).schemaInfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysNodesTableInfo.ident().name())).thenReturn(sysNodesTableInfo);
 
             TableInfo sysShardsTableInfo = TestingTableInfo.builder(
                     SysShardsTableInfo.IDENT,
                     RowGranularity.SHARD,
                     nodesRouting
-            ).add("id", DataTypes.INTEGER, null).schemainfo(schemaInfo).build();
+            ).add("id", DataTypes.INTEGER, null).schemaInfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysShardsTableInfo.ident().name())).thenReturn(sysShardsTableInfo);
             when(schemaInfo.systemSchema()).thenReturn(true);
             return schemaInfo;

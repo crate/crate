@@ -30,21 +30,24 @@ public class UnassignedShard {
         String index = shardId.index().name();
         boolean isBlobIndex = BlobIndices.isBlobIndex(index);
         String tableName;
+        String ident = "";
         if (isBlobIndex) {
             this.schemaName = BlobSchemaInfo.NAME;
             tableName = BlobIndices.stripPrefix.apply(index);
-        } else {
-            this.schemaName = DocSchemaInfo.NAME;
-            tableName = index;
-        }
-
-        String ident = "";
-        if (PartitionName.isPartition(index)) {
+        } else if (PartitionName.isPartition(index)) {
+            schemaName = PartitionName.schemaName(index);
             tableName = PartitionName.tableName(index);
             ident = PartitionName.ident(index);
             if (!clusterService.state().metaData().hasConcreteIndex(tableName)) {
                 orphanedPartition = true;
             }
+        } else if (index.contains(".")) {
+            String[] split = index.split("\\.");
+            this.schemaName = split[0];
+            tableName = split[1];
+        } else {
+            this.schemaName = DocSchemaInfo.NAME;
+            tableName = index;
         }
 
         this.tableName = tableName;
