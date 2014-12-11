@@ -82,7 +82,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
             boolean isPartitionAlias = true;
             for (String index : table.concreteIndices()) {
-                if (!PartitionName.isPartition(index, table.ident().name())) {
+                if (!PartitionName.isPartition(index, table.ident().schema(), table.ident().name())) {
                     isPartitionAlias = false;
                     break;
                 }

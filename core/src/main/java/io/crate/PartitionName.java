@@ -24,13 +24,11 @@ package io.crate;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
-import io.crate.core.StringUtils;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.*;
 
 import java.io.IOException;
@@ -44,28 +42,43 @@ public class PartitionName implements Streamable {
     private static final Joiner DOT_JOINER = Joiner.on(".");
 
     private final List<BytesRef> values;
+    @Nullable
+    private String schemaName;
     private String tableName;
 
     private String partitionName;
     private String ident;
 
-    private static final Predicate indexNamePartsPredicate = new Predicate<List<String>>() {
+    private static final Predicate<List<String>> indexNamePartsPredicate = new Predicate<List<String>>() {
         @Override
         public boolean apply(List<String> input) {
-            if (input.size() < 4 || !input.get(1).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1))) {
-                return false;
+            boolean result = false;
+            switch(input.size()) {
+                case 4:
+                    // ""."partitioned"."table_name". ["ident"]
+                    result = input.get(1).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1));
+                    break;
+                case 5:
+                    // "schema".""."partitioned"."table_name". ["ident"]
+                    result = input.get(2).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1));
+                    break;
             }
-            return true;
+            return result;
         }
     };
 
     public PartitionName(String tableName, List<BytesRef> values) {
+        this(null, tableName, values);
+    }
+
+    public PartitionName(@Nullable String schemaName, String tableName, List<BytesRef> values) {
+        this.schemaName = Constants.DOC_SCHEMA_NAME.equals(schemaName) ? null : schemaName;
         this.tableName = tableName;
         this.values = values;
     }
 
-    private PartitionName(String tableName) {
-        this(tableName, new ArrayList<BytesRef>());
+    private PartitionName(@Nullable String schemaName, String tableName) {
+        this(schemaName, tableName, new ArrayList<BytesRef>());
     }
 
     public boolean isValid() {
@@ -74,6 +87,7 @@ public class PartitionName implements Streamable {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
+        schemaName = in.readOptionalString();
         tableName = in.readString();
         int size = in.readVInt();
         for (int i=0; i < size; i++) {
@@ -88,6 +102,7 @@ public class PartitionName implements Streamable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        out.writeOptionalString(schemaName);
         out.writeString(tableName);
         out.writeVInt(values.size());
         for (BytesRef value : values) {
@@ -151,7 +166,11 @@ public class PartitionName implements Streamable {
 
     public String stringValue() {
         if (partitionName == null) {
-            partitionName = DOT_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, ident());
+            if (schemaName == null) {
+                partitionName = DOT_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, ident());
+            } else {
+                partitionName = DOT_JOINER.join(schemaName, Constants.PARTITIONED_TABLE_PREFIX, tableName, ident());
+            }
         }
         return partitionName;
     }
@@ -190,34 +209,37 @@ public class PartitionName implements Streamable {
         return stringValue().hashCode();
     }
 
-    public static PartitionName fromString(String partitionTableName, String tableName) {
+    public static PartitionName fromString(String partitionTableName, @Nullable String schemaName, String tableName) {
         assert partitionTableName != null;
         assert tableName != null;
 
-        Tuple<String, String> splitted = split(partitionTableName);
-        assert splitted.v1().equals(tableName) : String.format(
+        String[] splitted = split(partitionTableName);
+        assert (splitted[0] == null && (schemaName == null || schemaName.equals(Constants.DOC_SCHEMA_NAME)))
+                || (splitted[0] != null && splitted[0].equals(schemaName))
+                || splitted[1].equals(tableName) : String.format(
                 Locale.ENGLISH, "%s no partition of table %s", partitionTableName, tableName);
 
-        return fromPartitionIdent(splitted.v1(), splitted.v2());
+        return fromPartitionIdent(splitted[0], splitted[1], splitted[2]);
     }
 
     public static PartitionName fromStringSafe(String partitionTableName) {
         assert partitionTableName != null;
-        Tuple<String, String> parts = split(partitionTableName);
-        return fromPartitionIdent(parts.v1(), parts.v2());
+        String[] splitted = split(partitionTableName);
+        return fromPartitionIdent(splitted[0], splitted[1], splitted[2]);
     }
 
     /**
      * decode a partitionTableName with all of its pre-splitted parts into
      * and instance of <code>PartitionName</code>
+     * @param schemaName
      * @param tableName
      * @param partitionIdent
      * @return
      * @throws IOException
      */
-    public static PartitionName fromPartitionIdent(String tableName,
+    public static PartitionName fromPartitionIdent(@Nullable String schemaName, String tableName,
                                                    String partitionIdent) {
-        PartitionName partitionName = new PartitionName(tableName);
+        PartitionName partitionName = new PartitionName(schemaName, tableName);
         partitionName.ident = partitionIdent;
         try {
             partitionName.decodeIdent(partitionIdent);
@@ -228,12 +250,16 @@ public class PartitionName implements Streamable {
         return partitionName;
     }
 
-    public static boolean isPartition(String index, String tableName) {
+    public static boolean isPartition(String index, @Nullable String schemaName, String tableName) {
         List<String> splitted = Splitter.on(".").splitToList(index);
         if (!indexNamePartsPredicate.apply(splitted)) {
             return false;
+        } else if (splitted.size() == 4) {
+            return (schemaName == null || schemaName.equals(Constants.DOC_SCHEMA_NAME)) && splitted.get(2).equals(tableName);
+        } else if (splitted.size() == 5) {
+            return schemaName != null && schemaName.equals(splitted.get(0)) && splitted.get(3).equals(tableName);
         }
-        return splitted.get(2).equals(tableName);
+        return false;
     }
 
     public static boolean isPartition(String index) {
@@ -242,28 +268,50 @@ public class PartitionName implements Streamable {
     }
 
     /**
-     * split a given partition nameor template name into its parts <code>tableName</code>
-     * and <code>valuesString</code>.
+     * split a given partition name or template name into its parts
+     * <code>schemaName</code>, <code>tableName</code> and <code>valuesString</code>.
+     *
      * @param partitionOrTemplateName name of a partition or template
-     * @return a {@linkplain org.elasticsearch.common.collect.Tuple}
-     *         whose first element is the <code>tableName</code>
-     *         and whose second element is the <code>valuesString</code>
-     * @throws java.lang.IllegalArgumentException if <code>partitionName</code> is no invalid
+     * @return a String array with the following elements:
+     *
+     *         <ul>
+     *             <li><code>schemaName</code> (possibly null) </li>
+     *             <li><code>tableName</code></li>
+     *             <li><code>valuesString</code></li>
+     *         </ul>
+     * @throws java.lang.IllegalArgumentException if <code>partitionName</code> is invalid
      */
-    public static Tuple<String, String> split(String partitionOrTemplateName) {
+    public static String[] split(String partitionOrTemplateName) {
         List<String> splitted = Splitter.on(".").splitToList(partitionOrTemplateName);
         if (!indexNamePartsPredicate.apply(splitted)) {
             throw new IllegalArgumentException("Invalid partition name");
         }
-        return new Tuple<>(splitted.get(2),
-                Joiner.on(".").join(splitted.subList(3, splitted.size())));
+        switch(splitted.size()) {
+            case 4:
+                return new String[]{ null, splitted.get(2), DOT_JOINER.join(splitted.subList(3, splitted.size()))};
+            case 5:
+                return new String[]{ splitted.get(0), splitted.get(3), DOT_JOINER.join(splitted.subList(4, splitted.size())) };
+            default:
+                throw new IllegalArgumentException("Invalid partition name");
+        }
+    }
+
+    /**
+     * compute the template name (used with partitioned tables) from a given schema and table name
+     */
+    public static String templateName(String schemaName, String tableName) {
+        if (schemaName == null || schemaName.equals(Constants.DOC_SCHEMA_NAME)) {
+            return DOT_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
+        } else {
+            return DOT_JOINER.join(schemaName, Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
+        }
     }
 
     /**
      * compute the template name (used with partitioned tables) from a given table name
      */
     public static String templateName(String tableName) {
-        return StringUtils.PATH_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
+        return DOT_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
     }
 
     /**
@@ -271,7 +319,15 @@ public class PartitionName implements Streamable {
      * @return the tableName as string
      */
     public static String tableName(String partitionOrTemplateName) {
-        return PartitionName.split(partitionOrTemplateName).v1();
+        return PartitionName.split(partitionOrTemplateName)[1];
+    }
+
+    /**
+     * extract the schemaName from the name of a partition or template
+     * @return the schemaName as string or null
+     */
+    public static @Nullable String schemaName(String partitionOrTemplateName) {
+        return PartitionName.split(partitionOrTemplateName)[0];
     }
 
     /**
@@ -279,6 +335,6 @@ public class PartitionName implements Streamable {
      * @return the ident as string
      */
     public static String ident(String partitionOrTemplateName) {
-        return PartitionName.split(partitionOrTemplateName).v2();
+        return PartitionName.split(partitionOrTemplateName)[2];
     }
 }
