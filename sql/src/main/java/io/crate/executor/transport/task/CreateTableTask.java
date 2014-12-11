@@ -167,7 +167,7 @@ public class CreateTableTask extends AbstractChainedTask {
      * should never delete partitions of existing partitioned tables
      */
     private void deleteOrphanedPartitions(final CreateTableResponseListener listener) {
-        String partitionWildCard = PartitionName.templateName(planNode.tableIdent().fqn()) + "*";
+        String partitionWildCard = PartitionName.templateName(planNode.tableIdent().schema(), planNode.tableIdent().name()) + "*";
         String[] orphans = clusterService.state().metaData().concreteIndices(
                 new String[]{partitionWildCard});
         if (orphans.length > 0) {

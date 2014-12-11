@@ -299,19 +299,12 @@ public class PartitionName implements Streamable {
     /**
      * compute the template name (used with partitioned tables) from a given schema and table name
      */
-    public static String templateName(String schemaName, String tableName) {
+    public static String templateName(@Nullable String schemaName, String tableName) {
         if (schemaName == null || schemaName.equals(Constants.DOC_SCHEMA_NAME)) {
             return DOT_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
         } else {
             return DOT_JOINER.join(schemaName, Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
         }
-    }
-
-    /**
-     * compute the template name (used with partitioned tables) from a given table name
-     */
-    public static String templateName(String tableName) {
-        return DOT_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
     }
 
     /**
@@ -324,10 +317,11 @@ public class PartitionName implements Streamable {
 
     /**
      * extract the schemaName from the name of a partition or template
-     * @return the schemaName as string or null
+     * @return the schemaName as string
      */
-    public static @Nullable String schemaName(String partitionOrTemplateName) {
-        return PartitionName.split(partitionOrTemplateName)[0];
+    public static String schemaName(String partitionOrTemplateName) {
+        String schema = PartitionName.split(partitionOrTemplateName)[0];
+        return schema == null ? Constants.DOC_SCHEMA_NAME : schema;
     }
 
     /**

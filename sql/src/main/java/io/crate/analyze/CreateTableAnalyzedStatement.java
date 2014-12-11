@@ -118,7 +118,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
      */
     public @Nullable String templateName() {
         if (isPartitioned()) {
-            return PartitionName.templateName(tableIdent().esName());
+            return PartitionName.templateName(tableIdent().schema(), tableIdent().name());
         }
         return null;
     }

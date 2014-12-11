@@ -494,7 +494,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table quotes set (number_of_shards=5)");
         waitNoPendingTasksOnAll();
 
-        String templateName = PartitionName.templateName("quotes");
+        String templateName = PartitionName.templateName(null, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();

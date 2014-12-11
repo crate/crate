@@ -39,8 +39,10 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -122,6 +124,7 @@ public class SysShardsExpressionsTest {
             MetaData metaData = mock(MetaData.class);
             when(metaData.hasConcreteIndex(Constants.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1")).thenReturn(false);
             when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
             ClusterState clusterState = mock(ClusterState.class);
             when(clusterService.state()).thenReturn(clusterState);
             when(clusterState.metaData()).thenReturn(metaData);

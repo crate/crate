@@ -365,8 +365,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                         )
                 )
         );
-        String templateName = PartitionName.templateName("partitioned");
-        String templatePrefix = PartitionName.templateName("partitioned") + "*";
+        String templateName = PartitionName.templateName(null, "partitioned");
+        String templatePrefix = PartitionName.templateName(null, "partitioned") + "*";
         final String alias = "aliasName";
 
         ESCreateTemplateNode planNode = new ESCreateTemplateNode(

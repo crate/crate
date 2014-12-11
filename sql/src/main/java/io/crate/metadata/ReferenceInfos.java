@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -126,10 +127,12 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        Map<String, SchemaInfo> newSchemas = new HashMap<>();
-        newSchemas.putAll(builtInSchemas);
-        newSchemas.putAll(resolveCustomSchemas(event.state().metaData()));
-        schemas = newSchemas;
+        if (event.metaDataChanged()) {
+            Map<String, SchemaInfo> newSchemas = new HashMap<>();
+            newSchemas.putAll(builtInSchemas);
+            newSchemas.putAll(resolveCustomSchemas(event.state().metaData()));
+            schemas = newSchemas;
+        }
     }
 
     /**
@@ -161,6 +164,17 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
             if (matcher.matches()) {
                 String schemaName = matcher.group(1);
                 customSchemas.put(schemaName, getCustomSchemaInfo(schemaName));
+            }
+        }
+
+        // iterate over templates for empty partitions
+        for (ObjectCursor<String> template : metaData.templates().keys()) {
+            Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(template.value);
+            if (matcher.matches()) {
+                String schemaName = matcher.group(1);
+                if (!customSchemas.containsKey(schemaName)) {
+                    customSchemas.put(schemaName, getCustomSchemaInfo(schemaName));
+                }
             }
         }
         return customSchemas;

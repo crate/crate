@@ -498,7 +498,7 @@ public class DocIndexMetaData {
 
     private void updateTemplate(DocIndexMetaData md,
                                 TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
-        String templateName = PartitionName.templateName(name());
+        String templateName = PartitionName.templateName(ident.schema(), ident.name());
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
                 .mapping(Constants.DEFAULT_MAPPING_TYPE, md.defaultMappingMap)
                 .create(false)
