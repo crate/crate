@@ -32,6 +32,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
+import io.crate.Constants;
 import io.crate.PartitionName;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.UnhandledServerException;
@@ -56,7 +57,7 @@ import java.util.concurrent.ExecutionException;
 
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
-    public static final String NAME = "doc";
+    public static final String NAME = Constants.DOC_SCHEMA_NAME;
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
 

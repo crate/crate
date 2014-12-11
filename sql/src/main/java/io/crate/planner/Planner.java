@@ -269,7 +269,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         } else {
             assert table.isPartitioned() : "table must be partitioned if partitionIdent is set";
             // partitionIdent is present -> possible to index raw source into concrete es index
-            tableName = PartitionName.fromPartitionIdent(table.ident().name(), analysis.partitionIdent()).stringValue();
+            tableName = PartitionName.fromPartitionIdent(table.ident().schema(), table.ident().name(), analysis.partitionIdent()).stringValue();
             partitionedByNames = Collections.emptyList();
             partitionByColumns = Collections.emptyList();
         }
@@ -366,7 +366,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         CreateTableNode createTableNode;
         if (analysis.isPartitioned()) {
             createTableNode = CreateTableNode.createPartitionedTableNode(
-                    tableIdent.esName(),
+                    tableIdent,
                     analysis.tableParameter().settings().getByPrefix("index."),
                     analysis.mapping(),
                     analysis.templateName(),
@@ -374,7 +374,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             );
         } else {
             createTableNode = CreateTableNode.createTableNode(
-                    tableIdent.esName(),
+                    tableIdent,
                     analysis.tableParameter().settings(),
                     analysis.mapping()
             );

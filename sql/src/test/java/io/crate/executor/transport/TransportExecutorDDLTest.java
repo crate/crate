@@ -30,6 +30,7 @@ import io.crate.PartitionName;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.Plan;
 import io.crate.planner.node.ddl.CreateTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
@@ -111,7 +112,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableTask() throws Exception {
         CreateTableNode createTableNode = CreateTableNode.createTableNode(
-                "test",
+                new TableIdent(null, "test"),
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
@@ -143,7 +144,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .execute().actionGet();
         ensureGreen();
         CreateTableNode createTableNode = CreateTableNode.createTableNode(
-                "test",
+                new TableIdent(null, "test"),
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
@@ -179,7 +180,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .execute().actionGet();
         ensureGreen();
         CreateTableNode createTableNode = CreateTableNode.createTableNode(
-                "test",
+                new TableIdent(null, "test"),
                 TEST_SETTINGS,
                 TEST_MAPPING
         );
