@@ -43,7 +43,6 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
         List<String> parts = tableNode.getName().getParts();
         Preconditions.checkArgument(parts.size() < 3,
                 "Table with more then 2 QualifiedName parts is not supported. only <schema>.<tableName> works.");
-
         if (parts.size() == 2) {
             return new TableIdent(parts.get(0), parts.get(1));
         }

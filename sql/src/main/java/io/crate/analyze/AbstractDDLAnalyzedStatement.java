@@ -63,7 +63,7 @@ public abstract class AbstractDDLAnalyzedStatement extends AnalyzedStatement {
 
     public boolean isValidTableOrSchemaName(String name) {
         for (String illegalCharacter: Constants.INVALID_TABLE_NAME_CHARACTERS) {
-            if (name.contains(illegalCharacter)) {
+            if (name.contains(illegalCharacter) || name.length() == 0) {
                 return false;
             }
         }

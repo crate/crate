@@ -22,6 +22,7 @@
 package io.crate;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import io.crate.types.DataTypes;
@@ -29,6 +30,7 @@ import io.crate.types.StringType;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.*;
 
 import java.io.IOException;
@@ -322,6 +324,14 @@ public class PartitionName implements Streamable {
     public static String schemaName(String partitionOrTemplateName) {
         String schema = PartitionName.split(partitionOrTemplateName)[0];
         return schema == null ? Constants.DOC_SCHEMA_NAME : schema;
+    }
+
+    public static Tuple<String, String> schemaAndTableName(String partitionOrTemplateName) {
+        String[] splitted = PartitionName.split(partitionOrTemplateName);
+        return new Tuple<>(
+                MoreObjects.firstNonNull(splitted[0], Constants.DOC_SCHEMA_NAME),
+                splitted[1]
+        );
     }
 
     /**
