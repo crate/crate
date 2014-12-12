@@ -1493,4 +1493,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         client().admin().indices().prepareCreate(partition).execute().actionGet();
         ensureYellow();
     }
+
+    @Test
+    public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("table name \"AAA.t\" is invalid.");
+        execute("create table \"AAA\".t (name string, d timestamp) partitioned by (d) with (number_of_replicas=0)");
+    }
 }

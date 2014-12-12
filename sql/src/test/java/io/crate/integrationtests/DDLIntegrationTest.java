@@ -531,6 +531,13 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("table name \"AAA.t\" is invalid.");
+        execute("create table \"AAA\".t (name string) with (number_of_replicas=0)");
+    }
+
+    @Test
     public void testDropTableWithCustomSchema() throws Exception {
         execute("create table a.t (name string) with (number_of_replicas=0)");
         ensureGreen();
