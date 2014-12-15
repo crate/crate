@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Inserting arrays with a null value at first position
+   failed
+
  - Fix: Nested Columns of ignored objects where exported
    as `null` values when using COPY TO
 

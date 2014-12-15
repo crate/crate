@@ -45,7 +45,7 @@ public class Literal<ReturnType>
     public static Literal implodeCollection(DataType itemType, List<Literal> literals) {
        Object[] values = new Object[literals.size()];
         for (int i = 0; i<literals.size(); i++) {
-            assert literals.get(i).valueType().equals(itemType) :
+            assert literals.get(i).valueType().equals(itemType) || literals.get(i).valueType() == DataTypes.UNDEFINED:
                     String.format("Literal type: %s does not match item type: %s",
                             literals.get(i).valueType(), itemType);
             values[i] = literals.get(i).value();

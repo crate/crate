@@ -688,7 +688,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalyzedStatement> ex
             List<Literal> literals = new ArrayList<>(node.values().size());
             for (Expression e : node.values()) {
                 Symbol arrayElement = process(e, context);
-                if (innerType == null) {
+                if (innerType == null || (innerType == DataTypes.UNDEFINED && !arrayElement.valueType().equals(innerType))) {
                     innerType = arrayElement.valueType();
                 } else if (!arrayElement.valueType().equals(innerType)){
                     throw new IllegalArgumentException(String.format(
