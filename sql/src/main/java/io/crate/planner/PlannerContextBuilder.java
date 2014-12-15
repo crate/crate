@@ -177,14 +177,43 @@ public class PlannerContextBuilder {
         return havingSymbolConverter.process(query, context);
     }
 
+    /**
+     * add a projection to the context builder for later use when creating a
+     * plan node for example.
+     *
+     * Will track the input columns to use when referencing a collected symbol.
+     *
+     * @see #getAndClearProjections()
+     * @param projection the projection to add
+     */
     public void addProjection(Projection projection) {
         if (context.projectionBuilder == null) {
             context.projectionBuilder = ImmutableList.builder();
         }
         context.projectionBuilder.add(projection);
 
-
-        // track current position of resolved input columns
+        /*
+         * track current position of resolved input columns
+         *
+         * if the currently resolved symbols are:
+         *
+         *  Reference: x -> InputColumn(0)
+         *  Aggregation Avg(y) -> InputColumn(1)
+         *
+         * and the projection to add has the following outputs:
+         *
+         *  [ InputColumn(1), InputColumn(0)]
+         *
+         * that means, is actually swapping the outputs, then this loop will change the
+         * currently resolved symbols to:
+         *
+         * Reference: x -> InputColumn(1)
+         * Aggregation Avg(y) -> InputColumn(0)
+         *
+         * The currentResolvedSymbols can then be used to reference the symbols
+         * after the currently added Projection.
+         *
+         */
         for (Map.Entry<Symbol,Symbol> entry : context.currentResolvedSymbols.entrySet()) {
             List<? extends Symbol> outputs = projection.outputs();
             for (int i = 0; i < outputs.size(); i++) {
@@ -197,10 +226,19 @@ public class PlannerContextBuilder {
         }
     }
 
+    /**
+     * get a list of projection that were formerly fed to this context builder
+     * using {@linkplain #addProjection(io.crate.planner.projection.Projection)}.
+     * @return a possible empty list of projections
+     */
     public ImmutableList<Projection> getAndClearProjections() {
-        ImmutableList<Projection> projections = context.projectionBuilder.build();
-        context.projectionBuilder = ImmutableList.builder();
-        return projections;
+        if (context.projectionBuilder == null) {
+            return ImmutableList.of();
+        } else {
+            ImmutableList<Projection> projections = context.projectionBuilder.build();
+            context.projectionBuilder = ImmutableList.builder();
+            return projections;
+        }
     }
 
     /**
