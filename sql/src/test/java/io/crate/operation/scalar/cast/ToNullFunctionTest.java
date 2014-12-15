@@ -40,6 +40,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -63,7 +64,7 @@ public class ToNullFunctionTest {
         return (ToNullFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(type)));
     }
 
-    private Void evaluate(Object value, DataType type) {
+    private Object evaluate(Object value, DataType type) {
         Input[] input = {(Input)Literal.newLiteral(type, value)};
         return getFunction(type).evaluate(input);
     }
@@ -77,17 +78,17 @@ public class ToNullFunctionTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        TestingHelpers.assertNullLiteral(normalize("123", DataTypes.STRING));
-        TestingHelpers.assertNullLiteral(normalize(12.5f, DataTypes.FLOAT));
+        TestingHelpers.assertNullLiteral(normalize("123", DataTypes.STRING), "123");
+        TestingHelpers.assertNullLiteral(normalize(12.5f, DataTypes.FLOAT), 12.5f);
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertThat(evaluate("hello", DataTypes.STRING), nullValue());
+        assertThat((String)evaluate("hello", DataTypes.STRING), is("hello"));
         assertThat(evaluate(null, DataTypes.STRING), nullValue());
-        assertThat(evaluate(123.5f, DataTypes.FLOAT), nullValue());
-        assertThat(evaluate(123.5d, DataTypes.DOUBLE), nullValue());
-        assertThat(evaluate(42L, DataTypes.LONG), nullValue());
+        assertThat((Float)evaluate(123.5f, DataTypes.FLOAT), is(123.5f));
+        assertThat((Double)evaluate(123.5d, DataTypes.DOUBLE), is(123.5d));
+        assertThat((Long)evaluate(42L, DataTypes.LONG), is(42L));
     }
 
     @Test

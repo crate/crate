@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Nested Columns of ignored objects where exported
+   as `null` values when using COPY TO
+
  - improved speed of bulk inserts in partitioned tables to avoid request
    timeouts
 
