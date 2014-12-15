@@ -36,15 +36,7 @@ public class ConsumingPlanner {
 
     public ConsumingPlanner(AnalysisMetaData analysisMetaData) {
         consumers.add(new ESCountConsumer(analysisMetaData));
-    }
-
-    public boolean consume(ConsumerContext consumerContext) {
-        for (Consumer consumer : consumers) {
-            if (consumer.consume(consumerContext.rootRelation(), consumerContext)) {
-                return true;
-            }
-        }
-        return false;
+        consumers.add(new GlobalAggregateConsumer());
     }
 
     @Nullable

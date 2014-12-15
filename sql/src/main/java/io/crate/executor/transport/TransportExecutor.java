@@ -185,6 +185,13 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
+        public Void visitGlobalAggregateNode(GlobalAggregateNode globalAggregateNode, Job context) {
+            visitCollectNode(globalAggregateNode.collectNode(), context);
+            visitMergeNode(globalAggregateNode.mergeNode(), context);
+            return null;
+        }
+
+        @Override
         public Void visitQueryThenFetchNode(QueryThenFetchNode node, Job context) {
             context.addTask(new QueryThenFetchTask(
                     functions,

@@ -22,5 +22,4 @@
 package io.crate.analyze.relations;
 
 public interface PlannedAnalyzedRelation extends AnalyzedRelation {
-
 }

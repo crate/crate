@@ -44,7 +44,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.projectors.TopN;
@@ -594,13 +593,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         String schema = tableInfo.ident().schema();
         WhereClause whereClause = whereClauseContext.whereClause();
 
-        if ((schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME))
-                && hasOnlyGlobalCount(unwrap(analysis.outputSymbols()))
-                && !analysis.hasSysExpressions()
-                && !context.indexWriterProjection.isPresent()) {
-            plan.add(new ESCountNode(indices(tableInfo, whereClause), whereClause));
-            return;
-        }
         // global aggregate: collect and partial aggregate on C and final agg on H
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2).output(unwrap(analysis.outputSymbols()));
 
@@ -646,22 +638,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             projections.add(context.indexWriterProjection.get());
         }
         plan.add(PlanNodeBuilder.localMerge(projections, collectNode));
-    }
-
-    private boolean hasOnlyGlobalCount(List<Symbol> symbols) {
-        if (symbols.size() != 1) {
-            return false;
-        }
-
-        Symbol symbol = symbols.get(0);
-        if (symbol.symbolType() != SymbolType.FUNCTION) {
-            return false;
-        }
-
-        Function function = (Function)symbol;
-        return (function.info().type() == FunctionInfo.Type.AGGREGATE
-                && function.arguments().size() == 0
-                && function.info().ident().name().equalsIgnoreCase(CountAggregation.NAME));
     }
 
     private void groupBy(SelectAnalyzedStatement analysis, TableInfo tableInfo, WhereClauseContext whereClauseContext, Plan plan, Context context) {

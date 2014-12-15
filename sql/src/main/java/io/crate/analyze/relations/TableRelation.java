@@ -28,9 +28,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.symbol.DynamicReference;
-import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.*;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
@@ -160,5 +158,9 @@ public class TableRelation implements AnalyzedRelation {
 
     public WhereClause normalizeWhereClause(WhereClause whereClause) {
         return Field.unwrap(whereClause);
+    }
+
+    public List<Symbol> normalizeOutputs(List<Symbol> symbols) {
+        return Field.unwrap(symbols);
     }
 }

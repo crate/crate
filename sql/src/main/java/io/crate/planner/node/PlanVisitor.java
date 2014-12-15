@@ -99,4 +99,8 @@ public class PlanVisitor<C, R> {
     public R visitGenericDDLPlanNode(GenericDDLPlanNode genericDDLPlanNode, C context) {
         return visitPlanNode(genericDDLPlanNode, context);
     }
+
+    public R visitGlobalAggregateNode(GlobalAggregateNode globalAggregateNode, C context) {
+        return visitPlanNode(globalAggregateNode, context);
+    }
 }

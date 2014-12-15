@@ -43,9 +43,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-class PlanNodeBuilder {
+public class PlanNodeBuilder {
 
-    static CollectNode distributingCollect(TableInfo tableInfo,
+    public static CollectNode distributingCollect(TableInfo tableInfo,
                                            WhereClause whereClause,
                                            List<Symbol> toCollect,
                                            List<String> downstreamNodes,
@@ -62,7 +62,7 @@ class PlanNodeBuilder {
         return node;
     }
 
-    static MergeNode distributedMerge(CollectNode collectNode,
+    public static MergeNode distributedMerge(CollectNode collectNode,
                                       ImmutableList<Projection> projections) {
         MergeNode node = new MergeNode("distributed merge", collectNode.executionNodes().size());
         node.projections(projections);
@@ -73,7 +73,7 @@ class PlanNodeBuilder {
         return node;
     }
 
-    static MergeNode localMerge(List<Projection> projections,
+    public static MergeNode localMerge(List<Projection> projections,
                                 DQLPlanNode previousNode) {
         MergeNode node = new MergeNode("localMerge", previousNode.executionNodes().size());
         node.projections(projections);
@@ -104,7 +104,7 @@ class PlanNodeBuilder {
         nextNode.outputTypes(Planner.extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
     }
 
-    static CollectNode collect(TableInfo tableInfo,
+    public static CollectNode collect(TableInfo tableInfo,
                                WhereClause whereClause,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections,
@@ -150,7 +150,7 @@ class PlanNodeBuilder {
 
     }
 
-    static CollectNode collect(TableInfo tableInfo,
+    public static CollectNode collect(TableInfo tableInfo,
                                WhereClause whereClause,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections) {
