@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.FunctionInfo;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.*;
 
 import java.util.*;
@@ -104,7 +105,7 @@ public class PlannerContextBuilder {
                             "Unexpected result column symbol: " + symbol);
                 }
 
-                context.resolvedSymbols.put(symbol, resolvedSymbol);
+                context.addResolvedSymbol(symbol, resolvedSymbol);
                 context.outputs.add(resolvedSymbol);
             }
         }
@@ -176,6 +177,32 @@ public class PlannerContextBuilder {
         return havingSymbolConverter.process(query, context);
     }
 
+    public void addProjection(Projection projection) {
+        if (context.projectionBuilder == null) {
+            context.projectionBuilder = ImmutableList.builder();
+        }
+        context.projectionBuilder.add(projection);
+
+
+        // track current position of resolved input columns
+        for (Map.Entry<Symbol,Symbol> entry : context.currentResolvedSymbols.entrySet()) {
+            List<? extends Symbol> outputs = projection.outputs();
+            for (int i = 0; i < outputs.size(); i++) {
+                Symbol projectionOutput = outputs.get(i);
+                if (entry.getValue().equals(projectionOutput)) {
+                    context.currentResolvedSymbols.put(entry.getKey(), new InputColumn(i, entry.getValue().valueType()));
+                    break;
+                }
+            }
+        }
+    }
+
+    public ImmutableList<Projection> getAndClearProjections() {
+        ImmutableList<Projection> projections = context.projectionBuilder.build();
+        context.projectionBuilder = ImmutableList.builder();
+        return projections;
+    }
+
     /**
      * returns the symbols to be used in the first topN projection
      * <p/>
@@ -232,7 +259,7 @@ public class PlannerContextBuilder {
         @Override
         public Symbol visitFunction(Function symbol, PlannerContext context) {
             if (symbol.info().type().equals(FunctionInfo.Type.AGGREGATE)) {
-                Symbol resolvedSymbol = context.resolvedSymbols.get(symbol);
+                Symbol resolvedSymbol = context.currentResolvedSymbols.get(symbol);
 
                 if (resolvedSymbol == null) {
                     // resolve symbol
@@ -251,7 +278,7 @@ public class PlannerContextBuilder {
 
         @Override
         public Symbol visitReference(Reference symbol, PlannerContext context) {
-            Symbol resolvedSymbol = context.resolvedSymbols.get(symbol);
+            Symbol resolvedSymbol = context.currentResolvedSymbols.get(symbol);
             if (resolvedSymbol == null) {
                 throw new UnhandledServerException(
                         "Cannot resolve symbol: " + symbol);

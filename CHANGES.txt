@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: correctly plan group by queries using HAVING clause
+
  - Fix: Using CLUSTERED BY Column in PARTITIONED BY clause threw
    misleading exception
 
