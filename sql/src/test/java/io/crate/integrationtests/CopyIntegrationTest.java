@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;
@@ -217,6 +218,23 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         assertThat(TestingHelpers.printedTable(response.rows()), is("2| Trillian\n"));
+    }
 
+    @Test
+    public void testCopyToDirectoryPath() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(startsWith("Failed to open output: 'Output path is a directory: "));
+        execute("create table characters (" +
+                " race string," +
+                " gender string," +
+                " age long," +
+                " birthdate timestamp," +
+                " name string," +
+                " details object" +
+                ") with (number_of_replicas=0)");
+        ensureGreen();
+
+        String directory = folder.newFolder().getCanonicalPath();
+        execute("COPY characters TO ?", new Object[]{directory});
     }
 }
