@@ -2,7 +2,7 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;

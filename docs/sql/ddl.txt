@@ -27,14 +27,6 @@ A table can be removed by using the ``DROP TABLE`` command::
     DROP OK (... sec)
 
 
-Table names, as well as schema names, are restricted in terms of characters and
-length, see :ref:`ref-create-table`. For example they may not contain uppercase letters::
-
-    cr> create table "InvalidTableName" (
-    ...   nope boolean
-    ... );
-    SQLActionException[table name "InvalidTableName" is invalid.]
-
 Schemas
 -------
 
@@ -42,7 +34,7 @@ Tables can be created in different schemas. These are created implicitly on
 table creation and cannot be created explicitly. If a schema did not exist yet,
 it will be created::
 
-    cr> create table "my_shiny-schema"."my_shiny_table" (
+    cr> create table my_schema.my_table (
     ...   pk int primary key,
     ...   label string,
     ...   position geo_point
@@ -52,22 +44,30 @@ it will be created::
 ::
 
     cr> select schema_name, table_name from information_schema.tables
-    ... where table_name='my_shiny_table';
-    +-----------------+----------------+
-    | schema_name     | table_name     |
-    +-----------------+----------------+
-    | my_shiny-schema | my_shiny_table |
-    +-----------------+----------------+
+    ... where table_name='my_table';
+    +-------------+------------+
+    | schema_name | table_name |
+    +-------------+------------+
+    | my_schema   | my_table   |
+    +-------------+------------+
     SELECT 1 row in set (... sec)
 
-Schemas are primarily namespaces for tables. There is no notion of access control.
-Everybody can see and manipulate tables in every schema.
+The following schema names are reserved and may not be used:
+
+        * blob
+        * information_schema
+        * sys
+
+.. note::
+
+   Schemas are primarily namespaces for tables. There is no notion of
+   access control. Everybody can see and manipulate tables in every schema.
 
 A user created schema exists as long as there are tables with the same
 schema name. If the last table with that schema is dropped,
 the schema is gone (except for the ``blob`` and ``doc`` schema)::
 
-    cr> drop table "my_shiny-schema"."my_shiny_table" ;
+    cr> drop table my_schema.my_table ;
     DROP OK (... sec)
 
 Every table that is created without an explicit schema name, will be created in
@@ -94,6 +94,28 @@ the ``doc`` schema::
 
     cr> drop table my_doc_table;
     DROP OK (... sec)
+
+
+Naming restrictions
+-------------------
+
+Table, schema and column identifiers cannot have the same names as reserved
+key words. Please refer to the :doc:`reference/lexical_structure` section for
+more information about naming.
+
+Additionally, table and schema names are restricted in terms of
+characters and length. They:
+
+  - may not contain one of the following characters: ``\ / * ? " < > |
+    <whitespace> , #``
+
+  - may not contain upper case letters
+
+  - may not *start* with an underscore: ``_``
+
+  - should not exceed 255 bytes when encoded with ``utf-8`` (this
+    limit applies on the optionally schema-qualified table name)
+
 
 Constraints
 ===========

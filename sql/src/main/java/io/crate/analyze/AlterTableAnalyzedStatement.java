@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Optional;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ReferenceInfos;

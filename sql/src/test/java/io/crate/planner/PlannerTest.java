@@ -2,12 +2,11 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -126,7 +125,7 @@ public class PlannerTest {
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
-            when(userTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
+            when(userTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             TableIdent charactersTableIdent = new TableIdent(null, "characters");
             TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
@@ -134,7 +133,7 @@ public class PlannerTest {
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
-            when(charactersTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
+            when(charactersTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             TableIdent partedTableIdent = new TableIdent(null, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, partedRouting)
                     .add("name", DataTypes.STRING, null)
@@ -149,7 +148,7 @@ public class PlannerTest {
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
-            when(partedTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
+            when(partedTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             TableIdent emptyPartedTableIdent = new TableIdent(null, "empty_parted");
             TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
@@ -159,12 +158,12 @@ public class PlannerTest {
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
-            when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
+            when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
             when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
         }
 

@@ -12,7 +12,7 @@ Synopsis
 
 ::
 
-    CREATE TABLE [ schema_name . ] table_name ( [
+    CREATE TABLE table_ident ( [
         { column_name data_type [ column_constraint [ ... ] ] | table_constraint }
         [, ... ] ]
     )
@@ -41,9 +41,9 @@ Description
 
 CREATE TABLE will create a new, initially empty table.
 
-If the schema_name is omitted, the table is created in the ``doc`` schema.
-Otherwise it is created in the given schema, which is implicitly created,
-if it didn't exist yet.
+If the table_ident does not contain a schema, the table is created in
+the ``doc`` schema. Otherwise it is created in the given schema, which
+is implicitly created, if it didn't exist yet.
 
 The optional constraint clauses specify constraints (tests) that new
 or updated rows must satisfy for an insert or update operation to
@@ -61,21 +61,8 @@ constraint only affects one column.
 Parameters
 ==========
 
-:schema_name: (optional) the schema to create the table in, if omitted ``doc``
-    will be used. The following schema names are reserved and may not be used:
-
-        * blob
-        * information_schema
-        * sys
-
-    The schema name must be a valid SQL identifier, may not contain one of the
-    following characters: ``\ / * ? " < > | <whitespace>, #``,
-    may not contain upper case letters, may not start with
-    an underscore: ``_`` and should not exceed 255 bytes when encoded with
-    ``utf-8``.
-
-:table_name: The name of the table to be created. The same restrictions as for
-    schema names are valid here.
+:table_ident: The name (optionally schema-qualified) of the table to be
+             created.
 
 :column_name: The name of a column to be created in the new table.
 

@@ -24,15 +24,11 @@ package io.crate.analyze;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import io.crate.PartitionName;
+import io.crate.metadata.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -116,7 +112,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_DOC_LOCATIONS_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_CLUSTER_BY_STRING_TABLE_INFO.ident().name()))
                     .thenReturn(TEST_CLUSTER_BY_STRING_TABLE_INFO);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
 
         @Override

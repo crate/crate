@@ -22,7 +22,7 @@
 package io.crate.operation.reference.information;
 
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.information.RowCollectExpression;
 import io.crate.metadata.information.InformationColumnsTableInfo;
 import org.apache.lucene.util.BytesRef;
@@ -43,7 +43,7 @@ public abstract class InformationColumnsExpression<T>
 
     public static class ColumnsSchemaNameExpression extends InformationColumnsExpression<BytesRef> {
 
-        static final BytesRef DOC_SCHEMA_INFO = new BytesRef(DocSchemaInfo.NAME);
+        static final BytesRef DOC_SCHEMA_INFO = new BytesRef(ReferenceInfos.DEFAULT_SCHEMA_NAME);
 
         public ColumnsSchemaNameExpression() {
             super(InformationColumnsTableInfo.ReferenceInfos.SCHEMA_NAME);

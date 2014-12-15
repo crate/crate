@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.action.sql.SQLActionException;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.testing.TestingHelpers;

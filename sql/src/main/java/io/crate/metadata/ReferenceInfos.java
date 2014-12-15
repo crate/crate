@@ -24,7 +24,10 @@ package io.crate.metadata;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
@@ -43,9 +46,9 @@ import java.util.regex.Pattern;
 
 public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListener {
 
-    public static final String DEFAULT_SCHEMA = DocSchemaInfo.NAME;
-    public static final String SCHEMA_REGEX = "^([^.]+)\\..+";
+    public static final String SCHEMA_REGEX = "^([^.]+)\\.(.+)";
     public static final Pattern SCHEMA_PATTERN = Pattern.compile(SCHEMA_REGEX);
+    public static final String DEFAULT_SCHEMA_NAME = "doc";
 
     private final Map<String, SchemaInfo> builtInSchemas;
     private final SchemaInfo defaultSchemaInfo;
@@ -59,7 +62,7 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
                           ClusterService clusterService,
                           TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
         this.builtInSchemas = builtInSchemas;
-        this.defaultSchemaInfo = builtInSchemas.get(DEFAULT_SCHEMA);
+        this.defaultSchemaInfo = builtInSchemas.get(DEFAULT_SCHEMA_NAME);
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         schemas.putAll(builtInSchemas);
@@ -178,6 +181,24 @@ public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListene
             }
         }
         return customSchemas;
+    }
+
+    /**
+     * Checks if a given schema name string is a user defined schema or the default one.
+     *
+     * @param schemaName The schema name as a string.
+     */
+    public static boolean isDefaultOrCustomSchema(@Nullable String schemaName) {
+        if (schemaName == null) {
+            return true;
+        }
+        if (schemaName.equalsIgnoreCase(InformationSchemaInfo.NAME)
+                || schemaName.equalsIgnoreCase(SysSchemaInfo.NAME)
+                || schemaName.equalsIgnoreCase(BlobSchemaInfo.NAME)
+                ) {
+            return false;
+        }
+        return true;
     }
 
 }

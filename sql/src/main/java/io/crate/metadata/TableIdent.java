@@ -24,7 +24,6 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -69,7 +68,7 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
     }
 
     public String fqn() {
-        if (schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME)) {
+        if (schema == null || schema.equalsIgnoreCase(ReferenceInfos.DEFAULT_SCHEMA_NAME)) {
             return name;
         }
         return String.format("%s.%s", schema, name);

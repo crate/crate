@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.partitioned;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.information.RowCollectExpression;
 

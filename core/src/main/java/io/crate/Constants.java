@@ -46,6 +46,4 @@ public class Constants {
 
     public static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
 
-    public static final String PARTITIONED_TABLE_PREFIX = ".partitioned";
-    public static final String DOC_SCHEMA_NAME = "doc";
 }

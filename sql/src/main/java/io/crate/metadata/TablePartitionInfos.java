@@ -23,9 +23,7 @@ package io.crate.metadata;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import io.crate.PartitionName;
 import io.crate.core.StringUtils;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
@@ -74,7 +72,7 @@ public class TablePartitionInfos implements Iterable<TablePartitionInfo> {
             String tableName = info.ident().name();
             String schemaName = info.ident().schema();
             if (schemaName == null) {
-                schemaName = DocSchemaInfo.NAME;
+                schemaName = ReferenceInfos.DEFAULT_SCHEMA_NAME;
             }
 
             List<TablePartitionInfo> tablePartitionInfos = new ArrayList<>();

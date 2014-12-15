@@ -22,7 +22,7 @@
 package io.crate.metadata.doc;
 
 import io.crate.Constants;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;

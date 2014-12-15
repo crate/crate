@@ -25,11 +25,7 @@ import com.google.common.base.Joiner;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.*;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
@@ -75,7 +71,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_REFRESH_INTERVAL_BY_ONLY.name())).thenReturn(userTableInfoRefreshIntervalByOnly);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
 

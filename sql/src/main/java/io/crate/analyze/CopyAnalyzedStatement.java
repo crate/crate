@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;

@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate;
+package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.lucene.util.BytesRef;
@@ -143,13 +143,13 @@ public class PartitionNameTest {
 
     @Test
     public void testPartitionNameNotFromTable() throws Exception {
-        String partitionName = Constants.PARTITIONED_TABLE_PREFIX + ".test1._1";
+        String partitionName = PartitionName.PARTITIONED_TABLE_PREFIX + ".test1._1";
         assertFalse(PartitionName.tableName(partitionName).equals("test"));
     }
 
     @Test
     public void testPartitionNameNotFromSchema() throws Exception {
-        String partitionName = "schema1." + Constants.PARTITIONED_TABLE_PREFIX + ".test1._1";
+        String partitionName = "schema1." + PartitionName.PARTITIONED_TABLE_PREFIX + ".test1._1";
         assertFalse(PartitionName.schemaName(partitionName).equals("schema"));
     }
 
@@ -158,7 +158,7 @@ public class PartitionNameTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid partition ident: 1");
 
-        String partitionName = Constants.PARTITIONED_TABLE_PREFIX + ".test.1";
+        String partitionName = PartitionName.PARTITIONED_TABLE_PREFIX + ".test.1";
         PartitionName.fromString(partitionName, null, "test");
     }
 
@@ -172,29 +172,29 @@ public class PartitionNameTest {
         );
 
         assertTrue(PartitionName.isPartition(
-                Constants.PARTITIONED_TABLE_PREFIX + ".test.", null, "test"
+                PartitionName.PARTITIONED_TABLE_PREFIX + ".test.", null, "test"
         ));
         assertTrue(PartitionName.isPartition(
-                "schema." + Constants.PARTITIONED_TABLE_PREFIX + ".test.", "schema", "test"
+                "schema." + PartitionName.PARTITIONED_TABLE_PREFIX + ".test.", "schema", "test"
         ));
 
         assertFalse(
                 PartitionName.isPartition(
-                        Constants.PARTITIONED_TABLE_PREFIX + ".tast.djfhjhdgfjy",
+                        PartitionName.PARTITIONED_TABLE_PREFIX + ".tast.djfhjhdgfjy",
                         null,
                         "test"
                 )
         );
         assertFalse(
                 PartitionName.isPartition(
-                        "schema." + Constants.PARTITIONED_TABLE_PREFIX + ".tast.djfhjhdgfjy",
+                        "schema." + PartitionName.PARTITIONED_TABLE_PREFIX + ".tast.djfhjhdgfjy",
                         "schema",
                         "test"
                 )
         );
         assertFalse(
                 PartitionName.isPartition(
-                        "schama." + Constants.PARTITIONED_TABLE_PREFIX + ".test.djfhjhdgfjy",
+                        "schama." + PartitionName.PARTITIONED_TABLE_PREFIX + ".test.djfhjhdgfjy",
                         "schema",
                         "test"
                 )
@@ -248,21 +248,21 @@ public class PartitionNameTest {
     public void splitTemplateName() throws Exception {
         assertThat(PartitionName.split(PartitionName.templateName("schema", "t")), arrayContaining("schema", "t", ""));
         assertThat(PartitionName.split(PartitionName.templateName(null, "t")), arrayContaining(null, "t", ""));
-        assertThat(PartitionName.split(PartitionName.templateName(Constants.DOC_SCHEMA_NAME, "t")), arrayContaining(null, "t", ""));
+        assertThat(PartitionName.split(PartitionName.templateName(ReferenceInfos.DEFAULT_SCHEMA_NAME, "t")), arrayContaining(null, "t", ""));
     }
 
     @Test
     public void testSplitInvalid1() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid partition name");
-        PartitionName.split(Constants.PARTITIONED_TABLE_PREFIX + "lalala.n");
+        PartitionName.split(PartitionName.PARTITIONED_TABLE_PREFIX + "lalala.n");
     }
 
     @Test
     public void testSplitInvalid2() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid partition name");
-        PartitionName.split(Constants.PARTITIONED_TABLE_PREFIX.substring(1) + ".lalala.n");
+        PartitionName.split(PartitionName.PARTITIONED_TABLE_PREFIX.substring(1) + ".lalala.n");
     }
 
     @Test
@@ -276,21 +276,21 @@ public class PartitionNameTest {
     public void testSplitInvalid4() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid partition name");
-        PartitionName.split(Constants.PARTITIONED_TABLE_PREFIX + ".lalala");
+        PartitionName.split(PartitionName.PARTITIONED_TABLE_PREFIX + ".lalala");
     }
 
     @Test
     public void testSplitInvalidWithSchema1() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid partition name");
-        PartitionName.split("schema" + Constants.PARTITIONED_TABLE_PREFIX + ".lalala");
+        PartitionName.split("schema" + PartitionName.PARTITIONED_TABLE_PREFIX + ".lalala");
     }
 
     @Test
     public void testSplitInvalidWithSchema2() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid partition name");
-        PartitionName.split("schema." + Constants.PARTITIONED_TABLE_PREFIX + ".lalala");
+        PartitionName.split("schema." + PartitionName.PARTITIONED_TABLE_PREFIX + ".lalala");
     }
 
     @Test
@@ -300,7 +300,7 @@ public class PartitionNameTest {
                 is("081620j2")
         );
         Assert.assertThat(
-                PartitionName.ident(new PartitionName(Constants.DOC_SCHEMA_NAME, "table", new ArrayList<BytesRef>() {{
+                PartitionName.ident(new PartitionName(ReferenceInfos.DEFAULT_SCHEMA_NAME, "table", new ArrayList<BytesRef>() {{
                     add(null);
                 }}).stringValue()),
                 is("0400")
@@ -314,7 +314,7 @@ public class PartitionNameTest {
                         new PartitionName("table", Arrays.asList(new BytesRef("xxx")))));
         assertTrue(
                 new PartitionName(null, "table", Arrays.asList(new BytesRef("xxx"))).equals(
-                        new PartitionName(Constants.DOC_SCHEMA_NAME, "table", Arrays.asList(new BytesRef("xxx")))));
+                        new PartitionName(ReferenceInfos.DEFAULT_SCHEMA_NAME, "table", Arrays.asList(new BytesRef("xxx")))));
         assertFalse(
                 new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
                         new PartitionName("schema", "table", Arrays.asList(new BytesRef("xxx")))));

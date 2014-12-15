@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import io.crate.Constants;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.test.integration.CrateIntegrationTest;

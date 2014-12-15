@@ -24,7 +24,7 @@ package io.crate.metadata.doc;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;

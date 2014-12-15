@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport.task;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.node.ddl.DropTableNode;

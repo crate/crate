@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate;
+package io.crate.metadata;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -51,6 +51,7 @@ public class PartitionName {
     private String partitionName;
     private String ident;
 
+    public static final String PARTITIONED_TABLE_PREFIX = ".partitioned";
     private static final Predicate<List<String>> indexNamePartsPredicate = new Predicate<List<String>>() {
         @Override
         public boolean apply(List<String> input) {
@@ -58,11 +59,11 @@ public class PartitionName {
             switch(input.size()) {
                 case 4:
                     // ""."partitioned"."table_name". ["ident"]
-                    result = input.get(1).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1));
+                    result = input.get(1).equals(PARTITIONED_TABLE_PREFIX.substring(1));
                     break;
                 case 5:
                     // "schema".""."partitioned"."table_name". ["ident"]
-                    result = input.get(2).equals(Constants.PARTITIONED_TABLE_PREFIX.substring(1));
+                    result = input.get(2).equals(PARTITIONED_TABLE_PREFIX.substring(1));
                     break;
             }
             return result;
@@ -74,7 +75,7 @@ public class PartitionName {
     }
 
     public PartitionName(@Nullable String schemaName, String tableName, List<BytesRef> values) {
-        this.schemaName = Constants.DOC_SCHEMA_NAME.equals(schemaName) ? null : schemaName;
+        this.schemaName = ReferenceInfos.DEFAULT_SCHEMA_NAME.equals(schemaName) ? null : schemaName;
         this.tableName = tableName;
         this.values = values;
     }
@@ -144,9 +145,9 @@ public class PartitionName {
     public String stringValue() {
         if (partitionName == null) {
             if (schemaName == null) {
-                partitionName = DOT_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, ident());
+                partitionName = DOT_JOINER.join(PARTITIONED_TABLE_PREFIX, tableName, ident());
             } else {
-                partitionName = DOT_JOINER.join(schemaName, Constants.PARTITIONED_TABLE_PREFIX, tableName, ident());
+                partitionName = DOT_JOINER.join(schemaName, PARTITIONED_TABLE_PREFIX, tableName, ident());
             }
         }
         return partitionName;
@@ -191,7 +192,7 @@ public class PartitionName {
         assert tableName != null;
 
         String[] splitted = split(partitionTableName);
-        assert (splitted[0] == null && (schemaName == null || schemaName.equals(Constants.DOC_SCHEMA_NAME)))
+        assert (splitted[0] == null && (schemaName == null || schemaName.equals(ReferenceInfos.DEFAULT_SCHEMA_NAME)))
                 || (splitted[0] != null && splitted[0].equals(schemaName))
                 || splitted[1].equals(tableName) : String.format(
                 Locale.ENGLISH, "%s no partition of table %s", partitionTableName, tableName);
@@ -232,7 +233,7 @@ public class PartitionName {
         if (!indexNamePartsPredicate.apply(splitted)) {
             return false;
         } else if (splitted.size() == 4) {
-            return (schemaName == null || schemaName.equals(Constants.DOC_SCHEMA_NAME)) && splitted.get(2).equals(tableName);
+            return (schemaName == null || schemaName.equals(ReferenceInfos.DEFAULT_SCHEMA_NAME)) && splitted.get(2).equals(tableName);
         } else if (splitted.size() == 5) {
             return schemaName != null && schemaName.equals(splitted.get(0)) && splitted.get(3).equals(tableName);
         }
@@ -277,10 +278,10 @@ public class PartitionName {
      * compute the template name (used with partitioned tables) from a given schema and table name
      */
     public static String templateName(@Nullable String schemaName, String tableName) {
-        if (schemaName == null || schemaName.equals(Constants.DOC_SCHEMA_NAME)) {
-            return DOT_JOINER.join(Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
+        if (schemaName == null || schemaName.equals(ReferenceInfos.DEFAULT_SCHEMA_NAME)) {
+            return DOT_JOINER.join(PARTITIONED_TABLE_PREFIX, tableName, "");
         } else {
-            return DOT_JOINER.join(schemaName, Constants.PARTITIONED_TABLE_PREFIX, tableName, "");
+            return DOT_JOINER.join(schemaName, PARTITIONED_TABLE_PREFIX, tableName, "");
         }
     }
 
@@ -298,13 +299,13 @@ public class PartitionName {
      */
     public static String schemaName(String partitionOrTemplateName) {
         String schema = PartitionName.split(partitionOrTemplateName)[0];
-        return schema == null ? Constants.DOC_SCHEMA_NAME : schema;
+        return schema == null ? ReferenceInfos.DEFAULT_SCHEMA_NAME : schema;
     }
 
     public static Tuple<String, String> schemaAndTableName(String partitionOrTemplateName) {
         String[] splitted = PartitionName.split(partitionOrTemplateName);
         return new Tuple<>(
-                MoreObjects.firstNonNull(splitted[0], Constants.DOC_SCHEMA_NAME),
+                MoreObjects.firstNonNull(splitted[0], ReferenceInfos.DEFAULT_SCHEMA_NAME),
                 splitted[1]
         );
     }

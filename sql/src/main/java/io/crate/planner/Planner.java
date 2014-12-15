@@ -28,13 +28,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -563,7 +562,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private void globalAggregates(SelectAnalyzedStatement analysis, Plan plan, Context context) {
         String schema = analysis.table().ident().schema();
 
-        if ((schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME))
+        if ((schema == null || !analysis.table().schemaInfo().systemSchema())
                 && hasOnlyGlobalCount(analysis.outputSymbols())
                 && !analysis.hasSysExpressions()
                 && !context.indexWriterProjection.isPresent()) {

@@ -25,7 +25,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.AbstractDataAnalyzedStatement;
 import io.crate.metadata.Routing;
 import io.crate.planner.node.dql.CollectNode;

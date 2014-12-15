@@ -25,7 +25,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
@@ -346,14 +346,14 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         Reference id_ref = new Reference(new ReferenceInfo(
                 new ReferenceIdent(
-                        new TableIdent(DocSchemaInfo.NAME, "searchf"),
+                        new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "searchf"),
                         "id"),
                 RowGranularity.DOC,
                 DataTypes.INTEGER
         ));
         Reference date_ref = new Reference(new ReferenceInfo(
                 new ReferenceIdent(
-                        new TableIdent(DocSchemaInfo.NAME, "searchf"),
+                        new TableIdent(ReferenceInfos.DEFAULT_SCHEMA_NAME, "searchf"),
                         "date"),
                 RowGranularity.DOC,
                 DataTypes.TIMESTAMP

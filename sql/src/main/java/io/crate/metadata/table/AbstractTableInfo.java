@@ -1,7 +1,7 @@
 package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
