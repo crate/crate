@@ -25,9 +25,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import io.crate.planner.node.*;
 import io.crate.planner.node.dql.*;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.ProjectionVisitor;
+import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
@@ -86,6 +84,51 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             context.dedent();
             return null;
         }
+
+        @Override
+        public Void visitGroupProjection(GroupProjection projection, PrintContext context) {
+            context.print("GroupProjection:");
+            context.indent();
+            context.print("group by keys:");
+            context.indent();
+            for (Symbol key : projection.keys()) {
+                symbolPrinter.process(key, context);
+            }
+            context.dedent();
+            context.print("aggregations:");
+            context.indent();
+            for (Aggregation aggregation : projection.values()) {
+                symbolPrinter.process(aggregation, context);
+            }
+            context.dedent();
+            context.print("outputs:");
+            context.indent();
+            for (Symbol output : projection.outputs()) {
+                symbolPrinter.process(output, context);
+            }
+            context.dedent();
+            context.dedent();
+            return null;
+        }
+
+        @Override
+        public Void visitFilterProjection(FilterProjection projection, PrintContext context) {
+            context.print("FilterProjection:");
+            context.indent();
+
+            context.print("having clause:");
+            symbolPrinter.process(projection.query(), context);
+
+            context.print("outputs:");
+            context.indent();
+            for (Symbol output : projection.outputs()) {
+                symbolPrinter.process(output, context);
+            }
+            context.dedent();
+
+            context.dedent();
+            return null;
+        }
     }
 
     static class SymbolPrinter extends SymbolVisitor<PrintContext, Void> {
@@ -111,6 +154,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
 
     private ProjectionPrinter projectionPrinter;
     private SymbolPrinter symbolPrinter;
+
 
     public PlanPrinter() {
         projectionPrinter = new ProjectionPrinter();

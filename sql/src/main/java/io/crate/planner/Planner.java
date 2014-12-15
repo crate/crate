@@ -783,12 +783,7 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                 .orderBy(analysis.sortSymbols());
 
         Symbol havingClause = null;
-        Symbol having = analysis.havingClause();
-        if (having != null && having.symbolType() == SymbolType.FUNCTION) {
-            havingClause = contextBuilder.having(having);
-        }
 
-        ImmutableList.Builder<Projection> projectionBuilder = ImmutableList.builder();
         GroupProjection groupProjection =
                 new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
 
@@ -798,33 +793,44 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
 
         List<Symbol> toCollect = contextBuilder.toCollect();
 
-        projectionBuilder.add(groupProjection);
-        TopNProjection topNReducer = getTopNForReducer(analysis, contextBuilder);
-        if (topNReducer != null) {
-            projectionBuilder.add(topNReducer);
+        contextBuilder.addProjection(groupProjection);
+        TopNProjection topNReducer = null;
+        if (numAggregationSteps == 1) {
+            // only add topN on collector if we have 1 aggregation step
+            topNReducer = getTopNForReducer(analysis, contextBuilder);
+            if (topNReducer != null) {
+                topNReducer.outputs(contextBuilder.outputs());
+                contextBuilder.addProjection(topNReducer);
+            }
         }
         CollectNode collectNode = PlanNodeBuilder.collect(
                 analysis,
                 toCollect,
-                projectionBuilder.build()
+                contextBuilder.getAndClearProjections()
         );
         plan.add(collectNode);
 
         contextBuilder.nextStep();
 
         // handler
-        ImmutableList.Builder<Projection> builder = ImmutableList.builder();
+        Projection lastProjection = collectNode.finalProjection().get();
 
         if (numAggregationSteps == 2) {
-            builder.add(new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations()));
+            Projection mergeGroupProjection = new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
+            contextBuilder.addProjection(mergeGroupProjection);
+            lastProjection = mergeGroupProjection;
+        }
+        Symbol having = analysis.havingClause();
+        if (having != null && having.symbolType() == SymbolType.FUNCTION) {
+            havingClause = contextBuilder.having(having);
         }
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.passThroughOutputs());
+            fp.outputs(contextBuilder.genInputColumns(analysis.outputSymbols().size()));
             if (groupedByClusteredPk) {
                 fp.requiredGranularity(RowGranularity.SHARD);
             }
-            builder.add(fp);
+            contextBuilder.addProjection(fp);
         }
         if (!ignoreSorting) {
             List<Symbol> outputs;
@@ -844,12 +850,12 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     analysis.nullsFirst()
             );
             topN.outputs(outputs);
-            builder.add(topN);
+            contextBuilder.addProjection(topN);
         }
         if (context.indexWriterProjection.isPresent()) {
-            builder.add(context.indexWriterProjection.get());
+            contextBuilder.addProjection(context.indexWriterProjection.get());
         }
-        plan.add(PlanNodeBuilder.localMerge(builder.build(), collectNode));
+        plan.add(PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), collectNode));
     }
 
     /**
@@ -870,7 +876,6 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     analysis.reverseFlags(),
                     analysis.nullsFirst()
             );
-            topN.outputs(contextBuilder.outputs());
             return topN;
         }
         return null;
@@ -901,21 +906,20 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
 
         // collector
-        GroupProjection groupProjection = new GroupProjection(
-                contextBuilder.groupBy(), contextBuilder.aggregations());
+        contextBuilder.addProjection(new GroupProjection(
+                contextBuilder.groupBy(), contextBuilder.aggregations()));
         CollectNode collectNode = PlanNodeBuilder.distributingCollect(
                 analysis,
                 contextBuilder.toCollect(),
                 nodesFromTable(analysis),
-                ImmutableList.<Projection>of(groupProjection)
+                contextBuilder.getAndClearProjections()
         );
         plan.add(collectNode);
 
         contextBuilder.nextStep();
 
         // mergeNode for reducer
-        ImmutableList.Builder<Projection> projectionsBuilder = ImmutableList.builder();
-        projectionsBuilder.add(new GroupProjection(
+        contextBuilder.addProjection(new GroupProjection(
                 contextBuilder.groupBy(),
                 contextBuilder.aggregations()));
 
@@ -939,14 +943,17 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
              * AFTER the selectList aggregations
              */
             fp.outputs(contextBuilder.genInputColumns(analysis.outputSymbols().size()));
-            projectionsBuilder.add(fp);
+            contextBuilder.addProjection(fp);
         }
         TopNProjection topNForReducer = getTopNForReducer(analysis, contextBuilder);
         if (topNForReducer != null) {
-            projectionsBuilder.add(topNForReducer);
+            topNForReducer.outputs(contextBuilder.outputs());
+            contextBuilder.addProjection(topNForReducer);
         }
 
-        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
+        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(
+                collectNode,
+                contextBuilder.getAndClearProjections());
         plan.add(mergeNode);
 
 
@@ -993,29 +1000,29 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
         }
 
         // collector
-        GroupProjection groupProjection = new GroupProjection(
-                contextBuilder.groupBy(), contextBuilder.aggregations());
+        contextBuilder.addProjection(new GroupProjection(
+                contextBuilder.groupBy(), contextBuilder.aggregations()));
         CollectNode collectNode = PlanNodeBuilder.distributingCollect(
                 analysis,
                 contextBuilder.toCollect(),
                 nodesFromTable(analysis),
-                ImmutableList.<Projection>of(groupProjection)
+                contextBuilder.getAndClearProjections()
         );
         plan.add(collectNode);
 
         contextBuilder.nextStep();
 
         // mergeNode for reducer
-        ImmutableList.Builder<Projection> projectionsBuilder = ImmutableList.builder();
-        projectionsBuilder.add(new GroupProjection(
+
+        contextBuilder.addProjection(new GroupProjection(
                 contextBuilder.groupBy(),
                 contextBuilder.aggregations()));
 
 
         if (havingClause != null) {
             FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.passThroughOutputs());
-            projectionsBuilder.add(fp);
+            fp.outputs(contextBuilder.genInputColumns(analysis.outputSymbols().size()));
+            contextBuilder.addProjection(fp);
         }
 
         boolean topNDone = false;
@@ -1029,17 +1036,16 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     analysis.nullsFirst()
             );
             topN.outputs(contextBuilder.outputs());
-            projectionsBuilder.add(topN);
+            contextBuilder.addProjection((topN));
         } else {
-            projectionsBuilder.add(writerProjection);
+            contextBuilder.addProjection((writerProjection));
         }
 
-        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
+        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, contextBuilder.getAndClearProjections());
         plan.add(mergeNode);
 
 
         // local merge on handler
-        ImmutableList.Builder<Projection> builder = ImmutableList.builder();
         if (analysis.isLimited()) {
             List<Symbol> outputs;
             List<Symbol> orderBy;
@@ -1059,13 +1065,13 @@ public class Planner extends AnalysisVisitor<Planner.Context, Plan> {
                     analysis.nullsFirst()
             );
             topN.outputs(outputs);
-            builder.add(topN);
-            builder.add(writerProjection);
+            contextBuilder.addProjection(topN);
+            contextBuilder.addProjection(writerProjection);
         } else {
             // sum up distributed indexWriter results
-            builder.add(localMergeProjection(analysis));
+            contextBuilder.addProjection(localMergeProjection(analysis));
         }
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(builder.build(), mergeNode);
+        MergeNode localMergeNode = PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), mergeNode);
         plan.add(localMergeNode);
     }
 

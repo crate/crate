@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: correctly plan group by queries using HAVING clause
+
  - Fix: Added comments to the logging.yml config file and reduced the
    amount of log entries by changing the loglevel of some log messages
 
