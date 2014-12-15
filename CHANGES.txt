@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Improve Error messages on COPY TO and COPY FROM
+
  - Fix: correctly plan group by queries using HAVING clause
 
  - Fix: Added comments to the logging.yml config file and reduced the

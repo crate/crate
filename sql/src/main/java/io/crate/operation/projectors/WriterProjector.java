@@ -146,7 +146,8 @@ public class WriterProjector implements Projector {
                 rowWriter = new RawRowWriter(output.getOutputStream(), failure);
             }
         } catch (IOException e) {
-            failure.set(new UnhandledServerException("Failed to open output", e));
+            failure.set(new UnhandledServerException(
+                    String.format("Failed to open output: '%s'", e.getMessage()), e));
         }
     }
 

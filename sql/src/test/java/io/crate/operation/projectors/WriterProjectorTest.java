@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -31,10 +32,13 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -44,6 +48,9 @@ public class WriterProjectorTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testWriteRawToFile() throws Exception {
@@ -90,6 +97,50 @@ public class WriterProjectorTest {
         Map someMap = (Map) convertedMap.get("some");
         Map nestedMap = (Map) someMap.get("nested");
         assertThat((String)nestedMap.get("column"), is("foo"));
+    }
+
+    @Test
+    public void testDirectoryAsFile() throws Exception {
+        expectedException.expect(ExecutionException.class);
+        expectedException.expectCause(TestingHelpers.cause(UnhandledServerException.class, "Failed to open output: 'Output path is a directory: "));
+
+        String uri = folder.newFolder().getAbsolutePath();
+        Settings settings = ImmutableSettings.EMPTY;
+        WriterProjector projector = new WriterProjector(
+                uri,
+                settings,
+                null,
+                ImmutableSet.<CollectExpression<?>>of(),
+                new HashMap<ColumnIdent, Object>()
+        );
+        CollectingProjector downstream = new CollectingProjector();
+        projector.downstream(downstream);
+        projector.startProjection();
+        projector.registerUpstream(null);
+        projector.upstreamFinished();
+        downstream.result().get();
+    }
+
+    @Test
+    public void testFileAsDirectory() throws Exception {
+        expectedException.expect(ExecutionException.class);
+        expectedException.expectCause(TestingHelpers.cause(UnhandledServerException.class, "(Not a directory)"));
+
+        String uri = new File(folder.newFile(), "out.json").getCanonicalPath();
+        Settings settings = ImmutableSettings.EMPTY;
+        WriterProjector projector = new WriterProjector(
+                uri,
+                settings,
+                null,
+                ImmutableSet.<CollectExpression<?>>of(),
+                new HashMap<ColumnIdent, Object>()
+        );
+        CollectingProjector downstream = new CollectingProjector();
+        projector.downstream(downstream);
+        projector.startProjection();
+        projector.registerUpstream(null);
+        projector.upstreamFinished();
+        downstream.result().get();
     }
 
     static class TestableWriterProjector extends WriterProjector {

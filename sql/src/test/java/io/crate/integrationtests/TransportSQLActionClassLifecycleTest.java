@@ -503,6 +503,14 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     }
 
     @Test
+    public void testCopyToDirectoryPath() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(startsWith("Failed to open output: 'Output path is a directory: "));
+        String directory = folder.newFolder().getCanonicalPath();
+        executor.exec("COPY characters TO ?", directory);
+    }
+
+    @Test
     public void testDateRange() throws Exception {
         SQLResponse response = executor.exec("select * from characters where birthdate > '1970-01-01'");
         assertThat(response.rowCount(), Matchers.is(2L));

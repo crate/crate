@@ -207,7 +207,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         try {
             searchContext.searcher().search(query, this);
             downstream.upstreamFinished();
-        } catch (CollectionAbortedException e) {
+        } catch (CollectionTerminatedException e) {
             // yeah, that's ok! :)
             downstream.upstreamFinished();
         } catch (Exception e) {

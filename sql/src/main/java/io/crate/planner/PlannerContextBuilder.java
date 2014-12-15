@@ -292,7 +292,7 @@ public class PlannerContextBuilder {
             if (resolvedSymbol == null) {
                 if (context.originalGroupBy.contains(symbol)) {
                     // group by key referenced in having
-                    resolvedSymbol = new InputColumn(context.originalGroupBy.indexOf(symbol), symbol.valueType());
+                    resolvedSymbol = new InputColumn(context.originalGroupBy.indexOf(symbol));
                     context.addResolvedSymbol(symbol, resolvedSymbol);
                 } else {
                     throw new UnhandledServerException(
