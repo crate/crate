@@ -37,6 +37,7 @@ import java.util.Locale;
 public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalysis> {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
+    private static final String CLUSTERED_BY_IN_PARTITIONED_ERROR = "Cannot use CLUSTERED BY column in PARTITIONED BY clause";
     private final ReferenceInfos referenceInfos;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
@@ -92,6 +93,11 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             ColumnIdent routingColumn = ColumnIdent.fromPath(
                     ExpressionToStringVisitor.convert(node.column().get(), context.parameters()));
 
+            for(AnalyzedColumnDefinition column: context.analyzedTableElements().partitionedByColumns){
+                if(column.ident().equals(routingColumn)){
+                    throw new IllegalArgumentException(CLUSTERED_BY_IN_PARTITIONED_ERROR);
+                }
+            }
             if (!context.hasColumnDefinition(routingColumn)) {
                 throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "Invalid or non-existent routing column \"%s\"",
@@ -125,8 +131,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             context.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent, false);
             ColumnIdent routing = context.routing();
             if (routing != null && routing.equals(partitionedByIdent)) {
-                throw new IllegalArgumentException(
-                        "Cannot use CLUSTERED BY column in PARTITIONED BY clause");
+                throw new IllegalArgumentException(CLUSTERED_BY_IN_PARTITIONED_ERROR);
             }
         }
         return null;

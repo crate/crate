@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Using CLUSTERED BY Column in PARTITIONED BY clause threw
+   misleading exception
+
  - Fix: Inserting arrays with a null value at first position
    failed
 

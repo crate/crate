@@ -585,4 +585,11 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expectMessage("invalid number 'foo'");
         analyze("create table t (id int primary key) clustered into ? shards", new Object[]{"foo"});
     }
+
+    @Test
+    public void testCreateTableWithParitionedColumnInClusteredBy() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use CLUSTERED BY column in PARTITIONED BY clause");
+        analyze("create table t(id int primary key) partitioned by (id) clustered by (id)");
+    }
 }
