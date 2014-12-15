@@ -170,8 +170,8 @@ public class TestingHelpers {
         assertThat((T)((Literal) symbol).value(), is(expectedValue));
     }
 
-    public static void assertNullLiteral(Symbol symbol) {
-        assertLiteral(symbol, null, DataTypes.UNDEFINED);
+    public static <T> void assertNullLiteral(Symbol symbol, T expectedValue) {
+        assertLiteral(symbol, (T)((Literal)symbol).value(), DataTypes.UNDEFINED);
     }
 
     public static void assertLiteralSymbol(Symbol symbol, Object expectedValue, DataType type) {
