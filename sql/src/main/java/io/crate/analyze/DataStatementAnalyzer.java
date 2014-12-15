@@ -730,7 +730,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                                 SymbolFormatter.format("invalid array literal element: %s", arrayElement)
                         );
                     }
-                    if (innerType == null) {
+                    if (innerType == null || (innerType == DataTypes.UNDEFINED && !((DataTypeSymbol)arrayElement).valueType().equals(innerType))) {
                         innerType = ((DataTypeSymbol)arrayElement).valueType();
                     } else if (!((DataTypeSymbol)arrayElement).valueType().equals(innerType)){
                         throw new IllegalArgumentException(

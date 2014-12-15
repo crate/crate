@@ -25,6 +25,8 @@ import io.crate.test.integration.CrateIntegrationTest;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
 
+import java.util.ArrayList;
+
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -76,4 +78,19 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(((String) response.rows()[2][0]), is("Marvin"));
         assertThat(((String) response.rows()[3][0]), is("Trillian"));
     }
+
+    @Test
+    public void testInsertArrayLiteralFirstNull() throws Exception {
+        execute("create table users(id int primary key, friends array(string))");
+        ensureGreen();
+        execute("insert into users (id, friends) values (0, [null, 'Trillian'])");
+        execute("insert into users (id, friends) values (1, [null])");
+        execute("refresh table users");
+        execute("select friends from users order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertNull((((ArrayList) response.rows()[0][0]).get(0)));
+        assertThat(((String)((ArrayList) response.rows()[0][0]).get(1)), is("Trillian"));
+        assertNull((((ArrayList) response.rows()[1][0]).get(0)));
+    }
+
 }

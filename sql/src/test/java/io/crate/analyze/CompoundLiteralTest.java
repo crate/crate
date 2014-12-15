@@ -176,6 +176,12 @@ public class CompoundLiteralTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testArrayDifferentTypesFirstNull() throws Exception {
+        Literal array = (Literal)analyzeExpression("[null, 12.5]");
+        assertThat(array.valueType(), is((DataType)new ArrayType(DoubleType.INSTANCE)));
+    }
+
+    @Test
     public void testNestedArrayLiteral() throws Exception {
         Map<String, DataType> expected = ImmutableMap.<String, DataType>builder()
                 .put("'string'", DataTypes.STRING)
