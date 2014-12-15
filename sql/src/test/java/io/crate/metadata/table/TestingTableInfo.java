@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestingTableInfo extends AbstractTableInfo {
 
@@ -337,5 +338,12 @@ public class TestingTableInfo extends AbstractTableInfo {
     @Override
     public TableParameterInfo tableParameterInfo () {
         return tableParameterInfo;
+    }
+
+    @Override
+    public SchemaInfo schemaInfo() {
+        final SchemaInfo schemaInfo = super.schemaInfo();
+        when(schemaInfo.name()).thenReturn(ident.schema());
+        return schemaInfo;
     }
 }

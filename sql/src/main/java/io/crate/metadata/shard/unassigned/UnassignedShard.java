@@ -2,12 +2,15 @@ package io.crate.metadata.shard.unassigned;
 
 import io.crate.PartitionName;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.index.shard.ShardId;
+
+import java.util.regex.Matcher;
 
 public class UnassignedShard {
 
@@ -41,13 +44,15 @@ public class UnassignedShard {
             if (!clusterService.state().metaData().hasConcreteIndex(tableName)) {
                 orphanedPartition = true;
             }
-        } else if (index.contains(".")) {
-            String[] split = index.split("\\.");
-            this.schemaName = split[0];
-            tableName = split[1];
         } else {
-            this.schemaName = DocSchemaInfo.NAME;
-            tableName = index;
+            Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(index);
+            if (matcher.matches()) {
+                this.schemaName = matcher.group(1);
+                tableName = matcher.group(2);
+            } else {
+                this.schemaName = DocSchemaInfo.NAME;
+                tableName = index;
+            }
         }
 
         this.tableName = tableName;

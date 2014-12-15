@@ -30,10 +30,7 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
-import io.crate.operation.reference.sys.shard.ShardPartitionIdentExpression;
-import io.crate.operation.reference.sys.shard.ShardPartitionOrphanedExpression;
-import io.crate.operation.reference.sys.shard.ShardTableNameExpression;
-import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
+import io.crate.operation.reference.sys.shard.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterName;
@@ -260,4 +257,34 @@ public class SysShardsExpressionsTest {
         indexName = "wikipedia_de";
     }
 
+    @Test
+    public void testSchemaName() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardSchemaNameExpression.NAME);
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef("doc"), shardExpression.value());
+    }
+
+    @Test
+    public void testCustomSchemaName() throws Exception {
+        indexName = "my_schema.wikipedia_de";
+        setUp();
+        ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardSchemaNameExpression.NAME);
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef("my_schema"), shardExpression.value());
+        // reset indexName
+        indexName = "wikipedia_de";
+    }
+
+    @Test
+    public void testTableNameOfCustomSchema() throws Exception {
+        // expression should return the real table name
+        indexName = "my_schema.wikipedia_de";
+        setUp();
+        ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, ShardTableNameExpression.NAME);
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
+
+        // reset indexName
+        indexName = "wikipedia_de";
+    }
 }

@@ -21,9 +21,12 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.PartitionName;
+import io.crate.metadata.ReferenceInfos;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
+
+import java.util.regex.Matcher;
 
 public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
 
@@ -38,6 +41,10 @@ public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
             tableName = PartitionName.tableName(tableName);
         } catch (IllegalArgumentException e) {
             // no partition
+        }
+        Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(tableName);
+        if (matcher.matches()) {
+            tableName = matcher.group(2);
         }
         this.value = new BytesRef(tableName);
     }

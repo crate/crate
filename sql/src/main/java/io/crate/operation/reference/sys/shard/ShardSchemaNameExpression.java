@@ -21,20 +21,34 @@
 
 package io.crate.operation.reference.sys.shard;
 
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.doc.DocSchemaInfo;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.index.shard.ShardId;
+
+import java.util.regex.Matcher;
 
 public class ShardSchemaNameExpression extends SysShardExpression<BytesRef> {
 
     public static final String NAME = "schema_name";
     private static final BytesRef DOC_SCHEMA_NAME = new BytesRef(DocSchemaInfo.NAME);
+    private final BytesRef schemaName;
 
-    protected ShardSchemaNameExpression() {
+    @Inject
+    public ShardSchemaNameExpression(ShardId shardId) {
         super(NAME);
+        String indexName = shardId.getIndex();
+        Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(indexName);
+        if (matcher.matches()) {
+            schemaName = new BytesRef(matcher.group(1));
+        } else {
+            schemaName = DOC_SCHEMA_NAME;
+        }
     }
 
     @Override
     public BytesRef value() {
-        return DOC_SCHEMA_NAME;
+        return schemaName;
     }
 }

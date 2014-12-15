@@ -23,8 +23,10 @@ package io.crate.metadata;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
 
@@ -53,7 +55,7 @@ public class DocReferenceConverter {
             }
 
             String schema = ident.tableIdent().schema();
-            if (schema != null && !schema.equals(DocSchemaInfo.NAME)) {
+            if (schema != null && !isDocOrCustomSchema(schema)) {
                 return false;
             }
             return true;
@@ -135,6 +137,19 @@ public class DocReferenceConverter {
         protected Symbol visitSymbol(Symbol symbol, Predicate<Reference> predicate) {
             return symbol;
         }
+    }
+
+    private static boolean isDocOrCustomSchema(String schemaName) {
+        if (schemaName == null) {
+            return true;
+        }
+        if (schemaName.equalsIgnoreCase(InformationSchemaInfo.NAME)
+                || schemaName.equalsIgnoreCase(SysSchemaInfo.NAME)
+                || schemaName.equalsIgnoreCase(BlobSchemaInfo.NAME)
+                ) {
+            return false;
+        }
+        return true;
     }
 
     private DocReferenceConverter() {}

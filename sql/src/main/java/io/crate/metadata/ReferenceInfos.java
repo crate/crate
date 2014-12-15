@@ -44,7 +44,7 @@ import java.util.regex.Pattern;
 public class ReferenceInfos implements Iterable<SchemaInfo>, ClusterStateListener {
 
     public static final String DEFAULT_SCHEMA = DocSchemaInfo.NAME;
-    public static final String SCHEMA_REGEX = "^([^.]+)\\..+";
+    public static final String SCHEMA_REGEX = "^([^.]+)\\.(.+)";
     public static final Pattern SCHEMA_PATTERN = Pattern.compile(SCHEMA_REGEX);
 
     private final Map<String, SchemaInfo> builtInSchemas;
