@@ -84,7 +84,7 @@ public class UpdateStatementAnalyzer extends AbstractStatementAnalyzer<Symbol, U
                     try {
                         updateValue = context.normalizeInputForReference(value, reference, true);
                     } catch(IllegalArgumentException|UnsupportedOperationException e) {
-                        throw new ColumnValidationException(ident.fqn(), e);
+                        throw new ColumnValidationException(ident.sqlFqn(), e);
                     }
 
                     if (context.table.clusteredBy() != null) {

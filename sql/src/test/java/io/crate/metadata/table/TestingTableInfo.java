@@ -299,7 +299,7 @@ public class TestingTableInfo extends AbstractTableInfo {
             ColumnIdent parentIdent = ident.getParent();
             ReferenceInfo parentInfo = getReferenceInfo(parentIdent);
             if (parentInfo != null && parentInfo.columnPolicy() == ColumnPolicy.STRICT) {
-                throw new ColumnUnknownException(ident.fqn());
+                throw new ColumnUnknownException(ident.sqlFqn());
             }
         }
         return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());

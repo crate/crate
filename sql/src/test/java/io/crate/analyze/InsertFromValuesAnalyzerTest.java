@@ -355,7 +355,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInsertInvalidObjectArrayFieldInObjectArray() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags.metadata.id: Invalid long");
+        expectedException.expectMessage("Validation failed for tags['metadata']['id']: Invalid long");
         analyze("insert into deeply_nested (tags) " +
                 "values (" +
                 "  [" +

@@ -1971,14 +1971,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testFunctionArgumentsCantBeAliases() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column 'n' unknown");
+        expectedException.expectMessage("Column n unknown");
         analyze("select name as n, substr(n, 1, 1) from users");
     }
 
     @Test
     public void testSubscriptOnAliasShouldntWork() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column 'n' unknown");
+        expectedException.expectMessage("Column n unknown");
         analyze("select name as n, n[1] from users");
     }
 
@@ -2021,7 +2021,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testShardGranularityFromNodeGranularityTable() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot resolve reference 'sys.shards.id', reason: finer granularity than table 'sys.nodes'");
+        expectedException.expectMessage("Cannot resolve reference sys.shards.id, reason: finer granularity than table 'sys.nodes'");
         analyze("select sys.shards.id from sys.nodes");
     }
 }

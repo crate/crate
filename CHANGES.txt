@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Changed output of column names in error messages to subscript notation,
+   so the correct notation to address columns in sql is reflected
+
  - Fix: correctly plan group by queries using HAVING clause
 
  - Fix: Using CLUSTERED BY Column in PARTITIONED BY clause threw

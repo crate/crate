@@ -94,18 +94,18 @@ public abstract class AbstractTableInfo implements TableInfo {
             if (parentInfo != null) {
                 switch (parentInfo.columnPolicy()) {
                     case STRICT:
-                        throw new ColumnUnknownException(ident.fqn());
+                        throw new ColumnUnknownException(ident.sqlFqn());
                     case IGNORED:
                         parentIsIgnored = true;
                         break;
                 }
             }
         } else if(forWrite == false && columnPolicy() != ColumnPolicy.IGNORED) {
-            throw new ColumnUnknownException(ident.fqn());
+            throw new ColumnUnknownException(ident.sqlFqn());
         } else {
             switch (columnPolicy()) {
                 case STRICT:
-                    throw new ColumnUnknownException(ident.fqn());
+                    throw new ColumnUnknownException(ident.sqlFqn());
                 case IGNORED:
                     parentIsIgnored = true;
                     break;

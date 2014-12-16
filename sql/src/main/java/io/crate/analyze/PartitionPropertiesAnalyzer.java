@@ -72,7 +72,7 @@ public class PartitionPropertiesAnalyzer {
                 values[idx] = converted == null ? null : DataTypes.STRING.value(converted);
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(
-                        String.format("\"%s\" is no known partition column", entry.getKey().fqn()));
+                        String.format("\"%s\" is no known partition column", entry.getKey().sqlFqn()));
             }
         }
         return new PartitionName(tableInfo.ident().name(), Arrays.asList(values));

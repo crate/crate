@@ -123,7 +123,7 @@ public class UpdateAnalyzedStatement extends AbstractDataAnalyzedStatement {
 
         public void addAssignment(Reference reference, Symbol value) {
             if (assignments.containsKey(reference)) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.info().ident().columnIdent().fqn()));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.info().ident().columnIdent().sqlFqn()));
             }
             if (!reference.info().ident().tableIdent().equals(table().ident())) {
                 throw new UnsupportedOperationException("cannot update references from other tables.");
