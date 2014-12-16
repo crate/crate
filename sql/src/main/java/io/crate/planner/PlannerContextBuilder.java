@@ -32,8 +32,7 @@ import java.util.*;
 
 public class PlannerContextBuilder {
 
-    private final static HavingSymbolConverter havingSymbolConverter = new HavingSymbolConverter();
-
+    private final static HavingSymbolConverter HAVING_SYMBOL_CONVERTER = new HavingSymbolConverter();
     private final PlannerContext context;
     public final boolean ignoreOrderBy;
     public boolean aggregationsWrappedInScalar;
@@ -110,7 +109,6 @@ public class PlannerContextBuilder {
                     throw new UnhandledServerException(
                             "Unexpected result column symbol: " + symbol);
                 }
-
                 context.addResolvedSymbol(symbol, resolvedSymbol);
                 context.outputs.add(resolvedSymbol);
             }
@@ -180,7 +178,7 @@ public class PlannerContextBuilder {
     }
 
     public Symbol having(Symbol query) {
-        return havingSymbolConverter.process(query, context);
+        return HAVING_SYMBOL_CONVERTER.process(query, context);
     }
 
     /**
@@ -197,39 +195,6 @@ public class PlannerContextBuilder {
             context.projectionBuilder = ImmutableList.builder();
         }
         context.projectionBuilder.add(projection);
-
-        /*
-         * track current position of resolved input columns
-         *
-         * if the currently resolved symbols are:
-         *
-         *  Reference: x -> InputColumn(0)
-         *  Aggregation Avg(y) -> InputColumn(1)
-         *
-         * and the projection to add has the following outputs:
-         *
-         *  [ InputColumn(1), InputColumn(0)]
-         *
-         * that means, is actually swapping the outputs, then this loop will change the
-         * currently resolved symbols to:
-         *
-         * Reference: x -> InputColumn(1)
-         * Aggregation Avg(y) -> InputColumn(0)
-         *
-         * The currentResolvedSymbols can then be used to reference the symbols
-         * after the currently added Projection.
-         *
-         */
-        for (Map.Entry<Symbol,Symbol> entry : context.currentResolvedSymbols.entrySet()) {
-            List<? extends Symbol> outputs = projection.outputs();
-            for (int i = 0; i < outputs.size(); i++) {
-                Symbol projectionOutput = outputs.get(i);
-                if (entry.getValue().equals(projectionOutput)) {
-                    context.currentResolvedSymbols.put(entry.getKey(), new InputColumn(i, entry.getValue().valueType()));
-                    break;
-                }
-            }
-        }
     }
 
     /**
@@ -295,6 +260,7 @@ public class PlannerContextBuilder {
         return result;
     }
 
+
     /**
      * Convert aggregation symbols to input columns from previous projection
      */
@@ -303,7 +269,7 @@ public class PlannerContextBuilder {
         @Override
         public Symbol visitFunction(Function symbol, PlannerContext context) {
             if (symbol.info().type().equals(FunctionInfo.Type.AGGREGATE)) {
-                Symbol resolvedSymbol = context.currentResolvedSymbols.get(symbol);
+                Symbol resolvedSymbol = context.resolvedSymbols.get(symbol);
 
                 if (resolvedSymbol == null) {
                     // resolve symbol
@@ -322,11 +288,16 @@ public class PlannerContextBuilder {
 
         @Override
         public Symbol visitReference(Reference symbol, PlannerContext context) {
-            Symbol resolvedSymbol = context.currentResolvedSymbols.get(symbol);
+            Symbol resolvedSymbol = context.resolvedSymbols.get(symbol);
             if (resolvedSymbol == null) {
-                throw new UnhandledServerException(
-                        "Cannot resolve symbol: " + symbol);
-
+                if (context.originalGroupBy.contains(symbol)) {
+                    // group by key referenced in having
+                    resolvedSymbol = new InputColumn(context.originalGroupBy.indexOf(symbol), symbol.valueType());
+                    context.addResolvedSymbol(symbol, resolvedSymbol);
+                } else {
+                    throw new UnhandledServerException(
+                            "Cannot resolve symbol: " + symbol);
+                }
             }
             return resolvedSymbol;
         }

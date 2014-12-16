@@ -67,6 +67,7 @@ public class TestingTableInfo extends AbstractTableInfo {
         private final TableIdent ident;
         private final Routing routing;
         private boolean isAlias = false;
+        private SchemaInfo schemaInfo = mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get());
 
         public Builder(TableIdent ident, RowGranularity granularity, Routing routing) {
             this.granularity = granularity;
@@ -160,6 +161,11 @@ public class TestingTableInfo extends AbstractTableInfo {
             return this;
         }
 
+        public Builder schemainfo(SchemaInfo schemaInfo) {
+            this.schemaInfo = schemaInfo;
+            return this;
+        }
+
         public TableInfo build() {
             addDocSysColumns();
             return new TestingTableInfo(
@@ -174,7 +180,8 @@ public class TestingTableInfo extends AbstractTableInfo {
                     clusteredBy,
                     isAlias,
                     partitionedBy.build(),
-                    partitions.build());
+                    partitions.build(),
+                    schemaInfo);
         }
 
     }
@@ -204,8 +211,9 @@ public class TestingTableInfo extends AbstractTableInfo {
                             ColumnIdent clusteredBy,
                             boolean isAlias,
                             List<ColumnIdent> partitionedBy,
-                            List<PartitionName> partitions) {
-        super(mock(SchemaInfo.class, Answers.RETURNS_MOCKS.get()));
+                            List<PartitionName> partitions,
+                            SchemaInfo schemaInfo) {
+        super(schemaInfo);
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
         this.indexColumns = indexColumns;

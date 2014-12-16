@@ -274,4 +274,13 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
             "select sum(num_docs) from sys.shards where lol='funky'");
         assertEquals(1, response.rowCount()); // global aggregate always returns one row
     }
+
+    @Test
+    public void testSelectGroupByHaving() throws Exception {
+        SQLResponse response = transportExecutor.exec("select count(*) " +
+                "from sys.shards " +
+                "group by table_name " +
+                "having table_name = 'quotes'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("10\n"));
+    }
 }
