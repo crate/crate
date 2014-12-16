@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Added comments to the logging.yml config file and reduced the
+   amount of log entries by changing the loglevel of some log messages
+
  - Fix: Using CLUSTERED BY Column in PARTITIONED BY clause threw
    misleading exception
 

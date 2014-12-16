@@ -266,8 +266,8 @@ public class BulkShardProcessor {
                     // copy from with multiple readers might attempt to create the index
                     // multiple times
                     // can be ignored.
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("copy from index {}", e.getMessage());
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("copy from index {}", e.getMessage());
                     }
                     indicesCreated.add(indexName);
                 } else {
@@ -291,7 +291,7 @@ public class BulkShardProcessor {
         trace("execute failure");
         e = Exceptions.unwrap(e);
         if (e instanceof EsRejectedExecutionException) {
-            logger.warn("{}, retrying", e.getMessage());
+            logger.trace("{}, retrying", e.getMessage());
             doRetry(bulkShardRequest, repeatingRetry);
         } else {
             if (repeatingRetry) {
