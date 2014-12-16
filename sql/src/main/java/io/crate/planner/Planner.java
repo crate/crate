@@ -469,29 +469,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
     }
 
-    private void ESGet(SelectAnalyzedStatement analysis, TableInfo tableInfo, WhereClauseContext whereClauseContext, Plan plan) {
-        String indexName;
-        if (tableInfo.isPartitioned()) {
-            assert whereClauseContext.whereClause().partitions().size() == 1 : "ambiguous partitions for ESGet";
-            indexName = whereClauseContext.whereClause().partitions().get(0);
-        } else {
-            indexName = tableInfo.ident().name();
-        }
-        ESGetNode getNode = new ESGetNode(
-                indexName,
-                unwrap(analysis.outputSymbols()),
-                analysis.outputTypes(),
-                whereClauseContext.ids(),
-                whereClauseContext.routingValues(),
-                unwrap(analysis.orderBy().orderBySymbols()),
-                analysis.orderBy().reverseFlags(),
-                analysis.orderBy().nullsFirst(),
-                analysis.limit(),
-                analysis.offset(),
-                tableInfo.partitionedByColumns());
-        plan.add(getNode);
-    }
-
     private void normalSelect(SelectAnalyzedStatement analysis,
                               TableInfo tableInfo,
                               WhereClauseContext whereClauseContext,
@@ -1144,14 +1121,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                                         "if the statement does some sort of aggregation");
                     }
 
-                    if (whereClauseContext.ids().size() > 0
-                            && whereClauseContext.routingValues().size() > 0
-                            && !tableInfo.isAlias()) {
-                        assert !context.indexWriterProjection.isPresent() : "shouldn't use ESGet with indexWriterProjection";
-                        ESGet(statement, tableInfo, whereClauseContext, plan);
-                    } else {
-                        queryThenFetch(statement, tableInfo, whereClauseContext, plan, context);
-                    }
+                    queryThenFetch(statement, tableInfo, whereClauseContext, plan, context);
                 } else {
                     normalSelect(statement, tableInfo, whereClauseContext, plan, context);
                 }
@@ -1183,3 +1153,4 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
     }
 }
+

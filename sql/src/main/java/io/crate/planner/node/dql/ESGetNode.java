@@ -23,8 +23,13 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.RelationVisitor;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Symbol;
 import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
@@ -32,7 +37,7 @@ import org.elasticsearch.common.Nullable;
 import java.util.List;
 
 
-public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
+public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode, PlannedAnalyzedRelation {
 
     private final String index;
     private final List<String> ids;
@@ -122,5 +127,26 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
                 .add("outputs", outputs)
                 .add("partitionBy", partitionBy)
                 .toString();
+    }
+
+    @Override
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
+        return visitor.visitPlanedAnalyzedRelation(this, context);
+    }
+
+    @javax.annotation.Nullable
+    @Override
+    public Field getField(ColumnIdent path) {
+        throw new UnsupportedOperationException("getField is not supported on ESGetNode");
+    }
+
+    @Override
+    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getWritableField is not supported on ESGetNode");
+    }
+
+    @Override
+    public List<Field> fields() {
+        throw new UnsupportedOperationException("fields is not supported on ESGetNode");
     }
 }

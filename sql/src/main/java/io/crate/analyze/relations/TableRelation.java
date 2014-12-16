@@ -186,7 +186,7 @@ public class TableRelation implements AnalyzedRelation {
                 return field.target();
             }
             throw new IllegalArgumentException(String.format(
-                    "TableRelation %s can't resolve field of another relation", field.relation()));
+                    "TableRelation %s can't resolve field of another relation", context));
         }
 
         @Override
