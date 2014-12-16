@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Add support for user-defined schemas.
+
  - Fix: Improve Error messages on COPY TO and COPY FROM
 
  - Fix: Added comments to the logging.yml config file and reduced the
