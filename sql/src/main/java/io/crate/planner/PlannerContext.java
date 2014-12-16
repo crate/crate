@@ -44,7 +44,6 @@ public class PlannerContext {
     List<Symbol> outputs = new ArrayList<>();
     List<Symbol> originalGroupBy;
     ImmutableList.Builder<Projection> projectionBuilder;
-    Map<Symbol, Symbol> currentResolvedSymbols = new HashMap<>();
 
     public PlannerContext(int numGroupKeys, int numAggregationSteps) {
         this.numGroupKeys = numGroupKeys;
@@ -90,6 +89,5 @@ public class PlannerContext {
 
     void addResolvedSymbol(Symbol original, Symbol resolved) {
         resolvedSymbols.put(original, resolved);
-        currentResolvedSymbols.put(original, resolved);
     }
 }

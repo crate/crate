@@ -161,6 +161,7 @@ public class PlannerTest {
 
         private SchemaInfo mockSysSchemaInfo() {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.name()).thenReturn(SysSchemaInfo.NAME);
 
             TableInfo sysClusterTableInfo = TestingTableInfo.builder(
                     SysClusterTableInfo.IDENT,
@@ -168,21 +169,21 @@ public class PlannerTest {
                     // here we want a table with handlerSideRouting and DOC granularity.
                     RowGranularity.DOC,
                     SysClusterTableInfo.ROUTING
-            ).add("name", DataTypes.STRING, null).build();
+            ).add("name", DataTypes.STRING, null).schemainfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysClusterTableInfo.ident().name())).thenReturn(sysClusterTableInfo);
 
             TableInfo sysNodesTableInfo = TestingTableInfo.builder(
                     SysNodesTableInfo.IDENT,
                     RowGranularity.NODE,
                     nodesRouting)
-                    .add("name", DataTypes.STRING, null).build();
+                    .add("name", DataTypes.STRING, null).schemainfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysNodesTableInfo.ident().name())).thenReturn(sysNodesTableInfo);
 
             TableInfo sysShardsTableInfo = TestingTableInfo.builder(
                     SysShardsTableInfo.IDENT,
                     RowGranularity.SHARD,
                     nodesRouting
-            ).add("id", DataTypes.INTEGER, null).build();
+            ).add("id", DataTypes.INTEGER, null).schemainfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysShardsTableInfo.ident().name())).thenReturn(sysShardsTableInfo);
             when(schemaInfo.systemSchema()).thenReturn(true);
             return schemaInfo;
@@ -1216,23 +1217,25 @@ public class PlannerTest {
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(CollectNode.class));
         CollectNode collectNode = (CollectNode)planNode;
-        assertThat(collectNode.projections().size(), is(1));
+        assertThat(collectNode.projections().size(), is(2));
         assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectNode.projections().get(1), instanceOf(FilterProjection.class));
 
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(MergeNode.class));
-        MergeNode localMergeNode = (MergeNode)planNode;
-
-        assertThat(localMergeNode.projections().size(), is(2));
-        assertThat(localMergeNode.projections().get(0), instanceOf(FilterProjection.class));
-        assertThat(localMergeNode.projections().get(1), instanceOf(TopNProjection.class));
-
-        FilterProjection filterProjection = (FilterProjection)localMergeNode.projections().get(0);
+        FilterProjection filterProjection = (FilterProjection)collectNode.projections().get(1);
         assertThat(filterProjection.requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(filterProjection.outputs().size(), is(1));
         assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
         InputColumn inputColumn = (InputColumn)filterProjection.outputs().get(0);
         assertThat(inputColumn.index(), is(0));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode localMergeNode = (MergeNode)planNode;
+
+        assertThat(localMergeNode.projections().size(), is(1));
+        assertThat(localMergeNode.projections().get(0), instanceOf(TopNProjection.class));
+
+
     }
 
     @Test

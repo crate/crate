@@ -287,4 +287,13 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         transportExecutor.exec(
             "select sum(num_docs) from sys.shards where lol='funky'");
     }
+
+    @Test
+    public void testSelectGroupByHaving() throws Exception {
+        SQLResponse response = transportExecutor.exec("select count(*) " +
+                "from sys.shards " +
+                "group by table_name " +
+                "having table_name = 'quotes'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("10\n"));
+    }
 }

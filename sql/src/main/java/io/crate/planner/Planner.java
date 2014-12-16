@@ -637,10 +637,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     private void groupBy(SelectAnalyzedStatement analysis, Plan plan, Context context) {
-        if (analysis.table().rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
-                || !requiresDistribution(analysis)) {
+        if (analysis.table().schemaInfo().systemSchema() || !requiresDistribution(analysis)) {
             logger.debug("choosing non distributed group by plan for {}", analysis);
             nonDistributedGroupBy(analysis, plan, context);
+        } else if (groupedByClusteredColumnOrPrimaryKeys(analysis)) {
+            logger.debug("choosing optimized reduce on collect group by plan for {}", analysis);
+            optimizedReduceOnCollectorGroupBy(analysis, plan, context);
         } else if (context.indexWriterProjection.isPresent()) {
             distributedWriterGroupBy(analysis, plan, context.indexWriterProjection.get());
         } else {
@@ -652,7 +654,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private boolean requiresDistribution(SelectAnalyzedStatement analysis) {
         Routing routing = analysis.table().getRouting(analysis.whereClause());
         if (!routing.hasLocations()) return false;
-        if (groupedByClusteredColumnOrPrimaryKeys(analysis)) return false;
         Map<String, Map<String, Set<Integer>>> locations = routing.locations();
         if (locations != null && locations.size() > 1) {
             return true;
@@ -692,45 +693,63 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return true;
     }
 
-    private void nonDistributedGroupBy(SelectAnalyzedStatement analysis, Plan plan, Context context) {
+    /**
+     * grouping on doc tables by clustered column or primary keys, no distribution needed
+     * only one aggregation step as the mappers (shards) have row-authority
+     *
+     * produces:
+     *
+     * SELECT:
+     *  CollectNode ( GroupProjection, [FilterProjection], [TopN] )
+     *  LocalMergeNode ( TopN )
+     *
+     * INSERT FROM QUERY:
+     *  CollectNode ( GroupProjection, [FilterProjection], [TopN] )
+     *  LocalMergeNode ( [TopN], IndexWriterProjection )
+     */
+    public void optimizedReduceOnCollectorGroupBy(SelectAnalyzedStatement analysis, Plan plan, Context context) {
+        assert groupedByClusteredColumnOrPrimaryKeys(analysis) : "not grouped by clustered column or primary keys";
         boolean ignoreSorting = context.indexWriterProjection.isPresent()
                 && analysis.limit() == null
                 && analysis.offset() == TopN.NO_OFFSET;
-        boolean groupedByClusteredPk = groupedByClusteredColumnOrPrimaryKeys(analysis);
-        int numAggregationSteps = 2;
-        if (analysis.table().rowGranularity() == RowGranularity.DOC) {
-            /**
-             * this is only the case if the group by key is the clustered by column.
-             * collectNode has row-authority and there is no need to group again on the handler node
-             */
-            numAggregationSteps = 1;
-        }
+        int numAggregationSteps = 1;
         PlannerContextBuilder contextBuilder =
                 new PlannerContextBuilder(numAggregationSteps, analysis.groupBy(), ignoreSorting)
-                .output(analysis.outputSymbols())
-                .orderBy(analysis.orderBy().orderBySymbols());
-
+                        .output(analysis.outputSymbols())
+                        .orderBy(analysis.orderBy().orderBySymbols());
         Symbol havingClause = null;
-
-        GroupProjection groupProjection =
-                new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-
-        if (groupedByClusteredPk) {
-            groupProjection.setRequiredGranularity(RowGranularity.SHARD);
+        Symbol having = analysis.havingClause();
+        if (having != null && having.symbolType() == SymbolType.FUNCTION) {
+            // extract collect symbols and such from having clause
+            havingClause = contextBuilder.having(having);
         }
 
+        // mapper / collect
         List<Symbol> toCollect = contextBuilder.toCollect();
 
+        // grouping
+        GroupProjection groupProjection =
+                new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
+        groupProjection.setRequiredGranularity(RowGranularity.SHARD);
         contextBuilder.addProjection(groupProjection);
-        TopNProjection topNReducer = null;
-        if (numAggregationSteps == 1) {
-            // only add topN on collector if we have 1 aggregation step
-            topNReducer = getTopNForReducer(analysis, contextBuilder);
-            if (topNReducer != null) {
-                topNReducer.outputs(contextBuilder.outputs());
-                contextBuilder.addProjection(topNReducer);
-            }
+
+        // optional having
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.genInputColumns(groupProjection.outputs(), groupProjection.outputs().size()));
+            fp.requiredGranularity(RowGranularity.SHARD); // running on every shard
+            contextBuilder.addProjection(fp);
         }
+
+        // use topN on collector if needed
+        TopNProjection topNReducer = getTopNForReducer(
+                analysis,
+                contextBuilder,
+                contextBuilder.outputs());
+        if (topNReducer != null) {
+            contextBuilder.addProjection(topNReducer);
+        }
+
         CollectNode collectNode = PlanNodeBuilder.collect(
                 analysis,
                 toCollect,
@@ -738,38 +757,18 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         );
         plan.add(collectNode);
 
-        contextBuilder.nextStep();
-
         // handler
-        Projection lastProjection = collectNode.finalProjection().get();
-
-        if (numAggregationSteps == 2) {
-            Projection mergeGroupProjection = new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-            contextBuilder.addProjection(mergeGroupProjection);
-            lastProjection = mergeGroupProjection;
-        }
-        Symbol having = analysis.havingClause();
-        if (having != null && having.symbolType() == SymbolType.FUNCTION) {
-            havingClause = contextBuilder.having(having);
-        }
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.genInputColumns(lastProjection.outputs(), analysis.outputSymbols().size()));
-            if (groupedByClusteredPk) {
-                fp.requiredGranularity(RowGranularity.SHARD);
-            }
-            contextBuilder.addProjection(fp);
-        }
         if (!ignoreSorting) {
-            List<Symbol> outputs;
             List<Symbol> orderBy;
-            if (topNReducer != null) {
-                orderBy = contextBuilder.passThroughOrderBy();
-                outputs = contextBuilder.passThroughOutputs();
-            } else {
+            List<Symbol> outputs;
+            if (topNReducer == null) {
                 orderBy = contextBuilder.orderBy();
                 outputs = contextBuilder.outputs();
+            } else {
+                orderBy = contextBuilder.passThroughOrderBy();
+                outputs = contextBuilder.passThroughOutputs();
             }
+
             TopNProjection topN = new TopNProjection(
                     firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                     analysis.offset(),
@@ -787,15 +786,87 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     /**
+     * Group by on System Tables (never needs distribution)
+     * or Group by on user tables (RowGranulariy.DOC) with only one node.
+     *
+     * produces:
+     *
+     * SELECT:
+     *  Collect ( GroupProjection ITER -> PARTIAL )
+     *  LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
+     *
+     * INSERT FROM QUERY:
+     *  Collect ( GroupProjection ITER -> PARTIAL )
+     *  LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], [TopN], IndexWriterProjection )
+     */
+    private void nonDistributedGroupBy(SelectAnalyzedStatement analysis, Plan plan, Context context) {
+        boolean ignoreSorting = context.indexWriterProjection.isPresent()
+                && analysis.limit() == null
+                && analysis.offset() == TopN.NO_OFFSET;
+
+        int numAggregationSteps = 2;
+
+        PlannerContextBuilder contextBuilder =
+                new PlannerContextBuilder(numAggregationSteps, analysis.groupBy(), ignoreSorting)
+                .output(analysis.outputSymbols())
+                .orderBy(analysis.orderBy().orderBySymbols());
+
+        Symbol havingClause = null;
+        Symbol having = analysis.havingClause();
+        if (having != null && having.symbolType() == SymbolType.FUNCTION) {
+            // extract collect symbols and such from having clause
+            havingClause = contextBuilder.having(having);
+        }
+
+        // mapper / collect
+        GroupProjection groupProjection =
+                new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
+        contextBuilder.addProjection(groupProjection);
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                analysis,
+                contextBuilder.toCollect(),
+                contextBuilder.getAndClearProjections()
+        );
+        plan.add(collectNode);
+
+        // handler
+        contextBuilder.nextStep();
+        Projection handlerGroupProjection = new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
+        contextBuilder.addProjection(handlerGroupProjection);
+        if (havingClause != null) {
+            FilterProjection fp = new FilterProjection((Function)havingClause);
+            fp.outputs(contextBuilder.genInputColumns(handlerGroupProjection.outputs(), handlerGroupProjection.outputs().size()));
+            contextBuilder.addProjection(fp);
+        }
+        if (!ignoreSorting) {
+            TopNProjection topN = new TopNProjection(
+                    firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    analysis.offset(),
+                    contextBuilder.orderBy(),
+                    analysis.orderBy().reverseFlags(),
+                    analysis.orderBy().nullsFirst()
+            );
+            topN.outputs(contextBuilder.outputs());
+            contextBuilder.addProjection(topN);
+        }
+        if (context.indexWriterProjection.isPresent()) {
+            contextBuilder.addProjection(context.indexWriterProjection.get());
+        }
+        plan.add(PlanNodeBuilder.localMerge(contextBuilder.getAndClearProjections(), collectNode));
+    }
+
+    /**
      * returns a topNProjection intended for the reducer in a group by query.
      *
      * result will be null if topN on reducer is not needed or possible.
      *
      * the limit given to the topN projection will be limit + offset because there will be another
+     * @param outputs list of outputs to add to the topNProjection if applicable.
      */
     @Nullable
     private TopNProjection getTopNForReducer(SelectAnalyzedStatement analysis,
-                                             PlannerContextBuilder contextBuilder) {
+                                             PlannerContextBuilder contextBuilder,
+                                             List<Symbol> outputs) {
         if (requireLimitOnReducer(analysis, contextBuilder.aggregationsWrappedInScalar)) {
             TopNProjection topN = new TopNProjection(
                     firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
@@ -804,6 +875,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     analysis.orderBy().reverseFlags(),
                     analysis.orderBy().nullsFirst()
             );
+            topN.outputs(outputs);
             return topN;
         }
         return null;
@@ -873,9 +945,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             fp.outputs(contextBuilder.genInputColumns(collectNode.finalProjection().get().outputs(), analysis.outputSymbols().size()));
             contextBuilder.addProjection(fp);
         }
-        TopNProjection topNForReducer = getTopNForReducer(analysis, contextBuilder);
+        TopNProjection topNForReducer = getTopNForReducer(analysis, contextBuilder, contextBuilder.outputs());
         if (topNForReducer != null) {
-            topNForReducer.outputs(contextBuilder.outputs());
             contextBuilder.addProjection(topNForReducer);
         }
 
