@@ -23,6 +23,7 @@ package io.crate.analyze.expressions;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -55,7 +56,6 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 import static io.crate.planner.symbol.Literal.newLiteral;
-import static io.crate.planner.symbol.Field.unwrap;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -477,7 +477,8 @@ public class ExpressionAnalyzer {
         protected Symbol visitComparisonExpression(ComparisonExpression node, ExpressionAnalysisContext context) {
             Symbol left = process(node.getLeft(), context);
             Symbol right = process(node.getRight(), context);
-            if (unwrap(left).symbolType() == SymbolType.DYNAMIC_REFERENCE || unwrap(right).symbolType() == SymbolType.DYNAMIC_REFERENCE) {
+
+            if (left.valueType().equals(DataTypes.UNDEFINED) || right.valueType().equals(DataTypes.UNDEFINED)) {
                 return Literal.NULL;
             }
             Comparison comparison = new Comparison(node.getType(), left, right);
@@ -491,19 +492,24 @@ public class ExpressionAnalyzer {
          * Validates comparison of system columns like e.g. '_score'.
          * Must be called AFTER comparison normalization.
          */
-        protected void validateSystemColumnComparison(Comparison comparison) {
-            Symbol unwrapped = unwrap(comparison.left);
-            if (unwrapped instanceof Reference) {
-                Reference reference = (Reference) unwrapped;
-                // _score column can only be used by > comparator
-                if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)
-                        && (comparison.comparisonExpressionType != ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
-                        || insideNotPredicate)) {
-                    throw new UnsupportedOperationException(
-                            String.format(Locale.ENGLISH,
-                                    "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
-                                    _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()));
+        protected void validateSystemColumnComparison(final Comparison comparison) {
+            Predicate<Symbol> invalidScoreComparison = new Predicate<Symbol>() {
+                @Override
+                public boolean apply(@Nullable Symbol input) {
+                    if (input instanceof Reference) {
+                        Reference ref = (Reference) input;
+                        return ref.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)
+                                && (comparison.comparisonExpressionType != ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
+                                || insideNotPredicate);
+                    }
+                    return false;
                 }
+            };
+            if (Field.symbolOrTarget(comparison.left, invalidScoreComparison)) {
+                throw new UnsupportedOperationException(
+                        String.format(Locale.ENGLISH,
+                                "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
+                                _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()));
             }
         }
 
@@ -511,15 +517,16 @@ public class ExpressionAnalyzer {
          * Validates usage of system columns (e.g. '_score') within predicates.
          */
         protected void validateSystemColumnPredicate(Symbol node) {
-            Symbol symbol = unwrap(node);
-            if (symbol.symbolType() == SymbolType.REFERENCE) {
-                Reference reference = (Reference) symbol;
-                if (reference.info().ident().columnIdent().name().equalsIgnoreCase(_SCORE)) {
-                    throw new UnsupportedOperationException(
-                            String.format(Locale.ENGLISH,
-                                    "System column '%s' cannot be used within a predicate", _SCORE));
+            if (Field.symbolOrTarget(node, new Predicate<Symbol>() {
+                @Override
+                public boolean apply(@Nullable Symbol input) {
+                    return input instanceof Reference
+                            && ((Reference) input).info().ident().columnIdent().name().equalsIgnoreCase(_SCORE);
                 }
-            }
+            })) {
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                        "System column '%s' cannot be used within a predicate", _SCORE));
+                }
         }
 
         @Override
@@ -578,7 +585,7 @@ public class ExpressionAnalyzer {
 
             DataType leftInnerType = ((CollectionType) leftType).innerType();
             if (leftInnerType.id() != StringType.ID) {
-                if (!(unwrap(left) instanceof Reference)) {
+                if (!(left instanceof Field)) {
                     left = normalizeInputForType(left, new ArrayType(DataTypes.STRING));
                 } else {
                     throw new IllegalArgumentException(
@@ -606,14 +613,13 @@ public class ExpressionAnalyzer {
             }
 
             Symbol expressionSymbol = process(node.getValue(), context);
-            Symbol unwrappedExpressionSymbol = unwrap(expressionSymbol);
             Symbol patternSymbol = process(node.getPattern(), context);
 
             // handle possible parameter for expression
             // try implicit conversion
-            if (!(unwrappedExpressionSymbol instanceof Reference)) {
+            if (!(expressionSymbol instanceof Field)) {
                 try {
-                    expressionSymbol = normalizeInputForType(unwrappedExpressionSymbol, StringType.INSTANCE);
+                    expressionSymbol = normalizeInputForType(expressionSymbol, StringType.INSTANCE);
                 } catch (IllegalArgumentException | UnsupportedOperationException e) {
                     throw new UnsupportedOperationException("<expression> LIKE <pattern>: expression couldn't be implicitly casted to string. Try to explicitly cast to string.");
                 }
@@ -622,8 +628,8 @@ public class ExpressionAnalyzer {
             DataType expressionType = expressionSymbol.valueType();
             DataType patternType;
             try {
-                if (unwrappedExpressionSymbol instanceof Reference) {
-                    patternSymbol = normalizeInputForReference(patternSymbol, (Reference) unwrappedExpressionSymbol);
+                if (expressionSymbol instanceof Field) {
+                    patternSymbol = normalizeInputForReference(patternSymbol, (Reference) ((Field) expressionSymbol).target());
                     patternType = patternSymbol.valueType();
                 } else {
                     patternSymbol = normalizeInputForType(patternSymbol, DataTypes.STRING);
@@ -657,7 +663,7 @@ public class ExpressionAnalyzer {
             Symbol value = process(node.getValue(), context);
 
             // currently there will be no result for dynamic references, so return here
-            if (unwrap(value).symbolType() == SymbolType.DYNAMIC_REFERENCE) {
+            if (!value.symbolType().isValueSymbol() && value.valueType().equals(DataTypes.UNDEFINED)) {
                 return Literal.NULL;
             }
             validateSystemColumnPredicate(value);
@@ -779,7 +785,10 @@ public class ExpressionAnalyzer {
 
             Map<String, Object> identBoostMap = new HashMap<>();
             for (MatchPredicateColumnIdent ident : node.idents()) {
-                Symbol reference = unwrap(process(ident.columnIdent(), context));
+                Symbol reference = process(ident.columnIdent(), context);
+                if (reference instanceof Field) {
+                    reference = ((Field) reference).target();
+                }
                 Preconditions.checkArgument(
                         reference instanceof Reference,
                         SymbolFormatter.format("can only MATCH on references, not on %s", reference)

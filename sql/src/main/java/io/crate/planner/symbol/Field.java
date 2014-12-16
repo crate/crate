@@ -22,6 +22,7 @@
 package io.crate.planner.symbol;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Predicate;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.types.DataType;
@@ -136,6 +137,12 @@ public class Field extends Symbol {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(Field.class).add("target", target).add("relation", relation).toString();
+    }
+
+    @Deprecated
+    public static boolean symbolOrTarget(Symbol left, Predicate<Symbol> dynamicReferencePredicate) {
+        return dynamicReferencePredicate.apply(left) ||
+                (left instanceof Field && dynamicReferencePredicate.apply(((Field) left).target()));
     }
 
     private static class UnwrappingVisitor extends SymbolVisitor<Void, Symbol>

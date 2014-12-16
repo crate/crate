@@ -1324,7 +1324,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(havingFunction.arguments().get(0), isFunction("max"));
         Function maxFunction = (Function)havingFunction.arguments().get(0);
 
-        assertThat(maxFunction.arguments().get(0), isReference("bytes"));
+        assertThat(unwrap(maxFunction.arguments().get(0)), isReference("bytes"));
         TestingHelpers.assertLiteralSymbol(havingFunction.arguments().get(1), (byte) 4, DataTypes.BYTE);
     }
 
