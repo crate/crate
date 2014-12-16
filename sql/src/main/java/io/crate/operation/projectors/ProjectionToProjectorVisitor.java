@@ -166,7 +166,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
             StringBuilder sb = new StringBuilder(uri);
             Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME);
             assert resolvedFileName instanceof Literal;
-            assert ((Literal)resolvedFileName).valueType() == StringType.INSTANCE;
+            assert resolvedFileName.valueType() == StringType.INSTANCE;
             String fileName = StringValueSymbolVisitor.INSTANCE.process(resolvedFileName);
             if (!uri.endsWith("/")) {
                 sb.append("/");

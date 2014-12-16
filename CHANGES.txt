@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Improve Error messages on COPY TO and COPY FROM
+
  - Fix: Added comments to the logging.yml config file and reduced the
    amount of log entries by changing the loglevel of some log messages
 
