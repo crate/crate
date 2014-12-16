@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/12/16 0.45.6
+=================
+
  - Fix: Improve Error messages on COPY TO and COPY FROM
 
  - Fix: correctly plan group by queries using HAVING clause
