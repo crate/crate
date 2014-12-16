@@ -1097,6 +1097,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         @Override
         public Plan visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Context context) {
+            /**
+             * in case of insert from query the indexWriterProjection is set.
+             * New consumingPlanner will handle Insert-From-Query differently and therefore can't handle the
+             * indexWriterProjection so if it is set fallback to old planner logic
+             */
             if (!context.indexWriterProjection.isPresent()) {
                 ConsumingPlanner consumingPlanner = new ConsumingPlanner(analysisMetaData);
                 Plan plan = consumingPlanner.plan(statement);

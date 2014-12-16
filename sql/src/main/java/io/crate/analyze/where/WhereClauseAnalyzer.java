@@ -60,7 +60,7 @@ public class WhereClauseAnalyzer {
         if (whereClause.noMatch() || !whereClause.hasQuery()) {
             return new WhereClauseContext(whereClause);
         }
-        whereClause = tableRelation.normalizeWhereClause(whereClause);
+        whereClause = tableRelation.resolve(whereClause);
         WhereClauseContext whereClauseContext = new WhereClauseContext(whereClause);
         PrimaryKeyVisitor.Context ctx = PRIMARY_KEY_VISITOR.process(tableInfo, whereClause.query());
         if (ctx != null) {

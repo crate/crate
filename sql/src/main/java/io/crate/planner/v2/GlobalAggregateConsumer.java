@@ -22,7 +22,6 @@
 package io.crate.planner.v2;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -39,11 +38,9 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class GlobalAggregateConsumer implements Consumer {
 
@@ -70,29 +67,23 @@ public class GlobalAggregateConsumer implements Consumer {
             if (selectAnalyzedStatement.hasGroupBy() || !selectAnalyzedStatement.hasAggregates()) {
                 return null;
             }
-            Map<QualifiedName, AnalyzedRelation> sources = selectAnalyzedStatement.sources();
-            if (sources.size() != 1) {
+            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(selectAnalyzedStatement.sources());
+            if (tableRelation == null) {
                 return null;
             }
-            AnalyzedRelation sourceRelation = Iterables.getOnlyElement(sources.values());
-            if (!(sourceRelation instanceof TableRelation)) {
-                return null;
-            }
-
-            TableRelation tableRelation = (TableRelation) sourceRelation;
             PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2)
-                    .output(tableRelation.normalizeOutputs(selectAnalyzedStatement.outputSymbols()));
+                    .output(tableRelation.resolve(selectAnalyzedStatement.outputSymbols()));
 
             Symbol havingClause = null;
             Symbol having = selectAnalyzedStatement.havingClause();
             if (having != null && having instanceof Function) {
-                havingClause = contextBuilder.having(tableRelation.normalize(having));
+                havingClause = contextBuilder.having(tableRelation.resolve(having));
             }
 
             AggregationProjection aggregationProjection = new AggregationProjection(contextBuilder.aggregations());
             CollectNode collectNode = PlanNodeBuilder.collect(
                     tableRelation.tableInfo(),
-                    tableRelation.normalizeWhereClause(selectAnalyzedStatement.whereClause()),
+                    tableRelation.resolve(selectAnalyzedStatement.whereClause()),
                     contextBuilder.toCollect(),
                     ImmutableList.<Projection>of(aggregationProjection)
             );

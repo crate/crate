@@ -34,6 +34,7 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class TableRelation implements AnalyzedRelation {
@@ -49,6 +50,7 @@ public class TableRelation implements AnalyzedRelation {
 
     private TableInfo tableInfo;
     private List<Field> outputs;
+    private final static FieldUnwrappingVisitor FIELD_UNWRAPPING_VISITOR = new FieldUnwrappingVisitor();
 
     public TableRelation(TableInfo tableInfo) {
         this.tableInfo = tableInfo;
@@ -156,11 +158,48 @@ public class TableRelation implements AnalyzedRelation {
         return tableInfo.hashCode();
     }
 
-    public WhereClause normalizeWhereClause(WhereClause whereClause) {
-        return Field.unwrap(whereClause);
+    public WhereClause resolve(WhereClause whereClause) {
+        if (whereClause.hasQuery()) {
+            return new WhereClause(resolve(whereClause.query()));
+        }
+        return whereClause;
     }
 
-    public List<Symbol> normalizeOutputs(List<Symbol> symbols) {
-        return Field.unwrap(symbols);
+    public Symbol resolve(Symbol symbol) {
+        assert symbol != null : "can't resolve symbol that is null";
+        return FIELD_UNWRAPPING_VISITOR.process(symbol, this);
+    }
+
+    public List<Symbol> resolve(Collection<? extends Symbol> symbols) {
+        List<Symbol> result = new ArrayList<>(symbols.size());
+        for (Symbol symbol : symbols) {
+            result.add(resolve(symbol));
+        }
+        return result;
+    }
+
+    private static class FieldUnwrappingVisitor extends SymbolVisitor<AnalyzedRelation, Symbol> {
+
+        @Override
+        public Symbol visitField(Field field, AnalyzedRelation context) {
+            if (field.relation() == context) {
+                return field.target();
+            }
+            throw new IllegalArgumentException(String.format(
+                    "TableRelation %s can't resolve field of another relation", field.relation()));
+        }
+
+        @Override
+        public Symbol visitFunction(Function symbol, AnalyzedRelation context) {
+            for (int i = 0; i < symbol.arguments().size(); i++) {
+                symbol.setArgument(i, process(symbol.arguments().get(i), context));
+            }
+            return symbol;
+        }
+
+        @Override
+        protected Symbol visitSymbol(Symbol symbol, AnalyzedRelation context) {
+            return symbol;
+        }
     }
 }

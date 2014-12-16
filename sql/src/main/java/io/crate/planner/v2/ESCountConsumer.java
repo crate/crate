@@ -21,7 +21,6 @@
 
 package io.crate.planner.v2;
 
-import com.google.common.collect.Iterables;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -36,10 +35,8 @@ import io.crate.planner.Planner;
 import io.crate.planner.node.dql.ESCountNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.QualifiedName;
 
 import java.util.List;
-import java.util.Map;
 
 public class ESCountConsumer implements Consumer {
 
@@ -72,18 +69,13 @@ public class ESCountConsumer implements Consumer {
             if (!selectAnalyzedStatement.hasAggregates() || selectAnalyzedStatement.hasGroupBy()) {
                 return null;
             }
-            Map<QualifiedName, AnalyzedRelation> sources = selectAnalyzedStatement.sources();
-            if (sources.size() != 1) {
-                return null;
-            }
             if (selectAnalyzedStatement.hasSysExpressions()) {
                 return null;
             }
-            AnalyzedRelation sourceRelation = Iterables.getOnlyElement(sources.values());
-            if (!(sourceRelation instanceof TableRelation)) {
+            TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(selectAnalyzedStatement.sources());
+            if (tableRelation == null) {
                 return null;
             }
-            TableRelation tableRelation = (TableRelation) sourceRelation;
             TableInfo tableInfo = tableRelation.tableInfo();
             if (tableInfo.schemaInfo().systemSchema()) {
                 return null;
