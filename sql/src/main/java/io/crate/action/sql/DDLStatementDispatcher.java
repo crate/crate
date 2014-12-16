@@ -28,7 +28,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.AlterTableAliasException;
@@ -183,7 +183,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
         final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
 
         if (updateTemplate) {
-            String templateName = PartitionName.templateName(analysis.table().ident().name());
+            String templateName = PartitionName.templateName(analysis.table().ident().schema(), analysis.table().ident().name());
             IndexTemplateMetaData indexTemplateMetaData =
                     clusterService.state().metaData().templates().get(templateName);
             if (indexTemplateMetaData == null) {
@@ -310,7 +310,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
                 indexNames = new String[] { partitionName.stringValue() };
             }
         } else {
-            indexNames = new String[] { tableInfo.ident().name() };
+            indexNames = new String[] { tableInfo.ident().esName() };
         }
         return indexNames;
     }
@@ -378,11 +378,11 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
                         tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
             }
         } else {
-           indices = new String[]{ analysis.table().ident().name() };
+           indices = new String[]{ analysis.table().ident().esName() };
         }
 
         if (analysis.table().isAlias()) {
-            throw new AlterTableAliasException(analysis.table().ident().name());
+            throw new AlterTableAliasException(analysis.table().ident().fqn());
         }
 
         final List<ListenableFuture<?>> results = new ArrayList<>(
@@ -393,7 +393,7 @@ public class DDLStatementDispatcher extends AnalyzedStatementVisitor<Void, Liste
             results.add(templateFuture);
 
             // update template
-            final String templateName = PartitionName.templateName(analysis.table().ident().name());
+            final String templateName = PartitionName.templateName(analysis.table().ident().schema(), analysis.table().ident().name());
             GetIndexTemplatesRequest getRequest = new GetIndexTemplatesRequest(templateName);
 
             transportActionProvider.transportGetIndexTemplatesAction().execute(getRequest, new ActionListener<GetIndexTemplatesResponse>() {

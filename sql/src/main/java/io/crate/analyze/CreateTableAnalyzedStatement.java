@@ -21,7 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
+import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ColumnIdent;
@@ -58,9 +59,9 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
             // is it an orphaned alias? allow it,
             // as it will be deleted before the actual table creation
             if (!isOrphanedAlias(existingTable)) {
-                throw new TableAlreadyExistsException(existingTable.ident().name());
+                throw new TableAlreadyExistsException(existingTable.ident().fqn());
             }
-        } catch (TableUnknownException e) {
+        } catch (TableUnknownException | SchemaUnknownException e) {
             // ok, that is expected
         }
         super.table(tableIdent); // name validated here
@@ -81,7 +82,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
             boolean isPartitionAlias = true;
             for (String index : table.concreteIndices()) {
-                if (!PartitionName.isPartition(index, table.ident().name())) {
+                if (!PartitionName.isPartition(index, table.ident().schema(), table.ident().name())) {
                     isPartitionAlias = false;
                     break;
                 }
@@ -117,7 +118,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
      */
     public @Nullable String templateName() {
         if (isPartitioned()) {
-            return PartitionName.templateName(tableIdent().name());
+            return PartitionName.templateName(tableIdent().schema(), tableIdent().name());
         }
         return null;
     }

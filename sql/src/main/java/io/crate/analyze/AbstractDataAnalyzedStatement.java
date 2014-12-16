@@ -94,7 +94,7 @@ public abstract class AbstractDataAnalyzedStatement extends AnalyzedStatement {
         }
         TableInfo tableInfo = referenceInfos.getTableInfo(tableIdent);
         if (tableInfo == null) {
-            throw new TableUnknownException(tableIdent.name());
+            throw new TableUnknownException(tableIdent.fqn());
         }
         // if we have a system schema, queries require scalar functions, since those are not using lucene
         onlyScalarsAllowed = schemaInfo.systemSchema();

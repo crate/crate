@@ -24,6 +24,19 @@ iterate over all rows of all partitions.
 Deletion is faster too if you delete whole partitions at once,
 as a whole table can be deleted and no expensive query is involved.
 
+.. note::
+
+   Keep in mind that the values of the columns used for
+   partitioning are internally base32 encoded into the partition name
+   (which is a own table). So for every partition, the partition table
+   name includes:
+   ``(optional)schema_name + table_name + base32 encoded partition
+   column value(s) + an internal overhead of 14 bytes``
+
+   Alltogether this must not exceed the 255 bytes length
+   limitation. See :ref:`sql_ddl_naming_restrictions`.
+
+
 Creation
 ========
 

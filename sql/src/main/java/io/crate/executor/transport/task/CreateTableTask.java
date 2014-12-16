@@ -23,7 +23,7 @@ package io.crate.executor.transport.task;
 
 import com.google.common.base.Joiner;
 import io.crate.Constants;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.TaskExecutionException;
 import io.crate.executor.TaskResult;
@@ -72,7 +72,7 @@ public class CreateTableTask extends AbstractChainedTask {
     }
 
     private CreateIndexRequest createIndexRequest() {
-        return new CreateIndexRequest(planNode.tableName(), planNode.settings())
+        return new CreateIndexRequest(planNode.tableIdent().esName(), planNode.settings())
                 .mapping(Constants.DEFAULT_MAPPING_TYPE, planNode.mapping());
     }
 
@@ -82,7 +82,7 @@ public class CreateTableTask extends AbstractChainedTask {
                 .create(true)
                 .settings(planNode.settings())
                 .template(planNode.templateIndexMatch().get())
-                .alias(new Alias(planNode.tableName()));
+                .alias(new Alias(planNode.tableIdent().esName()));
     }
 
     private void createTable() {
@@ -91,7 +91,7 @@ public class CreateTableTask extends AbstractChainedTask {
                 @Override
                 public void onResponse(PutIndexTemplateResponse response) {
                     if (!response.isAcknowledged()) {
-                        warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", planNode.tableName()));
+                        warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", planNode.tableIdent().fqn()));
                     }
                     result.set(SUCCESS_RESULT);
                 }
@@ -106,7 +106,7 @@ public class CreateTableTask extends AbstractChainedTask {
                 @Override
                 public void onResponse(CreateIndexResponse response) {
                     if (!response.isAcknowledged()) {
-                        warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", planNode.tableName()));
+                        warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", planNode.tableIdent().fqn()));
                     }
                     result.set(SUCCESS_RESULT);
                 }
@@ -133,13 +133,14 @@ public class CreateTableTask extends AbstractChainedTask {
 
 
     private void deleteOrphans(final CreateTableResponseListener listener) {
-        if (clusterService.state().metaData().aliases().containsKey(planNode.tableName())
+        if (clusterService.state().metaData().aliases().containsKey(planNode.tableIdent().fqn())
                 && PartitionName.isPartition(
-                clusterService.state().metaData().aliases().get(planNode.tableName()).keysIt().next(),
-                planNode.tableName())
+                clusterService.state().metaData().aliases().get(planNode.tableIdent().fqn()).keysIt().next(),
+                planNode.tableIdent().schema(),
+                planNode.tableIdent().name())
                 ) {
-            logger.debug("Deleting orphaned partitions with alias: {}", planNode.tableName());
-            deleteIndexAction.execute(new DeleteIndexRequest(planNode.tableName()), new ActionListener<DeleteIndexResponse>() {
+            logger.debug("Deleting orphaned partitions with alias: {}", planNode.tableIdent().fqn());
+            deleteIndexAction.execute(new DeleteIndexRequest(planNode.tableIdent().fqn()), new ActionListener<DeleteIndexResponse>() {
                 @Override
                 public void onResponse(DeleteIndexResponse response) {
                     if (!response.isAcknowledged()) {
@@ -166,7 +167,7 @@ public class CreateTableTask extends AbstractChainedTask {
      * should never delete partitions of existing partitioned tables
      */
     private void deleteOrphanedPartitions(final CreateTableResponseListener listener) {
-        String partitionWildCard = PartitionName.templateName(planNode.tableName()) + "*";
+        String partitionWildCard = PartitionName.templateName(planNode.tableIdent().schema(), planNode.tableIdent().name()) + "*";
         String[] orphans = clusterService.state().metaData().concreteIndices(
                 new String[]{partitionWildCard});
         if (orphans.length > 0) {

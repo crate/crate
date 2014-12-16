@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
@@ -35,6 +36,7 @@ import io.crate.exceptions.*;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
@@ -47,6 +49,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
@@ -54,6 +57,7 @@ import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.InvalidIndexNameException;
+import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeDisconnectedException;
@@ -268,10 +272,13 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         } else if ((e instanceof InvalidIndexNameException)) {
             if (e.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
-                return new TableAlreadyExistsException(((InvalidIndexNameException)e).index().getName(),
+                return new TableAlreadyExistsException(((InvalidIndexNameException) e).index().getName(),
                         e);
             }
             return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
+        } else if (e instanceof InvalidIndexTemplateException) {
+            Tuple<String, String> schemaAndTable = PartitionName.schemaAndTableName(((InvalidIndexTemplateException) e).name());
+            return new InvalidTableNameException(new TableIdent(schemaAndTable.v1(), schemaAndTable.v2()).fqn(), e);
         } else if (e instanceof IndexMissingException) {
             return new TableUnknownException(((IndexMissingException)e).index().name(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {

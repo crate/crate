@@ -22,7 +22,7 @@
 package io.crate.metadata.doc;
 
 import io.crate.Constants;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;
@@ -72,23 +72,23 @@ public class DocTableInfoBuilder {
 
     public DocIndexMetaData docIndexMetaData() {
         DocIndexMetaData docIndexMetaData;
-        String templateName = PartitionName.templateName(ident.name());
+        String templateName = PartitionName.templateName(ident.schema(), ident.name());
         boolean createdFromTemplate = false;
         if (metaData.getTemplates().containsKey(templateName)) {
-            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.name(), templateName);
+            docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.esName(), templateName);
             createdFromTemplate = true;
             try {
-                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.name());
+                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.esName());
             } catch(IndexMissingException e) {
                 // no partition created yet
                 concreteIndices = new String[]{};
             }
         } else {
             try {
-                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.name());
+                concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.esName());
                 docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
             } catch (IndexMissingException ex) {
-                throw new TableUnknownException(ident.name(), ex);
+                throw new TableUnknownException(ident.fqn(), ex);
             }
         }
 
@@ -144,13 +144,13 @@ public class DocTableInfoBuilder {
         List<PartitionName> partitions = new ArrayList<>();
         if (md.partitionedBy().size() > 0) {
             for(String index : concreteIndices) {
-                if (PartitionName.isPartition(index, ident.name())) {
+                if (PartitionName.isPartition(index, ident.schema(), ident.name())) {
                     try {
-                        PartitionName partitionName = PartitionName.fromString(index, ident.name());
+                        PartitionName partitionName = PartitionName.fromString(index, ident.schema(), ident.name());
                         partitions.add(partitionName);
                     } catch (IllegalArgumentException e) {
                         // ignore
-                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", index, ident.name()));
+                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", index, ident.esName()));
                     }
                 }
             }

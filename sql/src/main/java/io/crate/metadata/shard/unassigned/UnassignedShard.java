@@ -1,13 +1,15 @@
 package io.crate.metadata.shard.unassigned;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.doc.DocSchemaInfo;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.index.shard.ShardId;
+
+import java.util.regex.Matcher;
 
 public class UnassignedShard {
 
@@ -30,20 +32,25 @@ public class UnassignedShard {
         String index = shardId.index().name();
         boolean isBlobIndex = BlobIndices.isBlobIndex(index);
         String tableName;
+        String ident = "";
         if (isBlobIndex) {
             this.schemaName = BlobSchemaInfo.NAME;
             tableName = BlobIndices.stripPrefix.apply(index);
-        } else {
-            this.schemaName = DocSchemaInfo.NAME;
-            tableName = index;
-        }
-
-        String ident = "";
-        if (PartitionName.isPartition(index)) {
+        } else if (PartitionName.isPartition(index)) {
+            schemaName = PartitionName.schemaName(index);
             tableName = PartitionName.tableName(index);
             ident = PartitionName.ident(index);
             if (!clusterService.state().metaData().hasConcreteIndex(tableName)) {
                 orphanedPartition = true;
+            }
+        } else {
+            Matcher matcher = ReferenceInfos.SCHEMA_PATTERN.matcher(index);
+            if (matcher.matches()) {
+                this.schemaName = matcher.group(1);
+                tableName = matcher.group(2);
+            } else {
+                this.schemaName = ReferenceInfos.DEFAULT_SCHEMA_NAME;
+                tableName = index;
             }
         }
 

@@ -11,7 +11,7 @@ Table Basics
 
 To create a table use the ``CREATE TABLE`` command. You must at least specify a name for the
 table and names and types of the columns.
-See `Data Types` for information about the supported data types.
+See :ref:`sql_ddl_datatypes` for information about the supported data types.
 
 Let's create a simple table with two columns of type ``integer`` and ``string``::
 
@@ -26,9 +26,98 @@ A table can be removed by using the ``DROP TABLE`` command::
     cr> drop table my_table;
     DROP OK (... sec)
 
-Table and column identifiers cannot have the same names as reserved key words.
-Please refer to the :doc:`reference/lexical_structure` section for more information
-about naming.
+
+Schemas
+-------
+
+Tables can be created in different schemas. These are created implicitly on
+table creation and cannot be created explicitly. If a schema did not exist yet,
+it will be created::
+
+    cr> create table my_schema.my_table (
+    ...   pk int primary key,
+    ...   label string,
+    ...   position geo_point
+    ... );
+    CREATE OK (... sec)
+
+::
+
+    cr> select schema_name, table_name from information_schema.tables
+    ... where table_name='my_table';
+    +-------------+------------+
+    | schema_name | table_name |
+    +-------------+------------+
+    | my_schema   | my_table   |
+    +-------------+------------+
+    SELECT 1 row in set (... sec)
+
+The following schema names are reserved and may not be used:
+
+        * blob
+        * information_schema
+        * sys
+
+.. note::
+
+   Schemas are primarily namespaces for tables. There is no notion of
+   access control. Everybody can see and manipulate tables in every schema.
+
+A user created schema exists as long as there are tables with the same
+schema name. If the last table with that schema is dropped,
+the schema is gone (except for the ``blob`` and ``doc`` schema)::
+
+    cr> drop table my_schema.my_table ;
+    DROP OK (... sec)
+
+Every table that is created without an explicit schema name, will be created in
+the ``doc`` schema::
+
+    cr> create table my_doc_table (
+    ...   a_column byte,
+    ...   another_one geo_point
+    ... );
+    CREATE OK (... sec)
+
+::
+
+    cr> select schema_name, table_name from information_schema.tables
+    ... where table_name='my_doc_table';
+    +-------------+--------------+
+    | schema_name | table_name   |
+    +-------------+--------------+
+    | doc         | my_doc_table |
+    +-------------+--------------+
+    SELECT 1 row in set (... sec)
+
+.. hide:
+
+    cr> drop table my_doc_table;
+    DROP OK (... sec)
+
+
+.. _sql_ddl_naming_restrictions:
+
+Naming restrictions
+-------------------
+
+Table, schema and column identifiers cannot have the same names as reserved
+key words. Please refer to the :doc:`reference/lexical_structure` section for
+more information about naming.
+
+Additionally, table and schema names are restricted in terms of
+characters and length. They:
+
+  - may not contain one of the following characters: ``\ / * ? " < > |
+    <whitespace> , #``
+
+  - may not contain upper case letters
+
+  - may not *start* with an underscore: ``_``
+
+  - should not exceed 255 bytes when encoded with ``utf-8`` (this
+    limit applies on the optionally schema-qualified table name)
+
 
 Constraints
 ===========

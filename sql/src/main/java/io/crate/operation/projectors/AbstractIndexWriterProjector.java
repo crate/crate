@@ -30,7 +30,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.Id;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.Input;

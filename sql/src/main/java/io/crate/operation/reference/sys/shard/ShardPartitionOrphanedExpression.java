@@ -20,7 +20,7 @@
  */
 package io.crate.operation.reference.sys.shard;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;

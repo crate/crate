@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.*;
@@ -53,7 +52,7 @@ public class DocReferenceConverter {
             }
 
             String schema = ident.tableIdent().schema();
-            if (schema != null && !schema.equals(DocSchemaInfo.NAME)) {
+            if (schema != null && !ReferenceInfos.isDefaultOrCustomSchema(schema)) {
                 return false;
             }
             return true;

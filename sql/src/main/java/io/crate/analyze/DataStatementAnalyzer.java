@@ -24,7 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;

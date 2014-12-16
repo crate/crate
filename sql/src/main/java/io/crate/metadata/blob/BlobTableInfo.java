@@ -22,7 +22,7 @@
 package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.AlterBlobTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;

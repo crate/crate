@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
@@ -52,10 +52,10 @@ public class PartitionPropertiesAnalyzer {
     public static PartitionName toPartitionName(TableInfo tableInfo,
                                                 List<Assignment> partitionProperties,
                                                 Object[] parameters) {
-        Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().name());
+        Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().fqn());
         Preconditions.checkArgument(partitionProperties.size() == tableInfo.partitionedBy().size(),
                 "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
-                tableInfo.ident().name(),
+                tableInfo.ident().fqn(),
                 tableInfo.partitionedBy().size(),
                 partitionProperties.size()
         );

@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -87,6 +87,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
                 values.add(BytesRefs.toBytesRef(map.get(columnName)));
             }
             PartitionName partitionName = new PartitionName(
+                table().ident().schema(),
                 table().ident().name(),
                 values
             );

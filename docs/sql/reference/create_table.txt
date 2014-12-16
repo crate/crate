@@ -12,7 +12,7 @@ Synopsis
 
 ::
 
-    CREATE TABLE table_name ( [
+    CREATE TABLE table_ident ( [
         { column_name data_type [ column_constraint [ ... ] ] | table_constraint }
         [, ... ] ]
     )
@@ -41,9 +41,9 @@ Description
 
 CREATE TABLE will create a new, initially empty table.
 
-Setting a schema (for example, CREATE TABLE myschema.mytable ...) is
-currently not supprted. All userspace defined data tables are defined
-under the default schema named ``doc``.
+If the table_ident does not contain a schema, the table is created in
+the ``doc`` schema. Otherwise it is created in the given schema, which
+is implicitly created, if it didn't exist yet.
 
 The optional constraint clauses specify constraints (tests) that new
 or updated rows must satisfy for an insert or update operation to
@@ -61,8 +61,8 @@ constraint only affects one column.
 Parameters
 ==========
 
-:table_name: The name (optionally schema-qualified) of the table to
-    be created.
+:table_ident: The name (optionally schema-qualified) of the table to be
+             created.
 
 :column_name: The name of a column to be created in the new table.
 

@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.Constants;
+import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.TableIdent;
 
@@ -36,7 +37,10 @@ public abstract class AbstractDDLAnalyzedStatement extends AnalyzedStatement {
 
     @Override
     public void table(TableIdent tableIdent) {
-        if (!isValidTableName(tableIdent.name())) {
+        if (tableIdent.schema() != null && !isValidTableOrSchemaName(tableIdent.schema())) {
+            throw new InvalidSchemaNameException(tableIdent.schema());
+        }
+        if (!isValidTableOrSchemaName(tableIdent.name())) {
             throw new InvalidTableNameException(tableIdent.name());
         }
         this.tableIdent = tableIdent;
@@ -57,9 +61,9 @@ public abstract class AbstractDDLAnalyzedStatement extends AnalyzedStatement {
         return true;
     }
 
-    public boolean isValidTableName(String name) {
+    public boolean isValidTableOrSchemaName(String name) {
         for (String illegalCharacter: Constants.INVALID_TABLE_NAME_CHARACTERS) {
-            if (name.contains(illegalCharacter)) {
+            if (name.contains(illegalCharacter) || name.length() == 0) {
                 return false;
             }
         }

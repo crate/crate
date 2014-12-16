@@ -12,7 +12,7 @@ Synopsis
 
 ::
 
-    ALTER [BLOB] TABLE table_name [ PARTITION (partition_column = value [ , ... ]) ]
+    ALTER [BLOB] TABLE table_ident [ PARTITION (partition_column = value [ , ... ]) ]
       { SET ( parameter = value [ , ... ] )
         | RESET ( parameter [ , ... ] )
         | ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ]
@@ -42,7 +42,7 @@ the ``ADD COLUMN`` keyword won't work.
 Parameters
 ==========
 
-:table_name: The name of the table to alter.
+:table_ident: The name (optionally schema-qualified) of the table to alter.
 
 :parameter: The name of the parameter that is set to a new value or its default.
 

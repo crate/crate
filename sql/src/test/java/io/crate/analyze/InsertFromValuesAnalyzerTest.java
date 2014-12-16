@@ -21,14 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.PartitionName;
+import io.crate.metadata.*;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ValidationException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -78,7 +73,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_NESTED_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name()))
                     .thenReturn(DEEPLY_NESTED_TABLE_INFO);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
 
         @Override

@@ -31,12 +31,11 @@ for each row::
     +----...-+--------------...-+----+-------------+--...-+--...-+----------+------+
     SELECT 1 row in set (... sec)
 
-Aliases can be used to change the output name of the columns. The table name
-can also be aliased for brevity::
+Aliases can be used to change the output name of the columns::
 
     cr> select name as n
-    ... from locations as l
-    ... where l.name = 'North West Ripple';
+    ... from locations
+    ... where name = 'North West Ripple';
     +-------------------+
     | n                 |
     +-------------------+
@@ -44,6 +43,51 @@ can also be aliased for brevity::
     +-------------------+
     SELECT 1 row in set (... sec)
 
+.. _sql_dql_from_clause:
+
+FROM Clause
+-----------
+
+The ``FROM`` clause is used to reference the table to query. A table is referenced
+by schema and table name and can optionally be aliased. If the table ``t`` is
+only referenced by table name, crate assumes the table ``doc.t`` was meant.
+Schemas that were newly created using :ref:`ref-create-table` must be
+referenced explicitly.
+
+The two following queries are equivalent::
+
+    cr> select name, position from locations
+    ... order by name desc nulls last limit 2;
+    +-------------------+----------+
+    | name              | position |
+    +-------------------+----------+
+    | Outer Eastern Rim |        2 |
+    | North West Ripple |        1 |
+    +-------------------+----------+
+    SELECT 2 rows in set (... sec)
+
+::
+
+    cr> select doc.locations.name as n, position from doc.locations
+    ... order by name desc nulls last limit 2;
+    +-------------------+----------+
+    | n                 | position |
+    +-------------------+----------+
+    | Outer Eastern Rim |        2 |
+    | North West Ripple |        1 |
+    +-------------------+----------+
+    SELECT 2 rows in set (... sec)
+
+A table can be aliased for the sake of brevity too::
+
+    cr> select name from doc.locations as l
+    ... where l.name = 'Outer Eastern Rim';
+    +-------------------+
+    | name              |
+    +-------------------+
+    | Outer Eastern Rim |
+    +-------------------+
+    SELECT 1 row in set (... sec)
 
 .. _sql_dql_distinct_clause:
 

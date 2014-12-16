@@ -2,12 +2,11 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -34,8 +33,11 @@ import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -92,6 +94,11 @@ public class PlannerTest {
         protected void configure() {
             ClusterService clusterService = mock(ClusterService.class);
             ClusterState clusterState = mock(ClusterState.class);
+            MetaData metaData = mock(MetaData.class);
+            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+            when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(clusterState.metaData()).thenReturn(metaData);
             DiscoveryNodes nodes = mock(DiscoveryNodes.class);
             DiscoveryNode node = mock(DiscoveryNode.class);
             when(clusterService.state()).thenReturn(clusterState);
@@ -102,6 +109,7 @@ public class PlannerTest {
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
             bind(ClusterService.class).toInstance(clusterService);
+            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
             super.configure();
         }
 
@@ -117,7 +125,7 @@ public class PlannerTest {
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
-            when(userTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
+            when(userTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             TableIdent charactersTableIdent = new TableIdent(null, "characters");
             TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
@@ -125,7 +133,7 @@ public class PlannerTest {
                     .addPrimaryKey("id")
                     .clusteredBy("id")
                     .build();
-            when(charactersTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
+            when(charactersTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             TableIdent partedTableIdent = new TableIdent(null, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, partedRouting)
                     .add("name", DataTypes.STRING, null)
@@ -140,7 +148,7 @@ public class PlannerTest {
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
-            when(partedTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
+            when(partedTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             TableIdent emptyPartedTableIdent = new TableIdent(null, "empty_parted");
             TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataTypes.STRING, null)
@@ -150,12 +158,12 @@ public class PlannerTest {
                     .addPrimaryKey("date")
                     .clusteredBy("id")
                     .build();
-            when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(DocSchemaInfo.NAME);
+            when(emptyPartedTableInfo.schemaInfo().name()).thenReturn(ReferenceInfos.DEFAULT_SCHEMA_NAME);
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
             when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(ReferenceInfos.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
         }
 
@@ -169,21 +177,21 @@ public class PlannerTest {
                     // here we want a table with handlerSideRouting and DOC granularity.
                     RowGranularity.DOC,
                     SysClusterTableInfo.ROUTING
-            ).add("name", DataTypes.STRING, null).schemainfo(schemaInfo).build();
+            ).add("name", DataTypes.STRING, null).schemaInfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysClusterTableInfo.ident().name())).thenReturn(sysClusterTableInfo);
 
             TableInfo sysNodesTableInfo = TestingTableInfo.builder(
                     SysNodesTableInfo.IDENT,
                     RowGranularity.NODE,
                     nodesRouting)
-                    .add("name", DataTypes.STRING, null).schemainfo(schemaInfo).build();
+                    .add("name", DataTypes.STRING, null).schemaInfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysNodesTableInfo.ident().name())).thenReturn(sysNodesTableInfo);
 
             TableInfo sysShardsTableInfo = TestingTableInfo.builder(
                     SysShardsTableInfo.IDENT,
                     RowGranularity.SHARD,
                     nodesRouting
-            ).add("id", DataTypes.INTEGER, null).schemainfo(schemaInfo).build();
+            ).add("id", DataTypes.INTEGER, null).schemaInfo(schemaInfo).build();
             when(schemaInfo.getTableInfo(sysShardsTableInfo.ident().name())).thenReturn(sysShardsTableInfo);
             when(schemaInfo.systemSchema()).thenReturn(true);
             return schemaInfo;

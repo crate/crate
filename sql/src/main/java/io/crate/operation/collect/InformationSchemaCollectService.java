@@ -25,7 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import io.crate.PartitionName;
+import io.crate.metadata.PartitionName;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;

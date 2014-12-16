@@ -31,7 +31,12 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -76,7 +81,14 @@ public class TestGlobalSysExpressions {
             bind(NodeService.class).toInstance(nodeService);
 
             ClusterService clusterService = mock(ClusterService.class);
+            ClusterState state = mock(ClusterState.class);
+            MetaData metaData = mock(MetaData.class);
+            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(state.metaData()).thenReturn(metaData);
+            when(clusterService.state()).thenReturn(state);
             bind(ClusterService.class).toInstance(clusterService);
+            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
 
             MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
