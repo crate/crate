@@ -246,6 +246,8 @@ heap
 | ``heap['free']`` | Currently available heap memory in bytes.      | ``Long``    |
 +------------------+------------------------------------------------+-------------+
 
+.. _sys-versions:
+
 version
 -------
 

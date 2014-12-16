@@ -15,6 +15,16 @@ using the ``graceful stop`` procedure.
 This procedure will disable a node, which will cause it to reject any new
 requests but will make sure that any pending requests are finished.
 
+.. warning::
+
+   Please make sure beforehand that your upgrade path is working
+   i.e. that the old and new versions are compatible as they will run
+   next to each other for the time of the upgrade process.
+   Updating  `hotfix` versions is uncritically in most cases, but if you
+   want to update `minor` or `major` versions you should restart the cluster
+   instead of doing a Zero Downtime Upgrade to be 100% safe.
+   See :ref:`versions <sys-versions>`.
+
 .. note::
 
    Nonetheless, due to the distributed execution of requests, some client requests
@@ -236,12 +246,6 @@ Example for RHEL/YUM::
 
 If you are in doubt how to upgrade an installed package,
 please refer to the man pages of your operating system / package manager.
-
-.. note::
-
-   Please make sure beforehand that your upgrade path is working
-   i.e. that the old and new versions are compatible as they will run
-   next to each other for the time of the upgrade process.
 
 Step 4: Start Crate
 ===================
