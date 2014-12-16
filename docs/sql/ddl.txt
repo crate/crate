@@ -96,6 +96,8 @@ the ``doc`` schema::
     DROP OK (... sec)
 
 
+.. _sql_ddl_naming_restrictions:
+
 Naming restrictions
 -------------------
 
