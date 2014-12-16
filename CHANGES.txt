@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Added comments to the logging.yml config file and reduced the
+   amount of log entries by changing the loglevel of some log messages
+
  - Fix: Changed output of column names in error messages to subscript notation,
    so the correct notation to address columns in sql is reflected
 
