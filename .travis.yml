@@ -1,10 +1,10 @@
 language: java
 jdk:
   - openjdk7
-
+sudo: false
 env:
   global:
-    _JAVA_OPTIONS="-Xmx1g -XX:MaxPermSize=256m -XX:MaxDirectMemorySize=1g"
+    _JAVA_OPTIONS="-Xmx1g -XX:MaxPermSize=256m"
 
 notifications:
   email: false
