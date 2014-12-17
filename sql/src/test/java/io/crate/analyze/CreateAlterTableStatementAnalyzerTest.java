@@ -635,4 +635,11 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "id long primary key" +
                 ")");
     }
+
+    @Test
+    public void testCreateTableWithSubscriptInColumnName() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column ident must not contain '[' ");
+        analyze("create table my_table (\"test['test']\" string)");
+    }
 }

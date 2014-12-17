@@ -105,6 +105,7 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalyzedSta
     protected Reference addColumn(ReferenceIdent ident, T context, int i) {
         final ColumnIdent columnIdent = ident.columnIdent();
         Preconditions.checkArgument(!columnIdent.name().startsWith("_"), "Inserting system columns is not allowed");
+        Preconditions.checkArgument(!columnIdent.name().contains("["), "Column ident must not contain '[' ");
 
         // set primary key column if found
         for (ColumnIdent pkIdent : context.table().primaryKey()) {

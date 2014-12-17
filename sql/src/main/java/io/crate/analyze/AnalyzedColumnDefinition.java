@@ -56,6 +56,8 @@ public class AnalyzedColumnDefinition {
 
     public void name(String name) {
         Preconditions.checkArgument(!name.startsWith("_"), "Column ident must not start with '_'");
+        Preconditions.checkArgument(!name.contains("["), "Column ident must not contain '[' ");
+
         this.name = name;
         if (this.parent != null) {
             this.ident = ColumnIdent.getChild(this.parent.ident, name);

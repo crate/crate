@@ -775,5 +775,12 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 }
         });
     }
+
+    @Test
+    public void testRejectColumnsWithSubscript() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column ident must not contain '[' ");
+        analyze("insert into users (\"newCol['hui']\") values(test)");
+    }
 }
 
