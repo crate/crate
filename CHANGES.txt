@@ -5,9 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/12/17 0.46.0
+=================
+
  - Add support for user-defined schemas.
 
- - Fix: Changed output of column names in error messages to subscript notation,
+ - Changed output of column names in error messages to subscript notation,
    so the correct notation to address columns in sql is reflected
 
  - improved speed of bulk inserts in partitioned tables to avoid request
@@ -22,7 +25,7 @@ Unreleased
 
  - Updated Elasticsearch to 1.4.1
 
- - Fix: improve performance of regex functions by actually
+ - Improve performance of regex functions by actually
    pre-compiling their used patterns (if given as literal)
 
  - Add sql query breaker which will terminate a query execution if too
