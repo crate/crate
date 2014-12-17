@@ -13,9 +13,6 @@ Unreleased
  - Changed output of column names in error messages to subscript notation,
    so the correct notation to address columns in sql is reflected
 
- - improved speed of bulk inserts in partitioned tables to avoid request
-   timeouts
-
  - implemented table ``information_schema.schemata`` with column ``schema_name``
    listing all available schemas
 
@@ -67,6 +64,8 @@ Unreleased
  - Fixed possible race condition that could cause the `LIMIT` to not
    be applied correctly.
 
+ - improved speed of bulk inserts in partitioned tables to avoid request
+   timeouts
 
  - Fixed NPE which could occur on a shard failure while collecting
    distributed (e.g. group by query)
