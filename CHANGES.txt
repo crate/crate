@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Restricted allowed characters in column names
+
 2014/12/17 0.46.0
 =================
 
