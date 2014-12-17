@@ -5,7 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - Don't allow '[' in column names
+ - Restricted allowed characters in column names
 
 2014/12/17 0.46.0
 =================

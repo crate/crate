@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.*;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ValidationException;
@@ -777,9 +778,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testRejectColumnsWithSubscript() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column ident must not contain '[' ");
+    public void testInvalidColumnName() throws Exception {
+        expectedException.expect(InvalidColumnNameException.class);
+        expectedException.expectMessage("column name \"newCol['hui']\" is invalid");
         analyze("insert into users (\"newCol['hui']\") values(test)");
     }
 }

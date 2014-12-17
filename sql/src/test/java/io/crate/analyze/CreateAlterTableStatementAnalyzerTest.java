@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Joiner;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.*;
@@ -637,9 +638,9 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testCreateTableWithSubscriptInColumnName() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column ident must not contain '[' ");
+    public void testCreateTableWithInvalidColumnName() throws Exception {
+        expectedException.expect(InvalidColumnNameException.class);
+        expectedException.expectMessage("column name \"test['test']\" is invalid");
         analyze("create table my_table (\"test['test']\" string)");
     }
 }

@@ -19,33 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate;
+package io.crate.exceptions;
 
-import com.google.common.collect.ImmutableSet;
+public class InvalidColumnNameException extends ValidationException {
 
-import java.util.Set;
-import java.util.regex.Pattern;
+    public InvalidColumnNameException(String columnName, Throwable e) {
+        super(String.format("column name \"%s\" is invalid.", columnName), e);
+    }
 
-public class Constants {
+    public InvalidColumnNameException(String columnName) {
+        super(String.format("column name \"%s\" is invalid.", columnName));
+    }
 
-    public static final boolean DEBUG_MODE = false;
-    /**
-     * Mapping Type that contains table definitions
-     */
-    public static final String DEFAULT_MAPPING_TYPE = "default";
-
-    // port rangess for HTTP and Transport
-    public static final String HTTP_PORT_RANGE = "4200-4300";
-    public static final String TRANSPORT_PORT_RANGE = "4300-4400";
-    public static final String THRIFT_PORT_RANGE = "4500-4600";
-    public static final Integer DEFAULT_SELECT_LIMIT = 10000;
-
-    public static final String CUSTOM_ANALYSIS_SETTINGS_PREFIX = "crate.analysis.custom";
-    public static final Integer DEFAULT_NUM_SHARDS = 5;
-
-    public static final int UPDATE_RETRY_ON_CONFLICT = 3;
-
-    public static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
-
-    public static final Pattern INVALID_COLUMN_NAME_PATTERN = Pattern.compile("[\\[\\'\\]]");
+    @Override
+    public int errorCode() {
+        return 2;
+    }
 }
