@@ -629,27 +629,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void selectGlobalExpressionGroupBy() throws Exception {
-        serviceSetup();
-        execute("select table_name, count(column_name), sys.cluster.name " +
-                "from information_schema.columns where schema_name='doc' group by table_name, sys.cluster.name " +
-                "order by table_name");
-        assertEquals(3, response.rowCount());
-
-        assertEquals("t1", response.rows()[0][0]);
-        assertEquals(2L, response.rows()[0][1]);
-        assertEquals(cluster().clusterName(), response.rows()[0][2]);
-
-        assertEquals("t2", response.rows()[1][0]);
-        assertEquals(2L, response.rows()[1][1]);
-        assertEquals(cluster().clusterName(), response.rows()[0][2]);
-
-        assertEquals("t3", response.rows()[2][0]);
-        assertEquals(2L, response.rows()[2][1]);
-        assertEquals(cluster().clusterName(), response.rows()[0][2]);
-    }
-
-    @Test
     public void selectDynamicObjectAddsSubColumn() throws Exception {
         execute("create table t4 (" +
                 "  title string," +

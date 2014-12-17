@@ -29,7 +29,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
@@ -404,8 +403,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testNoMatchStatement() throws Exception {
         for (String stmt : ImmutableList.of(
                 "select id from sys.nodes where false",
-                "select id from sys.nodes where 1=0",
-                "select id from sys.nodes where sys.cluster.name = 'something'"
+                "select id from sys.nodes where 1=0"
         )) {
             SelectAnalyzedStatement analysis = analyze(stmt);
             assertTrue(stmt, analysis.whereClause().noMatch());
@@ -415,8 +413,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testEvaluatingMatchAllStatement() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select id from sys.nodes " +
-                "where sys.cluster.name = 'testcluster'");
+        SelectAnalyzedStatement analysis = analyze("select id from sys.nodes where 1 = 1");
         assertFalse(analysis.whereClause().noMatch());
         assertFalse(analysis.whereClause().hasQuery());
     }
@@ -748,8 +745,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testOrderByQualifiedName() throws Exception {
-        expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage("Table 'friends' unknown");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot resolve relation 'friends'");
         analyze("select * from users order by friends.id");
     }
 
@@ -881,17 +878,17 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testTableAliasWrongUse() throws Exception {
-        expectedException.expect(TableUnknownException.class);
+        expectedException.expect(IllegalArgumentException.class);
         // caused by where users.awesome, would have to use where u.awesome = true instead
-        expectedException.expectMessage("Table 'users' unknown");
+        expectedException.expectMessage("Cannot resolve relation 'users'");
         analyze("select * from users as u where users.awesome = true");
     }
 
     @Test
     public void testTableAliasFullQualifiedName() throws Exception {
-        expectedException.expect(TableUnknownException.class);
+        expectedException.expect(IllegalArgumentException.class);
         // caused by where users.awesome, would have to use where u.awesome = true instead
-        expectedException.expectMessage("Table 'users' unknown");
+        expectedException.expectMessage("Cannot resolve relation 'users'");
         analyze("select * from users as u where doc.users.awesome = true");
     }
 

@@ -23,15 +23,8 @@ package io.crate.analyze.relations;
 
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.symbol.Field;
-import io.crate.planner.symbol.Reference;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -42,12 +35,10 @@ import java.util.Map;
 public class FieldResolver {
 
     private Map<QualifiedName, AnalyzedRelation> sources;
-    private SchemaInfo sysSchemaInfo;
 
-    public FieldResolver(Map<QualifiedName, AnalyzedRelation> sources, SchemaInfo sysSchemaInfo) {
+    public FieldResolver(Map<QualifiedName, AnalyzedRelation> sources) {
         assert !sources.isEmpty() : "Must have at least one source";
         this.sources = sources;
-        this.sysSchemaInfo = sysSchemaInfo;
     }
 
     public Field resolveField(QualifiedName qualifiedName, boolean forWrite) {
@@ -68,13 +59,6 @@ public class FieldResolver {
             case 3:
                 columnSchema = parts.get(0).toLowerCase(Locale.ENGLISH);
                 columnTableName = parts.get(1).toLowerCase(Locale.ENGLISH);
-
-                if (columnSchema.equals(SysSchemaInfo.NAME)) {
-                    if (forWrite) {
-                        throw new UnsupportedOperationException("Cannot write on tables inside the 'sys' schema");
-                    }
-                    return fromSysTable(columnTableName, columnIdent);
-                }
                 break;
             default:
                 throw new IllegalArgumentException("Column reference \"%s\" has too many parts. " +
@@ -126,25 +110,14 @@ public class FieldResolver {
         }
         if (lastField == null) {
             if (!schemaMatched) {
-                throw new SchemaUnknownException(columnSchema);
+                throw new IllegalArgumentException(String.format(
+                        "Cannot resolve relation '%s.%s'", columnSchema, columnTableName));
             }
             if (!tableNameMatched) {
-                throw new TableUnknownException(columnTableName);
+                throw new IllegalArgumentException(String.format("Cannot resolve relation '%s'", columnTableName));
             }
             throw new ColumnUnknownException(columnIdent.fqn());
         }
         return lastField;
-    }
-
-    private Field fromSysTable(String tableName, ColumnIdent columnIdent) {
-        TableInfo tableInfo = sysSchemaInfo.getTableInfo(tableName);
-        if (tableInfo == null) {
-            throw new TableUnknownException(tableName);
-        }
-        ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(columnIdent);
-        if (referenceInfo == null) {
-            throw new ColumnUnknownException(columnIdent.sqlFqn());
-        }
-        return new Field(new TableRelation(tableInfo), columnIdent.sqlFqn(), new Reference(referenceInfo));
     }
 }

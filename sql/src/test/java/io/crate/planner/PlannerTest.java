@@ -1165,23 +1165,6 @@ public class PlannerTest {
         assertThat(inputColumn.index(), is(1));
     }
 
-
-    @Test
-    public void testInsertFromQueryWithDocAndSysColumnsMixed() throws Exception {
-        Plan plan = plan("insert into users (id, name) (select id, sys.nodes.name from users)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(CollectNode.class));
-
-        CollectNode collectNode = (CollectNode) planNode;
-        List<Symbol> toCollect = collectNode.toCollect();
-        assertThat(toCollect.size(), is(2));
-        assertThat(toCollect.get(0), isReference("_doc.id"));
-
-        assertThat((Reference) toCollect.get(1), equalTo(new Reference(new ReferenceInfo(
-            new ReferenceIdent(new TableIdent("sys", "nodes"), "name"), RowGranularity.NODE, DataTypes.STRING))));
-    }
-
     @Test
     public void testInsertFromQueryWithPartitionedColumn() throws Exception {
         Plan plan = plan("insert into users (id, date) (select id, date from parted)");
@@ -1323,34 +1306,6 @@ public class PlannerTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testSelectOrderByPartitionedNestedColumnInFunction() throws Exception {
         plan("select id from multi_parted order by format('abc %s', obj['name'])");
-    }
-
-    @Test (expected = UnsupportedOperationException.class)
-    public void testWhereSysExpressionWithoutGroupBy() throws Exception {
-        plan("select id from users where sys.cluster.name ='crate'");
-    }
-
-    @Test (expected = UnsupportedOperationException.class)
-    public void testSelectSysExpressionWithoutGroupBy() throws Exception {
-        plan("select sys.cluster.name, id from users");
-    }
-
-    @Test
-    public void testClusterRefAndPartitionInWhereClause() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(
-                "Using system expressions is only possible on sys tables or if the statement does some sort of aggregation");
-        plan("select * from parted " +
-                "where sys.cluster.name = 'foo' and date = 1395874800000");
-    }
-
-    @Test (expected = UnsupportedOperationException.class)
-    public void testWhereFunctionWithSysExpressionWithoutGroupBy() throws Exception {
-        plan("select name from users where format('%s', sys.nodes.name) = 'foo'");
-    }
-    @Test (expected = UnsupportedOperationException.class)
-    public void testSelectFunctionWithSysExpressionWithoutGroupBy() throws Exception {
-        plan("select format('%s', sys.nodes.name), id from users");
     }
 
     @Test(expected = UnsupportedFeatureException.class)

@@ -130,7 +130,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     @Test
     public void testSelectWhereTable() throws Exception {
         SQLResponse response = transportExecutor.exec(
-            "select id, sys.nodes.name, size from sys.shards " +
+            "select id, size from sys.shards " +
             "where table_name = 'characters'");
         assertEquals(10L, response.rowCount());
     }
@@ -234,24 +234,6 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     }
 
     @Test
-    public void testSelectGlobalExpressionGroupBy() throws Exception {
-        SQLResponse response = transportExecutor.exec("select count(*), table_name, sys.cluster.name from sys.shards " +
-            "group by sys.cluster.name, table_name order by table_name");
-        assertEquals(3, response.rowCount());
-        assertEquals(10L, response.rows()[0][0]);
-        assertEquals("blobs", response.rows()[0][1]);
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[0][2]);
-
-        assertEquals(10L, response.rows()[1][0]);
-        assertEquals("characters", response.rows()[1][1]);
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[1][2]);
-
-        assertEquals(10L, response.rows()[2][0]);
-        assertEquals("quotes", response.rows()[2][1]);
-        assertEquals(GLOBAL_CLUSTER.clusterName(), response.rows()[2][2]);
-    }
-
-    @Test
     public void testGroupByUnknownResultColumn() throws Exception {
         expectedException.expect(SQLActionException.class);
         transportExecutor.exec("select lol from sys.shards group by table_name");
@@ -289,9 +271,9 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
 
     @Test
-    public void testShardGranularityFromNodeGranularityTable() throws Exception {
+    public void testSelectShardIdFromSysNodes() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot handle Reference sys.shards.id");
+        expectedException.expectMessage("Cannot resolve relation 'shards'");
         transportExecutor.exec("select sys.shards.id from sys.nodes");
     }
 }

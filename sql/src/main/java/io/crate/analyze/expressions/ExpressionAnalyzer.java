@@ -94,8 +94,7 @@ public class ExpressionAnalyzer {
         functions = analysisMetaData.functions();
         referenceInfos = analysisMetaData.referenceInfos();
         this.parameterContext = parameterContext;
-        this.sources = new FieldResolver(sources,
-                analysisMetaData.referenceInfos().getSchemaInfo(SysSchemaInfo.NAME));
+        this.sources = new FieldResolver(sources);
         this.innerAnalyzer = new InnerExpressionAnalyzer();
         this.normalizer = new EvaluatingNormalizer(
                 analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver());

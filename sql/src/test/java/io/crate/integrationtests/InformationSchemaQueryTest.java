@@ -66,7 +66,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectSysColumnsFromInformationSchema() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot handle Reference sys.nodes.id");
+        expectedException.expectMessage("Cannot resolve relation 'sys.nodes'");
         execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables");
     }
 

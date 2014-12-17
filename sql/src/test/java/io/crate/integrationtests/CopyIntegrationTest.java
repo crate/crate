@@ -132,18 +132,18 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCopyToFile() throws Exception {
-        this.setup.groupBySetup();
+        execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
+        ensureGreen();
+        execute("insert into singleshard (name) values ('foo')");
+        execute("refresh table singleshard");
 
-        String uriTemplate = Paths.get(folder.getRoot().toURI()).resolve("testCopyToFile%s.json").toAbsolutePath().toString();
-        SQLResponse response = execute("copy characters to format(?, sys.shards.id)", new Object[]{uriTemplate});
-        assertThat(response.rowCount(), is(7L));
-        List<String> lines = new ArrayList<>(7);
-        DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
-        for (Path entry: stream) {
-            lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
-        }
+        String uri = Paths.get(folder.getRoot().toURI()).resolve("testsingleshard.json").toAbsolutePath().toString();
+        SQLResponse response = execute("copy singleshard to ?", new Object[] { uri });
+        assertThat(response.rowCount(), is(1L));
+        List<String> lines = Files.readAllLines(
+                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), UTF8);
 
-        assertThat(lines.size(), is(7));
+        assertThat(lines.size(), is(1));
         for (String line : lines) {
             assertThat(line, startsWith("{"));
             assertThat(line, endsWith("}"));

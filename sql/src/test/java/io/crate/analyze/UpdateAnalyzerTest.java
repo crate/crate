@@ -258,15 +258,15 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testWrongQualifiedNameReferenceWithSchema() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot write on tables inside the 'sys' schema");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot resolve relation 'sys.nodes'");
         analyze("update users set sys.nodes.fs=?", new Object[]{new HashMap<String, Object>()});
     }
 
     @Test
     public void testWrongQualifiedNameReference() throws Exception {
-        expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage("Table 'unknown' unknown");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot resolve relation 'unknown'");
         analyze("update users set unknown.name='Trillian'");
     }
 
@@ -345,11 +345,6 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test( expected = IllegalArgumentException.class )
     public void testUpdateClusteredBy() throws Exception {
         analyze("update users_clustered_by_only set id=1");
-    }
-
-    @Test( expected = UnsupportedOperationException.class )
-    public void testUpdateWhereSysColumn() throws Exception {
-        analyze("update users set name='Ford' where sys.nodes.id = 'node_1'");
     }
 
     @Test( expected = IllegalArgumentException.class )

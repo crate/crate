@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed undocumented feature: It is no longer possible to use sys
+   expressions in any context.
+
  - improved speed of bulk inserts in partitioned tables to avoid request
    timeouts
 

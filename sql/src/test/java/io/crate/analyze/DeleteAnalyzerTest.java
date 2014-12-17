@@ -31,13 +31,15 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Field;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -52,6 +54,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DeleteAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
@@ -108,8 +113,10 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         analyze("delete from sys.nodes where name='Trillian'");
     }
 
-    @Test( expected = UnsupportedOperationException.class )
+    @Test
     public void testDeleteWhereSysColumn() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot resolve relation 'sys.nodes'");
         analyze("delete from users where sys.nodes.id = 'node_1'");
     }
 
