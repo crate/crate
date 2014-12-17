@@ -107,5 +107,10 @@ public class GlobalAggregateConsumer implements Consumer {
             MergeNode mergeNode = PlanNodeBuilder.localMerge(handlerProjections, collectNode);
             return new GlobalAggregateNode(collectNode, mergeNode);
         }
+
+        @Override
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+            return null;
+        }
     }
 }

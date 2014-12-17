@@ -89,6 +89,11 @@ public class ESCountConsumer implements Consumer {
                     whereClauseContext.whereClause());
         }
 
+        @Override
+        protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+            return null;
+        }
+
         private boolean hasOnlyGlobalCount(List<Symbol> symbols) {
             if (symbols.size() != 1) {
                 return false;

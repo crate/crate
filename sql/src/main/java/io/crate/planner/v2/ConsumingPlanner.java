@@ -42,6 +42,7 @@ public class ConsumingPlanner {
         consumers.add(new ESCountConsumer(analysisMetaData));
         consumers.add(new GlobalAggregateConsumer());
         consumers.add(new ESGetConsumer(analysisMetaData));
+        consumers.add(new QueryThenFetchConsumer(analysisMetaData));
     }
 
     @Nullable

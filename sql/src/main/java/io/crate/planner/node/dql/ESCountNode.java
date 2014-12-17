@@ -22,20 +22,14 @@
 package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.RelationVisitor;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
 import io.crate.planner.node.PlanVisitor;
-import io.crate.planner.symbol.Field;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
-public class ESCountNode extends ESDQLPlanNode implements PlannedAnalyzedRelation {
+public class ESCountNode extends ESDQLPlanNode {
 
     private final List<DataType> outputTypes = Arrays.<DataType>asList(LongType.INSTANCE);
     private final String[] indices;
@@ -64,25 +58,4 @@ public class ESCountNode extends ESDQLPlanNode implements PlannedAnalyzedRelatio
         return outputTypes;
     }
 
-
-    @Override
-    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
-        return visitor.visitPlanedAnalyzedRelation(this, context);
-    }
-
-    @Nullable
-    @Override
-    public Field getField(ColumnIdent path) {
-        throw new UnsupportedOperationException("getField not supported on PlannedAnalyzedRelation");
-    }
-
-    @Override
-    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField not supported on PlannedAnalyzedRelation");
-    }
-
-    @Override
-    public List<Field> fields() {
-        throw new UnsupportedOperationException("fields not supported on PlannedAnalyzedRelation");
-    }
 }

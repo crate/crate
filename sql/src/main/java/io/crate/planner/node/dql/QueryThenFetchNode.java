@@ -27,9 +27,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.RelationVisitor;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
 import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.symbol.Field;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Symbols;
 import org.elasticsearch.common.Nullable;
@@ -136,4 +140,3 @@ public class QueryThenFetchNode extends ESDQLPlanNode {
                 .toString();
     }
 }
-

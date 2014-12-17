@@ -37,7 +37,7 @@ import org.elasticsearch.common.Nullable;
 import java.util.List;
 
 
-public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode, PlannedAnalyzedRelation {
+public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
     private final String index;
     private final List<String> ids;
@@ -127,26 +127,5 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode, PlannedAnal
                 .add("outputs", outputs)
                 .add("partitionBy", partitionBy)
                 .toString();
-    }
-
-    @Override
-    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
-        return visitor.visitPlanedAnalyzedRelation(this, context);
-    }
-
-    @javax.annotation.Nullable
-    @Override
-    public Field getField(ColumnIdent path) {
-        throw new UnsupportedOperationException("getField is not supported on ESGetNode");
-    }
-
-    @Override
-    public Field getWritableField(ColumnIdent path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField is not supported on ESGetNode");
-    }
-
-    @Override
-    public List<Field> fields() {
-        throw new UnsupportedOperationException("fields is not supported on ESGetNode");
     }
 }

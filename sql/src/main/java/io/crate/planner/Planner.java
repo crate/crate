@@ -541,27 +541,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         plan.add(PlanNodeBuilder.localMerge(projectionBuilder.build(), collectNode));
     }
 
-    private void queryThenFetch(SelectAnalyzedStatement analysis,
-                                TableInfo tableInfo,
-                                WhereClauseContext whereClauseContext,
-                                Plan plan,
-                                Context context) {
-        Preconditions.checkArgument(!context.indexWriterProjection.isPresent(),
-                "Must use QueryAndFetch with indexWriterProjection.");
-
-        plan.add(new QueryThenFetchNode(
-                tableInfo.getRouting(whereClauseContext.whereClause()),
-                unwrap(analysis.outputSymbols()),
-                unwrap(analysis.orderBy().orderBySymbols()),
-                analysis.orderBy().reverseFlags(),
-                analysis.orderBy().nullsFirst(),
-                analysis.limit(),
-                analysis.offset(),
-                whereClauseContext.whereClause(),
-                tableInfo.partitionedByColumns()
-        ));
-    }
-
     private void globalAggregates(SelectAnalyzedStatement analysis,
                                   TableInfo tableInfo,
                                   WhereClauseContext whereClauseContext,
@@ -1110,21 +1089,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             } else if (statement.hasAggregates()) {
                 globalAggregates(statement, tableInfo, whereClauseContext, plan, context);
             } else {
-                if (!context.indexWriterProjection.isPresent()
+                assert !(!context.indexWriterProjection.isPresent()
                         && tableInfo.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal() &&
                         tableInfo.getRouting(whereClauseContext.whereClause()).hasLocations() &&
-                        tableInfo.schemaInfo().name().equals(DocSchemaInfo.NAME)) {
+                        tableInfo.schemaInfo().name().equals(DocSchemaInfo.NAME)) : "ConsumingPlanner should have produced a plan for QTF";
 
-                    if (statement.hasSysExpressions()) {
-                        throw new UnsupportedOperationException(
-                                "Using system expressions is only possible on sys tables or " +
-                                        "if the statement does some sort of aggregation");
-                    }
-
-                    queryThenFetch(statement, tableInfo, whereClauseContext, plan, context);
-                } else {
-                    normalSelect(statement, tableInfo, whereClauseContext, plan, context);
-                }
+                normalSelect(statement, tableInfo, whereClauseContext, plan, context);
             }
             return plan;
         }

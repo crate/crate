@@ -27,27 +27,29 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.validator.SortSymbolValidator;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.analyze.where.WhereClauseContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.ESGetNode;
+import io.crate.planner.node.dql.QueryThenFetchNode;
+import io.crate.planner.symbol.Symbol;
 
-public class ESGetConsumer implements Consumer {
+public class QueryThenFetchConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    public ESGetConsumer(AnalysisMetaData analysisMetaData) {
-        this.visitor = new Visitor(analysisMetaData);
+    public QueryThenFetchConsumer(AnalysisMetaData analysisMetaData) {
+        visitor = new Visitor(analysisMetaData);
     }
 
     @Override
     public boolean consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        PlannedAnalyzedRelation relation = visitor.process(rootRelation, null);
-        if (relation == null) {
+        PlannedAnalyzedRelation plannedAnalyzedRelation = visitor.process(rootRelation, null);
+        if (plannedAnalyzedRelation == null) {
             return false;
         }
-        context.rootRelation(relation);
+        context.rootRelation(plannedAnalyzedRelation);
         return true;
     }
 
@@ -61,7 +63,7 @@ public class ESGetConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitSelectAnalyzedStatement(SelectAnalyzedStatement statement, Void context) {
-            if (statement.hasAggregates() || statement.hasGroupBy()) {
+            if (statement.hasAggregates() || statement.hasGroupBy() || statement.hasSysExpressions()) {
                 return null;
             }
             TableRelation tableRelation = ConsumingPlanner.getSingleTableRelation(statement.sources());
@@ -69,45 +71,29 @@ public class ESGetConsumer implements Consumer {
                 return null;
             }
             TableInfo tableInfo = tableRelation.tableInfo();
-            if (tableInfo.isAlias()
-                    || tableInfo.schemaInfo().systemSchema()
-                    || tableInfo.rowGranularity() != RowGranularity.DOC) {
+            if (tableInfo.schemaInfo().systemSchema() || tableInfo.rowGranularity() != RowGranularity.DOC) {
                 return null;
             }
-
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             WhereClauseContext whereClauseContext = whereClauseAnalyzer.analyze(statement.whereClause());
 
-            if (whereClauseContext.ids().size() == 0 || whereClauseContext.routingValues().size() == 0) {
-                return null;
-            }
-
-            String indexName;
-            if (tableInfo.isPartitioned()) {
+            for (Symbol symbol : statement.orderBy().orderBySymbols()) {
                 /**
-                 * Currently the WhereClauseAnalyzer throws an Error if the table is partitioned and the
-                 * query in the whereClause results in different queries for multiple partitions
-                 * e.g.:   where (id = 1 and pcol = 'a') or (id = 2 and pcol = 'b')
-                 *
-                 * The assertion here is just a safety-net, because once the WhereClauseAnalyzer allows
-                 * multiple different whereClauses for partitions the logic here would have to be changed.
+                 * this verifies that there are no partitioned by columns in the ORDER BY clause.
+                 * TODO: instead of throwing errors this should be added as warnings/info to the ConsumerContext
+                 * to indicate why this Consumer can't produce a plan node
                  */
-                assert whereClauseContext.whereClause().partitions().size() == 1 : "Ambiguous partitions for ESGet";
-                indexName = whereClauseContext.whereClause().partitions().get(0);
-            } else {
-                indexName = tableInfo.ident().name();
+                SortSymbolValidator.validate(symbol, tableInfo.partitionedBy());
             }
-            return new ESGetNode(
-                    indexName,
+            return new QueryThenFetchNode(
+                    tableInfo.getRouting(whereClauseContext.whereClause()),
                     tableRelation.resolve(statement.outputSymbols()),
-                    statement.outputTypes(),
-                    whereClauseContext.ids(),
-                    whereClauseContext.routingValues(),
                     tableRelation.resolve(statement.orderBy().orderBySymbols()),
                     statement.orderBy().reverseFlags(),
                     statement.orderBy().nullsFirst(),
                     statement.limit(),
                     statement.offset(),
+                    whereClauseContext.whereClause(),
                     tableInfo.partitionedByColumns()
             );
         }
