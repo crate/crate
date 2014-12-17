@@ -780,8 +780,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testInvalidColumnName() throws Exception {
         expectedException.expect(InvalidColumnNameException.class);
-        expectedException.expectMessage("column name \"newCol['hui']\" is invalid");
-        analyze("insert into users (\"newCol['hui']\") values(test)");
+        expectedException.expectMessage("column name \"newCol[\" is invalid");
+        analyze("insert into users (\"newCol[\") values(test)");
     }
 }
 

@@ -640,7 +640,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateTableWithInvalidColumnName() throws Exception {
         expectedException.expect(InvalidColumnNameException.class);
-        expectedException.expectMessage("column name \"test['test']\" is invalid");
-        analyze("create table my_table (\"test['test']\" string)");
+        expectedException.expectMessage("column name \"'test\" is invalid");
+        analyze("create table my_table (\"'test\" string)");
     }
 }
