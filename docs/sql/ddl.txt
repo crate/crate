@@ -120,7 +120,7 @@ characters and length. They:
 
 Column names are restricted in terms of characters. They:
 
-  - may not contain one of the following characters: ``[ ' ]``
+  - may not contain one of the following characters: ``[`` ``'`` ``]``
 
   - may not *start* with an underscore: ``_``
 

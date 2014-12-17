@@ -23,8 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
@@ -58,11 +56,9 @@ public class AnalyzedColumnDefinition {
         this.parent = parent;
     }
 
-    private static final Predicate<CharSequence> invalidColumnName = Predicates.contains(Constants.INVALID_COLUMN_NAME_PATTERN);
-
     public void name(String name) {
         Preconditions.checkArgument(!name.startsWith("_"), "Column ident must not start with '_'");
-        if(invalidColumnName.apply(name)){
+        if(Constants.INVALID_COLUMN_NAME_PREDICATE.apply(name)){
             throw new InvalidColumnNameException(name);
         }
 
