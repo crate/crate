@@ -26,6 +26,34 @@ A table can be removed by using the ``DROP TABLE`` command::
     cr> drop table my_table;
     DROP OK (... sec)
 
+.. _sql_ddl_naming_restrictions:
+
+Naming restrictions
+-------------------
+
+Table, schema and column identifiers cannot have the same names as reserved
+key words. Please refer to the :doc:`reference/lexical_structure` section for
+more information about naming.
+
+Additionally, table and schema names are restricted in terms of
+characters and length. They:
+
+  - may not contain one of the following characters: ``\ / * ? " < > |
+    <whitespace> , #``
+
+  - may not contain upper case letters
+
+  - may not *start* with an underscore: ``_``
+
+  - should not exceed 255 bytes when encoded with ``utf-8`` (this
+    limit applies on the optionally schema-qualified table name)
+
+Column names are restricted in terms of characters. They:
+
+  - may not contain one of the following characters: ``[`` ``'`` ``]``
+
+  - may not *start* with an underscore: ``_``
+
 Constraints
 ===========
 

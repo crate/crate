@@ -22,7 +22,12 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.*;
+import io.crate.Constants;
+import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Insert;
@@ -31,7 +36,6 @@ import io.crate.sql.tree.Table;
 import java.util.ArrayList;
 
 public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> extends DataStatementAnalyzer<T> {
-
 
     protected void handleInsertColumns(Insert node, int maxInsertValues, T context) {
         // allocate columnsLists
@@ -105,6 +109,9 @@ public abstract class AbstractInsertAnalyzer<T extends AbstractInsertAnalysis> e
     protected Reference addColumn(ReferenceIdent ident, T context, int i) {
         final ColumnIdent columnIdent = ident.columnIdent();
         Preconditions.checkArgument(!columnIdent.name().startsWith("_"), "Inserting system columns is not allowed");
+        if(Constants.INVALID_COLUMN_NAME_PREDICATE.apply(columnIdent.name())){
+            throw new InvalidColumnNameException(columnIdent.name());
+        }
 
         // set primary key column if found
         for (ColumnIdent pkIdent : context.table().primaryKey()) {

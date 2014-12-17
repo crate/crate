@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Joiner;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -591,5 +592,12 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use CLUSTERED BY column in PARTITIONED BY clause");
         analyze("create table t(id int primary key) partitioned by (id) clustered by (id)");
+    }
+
+    @Test
+    public void testCreateTableWithInvalidColumnName() throws Exception {
+        expectedException.expect(InvalidColumnNameException.class);
+        expectedException.expectMessage("column name \"'test\" is invalid");
+        analyze("create table my_table (\"'test\" string)");
     }
 }
