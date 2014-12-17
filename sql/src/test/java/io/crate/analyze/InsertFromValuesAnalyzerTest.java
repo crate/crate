@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.*;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ValidationException;
@@ -774,6 +775,13 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                         }
                 }
         });
+    }
+
+    @Test
+    public void testInvalidColumnName() throws Exception {
+        expectedException.expect(InvalidColumnNameException.class);
+        expectedException.expectMessage("column name \"newCol[\" is invalid");
+        analyze("insert into users (\"newCol[\") values(test)");
     }
 }
 

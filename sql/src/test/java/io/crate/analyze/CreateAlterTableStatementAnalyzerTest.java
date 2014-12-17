@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Joiner;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.*;
@@ -634,5 +635,12 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         analyze("create table \"with.\".my_table (" +
                 "id long primary key" +
                 ")");
+    }
+
+    @Test
+    public void testCreateTableWithInvalidColumnName() throws Exception {
+        expectedException.expect(InvalidColumnNameException.class);
+        expectedException.expectMessage("column name \"'test\" is invalid");
+        analyze("create table my_table (\"'test\" string)");
     }
 }
