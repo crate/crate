@@ -41,6 +41,7 @@ import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
+import io.crate.operation.scalar.ExtractFunctions;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.planner.RowGranularity;
@@ -404,6 +405,13 @@ public class ExpressionAnalyzer {
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
             DataType returnType = DATA_TYPE_ANALYZER.process(node.getType(), null);
             return cast(process(node.getExpression(), context), returnType, context);
+        }
+
+        @Override
+        protected Symbol visitExtract(Extract node, ExpressionAnalysisContext context) {
+            Symbol expression = process(node.getExpression(), context);
+            expression = castIfNeededOrFail(expression, DataTypes.TIMESTAMP, context);
+            return context.allocateFunction(ExtractFunctions.functionInfo(node.getField()), Arrays.asList(expression));
         }
 
         @Override

@@ -1604,4 +1604,32 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(unwrap(analysis.sources(), symbols.get(0)), isReference("id"));
         assertThat(symbols.get(1), isFunction("abs"));
     }
+
+    @Test
+    public void testExtractFunctionWithLiteral() throws Exception {
+        SelectAnalyzedStatement statement = analyze("select extract(day from '2012-03-24') from users");
+        Symbol symbol = statement.querySpec().outputs().get(0);
+        assertThat(symbol, isLiteral(24L, DataTypes.LONG));
+    }
+
+    @Test
+    public void testExtractFunctionWithWrongType() throws Exception {
+        SelectAnalyzedStatement statement = analyze("select extract(day from name) from users");
+        Symbol symbol = statement.querySpec().outputs().get(0);
+        assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
+
+        Symbol argument = ((Function) symbol).arguments().get(0);
+        assertThat(argument, isFunction("toTimestamp"));
+    }
+
+    @Test
+    public void testExtractFunctionWithCorrectType() throws Exception {
+        SelectAnalyzedStatement statement = analyze("select extract(day from timestamp) from transactions");
+
+        Symbol symbol = statement.querySpec().outputs().get(0);
+        assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
+
+        Symbol argument = ((Function) symbol).arguments().get(0);
+        assertThat(((Field) argument).path().outputName(), is("timestamp"));
+    }
 }

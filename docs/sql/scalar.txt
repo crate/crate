@@ -144,10 +144,112 @@ If the time zone is not specified, truncation is based on UTC time::
     +---------------+---------------+
     SELECT 3 rows in set (... sec)
 
+extract(field from source)
+--------------------------
+
+``extract`` is a special expression that translates to a function which
+retrieves subfields such as day, hour or minute from a timestamp.
+
+The return type depends on the used ``field``.
+
+synopsis
+........
+
+::
+
+    EXTRACT( field FROM expression )
+
+
+:field: an identifier which identifies the part of the timestamp that should be
+        extracted.
+:expression: an expression that resolves to a timestamp or is castable to
+             timestamp.
+
+
+::
+
+    cr> select extract(day from '2014-08-23') from sys.cluster;
+    +--------------------------------+
+    | EXTRACT(DAY FROM '2014-08-23') |
+    +--------------------------------+
+    |                             23 |
+    +--------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+``source`` must be an expression that returns a timestamp. In case the
+expression has a different return type but is known to be castable to timestamp
+an implicit cast will be attempted.
+
+``field`` is an identifier that selects which part of the timestamp to extract.
+The following fields are supported:
+
+
+**CENTURY**
+  | *Return type:* ``integer``
+  | century of era
+
+  Returns the ISO representation which is a straight split of the date.
+  Year 2000 century 20 and year 2001 is also century 20. This is different
+  to the GregorianJulian (GJ) calendar system where 2001 would be century
+  21.
+
+**YEAR**
+  | *Return type:* ``integer``
+  | the year field
+
+**QUARTER**
+  | *Return type:* ``integer``
+  | the quarter of the year (1 - 4)
+
+**MONTH**
+  | *Return type:* ``integer``
+  | the month of the year
+
+**WEEK**
+  | *Return type:* ``integer``
+  | the week of the year
+
+**DAY**
+  | *Return type:* ``integer``
+  | the day of the month
+
+**DAY_OF_MONTH**
+  | *Return type:* ``integer``
+  | same as ``day``
+
+**DAY_OF_WEEK**
+  | *Return type:* ``integer``
+  | day of the week. Starting with Monday (1) to Sunday (7)
+
+**DOW**
+  | *Return type:* ``integer``
+  | same as ``day_of_week``
+
+**DAY_OF_YEAR**
+  | *Return type:* ``integer``
+  | the day of the year (1 - 365 / 366)
+
+**DOY**
+  | *Return type:* ``integer``
+  | same as ``day_of_year``
+
+**HOUR**
+  | *Return type:* ``integer``
+  | the hour field
+
+**MINUTE**
+  | *Return type:* ``integer``
+  | the minute field
+
+**SECOND**
+  | *Return type:* ``integer``
+  | the second field
 
 .. _`available time zones`: http://www.joda.org/joda-time/timezones.html
 
 .. _`Joda-Time`: http://www.joda.org/joda-time/
+
 
 Geo Functions
 =============
