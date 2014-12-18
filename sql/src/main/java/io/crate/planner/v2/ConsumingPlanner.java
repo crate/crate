@@ -39,6 +39,7 @@ public class ConsumingPlanner {
     private final List<Consumer> consumers = new ArrayList<>();
 
     public ConsumingPlanner(AnalysisMetaData analysisMetaData) {
+        consumers.add(new DistributedGroupByConsumer(analysisMetaData));
         consumers.add(new ESCountConsumer(analysisMetaData));
         consumers.add(new GlobalAggregateConsumer());
         consumers.add(new ESGetConsumer(analysisMetaData));

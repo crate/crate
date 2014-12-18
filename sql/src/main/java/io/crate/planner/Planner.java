@@ -602,48 +602,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         } else if (context.indexWriterProjection.isPresent()) {
             distributedWriterGroupBy(analysis, tableInfo, whereClauseContext, plan, context.indexWriterProjection.get());
         } else {
-            distributedGroupBy(analysis, tableInfo, whereClauseContext, plan);
+            assert false : "this case should have been handled in the ConsumingPlanner";
         }
     }
 
-    private boolean requiresDistribution(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
+    private static boolean requiresDistribution(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
         Routing routing = tableInfo.getRouting(analysis.whereClause());
-        if (!routing.hasLocations()) return false;
-        if (groupedByClusteredColumnOrPrimaryKeys(analysis, tableInfo)) return false;
-        if (routing.locations().size() > 1) return true;
-        return false;
-    }
-
-    private boolean groupedByClusteredColumnOrPrimaryKeys(SelectAnalyzedStatement analysis, TableInfo tableInfo) {
-        List<Symbol> groupBy = analysis.groupBy();
-        assert groupBy != null;
-        if (groupBy.size() > 1) {
-            return groupedByPrimaryKeys(groupBy, tableInfo.primaryKey());
-        }
-
-        // this also handles the case if there is only one primary key.
-        // as clustered by column == pk column  in that case
-        Symbol groupByKey = unwrap(groupBy.get(0));
-        return (groupByKey instanceof Reference
-                && ((Reference) groupByKey).info().ident().columnIdent().equals(tableInfo.clusteredBy()));
-    }
-
-    private boolean groupedByPrimaryKeys(List<Symbol> groupBy, List<ColumnIdent> primaryKeys) {
-        if (groupBy.size() != primaryKeys.size()) {
-            return false;
-        }
-        for (int i = 0, groupBySize = groupBy.size(); i < groupBySize; i++) {
-            Symbol groupBySymbol = unwrap(groupBy.get(i));
-            if (groupBySymbol instanceof Reference) {
-                ColumnIdent pkIdent = primaryKeys.get(i);
-                if (!pkIdent.equals(((Reference) groupBySymbol).info().ident().columnIdent())) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-        return true;
+        return GroupByConsumer.requiresDistribution(tableInfo, unwrap(analysis.groupBy()), routing);
     }
 
     private void nonDistributedGroupBy(SelectAnalyzedStatement analysis,
@@ -654,7 +619,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         boolean ignoreSorting = context.indexWriterProjection.isPresent()
                 && analysis.limit() == null
                 && analysis.offset() == TopN.NO_OFFSET;
-        boolean groupedByClusteredPk = groupedByClusteredColumnOrPrimaryKeys(analysis, tableInfo);
+
+        List<Symbol> groupBy = unwrap(analysis.groupBy());
+        boolean groupedByClusteredPk = GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(tableInfo, groupBy);
 
         int numAggregationSteps = 2;
         if (tableInfo.rowGranularity() == RowGranularity.DOC) {
@@ -665,7 +632,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             numAggregationSteps = 1;
         }
         PlannerContextBuilder contextBuilder =
-                new PlannerContextBuilder(numAggregationSteps, unwrap(analysis.groupBy()), ignoreSorting)
+                new PlannerContextBuilder(numAggregationSteps, groupBy, ignoreSorting)
                 .output(unwrap(analysis.outputSymbols()))
                 .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
 
@@ -770,80 +737,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return (analysis.limit() != null
                 || analysis.offset() > 0
                 || aggregationsWrappedInScalar);
-    }
-
-    /**
-     * distributed collect on mapper nodes
-     * with merge on reducer to final (they have row authority)
-     * <p/>
-     * final merge on handler
-     */
-    private void distributedGroupBy(SelectAnalyzedStatement analysis,
-                                    TableInfo tableInfo,
-                                    WhereClauseContext whereClauseContext,
-                                    Plan plan) {
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, unwrap(analysis.groupBy()))
-                .output(unwrap(analysis.outputSymbols()))
-                .orderBy(unwrap(analysis.orderBy().orderBySymbols()));
-
-        Symbol havingClause = unwrap(analysis.havingClause());
-        if (havingClause != null && havingClause.symbolType() == SymbolType.FUNCTION) {
-            // replace aggregation symbols with input columns from previous projection
-            havingClause = contextBuilder.having(havingClause);
-        }
-
-        // collector
-        GroupProjection groupProjection = new GroupProjection(
-                contextBuilder.groupBy(), contextBuilder.aggregations());
-        CollectNode collectNode = PlanNodeBuilder.distributingCollect(
-                tableInfo,
-                whereClauseContext.whereClause(),
-                contextBuilder.toCollect(),
-                nodesFromTable(tableInfo, whereClauseContext.whereClause()),
-                ImmutableList.<Projection>of(groupProjection)
-        );
-        plan.add(collectNode);
-
-        contextBuilder.nextStep();
-
-        // mergeNode for reducer
-        ImmutableList.Builder<Projection> projectionsBuilder = ImmutableList.<Projection>builder();
-        projectionsBuilder.add(new GroupProjection(
-                contextBuilder.groupBy(),
-                contextBuilder.aggregations()));
-
-
-        if (havingClause != null) {
-            FilterProjection fp = new FilterProjection((Function)havingClause);
-            fp.outputs(contextBuilder.passThroughOutputs());
-            projectionsBuilder.add(fp);
-        }
-
-        boolean topNDone = addTopNIfApplicableOnReducer(analysis, contextBuilder, projectionsBuilder);
-        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
-        plan.add(mergeNode);
-
-
-        List<Symbol> outputs;
-        List<Symbol> orderBy;
-        if (topNDone) {
-            orderBy = contextBuilder.passThroughOrderBy();
-            outputs = contextBuilder.passThroughOutputs();
-        } else {
-            orderBy = contextBuilder.orderBy();
-            outputs = contextBuilder.outputs();
-        }
-        // mergeNode handler
-        TopNProjection topN = new TopNProjection(
-                firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                analysis.offset(),
-                orderBy,
-                analysis.orderBy().reverseFlags(),
-                analysis.orderBy().nullsFirst()
-        );
-        topN.outputs(outputs);
-        MergeNode localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
-        plan.add(localMergeNode);
     }
 
     /**

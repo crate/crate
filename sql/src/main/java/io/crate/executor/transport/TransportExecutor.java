@@ -192,6 +192,14 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
+        public Void visitDistributedGroupByPlanNode(DistributedGroupByPlanNode distributedGroupByPlanNode, Job context) {
+            visitCollectNode(distributedGroupByPlanNode.collectNode(), context);
+            visitMergeNode(distributedGroupByPlanNode.reducerMergeNode(), context);
+            visitMergeNode(distributedGroupByPlanNode.localMergeNode(), context);
+            return null;
+        }
+
+        @Override
         public Void visitQueryThenFetchNode(QueryThenFetchNode node, Job context) {
             context.addTask(new QueryThenFetchTask(
                     functions,

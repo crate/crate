@@ -103,4 +103,8 @@ public class PlanVisitor<C, R> {
     public R visitGlobalAggregateNode(GlobalAggregateNode globalAggregateNode, C context) {
         return visitPlanNode(globalAggregateNode, context);
     }
+
+    public R visitDistributedGroupByPlanNode(DistributedGroupByPlanNode distributedGroupByPlanNode, C context) {
+        return visitPlanNode(distributedGroupByPlanNode, context);
+    }
 }
