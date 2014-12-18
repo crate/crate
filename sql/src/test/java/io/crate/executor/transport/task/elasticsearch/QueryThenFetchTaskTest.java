@@ -28,7 +28,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.query.QueryShardRequest;
 import io.crate.action.sql.query.TransportQueryShardAction;
 import io.crate.analyze.WhereClause;
-import io.crate.executor.QueryResult;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -106,6 +106,7 @@ public class QueryThenFetchTaskTest {
         searchServiceTransportAction = mock(SearchServiceTransportAction.class);
         searchPhaseController = mock(SearchPhaseController.class);
         queryThenFetchTask = new QueryThenFetchTask(
+                UUID.randomUUID(),
                 mock(Functions.class),
                 searchNode,
                 clusterService,
@@ -120,6 +121,7 @@ public class QueryThenFetchTaskTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("QueryThenFetch doesn't support \"count()\" in outputs");
         new QueryThenFetchTask(
+                UUID.randomUUID(),
                 mock(Functions.class),
                 new QueryThenFetchNode(
                         new Routing(),
@@ -171,11 +173,11 @@ public class QueryThenFetchTaskTest {
 
         OutOfMemoryError oom = new OutOfMemoryError();
         searchServiceListenerArgumentCaptor.getValue().onFailure(oom);
-        List<ListenableFuture<QueryResult>> result = queryThenFetchTask.result();
+        List<ListenableFuture<TaskResult>> result = queryThenFetchTask.result();
 
-        Futures.addCallback(Futures.allAsList(result), new FutureCallback<List<QueryResult>>() {
+        Futures.addCallback(Futures.allAsList(result), new FutureCallback<List<TaskResult>>() {
             @Override
-            public void onSuccess(@Nullable List<QueryResult> result) {
+            public void onSuccess(@Nullable List<TaskResult> result) {
                 fail();
             }
 
@@ -202,11 +204,11 @@ public class QueryThenFetchTaskTest {
         verify(transportQueryShardAction).execute(anyString(), any(QueryShardRequest.class), responseListener.capture());
 
         responseListener.getValue().onFailure(new OutOfMemoryError("no more memory"));
-        List<ListenableFuture<QueryResult>> result = queryThenFetchTask.result();
+        List<ListenableFuture<TaskResult>> result = queryThenFetchTask.result();
 
-        Futures.addCallback(Futures.allAsList(result), new FutureCallback<List<QueryResult>>() {
+        Futures.addCallback(Futures.allAsList(result), new FutureCallback<List<TaskResult>>() {
             @Override
-            public void onSuccess(@Nullable List<QueryResult> result) {
+            public void onSuccess(@Nullable List<TaskResult> result) {
                 fail();
             }
 

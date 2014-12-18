@@ -28,7 +28,8 @@ import java.util.List;
 
 public interface Executor {
 
-    public Job newJob(Plan node);
+    public Job newJob(Plan plan);
 
     public List<ListenableFuture<TaskResult>> execute(Job job);
+
 }

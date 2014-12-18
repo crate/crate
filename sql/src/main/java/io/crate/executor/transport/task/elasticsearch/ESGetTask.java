@@ -53,24 +53,28 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class ESGetTask implements Task<QueryResult> {
+public class ESGetTask extends Task {
 
     private final static Visitor VISITOR = new Visitor();
-    private final List<ListenableFuture<QueryResult>> results;
+    private final List<ListenableFuture<TaskResult>> results;
     private final TransportAction transportAction;
     private final ActionRequest request;
     private final ActionListener listener;
 
-    public ESGetTask(Functions functions,
+    public ESGetTask(UUID jobId,
+                     Functions functions,
                      ProjectionToProjectorVisitor projectionToProjectorVisitor,
                      TransportMultiGetAction multiGetAction,
                      TransportGetAction getAction,
                      ESGetNode node) {
+        super(jobId);
+
         assert multiGetAction != null;
         assert getAction != null;
         assert node != null;
         assert node.ids().size() > 0;
         assert node.limit() == null || node.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
+
 
         Map<String, Object> partitionValues = preparePartitionValues(node);
         final Context ctx = new Context(functions, node.outputs().size(), partitionValues);
@@ -83,8 +87,8 @@ public class ESGetTask implements Task<QueryResult> {
         }
 
         final FetchSourceContext fsc = new FetchSourceContext(ctx.fields());
-        final SettableFuture<QueryResult> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<QueryResult>>asList(result);
+        final SettableFuture<TaskResult> result = SettableFuture.create();
+        results = Arrays.<ListenableFuture<TaskResult>>asList(result);
         if (node.ids().size() > 1) {
             MultiGetRequest multiGetRequest = prepareMultiGetRequest(node, fsc);
             transportAction = multiGetAction;
@@ -179,13 +183,13 @@ public class ESGetTask implements Task<QueryResult> {
 
     static class MultiGetResponseListener implements ActionListener<MultiGetResponse>, ProjectorUpstream {
 
-        private final SettableFuture<QueryResult> result;
+        private final SettableFuture<TaskResult> result;
         private final List<FieldExtractor> fieldExtractor;
         @Nullable
         private final FlatProjectorChain projectorChain;
         private final Projector downstream;
 
-        public MultiGetResponseListener(final SettableFuture<QueryResult> result,
+        public MultiGetResponseListener(final SettableFuture<TaskResult> result,
                                         List<FieldExtractor> extractors,
                                         @Nullable FlatProjectorChain projectorChain) {
             this.result = result;
@@ -265,10 +269,10 @@ public class ESGetTask implements Task<QueryResult> {
 
     static class GetResponseListener implements ActionListener<GetResponse> {
 
-        private final SettableFuture<QueryResult> result;
+        private final SettableFuture<TaskResult> result;
         private final List<FieldExtractor> extractors;
 
-        public GetResponseListener(SettableFuture<QueryResult> result, List<FieldExtractor> extractors) {
+        public GetResponseListener(SettableFuture<TaskResult> result, List<FieldExtractor> extractors) {
             this.result = result;
             this.extractors = extractors;
         }
@@ -307,7 +311,7 @@ public class ESGetTask implements Task<QueryResult> {
     }
 
     @Override
-    public List<ListenableFuture<QueryResult>> result() {
+    public List<ListenableFuture<TaskResult>> result() {
         return results;
     }
 

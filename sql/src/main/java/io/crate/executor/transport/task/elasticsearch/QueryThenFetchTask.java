@@ -67,7 +67,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class QueryThenFetchTask implements Task<QueryResult> {
+public class QueryThenFetchTask extends Task {
 
     private final ESLogger logger = Loggers.getLogger(this.getClass());
 
@@ -76,8 +76,8 @@ public class QueryThenFetchTask implements Task<QueryResult> {
     private final SearchServiceTransportAction searchServiceTransportAction;
     private final SearchPhaseController searchPhaseController;
     private final ThreadPool threadPool;
-    private final SettableFuture<QueryResult> result;
-    private final List<ListenableFuture<QueryResult>> results;
+    private final SettableFuture<TaskResult> result;
+    private final List<ListenableFuture<TaskResult>> results;
 
     private final Routing routing;
     private final AtomicArray<IntArrayList> docIdsToLoad;
@@ -99,13 +99,15 @@ public class QueryThenFetchTask implements Task<QueryResult> {
     private final static SearchRequest EMPTY_SEARCH_REQUEST = new SearchRequest();
 
 
-    public QueryThenFetchTask(Functions functions,
+    public QueryThenFetchTask(UUID jobId,
+                              Functions functions,
                               QueryThenFetchNode searchNode,
                               ClusterService clusterService,
                               TransportQueryShardAction transportQueryShardAction,
                               SearchServiceTransportAction searchServiceTransportAction,
                               SearchPhaseController searchPhaseController,
                               ThreadPool threadPool) {
+        super(jobId);
         this.searchNode = searchNode;
         this.transportQueryShardAction = transportQueryShardAction;
         this.searchServiceTransportAction = searchServiceTransportAction;
@@ -116,7 +118,7 @@ public class QueryThenFetchTask implements Task<QueryResult> {
         nodes = state.nodes();
 
         result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<QueryResult>>asList(result);
+        results = Arrays.<ListenableFuture<TaskResult>>asList(result);
 
         routing = searchNode.routing();
 
@@ -368,7 +370,7 @@ public class QueryThenFetchTask implements Task<QueryResult> {
     }
 
     @Override
-    public List<ListenableFuture<QueryResult>> result() {
+    public List<ListenableFuture<TaskResult>> result() {
         return results;
     }
 

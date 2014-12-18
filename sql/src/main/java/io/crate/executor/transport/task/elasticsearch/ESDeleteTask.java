@@ -32,13 +32,16 @@ import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
+import java.util.UUID;
+
 public class ESDeleteTask extends AsyncChainedTask {
 
     private final TransportDeleteAction transport;
     private final DeleteRequest request;
     private final ActionListener<DeleteResponse> listener;
 
-    public ESDeleteTask(TransportDeleteAction transport, ESDeleteNode node) {
+    public ESDeleteTask(UUID jobId, ESDeleteNode node, TransportDeleteAction transport) {
+        super(jobId);
         this.transport = transport;
 
         request = new DeleteRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.id());

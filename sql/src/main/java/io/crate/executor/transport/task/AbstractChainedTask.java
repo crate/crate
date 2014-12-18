@@ -35,8 +35,9 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.UUID;
 
-public abstract class AbstractChainedTask implements Task<TaskResult> {
+public abstract class AbstractChainedTask extends Task {
 
     protected List<ListenableFuture<TaskResult>> upstreamResult = ImmutableList.of();
     protected final List<ListenableFuture<TaskResult>> resultList;
@@ -44,7 +45,8 @@ public abstract class AbstractChainedTask implements Task<TaskResult> {
 
     protected final ESLogger logger = Loggers.getLogger(getClass());
 
-    protected AbstractChainedTask() {
+    protected AbstractChainedTask(UUID jobId) {
+        super(jobId);
         this.result = SettableFuture.create();
         this.resultList = ImmutableList.<ListenableFuture<TaskResult>>of(this.result);
     }
