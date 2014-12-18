@@ -37,22 +37,24 @@ import org.elasticsearch.action.count.CrateTransportCountAction;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
-public class ESCountTask implements Task<QueryResult> {
+public class ESCountTask extends Task {
 
     private final CrateTransportCountAction transportCountAction;
-    private final List<ListenableFuture<QueryResult>> results;
+    private final List<ListenableFuture<TaskResult>> results;
     private CountRequest request;
     private ActionListener<CountResponse> listener;
     private final static ESQueryBuilder queryBuilder = new ESQueryBuilder();
-    private final static QueryResult ZERO_RESULT = new QueryResult(new Object[][] { new Object[] { 0L }});
+    private final static TaskResult ZERO_RESULT = new QueryResult(new Object[][] { new Object[] { 0L }});
 
-    public ESCountTask(ESCountNode node, CrateTransportCountAction transportCountAction) {
+    public ESCountTask(UUID jobId, ESCountNode node, CrateTransportCountAction transportCountAction) {
+        super(jobId);
         this.transportCountAction = transportCountAction;
         assert node != null;
 
-        final SettableFuture<QueryResult> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<QueryResult>>asList(result);
+        final SettableFuture<TaskResult> result = SettableFuture.create();
+        results = Arrays.<ListenableFuture<TaskResult>>asList(result);
 
         String indices[] = node.indices();
         if (node.whereClause().noMatch() || indices.length == 0) {
@@ -78,7 +80,7 @@ public class ESCountTask implements Task<QueryResult> {
     }
 
     @Override
-    public List<ListenableFuture<QueryResult>> result() {
+    public List<ListenableFuture<TaskResult>> result() {
         return results;
     }
 
@@ -89,9 +91,9 @@ public class ESCountTask implements Task<QueryResult> {
 
     static class CountResponseListener implements ActionListener<CountResponse> {
 
-        private final SettableFuture<QueryResult> result;
+        private final SettableFuture<TaskResult> result;
 
-        public CountResponseListener(SettableFuture<QueryResult> result) {
+        public CountResponseListener(SettableFuture<TaskResult> result) {
             this.result = result;
         }
 

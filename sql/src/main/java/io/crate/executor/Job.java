@@ -22,20 +22,29 @@
 package io.crate.executor;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 public class Job {
 
-    private final UUID id = UUID.randomUUID();
+    private final UUID id;
     private List<Task> tasks = new ArrayList<>();
+
+    public Job() {
+        this(UUID.randomUUID());
+    }
+
+    public Job(UUID id) {
+        this.id = id;
+    }
 
     public UUID id() {
         return id;
     }
 
-    public void addTask(Task task) {
-        tasks.add(task);
+    public void addTasks(Collection<Task> tasks) {
+        this.tasks.addAll(tasks);
     }
 
     public List<Task> tasks() {

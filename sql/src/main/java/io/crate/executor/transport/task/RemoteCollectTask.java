@@ -46,20 +46,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class RemoteCollectTask implements Task<QueryResult> {
+public class RemoteCollectTask extends Task {
 
     private final CollectNode collectNode;
-    private final List<ListenableFuture<QueryResult>> result;
+    private final List<ListenableFuture<TaskResult>> result;
     private final String[] nodeIds;
     private final TransportCollectNodeAction transportCollectNodeAction;
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
     private final StatsTables statsTables;
     private final CircuitBreaker circuitBreaker;
 
-    public RemoteCollectTask(CollectNode collectNode,
+    public RemoteCollectTask(UUID jobId,
+                             CollectNode collectNode,
                              TransportCollectNodeAction transportCollectNodeAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation,
                              StatsTables statsTables, CircuitBreaker circuitBreaker) {
+        super(jobId);
         this.collectNode = collectNode;
         this.transportCollectNodeAction = transportCollectNodeAction;
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
@@ -77,7 +79,7 @@ public class RemoteCollectTask implements Task<QueryResult> {
         nodeIds = collectNode.routing().nodes().toArray(new String[resultSize]);
         result = new ArrayList<>(resultSize);
         for (int i = 0; i < resultSize; i++) {
-            result.add(SettableFuture.<QueryResult>create());
+            result.add(SettableFuture.<TaskResult>create());
         }
     }
 
@@ -98,12 +100,12 @@ public class RemoteCollectTask implements Task<QueryResult> {
                     new ActionListener<NodeCollectResponse>() {
                         @Override
                         public void onResponse(NodeCollectResponse response) {
-                            ((SettableFuture<QueryResult>)result.get(resultIdx)).set(new QueryResult(response.rows()));
+                            ((SettableFuture<TaskResult>)result.get(resultIdx)).set(new QueryResult(response.rows()));
                         }
 
                         @Override
                         public void onFailure(Throwable e) {
-                            ((SettableFuture<QueryResult>)result.get(resultIdx)).setException(e);
+                            ((SettableFuture<TaskResult>)result.get(resultIdx)).setException(e);
                         }
                     }
             );
@@ -127,14 +129,14 @@ public class RemoteCollectTask implements Task<QueryResult> {
             @Override
             public void onSuccess(@Nullable Object[][] rows) {
                 ramAccountingContext.close();
-                ((SettableFuture<QueryResult>) result.get(resultIdx)).set(new QueryResult(rows));
+                ((SettableFuture<TaskResult>) result.get(resultIdx)).set(new QueryResult(rows));
                 statsTables.operationFinished(operationId, null, ramAccountingContext.totalBytes());
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
                 ramAccountingContext.close();
-                ((SettableFuture<QueryResult>)result.get(resultIdx)).setException(t);
+                ((SettableFuture<TaskResult>)result.get(resultIdx)).setException(t);
                 statsTables.operationFinished(operationId, Exceptions.messageOf(t),
                         ramAccountingContext.totalBytes());
             }
@@ -142,7 +144,7 @@ public class RemoteCollectTask implements Task<QueryResult> {
     }
 
     @Override
-    public List<ListenableFuture<QueryResult>> result() {
+    public List<ListenableFuture<TaskResult>> result() {
         return result;
     }
 

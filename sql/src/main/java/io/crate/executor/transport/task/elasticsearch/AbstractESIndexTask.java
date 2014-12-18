@@ -28,12 +28,14 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 
+import java.util.UUID;
+
 public abstract class AbstractESIndexTask extends AbstractChainedTask {
 
     protected final ESIndexNode node;
 
-    public AbstractESIndexTask(ESIndexNode node) {
-        super();
+    public AbstractESIndexTask(UUID jobId, ESIndexNode node) {
+        super(jobId);
         this.node = node;
     }
 

@@ -34,16 +34,19 @@ import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSet
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
-public class ESClusterUpdateSettingsTask implements Task<TaskResult> {
+public class ESClusterUpdateSettingsTask extends Task {
 
     private final List<ListenableFuture<TaskResult>> results;
     private final TransportClusterUpdateSettingsAction transport;
     private final ClusterUpdateSettingsRequest request;
     private final ActionListener<ClusterUpdateSettingsResponse> listener;
 
-    public ESClusterUpdateSettingsTask(TransportClusterUpdateSettingsAction transport,
+    public ESClusterUpdateSettingsTask(UUID jobId,
+                                       TransportClusterUpdateSettingsAction transport,
                                        ESClusterUpdateSettingsNode node) {
+        super(jobId);
         this.transport = transport;
 
         final SettableFuture<TaskResult> result = SettableFuture.create();

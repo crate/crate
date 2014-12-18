@@ -43,19 +43,23 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class DistributedMergeTask implements Task<QueryResult> {
+public class DistributedMergeTask extends Task {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final MergeNode mergeNode;
     private final TransportMergeNodeAction transportMergeNodeAction;
-    private final ArrayList<ListenableFuture<QueryResult>> results;
+    private final ArrayList<ListenableFuture<TaskResult>> results;
     private List<ListenableFuture<TaskResult>> upstreamResult;
 
-    public DistributedMergeTask(TransportMergeNodeAction transportMergeNodeAction, MergeNode mergeNode) {
+    public DistributedMergeTask(UUID jobId,
+                                TransportMergeNodeAction transportMergeNodeAction,
+                                MergeNode mergeNode) {
+        super(jobId);
         Preconditions.checkNotNull(mergeNode.executionNodes());
 
         this.transportMergeNodeAction = transportMergeNodeAction;
@@ -63,7 +67,7 @@ public class DistributedMergeTask implements Task<QueryResult> {
 
         results = new ArrayList<>(mergeNode.executionNodes().size());
         for (String node : mergeNode.executionNodes()) {
-            results.add(SettableFuture.<QueryResult>create());
+            results.add(SettableFuture.<TaskResult>create());
         }
     }
 
@@ -96,8 +100,8 @@ public class DistributedMergeTask implements Task<QueryResult> {
                         if (t instanceof RemoteTransportException){
                             t = t.getCause();
                         }
-                        for (ListenableFuture<QueryResult> result : results) {
-                            ((SettableFuture<QueryResult>)result).setException(t);
+                        for (ListenableFuture<TaskResult> result : results) {
+                            ((SettableFuture<TaskResult>)result).setException(t);
                         }
                         countDownLatch.countDown();
                         logger.error("remote collect request failed", t);
@@ -114,7 +118,7 @@ public class DistributedMergeTask implements Task<QueryResult> {
                 @Override
                 public void onResponse(NodeMergeResponse nodeMergeResponse) {
                     logger.trace("startMerge.onResponse: {} of {}", node, mergeNode.executionNodes().size());
-                    ((SettableFuture<QueryResult>)results.get(resultIdx)).set(new QueryResult(nodeMergeResponse.rows()));
+                    ((SettableFuture<TaskResult>)results.get(resultIdx)).set(new QueryResult(nodeMergeResponse.rows()));
                 }
 
                 @Override
@@ -131,7 +135,7 @@ public class DistributedMergeTask implements Task<QueryResult> {
                             logger.error("Interrupted waiting for upstream exception", e1);
                         }
                     }
-                    SettableFuture<QueryResult> result = (SettableFuture<QueryResult>) results.get(resultIdx);
+                    SettableFuture<TaskResult> result = (SettableFuture<TaskResult>) results.get(resultIdx);
                     result.setException(e);
                     logger.error("Failure getting NodeMergeResponse: ", e);
                 }
@@ -142,7 +146,7 @@ public class DistributedMergeTask implements Task<QueryResult> {
     }
 
     @Override
-    public List<ListenableFuture<QueryResult>> result() {
+    public List<ListenableFuture<TaskResult>> result() {
         logger.trace("result() size:{}", results.size());
         return results;
     }

@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.executor.QueryResult;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.CollectOperation;
 import io.crate.planner.RowGranularity;
@@ -66,12 +66,12 @@ public class LocalCollectTaskTest {
                 return result;
             }
         };
-        LocalCollectTask collectTask = new LocalCollectTask(collectOperation, collectNode, new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+        LocalCollectTask collectTask = new LocalCollectTask(UUID.randomUUID(), collectOperation, collectNode, new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
         collectTask.start();
-        List<ListenableFuture<QueryResult>> results = collectTask.result();
+        List<ListenableFuture<TaskResult>> results = collectTask.result();
         assertThat(results.size(), is(1));
 
-        ListenableFuture<QueryResult> result = results.get(0);
+        ListenableFuture<TaskResult> result = results.get(0);
         assertThat(result.get().rows(), is(new Object[][]{{1}}));
     }
 }
